@@ -1,16 +1,24 @@
-## Interface: 11200
-## Title: Blackthorne's Farmer
+## Interface: 16001
+## Title: Blackthornes Farmer
 ## Notes: Search for a material or item and get the mobs, zones and levels to farm it.
 ## Author: Blackthornes
 ## Version: 0.1.0
 ## SavedVariables: BlackthornesFarmerDB
+## IconTexture: Interface\Icons\Trade_Mining
 
-Core.lua
-Search.lua
-UI.lua
+Core\Init.lua
+Core\Util.lua
 
+Data\Database.lua
 Data\Data_Mining.lua
 Data\Data_Herbalism.lua
 Data\Data_Cloth.lua
 Data\Data_Leather.lua
 Data\Data_Misc.lua
+Data\Data_MobDrops.lua
+
+Logic\Search.lua
+
+UI\Theme.lua
+UI\Widgets.lua
+UI\Main.lua

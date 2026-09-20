@@ -1,12 +1,10 @@
-# Blackthorne's Farmer
+# Blackthornes Farmer
 
-A World of Warcraft addon that answers one question: **where do I farm this?**
+A WoW: Forever addon that answers one question: **where do I farm this?**
 
 Type a material and it gives you back every source it knows about — the mob or
-node, the zone, and the level range you will be fighting in — sorted lowest
+the node, the zone, and the level range you will be fighting in — sorted lowest
 level first.
-
-Built for the 1.12 client (Turtle WoW and other vanilla-era servers).
 
 ```
 /farm copper ore
@@ -18,62 +16,129 @@ Copper Ore (Mining, 8 spots)
   [10-25] The Barrens     Copper Vein (mining node, needs Mining 1)  best single-zone route for a new miner
 ```
 
+The same box takes a zone or a mob name too, so it also answers "what is worth
+farming here?":
+
+```
+/farm defias      ->  Linen Cloth, off Defias Trappers and Smugglers in Westfall, 12-18
+/farm un'goro     ->  everything the database has in Un'Goro, by level
+```
+
+Built for the WoW: Forever beta client (`## Interface: 16001`), without Ace3 or
+LibStub, matching [Blackthornes Tradeskills](https://github.com/Blackthornes/Blackthornes_Tradeskills).
+The two share a palette on purpose — they are worn together.
+
 ## Install
 
-Copy the `BlackthornesFarmer` folder into your client's addon folder:
+### Linked to your working copy (recommended while developing)
 
-```
-<WoW folder>/Interface/AddOns/BlackthornesFarmer/
+Run this once, and from then on testing a branch is pulling it and typing
+`/reload`:
+
+```powershell
+.\tools\link.ps1
 ```
 
-The folder name has to stay `BlackthornesFarmer` — it must match the `.toc`
-file inside it. Restart the client (or `/reload`) and you're set.
+It junctions `Interface\AddOns\Blackthornes_Farmer` to this folder, so the
+client reads your checkout directly. Nothing is copied, so there is no deploy
+step to forget.
+
+Two things `/reload` will **not** pick up, because the client only reads them at
+startup:
+
+- a file that was **added, removed or renamed**
+- any change to **`Blackthornes_Farmer.toc`**
+
+After pulling a branch that did either, restart the client once. Everything
+else — a changed Lua file, new data, a UI tweak — is live on `/reload`.
+
+### Copied into the client
+
+If you would rather keep the client's copy separate from the repo:
+
+```powershell
+.\deploy.ps1              # syntax check, lint, then mirror into Interface\AddOns
+.\deploy.ps1 -SkipCheck   # skip the checks (not recommended)
+```
+
+Both scripts default to `D:\Blizzard\World of Warcraft\_classic_beta_`. Pass
+`-GamePath` if the client lives somewhere else.
+
+The addon folder name has to stay `Blackthornes_Farmer`, matching the `.toc`
+inside it. If they differ, the client ignores the folder and says nothing.
 
 ## Use
 
 | Command | What it does |
 | --- | --- |
-| `/farm` | open or close the window |
 | `/farm <text>` | search, and show the results in the window |
-| `/farm chat <text>` | print the same results to the chat frame instead |
-| `/farm list` | list every item in the database |
+| `/farm` | open or close the window |
+| `/farm chat <text>` | print the results to chat instead |
+| `/farm data` | where the loaded data came from |
 | `/farm stats` | how many items and spots are loaded |
+| `/farm list` | list every item in the database |
 | `/farm help` | the command list |
 
-`/farmer` and `/bfarm` do the same thing if `/farm` is taken by another addon.
+`/farmer` is the same command if `/farm` is taken.
 
 Searching is deliberately loose. It matches, best match first:
 
 1. an **item name** or alias — `copper ore`, `copper`, `mageweave`
-2. a **category** — `mining`, `herbalism`, `cloth`, `leather`, `fishing`
+2. a **category** — `mining`, `herbalism`, `cloth`, `mob drop`
 3. a **zone** or a **mob name** — `westfall`, `un'goro`, `defias`
 
-So the same box answers both "where do I get this?" and "what's worth farming
-in this zone?".
-
-The window is draggable, scrolls with the mouse wheel, and remembers where you
-put it and what you last searched for.
+A name match always outranks a zone match, so looking up an item never buries
+it under everything that happens to drop in a zone you named. Results follow
+typing rather than waiting for Enter.
 
 ## The data
 
-The addon ships with a seed database of 35 common materials and 144 farming
-spots: ore, herbs, cloth, leather, and a handful of elemental and fishing
-examples. It covers the materials people farm most, not everything in the
-game — the point of the data model is that it's easy to grow.
+The addon ships with a seed database covering ore, herbs, cloth, leather, mob
+drops and elementals. It is the materials people actually farm, not a full dump
+of the game.
 
-Levels mean different things depending on the kind of source, and that's
-deliberate:
+Levels mean different things depending on the kind of source, deliberately:
 
 - **mob / skinning** — the mob's own level range, so you know if you can kill it
 - **node / herb** — the surrounding zone's level band, so you know if the zone
   will kill you while you mine
 
-### Adding to it
+### Classic data versus Forever
 
-Every data file is plain Lua that calls one function. Add an item like this:
+**Everything that ships today is Classic data, and none of it is confirmed on
+Forever.** Forever is classic content on a retail engine and its drop tables are
+nobody's to assume, so the addon does not present a guess and a checked fact as
+the same thing.
+
+A source that has actually been confirmed in game carries a green `[Forever]`
+marker in the results. Unmarked means Classic-sourced and unverified — the
+window says so in its footer, and `/farm data` gives the running count.
+
+When you farm a spot and it holds up, mark it:
 
 ```lua
-BlackthornesFarmer:RegisterItem({
+{ kind = "mob", name = "Defias Trapper", zone = "Westfall",
+  minLevel = 12, maxLevel = 18, provenance = "forever" },
+```
+
+That is the whole mechanism. `provenance` defaults to `"classic"`, so the
+honest state is what you get for free and the claim is the thing you have to
+type.
+
+One test enforces this: `tools/test_data.lua` asserts the shipped data is all
+Classic-sourced. When you mark a row confirmed that test fails, which is the
+prompt to say in the commit message that you checked it in game. It is a
+speed bump, not a wall.
+
+### Adding to it
+
+Every data file is plain Lua that calls one function:
+
+```lua
+local _, ns = ...
+local DB = ns.DB
+
+DB:RegisterItem({
     name     = "Thorium Ore",
     id       = 10620,             -- optional, for item links later
     category = "Mining",
@@ -81,52 +146,65 @@ BlackthornesFarmer:RegisterItem({
     note     = "optional one-liner shown under the item",
     sources  = {
         {
-            kind     = "node",    -- mob | node | herb | skinning | fishing |
+            kind       = "node",  -- mob | node | herb | skinning | fishing |
                                   -- container | vendor | quest
-            name     = "Rich Thorium Vein",   -- optional; omit for plain herb nodes
-            zone     = "Winterspring",        -- required
-            minLevel = 53,                    -- required
-            maxLevel = 60,
-            requires = "Mining 275",          -- optional gate
-            chance   = 12,                    -- optional drop rate, in percent
-            note     = "optional one-liner shown after the source",
+            name       = "Rich Thorium Vein",   -- omit for plain herb nodes
+            zone       = "Winterspring",        -- required
+            minLevel   = 53,                    -- required
+            maxLevel   = 60,
+            requires   = "Mining 275",          -- optional gate
+            chance     = 12,                    -- optional drop rate, percent
+            note       = "optional one-liner shown after the source",
+            provenance = "forever",             -- omit unless you checked it
         },
     },
 })
 ```
 
-`zone` and `minLevel` are the only required fields on a source; everything else
-is optional and simply isn't printed when it's missing.
+`zone` and `minLevel` are the only required fields on a source. Everything else
+is simply not printed when it is missing.
 
 Registering a name that already exists **merges** the new sources into the
-existing item instead of replacing it. That means:
+existing item instead of replacing it. So:
 
 - the database can be split across as many files as you like
 - a later file can extend an earlier one
-- a separate data pack — a server-specific one, say — can bolt extra spots onto
-  items that already ship here
+- a Forever-specific data pack can bolt confirmed spots onto items that already
+  ship here, without touching the Classic rows
 
-To add a file, drop it in `BlackthornesFarmer/Data/` and add a line for it in
-`BlackthornesFarmer.toc`. Order doesn't matter as long as it's after
-`Core.lua`.
+`Data/Data_MobDrops.lua` does exactly that at the bottom of the file, adding
+extra elemental spots to items first registered in `Data/Data_Misc.lua`.
 
-## Tests
+To add a file, drop it in `Data/` and add a line for it in
+`Blackthornes_Farmer.toc`. A file that is not in the `.toc` does not load, and
+WoW says nothing about it.
 
-There's a smoke test that loads the whole addon against a stubbed-out client
-and checks the search, the ranking, the formatting and the window. It needs a
-Lua interpreter (5.1 or newer), not the game:
+## Layout
 
+| Folder | What is in it |
+|---|---|
+| `Core/` | Namespace, module registry, event dispatch, slash commands, saved variables |
+| `Data/` | The item database and the seed data files |
+| `Logic/` | Ranked search and the display lines it produces |
+| `UI/` | Theme, widgets and the window |
+| `tools/` | Checks and tests. Not shipped to the client |
+
+## Development
+
+```bash
+python tools/syntaxcheck.py   # parse every Lua file with a real 5.1 parser
+python tools/lintcalls.py     # find calls to methods, and constants, never defined
+python tools/runtests.py      # run the logic and window tests outside WoW
 ```
-lua tests/smoke_test.lua
-```
 
-It also validates the seed data — every item needs a source, every source
-needs a zone and a level — so it's worth running after editing a data file.
+`tools/` requires `lupa` (`python -m pip install --user lupa`).
 
-## Notes and caveats
+The checks exist because WoW silently disables an addon whose first TOC file
+fails to compile, and because a call to a method that no longer exists is valid
+Lua that fails only when that line runs. `deploy.ps1` runs the first two before
+it copies anything, and `.github/workflows/tests.yml` runs all three on every
+push.
 
-- The seed data is a starting point drawn from vanilla-era common knowledge.
-  Private servers tweak spawn rates and drop tables, so treat anything here as
-  a lead rather than gospel, and correct the file when you find better.
-- Levels on node entries are zone bands, not node requirements. The `requires`
-  field is what your profession skill has to be.
+The tests load the addon against a stub client (`tools/testenv.lua`), so they
+check the search, the ranking, the data and the window's wiring without the
+game running.

@@ -1,12 +1,18 @@
-# OS / editor noise
-.DS_Store
-Thumbs.db
-*.swp
-*~
-.idea/
-.vscode/
-
-# WoW client leftovers
-*.bak
-*.lua.bak
+# WoW client data, if the addon is ever worked on in place under the game folder
 WTF/
+*.lua.bak
+BlackthornesFarmerDB.lua
+
+# Python tooling
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
