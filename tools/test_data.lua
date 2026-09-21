@@ -78,6 +78,35 @@ suite.check("provenance counts cover every source",
 suite.check("seed data is all Classic-sourced", (counts.forever or 0) == 0,
     counts.forever)
 
+-- The generated harvest file is the one exception, and it is exempt for the
+-- reason the rule exists: those rows were measured on Forever by counting
+-- corpses, not claimed by somebody editing a number. It is absent in CI and
+-- present on a machine that has actually farmed, so this only runs when there
+-- is something to check.
+if env.HasHarvested() then
+    local harvested = env.Load({ harvested = true })
+    local withHarvest = harvested.DB:CountByProvenance()
+
+    suite.check("the harvested file contributes only Forever rows",
+        (withHarvest.classic or 0) == (counts.classic or 0),
+        ("%d classic before, %d after"):format(
+            counts.classic or 0, withHarvest.classic or 0))
+
+    suite.check("and it contributes at least one",
+        (withHarvest.forever or 0) > 0, withHarvest.forever)
+
+    for _, item in pairs(harvested.DB.items) do
+        for _, source in ipairs(item.sources) do
+            if source.provenance == "forever" then
+                suite.check(("measured %s in %s names its mob"):format(
+                    item.name, source.zone), source.name ~= nil)
+                suite.check(("measured %s in %s carries a level"):format(
+                    item.name, source.zone), source.minLevel ~= nil)
+            end
+        end
+    end
+end
+
 --------------------------------------------------------------------------------
 -- Registering the same name merges
 --------------------------------------------------------------------------------

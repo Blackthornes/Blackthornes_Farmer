@@ -222,12 +222,26 @@ local FILES = {
     "Logic/Harvest.lua",
 }
 
+-- Written by tools/harvest_import.py from a real session, so it is present on
+-- a machine that has harvested and absent in CI. Deliberately not in FILES:
+-- the "all shipped data is Classic-sourced" check means the hand-written
+-- files, and loading measured data into that check would defeat it.
+local HARVESTED = "Data/Data_Harvested.lua"
+
 local UI_FILES = {
     "UI/Theme.lua",
     "UI/Widgets.lua",
     "UI/Main.lua",
     "UI/Export.lua",
 }
+
+--- Is there a generated harvest file to load?
+function env.HasHarvested()
+    local handle = io.open(ROOT .. "/" .. HARVESTED, "r")
+    if not handle then return false end
+    handle:close()
+    return true
+end
 
 --- Load the addon exactly as the TOC does, and return its namespace.
 function env.Load(opts)
@@ -243,6 +257,8 @@ function env.Load(opts)
     end
 
     for _, file in ipairs(FILES) do Run(file) end
+
+    if opts.harvested and env.HasHarvested() then Run(HARVESTED) end
 
     if opts.ui then
         for _, file in ipairs(UI_FILES) do Run(file) end

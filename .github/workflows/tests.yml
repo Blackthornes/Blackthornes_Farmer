@@ -30,3 +30,6 @@ jobs:
 
       - name: Logic tests
         run: python tools/runtests.py
+
+      - name: The harvest importer writes what it should
+        run: python tools/test_harvest_import.py
