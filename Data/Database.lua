@@ -53,9 +53,15 @@ DB.KIND_LABEL = {
       sources  = {
         { kind = "node", name = "Copper Vein", zone = "Durotar",
           minLevel = 1, maxLevel = 10, requires = "Mining 1",
+          location = "Tiragarde Keep", coords = { 55.4, 12.8 }, chance = 35,
           provenance = "forever" },   -- omit until somebody has checked in game
       },
     })
+
+  Only `zone` and `minLevel` are required. `location` is where in the zone,
+  `coords` is { x, y } on the zone map, and `chance` is a drop rate in percent.
+  Everything optional is simply not drawn when it is missing, so a thin entry
+  and a fully researched one live in the same list without one looking broken.
 
   Registering a name that already exists merges the new sources into the
   existing item, so the database can be split across as many files as we like
@@ -123,6 +129,26 @@ function DB:AddSource(item, source)
         source.provenance = self.DEFAULT_PROVENANCE
     end
 
+    -- Coordinates are map percentages. A malformed pair is dropped rather than
+    -- stored, because a row that points somewhere wrong is worse than a row
+    -- that admits it does not know: one wastes a flight, the other does not.
+    if source.coords then
+        local x, y = source.coords[1], source.coords[2]
+
+        if type(x) ~= "number" or type(y) ~= "number"
+            or x < 0 or x > 100 or y < 0 or y > 100 then
+            ns.Warn(("dropped bad coordinates on %s in %s"):format(item.name, source.zone))
+            source.coords = nil
+        end
+    end
+
+    -- Same reasoning for a nonsense drop rate.
+    if source.chance and (type(source.chance) ~= "number"
+        or source.chance <= 0 or source.chance > 100) then
+        ns.Warn(("dropped a bad drop rate on %s in %s"):format(item.name, source.zone))
+        source.chance = nil
+    end
+
     item.sources[#item.sources + 1] = source
     return source
 end
@@ -156,6 +182,36 @@ end
 
 function DB:KindLabel(kind)
     return self.KIND_LABEL[kind] or kind
+end
+
+-- Short tag for the column view, where "mining node" is too wide to fit.
+DB.KIND_TAG = {
+    mob       = "MOB",
+    node      = "ORE",
+    herb      = "HERB",
+    skinning  = "SKIN",
+    fishing   = "FISH",
+    container = "BOX",
+    vendor    = "NPC",
+    quest     = "QUEST",
+}
+
+function DB:KindTag(kind)
+    return self.KIND_TAG[kind] or string.upper(kind or "?")
+end
+
+--- "Durnholde Keep, 80.6 45.2" -- whichever parts are known.
+function DB:WhereText(source)
+    local coords = source.coords
+
+    if source.location and coords then
+        return ("%s  %.1f, %.1f"):format(source.location, coords[1], coords[2])
+    end
+
+    if source.location then return source.location end
+    if coords then return ("%.1f, %.1f"):format(coords[1], coords[2]) end
+
+    return nil
 end
 
 --- How many sources come from each provenance, for `/farm data`.

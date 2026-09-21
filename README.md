@@ -7,14 +7,19 @@ the node, the zone, and the level range you will be fighting in — sorted lowes
 level first.
 
 ```
-/farm copper ore
+/farm wool cloth
 
-Copper Ore (Mining, 8 spots)
-  [1-10]  Dun Morogh      Copper Vein (mining node, needs Mining 1)
-  [1-10]  Elwynn Forest   Copper Vein (mining node, needs Mining 1)
-  [10-20] Westfall        Copper Vein (mining node, needs Mining 1)  dense circuit along the coast
-  [10-25] The Barrens     Copper Vein (mining node, needs Mining 1)  best single-zone route for a new miner
+- Wool Cloth (Cloth, 20 spots)
+  MOB   SOURCE                  WHERE                                  LEVEL   DROP
+  MOB   Shadowfang Moonwalker   Silverpine Forest / Shadowfang Keep    22-23   ####------  45%
+  MOB   Shadowfang Darksoul     Silverpine Forest / Shadowfang Keep    23-24   ####------  42%
+  MOB   Syndicate Rogue         Hillsbrad Foothills / Durnholde Keep   25-26   ###-------  32%
+  MOB   Blackrock Champion      Redridge Mountains / Stonewatch Keep   24-26   ###-------  30%
 ```
+
+Levels are coloured the way the game colours a target, so you can see at a
+glance what you can actually kill. Click any row to print it to chat with its
+coordinates, which is how you paste a spot to someone.
 
 The same box takes a zone or a mob name too, so it also answers "what is worth
 farming here?":
@@ -91,11 +96,16 @@ Searching is deliberately loose. It matches, best match first:
 
 1. an **item name** or alias — `copper ore`, `copper`, `mageweave`
 2. a **category** — `mining`, `herbalism`, `cloth`, `mob drop`
-3. a **zone** or a **mob name** — `westfall`, `un'goro`, `defias`
+3. a **zone**, a **landmark** or a **mob name** — `westfall`, `durnholde`,
+   `shadowfang`, `defias`
 
 A name match always outranks a zone match, so looking up an item never buries
 it under everything that happens to drop in a zone you named. Results follow
 typing rather than waiting for Enter.
+
+When a search turns up more than one kind of source, filter chips appear above
+the results — `ALL`, `MOB`, `ORE`, `HERB` and so on. Click an item heading to
+collapse it.
 
 ## The data
 
@@ -108,6 +118,16 @@ Levels mean different things depending on the kind of source, deliberately:
 - **mob / skinning** — the mob's own level range, so you know if you can kill it
 - **node / herb** — the surrounding zone's level band, so you know if the zone
   will kill you while you mine
+
+**`Wool Cloth` is the worked example of a fully researched item.** Every one of
+its rows names the mob, its level band, where in the zone it stands and roughly
+how often it drops. That is the shape to copy when filling in the rest, and
+`tools/test_data.lua` keeps it complete.
+
+Drop rates and coordinates are Classic-era figures. Coordinates are only given
+where the landmark is unambiguous — everywhere else the location name is the
+honest answer, because a coordinate that is wrong costs a flight while a
+landmark name does not.
 
 ### Classic data versus Forever
 
@@ -156,10 +176,12 @@ DB:RegisterItem({
                                   -- container | vendor | quest
             name       = "Rich Thorium Vein",   -- omit for plain herb nodes
             zone       = "Winterspring",        -- required
+            location   = "Frostsaber Rock",     -- where in the zone
+            coords     = { 55.4, 42.1 },        -- map percentages
             minLevel   = 53,                    -- required
             maxLevel   = 60,
             requires   = "Mining 275",          -- optional gate
-            chance     = 12,                    -- optional drop rate, percent
+            chance     = 12,                    -- drop rate, percent
             note       = "optional one-liner shown after the source",
             provenance = "forever",             -- omit unless you checked it
         },
@@ -168,7 +190,12 @@ DB:RegisterItem({
 ```
 
 `zone` and `minLevel` are the only required fields on a source. Everything else
-is simply not printed when it is missing.
+is simply not drawn when it is missing, so a thin entry and a fully researched
+one live in the same list without either looking broken.
+
+Coordinates and drop rates are validated on load: a pair outside the map, or a
+rate over 100, is dropped with a warning rather than stored. A row that points
+somewhere wrong is worse than one that admits it does not know.
 
 Registering a name that already exists **merges** the new sources into the
 existing item instead of replacing it. So:
