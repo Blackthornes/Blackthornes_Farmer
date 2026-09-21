@@ -44,6 +44,11 @@ local function Stub(fields)
     function frame:GetPoint() return "CENTER", nil, "CENTER", 0, 40 end
     function frame:GetFrameLevel() return 1 end
 
+    -- Recorded so a test can check where something was anchored.
+    function frame:SetPoint(...) self._point = { ... } end
+    function frame:GetCenter() return self._cx or 0, self._cy or 0 end
+    function frame:GetEffectiveScale() return 1 end
+
     function frame:RegisterEvent(event) self._events[event] = true end
     function frame:UnregisterEvent(event) self._events[event] = nil end
 
@@ -75,8 +80,26 @@ function env.InstallClient()
 
     _G.UIParent = Stub()
 
-    _G.CreateFrame = function(_, name)
-        local frame = Stub()
+    -- A default-sized minimap, and a cursor parked somewhere unambiguous so a
+    -- simulated drag lands at a known angle.
+    _G.Minimap = Stub({ _width = 140, _cx = 500, _cy = 500 })
+    _G.GetCursorPosition = function() return 600, 500 end
+
+    _G.GameTooltip = Stub({
+        _lines = {},
+        SetOwner = function() end,
+        AddLine = function(self, text) self._lines[#self._lines + 1] = text end,
+    })
+
+    -- Timers run straight away: the addon only uses them to let the minimap
+    -- settle after login, and a test has nothing to wait for.
+    _G.C_Timer = {
+        After = function(_, fn) fn() end,
+        NewTicker = function(_, fn) return Stub({ _fn = fn }) end,
+    }
+
+    _G.CreateFrame = function(_, name, parent)
+        local frame = Stub({ _parent = parent })
         if name then _G[name] = frame end
         return frame
     end

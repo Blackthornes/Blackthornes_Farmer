@@ -73,6 +73,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | --- | --- |
 | `/farm <text>` | search, and show the results in the window |
 | `/farm` | open or close the window |
+| `/farm minimap` | show or hide the minimap button |
 | `/farm chat <text>` | print the results to chat instead |
 | `/farm data` | where the loaded data came from |
 | `/farm stats` | how many items and spots are loaded |
@@ -80,6 +81,11 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm help` | the command list |
 
 `/farmer` is the same command if `/farm` is taken.
+
+There is also a **minimap button** — the mining-pick icon on the ring. Click it
+to open the window, drag it to move it round the minimap, and it stays where
+you put it. `/farm minimap` hides it if you would rather not have it, and
+brings it back.
 
 Searching is deliberately loose. It matches, best match first:
 

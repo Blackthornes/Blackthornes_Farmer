@@ -1,5 +1,6 @@
 -- Blackthornes Farmer -- UI/Main.lua
--- The window: a search box, a scrolling list of results, and a footer.
+-- The window -- a search box, a scrolling list of results, and a footer --
+-- plus the minimap button that opens it.
 --
 -- Results follow typing rather than waiting for Enter. The database is small
 -- enough to search on every keystroke, and watching the list narrow as you
@@ -219,4 +220,158 @@ end
 
 function UI:OnEnable()
     self:Build()
+    self:BuildMinimapButton()
+
+    -- The minimap's final size is not always settled at login, and other addons
+    -- resize it afterwards, so re-seat the button once things have calmed down.
+    if C_Timer and C_Timer.After then
+        C_Timer.After(1, function() UI:RepositionMinimapButton() end)
+    end
+
+    -- Cheap enough to check, and catches a minimap resized at any point.
+    if C_Timer and C_Timer.NewTicker then
+        self.ticker = C_Timer.NewTicker(5, function()
+            if Minimap and UI.lastMinimapWidth ~= Minimap:GetWidth() then
+                UI:RepositionMinimapButton()
+            end
+        end)
+    end
 end
+
+--------------------------------------------------------------------------------
+-- Minimap button
+--
+-- Ported from Blackthornes Tradeskills so the two behave identically: drag it
+-- around the ring, left-click to open. The orbit radius is derived from the
+-- minimap's real size rather than assumed, because a fixed radius only clears
+-- the ring on a default 140px minimap and anyone running a larger one gets the
+-- button sitting on top of the map.
+--------------------------------------------------------------------------------
+
+local DEFAULT_ANGLE = math.rad(200)
+
+function UI:BuildMinimapButton()
+    if self.minimapButton or not Minimap then return end
+
+    local button = CreateFrame("Button", "BlackthornesFarmerMinimapButton", Minimap)
+    button:SetSize(31, 31)
+    button:SetFrameStrata("MEDIUM")
+    button:SetFrameLevel(8)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+    local background = button:CreateTexture(nil, "BACKGROUND")
+    background:SetSize(20, 20)
+    background:SetPoint("CENTER")
+    background:SetColorTexture(Theme.Unpack("window"))
+
+    local icon = button:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(18, 18)
+    icon:SetPoint("CENTER")
+    icon:SetTexture([[Interface\Icons\Trade_Mining]])
+    icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+
+    local border = button:CreateTexture(nil, "OVERLAY")
+    border:SetSize(53, 53)
+    border:SetPoint("TOPLEFT")
+    border:SetTexture([[Interface\Minimap\MiniMap-TrackingBorder]])
+
+    local function GetOrbitRadius()
+        local size = Minimap:GetWidth()
+        if not size or size <= 0 then size = 140 end
+
+        return (size / 2) + (ns.db and ns.db.minimapGap or 16)
+    end
+
+    local function UpdatePosition(angle)
+        local radius = GetOrbitRadius()
+
+        button:ClearAllPoints()
+        button:SetPoint("CENTER", Minimap, "CENTER",
+            math.cos(angle) * radius, math.sin(angle) * radius)
+    end
+
+    button.UpdatePosition = UpdatePosition
+    UpdatePosition((ns.db and ns.db.minimapAngle) or DEFAULT_ANGLE)
+
+    -- Dragging around the minimap edge is the expected behaviour for these.
+    button:SetMovable(true)
+    button:RegisterForDrag("LeftButton")
+
+    button:SetScript("OnDragStart", function(self)
+        self.dragging = true
+        self:SetScript("OnUpdate", function()
+            local mx, my = Minimap:GetCenter()
+            local cx, cy = GetCursorPosition()
+            local scale = UIParent:GetEffectiveScale()
+
+            local newAngle = math.atan2((cy / scale) - my, (cx / scale) - mx)
+            UpdatePosition(newAngle)
+
+            if ns.db then ns.db.minimapAngle = newAngle end
+        end)
+    end)
+
+    button:SetScript("OnDragStop", function(self)
+        self.dragging = false
+        self:SetScript("OnUpdate", nil)
+    end)
+
+    button:SetScript("OnClick", function()
+        UI:Toggle()
+    end)
+
+    button:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        GameTooltip:AddLine("Blackthornes Farmer")
+        GameTooltip:AddLine("Click to open", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("Drag to move it round the minimap", 0.5, 0.5, 0.5)
+        GameTooltip:Show()
+    end)
+
+    button:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    self.minimapButton = button
+    self.lastMinimapWidth = Minimap:GetWidth()
+
+    self:ApplyMinimapVisibility()
+end
+
+--- Re-seat the button at its stored angle, using the current radius.
+function UI:RepositionMinimapButton()
+    local button = self.minimapButton
+    if not button or not button.UpdatePosition then return end
+
+    button.UpdatePosition((ns.db and ns.db.minimapAngle) or DEFAULT_ANGLE)
+    self.lastMinimapWidth = Minimap and Minimap:GetWidth()
+end
+
+function UI:ApplyMinimapVisibility()
+    local button = self.minimapButton
+    if not button then return end
+
+    if ns.db and ns.db.minimapHidden then
+        button:Hide()
+    else
+        button:Show()
+    end
+end
+
+--- Show or hide the button. Returns true when it ends up visible.
+function UI:ToggleMinimapButton()
+    if ns.db then
+        ns.db.minimapHidden = not ns.db.minimapHidden
+    end
+
+    self:ApplyMinimapVisibility()
+    return not (ns.db and ns.db.minimapHidden)
+end
+
+ns.RegisterCommand("minimap", "show or hide the minimap button", function()
+    local shown = ns.UI:ToggleMinimapButton()
+
+    if shown then
+        ns.Print("minimap button shown.")
+    else
+        ns.Print("minimap button hidden. /farm minimap brings it back.")
+    end
+end)

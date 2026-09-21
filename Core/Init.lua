@@ -210,6 +210,12 @@ local DEFAULTS = {
     y = 40,
     lastSearch = "",
     debug = false,
+
+    -- Minimap button: where it sits on the ring, how far off the edge, and
+    -- whether it is there at all.
+    minimapAngle = math.rad(200),
+    minimapGap = 16,
+    minimapHidden = false,
 }
 
 local function LoadSavedVariables()
