@@ -128,6 +128,26 @@ DB:RegisterItem({
         --------------------------------------------------------------------
         -- Outdoor camps
         --------------------------------------------------------------------
+        -- The bottom of the bracket. These drop wool less often than
+        -- anything below, but they are reachable a good eight levels earlier,
+        -- which is the trade if you are levelling through the Barrens.
+        { name = "Witchwing Harpy", zone = "The Barrens",
+          location = "Witchwing Terrace", minLevel = 17, maxLevel = 18,
+          chance = 18,
+          note = "earliest wool in the game; expect linen most pulls" },
+
+        { name = "Witchwing Ambusher", zone = "The Barrens",
+          location = "Witchwing Terrace", minLevel = 18, maxLevel = 19,
+          chance = 20 },
+
+        { name = "Witchwing Roguefeather", zone = "The Barrens",
+          location = "Witchwing Terrace", minLevel = 19, maxLevel = 20,
+          chance = 22 },
+
+        { name = "Witchwing Slayer", zone = "The Barrens",
+          location = "The Dry Hills", minLevel = 20, maxLevel = 21,
+          chance = 22, note = "the densest of the harpy camps" },
+
         { name = "Syndicate Rogue", zone = "Hillsbrad Foothills",
           location = "Durnholde Keep", coords = { 80.0, 60.0 },
           minLevel = 25, maxLevel = 26, chance = 32,
