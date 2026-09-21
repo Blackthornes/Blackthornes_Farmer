@@ -445,6 +445,58 @@ BlackthornesFarmerHarvestStore = {
         ["mob"] = "Venture Co. Peon",
         ["zone"] = "The Barrens",
     },
+    ["Witchwing Slayer|The Barrens|The Dry Hills"] = {
+        ["coords"] = { 38.5546, 12.4198 },
+        ["corpses"] = 4,
+        ["items"] = {
+            ["Broken Wishbone"] = {
+                ["corpses"] = 2,
+                ["count"] = 2,
+                ["id"] = 5115,
+                ["name"] = "Broken Wishbone",
+            },
+            ["Harpy Lieutenant Ring"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 5065,
+                ["name"] = "Harpy Lieutenant Ring",
+            },
+            ["Wool Cloth"] = {
+                ["corpses"] = 2,
+                ["count"] = 2,
+                ["id"] = 2592,
+                ["name"] = "Wool Cloth",
+            },
+        },
+        ["location"] = "The Dry Hills",
+        ["maxLevel"] = 17,
+        ["minLevel"] = 17,
+        ["mob"] = "Witchwing Slayer",
+        ["zone"] = "The Barrens",
+    },
+    ["Witchwing Windcaller|The Barrens|The Dry Hills"] = {
+        ["coords"] = { 38.7179, 12.2847 },
+        ["corpses"] = 2,
+        ["items"] = {
+            ["Light Feather"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 17056,
+                ["name"] = "Light Feather",
+            },
+            ["Wool Cloth"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2592,
+                ["name"] = "Wool Cloth",
+            },
+        },
+        ["location"] = "The Dry Hills",
+        ["maxLevel"] = 17,
+        ["minLevel"] = 17,
+        ["mob"] = "Witchwing Windcaller",
+        ["zone"] = "The Barrens",
+    },
     ["Zhevra Runner|The Barrens|"] = {
         ["coords"] = { 52.5000, 17.6000 },
         ["corpses"] = 5,
@@ -480,4 +532,4 @@ BlackthornesFarmerHarvestStore = {
 
 -- The SavedVariables file the last import read, so running it
 -- again over the same logout adds nothing a second time.
-BlackthornesFarmerHarvestSource = "2f6f7f194ddd9f254981d042ee644dd748da07a84eaa55b4e754da8ad306f3ce"
+BlackthornesFarmerHarvestSource = "ee4586f320de5ceba3e6d617a4e273b9f4e333dbcbe290a882890aede8eeab5a"
