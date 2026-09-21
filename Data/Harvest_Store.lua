@@ -480,4 +480,4 @@ BlackthornesFarmerHarvestStore = {
 
 -- The SavedVariables file the last import read, so running it
 -- again over the same logout adds nothing a second time.
-BlackthornesFarmerHarvestSource = nil
+BlackthornesFarmerHarvestSource = "2f6f7f194ddd9f254981d042ee644dd748da07a84eaa55b4e754da8ad306f3ce"
