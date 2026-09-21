@@ -12,7 +12,9 @@ so a failing test cannot leave edits behind in the real one.
 """
 
 import os
+import re
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -188,6 +190,91 @@ def main():
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)
         shutil.rmtree(empty, ignore_errors=True)
+
+    # -- The Windows launcher and its shortcut --------------------------------
+    #
+    # None of this can be executed here or in CI, so it is checked structurally
+    # instead. The point is to catch the things that rot silently: a renamed
+    # script the batch file still calls, or line endings normalised to LF,
+    # which makes a batch file with labels misbehave in ways that look like the
+    # import itself is broken.
+
+    launcher = os.path.join(ROOT, "Import Harvest.bat")
+    shortcut = os.path.join(ROOT, "tools", "make_shortcut.ps1")
+    icon = os.path.join(ROOT, "tools", "farmer.ico")
+
+    check("the launcher exists", os.path.isfile(launcher))
+    check("the shortcut maker exists", os.path.isfile(shortcut))
+    check("the icon exists", os.path.isfile(icon))
+
+    if os.path.isfile(launcher):
+        raw = open(launcher, "rb").read()
+        text = raw.decode("utf-8")
+
+        check("the launcher has CRLF endings",
+              b"\r\n" in raw and b"\n" not in raw.replace(b"\r\n", b""))
+        check("the launcher calls the import script",
+              "tools\\harvest_import.py" in text)
+        check("the launcher waits before closing",
+              re.search(r"(?mi)^\s*pause\s*$", text) is not None)
+
+        # Every goto has to land somewhere. Comments are stripped first: "goto"
+        # appears in the prose at the top explaining why this file uses it.
+        code = "\n".join(line for line in text.splitlines()
+                          if not re.match(r"(?i)^\s*rem\b", line))
+        labels = set(m.group(1).lower() for m in
+                     re.finditer(r"(?mi)^\s*:([A-Za-z_]\w*)\s*$", code))
+        gotos = [m.group(1).lower() for m in
+                 re.finditer(r"(?mi)\bgoto\s+([A-Za-z_]\w*)", code)]
+        missing = sorted(set(g for g in gotos if g not in labels))
+
+        check("every goto in the launcher has a label", not missing, missing)
+        check("the launcher actually branches", len(labels) > 3, len(labels))
+
+    if os.path.isfile(shortcut):
+        raw = open(shortcut, "rb").read()
+        text = raw.decode("utf-8")
+
+        check("the shortcut maker has CRLF endings",
+              b"\r\n" in raw and b"\n" not in raw.replace(b"\r\n", b""))
+        check("it points at the launcher by its real name",
+              "Import Harvest.bat" in text)
+        check("it points at the icon by its real name", "farmer.ico" in text)
+
+    if os.path.isfile(icon):
+        data = open(icon, "rb").read()
+        reserved, kind, count = struct.unpack("<HHH", data[:6])
+
+        check("the icon is a real .ico", reserved == 0 and kind == 1,
+              (reserved, kind))
+        check("it carries several sizes", count >= 4, count)
+
+        sizes, in_bounds = [], True
+
+        for index in range(count):
+            entry = 6 + 16 * index
+            width, _, _, _, _, _, length, offset = struct.unpack(
+                "<BBBBHHII", data[entry:entry + 16])
+            sizes.append(width or 256)
+            if offset + length > len(data):
+                in_bounds = False
+
+        check("every icon entry is inside the file", in_bounds)
+        check("it has a 16 pixel size for the taskbar", 16 in sizes, sizes)
+        check("it has a 256 pixel size for large views", 256 in sizes, sizes)
+
+        # The generator and the committed file must not drift apart.
+        sandbox, repo, _ = build_sandbox(SAVED)
+        try:
+            regenerated = subprocess.run(
+                [sys.executable, os.path.join(repo, "tools", "make_icon.py")],
+                capture_output=True, text=True, cwd=repo)
+            check("the icon generator runs", regenerated.returncode == 0,
+                  regenerated.stderr[-400:])
+            check("and reproduces the committed icon exactly",
+                  open(os.path.join(repo, "tools", "farmer.ico"), "rb").read() == data)
+        finally:
+            shutil.rmtree(sandbox, ignore_errors=True)
 
     for failure in failures:
         print("FAIL -- %s" % failure, file=sys.stderr)
