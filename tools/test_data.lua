@@ -147,42 +147,81 @@ suite.check("a rate over 100 is dropped", SourceWithChance(140).chance == nil)
 suite.check("a zero rate is dropped", SourceWithChance(0).chance == nil)
 
 --------------------------------------------------------------------------------
--- Wool Cloth is the template
+-- The fully researched items
 --
--- It is the worked example of a fully researched item, so it is the one entry
--- that has to stay complete. If these fail, the thing the rest of the data is
--- meant to be copied from has rotted.
+-- These are the worked examples of what a finished item looks like, and they
+-- are what the rest of the data is meant to be copied from. If the standard
+-- slips here it slips everywhere, so every row of theirs has to carry the full
+-- set: the mob, where in the zone it stands, its level band and a drop rate.
+--
+-- Add an item to this list when you finish researching it.
 --------------------------------------------------------------------------------
 
-local wool = DB:GetItem("Wool Cloth")
+local RESEARCHED = { "Wool Cloth", "Linen Cloth", "Silk Cloth" }
 
-suite.check("Wool Cloth is in the database", wool ~= nil)
-suite.check("it has a serious number of spots", #wool.sources >= 15, #wool.sources)
+for _, name in ipairs(RESEARCHED) do
+    local item = DB:GetItem(name)
 
-local withCoords, zones = 0, {}
+    suite.check(name .. " is in the database", item ~= nil)
+    suite.check(name .. " has a serious number of spots", #item.sources >= 15,
+        #item.sources)
 
-for _, source in ipairs(wool.sources) do
-    suite.check("every Wool Cloth row names its mob",
-        source.name and source.name ~= "", source.zone)
+    local withCoords, zones, zoneCount = 0, {}, 0
 
-    suite.check("every Wool Cloth row names where in the zone",
-        source.location and source.location ~= "", source.name)
+    for _, source in ipairs(item.sources) do
+        suite.check(("every %s row names its mob"):format(name),
+            source.name and source.name ~= "", source.zone)
 
-    suite.check("every Wool Cloth row has a drop rate",
-        type(source.chance) == "number", source.name)
+        suite.check(("every %s row names where in the zone"):format(name),
+            source.location and source.location ~= "", source.name)
 
-    suite.check("every Wool Cloth row has a level band",
-        source.minLevel and source.maxLevel, source.name)
+        suite.check(("every %s row has a drop rate"):format(name),
+            type(source.chance) == "number", source.name)
 
-    if source.coords then withCoords = withCoords + 1 end
-    zones[source.zone] = true
+        suite.check(("every %s row has a level band"):format(name),
+            source.minLevel and source.maxLevel, source.name)
+
+        -- A level band that runs backwards sorts the list wrongly and reads as
+        -- a typo, which is usually what it is.
+        suite.check(("every %s row has a forward level band"):format(name),
+            source.maxLevel >= source.minLevel, source.name)
+
+        -- The window draws these as "zone / location", so a location that
+        -- repeats its zone reads as "Razorfen Kraul / Razorfen Kraul".
+        -- An instance belongs to the zone its door is in.
+        suite.check(("no %s row repeats its zone as its location"):format(name),
+            source.location ~= source.zone, source.location)
+
+        if source.coords then withCoords = withCoords + 1 end
+
+        if not zones[source.zone] then
+            zones[source.zone] = true
+            zoneCount = zoneCount + 1
+        end
+    end
+
+    suite.check(name .. " has coordinates on some rows", withCoords > 0, withCoords)
+    suite.check(name .. " spans several zones", zoneCount >= 4, zoneCount)
 end
 
-suite.check("some rows carry coordinates", withCoords > 0, withCoords)
+-- The three cloth brackets should not overlap much: if Linen and Silk covered
+-- the same levels, one of them is wrong about what it is for.
+local function LevelSpan(name)
+    local low, high = 99, 0
+    for _, source in ipairs(DB:GetItem(name).sources) do
+        low = math.min(low, source.minLevel)
+        high = math.max(high, source.maxLevel)
+    end
+    return low, high
+end
 
-local zoneCount = 0
-for _ in pairs(zones) do zoneCount = zoneCount + 1 end
-suite.check("it spans several zones", zoneCount >= 5, zoneCount)
+local linenLow = select(1, LevelSpan("Linen Cloth"))
+local woolLow = select(1, LevelSpan("Wool Cloth"))
+local silkLow = select(1, LevelSpan("Silk Cloth"))
+
+suite.check("the cloth brackets climb in order",
+    linenLow < woolLow and woolLow < silkLow,
+    ("linen %d, wool %d, silk %d"):format(linenLow, woolLow, silkLow))
 
 --------------------------------------------------------------------------------
 -- Where text

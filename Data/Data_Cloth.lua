@@ -8,16 +8,84 @@ local _, ns = ...
 
 local DB = ns.DB
 
+-- Linen and Silk follow the Wool Cloth template: named mob, level band, the
+-- landmark it stands at, and a drop rate. Coordinates only where the landmark
+-- is unambiguous.
 DB:RegisterItem({
     name = "Linen Cloth",
     id = 2589,
     category = "Cloth",
     aliases = { "linen" },
+    note = "Almost any humanoid under 20 drops it. Density matters more than the drop rate here.",
     sources = {
-        { kind = "mob", name = "Riverpaw gnolls", zone = "Elwynn Forest", minLevel = 8, maxLevel = 12 },
-        { kind = "mob", name = "Defias Trapper / Smuggler", zone = "Westfall", minLevel = 12, maxLevel = 18, note = "Moonbrook and the Gold Coast farms" },
-        { kind = "mob", name = "Kolkar centaurs", zone = "The Barrens", minLevel = 12, maxLevel = 18 },
-        { kind = "mob", name = "Riverpaw gnolls", zone = "Redridge Mountains", minLevel = 15, maxLevel = 20 },
+        --------------------------------------------------------------------
+        -- Westfall: the densest linen in the game for either faction
+        --------------------------------------------------------------------
+        { name = "Defias Trapper", zone = "Westfall",
+          location = "Moonbrook", coords = { 32.0, 70.0 },
+          minLevel = 12, maxLevel = 13, chance = 38,
+          note = "packed tight; the standard linen farm" },
+
+        { name = "Defias Smuggler", zone = "Westfall",
+          location = "Moonbrook", coords = { 32.0, 70.0 },
+          minLevel = 14, maxLevel = 15, chance = 36 },
+
+        { name = "Defias Looter", zone = "Westfall",
+          location = "Jangolode Mine", minLevel = 10, maxLevel = 12, chance = 32 },
+
+        { name = "Defias Overseer", zone = "Westfall",
+          location = "The Deadmines", coords = { 42.0, 72.0 },
+          minLevel = 16, maxLevel = 18, chance = 40,
+          note = "instance -- no competition for spawns" },
+
+        { name = "Defias Miner", zone = "Westfall",
+          location = "The Deadmines", coords = { 42.0, 72.0 },
+          minLevel = 15, maxLevel = 17, chance = 38, note = "instance" },
+
+        --------------------------------------------------------------------
+        -- Eastern Kingdoms outdoors
+        --------------------------------------------------------------------
+        { name = "Riverpaw Runt", zone = "Elwynn Forest",
+          location = "Jerod's Landing and the Stone Cairn road",
+          minLevel = 8, maxLevel = 10, chance = 26 },
+
+        { name = "Riverpaw Gnoll", zone = "Elwynn Forest",
+          location = "Jerod's Landing and the Stone Cairn road",
+          minLevel = 10, maxLevel = 12, chance = 28 },
+
+        { name = "Riverpaw Brute", zone = "Redridge Mountains",
+          location = "Alther's Mill", minLevel = 17, maxLevel = 19, chance = 30 },
+
+        { name = "Riverpaw Taskmaster", zone = "Redridge Mountains",
+          location = "Alther's Mill", minLevel = 19, maxLevel = 20, chance = 30 },
+
+        { name = "Pyrewood villagers", zone = "Silverpine Forest",
+          location = "Pyrewood Village", minLevel = 10, maxLevel = 14, chance = 28 },
+
+        { name = "Stonesplitter troggs", zone = "Loch Modan",
+          location = "Stonesplitter Valley", minLevel = 13, maxLevel = 16, chance = 25 },
+
+        --------------------------------------------------------------------
+        -- Kalimdor
+        --------------------------------------------------------------------
+        { name = "Kolkar Drudge", zone = "The Barrens",
+          location = "Kolkar Crag", minLevel = 11, maxLevel = 13, chance = 28 },
+
+        { name = "Kolkar Outrunner", zone = "The Barrens",
+          location = "Kolkar Crag", minLevel = 13, maxLevel = 15, chance = 30 },
+
+        { name = "Razormane Quilboar", zone = "The Barrens",
+          location = "Razormane Grounds", minLevel = 12, maxLevel = 15, chance = 28 },
+
+        { name = "Razormane Scout", zone = "The Barrens",
+          location = "The Sludge Fen road", minLevel = 14, maxLevel = 16, chance = 28 },
+
+        { name = "Searing Blade cultists", zone = "Orgrimmar",
+          location = "Ragefire Chasm", minLevel = 13, maxLevel = 16, chance = 35,
+          note = "instance, right under the city" },
+
+        { name = "Blackwood furbolgs", zone = "Darkshore",
+          location = "Cliffspring Falls", minLevel = 14, maxLevel = 17, chance = 26 },
     },
 })
 
@@ -128,11 +196,73 @@ DB:RegisterItem({
     id = 4306,
     category = "Cloth",
     aliases = { "silk" },
+    note = "The thirties bracket. Trolls and the Scarlet Crusade are the two reliable answers.",
     sources = {
-        { kind = "mob", name = "Bloodscalp / Skullsplitter trolls", zone = "Stranglethorn Vale", minLevel = 30, maxLevel = 40 },
-        { kind = "mob", name = "Kolkar / Magram centaurs", zone = "Desolace", minLevel = 33, maxLevel = 38 },
-        { kind = "mob", name = "Scarlet Crusade", zone = "Scarlet Monastery", minLevel = 32, maxLevel = 40, note = "instance -- the densest silk in the game" },
-        { kind = "mob", name = "Dark Iron dwarves", zone = "Badlands", minLevel = 38, maxLevel = 42 },
+        --------------------------------------------------------------------
+        -- Scarlet Monastery: the densest silk anywhere
+        --------------------------------------------------------------------
+        { name = "Scarlet Chaplain", zone = "Tirisfal Glades",
+          location = "Scarlet Monastery, Library wing", coords = { 85.0, 32.0 },
+          minLevel = 34, maxLevel = 36, chance = 40,
+          note = "instance -- the standard silk run" },
+
+        { name = "Scarlet Monk", zone = "Tirisfal Glades",
+          location = "Scarlet Monastery, Library wing", coords = { 85.0, 32.0 },
+          minLevel = 35, maxLevel = 37, chance = 38, note = "instance" },
+
+        { name = "Scarlet Centurion", zone = "Tirisfal Glades",
+          location = "Scarlet Monastery, Armory wing", coords = { 85.0, 32.0 },
+          minLevel = 36, maxLevel = 38, chance = 38, note = "instance" },
+
+        --------------------------------------------------------------------
+        -- Stranglethorn trolls
+        --------------------------------------------------------------------
+        { name = "Bloodscalp Axe Thrower", zone = "Stranglethorn Vale",
+          location = "Zul'Kunda", minLevel = 32, maxLevel = 34, chance = 30 },
+
+        { name = "Bloodscalp Headhunter", zone = "Stranglethorn Vale",
+          location = "Zul'Kunda", minLevel = 33, maxLevel = 35, chance = 30 },
+
+        { name = "Skullsplitter Headhunter", zone = "Stranglethorn Vale",
+          location = "Zul'Mamwe", minLevel = 37, maxLevel = 39, chance = 32 },
+
+        { name = "Skullsplitter Witch Doctor", zone = "Stranglethorn Vale",
+          location = "Zul'Mamwe", minLevel = 38, maxLevel = 40, chance = 32 },
+
+        --------------------------------------------------------------------
+        -- Elsewhere
+        --------------------------------------------------------------------
+        { name = "Witherbark Headhunter", zone = "Arathi Highlands",
+          location = "Witherbark Village", minLevel = 32, maxLevel = 34, chance = 30 },
+
+        { name = "Witherbark Shadow Hunter", zone = "Arathi Highlands",
+          location = "Witherbark Village", minLevel = 34, maxLevel = 36, chance = 30 },
+
+        { name = "Magram Scout", zone = "Desolace",
+          location = "Magram Village", minLevel = 33, maxLevel = 35, chance = 28 },
+
+        { name = "Kolkar Marauder", zone = "Desolace",
+          location = "Kolkar Village", minLevel = 34, maxLevel = 36, chance = 28 },
+
+        { name = "Dark Iron Tunneler", zone = "Badlands",
+          location = "Angor Fortress", minLevel = 38, maxLevel = 40, chance = 30 },
+
+        { name = "Dark Iron Shadowcaster", zone = "Badlands",
+          location = "Angor Fortress", minLevel = 39, maxLevel = 41, chance = 30 },
+
+        { name = "Galak Marauder", zone = "Thousand Needles",
+          location = "Galak Hold", minLevel = 31, maxLevel = 33, chance = 26 },
+
+        { name = "Syndicate Assassin", zone = "Alterac Mountains",
+          location = "Ruins of Alterac", minLevel = 31, maxLevel = 33, chance = 28 },
+
+        { name = "Death's Head quilboar", zone = "The Barrens",
+          location = "Razorfen Kraul", minLevel = 30, maxLevel = 34, chance = 30,
+          note = "instance" },
+
+        { name = "Atal'ai priests", zone = "Swamp of Sorrows",
+          location = "The Temple of Atal'Hakkar approach",
+          minLevel = 37, maxLevel = 40, chance = 30 },
     },
 })
 
