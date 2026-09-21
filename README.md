@@ -158,6 +158,11 @@ Classic-sourced. When you mark a row confirmed that test fails, which is the
 prompt to say in the commit message that you checked it in game. It is a
 speed bump, not a wall.
 
+`Data/Data_Harvested.lua` is the one exemption, for the reason the rule exists:
+those rows were measured by counting corpses, not claimed by somebody editing a
+number. The test checks them on their own terms instead — every measured row
+has to name its mob and carry a level.
+
 ### Measuring it yourself
 
 The addon watches your loot window and counts. Every time you loot a corpse it
@@ -178,6 +183,39 @@ It runs on its own from login. `/farm harvest` shows what it has:
 `/farm export` opens a window holding the whole thing as a data file, already
 selected — Ctrl+C, then paste it into a file under `Data/`. `/farm export wool`
 gives you just that item.
+
+#### Getting it out without copying anything
+
+A WoW addon cannot write a file. There is no `io` and no `os` inside the
+client's Lua sandbox, so the export window is not a shortcut — on its own it is
+the only thing an addon can do.
+
+What the client *can* do is write SavedVariables, which it does at every logout
+and reload, and the harvester already persists there. So the moment you log out,
+your harvest is sitting in a real file on disk:
+
+```
+WTF/Account/<ACCOUNT>/SavedVariables/Blackthornes_Farmer.lua
+```
+
+`tools/harvest_import.py` reads that file and writes `Data/Data_Harvested.lua`,
+adding it to the `.toc` the first time:
+
+```bash
+python tools/harvest_import.py
+```
+
+Play, log out, run it, commit. Nothing to copy. It finds the saved file under
+the usual install paths on its own; `--sv <path>` points it somewhere else, and
+`--list` shows what it found without writing anything.
+
+This works whether or not Forever reads SavedVariables back at login, which is
+still an open question — reading the file from outside only needs the client to
+have written it, and every client does that.
+
+The export is not reimplemented in Python. The script loads the addon under a
+real Lua runtime and calls the same `Harvest:ExportAll` the in-game window
+calls, so the file and the window can never disagree about a drop rate.
 
 Rows come out marked `provenance = "forever"`, because they were measured here.
 A mob with fewer than 20 corpses behind it exports without a `chance` and says
@@ -259,7 +297,7 @@ WoW says nothing about it.
 | `Data/` | The item database and the seed data files |
 | `Logic/` | Ranked search, the display lines it produces, and the loot harvester |
 | `UI/` | Theme, widgets, the main window and the export window |
-| `tools/` | Checks and tests. Not shipped to the client |
+| `tools/` | Checks, tests and the harvest importer. Not shipped to the client |
 
 ## Development
 
@@ -267,6 +305,7 @@ WoW says nothing about it.
 python tools/syntaxcheck.py   # parse every Lua file with a real 5.1 parser
 python tools/lintcalls.py     # find calls to methods, and constants, never defined
 python tools/runtests.py      # run the logic and window tests outside WoW
+python tools/test_harvest_import.py   # check the harvest importer end to end
 ```
 
 `tools/` requires `lupa` (`python -m pip install --user lupa`).
