@@ -209,6 +209,26 @@ Play, log out, run it, commit. Nothing to copy. It finds the saved file under
 the usual install paths on its own; `--sv <path>` points it somewhere else, and
 `--list` shows what it found without writing anything.
 
+##### A desktop icon for it
+
+Run this once and a shortcut appears on your desktop:
+
+```
+powershell -ExecutionPolicy Bypass -File tools\make_shortcut.ps1
+```
+
+From then on the loop is: log out of WoW, double-click **Import WoW Harvest**,
+then commit in GitHub Desktop. The window stays open so you can read what it
+found. `-Remove` takes the shortcut away again.
+
+The shortcut points at `Import Harvest.bat` inside the repository rather than a
+copy, so it keeps working after a `git pull`. The batch file finds Python,
+installs `lupa` the first time if it is missing, and says what to do if Python
+is not on the machine at all.
+
+The icon is `tools/farmer.ico`, drawn by `tools/make_icon.py` -- committed, so
+that script only needs running if the artwork changes.
+
 This works whether or not Forever reads SavedVariables back at login, which is
 still an open question — reading the file from outside only needs the client to
 have written it, and every client does that.
@@ -297,7 +317,7 @@ WoW says nothing about it.
 | `Data/` | The item database and the seed data files |
 | `Logic/` | Ranked search, the display lines it produces, and the loot harvester |
 | `UI/` | Theme, widgets, the main window and the export window |
-| `tools/` | Checks, tests and the harvest importer. Not shipped to the client |
+| `tools/` | Checks, tests, the harvest importer and the desktop shortcut. Not shipped to the client |
 
 ## Development
 
