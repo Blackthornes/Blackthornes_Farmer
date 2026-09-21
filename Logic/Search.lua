@@ -62,6 +62,13 @@ function Search:Run(query)
                     break
                 end
 
+                -- A landmark is how people actually name a farming spot to
+                -- each other: "Durnholde", "Raven Hill". Worth matching.
+                if source.location and MatchScore(source.location:lower(), query) > 0 then
+                    score, why = SCORE.zone, "location"
+                    break
+                end
+
                 if source.name and MatchScore(source.name:lower(), query) > 0 then
                     score, why = SCORE.source, "source"
                     break
@@ -135,6 +142,11 @@ function Search:SourceLine(source)
         line = line .. Util.Colored("muted", " - ") .. source.name
     end
 
+    local where = ns.DB:WhereText(source)
+    if where then
+        line = line .. Util.Colored("muted", " @ ") .. where
+    end
+
     line = line .. " " .. Util.Colored("accent", "(" .. detail .. ")")
 
     -- Only confirmed rows are marked. Tagging every Classic row instead would
@@ -200,6 +212,90 @@ function Search:BuildLines(query, maxItems)
     end
 
     return lines, total
+end
+
+--------------------------------------------------------------------------------
+-- Rows for the window
+--
+-- The window draws columns rather than sentences, so it needs the parts, not a
+-- formatted string. Chat still gets BuildLines above, because a chat frame has
+-- no columns to draw into.
+--------------------------------------------------------------------------------
+
+--- @param opts { max = item cap, kind = only this source kind }
+-- @return rows, matching item count, total sources drawn
+function Search:BuildRows(query, opts)
+    opts = opts or {}
+
+    local maxItems = opts.max or 40
+    local rows = {}
+
+    local results = self:Run(query)
+    local total = #results
+    local drawn = 0
+
+    if total == 0 then
+        return rows, 0, 0
+    end
+
+    local shown = math.min(total, maxItems)
+
+    for index = 1, shown do
+        local item = results[index].item
+        local sources = self:SortedSources(item)
+
+        -- A kind filter that empties an item hides the item too, rather than
+        -- leaving a heading with nothing under it.
+        if opts.kind then
+            local kept = {}
+            for _, source in ipairs(sources) do
+                if source.kind == opts.kind then
+                    kept[#kept + 1] = source
+                end
+            end
+            sources = kept
+        end
+
+        if #sources > 0 then
+            rows[#rows + 1] = { type = "item", item = item, count = #sources }
+
+            if item.note then
+                rows[#rows + 1] = { type = "note", text = item.note }
+            end
+
+            for _, source in ipairs(sources) do
+                rows[#rows + 1] = { type = "source", item = item, source = source }
+                drawn = drawn + 1
+            end
+        end
+    end
+
+    if total > shown then
+        rows[#rows + 1] = {
+            type = "more",
+            text = ("and %d more items -- narrow the search to see them"):format(total - shown),
+        }
+    end
+
+    return rows, total, drawn
+end
+
+--- Which source kinds a query actually turns up, so the filter chips can show
+--- only the ones worth clicking.
+function Search:KindsInResults(query)
+    local seen, order = {}, {}
+
+    for _, result in ipairs(self:Run(query)) do
+        for _, source in ipairs(result.item.sources) do
+            if not seen[source.kind] then
+                seen[source.kind] = true
+                order[#order + 1] = source.kind
+            end
+        end
+    end
+
+    table.sort(order)
+    return order
 end
 
 --------------------------------------------------------------------------------

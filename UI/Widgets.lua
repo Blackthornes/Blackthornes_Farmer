@@ -226,3 +226,221 @@ function Widgets.CreateLineList(parent, opts)
 
     return list
 end
+
+--------------------------------------------------------------------------------
+-- Row list
+--------------------------------------------------------------------------------
+
+--- A scrolling list that recycles row frames.
+--
+-- Where CreateLineList draws one label per line, this gives each row a set of
+-- children the caller builds once and fills per row, which is what a table of
+-- columns needs. Only the rows on screen exist, so the length of the data does
+-- not change the cost of drawing it.
+--
+-- @param opts
+--   rowHeight  pixel height of one row
+--   createRow  function(row)            -- build the row's children once
+--   updateRow  function(row, data, i)   -- fill a row with data
+--   onClick    function(data, button)
+--   onRefresh  function(list, shown, visible)
+function Widgets.CreateRowList(parent, opts)
+    opts = opts or {}
+
+    local list = CreateFrame("Frame", nil, parent)
+    local rowHeight = opts.rowHeight or 20
+
+    list.data = {}
+    list.rows = {}
+    list.offset = 0
+
+    local scrollbar = CreateFrame("Slider", nil, list)
+    scrollbar:SetOrientation("VERTICAL")
+    scrollbar:SetWidth(8)
+    scrollbar:SetPoint("TOPRIGHT", 0, 0)
+    scrollbar:SetPoint("BOTTOMRIGHT", 0, 0)
+    scrollbar:SetValueStep(1)
+    scrollbar:SetObeyStepOnDrag(true)
+
+    local track = scrollbar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints(scrollbar)
+    track:SetColorTexture(Theme.Unpack("panel"))
+
+    local thumb = scrollbar:CreateTexture(nil, "ARTWORK")
+    thumb:SetColorTexture(Theme.Unpack("borderLit"))
+    thumb:SetSize(8, 40)
+    scrollbar:SetThumbTexture(thumb)
+
+    list.scrollbar = scrollbar
+
+    local function VisibleRowCount()
+        local height = list:GetHeight()
+        if not height or height <= 0 then return 0 end
+        return math.floor(height / rowHeight)
+    end
+
+    local function AcquireRow(index)
+        local row = list.rows[index]
+        if row then return row end
+
+        row = CreateFrame("Button", nil, list)
+        row:SetHeight(rowHeight)
+        row:SetPoint("TOPLEFT", 0, -(index - 1) * rowHeight)
+        row:SetPoint("RIGHT", scrollbar, "LEFT", -6, 0)
+        row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+        row.stripe = Theme.Fill(row, "rowAlt", 0)
+        row.highlight = Theme.Fill(row, "rowHover", 0, "BORDER")
+
+        if opts.createRow then
+            opts.createRow(row)
+        end
+
+        row:SetScript("OnEnter", function(self)
+            if self.data and self.data.type ~= "spacer" then
+                self.highlight:SetAlpha(0.6)
+            end
+        end)
+
+        row:SetScript("OnLeave", function(self)
+            self.highlight:SetAlpha(0)
+        end)
+
+        row:SetScript("OnClick", function(self, button)
+            if self.data and opts.onClick then
+                opts.onClick(self.data, button)
+            end
+        end)
+
+        list.rows[index] = row
+        return row
+    end
+
+    function list:MaxOffset()
+        return math.max(0, #self.data - VisibleRowCount())
+    end
+
+    function list:Refresh()
+        local visible = VisibleRowCount()
+        local maxOffset = self:MaxOffset()
+
+        if self.offset > maxOffset then self.offset = maxOffset end
+        if self.offset < 0 then self.offset = 0 end
+
+        for index = 1, visible do
+            local row = AcquireRow(index)
+            local data = self.data[index + self.offset]
+
+            row.data = data
+            row.dataIndex = index + self.offset
+            row.highlight:SetAlpha(0)
+
+            if data then
+                -- Banding follows the row's place on screen rather than its
+                -- index in the data, so the stripes do not crawl as you scroll.
+                row.stripe:SetAlpha(index % 2 == 0 and 0.5 or 0)
+
+                if opts.updateRow then
+                    opts.updateRow(row, data, index + self.offset)
+                end
+
+                row:Show()
+            else
+                row:Hide()
+            end
+        end
+
+        for index = visible + 1, #self.rows do
+            self.rows[index]:Hide()
+        end
+
+        scrollbar:SetMinMaxValues(0, maxOffset)
+        scrollbar:SetValue(self.offset)
+        scrollbar:SetShown(maxOffset > 0)
+
+        if opts.onRefresh then
+            opts.onRefresh(self, #self.data, visible)
+        end
+    end
+
+    function list:SetData(data)
+        self.data = data or {}
+        self.offset = 0
+        self:Refresh()
+    end
+
+    function list:Scroll(delta)
+        self.offset = self.offset - (delta * 3)
+        self:Refresh()
+    end
+
+    scrollbar:SetScript("OnValueChanged", function(_, value)
+        local wanted = math.floor(value + 0.5)
+        if wanted ~= list.offset then
+            list.offset = wanted
+            list:Refresh()
+        end
+    end)
+
+    list:EnableMouseWheel(true)
+    list:SetScript("OnMouseWheel", function(_, delta)
+        list:Scroll(delta)
+    end)
+
+    return list
+end
+
+--------------------------------------------------------------------------------
+-- Filter chip
+--------------------------------------------------------------------------------
+
+--- A small toggle used in a row of filters. Selected chips carry the accent.
+function Widgets.CreateChip(parent, text, onClick)
+    local chip = CreateFrame("Button", nil, parent)
+    chip:SetHeight(18)
+
+    chip.background = Theme.Fill(chip, "row")
+    Theme.Border(chip, "border")
+
+    chip.label = Theme.CreateLabel(chip, "tiny", "muted", "CENTER")
+    chip.label:SetPoint("CENTER")
+    chip.label:SetText(text)
+
+    -- Sized to its text, so a row of chips packs tightly whatever the labels.
+    chip:SetWidth(math.max(34, (chip.label:GetStringWidth() or 30) + 16))
+
+    -- The All chip holds false; everything else holds a kind. Either way the
+    -- caller gets nil or a string back, never an absent field.
+    function chip:GetFilterKind()
+        return self.filterKind or nil
+    end
+
+    function chip:SetSelected(selected)
+        self.selected = selected and true or false
+
+        if self.selected then
+            self.background:SetColorTexture(Theme.Unpack("accent", 0.22))
+            self.label:SetTextColor(Theme.Unpack("accent"))
+        else
+            self.background:SetColorTexture(Theme.Unpack("row"))
+            self.label:SetTextColor(Theme.Unpack("muted"))
+        end
+    end
+
+    chip:SetScript("OnEnter", function(self)
+        if not self.selected then
+            self.background:SetColorTexture(Theme.Unpack("rowHover"))
+        end
+    end)
+
+    chip:SetScript("OnLeave", function(self)
+        self:SetSelected(self.selected)
+    end)
+
+    chip:SetScript("OnClick", function(self)
+        if onClick then onClick(self) end
+    end)
+
+    chip:SetSelected(false)
+    return chip
+end

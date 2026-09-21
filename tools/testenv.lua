@@ -36,6 +36,7 @@ local function Stub(fields)
     function frame:GetWidth() return self._width or 500 end
 
     function frame:SetText(value) self._text = tostring(value or "") end
+    function frame:SetTextColor(r, g, b) self._color = { r, g, b } end
     function frame:GetText() return self._text end
 
     function frame:SetScript(script, fn) self._scripts[script] = fn end
@@ -84,6 +85,9 @@ function env.InstallClient()
     -- simulated drag lands at a known angle.
     _G.Minimap = Stub({ _width = 140, _cx = 500, _cy = 500 })
     _G.GetCursorPosition = function() return 600, 500 end
+
+    -- A level-25 player, so difficulty colouring has something to compare to.
+    _G.UnitLevel = function() return 25 end
 
     _G.GameTooltip = Stub({
         _lines = {},
