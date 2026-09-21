@@ -183,6 +183,19 @@ function env.InstallWorld()
         return ("|cffffffff|Hitem:%d::::::::25::::|h[%s]|h|r"):format(item.id, item.name)
     end
 
+    -- Coins come out of a loot window in a slot of their own, alongside the
+    -- items, which is how "12 Copper" ended up in the data looking like a
+    -- drop. A loot entry marked money = true is one of those.
+    _G.LOOT_SLOT_ITEM = 1
+    _G.LOOT_SLOT_MONEY = 2
+
+    _G.GetLootSlotType = function(slot)
+        local item = world.loot[slot]
+        if not item then return nil end
+        if item.money then return LOOT_SLOT_MONEY end
+        return LOOT_SLOT_ITEM
+    end
+
     -- A map position comes back as a vector with GetXY, as on a live client.
     _G.C_Map = {
         GetBestMapForUnit = function() return world.mapID end,

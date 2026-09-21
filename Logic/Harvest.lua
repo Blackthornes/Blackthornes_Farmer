@@ -50,6 +50,7 @@ function Harvest:Capabilities()
     self.caps = {
         lootSlotInfo = Has("GetLootSlotInfo"),
         lootSlotLink = Has("GetLootSlotLink"),
+        lootSlotType = Has("GetLootSlotType"),
         numLootItems = Has("GetNumLootItems"),
         fishingLoot  = Has("IsFishingLoot"),
         bestMap      = Has("C_Map.GetBestMapForUnit"),
@@ -162,6 +163,65 @@ function Harvest:GetRecord(mob, level, zone, location)
     return record
 end
 
+--- Is this loot slot money rather than an item?
+--
+-- A loot window lists coins in a slot like anything else, and GetLootSlotInfo
+-- hands back a name for it -- "23 Copper" -- which went straight into the data
+-- as if it were a farmable drop. Trent's first real session produced 25 coin
+-- entries out of 53.
+--
+-- Two ways of telling. GetLootSlotType says so outright and is authoritative
+-- where it exists, which on this client is not yet known. Failing that, the
+-- name reads as coins -- a weaker test, because a real item could in principle
+-- be named that way, and the reason NameLooksLikeMoney is as strict as it is.
+--
+-- A third test suggests itself and is deliberately not used: money has no item
+-- link. That is true of coins, but it is equally true of any item the link
+-- call happens to fail for, and it deleted Silver Bar the first time it was
+-- tried. Dropping a real drop is worse than keeping a coin.
+local COIN = { Copper = true, Silver = true, Gold = true }
+
+function Harvest:IsMoney(slot, name)
+    local caps = self:Capabilities()
+
+    -- Pruning old data has no slot to ask about: the loot window is long
+    -- closed. Both slot tests would then be asking about slot nil, and the
+    -- link test in particular would answer "no link, so money" for every item
+    -- in the database. Skip to the name.
+    if slot == nil then return self:NameLooksLikeMoney(name) end
+
+    if caps.lootSlotType then
+        local ok, kind = pcall(GetLootSlotType, slot)
+        -- LOOT_SLOT_MONEY is 2 on every client that defines it; the constant
+        -- itself may not exist here, so compare to both.
+        if ok and kind then
+            if kind == (LOOT_SLOT_MONEY or 2) then return true end
+            if kind == (LOOT_SLOT_ITEM or 1) then return false end
+        end
+    end
+
+    return self:NameLooksLikeMoney(name)
+end
+
+--- "23 Copper", "1 Gold 2 Silver 3 Copper" -- and nothing else.
+--
+-- Every part of the name has to be a number followed by a coin, with nothing
+-- left over, so "Copper Ore" and "10 Pound Sledge" are safely items.
+function Harvest:NameLooksLikeMoney(name)
+    if type(name) ~= "string" or name == "" then return false end
+
+    local words, coins = 0, 0
+
+    for _, unit in name:gmatch("(%d+)%s+(%a+)") do
+        words = words + 1
+        if COIN[unit] then coins = coins + 1 end
+    end
+
+    if words == 0 or words ~= coins then return false end
+
+    return (name:gsub("%d+%s+%a+%s*", "")) == ""
+end
+
 --- One looted corpse: the denominator of every rate this module reports.
 function Harvest:RecordCorpse()
     if not self.enabled then return end
@@ -203,7 +263,7 @@ function Harvest:RecordCorpse()
     for slot = 1, count do
         local ok, _, name, quantity = pcall(GetLootSlotInfo, slot)
 
-        if ok and name and name ~= "" then
+        if ok and name and name ~= "" and not self:IsMoney(slot, name) then
             local entry = record.items[name]
 
             if not entry then
@@ -462,6 +522,25 @@ end
 -- picks up where the last one left off for free.
 --------------------------------------------------------------------------------
 
+--- Drop coin entries an older version recorded as items.
+--
+-- Slot numbers are long gone by the time this runs, so it can only go on the
+-- name -- which is what IsMoney falls back to anyway.
+function Harvest:PruneMoney()
+    local dropped = 0
+
+    for _, record in pairs(self.records) do
+        for name in pairs(record.items) do
+            if self:IsMoney(nil, name) then
+                record.items[name] = nil
+                dropped = dropped + 1
+            end
+        end
+    end
+
+    return dropped
+end
+
 function Harvest:Restore()
     if not (ns.db and type(ns.db.harvest) == "table") then return 0 end
 
@@ -474,12 +553,43 @@ function Harvest:Restore()
         end
     end
 
+    -- Versions before 2026-09-21 recorded coins as items.
+    self:PruneMoney()
+
+    -- Remembered so Persist can stamp the save with it. Whether this client
+    -- reads saved variables back at login is the open question the whole
+    -- accumulating store exists because of, and this is the addon answering
+    -- it from the inside: a non-zero number here means the file was read.
+    self.restoredAtLogin = restored
+
     return restored
 end
 
 function Harvest:Persist()
     if not ns.db then return end
+
+    -- Never write nothing over something.
+    --
+    -- This cost Trent a session's data on 2026-09-21. If the client does not
+    -- read saved variables back at login, this module starts empty every time
+    -- while the file still holds a real history. Overwriting on the way out
+    -- then destroys it, and a login where nothing was looted destroys it for
+    -- no gain at all.
+    --
+    -- The addon cannot read the file to merge with it -- that is the whole
+    -- problem -- so the most it can do is decline to clobber. Accumulating
+    -- across sessions happens in tools/harvest_import.py, which can read both
+    -- sides.
+    if next(self.records) == nil then return end
+
     ns.db.harvest = self.records
+
+    -- How much of what is being written was already in the file when this
+    -- login started. tools/harvest_import.py adds each logout's records to a
+    -- running total, which is only correct while this stays zero; if it ever
+    -- comes back non-zero the import stops and says so rather than counting
+    -- the same corpses twice.
+    ns.db.harvestRestored = self.restoredAtLogin or 0
 end
 
 --------------------------------------------------------------------------------

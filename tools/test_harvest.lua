@@ -221,4 +221,120 @@ suite.check("harvesting on records again", Harvest:CountCorpses() == 3,
 ns.HandleSlash("harvest reset")
 suite.check("reset empties it", Harvest:CountCorpses() == 0)
 
+--------------------------------------------------------------------------------
+-- Coins are not drops
+--------------------------------------------------------------------------------
+--
+-- Money shares the loot window with the items, so the first real harvest came
+-- back with "12 Copper" and "3 Silver 40 Copper" registered as things that
+-- drop off Razormane Defenders. Twenty-five of the fifty-three entries were
+-- coins. They have to be filtered on the way in, and pruned out of data an
+-- older version already wrote.
+
+local COINS = { name = "14 Copper", quantity = 1, money = true }
+local MIXED = { name = "3 Silver 40 Copper", quantity = 1, money = true }
+
+Harvest:Reset()
+env.Loot(ns, APPRENTICE, { COINS, WOOL, MIXED })
+
+suite.check("the corpse still counts", Harvest:CountCorpses() == 1,
+    Harvest:CountCorpses())
+suite.check("the item on it is kept",
+    Harvest:ForItem("Wool Cloth") and #Harvest:ForItem("Wool Cloth") == 1)
+suite.check("the coins beside it are not",
+    #Harvest:Items() == 1, #Harvest:Items())
+
+-- Now with the slot-type API missing, which is the case the name heuristic
+-- exists for: nobody knows yet whether this client has GetLootSlotType.
+local realSlotType = _G.GetLootSlotType
+_G.GetLootSlotType = nil
+
+Harvest:Reset()
+env.Loot(ns, APPRENTICE, { COINS, WOOL, MIXED })
+
+suite.check("coins are caught by name when the slot API is missing",
+    #Harvest:Items() == 1, #Harvest:Items())
+
+-- The heuristic must not be greedy. Silver Bar is a real item whose name
+-- starts with a coin word, and an earlier attempt at this deleted it.
+Harvest:Reset()
+env.Loot(ns, APPRENTICE, { SILVER, COINS })
+
+suite.check("an item named after a coin survives",
+    #Harvest:Items() == 1 and Harvest:Items()[1].name == "Silver Bar",
+    Harvest:Items()[1] and Harvest:Items()[1].name)
+
+_G.GetLootSlotType = realSlotType
+
+suite.check("a bare number is not money", Harvest:NameLooksLikeMoney("14") == false)
+suite.check("a bare word is not money",
+    Harvest:NameLooksLikeMoney("Copper") == false)
+suite.check("an ore is not money",
+    Harvest:NameLooksLikeMoney("14 Pound Salmon") == false)
+suite.check("coins are money", Harvest:NameLooksLikeMoney("14 Copper") == true)
+suite.check("mixed coins are money",
+    Harvest:NameLooksLikeMoney("3 Silver 40 Copper") == true)
+suite.check("all three denominations are money",
+    Harvest:NameLooksLikeMoney("1 Gold 2 Silver 3 Copper") == true)
+suite.check("nothing is not money", Harvest:NameLooksLikeMoney(nil) == false)
+
+-- Restoring data an older version wrote drops the coins it recorded, so the
+-- bad entries disappear on the next login rather than living forever.
+Harvest:Reset()
+ns.db.harvest = {
+    ["Dalaran Apprentice|Silverpine Forest|"] = {
+        mob = "Dalaran Apprentice", zone = "Silverpine Forest", corpses = 9,
+        items = {
+            ["Wool Cloth"] = { name = "Wool Cloth", count = 4, corpses = 4, id = 2592 },
+            ["14 Copper"] = { name = "14 Copper", count = 2, corpses = 2 },
+        },
+    },
+}
+
+suite.check("restoring old data brings the spot back",
+    Harvest:Restore() == 1, Harvest:Restore())
+suite.check("with its corpses", Harvest:CountCorpses() == 9,
+    Harvest:CountCorpses())
+suite.check("and the coins pruned out of it",
+    #Harvest:Items() == 1 and Harvest:Items()[1].name == "Wool Cloth",
+    Harvest:Items()[1] and Harvest:Items()[1].name)
+
+--------------------------------------------------------------------------------
+-- Never write nothing over something
+--------------------------------------------------------------------------------
+--
+-- This client writes saved variables at logout but is not reported to read
+-- them back at login, so the addon starts every session empty. Persisting that
+-- empty state is what destroyed seventy-three corpses of harvest on
+-- 2026-09-21: log in, loot nothing, log out, history gone.
+
+ns.db.harvest = {
+    ["Dalaran Apprentice|Silverpine Forest|"] = {
+        mob = "Dalaran Apprentice", zone = "Silverpine Forest", corpses = 9,
+        items = {},
+    },
+}
+
+Harvest:Reset()
+Harvest:Persist()
+
+suite.check("a session that recorded nothing leaves the saved harvest alone",
+    ns.db.harvest ~= nil and ns.db.harvest["Dalaran Apprentice|Silverpine Forest|"] ~= nil)
+
+Farm(APPRENTICE, 2, 2, { WOOL })
+Harvest:Persist()
+
+-- Found by walking rather than by key: the key carries whatever subzone the
+-- stub world is standing in by this point, which is not the test's business.
+local saved, spots = nil, 0
+for _, record in pairs(ns.db.harvest) do
+    saved = record
+    spots = spots + 1
+end
+
+suite.check("a session that recorded something does write it",
+    spots == 1 and saved.corpses == 2, spots .. " spot(s)")
+suite.check("and replaces the old saved state rather than adding to it",
+    saved.items["Wool Cloth"] ~= nil)
+
 suite.done()
