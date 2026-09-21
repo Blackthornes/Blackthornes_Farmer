@@ -62,6 +62,9 @@ KNOWN_GLOBALS = {
     "BACKPACK_CONTAINER", "NUM_BAG_SLOTS", "BANK_CONTAINER",
     "REAGENTBANK_CONTAINER", "NUM_BANKBAGSLOTS", "SOUNDKIT",
     "LE_ITEM_CLASS_TRADEGOODS",
+    # Loot slot kinds. Guarded at the call site with "or 2" / "or 1", because
+    # this client may not define them.
+    "LOOT_SLOT_ITEM", "LOOT_SLOT_MONEY",
     # Localised UI strings.
     "YES", "NO", "ACCEPT", "CANCEL", "OKAY", "CLOSE", "NONE", "UNKNOWN",
 }
