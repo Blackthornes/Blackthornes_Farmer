@@ -284,7 +284,9 @@ ns.RegisterCommand("help", "show this list", ShowHelp)
 SLASH_BLACKTHORNESFARMER1 = "/farm"
 SLASH_BLACKTHORNESFARMER2 = "/farmer"
 
-SlashCmdList["BLACKTHORNESFARMER"] = function(input)
+-- Named rather than anonymous so the test suite can drive it directly; the
+-- slash routing is where a command goes wrong, so it is worth testing.
+function ns.HandleSlash(input)
     input = (input or ""):gsub("^%s+", ""):gsub("%s+$", "")
 
     local keyword, rest = input:match("^(%S+)%s*(.*)$")
@@ -318,3 +320,5 @@ SlashCmdList["BLACKTHORNESFARMER"] = function(input)
         geterrorhandler()(err)
     end
 end
+
+SlashCmdList["BLACKTHORNESFARMER"] = ns.HandleSlash

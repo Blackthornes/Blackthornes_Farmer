@@ -87,7 +87,13 @@ function env.InstallClient()
     _G.GetCursorPosition = function() return 600, 500 end
 
     -- A level-25 player, so difficulty colouring has something to compare to.
-    _G.UnitLevel = function() return 25 end
+    -- The world below supplies the target.
+    _G.UnitLevel = function(unit)
+        if unit == "target" then return env.world.target and env.world.target.level or 0 end
+        return 25
+    end
+
+    env.InstallWorld()
 
     _G.GameTooltip = Stub({
         _lines = {},
@@ -122,6 +128,83 @@ function env.InstallClient()
 end
 
 --------------------------------------------------------------------------------
+-- The world
+--
+-- The loot harvester reads the game rather than the addon: a corpse, a zone, a
+-- position, a loot window. `env.world` is that game, and a test moves the
+-- player or swaps the corpse by assigning to it, then fires LOOT_OPENED.
+--------------------------------------------------------------------------------
+
+function env.InstallWorld()
+    env.world = {
+        zone = "Silverpine Forest",
+        subZone = "The Sepulcher",
+        mapID = 21,
+        -- Fractions, the way the client reports them.
+        position = { 0.45, 0.68 },
+        fishing = false,
+        target = { name = "Dalaran Apprentice", level = 22, dead = true, isPlayer = false },
+        loot = {},
+    }
+
+    local world = env.world
+
+    _G.GetRealZoneText = function() return world.zone end
+    _G.GetSubZoneText = function() return world.subZone or "" end
+    _G.IsFishingLoot = function() return world.fishing and true or false end
+
+    _G.UnitName = function(unit)
+        if unit ~= "target" then return "Blackthornes" end
+        return world.target and world.target.name or nil
+    end
+
+    _G.UnitIsDead = function(unit)
+        if unit ~= "target" then return false end
+        return world.target ~= nil and world.target.dead ~= false
+    end
+
+    _G.UnitIsPlayer = function(unit)
+        if unit ~= "target" then return true end
+        return world.target ~= nil and world.target.isPlayer == true
+    end
+
+    _G.GetNumLootItems = function() return #world.loot end
+
+    -- icon, name, quantity, ... -- the addon takes the second and third.
+    _G.GetLootSlotInfo = function(slot)
+        local item = world.loot[slot]
+        if not item then return nil end
+        return "Interface\\Icons\\INV_Misc_Dust_01", item.name, item.quantity or 1
+    end
+
+    _G.GetLootSlotLink = function(slot)
+        local item = world.loot[slot]
+        if not item or not item.id then return nil end
+        return ("|cffffffff|Hitem:%d::::::::25::::|h[%s]|h|r"):format(item.id, item.name)
+    end
+
+    -- A map position comes back as a vector with GetXY, as on a live client.
+    _G.C_Map = {
+        GetBestMapForUnit = function() return world.mapID end,
+        GetPlayerMapPosition = function()
+            if not world.position then return nil end
+            local x, y = world.position[1], world.position[2]
+            return { GetXY = function() return x, y end }
+        end,
+    }
+end
+
+--- Loot one corpse: point the target at `mob` and fire the loot event.
+function env.Loot(ns, mob, items)
+    if mob then
+        env.world.target = mob
+    end
+
+    env.world.loot = items or {}
+    ns.Harvest:RecordCorpse()
+end
+
+--------------------------------------------------------------------------------
 -- Loading
 --------------------------------------------------------------------------------
 
@@ -136,12 +219,14 @@ local FILES = {
     "Data/Data_Misc.lua",
     "Data/Data_MobDrops.lua",
     "Logic/Search.lua",
+    "Logic/Harvest.lua",
 }
 
 local UI_FILES = {
     "UI/Theme.lua",
     "UI/Widgets.lua",
     "UI/Main.lua",
+    "UI/Export.lua",
 }
 
 --- Load the addon exactly as the TOC does, and return its namespace.

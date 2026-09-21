@@ -83,6 +83,8 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm data` | where the loaded data came from |
 | `/farm stats` | how many items and spots are loaded |
 | `/farm list` | list every item in the database |
+| `/farm harvest` | what the addon has recorded from your loot this session |
+| `/farm export [item]` | hand that back as a data file, ready to paste |
 | `/farm help` | the command list |
 
 `/farmer` is the same command if `/farm` is taken.
@@ -156,6 +158,43 @@ Classic-sourced. When you mark a row confirmed that test fails, which is the
 prompt to say in the commit message that you checked it in game. It is a
 speed bump, not a wall.
 
+### Measuring it yourself
+
+The addon watches your loot window and counts. Every time you loot a corpse it
+records the mob, its level, the zone, the subzone and where you were standing,
+and what was inside. Corpses looted is the denominator, corpses that held the
+item is the numerator, and that is a real drop rate — measured on Forever
+rather than copied from Classic.
+
+It runs on its own from login. `/farm harvest` shows what it has:
+
+```
+/farm harvest
+  41 corpses looted across 3 mobs:
+  58 Wool Cloth  from 30 corpses
+  12 Linen Cloth  from 9 corpses
+```
+
+`/farm export` opens a window holding the whole thing as a data file, already
+selected — Ctrl+C, then paste it into a file under `Data/`. `/farm export wool`
+gives you just that item.
+
+Rows come out marked `provenance = "forever"`, because they were measured here.
+A mob with fewer than 20 corpses behind it exports without a `chance` and says
+how thin the sample was instead, since a rate off six kills is a number
+pretending to be evidence.
+
+Four things are deliberately **not** recorded, because a sample attributed to
+the wrong mob is worse than no sample at all: fishing pools and containers,
+player corpses, anything looted while your target is not the corpse, and
+coordinates the client will not give a straight answer for.
+
+Nothing leaves your machine. It accumulates in memory and comes back out
+through that window, which is also why it is a window and not a saved file:
+this client is reported to write saved variables at logout without reading
+them back, so a window is the path that works either way. `/farm harvest off`
+pauses it and `/farm harvest reset` clears it.
+
 ### Adding to it
 
 Every data file is plain Lua that calls one function:
@@ -218,8 +257,8 @@ WoW says nothing about it.
 |---|---|
 | `Core/` | Namespace, module registry, event dispatch, slash commands, saved variables |
 | `Data/` | The item database and the seed data files |
-| `Logic/` | Ranked search and the display lines it produces |
-| `UI/` | Theme, widgets and the window |
+| `Logic/` | Ranked search, the display lines it produces, and the loot harvester |
+| `UI/` | Theme, widgets, the main window and the export window |
 | `tools/` | Checks and tests. Not shipped to the client |
 
 ## Development
