@@ -18,7 +18,9 @@ Data\Data_Misc.lua
 Data\Data_MobDrops.lua
 
 Logic\Search.lua
+Logic\Harvest.lua
 
 UI\Theme.lua
 UI\Widgets.lua
 UI\Main.lua
+UI\Export.lua
