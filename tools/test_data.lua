@@ -87,10 +87,20 @@ if env.HasHarvested() then
     local harvested = env.Load({ harvested = true })
     local withHarvest = harvested.DB:CountByProvenance()
 
-    suite.check("the harvested file contributes only Forever rows",
-        (withHarvest.classic or 0) == (counts.classic or 0),
+    -- It adds Forever rows and never a Classic one. The classic count can
+    -- still fall, because a measured row replaces the carried-over row for
+    -- the same spot rather than sitting beside it -- so the check is that it
+    -- never RISES, and that every row lost that way gained a Forever row.
+    suite.check("the harvested file adds no Classic rows",
+        (withHarvest.classic or 0) <= (counts.classic or 0),
         ("%d classic before, %d after"):format(
             counts.classic or 0, withHarvest.classic or 0))
+
+    local superseded = (counts.classic or 0) - (withHarvest.classic or 0)
+
+    suite.check("every Classic row it displaced became a Forever one",
+        (withHarvest.forever or 0) >= superseded,
+        ("%d displaced, %d forever"):format(superseded, withHarvest.forever or 0))
 
     suite.check("and it contributes at least one",
         (withHarvest.forever or 0) > 0, withHarvest.forever)
@@ -267,5 +277,75 @@ suite.check("coordinates alone still read",
     DB:WhereText({ coords = { 80, 60 } }) == "80.0, 60.0")
 
 suite.check("nothing known reads as nothing", DB:WhereText({}) == nil)
+
+--------------------------------------------------------------------------------
+-- One row per spot: measured beats carried over
+--------------------------------------------------------------------------------
+--
+-- Trent farmed Witchwing Slayers on 2026-09-21 and measured them at level
+-- 16-17. The Classic row shipped for that same camp says 20-21. Both showing
+-- at once is worse than either alone: the Classic one carries a drop rate
+-- nobody checked here, and it sends you to a camp four levels off.
+
+local function Sources(name)
+    return DB.items[name:lower()].sources
+end
+
+DB:RegisterItem({
+    name = "Test Cloth",
+    sources = {
+        { name = "Test Harpy", zone = "The Barrens", location = "The Dry Hills",
+          minLevel = 20, maxLevel = 21, chance = 22 },
+    },
+})
+
+suite.check("a carried-over row lands", #Sources("Test Cloth") == 1)
+suite.check("and is Classic by default",
+    Sources("Test Cloth")[1].provenance == "classic")
+
+DB:AddSource("Test Cloth", { name = "Test Harpy", zone = "The Barrens",
+    location = "The Dry Hills", minLevel = 16, maxLevel = 17,
+    provenance = "forever" })
+
+suite.check("measuring the same spot replaces it rather than adding",
+    #Sources("Test Cloth") == 1, #Sources("Test Cloth"))
+suite.check("and the measured levels are what survives",
+    Sources("Test Cloth")[1].minLevel == 16
+        and Sources("Test Cloth")[1].provenance == "forever",
+    Sources("Test Cloth")[1].minLevel)
+
+-- Load order must not decide it. The harvested file comes last in the TOC
+-- today, but a rearranged TOC should not quietly undo a measurement.
+DB:AddSource("Test Cloth", { name = "Test Harpy", zone = "The Barrens",
+    location = "The Dry Hills", minLevel = 20, maxLevel = 21, chance = 22 })
+
+suite.check("a carried-over row cannot displace a measured one",
+    #Sources("Test Cloth") == 1 and Sources("Test Cloth")[1].minLevel == 16,
+    Sources("Test Cloth")[1].minLevel)
+
+-- Only the same spot. A different camp is a different answer to the question.
+DB:AddSource("Test Cloth", { name = "Test Harpy", zone = "The Barrens",
+    location = "Witchwing Terrace", minLevel = 19, maxLevel = 20 })
+
+suite.check("another subzone is kept", #Sources("Test Cloth") == 2)
+
+DB:AddSource("Test Cloth", { name = "Test Harpy", zone = "Stonetalon Mountains",
+    minLevel = 19, maxLevel = 20 })
+
+suite.check("another zone is kept", #Sources("Test Cloth") == 3)
+
+DB:AddSource("Test Cloth", { name = "Test Raptor", zone = "The Barrens",
+    location = "The Dry Hills", minLevel = 19, maxLevel = 20 })
+
+suite.check("another creature in the same place is kept",
+    #Sources("Test Cloth") == 4)
+
+-- Two rows of the same provenance are a data-entry duplicate, which this is
+-- deliberately not in the business of guessing about.
+DB:AddSource("Test Cloth", { name = "Test Raptor", zone = "The Barrens",
+    location = "The Dry Hills", minLevel = 19, maxLevel = 20 })
+
+suite.check("two carried-over rows for one spot are left alone",
+    #Sources("Test Cloth") == 5, #Sources("Test Cloth"))
 
 suite.done()

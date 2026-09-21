@@ -106,6 +106,31 @@ function DB:RegisterItem(def)
 end
 
 --- Add one source to an item, given either the item table or its name.
+--- The source already recorded for this same spot, if there is one.
+--
+-- Same creature or node, same zone, same subzone. Compared case-insensitively
+-- because the two sides come from different places: the seed files are typed
+-- by hand and the harvested ones come back from the client.
+local function SameSpot(item, source)
+    if type(source.name) ~= "string" or source.name == "" then return nil end
+
+    local name = source.name:lower()
+    local zone = source.zone:lower()
+    local location = (source.location or ""):lower()
+
+    for index, existing in ipairs(item.sources) do
+        if type(existing.name) == "string"
+            and existing.name:lower() == name
+            and type(existing.zone) == "string"
+            and existing.zone:lower() == zone
+            and (existing.location or ""):lower() == location then
+            return index, existing
+        end
+    end
+
+    return nil
+end
+
 function DB:AddSource(item, source)
     if type(item) == "string" then
         item = self.items[item:lower()]
@@ -147,6 +172,27 @@ function DB:AddSource(item, source)
         or source.chance <= 0 or source.chance > 100) then
         ns.Warn(("dropped a bad drop rate on %s in %s"):format(item.name, source.zone))
         source.chance = nil
+    end
+
+    -- Measured beats carried over. The two can disagree, and when they do the
+    -- Classic row is the wrong one: Witchwing Slayers are level 20-21 in
+    -- Classic and 16-17 on Forever, so showing both sends somebody to a camp
+    -- four levels off, under a drop rate nobody measured here. One row per
+    -- spot, and the one that was actually looted wins.
+    --
+    -- Only across provenances. Two rows of the same kind for one spot are a
+    -- data-entry duplicate, which is not this function's problem to guess at.
+    local index, existing = SameSpot(item, source)
+
+    if existing and existing.provenance ~= source.provenance then
+        if source.provenance == "forever" then
+            item.sources[index] = source
+            return source
+        end
+
+        if existing.provenance == "forever" then
+            return nil
+        end
     end
 
     item.sources[#item.sources + 1] = source
