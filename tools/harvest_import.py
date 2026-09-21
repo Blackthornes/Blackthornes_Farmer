@@ -303,7 +303,10 @@ def describe(ns):
     harvest = ns.Harvest
     items = harvest.Items(harvest)
 
-    lines = ["%d corpses looted across %d mobs" % (
+    # "everything" rather than a bare count: this is the running total, and a
+    # run that added nothing still prints the whole list under it. Without the
+    # word, a re-import reads as if it had just recorded all of it again.
+    lines = ["everything harvested so far: %d corpses across %d mobs" % (
         harvest.CountCorpses(harvest), harvest.CountMobs(harvest))]
 
     # A Lua table indexes from 1 and lupa keeps that.
@@ -443,6 +446,13 @@ def main():
         raise SystemExit("the saved harvest holds no usable records.")
 
     print(describe(ns))
+
+    # Whether the client hands the addon its saved harvest back at login
+    # decides whether the addon could accumulate on its own. It cannot, while
+    # this reads zero, so the every-session import is what keeps the history.
+    if restored_in_game == 0:
+        print("\nthis client did not hand the addon its saved harvest at login,\n"
+              "so import after every session: the next logout replaces the file.")
 
     harvest = ns.Harvest
 
