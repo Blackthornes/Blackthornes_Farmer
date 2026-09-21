@@ -445,9 +445,26 @@ BlackthornesFarmerHarvestStore = {
         ["mob"] = "Venture Co. Peon",
         ["zone"] = "The Barrens",
     },
+    ["Witchwing Ambusher|The Barrens|The Dry Hills"] = {
+        ["coords"] = { 38.4599, 12.5150 },
+        ["corpses"] = 1,
+        ["items"] = {
+            ["Broken Wishbone"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 5115,
+                ["name"] = "Broken Wishbone",
+            },
+        },
+        ["location"] = "The Dry Hills",
+        ["maxLevel"] = 18,
+        ["minLevel"] = 18,
+        ["mob"] = "Witchwing Ambusher",
+        ["zone"] = "The Barrens",
+    },
     ["Witchwing Slayer|The Barrens|The Dry Hills"] = {
         ["coords"] = { 38.5546, 12.4198 },
-        ["corpses"] = 4,
+        ["corpses"] = 7,
         ["items"] = {
             ["Broken Wishbone"] = {
                 ["corpses"] = 2,
@@ -456,10 +473,28 @@ BlackthornesFarmerHarvestStore = {
                 ["name"] = "Broken Wishbone",
             },
             ["Harpy Lieutenant Ring"] = {
-                ["corpses"] = 1,
-                ["count"] = 1,
+                ["corpses"] = 2,
+                ["count"] = 2,
                 ["id"] = 5065,
                 ["name"] = "Harpy Lieutenant Ring",
+            },
+            ["Haunch of Meat"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2287,
+                ["name"] = "Haunch of Meat",
+            },
+            ["Minor Mana Potion"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2455,
+                ["name"] = "Minor Mana Potion",
+            },
+            ["Severed Talon"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 5114,
+                ["name"] = "Severed Talon",
             },
             ["Wool Cloth"] = {
                 ["corpses"] = 2,
@@ -470,17 +505,17 @@ BlackthornesFarmerHarvestStore = {
         },
         ["location"] = "The Dry Hills",
         ["maxLevel"] = 17,
-        ["minLevel"] = 17,
+        ["minLevel"] = 16,
         ["mob"] = "Witchwing Slayer",
         ["zone"] = "The Barrens",
     },
     ["Witchwing Windcaller|The Barrens|The Dry Hills"] = {
         ["coords"] = { 38.7179, 12.2847 },
-        ["corpses"] = 2,
+        ["corpses"] = 3,
         ["items"] = {
             ["Light Feather"] = {
-                ["corpses"] = 1,
-                ["count"] = 1,
+                ["corpses"] = 2,
+                ["count"] = 2,
                 ["id"] = 17056,
                 ["name"] = "Light Feather",
             },
@@ -492,7 +527,7 @@ BlackthornesFarmerHarvestStore = {
             },
         },
         ["location"] = "The Dry Hills",
-        ["maxLevel"] = 17,
+        ["maxLevel"] = 18,
         ["minLevel"] = 17,
         ["mob"] = "Witchwing Windcaller",
         ["zone"] = "The Barrens",
@@ -532,4 +567,4 @@ BlackthornesFarmerHarvestStore = {
 
 -- The SavedVariables file the last import read, so running it
 -- again over the same logout adds nothing a second time.
-BlackthornesFarmerHarvestSource = "ee4586f320de5ceba3e6d617a4e273b9f4e333dbcbe290a882890aede8eeab5a"
+BlackthornesFarmerHarvestSource = "9c87d1e792494b2a207d70587831345d2e53f55c332ae5f2e2acb39f582c4eb5"
