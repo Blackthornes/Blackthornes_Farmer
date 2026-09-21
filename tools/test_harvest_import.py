@@ -60,6 +60,10 @@ BlackthornesFarmerDB = {
 }
 """
 
+STAMPED = SAVED.replace(
+    "BlackthornesFarmerDB = {",
+    'BlackthornesFarmerDB = {\n\t["harvestRestored"] = 0,', 1)
+
 NO_HARVEST = 'BlackthornesFarmerDB = { ["minimapAngle"] = 3.49 }\n'
 
 # The shape the client actually leaves behind after a login that looted
@@ -222,6 +226,10 @@ def main():
         check("a second import succeeds", again.returncode == 0, again.stderr)
         check("and recognises it as the same logout",
               "already imported" in again.stdout, again.stdout)
+        # A re-import prints the whole running total under "nothing added".
+        # Without the label that reads as if it had just recorded all of it.
+        check("a run that added nothing still labels the total",
+              "everything harvested so far" in again.stdout, again.stdout)
 
         toc_again = open(os.path.join(repo, "Blackthornes_Farmer.toc"),
                          encoding="utf-8").read()
@@ -303,6 +311,11 @@ def main():
     generated = os.path.join(repo, "Data", "Data_Harvested.lua")
 
     try:
+        # Same records as SAVED, plus the stamp the addon now always writes.
+        # A zero means it started this login empty, which is the fact the
+        # every-session rule follows from -- so the import has to say it.
+        write_saved(client, STAMPED)
+
         first = run_import(repo, client)
         check("the first import succeeds", first.returncode == 0, first.stderr)
         check("it starts a store", os.path.isfile(store))
@@ -310,6 +323,13 @@ def main():
               first.stdout)
         check("55 corpses are recorded", "55 corpses" in first.stdout,
               first.stdout)
+        check("the listing says it is the running total",
+              "everything harvested so far" in first.stdout, first.stdout)
+        check("it says the client kept nothing for the addon",
+              "did not hand the addon its saved harvest" in first.stdout,
+              first.stdout)
+        check("and gives the rule that follows from it",
+              "import after every session" in first.stdout, first.stdout)
 
         kept = store_records(store)
         after_first = open(generated, encoding="utf-8").read()
