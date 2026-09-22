@@ -567,4 +567,4 @@ BlackthornesFarmerHarvestStore = {
 
 -- The SavedVariables file the last import read, so running it
 -- again over the same logout adds nothing a second time.
-BlackthornesFarmerHarvestSource = "9c87d1e792494b2a207d70587831345d2e53f55c332ae5f2e2acb39f582c4eb5"
+BlackthornesFarmerHarvestSource = "2f6f7f194ddd9f254981d042ee644dd748da07a84eaa55b4e754da8ad306f3ce"
