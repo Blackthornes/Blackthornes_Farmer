@@ -216,7 +216,13 @@ DB:RegisterItem({
     id = 4306,
     category = "Cloth",
     aliases = { "silk" },
-    note = "The thirties bracket. Trolls and the Scarlet Crusade are the two reliable answers.",
+    -- Where silk starts gets asked more often than where it is densest, and
+    -- the rows below cannot answer it: they begin at 30 because that is where
+    -- the rates worth publishing begin. Mid-twenties humanoids -- Thousand
+    -- Needles centaurs and kobolds, Raven Hill skeletons, Gnomeregan -- drop
+    -- it too thinly for anyone to have measured, and a row here needs a rate.
+    -- So the floor is stated in the note rather than guessed at in a row.
+    note = "Thin in the mid-twenties, worth farming from 28. Trolls and the Scarlet Crusade.",
     sources = {
         --------------------------------------------------------------------
         -- Scarlet Monastery: the densest silk anywhere
