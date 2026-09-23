@@ -106,6 +106,92 @@ suite.check("the same mob in two zones is two records",
 env.world.zone = "Silverpine Forest"
 
 --------------------------------------------------------------------------------
+-- Values the client will not let us read
+--------------------------------------------------------------------------------
+--
+-- Ragefire Chasm, 2026-09-22: "Harvest.lua:112: attempt to compare local
+-- 'name' (a secret string value, while execution tainted by
+-- 'Blackthornes_Farmer')", twice over one run. The call to UnitName succeeded
+-- and comparing what it handed back is what raised, so the pcall around the
+-- call was never going to catch it.
+--
+-- env.Secret stands in for such a value: it raises on the operations a secret
+-- value raises on. Every check below would have errored rather than merely
+-- failed before Readable existed.
+
+local SECRET_MOB = { name = env.Secret("string"), level = 15, dead = true }
+
+Harvest:Reset()
+env.Loot(ns, SECRET_MOB, { WOOL })
+
+suite.check("a corpse whose name cannot be read is skipped, not recorded",
+    Harvest:CountCorpses() == 0, Harvest:CountCorpses())
+suite.check("and counted as a dropped sample",
+    Harvest.skipped and Harvest.skipped > 0, Harvest.skipped)
+
+-- A level is worth less than a name: without it the spot still tells you where
+-- to go, so the corpse is kept and the band left empty rather than guessed.
+Harvest:Reset()
+env.Loot(ns, { name = "Ragefire Trogg", level = env.Secret("number"), dead = true },
+    { WOOL })
+
+local trogg = Harvest:ForItem("Wool Cloth")[1]
+suite.check("a corpse whose level cannot be read is still recorded",
+    Harvest:CountCorpses() == 1, Harvest:CountCorpses())
+suite.check("with no level band rather than a wrong one",
+    trogg and trogg.record.minLevel == nil, trogg and trogg.record.minLevel)
+
+-- One unreadable slot must not cost the whole loot window.
+Harvest:Reset()
+env.Loot(ns, APPRENTICE, { { name = env.Secret("string"), quantity = 1 }, WOOL })
+
+suite.check("an unreadable loot slot loses only that slot",
+    #Harvest:Items() == 1 and Harvest:Items()[1].name == "Wool Cloth",
+    Harvest:Items()[1] and Harvest:Items()[1].name)
+suite.check("and the corpse around it still counts",
+    Harvest:CountCorpses() == 1, Harvest:CountCorpses())
+
+Harvest:Reset()
+env.Loot(ns, APPRENTICE,
+    { { name = "Wool Cloth", quantity = env.Secret("number"), id = 2592 } })
+
+local unread = Harvest:ForItem("Wool Cloth")[1]
+suite.check("an unreadable quantity counts as the one it must be",
+    unread and unread.entry.count == 1, unread and unread.entry.count)
+
+-- A zone that cannot be read leaves the spot unplaced rather than erroring.
+Harvest:Reset()
+local realZone, realSub = env.world.zone, env.world.subZone
+env.world.zone = env.Secret("string")
+env.world.subZone = env.Secret("string")
+env.Loot(ns, APPRENTICE, { WOOL })
+env.world.zone, env.world.subZone = realZone, realSub
+
+local unplaced = Harvest:ForItem("Wool Cloth")[1]
+suite.check("an unreadable zone does not take the sample with it",
+    Harvest:CountCorpses() == 1, Harvest:CountCorpses())
+suite.check("the spot is left unplaced instead",
+    unplaced and unplaced.record.zone == nil, unplaced and unplaced.record.zone)
+suite.check("and what it exports is still loadable Lua",
+    loadstring(Harvest:ExportAll()) ~= nil)
+
+-- Through the event the client actually fires, which is where Trent saw it:
+-- the dispatcher pcalls each handler and hands what it catches to
+-- geterrorhandler, which in this harness re-raises. So a raise anywhere under
+-- LOOT_OPENED comes back out here as a failed pcall.
+Harvest:Reset()
+Harvest:OnEnable()
+
+local dispatch = ns.eventFrame:GetScript("OnEvent")
+env.world.target = SECRET_MOB
+env.world.loot = { WOOL }
+
+local delivered = pcall(dispatch, ns.eventFrame, "LOOT_OPENED")
+
+env.world.target = APPRENTICE
+suite.check("looting such a corpse raises nothing at all", delivered == true)
+
+--------------------------------------------------------------------------------
 -- Export
 --------------------------------------------------------------------------------
 
