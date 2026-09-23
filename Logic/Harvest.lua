@@ -64,6 +64,74 @@ function Harvest:Capabilities()
 end
 
 --------------------------------------------------------------------------------
+-- Values the client will not let us read
+--
+-- Forever inherited retail's secret values along with the instance rules that
+-- go with them: inside a dungeon the client may hand an addon a name, a level
+-- or a quantity that it is not willing to have inspected. The value looks
+-- ordinary -- type() answers "string" -- but comparing, concatenating or
+-- formatting it raises on the spot, and it raises in this addon's own stack
+-- frame, because the execution reading it is tainted by this addon.
+--
+-- Trent hit that in Ragefire Chasm on 2026-09-22. UnitName("target") came back
+-- clean from its pcall and `name == ""` two lines later was the error. The
+-- pcall around the call never had a chance: nothing was wrong with the call.
+--
+-- So nothing that came out of the client is touched outside a pcall. Every
+-- such value goes through one of these two, where the reading itself is what
+-- happens inside the pcall, and callers get back either an ordinary Lua value
+-- or nil. An unreadable name costs a corpse, which is the trade this module
+-- makes everywhere else already: a sample attributed to the wrong mob is worse
+-- than no sample.
+--------------------------------------------------------------------------------
+
+--- A plain string copy of `value`, or nil if this client will not let us read it.
+local function Readable(value)
+    local kind = type(value)
+
+    -- A number would concatenate cleanly below and is not a name, so it is
+    -- ruled out first. Everything else -- nil, tables, secret values -- is
+    -- ruled out by failing the read.
+    if kind == "number" or kind == "boolean" then return nil end
+
+    local ok, copy = pcall(function()
+        -- The read is the test. Concatenating and comparing are both refused
+        -- on a secret value, and refusing means raising, so doing them in here
+        -- is how we find out. Whatever comes back out has survived both.
+        local text = value .. ""
+        if text == "" then return nil end
+        return text
+    end)
+
+    -- type() answers safely for a secret value and for nil alike, which is why
+    -- the check out here is a type check and not a comparison.
+    if not ok or type(copy) ~= "string" then return nil end
+
+    return copy
+end
+
+--- `value` as a plain number, or nil if this client will not let us read it.
+local function ReadableNumber(value)
+    local kind = type(value)
+
+    -- "12" would coerce to 12 in the arithmetic below, and a level that
+    -- arrived as text is not one this module should be believing.
+    if kind == "string" or kind == "boolean" then return nil end
+
+    local ok, copy = pcall(function()
+        -- Arithmetic and comparison, for the same reason as above. The
+        -- comparison doubles as the not-a-number check.
+        local number = value + 0
+        if number ~= number then return nil end
+        return number
+    end)
+
+    if not ok or type(copy) ~= "number" then return nil end
+
+    return copy
+end
+
+--------------------------------------------------------------------------------
 -- Where and what
 --------------------------------------------------------------------------------
 
@@ -89,7 +157,11 @@ function Harvest:PlayerPosition()
         x, y = position, select(2, C_Map.GetPlayerMapPosition(mapID, "player"))
     end
 
-    if type(x) ~= "number" or type(y) ~= "number" then return nil end
+    -- Read rather than type-checked: a coordinate off a restricted client is
+    -- as liable to be secret as a name, and this one is about to be compared.
+    x, y = ReadableNumber(x), ReadableNumber(y)
+
+    if not x or not y then return nil end
     if x == 0 and y == 0 then return nil end
 
     return x * 100, y * 100
@@ -108,8 +180,13 @@ function Harvest:LootSource()
     local ok, dead = pcall(UnitIsDead, "target")
     if not ok or not dead then return nil end
 
-    local gotName, name = pcall(UnitName, "target")
-    if not gotName or not name or name == "" then return nil end
+    -- Not `name == ""`: in an instance this is the line that blew up. The
+    -- comparison happens inside Readable, where a raise is an answer.
+    local gotName, unitName = pcall(UnitName, "target")
+    if not gotName then return nil end
+
+    local name = Readable(unitName)
+    if not name then return nil end
 
     -- Players and their corpses are not farming spots.
     if UnitIsPlayer then
@@ -120,9 +197,10 @@ function Harvest:LootSource()
     local level
     if UnitLevel then
         local gotLevel, unitLevel = pcall(UnitLevel, "target")
+        local number = gotLevel and ReadableNumber(unitLevel) or nil
         -- -1 is the client's way of saying "higher than you can tell".
-        if gotLevel and type(unitLevel) == "number" and unitLevel > 0 then
-            level = unitLevel
+        if number and number > 0 then
+            level = number
         end
     end
 
@@ -191,10 +269,13 @@ function Harvest:IsMoney(slot, name)
     if slot == nil then return self:NameLooksLikeMoney(name) end
 
     if caps.lootSlotType then
-        local ok, kind = pcall(GetLootSlotType, slot)
+        local ok, slotType = pcall(GetLootSlotType, slot)
+        -- Read before it is compared, like everything else off this client.
+        local kind = ok and ReadableNumber(slotType) or nil
+
         -- LOOT_SLOT_MONEY is 2 on every client that defines it; the constant
         -- itself may not exist here, so compare to both.
-        if ok and kind then
+        if kind then
             if kind == (LOOT_SLOT_MONEY or 2) then return true end
             if kind == (LOOT_SLOT_ITEM or 1) then return false end
         end
@@ -241,10 +322,19 @@ function Harvest:RecordCorpse()
         return
     end
 
-    local zone = caps.realZone and GetRealZoneText() or nil
-    local location = caps.subZone and GetSubZoneText() or nil
+    local zone, location
 
-    if location == "" then location = nil end
+    if caps.realZone then
+        local gotZone, zoneText = pcall(GetRealZoneText)
+        if gotZone then zone = Readable(zoneText) end
+    end
+
+    if caps.subZone then
+        -- Readable answers nil for the empty string a mob outside any subzone
+        -- comes back with, which is what this wants anyway.
+        local gotSub, subText = pcall(GetSubZoneText)
+        if gotSub then location = Readable(subText) end
+    end
 
     local record = self:GetRecord(mob, level, zone, location)
     record.corpses = record.corpses + 1
@@ -257,13 +347,18 @@ function Harvest:RecordCorpse()
     -- An item in two slots of one corpse is one corpse that held it, not two.
     local seenHere = {}
 
-    local gotCount, count = pcall(GetNumLootItems)
-    if not gotCount or not count then return end
+    local gotCount, lootCount = pcall(GetNumLootItems)
+    local count = gotCount and ReadableNumber(lootCount) or nil
+    if not count then return end
 
     for slot = 1, count do
-        local ok, _, name, quantity = pcall(GetLootSlotInfo, slot)
+        local ok, _, slotName, quantity = pcall(GetLootSlotInfo, slot)
 
-        if ok and name and name ~= "" and not self:IsMoney(slot, name) then
+        -- An unreadable loot name loses that one slot. The corpse itself is
+        -- already counted, and the rest of the window is still worth reading.
+        local name = ok and Readable(slotName) or nil
+
+        if name and not self:IsMoney(slot, name) then
             local entry = record.items[name]
 
             if not entry then
@@ -271,7 +366,7 @@ function Harvest:RecordCorpse()
                 record.items[name] = entry
             end
 
-            entry.count = entry.count + (quantity or 1)
+            entry.count = entry.count + (ReadableNumber(quantity) or 1)
 
             if not seenHere[name] then
                 seenHere[name] = true
@@ -280,8 +375,11 @@ function Harvest:RecordCorpse()
 
             if not entry.id and caps.lootSlotLink then
                 local gotLink, link = pcall(GetLootSlotLink, slot)
-                if gotLink and link then
-                    entry.id = tonumber(link:match("item:(%d+)"))
+                -- The link comes from the same restricted source as the name,
+                -- so it is read the same way before anything matches on it.
+                local text = gotLink and Readable(link) or nil
+                if text then
+                    entry.id = tonumber(text:match("item:(%d+)"))
                 end
             end
         end

@@ -207,6 +207,36 @@ function env.InstallWorld()
     }
 end
 
+--- A value this client refuses to let an addon read.
+--
+-- Inside an instance Forever can hand back a name, a level or a quantity that
+-- raises the moment addon code compares, concatenates or formats it -- retail's
+-- secret values, which is what took the harvester down in Ragefire Chasm. Lua
+-- cannot make a real string behave that way, so this is the nearest thing: a
+-- value that raises on exactly the operations a secret value raises on, and
+-- answers nothing else.
+--
+-- `what` only shapes the message, so a test that does catch the error can see
+-- which value it came from.
+function env.Secret(what)
+    local function refuse(verb)
+        return function()
+            error(("attempt to %s a secret %s value, while execution tainted "
+                .. "by 'Blackthornes_Farmer'"):format(verb, what), 0)
+        end
+    end
+
+    return setmetatable({}, {
+        __index = refuse("index"),
+        __concat = refuse("concatenate"),
+        __add = refuse("perform arithmetic on"),
+        __sub = refuse("perform arithmetic on"),
+        __lt = refuse("compare"),
+        __le = refuse("compare"),
+        __tostring = refuse("format"),
+    })
+end
+
 --- Loot one corpse: point the target at `mob` and fire the loot event.
 function env.Loot(ns, mob, items)
     if mob then
