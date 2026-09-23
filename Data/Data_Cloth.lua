@@ -216,14 +216,28 @@ DB:RegisterItem({
     id = 4306,
     category = "Cloth",
     aliases = { "silk" },
-    -- Where silk starts gets asked more often than where it is densest, and
-    -- the rows below cannot answer it: they begin at 30 because that is where
-    -- the rates worth publishing begin. Mid-twenties humanoids -- Thousand
-    -- Needles centaurs and kobolds, Raven Hill skeletons, Gnomeregan -- drop
-    -- it too thinly for anyone to have measured, and a row here needs a rate.
-    -- So the floor is stated in the note rather than guessed at in a row.
     note = "Thin in the mid-twenties, worth farming from 28. Trolls and the Scarlet Crusade.",
     sources = {
+        --------------------------------------------------------------------
+        -- The low end: where silk starts
+        --
+        -- Listed without rates, because nobody has published one for these
+        -- and a number made up to fill the column is worse than a blank.
+        -- They answer "what is the lowest thing that drops it", which is
+        -- asked more often than where it is densest.
+        --------------------------------------------------------------------
+        { name = "Galak centaurs", zone = "Thousand Needles",
+          location = "Splithoof Heights", minLevel = 24, maxLevel = 28,
+          note = "the low end -- silk starts here, thinly" },
+
+        { name = "Raven Hill skeletons", zone = "Duskwood",
+          location = "Raven Hill Cemetery", minLevel = 25, maxLevel = 25,
+          note = "the low end" },
+
+        { name = "Leper gnomes", zone = "Dun Morogh",
+          location = "Gnomeregan", minLevel = 25, maxLevel = 30,
+          note = "instance -- the low end" },
+
         --------------------------------------------------------------------
         -- Scarlet Monastery: the densest silk anywhere
         --------------------------------------------------------------------
@@ -318,5 +332,18 @@ DB:RegisterItem({
         { kind = "mob", name = "Scourge", zone = "Eastern Plaguelands", minLevel = 53, maxLevel = 60 },
         { kind = "mob", name = "Winterfall furbolgs", zone = "Winterspring", minLevel = 53, maxLevel = 60, note = "also drops Winterfall Firewater" },
         { kind = "mob", name = "Twilight's Hammer cultists", zone = "Silithus", minLevel = 55, maxLevel = 60 },
+    },
+})
+
+DB:RegisterItem({
+    name = "Felcloth",
+    id = 14256,
+    category = "Cloth",
+    aliases = { "fel cloth" },
+    note = "Satyrs, almost exclusively. Farmed alongside Runecloth.",
+    sources = {
+        { kind = "mob", name = "Haldarr satyrs", zone = "Azshara", minLevel = 47, maxLevel = 51 },
+        { kind = "mob", name = "Jadefire satyrs", zone = "Felwood", minLevel = 48, maxLevel = 55 },
+        { kind = "mob", name = "Legashi satyrs", zone = "Azshara", minLevel = 53, maxLevel = 56 },
     },
 })

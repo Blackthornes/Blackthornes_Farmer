@@ -45,7 +45,7 @@ DB:RegisterItem({
 
 DB:RegisterItem({
     name = "Large Fang",
-    id = 5469,
+    id = 5637,
     category = "Mob drop",
     sources = {
         { name = "raptors", zone = "Stranglethorn Vale", minLevel = 30, maxLevel = 40 },
@@ -199,5 +199,105 @@ DB:RegisterItem({
     name = "Elemental Fire",
     sources = {
         { name = "fire elementals", zone = "Tanaris", minLevel = 42, maxLevel = 48 },
+    },
+})
+
+--------------------------------------------------------------------------------
+-- The middle tier of each element
+--
+-- Between the common Elemental drop and the high-level Essence sits a rarer
+-- mid-level drop off the same kind of mob. Same places as the common one.
+--------------------------------------------------------------------------------
+
+DB:RegisterItem({
+    name = "Heart of Fire",
+    id = 7077,
+    category = "Elemental",
+    sources = {
+        { name = "fire elementals", zone = "Searing Gorge", minLevel = 45, maxLevel = 52 },
+        { name = "fire elementals", zone = "Burning Steppes", minLevel = 50, maxLevel = 58 },
+    },
+})
+
+DB:RegisterItem({
+    name = "Core of Earth",
+    id = 7075,
+    category = "Elemental",
+    sources = {
+        { name = "earth elementals", zone = "Arathi Highlands", minLevel = 35, maxLevel = 40 },
+        { name = "rock elementals", zone = "Badlands", minLevel = 40, maxLevel = 46 },
+    },
+})
+
+DB:RegisterItem({
+    name = "Globe of Water",
+    id = 7079,
+    category = "Elemental",
+    sources = {
+        { name = "water elementals", zone = "Arathi Highlands", minLevel = 35, maxLevel = 40 },
+        { name = "water elementals", zone = "Desolace", minLevel = 35, maxLevel = 42 },
+        { name = "water elementals", zone = "Azshara", minLevel = 45, maxLevel = 52 },
+    },
+})
+
+DB:RegisterItem({
+    name = "Breath of Wind",
+    id = 7081,
+    category = "Elemental",
+    sources = {
+        { name = "air elementals", zone = "Arathi Highlands", minLevel = 35, maxLevel = 40 },
+        { name = "air elementals", zone = "Badlands", minLevel = 40, maxLevel = 46 },
+        { name = "air elementals", zone = "The Hinterlands", minLevel = 45, maxLevel = 50 },
+    },
+})
+
+DB:RegisterItem({
+    name = "Ichor of Undeath",
+    id = 7972,
+    category = "Elemental",
+    note = "The mid-level undead drop, before Essence of Undeath.",
+    sources = {
+        { name = "undead", zone = "Tirisfal Glades", location = "Scarlet Monastery Graveyard", minLevel = 30, maxLevel = 35, note = "instance" },
+        { name = "undead", zone = "The Barrens", location = "Razorfen Downs", minLevel = 33, maxLevel = 40, note = "instance" },
+    },
+})
+
+DB:RegisterItem({
+    name = "Heart of the Wild",
+    id = 10286,
+    category = "Elemental",
+    sources = {
+        { name = "furbolgs and beasts", zone = "Felwood", minLevel = 48, maxLevel = 55 },
+        { name = "furbolgs and beasts", zone = "Winterspring", minLevel = 53, maxLevel = 60 },
+    },
+})
+
+DB:RegisterItem({
+    name = "Righteous Orb",
+    id = 12811,
+    category = "Mob drop",
+    note = "Stratholme only.",
+    sources = {
+        { name = "Scarlet Crusade", zone = "Eastern Plaguelands", location = "Stratholme", minLevel = 56, maxLevel = 60, note = "instance -- the living side" },
+    },
+})
+
+DB:RegisterItem({
+    name = "Fiery Core",
+    id = 17010,
+    category = "Elemental",
+    note = "Raid only.",
+    sources = {
+        { name = "Molten Core elementals", zone = "Searing Gorge", location = "Molten Core", minLevel = 60, maxLevel = 60, note = "raid" },
+    },
+})
+
+DB:RegisterItem({
+    name = "Lava Core",
+    id = 17011,
+    category = "Elemental",
+    note = "Raid only.",
+    sources = {
+        { name = "Molten Core elementals", zone = "Searing Gorge", location = "Molten Core", minLevel = 60, maxLevel = 60, note = "raid" },
     },
 })
