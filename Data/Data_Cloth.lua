@@ -334,3 +334,16 @@ DB:RegisterItem({
         { kind = "mob", name = "Twilight's Hammer cultists", zone = "Silithus", minLevel = 55, maxLevel = 60 },
     },
 })
+
+DB:RegisterItem({
+    name = "Felcloth",
+    id = 14256,
+    category = "Cloth",
+    aliases = { "fel cloth" },
+    note = "Satyrs, almost exclusively. Farmed alongside Runecloth.",
+    sources = {
+        { kind = "mob", name = "Haldarr satyrs", zone = "Azshara", minLevel = 47, maxLevel = 51 },
+        { kind = "mob", name = "Jadefire satyrs", zone = "Felwood", minLevel = 48, maxLevel = 55 },
+        { kind = "mob", name = "Legashi satyrs", zone = "Azshara", minLevel = 53, maxLevel = 56 },
+    },
+})
