@@ -190,8 +190,16 @@ suite.check("a zero rate is dropped", SourceWithChance(0).chance == nil)
 --
 -- These are the worked examples of what a finished item looks like, and they
 -- are what the rest of the data is meant to be copied from. If the standard
--- slips here it slips everywhere, so every row of theirs has to carry the full
--- set: the mob, where in the zone it stands, its level band and a drop rate.
+-- slips here it slips everywhere, so every row of theirs has to carry the mob,
+-- where in the zone it stands, and its level band.
+--
+-- A drop rate is listed when somebody has one and never required. Trent's
+-- rule, 2026-09-23: "a drop rate is only something we list if we do. it
+-- should not preclude a listed drop though." A spot known to drop the item is
+-- worth listing without a number beside it; demanding the number kept real
+-- spots out, and the only way to satisfy the demand was to invent one. What
+-- is still required is that a researched item has a real body of rated rows,
+-- so "researched" keeps meaning somebody did the work.
 --
 -- Add an item to this list when you finish researching it.
 --------------------------------------------------------------------------------
@@ -205,7 +213,7 @@ for _, name in ipairs(RESEARCHED) do
     suite.check(name .. " has a serious number of spots", #item.sources >= 15,
         #item.sources)
 
-    local withCoords, zones, zoneCount = 0, {}, 0
+    local withCoords, zones, zoneCount, rated = 0, {}, 0, 0
 
     for _, source in ipairs(item.sources) do
         suite.check(("every %s row names its mob"):format(name),
@@ -214,8 +222,11 @@ for _, name in ipairs(RESEARCHED) do
         suite.check(("every %s row names where in the zone"):format(name),
             source.location and source.location ~= "", source.name)
 
-        suite.check(("every %s row has a drop rate"):format(name),
-            type(source.chance) == "number", source.name)
+        -- Absent is fine. Present and malformed is not.
+        suite.check(("a %s drop rate, where there is one, is a number"):format(name),
+            source.chance == nil or type(source.chance) == "number", source.name)
+
+        if source.chance then rated = rated + 1 end
 
         suite.check(("every %s row has a level band"):format(name),
             source.minLevel and source.maxLevel, source.name)
@@ -240,6 +251,7 @@ for _, name in ipairs(RESEARCHED) do
     end
 
     suite.check(name .. " has coordinates on some rows", withCoords > 0, withCoords)
+    suite.check(name .. " has a real body of rated rows", rated >= 15, rated)
     suite.check(name .. " spans several zones", zoneCount >= 4, zoneCount)
 end
 
