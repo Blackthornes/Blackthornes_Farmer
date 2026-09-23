@@ -40,6 +40,28 @@ for item in DB:Iterate() do
 end
 
 --------------------------------------------------------------------------------
+-- Item ids
+--------------------------------------------------------------------------------
+
+-- Two items claiming one id means one of them is wrong, and it matters more
+-- than it looks: the harvester registers what it measured under the id off
+-- the loot link, and the first id an item was given wins. A seed row with
+-- the wrong id would quietly outrank the client's right one.
+--
+-- Found two when this check was added: Mountain Silversage carried Golden
+-- Sansam's 13464, and Large Fang carried Strider Meat's 5469.
+local byId = {}
+
+for item in DB:Iterate() do
+    if item.id then
+        suite.check(("%s and %s do not share id %d"):format(
+                byId[item.id] or "?", item.name, item.id),
+            byId[item.id] == nil)
+        byId[item.id] = item.name
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Mob drops
 --------------------------------------------------------------------------------
 

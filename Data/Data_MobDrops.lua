@@ -45,7 +45,7 @@ DB:RegisterItem({
 
 DB:RegisterItem({
     name = "Large Fang",
-    id = 5469,
+    id = 5637,
     category = "Mob drop",
     sources = {
         { name = "raptors", zone = "Stranglethorn Vale", minLevel = 30, maxLevel = 40 },
