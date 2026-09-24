@@ -211,6 +211,14 @@ local DEFAULTS = {
     lastSearch = "",
     debug = false,
 
+    -- Window sizes in percent, set on the settings page.
+    windowScale = 100,
+    trackerScale = 100,
+
+    -- Loot recording paused from the settings page or /farm harvest off.
+    -- Remembered, so pausing it once does not quietly undo itself at login.
+    harvestPaused = false,
+
     -- Minimap button: where it sits on the ring, how far off the edge, and
     -- whether it is there at all.
     minimapAngle = math.rad(200),
@@ -242,6 +250,9 @@ local function LoadSavedVariables()
 end
 
 ns.LoadSavedVariables = LoadSavedVariables
+
+-- Read-only: the settings page puts window positions back from here.
+ns.DEFAULTS = DEFAULTS
 
 local bootstrap = ns.NewModule("Bootstrap")
 
@@ -327,6 +338,12 @@ function ns.HandleSlash(input)
     if not ok then
         ns.Warn(("/farm %s failed: %s"):format(keyword, tostring(err)))
         geterrorhandler()(err)
+    end
+
+    -- Most commands flip something the settings page shows; keep it honest
+    -- if it happens to be open.
+    if ns.SettingsUI then
+        pcall(ns.SettingsUI.Refresh, ns.SettingsUI)
     end
 end
 

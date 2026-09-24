@@ -103,6 +103,7 @@ function UI:Build()
     frame:SetPropagateKeyboardInput(true)
 
     self.frame = frame
+    self:ApplyScale()
 
     self:BuildHeader()
     self:BuildBody()
@@ -126,6 +127,12 @@ function UI:BuildHeader()
     local close = Widgets.CreateButton(header, "X", function() UI:Hide() end,
         { width = 22, height = 20 })
     close:SetPoint("RIGHT", -PADDING + 2, 0)
+
+    local settings = Widgets.CreateButton(header, "Settings", function()
+        if ns.SettingsUI then ns.SettingsUI:Toggle() end
+    end, { width = 64, height = 20 })
+    settings:SetPoint("RIGHT", close, "LEFT", -6, 0)
+    self.settingsButton = settings
 
     local divider = Theme.CreateDivider(frame, "borderLit")
     divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
@@ -521,6 +528,13 @@ function UI:RestorePosition()
         db.relativePoint or "CENTER", db.x or 0, db.y or 40)
 end
 
+--- The window's size, as chosen on the settings page.
+function UI:ApplyScale()
+    if self.frame then
+        self.frame:SetScale(((ns.db and ns.db.windowScale) or 100) / 100)
+    end
+end
+
 --------------------------------------------------------------------------------
 -- Visibility
 --------------------------------------------------------------------------------
@@ -651,14 +665,19 @@ function UI:BuildMinimapButton()
         self:SetScript("OnUpdate", nil)
     end)
 
-    button:SetScript("OnClick", function()
-        UI:Toggle()
+    button:SetScript("OnClick", function(_, mouseButton)
+        if mouseButton == "RightButton" and ns.SettingsUI then
+            ns.SettingsUI:Toggle()
+        else
+            UI:Toggle()
+        end
     end)
 
     button:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Blackthornes Farmer")
         GameTooltip:AddLine("Click to open", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("Right-click for settings", 0.7, 0.7, 0.7)
         GameTooltip:AddLine("Drag to move it round the minimap", 0.5, 0.5, 0.5)
         GameTooltip:Show()
     end)
