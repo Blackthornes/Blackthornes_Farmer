@@ -4,8 +4,13 @@
 -- Until the Forever patch of 2026-09-24 the client wrote SavedVariables at
 -- logout but never read them at login, so every session started empty and the
 -- running total had to live outside the game, in Data/Harvest_Store.lua, fed
--- by tools/harvest_import.py after each session. That file became this one,
--- unchanged apart from its wrapper: 84 corpses across 22 spots.
+-- by tools/harvest_import.py after each session. This is that file as it
+-- stood before the fix: 84 corpses across 22 spots.
+--
+-- The Tirisfal run imported on 2026-09-24 (38 corpses, 10 spots) is left out
+-- on purpose. It was looted after the fix, so it is already in the saved
+-- harvest; carrying it over as well would count it twice. 84 here plus the 38
+-- already saved is the 122 that Data/Data_Harvested.lua was built from.
 --
 -- Harvest:Restore adds it to the saved harvest exactly once, and stamps the
 -- save with `id` so the next login does not add it again. After that first
