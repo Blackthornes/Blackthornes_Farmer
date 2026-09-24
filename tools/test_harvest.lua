@@ -164,6 +164,58 @@ local unread = Harvest:ForItem("Wool Cloth")[1]
 suite.check("an unreadable quantity counts as the one it must be",
     unread and unread.entry.count == 1, unread and unread.entry.count)
 
+-- Skinning: one corpse, two loot windows. The corpse counts once, and the
+-- leather from the second window counts as a drop from it.
+Harvest:Reset()
+
+local BOAR = { name = "Mottled Boar", level = 7, dead = true, guid = "Creature-boar-1" }
+local SCRAPS = { name = "Ruined Leather Scraps", quantity = 1 }
+local LEATHER = { name = "Light Leather", quantity = 1 }
+
+env.Loot(ns, BOAR, { SCRAPS })
+env.Loot(ns, BOAR, { LEATHER })
+
+suite.check("a skinned corpse is still one corpse",
+    Harvest:CountCorpses() == 1, Harvest:CountCorpses())
+
+local skinned = Harvest:ForItem("Light Leather")[1]
+suite.check("what skinning gave is counted",
+    skinned and skinned.entry.corpses == 1 and skinned.entry.count == 1,
+    skinned and skinned.entry.corpses)
+suite.check("and its rate is over the one corpse",
+    skinned and skinned.chance == 100, skinned and skinned.chance)
+
+-- Coming back for scraps left behind: not a new corpse, not more scraps.
+env.Loot(ns, BOAR, { SCRAPS })
+local scraps = Harvest:ForItem("Ruined Leather Scraps")[1]
+suite.check("a return visit adds no corpse", Harvest:CountCorpses() == 1)
+suite.check("nor counts the leftovers again",
+    scraps and scraps.entry.corpses == 1 and scraps.entry.count == 1,
+    scraps and scraps.entry.count)
+
+-- Two slots of one item in a single window still add up.
+env.Loot(ns, { name = "Mottled Boar", level = 7, dead = true, guid = "Creature-boar-2" },
+    { LEATHER, LEATHER })
+skinned = Harvest:ForItem("Light Leather")[1]
+suite.check("two slots in one window both count",
+    skinned and skinned.entry.count == 3 and skinned.entry.corpses == 2,
+    skinned and skinned.entry.count)
+
+-- A different boar is a different corpse.
+suite.check("another guid is another corpse", Harvest:CountCorpses() == 2)
+
+-- Without a guid there is nothing to recognise it by: each window counts.
+local noGuid = { name = "Mottled Boar", level = 7, dead = true }
+env.Loot(ns, noGuid, { SCRAPS })
+env.Loot(ns, noGuid, { LEATHER })
+suite.check("without a guid each window is a corpse", Harvest:CountCorpses() == 4)
+
+-- Reset forgets the corpses too, or the next loot would land in a dropped record.
+Harvest:Reset()
+env.Loot(ns, BOAR, { LEATHER })
+suite.check("after a reset the same guid starts a fresh record",
+    Harvest:CountCorpses() == 1, Harvest:CountCorpses())
+
 -- A zone that cannot be read leaves the spot unplaced rather than erroring.
 Harvest:Reset()
 local realZone, realSub = env.world.zone, env.world.subZone
