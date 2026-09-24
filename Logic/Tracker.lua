@@ -179,12 +179,7 @@ end
 --- The corpse's guid, if the client will say. Read, not compared, like every
 --- other value off this client.
 function Tracker:CorpseID()
-    if not UnitGUID then return nil end
-
-    local ok, guid = pcall(UnitGUID, "target")
-    if not ok then return nil end
-
-    return ns.Harvest.Readable(guid)
+    return ns.Harvest:CorpseID()
 end
 
 --- The items in the open loot window, each once, coins left out.

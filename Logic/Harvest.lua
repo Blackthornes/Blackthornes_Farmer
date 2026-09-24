@@ -28,6 +28,10 @@ local MIN_SAMPLE = 20
 Harvest.records = {}
 Harvest.enabled = true
 
+-- Every corpse opened this session, by guid: which record it went into and
+-- which items were already counted from it. See RecordCorpse.
+Harvest.opened = {}
+
 --------------------------------------------------------------------------------
 -- Client capabilities
 --------------------------------------------------------------------------------
@@ -213,6 +217,16 @@ function Harvest:LootSource()
     return name, level
 end
 
+--- The corpse's guid, if the client will say. Read, not compared.
+function Harvest:CorpseID()
+    if not UnitGUID then return nil end
+
+    local ok, guid = pcall(UnitGUID, "target")
+    if not ok then return nil end
+
+    return Readable(guid)
+end
+
 --------------------------------------------------------------------------------
 -- Recording
 --------------------------------------------------------------------------------
@@ -328,29 +342,52 @@ function Harvest:RecordCorpse()
         return
     end
 
-    local zone, location
+    -- One corpse opened twice is one corpse. Skinning opens a second loot
+    -- window on a corpse already looted, and so does coming back for what
+    -- was left; counting each as a corpse would halve every other item's
+    -- rate on anything you skin. What the second opening finds -- the leather
+    -- -- is still a drop from that corpse and is counted, once.
+    --
+    -- Without a readable guid (an instance can refuse it) the corpse cannot
+    -- be recognised again, so each opening counts as before.
+    local guid = self:CorpseID()
+    local corpse = guid and self.opened[guid]
+    local record
 
-    if caps.realZone then
-        local gotZone, zoneText = pcall(GetRealZoneText)
-        if gotZone then zone = Readable(zoneText) end
-    end
+    if corpse then
+        record = corpse.record
+    else
+        local zone, location
 
-    if caps.subZone then
-        -- Readable answers nil for the empty string a mob outside any subzone
-        -- comes back with, which is what this wants anyway.
-        local gotSub, subText = pcall(GetSubZoneText)
-        if gotSub then location = Readable(subText) end
-    end
+        if caps.realZone then
+            local gotZone, zoneText = pcall(GetRealZoneText)
+            if gotZone then zone = Readable(zoneText) end
+        end
 
-    local record = self:GetRecord(mob, level, zone, location)
-    record.corpses = record.corpses + 1
+        if caps.subZone then
+            -- Readable answers nil for the empty string a mob outside any
+            -- subzone comes back with, which is what this wants anyway.
+            local gotSub, subText = pcall(GetSubZoneText)
+            if gotSub then location = Readable(subText) end
+        end
 
-    if not record.coords then
-        local x, y = self:PlayerPosition()
-        if x then record.coords = { x, y } end
+        record = self:GetRecord(mob, level, zone, location)
+        record.corpses = record.corpses + 1
+
+        if not record.coords then
+            local x, y = self:PlayerPosition()
+            if x then record.coords = { x, y } end
+        end
+
+        corpse = { record = record, items = {} }
+        if guid then self.opened[guid] = corpse end
     end
 
     -- An item in two slots of one corpse is one corpse that held it, not two.
+    -- `counted` spans every opening of this corpse; `seenHere` only this one,
+    -- so two slots of the same item now still add up, while leftovers seen
+    -- again on a return visit add nothing.
+    local counted = corpse.items
     local seenHere = {}
 
     local gotCount, lootCount = pcall(GetNumLootItems)
@@ -364,7 +401,9 @@ function Harvest:RecordCorpse()
         -- already counted, and the rest of the window is still worth reading.
         local name = ok and Readable(slotName) or nil
 
-        if name and not self:IsMoney(slot, name) then
+        local already = name and counted[name] and not seenHere[name]
+
+        if name and not already and not self:IsMoney(slot, name) then
             local entry = record.items[name]
 
             if not entry then
@@ -376,6 +415,7 @@ function Harvest:RecordCorpse()
 
             if not seenHere[name] then
                 seenHere[name] = true
+                counted[name] = true
                 entry.corpses = entry.corpses + 1
             end
 
@@ -491,6 +531,7 @@ end
 
 function Harvest:Reset()
     self.records = {}
+    self.opened = {}
     self.skipped = 0
     self.dirty = true
     self:Persist()
