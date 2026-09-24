@@ -261,6 +261,7 @@ local FILES = {
     "Data/Data_Leather.lua",
     "Data/Data_Misc.lua",
     "Data/Data_MobDrops.lua",
+    "Data/Harvest_Carryover.lua",
     "Logic/Search.lua",
     "Logic/Harvest.lua",
 }

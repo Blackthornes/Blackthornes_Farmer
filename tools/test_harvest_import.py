@@ -60,20 +60,24 @@ BlackthornesFarmerDB = {
 }
 """
 
-STAMPED = SAVED.replace(
-    "BlackthornesFarmerDB = {",
-    'BlackthornesFarmerDB = {\n\t["harvestRestored"] = 0,', 1)
+CARRYOVER_ID = re.search(
+    r'id = "([^"]+)"',
+    open(os.path.join(ROOT, "Data", "Harvest_Carryover.lua"), encoding="utf-8").read()
+).group(1)
 
-NO_HARVEST = 'BlackthornesFarmerDB = { ["minimapAngle"] = 3.49 }\n'
 
-# The shape the client actually leaves behind after a login that looted
-# nothing: the table is there, and empty. Not the same as no table, and it
-# contributes exactly as much.
-EMPTY_HARVEST = 'BlackthornesFarmerDB = { ["harvest"] = {} }\n'
+def stamped(text):
+    """`text` as saved by a login that has already added the carryover."""
+    return text.replace(
+        "BlackthornesFarmerDB = {",
+        'BlackthornesFarmerDB = {\n\t["harvestCarryover"] = "%s",' % CARRYOVER_ID, 1)
 
-# A later session at the same spot, plus a new one. The overlapping mob has a
-# wider level band and coins in its loot, so one file exercises accumulation,
-# the widening, and the coin filter together.
+
+NO_HARVEST = stamped('BlackthornesFarmerDB = { ["minimapAngle"] = 3.49 }\n')
+
+# A smaller harvest than SAVED, with coins in its loot recorded by an old
+# version: what the import has to refuse to publish over a bigger one, and the
+# coin filter in one file.
 LATER = """
 BlackthornesFarmerDB = {
 \t["harvest"] = {
@@ -134,11 +138,11 @@ def build_sandbox(saved_text):
 
     repo = os.path.join(sandbox, "repo")
 
-    # The store is deliberately left behind. It is the running total of every
-    # real harvest, and a sandbox that inherited it would be testing against
-    # Trent's data instead of its own.
+    # The generated data file is deliberately left behind. It is Trent's real
+    # harvest, and a sandbox that inherited it would be testing against his
+    # data instead of its own.
     shutil.copytree(ROOT, repo,
-                    ignore=shutil.ignore_patterns(".git", "Harvest_Store.lua"))
+                    ignore=shutil.ignore_patterns(".git", "Data_Harvested.lua"))
 
     # A real install nests the flavour folder and the account name, which is
     # what the script has to search through.
@@ -161,17 +165,6 @@ def run_import(repo, client, *extra):
         capture_output=True, text=True, cwd=repo)
 
 
-def store_records(path):
-    """The store's records, without the fingerprint of the file that fed them.
-
-    The fingerprint changes whenever the client rewrites SavedVariables, which
-    it does at every logout whether or not anything was looted. The records are
-    the part that must not change.
-    """
-    text = open(path, encoding="utf-8").read()
-    return text.split("BlackthornesFarmerHarvestSource")[0]
-
-
 def write_saved(client, text):
     """Replace what the fake client last wrote at logout."""
     path = os.path.join(
@@ -186,7 +179,7 @@ def write_saved(client, text):
 
 def main():
     # -- A normal import ------------------------------------------------------
-    sandbox, repo, client = build_sandbox(SAVED)
+    sandbox, repo, client = build_sandbox(stamped(SAVED))
     try:
         result = run_import(repo, client)
         check("the import succeeds", result.returncode == 0, result.stderr)
@@ -202,6 +195,10 @@ def main():
         check("it registers the item", 'name = "Wool Cloth"' in text)
         check("measured rows are marked Forever",
               'provenance = "forever"' in text)
+        check("55 corpses are recorded", "55 corpses" in result.stdout,
+              result.stdout)
+        check("the listing says it is the running total",
+              "everything harvested so far" in result.stdout, result.stdout)
 
         # 29 of 47 corpses is 62%, and the eight-corpse mob is under the
         # twenty-corpse floor, so exactly one rate should appear.
@@ -210,35 +207,28 @@ def main():
         check("exactly one rate is published",
               text.count("chance = ") == 1, text.count("chance = "))
 
+        # The carryover is already inside the saved harvest; the import must
+        # not add it a second time.
+        check("the carryover is not added again", "Baron Longshore" not in text)
+
         toc = open(os.path.join(repo, "Blackthornes_Farmer.toc"),
                    encoding="utf-8").read()
-        check("the TOC picks up the generated file",
+        check("the TOC lists the generated file",
               "Data\\Data_Harvested.lua" in toc, toc)
-        check("the TOC gains exactly one line",
+        check("exactly once",
               toc.count("Data_Harvested") == 1, toc.count("Data_Harvested"))
 
         # -- Running it twice --------------------------------------------------
         #
-        # Each run adds the session to a running total, so a second run over an
-        # unchanged file must add nothing. Double-clicking the desktop shortcut
-        # twice is not a reason for every number in the repository to double.
+        # The saved file is the total, so reading it twice writes the same
+        # thing twice. Double-clicking the desktop shortcut again is harmless.
         again = run_import(repo, client)
         check("a second import succeeds", again.returncode == 0, again.stderr)
-        check("and recognises it as the same logout",
-              "already imported" in again.stdout, again.stdout)
-        # A re-import prints the whole running total under "nothing added".
-        # Without the label that reads as if it had just recorded all of it.
-        check("a run that added nothing still labels the total",
-              "everything harvested so far" in again.stdout, again.stdout)
-
-        toc_again = open(os.path.join(repo, "Blackthornes_Farmer.toc"),
-                         encoding="utf-8").read()
-        check("and does not duplicate the TOC line",
-              toc_again.count("Data_Harvested") == 1)
-        check("and leaves the TOC otherwise unchanged", toc_again == toc)
-
-        second = open(generated, encoding="utf-8").read()
-        check("regenerating gives the same file", second == text)
+        check("and regenerates the same file",
+              open(generated, encoding="utf-8").read() == text)
+        check("and leaves the TOC unchanged",
+              open(os.path.join(repo, "Blackthornes_Farmer.toc"),
+                   encoding="utf-8").read() == toc)
 
         # -- The generated data actually loads ---------------------------------
         tests = subprocess.run(
@@ -252,21 +242,58 @@ def main():
             capture_output=True, text=True, cwd=repo)
         check("the generated file parses as Lua 5.1",
               syntax.returncode == 0, syntax.stdout[-400:])
+
+        # -- A smaller harvest is not published over a bigger one --------------
+        #
+        # The saved harvest only grows. A smaller one means a reset or a client
+        # that has stopped reading saved variables back, and the repository
+        # keeps what it has until somebody says otherwise.
+        write_saved(client, stamped(LATER))
+        smaller = run_import(repo, client)
+
+        check("a smaller harvest is refused", smaller.returncode != 0,
+              smaller.stdout)
+        check("and says why",
+              "was built from 55" in (smaller.stdout + smaller.stderr),
+              smaller.stderr)
+        check("THE PUBLISHED DATA SURVIVES IT",
+              open(generated, encoding="utf-8").read() == text)
+
+        allowed = run_import(repo, client, "--allow-smaller")
+        check("--allow-smaller writes it anyway", allowed.returncode == 0,
+              allowed.stderr)
+
+        written = open(generated, encoding="utf-8").read()
+        check("the smaller harvest is what was written", "Wolf Meat" in written)
+        check("coins never reach the data file", "14 Copper" not in written,
+              written)
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
+
+    # -- A save from before the carryover was added ---------------------------
+    #
+    # Until the addon's first login after the SavedVariables fix, the saved
+    # file holds one session and none of the history in the carryover.
+    # Publishing it would drop that history out of the repository.
+    sandbox, repo, client = build_sandbox(SAVED)
+    try:
+        data_file = os.path.join(repo, "Data", "Data_Harvested.lua")
+        result = run_import(repo, client)
+
+        check("a save without the carryover stamp is refused",
+              result.returncode != 0, result.stdout)
+        check("and says to log in once first",
+              "Log in to WoW once" in (result.stderr + result.stdout),
+              result.stderr)
+        check("and writes nothing", not os.path.isfile(data_file))
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)
 
     # -- Nothing harvested yet ------------------------------------------------
-    #
-    # A checkout already carries a generated data file and a TOC line for it,
-    # so the thing to check is that a refused import leaves both exactly as
-    # they were -- not that neither exists.
     sandbox, repo, client = build_sandbox(NO_HARVEST)
     try:
         data_file = os.path.join(repo, "Data", "Data_Harvested.lua")
         toc_file = os.path.join(repo, "Blackthornes_Farmer.toc")
-
-        before_data = (open(data_file, encoding="utf-8").read()
-                       if os.path.isfile(data_file) else None)
         before_toc = open(toc_file, encoding="utf-8").read()
 
         result = run_import(repo, client)
@@ -274,12 +301,7 @@ def main():
         check("and says what to do about it",
               "Loot some corpses" in (result.stderr + result.stdout),
               result.stderr)
-
-        after_data = (open(data_file, encoding="utf-8").read()
-                      if os.path.isfile(data_file) else None)
-        check("it leaves the data file alone", after_data == before_data)
-        check("it starts no store",
-              not os.path.isfile(os.path.join(repo, "Data", "Harvest_Store.lua")))
+        check("it writes no data file", not os.path.isfile(data_file))
         check("and does not touch the TOC",
               open(toc_file, encoding="utf-8").read() == before_toc)
     finally:
@@ -296,138 +318,6 @@ def main():
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)
         shutil.rmtree(empty, ignore_errors=True)
-
-    # -- The store keeps history across sessions ------------------------------
-    #
-    # This is the bug that cost seventy-three corpses of real harvest on
-    # 2026-09-21. The client writes saved variables at logout but is not
-    # reported to read them back at login, so the addon starts empty every
-    # session and its saved file describes only the last session that looted
-    # anything. The running total therefore has to live here, in a file both
-    # sides can read, and a thin session must never replace a full history.
-
-    sandbox, repo, client = build_sandbox(SAVED)
-    store = os.path.join(repo, "Data", "Harvest_Store.lua")
-    generated = os.path.join(repo, "Data", "Data_Harvested.lua")
-
-    try:
-        # Same records as SAVED, plus the stamp the addon now always writes.
-        # A zero means it started this login empty, which is the fact the
-        # every-session rule follows from -- so the import has to say it.
-        write_saved(client, STAMPED)
-
-        first = run_import(repo, client)
-        check("the first import succeeds", first.returncode == 0, first.stderr)
-        check("it starts a store", os.path.isfile(store))
-        check("and says so", "starting a new harvest store" in first.stdout,
-              first.stdout)
-        check("55 corpses are recorded", "55 corpses" in first.stdout,
-              first.stdout)
-        check("the listing says it is the running total",
-              "everything harvested so far" in first.stdout, first.stdout)
-        check("it says the client kept nothing for the addon",
-              "did not hand the addon its saved harvest" in first.stdout,
-              first.stdout)
-        check("and gives the rule that follows from it",
-              "import after every session" in first.stdout, first.stdout)
-
-        kept = store_records(store)
-        after_first = open(generated, encoding="utf-8").read()
-
-        # A login that looted nothing. Before the fix this wrote an empty
-        # table over everything above.
-        write_saved(client, EMPTY_HARVEST)
-        quiet = run_import(repo, client)
-
-        check("a session that looted nothing still succeeds",
-              quiet.returncode == 0, quiet.stderr)
-        check("and reports that it added nothing",
-              "nothing new" in quiet.stdout, quiet.stdout)
-        check("THE HISTORY SURVIVES AN EMPTY SESSION",
-              store_records(store) == kept)
-        check("and the generated file is unchanged by it",
-              open(generated, encoding="utf-8").read() == after_first)
-
-        # A real second session: one spot seen again, one new.
-        write_saved(client, LATER)
-        more = run_import(repo, client)
-
-        check("a later session succeeds", more.returncode == 0, more.stderr)
-        check("it reports the new spot", "1 spot(s) added" in more.stdout,
-              more.stdout)
-        check("corpses accumulate across sessions", "71 corpses" in more.stdout,
-              more.stdout)
-
-        # 47 + 10 at the Sepulcher, and Wool Cloth off 29 + 5 of them.
-        grown = open(generated, encoding="utf-8").read()
-        check("the shared spot adds up", "-- 34 of 57 corpses" in grown, grown)
-        check("the new spot arrives", "Wolf Meat" in grown)
-        check("the level band widens to cover both",
-              "minLevel = 19, maxLevel = 24" in grown, grown)
-
-        # -- Coins are not drops ------------------------------------------------
-        check("coins never reach the data file",
-              "14 Copper" not in grown, grown)
-        check("nor the store", "14 Copper" not in store_records(store))
-
-        grown_store = store_records(store)
-
-        # -- If the client turns out to read SavedVariables back ----------------
-        #
-        # Adding each logout to a running total is only correct while the addon
-        # starts every login empty. The addon stamps the save with how much it
-        # restored, and a non-zero stamp has to stop the import rather than
-        # count the same corpses twice.
-        write_saved(client, LATER.replace(
-            'BlackthornesFarmerDB = {',
-            'BlackthornesFarmerDB = {\n\t["harvestRestored"] = 2,'))
-
-        cumulative = run_import(repo, client)
-
-        check("a client that reads its saved data back is refused",
-              cumulative.returncode != 0, cumulative.stdout)
-        check("and says why",
-              "count the same corpses twice"
-              in (cumulative.stdout + cumulative.stderr), cumulative.stderr)
-        check("and changes nothing", store_records(store) == grown_store)
-        check("leaving the data file alone",
-              open(generated, encoding="utf-8").read() == grown)
-
-        # -- Rebuilding the store from the data file ----------------------------
-        #
-        # The store is the file that must not be lost, so it matters that it
-        # can be put back. Everything a published rate is made of is in the
-        # generated file already: the two numbers in each "N of M corpses"
-        # comment are exactly the numerator and denominator.
-
-        os.remove(store)
-        recovered = subprocess.run(
-            [sys.executable, os.path.join(repo, "tools", "harvest_recover.py")],
-            capture_output=True, text=True, cwd=repo)
-
-        check("recovery runs", recovered.returncode == 0, recovered.stderr)
-        check("it puts the store back", os.path.isfile(store))
-        check("with every corpse", "71 corpses" in recovered.stdout,
-              recovered.stdout)
-
-        write_saved(client, EMPTY_HARVEST)
-        after = run_import(repo, client)
-
-        check("the recovered store imports", after.returncode == 0, after.stderr)
-        check("and regenerates the same data file, byte for byte",
-              open(generated, encoding="utf-8").read() == grown)
-
-        # It refuses to trample a store that is already there.
-        refused = subprocess.run(
-            [sys.executable, os.path.join(repo, "tools", "harvest_recover.py")],
-            capture_output=True, text=True, cwd=repo)
-
-        check("recovery will not overwrite an existing store",
-              refused.returncode != 0)
-        check("and says how to override it",
-              "--force" in (refused.stdout + refused.stderr), refused.stderr)
-    finally:
-        shutil.rmtree(sandbox, ignore_errors=True)
 
     # -- The Windows launcher and its shortcut --------------------------------
     #

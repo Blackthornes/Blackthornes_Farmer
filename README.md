@@ -83,7 +83,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm data` | where the loaded data came from |
 | `/farm stats` | how many items and spots are loaded |
 | `/farm list` | list every item in the database |
-| `/farm harvest` | what the addon has recorded from your loot this session |
+| `/farm harvest` | everything the addon has recorded from your loot, across sessions |
 | `/farm export [item]` | hand that back as a data file, ready to paste |
 | `/farm help` | the command list |
 
@@ -171,7 +171,8 @@ and what was inside. Corpses looted is the denominator, corpses that held the
 item is the numerator, and that is a real drop rate — measured on Forever
 rather than copied from Classic.
 
-It runs on its own from login. `/farm harvest` shows what it has:
+It runs on its own from login, and what it records is kept in SavedVariables,
+so every session adds to the last. `/farm harvest` shows the total:
 
 ```
 /farm harvest
@@ -205,7 +206,9 @@ adding it to the `.toc` the first time:
 python tools/harvest_import.py
 ```
 
-Play, log out, run it, commit. Nothing to copy. It finds the saved file under
+Play, log out, run it, commit. Nothing to copy. The saved file already holds
+everything you have ever harvested, so there is no rush: import after one
+session or after ten. It finds the saved file under
 the usual install paths on its own; `--sv <path>` points it somewhere else, and
 `--list` shows what it found without writing anything.
 
@@ -229,9 +232,20 @@ is not on the machine at all.
 The icon is `tools/farmer.ico`, drawn by `tools/make_icon.py` -- committed, so
 that script only needs running if the artwork changes.
 
-This works whether or not Forever reads SavedVariables back at login, which is
-still an open question — reading the file from outside only needs the client to
-have written it, and every client does that.
+Two refusals keep the repository safe. The import will not write a data file
+with fewer corpses than the one it replaces, since the harvest only ever grows
+and a smaller one means something went wrong in game (`--allow-smaller` if you
+cleared it on purpose). And it will not read a saved file from before the
+addon's first login after the SavedVariables fix, which is still missing the
+older harvest described below.
+
+##### Harvest from before saved data worked
+
+Until the Forever patch of 2026-09-24 the client wrote SavedVariables but never
+read them back, so everything harvested before then lived in the repository
+instead. `Data/Harvest_Carryover.lua` holds it: 84 corpses across 22 spots. The
+first time you log in with this version the addon adds it to your saved harvest
+and says so in chat, then stamps the save so it is never added twice.
 
 The export is not reimplemented in Python. The script loads the addon under a
 real Lua runtime and calls the same `Harvest:ExportAll` the in-game window
@@ -247,11 +261,10 @@ the wrong mob is worse than no sample at all: fishing pools and containers,
 player corpses, anything looted while your target is not the corpse, and
 coordinates the client will not give a straight answer for.
 
-Nothing leaves your machine. It accumulates in memory and comes back out
-through that window, which is also why it is a window and not a saved file:
-this client is reported to write saved variables at logout without reading
-them back, so a window is the path that works either way. `/farm harvest off`
-pauses it and `/farm harvest reset` clears it.
+Nothing leaves your machine. It accumulates in SavedVariables and comes back out
+through the export window or the import. `/farm harvest off` pauses it.
+`/farm harvest reset confirm` clears it, for good; a plain `reset` only tells you
+how much you are about to lose.
 
 ### Adding to it
 

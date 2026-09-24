@@ -1,11 +1,9 @@
 -- Blackthornes Farmer -- UI/Export.lua
 -- A window that hands text back to you so it can leave the game.
 --
--- Why a window and not a file: this client is reported to write saved
--- variables at logout without ever reading them back, so anything the addon
--- writes there may be unreachable from inside the game. A box you can select
--- and copy out of needs nothing from the client but an edit box, so it works
--- whichever way that turns out.
+-- Why a window and not a file: an addon cannot write files. The harvest is
+-- kept in SavedVariables, and tools/harvest_import.py reads it from outside;
+-- this window is the way out that needs nothing but the game itself.
 --
 -- The text is selected the moment the window opens, so the whole interaction
 -- is: run the command, press Ctrl+C, paste into your editor.

@@ -7,8 +7,9 @@
 -- and what was inside. Count corpses looted and count the ones that held the
 -- item, and that is a real drop rate, measured here rather than assumed.
 --
--- Nothing is sent anywhere. It accumulates in memory, and `/farm export` hands
--- it back as a data file to paste into the repository.
+-- Nothing is sent anywhere. It accumulates in SavedVariables from one session
+-- to the next, and `/farm export` or tools/harvest_import.py hands it back as a
+-- data file for the repository.
 --
 -- Nothing about this client's loot API is documented, so every call is behind
 -- a capability check and the module degrades to doing less rather than
@@ -487,6 +488,7 @@ function Harvest:Reset()
     self.records = {}
     self.skipped = 0
     self.dirty = true
+    self:Persist()
 end
 
 --------------------------------------------------------------------------------
@@ -613,11 +615,15 @@ end
 --------------------------------------------------------------------------------
 -- Saved variables
 --
--- This client is reported to write saved variables at logout without reading
--- them back. If that holds, what follows is simply never restored and the
--- export window is the only way out -- which is why the export window, not the
--- saved file, is the supported path. If it does read them back, a session
--- picks up where the last one left off for free.
+-- The harvest lives in SavedVariables and keeps growing from one session to
+-- the next: Restore reads it at login, and ns.db.harvest is the very table
+-- RecordCorpse adds to, so whatever the client writes -- at logout, at /reload
+-- -- is the whole total, not one session of it.
+--
+-- Until the Forever patch of 2026-09-24 the client never read saved variables
+-- back, and the running total had to be kept outside the game by the import
+-- tool. What it had gathered by then arrives once, from
+-- Data/Harvest_Carryover.lua; see ApplyCarryover.
 --------------------------------------------------------------------------------
 
 --- Drop coin entries an older version recorded as items.
@@ -639,55 +645,120 @@ function Harvest:PruneMoney()
     return dropped
 end
 
+--- Add one spot's record into this harvest, as if its corpses were looted here.
+--
+-- The same rules tools/harvest_import.py used to merge sessions with: corpse
+-- and item counts add up, the level band widens to cover both, and the first
+-- coordinates seen for a camp are kept. The incoming record is copied, never
+-- shared, so the carryover table itself is left exactly as shipped.
+function Harvest:MergeRecord(key, incoming)
+    if type(incoming) ~= "table" or not incoming.mob then return end
+
+    local existing = self.records[key]
+
+    if not existing then
+        existing = {
+            mob = incoming.mob,
+            zone = incoming.zone,
+            location = incoming.location,
+            corpses = 0,
+            items = {},
+        }
+        self.records[key] = existing
+    end
+
+    existing.corpses = (existing.corpses or 0) + (incoming.corpses or 0)
+
+    if not existing.coords and type(incoming.coords) == "table" then
+        existing.coords = { incoming.coords[1], incoming.coords[2] }
+    end
+
+    for _, field in ipairs({ "minLevel", "maxLevel" }) do
+        local theirs = incoming[field]
+        if theirs then
+            local mine = existing[field]
+            local pick = field == "minLevel" and math.min or math.max
+            existing[field] = mine and pick(mine, theirs) or theirs
+        end
+    end
+
+    for name, arriving in pairs(incoming.items or {}) do
+        local held = existing.items[name]
+
+        if not held then
+            held = { name = arriving.name or name, count = 0, corpses = 0 }
+            existing.items[name] = held
+        end
+
+        held.count = held.count + (arriving.count or 0)
+        held.corpses = held.corpses + (arriving.corpses or 0)
+        held.id = held.id or arriving.id
+    end
+end
+
+--- Fold in what was harvested before saved variables worked, exactly once.
+--
+-- The save is stamped with the carryover's id in the same step, so the next
+-- login finds the stamp and adds nothing. If the client ever stops reading
+-- saved variables back again, the stamp is lost along with the harvest and
+-- the carryover comes back in on its own, which is the right answer then too.
+function Harvest:ApplyCarryover()
+    local carryover = ns.HarvestCarryover
+
+    if type(carryover) ~= "table" or type(carryover.records) ~= "table" then
+        return 0
+    end
+
+    if ns.db.harvestCarryover == carryover.id then return 0 end
+
+    local added = 0
+
+    for key, record in pairs(carryover.records) do
+        self:MergeRecord(key, record)
+        added = added + (record.corpses or 0)
+    end
+
+    ns.db.harvestCarryover = carryover.id
+
+    return added
+end
+
+--- Load the saved harvest. Returns how many spots came back.
 function Harvest:Restore()
-    if not (ns.db and type(ns.db.harvest) == "table") then return 0 end
+    if not ns.db then return 0 end
 
     local restored = 0
 
-    for key, record in pairs(ns.db.harvest) do
-        if type(record) == "table" and record.mob and record.corpses then
-            self.records[key] = record
-            restored = restored + 1
+    if type(ns.db.harvest) == "table" then
+        for key, record in pairs(ns.db.harvest) do
+            if type(record) == "table" and record.mob and record.corpses then
+                self.records[key] = record
+                restored = restored + 1
+            end
         end
     end
 
     -- Versions before 2026-09-21 recorded coins as items.
     self:PruneMoney()
 
-    -- Remembered so Persist can stamp the save with it. Whether this client
-    -- reads saved variables back at login is the open question the whole
-    -- accumulating store exists because of, and this is the addon answering
-    -- it from the inside: a non-zero number here means the file was read.
-    self.restoredAtLogin = restored
+    self.carriedOver = self:ApplyCarryover()
+
+    -- Left behind by the version that worked around the client bug. Nothing
+    -- reads it any more.
+    ns.db.harvestRestored = nil
+
+    self:Persist()
 
     return restored
 end
 
+--- Point the saved harvest at the live one.
+--
+-- They are the same table from here on, so everything looted is already in
+-- what the client writes, whenever it writes it.
 function Harvest:Persist()
     if not ns.db then return end
-
-    -- Never write nothing over something.
-    --
-    -- This cost Trent a session's data on 2026-09-21. If the client does not
-    -- read saved variables back at login, this module starts empty every time
-    -- while the file still holds a real history. Overwriting on the way out
-    -- then destroys it, and a login where nothing was looted destroys it for
-    -- no gain at all.
-    --
-    -- The addon cannot read the file to merge with it -- that is the whole
-    -- problem -- so the most it can do is decline to clobber. Accumulating
-    -- across sessions happens in tools/harvest_import.py, which can read both
-    -- sides.
-    if next(self.records) == nil then return end
-
     ns.db.harvest = self.records
-
-    -- How much of what is being written was already in the file when this
-    -- login started. tools/harvest_import.py adds each logout's records to a
-    -- running total, which is only correct while this stays zero; if it ever
-    -- comes back non-zero the import stops and says so rather than counting
-    -- the same corpses twice.
-    ns.db.harvestRestored = self.restoredAtLogin or 0
 end
 
 --------------------------------------------------------------------------------
@@ -699,6 +770,11 @@ function Harvest:OnInitialize()
 
     if restored > 0 then
         ns.Debug(("restored %d harvested mobs"):format(restored))
+    end
+
+    if (self.carriedOver or 0) > 0 then
+        ns.Print(("added %d corpses harvested before saved data worked. "
+            .. "/farm harvest shows the total."):format(self.carriedOver))
     end
 end
 
@@ -713,8 +789,9 @@ function Harvest:OnEnable()
 
     ns.RegisterEvent(self, "LOOT_OPENED", function() Harvest:RecordCorpse() end)
 
-    -- Written on the way out, which is the one moment the client is known to
-    -- save. Persisting on every corpse would be a lot of churn for no gain.
+    -- ns.db.harvest already is the live table, so this only matters if
+    -- something replaced one or the other. Cheap insurance at the one moment
+    -- the client is certain to save.
     ns.RegisterEvent(self, "PLAYER_LOGOUT", function() Harvest:Persist() end)
 end
 
@@ -725,7 +802,16 @@ end
 ns.RegisterCommand("harvest", "what you have recorded as you played", function(rest)
     local argument = Util.Trim(rest):lower()
 
+    -- The harvest is the whole history now, not one session, and a reset is
+    -- saved at the next logout like anything else. So it takes two words.
     if argument == "reset" then
+        ns.Print(("this deletes all %s you have recorded, for good. "
+            .. "Type /farm harvest reset confirm to do it."):format(
+            Util.Plural(ns.Harvest:CountCorpses(), "corpse")))
+        return
+    end
+
+    if argument == "reset confirm" then
         ns.Harvest:Reset()
         ns.Print("harvest cleared.")
         return
