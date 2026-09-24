@@ -833,6 +833,11 @@ function Harvest:OnEnable()
         return
     end
 
+    -- Paused on purpose, from the settings page or /farm harvest off.
+    if ns.db and ns.db.harvestPaused then
+        self.enabled = false
+    end
+
     ns.RegisterEvent(self, "LOOT_OPENED", function() Harvest:RecordCorpse() end)
 
     -- ns.db.harvest already is the live table, so this only matters if
@@ -865,12 +870,14 @@ ns.RegisterCommand("harvest", "what you have recorded as you played", function(r
 
     if argument == "off" then
         ns.Harvest.enabled = false
+        ns.db.harvestPaused = true
         ns.Print("harvesting paused. /farm harvest on to resume.")
         return
     end
 
     if argument == "on" then
-        ns.Harvest.enabled = true
+        ns.db.harvestPaused = false
+        ns.Harvest.enabled = ns.Harvest:Capabilities().usable and true or false
         ns.Print("harvesting on.")
         return
     end

@@ -444,3 +444,143 @@ function Widgets.CreateChip(parent, text, onClick)
     chip:SetSelected(false)
     return chip
 end
+
+--------------------------------------------------------------------------------
+-- Checkbox
+--------------------------------------------------------------------------------
+
+--- A square toggle with its label beside it. Ported from the tradeskills addon
+--- so the two settings pages feel the same under the mouse.
+function Widgets.CreateCheckbox(parent, text, onToggle, initial)
+    local checkbox = CreateFrame("Button", nil, parent)
+    checkbox:SetHeight(18)
+
+    local box = CreateFrame("Frame", nil, checkbox)
+    box:SetSize(14, 14)
+    box:SetPoint("LEFT")
+    box.background = Theme.Fill(box, "row")
+    Theme.Border(box, "border")
+
+    local tick = box:CreateTexture(nil, "OVERLAY")
+    tick:SetPoint("CENTER")
+    tick:SetSize(8, 8)
+    tick:SetColorTexture(Theme.Unpack("accent"))
+
+    local label = Theme.CreateLabel(checkbox, "small", "text")
+    label:SetPoint("LEFT", box, "RIGHT", 6, 0)
+    label:SetText(text)
+
+    checkbox.label = label
+    checkbox:SetWidth((label:GetStringWidth() or 60) + 24)
+    checkbox.checked = initial and true or false
+    checkbox.disabled = false
+    tick:SetShown(checkbox.checked)
+
+    function checkbox:SetChecked(value)
+        self.checked = value and true or false
+        tick:SetShown(self.checked)
+    end
+
+    function checkbox:GetChecked()
+        return self.checked
+    end
+
+    --- A disabled box keeps showing its state but ignores clicks, for a
+    --- setting this client cannot honour.
+    function checkbox:SetDisabled(disabled)
+        self.disabled = disabled and true or false
+        label:SetTextColor(Theme.Unpack(self.disabled and "dim" or "text"))
+        tick:SetAlpha(self.disabled and 0.4 or 1)
+    end
+
+    checkbox:SetScript("OnClick", function(self)
+        if self.disabled then return end
+        self:SetChecked(not self.checked)
+        if onToggle then onToggle(self.checked) end
+    end)
+
+    checkbox:SetScript("OnEnter", function(self)
+        if not self.disabled then label:SetTextColor(Theme.Unpack("accent")) end
+    end)
+
+    checkbox:SetScript("OnLeave", function(self)
+        label:SetTextColor(Theme.Unpack(self.disabled and "dim" or "text"))
+    end)
+
+    return checkbox
+end
+
+--------------------------------------------------------------------------------
+-- Stepper
+--------------------------------------------------------------------------------
+
+--- [-] value [+], for a number with a small sensible range such as a scale.
+--
+-- Chosen over a slider: a slider on this client needs a thumb texture and a
+-- drag to land on a round number, and a stepper only ever holds values from
+-- its own list of steps.
+--
+-- @param opts
+--   min, max, step  the range, in the stored unit
+--   format          function(value) -> text shown between the buttons
+--   onChange        function(value)
+function Widgets.CreateStepper(parent, opts)
+    opts = opts or {}
+
+    local stepper = CreateFrame("Frame", nil, parent)
+    stepper:SetSize(118, 20)
+
+    local minus = Widgets.CreateButton(stepper, "-", nil, { width = 22, height = 20 })
+    minus:SetPoint("LEFT")
+
+    local plus = Widgets.CreateButton(stepper, "+", nil, { width = 22, height = 20 })
+    plus:SetPoint("RIGHT")
+
+    local well = Theme.CreatePanel(stepper, "panel", "border")
+    well:SetPoint("LEFT", minus, "RIGHT", 4, 0)
+    well:SetPoint("RIGHT", plus, "LEFT", -4, 0)
+    well:SetHeight(20)
+
+    local text = Theme.CreateLabel(well, "small", "text", "CENTER")
+    text:SetPoint("CENTER")
+
+    stepper.minus = minus
+    stepper.plus = plus
+    stepper.text = text
+
+    local step = opts.step or 1
+    local low = opts.min or 0
+    local high = opts.max or 100
+
+    local function Clamp(value)
+        -- Snapped to a whole number of steps, so repeated presses never drift
+        -- to 0.8999999 and show a value that is not on the list.
+        value = low + math.floor((value - low) / step + 0.5) * step
+        return math.max(low, math.min(high, value))
+    end
+
+    function stepper:SetValue(value, silent)
+        self.value = Clamp(tonumber(value) or low)
+        text:SetText(opts.format and opts.format(self.value) or tostring(self.value))
+
+        minus.label:SetTextColor(Theme.Unpack(self.value <= low and "dim" or "text"))
+        plus.label:SetTextColor(Theme.Unpack(self.value >= high and "dim" or "text"))
+
+        if not silent and opts.onChange then opts.onChange(self.value) end
+    end
+
+    function stepper:GetValue()
+        return self.value
+    end
+
+    local function Nudge(direction)
+        local wanted = Clamp((stepper.value or low) + direction * step)
+        if wanted ~= stepper.value then stepper:SetValue(wanted) end
+    end
+
+    minus:SetScript("OnClick", function() Nudge(-1) end)
+    plus:SetScript("OnClick", function() Nudge(1) end)
+
+    stepper:SetValue(opts.value or low, true)
+    return stepper
+end

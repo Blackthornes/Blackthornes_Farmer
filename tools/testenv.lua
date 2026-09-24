@@ -286,6 +286,7 @@ local UI_FILES = {
     "UI/Main.lua",
     "UI/Export.lua",
     "UI/Tracker.lua",
+    "UI/Settings.lua",
 }
 
 --- Is there a generated harvest file to load?

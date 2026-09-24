@@ -78,6 +78,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | --- | --- |
 | `/farm <text>` | search, and show the results in the window |
 | `/farm` | open or close the window |
+| `/farm settings` | open the settings window (`options` and `config` work too) |
 | `/farm minimap` | show or hide the minimap button |
 | `/farm tracker` | show or hide the kill tally panel (`reset confirm` clears it) |
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
@@ -96,6 +97,17 @@ There is also a **minimap button** — the mining-pick icon on the ring. Click i
 to open the window, drag it to move it round the minimap, and it stays where
 you put it. `/farm minimap` hides it if you would rather not have it, and
 brings it back.
+
+### Settings
+
+Every switch the addon has is on one page: `/farm settings`, **right-click**
+the minimap button, the **Settings** button in the search window, or
+Options > AddOns > Blackthornes Farmer in the game menu. It covers the minimap
+button, the size of the search window and of the kill tally, putting windows
+back if one ends up off screen, the kill tally and its chat report, pausing
+loot recording (remembered between sessions) with an Export button, and debug
+output. Changes save as you make them. Nothing on the page deletes data:
+clearing tallies or recorded loot stays a typed `reset confirm` command.
 
 Searching is deliberately loose. It matches, best match first:
 
