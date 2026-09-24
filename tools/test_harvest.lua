@@ -11,6 +11,11 @@ local suite = env.NewSuite("harvest")
 local ns = env.Load({ ui = true })
 local Harvest = ns.Harvest
 
+-- The real carryover would fold 84 corpses into every Restore below. It gets
+-- its own section at the end; everything before it runs without.
+local SHIPPED_CARRYOVER = ns.HarvestCarryover
+ns.HarvestCarryover = nil
+
 local APPRENTICE = { name = "Dalaran Apprentice", level = 22, dead = true }
 local WOOL = { name = "Wool Cloth", quantity = 1, id = 2592 }
 local SILVER = { name = "Silver Bar", quantity = 1 }
@@ -304,8 +309,17 @@ env.Loot(ns, APPRENTICE, { WOOL })
 suite.check("harvesting on records again", Harvest:CountCorpses() == 3,
     Harvest:CountCorpses())
 
+-- The harvest is the whole history now, so one word must not wipe it.
+env.chat = {}
 ns.HandleSlash("harvest reset")
-suite.check("reset empties it", Harvest:CountCorpses() == 0)
+suite.check("a bare reset keeps everything", Harvest:CountCorpses() == 3,
+    Harvest:CountCorpses())
+suite.check("and says how to confirm it",
+    table.concat(env.chat, "\n"):find("reset confirm", 1, true) ~= nil,
+    table.concat(env.chat, "\n"))
+
+ns.HandleSlash("harvest reset confirm")
+suite.check("reset confirm empties it", Harvest:CountCorpses() == 0)
 
 --------------------------------------------------------------------------------
 -- Coins are not drops
@@ -386,41 +400,145 @@ suite.check("and the coins pruned out of it",
     Harvest:Items()[1] and Harvest:Items()[1].name)
 
 --------------------------------------------------------------------------------
--- Never write nothing over something
+-- The harvest carries from one session to the next
 --------------------------------------------------------------------------------
 --
--- This client writes saved variables at logout but is not reported to read
--- them back at login, so the addon starts every session empty. Persisting that
--- empty state is what destroyed seventy-three corpses of harvest on
--- 2026-09-21: log in, loot nothing, log out, history gone.
+-- Since the Forever patch of 2026-09-24 the client reads saved variables back
+-- at login. So the saved harvest is the whole history, and every session adds
+-- to it rather than standing in for it.
 
-ns.db.harvest = {
-    ["Dalaran Apprentice|Silverpine Forest|"] = {
-        mob = "Dalaran Apprentice", zone = "Silverpine Forest", corpses = 9,
-        items = {},
+--- Log out and back in: a fresh copy of the addon, handed what the last one
+--- saved, exactly as the client does it.
+local function Relog(saved, carryover)
+    local fresh = env.Load()
+    fresh.HarvestCarryover = carryover
+    _G.BlackthornesFarmerDB = saved
+    fresh.LoadSavedVariables()
+    fresh.Harvest:Restore()
+    return fresh
+end
+
+Harvest:Reset()
+Harvest:Restore()
+Farm(APPRENTICE, 3, 2, { WOOL })
+
+suite.check("the saved harvest is the live one",
+    ns.db.harvest == Harvest.records)
+suite.check("so a corpse is in the save the moment it is looted, logout or not",
+    Harvest:CountCorpses() == 3)
+
+local second = Relog(ns.db)
+suite.check("the next login starts with everything from the last",
+    second.Harvest:CountCorpses() == 3, second.Harvest:CountCorpses())
+
+env.Loot(second, APPRENTICE, { WOOL })
+env.Loot(second, APPRENTICE, {})
+
+local wool = second.Harvest:ForItem("Wool Cloth")[1]
+suite.check("and adds to it rather than replacing it",
+    second.Harvest:CountCorpses() == 5, second.Harvest:CountCorpses())
+suite.check("item counts add up across sessions",
+    wool and wool.entry.corpses == 3, wool and wool.entry.corpses)
+
+local third = Relog(second.db)
+suite.check("a login that loots nothing keeps it all",
+    third.Harvest:CountCorpses() == 5, third.Harvest:CountCorpses())
+
+-- The field the old import used to spot a client that reads its saved data
+-- back. That question is answered, and nothing reads it.
+second.db.harvestRestored = 0
+local fourth = Relog(second.db)
+suite.check("the old harvestRestored stamp is cleared",
+    fourth.db.harvestRestored == nil, fourth.db.harvestRestored)
+
+-- A reset is the whole history now, and it has to reach the save.
+fourth.Harvest:Reset()
+suite.check("a reset empties the save too",
+    next(fourth.db.harvest) == nil and fourth.db.harvest == fourth.Harvest.records)
+
+--------------------------------------------------------------------------------
+-- The harvest from before the fix comes in once
+--------------------------------------------------------------------------------
+--
+-- Everything gathered while the client could not read saved variables back
+-- lived in the repository, not in the save. The first login after the fix
+-- adds it; no login after that may add it again.
+
+local CARRY = {
+    id = "test-carry",
+    records = {
+        ["Dalaran Apprentice|Silverpine Forest|The Sepulcher"] = {
+            mob = "Dalaran Apprentice", zone = "Silverpine Forest",
+            location = "The Sepulcher", minLevel = 20, maxLevel = 21,
+            coords = { 44.0, 67.0 }, corpses = 10,
+            items = { ["Wool Cloth"] = { name = "Wool Cloth", count = 6, corpses = 5, id = 2592 } },
+        },
+        ["Moonrage Whitescalp|Silverpine Forest|"] = {
+            mob = "Moonrage Whitescalp", zone = "Silverpine Forest",
+            minLevel = 18, maxLevel = 19, corpses = 4,
+            items = { ["Wolf Meat"] = { name = "Wolf Meat", count = 3, corpses = 3 } },
+        },
     },
 }
 
-Harvest:Reset()
-Harvest:Persist()
+local before = {
+    harvest = {
+        ["Dalaran Apprentice|Silverpine Forest|The Sepulcher"] = {
+            mob = "Dalaran Apprentice", zone = "Silverpine Forest",
+            location = "The Sepulcher", minLevel = 22, maxLevel = 22,
+            coords = { 45.0, 68.0 }, corpses = 2,
+            items = { ["Wool Cloth"] = { name = "Wool Cloth", count = 1, corpses = 1 } },
+        },
+    },
+}
 
-suite.check("a session that recorded nothing leaves the saved harvest alone",
-    ns.db.harvest ~= nil and ns.db.harvest["Dalaran Apprentice|Silverpine Forest|"] ~= nil)
+local first = Relog(before, CARRY)
+local sepulcher = first.Harvest.records["Dalaran Apprentice|Silverpine Forest|The Sepulcher"]
 
-Farm(APPRENTICE, 2, 2, { WOOL })
-Harvest:Persist()
+suite.check("the first login after the fix adds the carryover",
+    first.Harvest:CountCorpses() == 16, first.Harvest:CountCorpses())
+suite.check("and says so", first.Harvest.carriedOver == 14, first.Harvest.carriedOver)
+suite.check("a shared spot adds up",
+    sepulcher.corpses == 12 and sepulcher.items["Wool Cloth"].corpses == 6,
+    sepulcher.corpses)
+suite.check("its level band covers both",
+    sepulcher.minLevel == 20 and sepulcher.maxLevel == 22,
+    sepulcher.minLevel .. "-" .. sepulcher.maxLevel)
+suite.check("it keeps the coordinates it already had",
+    sepulcher.coords[1] == 45.0, sepulcher.coords[1])
+suite.check("an item id arrives with the carryover",
+    sepulcher.items["Wool Cloth"].id == 2592, sepulcher.items["Wool Cloth"].id)
+suite.check("a new spot arrives whole",
+    first.Harvest.records["Moonrage Whitescalp|Silverpine Forest|"].corpses == 4)
+suite.check("the save is stamped with it",
+    first.db.harvestCarryover == "test-carry", first.db.harvestCarryover)
+suite.check("the carryover itself is left as shipped",
+    CARRY.records["Dalaran Apprentice|Silverpine Forest|The Sepulcher"].corpses == 10
+        and CARRY.records["Moonrage Whitescalp|Silverpine Forest|"].items["Wolf Meat"].corpses == 3)
 
--- Found by walking rather than by key: the key carries whatever subzone the
--- stub world is standing in by this point, which is not the test's business.
-local saved, spots = nil, 0
-for _, record in pairs(ns.db.harvest) do
-    saved = record
-    spots = spots + 1
+local again = Relog(first.db, CARRY)
+suite.check("THE NEXT LOGIN DOES NOT ADD IT AGAIN",
+    again.Harvest:CountCorpses() == 16, again.Harvest:CountCorpses())
+suite.check("and says nothing about it", (again.Harvest.carriedOver or 0) == 0)
+
+-- If the client ever loses the save again, the stamp goes with it and the
+-- carryover comes back into an empty harvest: the history, not twice it.
+local lost = Relog(nil, CARRY)
+suite.check("a lost save gets the carryover back",
+    lost.Harvest:CountCorpses() == 14, lost.Harvest:CountCorpses())
+
+-- The file that actually ships: everything imported before the fix.
+local shipped = Relog(nil, SHIPPED_CARRYOVER)
+suite.check("the shipped carryover loads",
+    SHIPPED_CARRYOVER ~= nil and shipped.Harvest:CountCorpses() == 84,
+    shipped.Harvest:CountCorpses())
+suite.check("across all 22 spots", shipped.Harvest:CountMobs() == 22,
+    shipped.Harvest:CountMobs())
+
+local coins = 0
+for _, item in ipairs(shipped.Harvest:Items()) do
+    if shipped.Harvest:NameLooksLikeMoney(item.name) then coins = coins + 1 end
 end
-
-suite.check("a session that recorded something does write it",
-    spots == 1 and saved.corpses == 2, spots .. " spot(s)")
-suite.check("and replaces the old saved state rather than adding to it",
-    saved.items["Wool Cloth"] ~= nil)
+suite.check("with no coins in it", coins == 0, coins)
 
 suite.done()
