@@ -216,6 +216,14 @@ local DEFAULTS = {
     minimapAngle = math.rad(200),
     minimapGap = 16,
     minimapHidden = false,
+
+    -- Kill tracker: whether its panel is kept out of the way, whether each
+    -- kill is reported in chat (off unless asked for), and where it sits.
+    trackerHidden = false,
+    trackerReport = false,
+    trackerPoint = "RIGHT",
+    trackerX = -220,
+    trackerY = 120,
 }
 
 local function LoadSavedVariables()

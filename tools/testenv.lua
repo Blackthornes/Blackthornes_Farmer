@@ -163,6 +163,13 @@ function env.InstallWorld()
         return world.target ~= nil and world.target.dead ~= false
     end
 
+    -- Every corpse is its own creature; a test that loots one twice (skinning
+    -- it, or coming back for what was left) gives the target a fixed guid.
+    _G.UnitGUID = function(unit)
+        if unit ~= "target" or not world.target then return nil end
+        return world.target.guid
+    end
+
     _G.UnitIsPlayer = function(unit)
         if unit ~= "target" then return true end
         return world.target ~= nil and world.target.isPlayer == true
@@ -263,6 +270,7 @@ local FILES = {
     "Data/Data_MobDrops.lua",
     "Logic/Search.lua",
     "Logic/Harvest.lua",
+    "Logic/Tracker.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
@@ -276,6 +284,7 @@ local UI_FILES = {
     "UI/Widgets.lua",
     "UI/Main.lua",
     "UI/Export.lua",
+    "UI/Tracker.lua",
 }
 
 --- Is there a generated harvest file to load?
