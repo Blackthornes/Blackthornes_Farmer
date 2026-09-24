@@ -24,6 +24,62 @@ BlackthornesFarmerHarvestStore = {
         ["mob"] = "Baron Longshore",
         ["zone"] = "The Barrens",
     },
+    ["Decrepit Darkhound|Tirisfal Glades|"] = {
+        ["coords"] = { 42.6934, 53.9567 },
+        ["corpses"] = 1,
+        ["items"] = {
+            ["Stringy Wolf Meat"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2672,
+                ["name"] = "Stringy Wolf Meat",
+            },
+        },
+        ["maxLevel"] = 6,
+        ["minLevel"] = 6,
+        ["mob"] = "Decrepit Darkhound",
+        ["zone"] = "Tirisfal Glades",
+    },
+    ["Decrepit Darkhound|Tirisfal Glades|Deathknell"] = {
+        ["coords"] = { 39.7850, 55.8232 },
+        ["corpses"] = 1,
+        ["items"] = {
+            ["Stringy Wolf Meat"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2672,
+                ["name"] = "Stringy Wolf Meat",
+            },
+        },
+        ["location"] = "Deathknell",
+        ["maxLevel"] = 5,
+        ["minLevel"] = 5,
+        ["mob"] = "Decrepit Darkhound",
+        ["zone"] = "Tirisfal Glades",
+    },
+    ["Decrepit Darkhound|Tirisfal Glades|Nightmare Vale"] = {
+        ["coords"] = { 43.7011, 56.2277 },
+        ["corpses"] = 3,
+        ["items"] = {
+            ["Gloom Weed"] = {
+                ["corpses"] = 2,
+                ["count"] = 2,
+                ["id"] = 12737,
+                ["name"] = "Gloom Weed",
+            },
+            ["Stringy Wolf Meat"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2672,
+                ["name"] = "Stringy Wolf Meat",
+            },
+        },
+        ["location"] = "Nightmare Vale",
+        ["maxLevel"] = 6,
+        ["minLevel"] = 6,
+        ["mob"] = "Decrepit Darkhound",
+        ["zone"] = "Tirisfal Glades",
+    },
     ["Fleeting Plainstrider|The Barrens|"] = {
         ["coords"] = { 49.9000, 39 },
         ["corpses"] = 3,
@@ -80,6 +136,70 @@ BlackthornesFarmerHarvestStore = {
         ["mob"] = "Kreenig Snarlsnout",
         ["zone"] = "The Barrens",
     },
+    ["Mangy Duskbat|Tirisfal Glades|Deathknell"] = {
+        ["coords"] = { 35.2783, 66.1071 },
+        ["corpses"] = 1,
+        ["items"] = {
+            ["Chipped Claw"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 7074,
+                ["name"] = "Chipped Claw",
+            },
+            ["Ruined Pelt"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 4865,
+                ["name"] = "Ruined Pelt",
+            },
+        },
+        ["location"] = "Deathknell",
+        ["maxLevel"] = 3,
+        ["minLevel"] = 3,
+        ["mob"] = "Mangy Duskbat",
+        ["zone"] = "Tirisfal Glades",
+    },
+    ["Meven Korgal|Tirisfal Glades|Deathknell"] = {
+        ["coords"] = { 37.0079, 68.8733 },
+        ["corpses"] = 6,
+        ["items"] = {
+            ["Darnassian Bleu"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2070,
+                ["name"] = "Darnassian Bleu",
+            },
+            ["Frayed Robe"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 1380,
+                ["name"] = "Frayed Robe",
+            },
+            ["Linen Cloth"] = {
+                ["corpses"] = 2,
+                ["count"] = 2,
+                ["id"] = 2589,
+                ["name"] = "Linen Cloth",
+            },
+            ["Scarlet Armband"] = {
+                ["corpses"] = 2,
+                ["count"] = 2,
+                ["id"] = 3266,
+                ["name"] = "Scarlet Armband",
+            },
+            ["Scarlet Crusade Documents"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2885,
+                ["name"] = "Scarlet Crusade Documents",
+            },
+        },
+        ["location"] = "Deathknell",
+        ["maxLevel"] = 5,
+        ["minLevel"] = 5,
+        ["mob"] = "Meven Korgal",
+        ["zone"] = "Tirisfal Glades",
+    },
     ["Ornery Plainstrider|The Barrens|Southern Gold Road"] = {
         ["coords"] = { 50.9000, 49.8000 },
         ["corpses"] = 1,
@@ -111,6 +231,51 @@ BlackthornesFarmerHarvestStore = {
         ["minLevel"] = 17,
         ["mob"] = "Ornery Plainstrider",
         ["zone"] = "The Barrens",
+    },
+    ["Ragged Scavenger|Tirisfal Glades|Deathknell"] = {
+        ["coords"] = { 34.7173, 65.4852 },
+        ["corpses"] = 1,
+        ["items"] = {
+            ["Ruined Pelt"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 4865,
+                ["name"] = "Ruined Pelt",
+            },
+        },
+        ["location"] = "Deathknell",
+        ["maxLevel"] = 3,
+        ["minLevel"] = 3,
+        ["mob"] = "Ragged Scavenger",
+        ["zone"] = "Tirisfal Glades",
+    },
+    ["Ravaged Corpse|Tirisfal Glades|"] = {
+        ["coords"] = { 53.5919, 48.6141 },
+        ["corpses"] = 3,
+        ["items"] = {
+            ["Linen Cloth"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2589,
+                ["name"] = "Linen Cloth",
+            },
+            ["Putrid Claw"] = {
+                ["corpses"] = 2,
+                ["count"] = 2,
+                ["id"] = 2855,
+                ["name"] = "Putrid Claw",
+            },
+            ["Worn Leather Bracers"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 1420,
+                ["name"] = "Worn Leather Bracers",
+            },
+        },
+        ["maxLevel"] = 7,
+        ["minLevel"] = 6,
+        ["mob"] = "Ravaged Corpse",
+        ["zone"] = "Tirisfal Glades",
     },
     ["Razormane Defender|The Barrens|"] = {
         ["coords"] = { 59.8000, 24 },
@@ -226,6 +391,116 @@ BlackthornesFarmerHarvestStore = {
         ["minLevel"] = 14,
         ["mob"] = "Razormane Mystic",
         ["zone"] = "The Barrens",
+    },
+    ["Rotting Dead|Tirisfal Glades|"] = {
+        ["coords"] = { 54.5560, 49.7285 },
+        ["corpses"] = 3,
+        ["items"] = {
+            ["Forest Mushroom Cap"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 4604,
+                ["name"] = "Forest Mushroom Cap",
+            },
+            ["Linen Cloth"] = {
+                ["corpses"] = 3,
+                ["count"] = 5,
+                ["id"] = 2589,
+                ["name"] = "Linen Cloth",
+            },
+            ["Patchwork Armor"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 1433,
+                ["name"] = "Patchwork Armor",
+            },
+            ["Putrid Claw"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2855,
+                ["name"] = "Putrid Claw",
+            },
+        },
+        ["maxLevel"] = 6,
+        ["minLevel"] = 6,
+        ["mob"] = "Rotting Dead",
+        ["zone"] = "Tirisfal Glades",
+    },
+    ["Scarlet Convert|Tirisfal Glades|Deathknell"] = {
+        ["coords"] = { 36.4047, 67.1913 },
+        ["corpses"] = 14,
+        ["items"] = {
+            ["Darnassian Bleu"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2070,
+                ["name"] = "Darnassian Bleu",
+            },
+            ["Flimsy Chain Cloak"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 2652,
+                ["name"] = "Flimsy Chain Cloak",
+            },
+            ["Frayed Bracers"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 3365,
+                ["name"] = "Frayed Bracers",
+            },
+            ["Frayed Pants"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 1378,
+                ["name"] = "Frayed Pants",
+            },
+            ["Linen Cloth"] = {
+                ["corpses"] = 3,
+                ["count"] = 3,
+                ["id"] = 2589,
+                ["name"] = "Linen Cloth",
+            },
+            ["Ragged Leather Vest"] = {
+                ["corpses"] = 1,
+                ["count"] = 1,
+                ["id"] = 1364,
+                ["name"] = "Ragged Leather Vest",
+            },
+            ["Scarlet Armband"] = {
+                ["corpses"] = 8,
+                ["count"] = 8,
+                ["id"] = 3266,
+                ["name"] = "Scarlet Armband",
+            },
+        },
+        ["location"] = "Deathknell",
+        ["maxLevel"] = 3,
+        ["minLevel"] = 3,
+        ["mob"] = "Scarlet Convert",
+        ["zone"] = "Tirisfal Glades",
+    },
+    ["Scarlet Initiate|Tirisfal Glades|Deathknell"] = {
+        ["coords"] = { 36.5858, 68.3745 },
+        ["corpses"] = 5,
+        ["items"] = {
+            ["Linen Cloth"] = {
+                ["corpses"] = 2,
+                ["count"] = 2,
+                ["id"] = 2589,
+                ["name"] = "Linen Cloth",
+            },
+            ["Scarlet Armband"] = {
+                ["corpses"] = 4,
+                ["count"] = 4,
+                ["id"] = 3266,
+                ["name"] = "Scarlet Armband",
+            },
+        },
+        ["location"] = "Deathknell",
+        ["maxLevel"] = 4,
+        ["minLevel"] = 3,
+        ["mob"] = "Scarlet Initiate",
+        ["zone"] = "Tirisfal Glades",
     },
     ["Southsea Brigand|The Barrens|The Merchant Coast"] = {
         ["coords"] = { 64, 44 },
@@ -567,4 +842,4 @@ BlackthornesFarmerHarvestStore = {
 
 -- The SavedVariables file the last import read, so running it
 -- again over the same logout adds nothing a second time.
-BlackthornesFarmerHarvestSource = "5a7fcb4ba90e34060ad180d178f7e1d336d102a6b1e209b14046089c78c630ef"
+BlackthornesFarmerHarvestSource = "acb73e07c3a990f3db0b63a7f13d00a2d6cf706120c736fe8cd59aa090f492c1"
