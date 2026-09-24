@@ -132,6 +132,11 @@ local function ReadableNumber(value)
     return copy
 end
 
+-- The kill tracker reads the same loot window and the same target, so it reads
+-- them through the same two doors.
+Harvest.Readable = Readable
+Harvest.ReadableNumber = ReadableNumber
+
 --------------------------------------------------------------------------------
 -- Where and what
 --------------------------------------------------------------------------------

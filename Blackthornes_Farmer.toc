@@ -20,9 +20,11 @@ Data\Harvest_Carryover.lua
 
 Logic\Search.lua
 Logic\Harvest.lua
+Logic\Tracker.lua
 
 UI\Theme.lua
 UI\Widgets.lua
 UI\Main.lua
 UI\Export.lua
+UI\Tracker.lua
 Data\Data_Harvested.lua

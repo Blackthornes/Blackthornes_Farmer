@@ -79,6 +79,9 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm <text>` | search, and show the results in the window |
 | `/farm` | open or close the window |
 | `/farm minimap` | show or hide the minimap button |
+| `/farm tracker` | show or hide the kill tally panel (`reset confirm` clears it) |
+| `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
+| `/farm report` | report every kill's tally in chat, on or off (off to start) |
 | `/farm chat <text>` | print the results to chat instead |
 | `/farm data` | where the loaded data came from |
 | `/farm stats` | how many items and spots are loaded |
@@ -108,6 +111,18 @@ typing rather than waiting for Enter.
 When a search turns up more than one kind of source, filter chips appear above
 the results — `ALL`, `MOB`, `ORE`, `HERB` and so on. Click an item heading to
 collapse it.
+
+### Kill tally
+
+Loot a corpse and a small panel shows that mob: how many you have killed, how
+many this session, and what they dropped. Until 20 kills it shows counts
+("3 of 12"); from 20 on it shows drop rates, which are corpses that held the
+item over kills. Drag it where you want it; its **X** or `/farm tracker` puts
+it away. The tally is kept between sessions.
+
+A kill is a corpse you open. Skinning a corpse you already looted, or coming
+back for what you left, is still one kill. `/farm report on` also prints a
+line in your own chat window on every kill; nobody else sees it.
 
 ## The data
 
