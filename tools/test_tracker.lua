@@ -28,6 +28,8 @@ suite.check("it sits down the left side",
     ns.TrackerUI.frame._point[1] == "TOPLEFT" and ns.TrackerUI.frame._point[4] == 8,
     table.concat({ tostring(ns.TrackerUI.frame._point[1]), tostring(ns.TrackerUI.frame._point[4]) }, " "))
 suite.check("empty, it says so", Line("Nothing killed yet this session.") ~= nil)
+suite.check("and is only as tall as that", ns.TrackerUI.frame:GetHeight() < 100,
+    ns.TrackerUI.frame:GetHeight())
 
 local fire = ns.eventFrame:GetScript("OnEvent")
 
@@ -115,12 +117,16 @@ suite.check("the panel is showing", UI.frame:IsShown())
 
 local boarLine = Line(BOAR)
 suite.check("it lists the mob", boarLine ~= nil)
-suite.check("with its kills", boarLine and boarLine.right == "6 (6 now)",
+suite.check("with its all-time kills", boarLine and boarLine.right == "6",
     boarLine and boarLine.right)
+suite.check("and this session's beside them", boarLine and boarLine.badge == "+6",
+    boarLine and boarLine.badge)
+suite.check("and a bar filling toward 20", boarLine and math.abs(boarLine.bar - 0.3) < 1e-9,
+    boarLine and boarLine.bar)
 
-local session = Line("This session")
-suite.check("the session heading totals kills and mobs",
-    session and session.right == "6 kills, 1 mob", session and session.right)
+local session = Line("THIS SESSION")
+suite.check("the session heading totals kills",
+    session and session.right == "6 kills", session and session.right)
 
 -- Scraps: once from the first boar, once from the skinned one (the return
 -- visit adds none).
@@ -140,6 +146,23 @@ Loot(BOAR, { { name = "Chunk of Boar Meat", quantity = 2 }, { name = "Chunk of B
 local meatLoot = Line(MEAT.name)
 suite.check("two slots of one item both count toward loot",
     meatLoot and meatLoot.right == "x4", meatLoot and meatLoot.right)
+
+--------------------------------------------------------------------------------
+-- How items look
+--------------------------------------------------------------------------------
+
+local look = Tracker:LookOf(SCRAPS.name)
+suite.check("an item's icon is kept from the loot window",
+    look.icon == "Interface\\Icons\\INV_Misc_Dust_01", look.icon)
+suite.check("and its colour from the loot link", look.color == "ffffffff", look.color)
+suite.check("an item never looted has no look, not an error",
+    next(Tracker:LookOf("Nothing Such")) == nil)
+
+suite.check("LinkColor: a spelled-out colour",
+    Tracker.LinkColor("|cff1eff00|Hitem:2318|h[Light Leather]|h|r") == "ff1eff00")
+suite.check("LinkColor: a named quality",
+    Tracker.LinkColor("|cnIQ3:|Hitem:1|h[x]|h|r") == Tracker.QUALITY[3])
+suite.check("LinkColor: not a link", Tracker.LinkColor("Light Leather") == nil)
 
 --------------------------------------------------------------------------------
 -- Chat is quiet by default
@@ -206,6 +229,11 @@ suite.check("the report on the 20th kill has rates",
 suite.check("and names the rarer drop too", said:find("5%", 1, true) ~= nil, said)
 
 local _, wolfAt = Line(WOLF)
+suite.check("a rated item carries a bar as long as its rate",
+    UI.shown[wolfAt + 1].bar == 0.25, UI.shown[wolfAt + 1].bar)
+suite.check("and the mob's progress bar is gone once rates show",
+    UI.shown[wolfAt].bar == nil)
+
 suite.check("the latest mob is listed first",
     wolfAt and wolfAt < select(2, Line(BOAR)), wolfAt)
 suite.check("its items switch to percentages",
@@ -320,6 +348,8 @@ suite.check("a long session fills the panel and no more",
     #shown == #ns.TrackerUI.lines, #shown)
 suite.check("the last line says how much did not fit",
     shown[#shown].left:find("^%+%d+ more lines") ~= nil, shown[#shown].left)
+suite.check("a full panel stops growing at its tallest",
+    ns.TrackerUI.frame:GetHeight() <= 420, ns.TrackerUI.frame:GetHeight())
 suite.check("and the newest mob is still at the top",
     Line("Kobold 30") ~= nil)
 

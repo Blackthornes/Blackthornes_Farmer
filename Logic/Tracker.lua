@@ -241,6 +241,71 @@ function Tracker:CorpseID()
     return ns.Harvest.Readable(guid)
 end
 
+--------------------------------------------------------------------------------
+-- How an item looks
+--
+-- The panel draws each item with its icon and in its quality colour, the way
+-- the bags do. Both come off the loot window the first time an item is seen
+-- and are kept, so the panel can draw them long after the window closed.
+--------------------------------------------------------------------------------
+
+-- Quality colours, for links that name a quality rather than spell a colour.
+local QUALITY = {
+    [0] = "ff9d9d9d", [1] = "ffffffff", [2] = "ff1eff00", [3] = "ff0070dd",
+    [4] = "ffa335ee", [5] = "ffff8000", [6] = "ffe6cc80",
+}
+
+Tracker.QUALITY = QUALITY
+
+function Tracker:Looks()
+    local db = ns.db
+    if type(db.tracker) ~= "table" then db.tracker = {} end
+    if type(db.tracker.looks) ~= "table" then db.tracker.looks = {} end
+    return db.tracker.looks
+end
+
+--- An icon as the client gives it: a file id (a number) or a texture path.
+local function ReadableIcon(value)
+    return ns.Harvest.ReadableNumber(value) or ns.Harvest.Readable(value)
+end
+
+--- "ff1eff00" out of an item link, whichever way the link spells its colour.
+function Tracker.LinkColor(link)
+    if type(link) ~= "string" then return nil end
+
+    local hex = link:match("^|c(%x%x%x%x%x%x%x%x)")
+    if hex then return hex:lower() end
+
+    -- Newer clients write |cnIQ2:...| and leave the colour to the client.
+    local quality = tonumber(link:match("^|cnIQ(%d)"))
+    if quality then return QUALITY[quality] end
+
+    return nil
+end
+
+function Tracker:NoteLook(slot, name, icon)
+    local looks = self:Looks()
+    local look = looks[name]
+
+    if type(look) ~= "table" then
+        look = {}
+        looks[name] = look
+    end
+
+    look.icon = look.icon or ReadableIcon(icon)
+
+    if not look.color and GetLootSlotLink then
+        local ok, link = pcall(GetLootSlotLink, slot)
+        look.color = ok and Tracker.LinkColor(ns.Harvest.Readable(link)) or nil
+    end
+end
+
+function Tracker:LookOf(name)
+    local look = self:Looks()[name]
+    if type(look) ~= "table" then return {} end
+    return look
+end
+
 --- The items in the open loot window, each once, coins left out, and how
 --- many of each (two slots of one item add up).
 function Tracker:LootedItems()
@@ -251,13 +316,14 @@ function Tracker:LootedItems()
     if not count then return names, quantities end
 
     for slot = 1, count do
-        local ok, _, slotName, slotQuantity = pcall(GetLootSlotInfo, slot)
+        local ok, slotIcon, slotName, slotQuantity = pcall(GetLootSlotInfo, slot)
         local name = ok and ns.Harvest.Readable(slotName) or nil
 
         if name and not ns.Harvest:IsMoney(slot, name) then
             if not quantities[name] then
                 names[#names + 1] = name
                 quantities[name] = 0
+                self:NoteLook(slot, name, slotIcon)
             end
 
             local quantity = ok and ns.Harvest.ReadableNumber(slotQuantity) or nil
