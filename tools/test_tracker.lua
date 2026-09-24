@@ -14,7 +14,20 @@ local Tracker = ns.Tracker
 -- PLAYER_LOGIN: registers LOOT_OPENED for both the harvester and the tracker.
 ns.Harvest:OnEnable()
 Tracker:OnEnable()
-ns.TrackerUI:Build()
+ns.TrackerUI:OnEnable()
+
+--- The panel line whose left text is `left`, as last drawn.
+local function Line(left)
+    for index, line in ipairs(ns.TrackerUI.shown or {}) do
+        if line.left == left then return line, index end
+    end
+end
+
+suite.check("the panel is on from the start", ns.TrackerUI.frame:IsShown())
+suite.check("it sits down the left side",
+    ns.TrackerUI.frame._point[1] == "TOPLEFT" and ns.TrackerUI.frame._point[4] == 8,
+    table.concat({ tostring(ns.TrackerUI.frame._point[1]), tostring(ns.TrackerUI.frame._point[4]) }, " "))
+suite.check("empty, it says so", Line("Nothing killed yet this session.") ~= nil)
 
 local fire = ns.eventFrame:GetScript("OnEvent")
 
@@ -98,14 +111,35 @@ suite.check("without a guid each opening is a kill",
 
 local UI = ns.TrackerUI
 
-suite.check("the panel appears on a kill", UI.frame:IsShown())
-suite.check("it names the mob", UI.title:GetText() == BOAR, UI.title:GetText())
-suite.check("it shows the tally", UI.tally:GetText():find("6 kills", 1, true) ~= nil,
-    UI.tally:GetText())
-suite.check("items show as counts, not percentages",
-    UI.rows[1].value:GetText():find("%", 1, true) == nil, UI.rows[1].value:GetText())
-suite.check("the footer says how many more",
-    UI.footer:GetText() == "14 more kills for drop rates", UI.footer:GetText())
+suite.check("the panel is showing", UI.frame:IsShown())
+
+local boarLine = Line(BOAR)
+suite.check("it lists the mob", boarLine ~= nil)
+suite.check("with its kills", boarLine and boarLine.right == "6 (6 now)",
+    boarLine and boarLine.right)
+
+local session = Line("This session")
+suite.check("the session heading totals kills and mobs",
+    session and session.right == "6 kills, 1 mob", session and session.right)
+
+-- Scraps: once from the first boar, once from the skinned one (the return
+-- visit adds none).
+local scrapsLoot = Line(SCRAPS.name)
+suite.check("session loot adds up quantities",
+    scrapsLoot and scrapsLoot.right == "x2", scrapsLoot and scrapsLoot.right)
+
+local _, boarAt = Line(BOAR)
+local itemUnder = UI.shown[boarAt + 1]
+suite.check("items under a mob show as counts, not percentages",
+    itemUnder and itemUnder.right:find("%", 1, true) == nil, itemUnder and itemUnder.right)
+suite.check("and it says how many more kills",
+    Line("14 more kills for drop rates") ~= nil)
+
+-- Two slots of one item in a window add up in the session loot.
+Loot(BOAR, { { name = "Chunk of Boar Meat", quantity = 2 }, { name = "Chunk of Boar Meat", quantity = 1 } })
+local meatLoot = Line(MEAT.name)
+suite.check("two slots of one item both count toward loot",
+    meatLoot and meatLoot.right == "x4", meatLoot and meatLoot.right)
 
 --------------------------------------------------------------------------------
 -- Chat is quiet by default
@@ -124,9 +158,9 @@ suite.check("/farm report on turns it on", ns.db.trackerReport == true)
 mark = #env.chat
 Loot(BOAR, { MEAT })
 local said = ChatSince(mark)
-suite.check("a kill is reported", said:find("kill 8", 1, true) ~= nil, said)
+suite.check("a kill is reported", said:find("kill 9", 1, true) ~= nil, said)
 suite.check("before the threshold it says how many more",
-    said:find("12 more for drop rates", 1, true) ~= nil, said)
+    said:find("11 more for drop rates", 1, true) ~= nil, said)
 suite.check("before the threshold it gives no percentage",
     said:find("%", 1, true) == nil, said)
 
@@ -171,9 +205,13 @@ suite.check("the report on the 20th kill has rates",
     said:find("Wolf Fang", 1, true) ~= nil and said:find("25%", 1, true) ~= nil, said)
 suite.check("and names the rarer drop too", said:find("5%", 1, true) ~= nil, said)
 
-suite.check("the panel switches to percentages",
-    UI.rows[1].value:GetText() == "25%", UI.rows[1].value:GetText())
-suite.check("and drops the countdown", not UI.footer:IsShown())
+local _, wolfAt = Line(WOLF)
+suite.check("the latest mob is listed first",
+    wolfAt and wolfAt < select(2, Line(BOAR)), wolfAt)
+suite.check("its items switch to percentages",
+    UI.shown[wolfAt + 1].left == "Wolf Fang" and UI.shown[wolfAt + 1].right == "25%",
+    UI.shown[wolfAt + 1].right)
+suite.check("and the countdown goes", Line("0 more kills for drop rates") == nil)
 
 ns.HandleSlash("report off")
 
@@ -262,5 +300,54 @@ ns.HandleSlash("tracker reset confirm")
 suite.check("reset confirm clears it", ns.Tracker:Summary(WOLF) == nil)
 suite.check("and leaves the harvest alone", ns.Harvest:CountCorpses() == harvested,
     ns.Harvest:CountCorpses())
+
+--------------------------------------------------------------------------------
+-- A long session
+--------------------------------------------------------------------------------
+
+-- The reload above left a fresh addon with nothing listening; log it in.
+ns.Harvest:OnEnable()
+ns.Tracker:OnEnable()
+ns.TrackerUI:OnEnable()
+fire = ns.eventFrame:GetScript("OnEvent")
+
+for index = 1, 30 do
+    Loot("Kobold " .. index, { { name = "Linen Cloth" } })
+end
+
+local shown = ns.TrackerUI.shown
+suite.check("a long session fills the panel and no more",
+    #shown == #ns.TrackerUI.lines, #shown)
+suite.check("the last line says how much did not fit",
+    shown[#shown].left:find("^%+%d+ more lines") ~= nil, shown[#shown].left)
+suite.check("and the newest mob is still at the top",
+    Line("Kobold 30") ~= nil)
+
+ns.HandleSlash("tracker off")
+suite.check("/farm tracker off hides it", not ns.TrackerUI.frame:IsShown())
+ns.HandleSlash("tracker on")
+suite.check("/farm tracker on shows it", ns.TrackerUI.frame:IsShown())
+
+--------------------------------------------------------------------------------
+-- A panel saved where the first version put it moves to the left, once
+--------------------------------------------------------------------------------
+
+ns = env.Load({ ui = true })
+BlackthornesFarmerDB = { trackerPoint = "RIGHT", trackerRelativePoint = "RIGHT",
+    trackerX = -220, trackerY = 120 }
+ns.LoadSavedVariables()
+ns.TrackerUI:OnEnable()
+
+local point = ns.TrackerUI.frame._point
+suite.check("an old right-side panel moves to the left",
+    point[1] == "TOPLEFT" and point[4] == 8, point[1])
+
+-- Dragged somewhere after that, it stays there.
+ns.db.trackerPoint, ns.db.trackerRelativePoint = "LEFT", "LEFT"
+ns.db.trackerX, ns.db.trackerY = 40, 0
+ns.TrackerUI:RestorePosition()
+point = ns.TrackerUI.frame._point
+suite.check("a panel moved after that stays moved", point[1] == "LEFT" and point[4] == 40,
+    point[1])
 
 suite.done()

@@ -36,6 +36,12 @@ Tracker.MIN_KILLS = MIN_KILLS
 Tracker.session = {}
 Tracker.corpses = {}
 
+-- Also this session only: how much of each item came off your kills, and the
+-- order mobs were last killed in, so the panel can put the latest on top.
+Tracker.sessionLoot = {}
+Tracker.recent = {}
+Tracker.clock = 0
+
 --------------------------------------------------------------------------------
 -- The tally
 --------------------------------------------------------------------------------
@@ -70,7 +76,7 @@ end
 -- `guid` may be nil -- the client can refuse it inside an instance -- and then
 -- the corpse cannot be recognised a second time, so every opening counts. That
 -- over-counts a skinned corpse, which is the lesser harm next to dropping it.
-function Tracker:Record(mobName, guid, items)
+function Tracker:Record(mobName, guid, items, quantities)
     local mob = self:GetMob(mobName)
     local corpse = guid and self.corpses[guid]
     local newKill = not corpse
@@ -84,17 +90,24 @@ function Tracker:Record(mobName, guid, items)
     end
 
     -- An item counts once per corpse, however many slots or visits it took.
+    -- Leftovers seen again on a return visit add nothing to the loot total
+    -- either: they were counted the first time the window showed them.
     for _, name in ipairs(items or {}) do
         if not corpse[name] then
             corpse[name] = true
             mob.items[name] = (tonumber(mob.items[name]) or 0) + 1
+
+            local quantity = quantities and quantities[name] or 1
+            self.sessionLoot[name] = (self.sessionLoot[name] or 0) + quantity
         end
     end
 
     self.current = mobName
+    self.clock = self.clock + 1
+    self.recent[mobName] = self.clock
 
     if ns.TrackerUI then
-        ns.TrackerUI:ShowMob(mobName)
+        ns.TrackerUI:Refresh()
     end
 
     if newKill and ns.db.trackerReport then
@@ -136,6 +149,45 @@ function Tracker:Summary(mobName)
     }
 end
 
+--- Every mob killed this session, most recent first, as summaries.
+function Tracker:SessionMobs()
+    local mobs = {}
+
+    for name in pairs(self.session) do
+        local summary = self:Summary(name)
+        if summary then mobs[#mobs + 1] = summary end
+    end
+
+    table.sort(mobs, function(a, b)
+        return (self.recent[a.mob] or 0) > (self.recent[b.mob] or 0)
+    end)
+
+    return mobs
+end
+
+--- This session's loot, most first: { name, count }.
+function Tracker:SessionLoot()
+    local loot = {}
+
+    for name, count in pairs(self.sessionLoot) do
+        loot[#loot + 1] = { name = name, count = count }
+    end
+
+    table.sort(loot, function(a, b)
+        if a.count ~= b.count then return a.count > b.count end
+        return a.name < b.name
+    end)
+
+    return loot
+end
+
+--- This session's kills, all mobs together.
+function Tracker:SessionKills()
+    local total = 0
+    for _, kills in pairs(self.session) do total = total + kills end
+    return total
+end
+
 --- "43%", "7.5%", "<1%": whole numbers once they are big enough not to care.
 function Tracker.FormatChance(chance)
     if chance > 0 and chance < 1 then return "<1%" end
@@ -167,9 +219,11 @@ function Tracker:Reset()
     ns.db.tracker = nil
     self.session = {}
     self.corpses = {}
+    self.sessionLoot = {}
+    self.recent = {}
     self.current = nil
 
-    if ns.TrackerUI then ns.TrackerUI:Hide() end
+    if ns.TrackerUI then ns.TrackerUI:Refresh() end
 end
 
 --------------------------------------------------------------------------------
@@ -187,25 +241,31 @@ function Tracker:CorpseID()
     return ns.Harvest.Readable(guid)
 end
 
---- The items in the open loot window, each once, coins left out.
+--- The items in the open loot window, each once, coins left out, and how
+--- many of each (two slots of one item add up).
 function Tracker:LootedItems()
-    local names, seen = {}, {}
+    local names, quantities = {}, {}
 
     local gotCount, lootCount = pcall(GetNumLootItems)
     local count = gotCount and ns.Harvest.ReadableNumber(lootCount) or nil
-    if not count then return names end
+    if not count then return names, quantities end
 
     for slot = 1, count do
-        local ok, _, slotName = pcall(GetLootSlotInfo, slot)
+        local ok, _, slotName, slotQuantity = pcall(GetLootSlotInfo, slot)
         local name = ok and ns.Harvest.Readable(slotName) or nil
 
-        if name and not seen[name] and not ns.Harvest:IsMoney(slot, name) then
-            seen[name] = true
-            names[#names + 1] = name
+        if name and not ns.Harvest:IsMoney(slot, name) then
+            if not quantities[name] then
+                names[#names + 1] = name
+                quantities[name] = 0
+            end
+
+            local quantity = ok and ns.Harvest.ReadableNumber(slotQuantity) or nil
+            quantities[name] = quantities[name] + (quantity or 1)
         end
     end
 
-    return names
+    return names, quantities
 end
 
 function Tracker:OnLoot()
@@ -223,7 +283,9 @@ function Tracker:OnLoot()
     local mobName = ns.Harvest:LootSource()
     if not mobName then return end
 
-    return self:Record(mobName, self:CorpseID(), self:LootedItems())
+    local items, quantities = self:LootedItems()
+
+    return self:Record(mobName, self:CorpseID(), items, quantities)
 end
 
 --------------------------------------------------------------------------------
@@ -277,7 +339,7 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("tracker", "show or hide the kill tally panel", function(rest)
+ns.RegisterCommand("tracker", "show or hide the kill and loot panel", function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "reset" then
@@ -292,16 +354,20 @@ ns.RegisterCommand("tracker", "show or hide the kill tally panel", function(rest
         return
     end
 
-    ns.db.trackerHidden = not ns.db.trackerHidden
+    if argument == "on" then
+        ns.db.trackerHidden = false
+    elseif argument == "off" then
+        ns.db.trackerHidden = true
+    else
+        ns.db.trackerHidden = not ns.db.trackerHidden
+    end
+
+    if ns.TrackerUI then ns.TrackerUI:Refresh() end
 
     if ns.db.trackerHidden then
-        if ns.TrackerUI then ns.TrackerUI:Hide() end
-        ns.Print("kill tally hidden. /farm tracker brings it back.")
+        ns.Print("kill and loot panel hidden. /farm tracker brings it back.")
     else
-        if ns.TrackerUI and Tracker.current then
-            ns.TrackerUI:ShowMob(Tracker.current)
-        end
-        ns.Print("kill tally shown. It appears when you loot something.")
+        ns.Print("kill and loot panel shown. /farm tracker hides it.")
     end
 end)
 

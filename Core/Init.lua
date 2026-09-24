@@ -218,12 +218,13 @@ local DEFAULTS = {
     minimapHidden = false,
 
     -- Kill tracker: whether its panel is kept out of the way, whether each
-    -- kill is reported in chat (off unless asked for), and where it sits.
+    -- kill is reported in chat (off unless asked for), and where it sits --
+    -- down the left edge, under the player and party frames, by default.
     trackerHidden = false,
     trackerReport = false,
-    trackerPoint = "RIGHT",
-    trackerX = -220,
-    trackerY = 120,
+    trackerPoint = "TOPLEFT",
+    trackerX = 8,
+    trackerY = -190,
 }
 
 local function LoadSavedVariables()
