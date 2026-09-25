@@ -617,11 +617,19 @@ function Tracker:Celebrate(mobName)
         line = line .. " Nothing has dropped yet."
     end
 
+    self:Fanfare(line, ("unlocked drop rates for %s after %d kills! (Blackthornes Farmer)")
+        :format(summary.mob, summary.kills))
+end
+
+--- The fanfare itself: `line` in your own chat, `emote` to the players near
+--- you (unless /farm announce is off), and the sound. Fishing uses it too, when
+--- a spot's catch rates unlock at 20 casts. The caller checks
+--- /farm celebrate.
+function Tracker:Fanfare(line, emote)
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
 
-    if ns.db.trackerAnnounce ~= false then
-        self:Announce(("unlocked drop rates for %s after %d kills! (Blackthornes Farmer)")
-            :format(summary.mob, summary.kills))
+    if emote and ns.db.trackerAnnounce ~= false then
+        self:Announce(emote)
     end
 
     if type(PlaySound) == "function" then
@@ -696,7 +704,7 @@ ns.RegisterCommand("report", "report each kill's tally in chat (on/off)", functi
     end
 end)
 
-ns.RegisterCommand("celebrate", "sound and cheer when a mob reaches 20 kills (on/off)",
+ns.RegisterCommand("celebrate", "sound and cheer at a mob's 20th kill or a fishing spot's 20th cast (on/off)",
     function(rest)
         local argument = Util.Trim(rest):lower()
 

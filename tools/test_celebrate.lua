@@ -146,4 +146,62 @@ suite.check("or is said in public", #sent == sentBefore)
 ns.HandleSlash("celebrate on")
 suite.check("/farm celebrate on turns it back on", ns.db.trackerCelebrate == true)
 
+--------------------------------------------------------------------------------
+-- Fishing: the same fanfare when a spot's catch rates unlock at 20 casts
+-- (Trent, 2026-09-25: "i didn't see/hear a fanfare or emote when i hit 20
+-- fishing casts in one location").
+--------------------------------------------------------------------------------
+
+local Fishing = ns.Fishing
+local SMALLFISH = "Raw Brilliant Smallfish"
+
+local function Cast(zone, location, items)
+    return Fishing:Record(zone, location, nil, items or { SMALLFISH }, nil, nil, nil)
+end
+
+before, sentBefore = #played, #sent
+mark = #env.chat
+for _ = 1, 19 do Cast("Elwynn Forest", "Crystal Lake") end
+suite.check("no fanfare before 20 casts",
+    #played == before and #sent == sentBefore and not ChatSince(mark):find("unlocked", 1, true))
+
+Cast("Elwynn Forest", "Crystal Lake")
+said = ChatSince(mark)
+suite.check("the 20th cast at a spot celebrates",
+    said:find("Blackthornes Farmer:", 1, true) ~= nil
+        and said:find("Catch rates unlocked for", 1, true) ~= nil, said)
+suite.check("naming the spot and where it is",
+    said:find("open water", 1, true) ~= nil
+        and said:find("in Crystal Lake, Elwynn Forest", 1, true) ~= nil, said)
+suite.check("and its best catch", said:find("Best catch: " .. SMALLFISH, 1, true) ~= nil, said)
+suite.check("a sound plays", #played == before + 1, #played - before)
+suite.check("players nearby see one emote", #sent == sentBefore + 1
+    and sent[#sent].chatType == "EMOTE"
+    and sent[#sent].text == "unlocked catch rates for open water in Crystal Lake, "
+        .. "Elwynn Forest after 20 casts! (Blackthornes Farmer)", sent[#sent].text)
+
+mark = #env.chat
+Cast("Elwynn Forest", "Crystal Lake")
+suite.check("the 21st cast does not celebrate again",
+    #played == before + 1 and #sent == sentBefore + 1
+        and not ChatSince(mark):find("unlocked", 1, true))
+
+-- Each spot unlocks on its own.
+for _ = 1, 20 do Cast("Elwynn Forest", "Stone Cairn Lake") end
+suite.check("another spot gets its own fanfare", #played == before + 2, #played - before)
+
+-- The same switches as kills.
+ns.HandleSlash("announce off")
+sentBefore = #sent
+for _ = 1, 20 do Cast("Westfall", "The Dagger Hills") end
+suite.check("with announce off, no fishing emote", #sent == sentBefore, #sent - sentBefore)
+ns.HandleSlash("announce on")
+
+ns.HandleSlash("celebrate off")
+before, mark = #played, #env.chat
+for _ = 1, 20 do Cast("Westfall", "Moonbrook") end
+suite.check("with celebrate off, nothing for fishing either",
+    #played == before and not ChatSince(mark):find("unlocked", 1, true))
+ns.HandleSlash("celebrate on")
+
 suite.done()

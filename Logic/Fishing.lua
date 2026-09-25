@@ -291,7 +291,35 @@ function Fishing:Record(zone, location, school, items, quantities, skill, coords
 
     if ns.TrackerUI then ns.TrackerUI:Refresh() end
 
+    -- The cast that unlocks catch rates gets the same fanfare as a mob's
+    -- 20th kill (Trent, 2026-09-25).
+    if spot.casts == MIN_CASTS then
+        self:Celebrate(key)
+    end
+
     return spot
+end
+
+--- Catch rates just unlocked at a spot: the kill tally's fanfare, with the
+--- same /farm celebrate and /farm announce switches.
+function Fishing:Celebrate(key)
+    if ns.db.trackerCelebrate == false then return end
+
+    local summary = self:Summary(key)
+    if not summary then return end
+
+    local where = summary.place and (" in %s"):format(summary.place) or ""
+    local line = ("Catch rates unlocked for %s%s! %d casts in."):format(
+        Util.Colored("accent", summary.name), where, summary.casts)
+
+    local best = summary.items[1]
+    if best then
+        line = line .. (" Best catch: %s %s."):format(best.name,
+            Util.Colored("good", ns.Tracker.FormatChance(best.chance)))
+    end
+
+    ns.Tracker:Fanfare(line, ("unlocked catch rates for %s%s after %d casts! (Blackthornes Farmer)")
+        :format(summary.name, where, summary.casts))
 end
 
 --- One spot's catch, best-caught first.
