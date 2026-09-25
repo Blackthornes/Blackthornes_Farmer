@@ -68,6 +68,13 @@ function Tracker:GetMob(name)
     mob.kills = tonumber(mob.kills) or 0
     if type(mob.items) ~= "table" then mob.items = {} end
 
+    -- How many of each item came off it in all, and how much coin: what a
+    -- kill is worth needs amounts, not just how often something drops.
+    -- Tallies from before these were kept have neither, and are valued as
+    -- one of each item per corpse that held it, and no coin.
+    if type(mob.qty) ~= "table" then mob.qty = {} end
+    mob.copper = tonumber(mob.copper) or 0
+
     return mob
 end
 
@@ -76,7 +83,7 @@ end
 -- `guid` may be nil -- the client can refuse it inside an instance -- and then
 -- the corpse cannot be recognised a second time, so every opening counts. That
 -- over-counts a skinned corpse, which is the lesser harm next to dropping it.
-function Tracker:Record(mobName, guid, items, quantities)
+function Tracker:Record(mobName, guid, items, quantities, copper)
     local mob = self:GetMob(mobName)
     local corpse = guid and self.corpses[guid]
     local newKill = not corpse
@@ -87,6 +94,10 @@ function Tracker:Record(mobName, guid, items, quantities)
 
         mob.kills = mob.kills + 1
         self.session[mobName] = (self.session[mobName] or 0) + 1
+
+        -- Coin is taken on the first opening; a second window on the same
+        -- corpse is skinning or leftovers, never more coin.
+        mob.copper = mob.copper + (tonumber(copper) or 0)
     end
 
     -- An item counts once per corpse, however many slots or visits it took.
@@ -99,6 +110,7 @@ function Tracker:Record(mobName, guid, items, quantities)
 
             local quantity = quantities and quantities[name] or 1
             self.sessionLoot[name] = (self.sessionLoot[name] or 0) + quantity
+            mob.qty[name] = (tonumber(mob.qty[name]) or 0) + quantity
         end
     end
 
@@ -289,9 +301,16 @@ function Tracker:NoteLook(slot, name, icon)
 
     look.icon = look.icon or ReadableIcon(icon)
 
-    if not look.color and GetLootSlotLink then
+    if (not look.color or not look.id) and GetLootSlotLink then
         local ok, link = pcall(GetLootSlotLink, slot)
-        look.color = ok and Tracker.LinkColor(ns.Harvest.Readable(link)) or nil
+        local text = ok and ns.Harvest.Readable(link) or nil
+
+        look.color = look.color or Tracker.LinkColor(text)
+
+        -- The item id is what prices are kept by.
+        if not look.id and text then
+            look.id = tonumber(text:match("item:(%d+)"))
+        end
     end
 end
 
@@ -301,20 +320,37 @@ function Tracker:LookOf(name)
     return look
 end
 
+--- Copper in a coin slot's name: "1 Gold 2 Silver 3 Copper" is 10203.
+-- Nil for anything that is not plainly coin.
+local COIN_VALUE = { Gold = 10000, Silver = 100, Copper = 1 }
+
+function Tracker.CoinCopper(name)
+    if not ns.Harvest:NameLooksLikeMoney(name) then return nil end
+
+    local copper = 0
+    for amount, unit in name:gmatch("(%d+)%s+(%a+)") do
+        copper = copper + tonumber(amount) * (COIN_VALUE[unit] or 0)
+    end
+
+    return copper
+end
+
 --- The items in the open loot window, each once, coins left out, and how
---- many of each (two slots of one item add up).
+--- many of each (two slots of one item add up). Third: the coin, in copper.
 function Tracker:LootedItems()
-    local names, quantities = {}, {}
+    local names, quantities, copper = {}, {}, 0
 
     local gotCount, lootCount = pcall(GetNumLootItems)
     local count = gotCount and ns.Harvest.ReadableNumber(lootCount) or nil
-    if not count then return names, quantities end
+    if not count then return names, quantities, copper end
 
     for slot = 1, count do
         local ok, slotIcon, slotName, slotQuantity = pcall(GetLootSlotInfo, slot)
         local name = ok and ns.Harvest.Readable(slotName) or nil
 
-        if name and not ns.Harvest:IsMoney(slot, name) then
+        if name and ns.Harvest:IsMoney(slot, name) then
+            copper = copper + (Tracker.CoinCopper(name) or 0)
+        elseif name then
             if not quantities[name] then
                 names[#names + 1] = name
                 quantities[name] = 0
@@ -326,7 +362,7 @@ function Tracker:LootedItems()
         end
     end
 
-    return names, quantities
+    return names, quantities, copper
 end
 
 function Tracker:OnLoot()
@@ -344,9 +380,9 @@ function Tracker:OnLoot()
     local mobName = ns.Harvest:LootSource()
     if not mobName then return end
 
-    local items, quantities = self:LootedItems()
+    local items, quantities, copper = self:LootedItems()
 
-    return self:Record(mobName, self:CorpseID(), items, quantities)
+    return self:Record(mobName, self:CorpseID(), items, quantities, copper)
 end
 
 --------------------------------------------------------------------------------

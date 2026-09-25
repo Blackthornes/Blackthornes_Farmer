@@ -272,6 +272,7 @@ local FILES = {
     "Logic/Search.lua",
     "Logic/Harvest.lua",
     "Logic/Tracker.lua",
+    "Logic/Value.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on

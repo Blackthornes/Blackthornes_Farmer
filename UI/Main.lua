@@ -218,7 +218,38 @@ end
 -- Rows
 --------------------------------------------------------------------------------
 
+--- Hovering a mob's row says what a kill is worth, priced by Tradeskills.
+function UI:ShowValueTooltip(row)
+    local data = row and row.data
+    if not (data and data.type == "source" and data.source.name) then return end
+    if not (GameTooltip and ns.Value) then return end
+
+    local mobName = data.source.name
+    local worth, details = ns.Value:ForMob(mobName)
+    if not worth then return end
+
+    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    GameTooltip:AddLine(mobName)
+    GameTooltip:AddLine(("Worth about %s a kill"):format(ns.Value.Money(worth)),
+        Theme.Unpack("good"))
+
+    for index = 1, math.min(#details.priced, 4) do
+        local entry = details.priced[index]
+        GameTooltip:AddLine(("  %s  %s"):format(entry.name, ns.Value.Money(entry.perKill)),
+            Theme.Unpack("muted"))
+    end
+
+    GameTooltip:AddLine(details.basis == "tally"
+        and ("From your %d kills, %s."):format(details.kills, ns.Value:PriceNote(details))
+        or ("Estimate from %s. Coin not counted."):format(ns.Value:PriceNote(details)),
+        Theme.Unpack("muted"))
+    GameTooltip:Show()
+end
+
 function UI:CreateRow(row)
+    row:HookScript("OnEnter", function(self) UI:ShowValueTooltip(self) end)
+    row:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+
     -- An item heading: full width, so it reads as a break in the list.
     row.heading = Theme.CreateLabel(row, "small", "accent")
     row.heading:SetPoint("LEFT", 2, 0)
