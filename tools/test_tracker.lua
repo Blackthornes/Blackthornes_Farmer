@@ -384,8 +384,15 @@ local press = TUI.grip:GetScript("OnMouseDown")
 local release = TUI.grip:GetScript("OnMouseUp")
 suite.check("the panel has a resize grip", type(press) == "function" and type(release) == "function")
 
+-- The client left the panel hanging from its bottom after an earlier drag.
+TUI.frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 8, 300)
+TUI.frame._left, TUI.frame._top = 8, 900
 press(TUI.grip)
 suite.check("pressing the grip starts sizing", TUI.sizing == true)
+local pinned = TUI.frame._point
+suite.check("pressing the grip pins the panel by its top",
+    pinned[1] == "TOPLEFT" and pinned[3] == "BOTTOMLEFT" and pinned[4] == 8 and pinned[5] == 900,
+    table.concat(pinned, ",", 3))
 TUI.frame:SetWidth(320)
 TUI.frame:SetHeight(260)
 TUI.frame:GetScript("OnSizeChanged")(TUI.frame)
@@ -396,6 +403,19 @@ suite.check("letting go saves the width", ns.db.trackerWidth == 320, ns.db.track
 suite.check("and the height", ns.db.trackerHeight == 260, ns.db.trackerHeight)
 suite.check("and stops sizing", TUI.sizing == false)
 suite.check("the panel keeps the new width", TUI.frame:GetWidth() == 320, TUI.frame:GetWidth())
+suite.check("letting go keeps the top where it was",
+    TUI.frame._point[1] == "TOPLEFT" and TUI.frame._point[5] == 900, TUI.frame._point[1])
+suite.check("and saves it by the top",
+    ns.db.trackerPoint == "TOPLEFT" and ns.db.trackerRelativePoint == "BOTTOMLEFT"
+        and ns.db.trackerY == 900, ns.db.trackerPoint)
+
+-- Moving the panel: the client re-anchors it to the centre on the way.
+TUI.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+TUI.frame._left, TUI.frame._top = 100, 700
+TUI.frame:GetScript("OnDragStop")(TUI.frame)
+suite.check("a moved panel is saved by its top",
+    ns.db.trackerPoint == "TOPLEFT" and ns.db.trackerX == 100 and ns.db.trackerY == 700,
+    ns.db.trackerPoint)
 
 ns.SettingsUI:ResetPositions()
 suite.check("putting windows back resets the size too",
@@ -421,11 +441,23 @@ suite.check("an old right-side panel moves to the left",
     point[1] == "TOPLEFT" and point[4] == 8, point[1])
 
 -- Dragged somewhere after that, it stays there.
-ns.db.trackerPoint, ns.db.trackerRelativePoint = "LEFT", "LEFT"
-ns.db.trackerX, ns.db.trackerY = 40, 0
+ns.db.trackerPoint, ns.db.trackerRelativePoint = "TOPLEFT", "BOTTOMLEFT"
+ns.db.trackerX, ns.db.trackerY = 40, 600
 ns.TrackerUI:RestorePosition()
 point = ns.TrackerUI.frame._point
-suite.check("a panel moved after that stays moved", point[1] == "LEFT" and point[4] == 40,
+suite.check("a panel moved after that stays moved",
+    point[1] == "TOPLEFT" and point[3] == "BOTTOMLEFT" and point[4] == 40 and point[5] == 600,
     point[1])
+
+-- One saved by an earlier version from its centre is re-pinned by its top.
+ns.db.trackerPoint, ns.db.trackerRelativePoint = "LEFT", "LEFT"
+ns.db.trackerX, ns.db.trackerY = 40, 0
+ns.TrackerUI.frame._left, ns.TrackerUI.frame._top = 40, 650
+ns.TrackerUI:RestorePosition()
+point = ns.TrackerUI.frame._point
+suite.check("a panel saved from its centre is pinned by its top where it sits",
+    point[1] == "TOPLEFT" and point[4] == 40 and point[5] == 650, point[1])
+suite.check("and saved that way", ns.db.trackerPoint == "TOPLEFT" and ns.db.trackerY == 650,
+    ns.db.trackerPoint)
 
 suite.done()

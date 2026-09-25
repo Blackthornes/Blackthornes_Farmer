@@ -42,7 +42,14 @@ local function Stub(fields)
     function frame:SetScript(script, fn) self._scripts[script] = fn end
     function frame:GetScript(script) return self._scripts[script] end
 
-    function frame:GetPoint() return "CENTER", nil, "CENTER", 0, 40 end
+    function frame:GetPoint()
+        local p = self._point
+        if p and #p == 5 then return p[1], p[2], p[3], p[4], p[5] end
+        return "CENTER", nil, "CENTER", 0, 40
+    end
+    -- Nil until a test places the frame on screen, as before layout.
+    function frame:GetLeft() return self._left end
+    function frame:GetTop() return self._top end
     function frame:GetFrameLevel() return 1 end
 
     -- Recorded so a test can check where something was anchored.
