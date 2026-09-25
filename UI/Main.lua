@@ -23,16 +23,35 @@ local HEIGHT = 480
 local PADDING = 14
 local ROW_HEIGHT = 20
 
--- Column left edges and widths, measured from the list's left edge.
-local COLUMN = {
-    kind  = { x = 0,   w = 40 },
-    name  = { x = 46,  w = 170 },
-    where = { x = 222, w = 196 },
-    level = { x = 424, w = 46 },
-    drop  = { x = 476, w = 110 },
-}
+-- Column widths, left to right, at their narrowest. The source, where and
+-- drop columns widen to fit what a search turns up, and the window with them:
+-- the game's font runs wider than widths picked by eye, and names were being
+-- cut off.
+local COLUMN_ORDER = { "kind", "name", "where", "level", "drop" }
+local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110 }
+local MAX_WIDTH = { name = 320, where = 400, drop = 220 }
+local COLUMN_GAP = 6
 
 local DROP_BAR_WIDTH = 46
+
+--- Column left edges and widths, measured from the list's left edge, for the
+--- given widths (any not given are at their narrowest).
+local function Columns(widths)
+    local columns, x = {}, 0
+
+    for _, key in ipairs(COLUMN_ORDER) do
+        local w = widths and widths[key] or BASE_WIDTH[key]
+        columns[key] = { x = x, w = w }
+        x = x + w + COLUMN_GAP
+    end
+
+    -- How much wider than the narrowest layout, for the window to grow by.
+    columns.extra = x - COLUMN_GAP - 586
+
+    return columns
+end
+
+local COLUMN = Columns()
 
 --------------------------------------------------------------------------------
 -- Colour helpers
@@ -185,29 +204,108 @@ function UI:BuildBody()
     self.list = list
 
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
-    footer:SetPoint("BOTTOMLEFT", PADDING, 14)
-    footer:SetPoint("BOTTOMRIGHT", -PADDING, 14)
+    footer:SetPoint("BOTTOMLEFT", PADDING, 6)
+    footer:SetPoint("BOTTOMRIGHT", -PADDING, 6)
+    -- Two lines if it needs them, rather than cut off.
+    footer:SetHeight(26)
+    footer:SetWordWrap(true)
+    footer:SetJustifyV("MIDDLE")
     footer:SetText("Unmarked spots come from Classic data and are not confirmed on Forever yet. "
         .. "Click a row to print it to chat.")
     self.footer = footer
 end
 
+function UI:PlaceHeadings()
+    for key, label in pairs(self.headings) do
+        local column = self.columns[key]
+        label:ClearAllPoints()
+        label:SetPoint("TOPLEFT", 8 + column.x, -8)
+        label:SetWidth(column.w)
+    end
+end
+
+--- Row `row`'s columns where the current layout puts them.
+function UI:PlaceRow(row)
+    local columns = self.columns or COLUMN
+    if row.layout == columns then return end
+    row.layout = columns
+
+    local function Place(region, column, offset, width)
+        region:ClearAllPoints()
+        region:SetPoint("LEFT", column.x + (offset or 0), 0)
+        if width then region:SetWidth(width) end
+    end
+
+    Place(row.kindChip, columns.kind)
+    Place(row.kind, columns.kind, 0, columns.kind.w - 6)
+    Place(row.name, columns.name, 0, columns.name.w)
+    Place(row.where, columns.where, 0, columns.where.w)
+    Place(row.level, columns.level, 0, columns.level.w)
+    Place(row.dropTrack, columns.drop)
+    Place(row.dropFill, columns.drop)
+    Place(row.drop, columns.drop, DROP_BAR_WIDTH + 6, columns.drop.w - DROP_BAR_WIDTH - 6)
+end
+
+--- The text a source row shows in each column that can grow.
+local function SourceTexts(source)
+    local where = ns.DB:WhereText(source)
+
+    return source.name or source.requires or ns.DB:KindLabel(source.kind),
+        where and (source.zone .. Util.Colored("dim", " / ") .. where) or source.zone,
+        (not source.chance and source.requires and source.name) and source.requires or nil
+end
+
+--- Widen the columns, and the window, to fit these rows; never narrower
+--- than the base layout.
+function UI:FitColumns(rows)
+    local widths = { name = BASE_WIDTH.name, where = BASE_WIDTH.where, drop = BASE_WIDTH.drop }
+
+    for _, row in ipairs(rows) do
+        if row.type == "source" then
+            local name, where, drop = SourceTexts(row.source)
+            widths.name = math.max(widths.name, Theme.TextWidth("small", name) + 8)
+            widths.where = math.max(widths.where, Theme.TextWidth("small", where) + 8)
+            if drop then
+                widths.drop = math.max(widths.drop,
+                    Theme.TextWidth("small", drop) + DROP_BAR_WIDTH + 12)
+            end
+        end
+    end
+
+    for key, most in pairs(MAX_WIDTH) do
+        widths[key] = math.min(most, math.ceil(widths[key]))
+    end
+
+    local current = self.columns or COLUMN
+    if current.name.w == widths.name and current.where.w == widths.where
+        and current.drop.w == widths.drop then
+        return
+    end
+
+    self.columns = Columns(widths)
+    self:PlaceHeadings()
+    self.frame:SetWidth(WIDTH + self.columns.extra)
+end
+
 function UI:BuildColumnHeadings()
     local panel = self.panel
 
-    local function Heading(text, column, justify)
+    self.headings = {}
+
+    local function Heading(key, text, justify)
         local label = Theme.CreateLabel(panel, "tiny", "dim", justify)
-        label:SetPoint("TOPLEFT", 8 + column.x, -8)
-        label:SetWidth(column.w)
         label:SetText(text)
-        return label
+        self.headings[key] = label
     end
 
-    Heading("", COLUMN.kind)
-    Heading("SOURCE", COLUMN.name)
-    Heading("WHERE", COLUMN.where)
-    Heading("LEVEL", COLUMN.level)
-    Heading("DROP", COLUMN.drop)
+    Heading("kind", "")
+    Heading("name", "SOURCE")
+    Heading("where", "WHERE")
+    Heading("level", "LEVEL")
+    Heading("drop", "DROP")
+
+    self.columns = COLUMN
+    self:PlaceHeadings()
 
     local rule = Theme.CreateDivider(panel, "border")
     rule:SetPoint("TOPLEFT", 8, -20)
@@ -253,44 +351,33 @@ function UI:CreateRow(row)
     -- An item heading: full width, so it reads as a break in the list.
     row.heading = Theme.CreateLabel(row, "small", "accent")
     row.heading:SetPoint("LEFT", 2, 0)
-    row.heading:SetWidth(WIDTH - 80)
+    row.heading:SetPoint("RIGHT", -64, 0)
 
     row.kindChip = row:CreateTexture(nil, "ARTWORK")
-    row.kindChip:SetPoint("LEFT", COLUMN.kind.x, 0)
-    row.kindChip:SetSize(COLUMN.kind.w - 6, 13)
+    row.kindChip:SetSize(BASE_WIDTH.kind - 6, 13)
 
     row.kind = Theme.CreateLabel(row, "tiny", "text", "CENTER")
-    row.kind:SetPoint("LEFT", COLUMN.kind.x, 0)
-    row.kind:SetWidth(COLUMN.kind.w - 6)
 
     row.name = Theme.CreateLabel(row, "small", "text")
-    row.name:SetPoint("LEFT", COLUMN.name.x, 0)
-    row.name:SetWidth(COLUMN.name.w)
 
     row.where = Theme.CreateLabel(row, "small", "muted")
-    row.where:SetPoint("LEFT", COLUMN.where.x, 0)
-    row.where:SetWidth(COLUMN.where.w)
 
     row.level = Theme.CreateLabel(row, "small", "text", "CENTER")
-    row.level:SetPoint("LEFT", COLUMN.level.x, 0)
-    row.level:SetWidth(COLUMN.level.w)
 
     row.dropTrack = row:CreateTexture(nil, "ARTWORK")
-    row.dropTrack:SetPoint("LEFT", COLUMN.drop.x, 0)
     row.dropTrack:SetSize(DROP_BAR_WIDTH, 6)
     row.dropTrack:SetColorTexture(Theme.Unpack("row"))
 
     row.dropFill = row:CreateTexture(nil, "OVERLAY")
-    row.dropFill:SetPoint("LEFT", COLUMN.drop.x, 0)
     row.dropFill:SetHeight(6)
 
     row.drop = Theme.CreateLabel(row, "small", "muted")
-    row.drop:SetPoint("LEFT", COLUMN.drop.x + DROP_BAR_WIDTH + 6, 0)
-    row.drop:SetWidth(COLUMN.drop.w - DROP_BAR_WIDTH - 6)
 
     row.badge = Theme.CreateLabel(row, "tiny", "good", "RIGHT")
     row.badge:SetPoint("RIGHT", -2, 0)
     row.badge:SetWidth(60)
+
+    self:PlaceRow(row)
 end
 
 local function HideSourceColumns(row)
@@ -306,6 +393,7 @@ local function HideSourceColumns(row)
 end
 
 function UI:UpdateRow(row, data)
+    self:PlaceRow(row)
     row.heading:Hide()
     HideSourceColumns(row)
 
@@ -342,13 +430,13 @@ function UI:UpdateRow(row, data)
 
     -- A node named after the thing it holds tells you nothing twice, so show
     -- what it needs instead.
-    row.name:SetText(source.name or source.requires or ns.DB:KindLabel(source.kind))
+    local name, where = SourceTexts(source)
+
+    row.name:SetText(name)
     row.name:SetTextColor(Theme.Unpack("text"))
     row.name:Show()
 
-    local where = ns.DB:WhereText(source)
-    row.where:SetText(where and (source.zone .. Util.Colored("dim", " / ") .. where)
-        or source.zone)
+    row.where:SetText(where)
     row.where:Show()
 
     row.level:SetText(ns.Search:LevelText(source))
@@ -460,6 +548,7 @@ function UI:Render()
         end
     end
 
+    self:FitColumns(visible)
     self.list:SetData(visible)
 
     if total == 0 then

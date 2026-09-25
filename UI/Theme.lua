@@ -115,6 +115,40 @@ function Theme.CreateLabel(parent, size, colorKey, justify)
     return label
 end
 
+-- One unanchored, unbounded label per size, for measuring text: a label
+-- anchored at both ends reports the width it was given, not the width its
+-- text wants.
+local measures = {}
+
+--- How wide `text` is in pixels at a label size, as the game draws it.
+--
+-- The game's font runs wider than any fixed width we could guess, which is
+-- how "Loot a corpse and it shows up he..." happened. Measure instead.
+function Theme.TextWidth(size, text)
+    if type(text) ~= "string" or text == "" then return 0 end
+
+    local label = measures[size]
+    if not label then
+        label = Theme.CreateLabel(UIParent, size, "text")
+        label:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", 0, -200)
+        label:SetAlpha(0)
+        measures[size] = label
+    end
+
+    label:SetText(text)
+
+    -- The unbounded width where the client has it, else the plain one.
+    local width
+    for _, method in ipairs({ "GetUnboundedStringWidth", "GetStringWidth" }) do
+        if not width and type(label[method]) == "function" then
+            local ok, value = pcall(label[method], label)
+            width = ok and tonumber(value) or nil
+        end
+    end
+
+    return math.ceil(width or 0)
+end
+
 function Theme.CreateDivider(parent, key)
     local divider = parent:CreateTexture(nil, "ARTWORK")
     divider:SetColorTexture(Theme.Unpack(key or "border"))
