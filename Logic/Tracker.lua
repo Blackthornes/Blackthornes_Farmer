@@ -164,6 +164,9 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place)
     self.clock = self.clock + 1
     self.recent[mobName] = self.clock
 
+    -- Whichever you did last goes on top of the panel: this, or fishing.
+    ns.lastLoot = "kill"
+
     if ns.TrackerUI then
         ns.TrackerUI:Refresh()
     end

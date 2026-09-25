@@ -121,6 +121,24 @@ BlackthornesFarmerDB = {
 }
 """
 
+
+
+def with_fishing(text, casts, fish):
+    """`text` with a fishing record: one open-water spot in Elwynn Forest,
+    `casts` casts, `fish` of them landing Raw Brilliant Smallfish."""
+    return text.replace(
+        "BlackthornesFarmerDB = {",
+        """BlackthornesFarmerDB = {
+\t["fishing"] = { ["spots"] = {
+\t\t["Elwynn Forest|Crystal Lake|"] = {
+\t\t\t["zone"] = "Elwynn Forest", ["location"] = "Crystal Lake",
+\t\t\t["casts"] = %d, ["minSkill"] = 40, ["maxSkill"] = 52,
+\t\t\t["items"] = { ["Raw Brilliant Smallfish"] = {
+\t\t\t\t["casts"] = %d, ["count"] = %d, ["id"] = 6291 } },
+\t\t},
+\t} },""" % (casts, fish, fish), 1)
+
+
 checks = 0
 failures = []
 
@@ -267,6 +285,50 @@ def main():
         check("the smaller harvest is what was written", "Wolf Meat" in written)
         check("coins never reach the data file", "14 Copper" not in written,
               written)
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
+
+    # -- Fishing ----------------------------------------------------------------
+    #
+    # Catches go into the same file as fishing rows, and their casts are held
+    # to the same never-shrink rule as corpses.
+    sandbox, repo, client = build_sandbox(stamped(with_fishing(SAVED, 25, 20)))
+    try:
+        generated = os.path.join(repo, "Data", "Data_Harvested.lua")
+        result = run_import(repo, client)
+        check("an import with fishing succeeds", result.returncode == 0, result.stderr)
+
+        text = open(generated, encoding="utf-8").read() if os.path.isfile(generated) else ""
+
+        check("the header counts the casts", "-- 25 fishing casts." in text, text[:300])
+        check("the listing mentions them", "25 fishing casts" in result.stdout, result.stdout)
+        check("the catch is a fishing row",
+              'kind = "fishing", name = "open water", zone = "Elwynn Forest", '
+              'location = "Crystal Lake"' in text, text)
+        check("with the item id", "id = 6291" in text, text)
+        check("20 of 25 casts is 80%", "chance = 80" in text, text)
+        check("the skill is noted", "fishing skill 40-52" in text, text)
+        check("the mob rows are still there", "chance = 62" in text, text)
+
+        write_saved(client, stamped(with_fishing(SAVED, 10, 4)))
+        fewer = run_import(repo, client)
+
+        check("fewer casts are refused", fewer.returncode != 0, fewer.stdout)
+        check("and it says why",
+              "was built from 25" in (fewer.stdout + fewer.stderr), fewer.stderr)
+        check("THE PUBLISHED FISHING SURVIVES IT",
+              open(generated, encoding="utf-8").read() == text)
+
+        check("--allow-smaller still writes it",
+              run_import(repo, client, "--allow-smaller").returncode == 0)
+        check("and the smaller record is what was written",
+              "-- 10 fishing casts." in open(generated, encoding="utf-8").read())
+
+        tests = subprocess.run(
+            [sys.executable, os.path.join(repo, "tools", "runtests.py")],
+            capture_output=True, text=True, cwd=repo)
+        check("the addon's tests pass with fishing rows in the data",
+              tests.returncode == 0, tests.stderr[-800:])
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)
 
