@@ -89,6 +89,12 @@ function TrackerUI:Width()
     return Clamp(ns.db and ns.db.trackerWidth, MIN_WIDTH, MAX_WIDTH) or WIDTH
 end
 
+--- The panel's width for lines that need `needs` pixels: the saved width, or
+--- wider up to MAX_WIDTH.
+function TrackerUI:FitWidth(needs)
+    return math.min(MAX_WIDTH, math.max(self:Width(), math.ceil(tonumber(needs) or 0)))
+end
+
 function TrackerUI:MaxHeight()
     return Clamp(ns.db and ns.db.trackerHeight, MIN_HEIGHT, MAX_HEIGHT) or HEIGHT
 end
@@ -475,15 +481,26 @@ function TrackerUI:DrawLine(row, line)
     -- The text runs to the value column, or all the way across when a line
     -- has no value. That second case is what cut "Nothing killed yet this
     -- session." short: it stopped where a value would have started.
+    --
+    -- The value and badge columns are as wide as their text needs, at least
+    -- their usual width, so neither is cut short either.
+    local rightWidth = math.max(RIGHT_WIDTH, Theme.TextWidth("small", line.right) + 2)
+    local badgeWidth = math.max(BADGE_WIDTH, Theme.TextWidth("tiny", line.badge) + 2)
+    row.right:SetWidth(rightWidth)
+    row.badge:SetWidth(badgeWidth)
+
     local stop = PADDING
-    if line.right ~= "" then stop = stop + RIGHT_WIDTH + 4 end
-    if line.badge then stop = stop + BADGE_WIDTH + 2 end
+    if line.right ~= "" then stop = stop + rightWidth + 4 end
+    if line.badge then stop = stop + badgeWidth + 2 end
 
     row.left:ClearAllPoints()
     row.left:SetPoint("LEFT", indent, 0)
     row.left:SetPoint("RIGHT", -stop, 0)
     row.leftStop = stop
     row.leftIndent = indent
+
+    -- How wide the panel must be for this line to show in full.
+    row.needs = indent + Theme.TextWidth("small", line.left) + stop + 4
     row.left:SetText(line.left)
     row.left:Show()
 
@@ -542,19 +559,26 @@ function TrackerUI:Render()
 
     -- As tall as what it holds, up to the saved height: no empty tail under
     -- a short session. Left alone mid-drag, where the drag is in charge.
-    if not self.sizing then
-        self.frame:SetWidth(self:Width())
-        self.frame:SetHeight(HEADER + PADDING * 2 + #lines * LINE)
-    end
+    local needs = 0
 
     for index = 1, math.max(#lines, #self.lines) do
         local line = lines[index]
 
         if line then
-            self:DrawLine(self:Line(index), line)
+            local row = self:Line(index)
+            self:DrawLine(row, line)
+            needs = math.max(needs, row.needs or 0)
         elseif self.lines[index] then
             self.lines[index]:Hide()
         end
+    end
+
+    -- At least the width you gave it, and wider when a line needs it, so no
+    -- text is cut off (Trent, 2026-09-25: "Loot a corpse and it shows up
+    -- he..."). Mid-drag the drag decides, and it widens again on letting go.
+    if not self.sizing then
+        self.frame:SetWidth(self:FitWidth(needs))
+        self.frame:SetHeight(HEADER + PADDING * 2 + #lines * LINE)
     end
 end
 

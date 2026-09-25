@@ -139,7 +139,8 @@ between sessions.
 `/farm tracker` (or the panel's **X**) turns it off and on, and it stays the
 way you left it. Drag it by the panel if the left edge is busy, and drag the
 grip in its bottom-right corner to resize it. The width is what you drag it
-to; the height is the tallest it grows, so a short session still gets a
+to, or wider when a line needs it, so no text is cut off; the height is the
+tallest it grows, so a short session still gets a
 short panel. Settings > Window positions puts both back.
 
 **A mob's full loot table.** The panel has room for each mob's three most

@@ -29,7 +29,9 @@ local HEADER = 36
 
 local COLUMN_WIDTH = 310
 local COLUMN_TWO_X = PADDING * 2 + COLUMN_WIDTH
-local CONTROL_X = 150
+-- Where the controls start: room for a label like "Search window size" in the
+-- game's font, which runs wider than it looks.
+local CONTROL_X = 170
 
 local WIDTH = COLUMN_WIDTH * 2 + PADDING * 3
 local HEIGHT = 450

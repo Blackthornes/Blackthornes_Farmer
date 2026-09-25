@@ -18,7 +18,9 @@ local Theme = ns.Theme
 local Widgets = ns.Widgets
 local Util = ns.Util
 
-local WIDTH = 440
+-- At least this wide; wider when an item's name needs it, up to MAX_WIDTH.
+local WIDTH = 460
+local MAX_WIDTH = 760
 -- It is as tall as its rows, between these, and scrolls past the tallest.
 local MIN_HEIGHT = 240
 local MAX_HEIGHT = 460
@@ -29,7 +31,12 @@ local ICON = 16
 
 -- Header, the numbers, the status line and the column titles above the list;
 -- the price note under it.
-local TOP = HEADER + 74 + ROW + 4
+-- The status line has room for two lines of text, so it wraps rather than
+-- being cut off.
+local STATUS_TOP = HEADER + 50
+local STATUS_HEIGHT = 30
+local COLUMNS_TOP = STATUS_TOP + STATUS_HEIGHT + 6
+local TOP = COLUMNS_TOP + ROW + 4
 local BOTTOM = 34
 
 -- The number columns, right to left, in pixels.
@@ -288,13 +295,16 @@ function LootTableUI:Build()
     self.coin = Stat(frame, PADDING + 280, "COIN PER KILL")
 
     local status = Theme.CreateLabel(frame, "small", "muted")
-    status:SetPoint("TOPLEFT", PADDING, -(HEADER + 52))
-    status:SetPoint("TOPRIGHT", -PADDING, -(HEADER + 52))
+    status:SetPoint("TOPLEFT", PADDING, -STATUS_TOP)
+    status:SetPoint("TOPRIGHT", -PADDING, -STATUS_TOP)
+    status:SetHeight(STATUS_HEIGHT)
+    status:SetWordWrap(true)
+    status:SetJustifyV("TOP")
 
     -- Column titles, on a band.
     local columns = Theme.CreatePanel(frame, "header", false)
-    columns:SetPoint("TOPLEFT", 1, -(HEADER + 74))
-    columns:SetPoint("TOPRIGHT", -1, -(HEADER + 74))
+    columns:SetPoint("TOPLEFT", 1, -COLUMNS_TOP)
+    columns:SetPoint("TOPRIGHT", -1, -COLUMNS_TOP)
     columns:SetHeight(ROW)
 
     local itemTitle = Theme.CreateLabel(columns, "tiny", "muted")
@@ -392,6 +402,7 @@ function LootTableUI:Render()
             or " Coin is counted from your next kill.")
     end
     self.status:SetText(status)
+    self.frame:SetWidth(self:WidthFor(data.rows, status))
 
     self.footer:SetText(ns.Value and ns.Value:HasAuctionPrices()
         and "Prices: Blackthornes Tradeskills market value, or the vendor price if higher."
@@ -409,6 +420,26 @@ function LootTableUI:Render()
         self.list:Refresh()
     end
     self.shownMob = data.mob
+end
+
+--- Wide enough for the longest item name on one line and the status in two,
+--- between WIDTH and MAX_WIDTH.
+--
+-- Everything but the name column is a fixed width: the padding, the list's
+-- scrollbar, the icon, and the number columns.
+function LootTableUI:WidthFor(rows, status)
+    local fixed = PADDING * 2 + 14 + 4 + ICON + 6 + 4
+    for _, column in ipairs(COLUMNS) do fixed = fixed + column.width + GAP end
+
+    local needs = 0
+    for _, row in ipairs(rows or {}) do
+        needs = math.max(needs, fixed + Theme.TextWidth("small", row.name))
+    end
+
+    -- Two lines of wrapped text, with some slack for where the words break.
+    needs = math.max(needs, PADDING * 2 + Theme.TextWidth("small", status) / 2 + 40)
+
+    return math.min(MAX_WIDTH, math.max(WIDTH, math.ceil(needs)))
 end
 
 --- Tall enough for `count` rows, within MIN_HEIGHT and MAX_HEIGHT.

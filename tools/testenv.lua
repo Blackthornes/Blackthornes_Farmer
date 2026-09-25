@@ -38,6 +38,8 @@ local function Stub(fields)
     function frame:SetText(value) self._text = tostring(value or "") end
     function frame:SetTextColor(r, g, b) self._color = { r, g, b } end
     function frame:GetText() return self._text end
+    -- About as wide as the game's small font: 6 pixels a character.
+    function frame:GetStringWidth() return #(self._text or "") * 6 end
 
     function frame:SetScript(script, fn) self._scripts[script] = fn end
     function frame:GetScript(script) return self._scripts[script] end
