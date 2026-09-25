@@ -133,6 +133,7 @@ function env.InstallClient()
     -- into the next.
     _G.C_Item = nil
     _G.BlackthornesTS = nil
+    _G.GetLootSourceInfo = nil
     _G.PlaySound = nil
     _G.SendChatMessage = nil
     _G.C_ChatInfo = nil
@@ -290,6 +291,7 @@ local FILES = {
     "Logic/Harvest.lua",
     "Logic/Tracker.lua",
     "Logic/Fishing.lua",
+    "Logic/Gathering.lua",
     "Logic/Value.lua",
     "Logic/Rankings.lua",
 }

@@ -248,6 +248,65 @@ function Harvest:CorpseID()
     return Readable(guid)
 end
 
+--- Is the open loot window a fishing catch or a gathered herb or vein?
+--
+-- Either way it is nobody's corpse, whatever is targeted. A herb picked with
+-- a looted corpse still targeted used to go down as that corpse's drop.
+function Harvest:IsNodeLoot()
+    if self:Capabilities().fishingLoot then
+        local ok, fishing = pcall(IsFishingLoot)
+        if ok and fishing then return true end
+    end
+
+    return ns.Gathering ~= nil and ns.Gathering:IsGathering()
+end
+
+-- A guid the client spells "Creature-0-...", "GameObject-0-...": the kinds
+-- that can own a loot window.
+local GUID_KIND = {
+    Creature = true, Vehicle = true, Pet = true, Player = true,
+    GameObject = true, Item = true,
+}
+
+local function GuidKind(guid)
+    local kind = type(guid) == "string" and guid:match("^(%a+)%-") or nil
+    return kind and GUID_KIND[kind] and kind or nil
+end
+
+--- Does the open loot window belong to the target?
+--
+-- Where the client says whose loot each slot is (GetLootSourceInfo), a window
+-- none of whose slots is the target's -- a chest, a clam opened from the bags,
+-- another corpse -- is not the target's loot. This answers false only on that
+-- evidence: guids it cannot read, or a client spelling them some other way,
+-- leave it answering true, the way it was before it asked.
+function Harvest:LootIsTargets()
+    if type(GetLootSourceInfo) ~= "function" then return true end
+
+    local target = self:CorpseID()
+    if not GuidKind(target) then return true end
+
+    local gotCount, lootCount = pcall(GetNumLootItems)
+    local count = gotCount and ReadableNumber(lootCount) or nil
+    if not count then return true end
+
+    local elsewhere = false
+
+    for slot = 1, count do
+        local ok, sources = pcall(function() return { GetLootSourceInfo(slot) } end)
+
+        -- Guid, quantity, guid, quantity...
+        for index = 1, ok and #sources or 0, 2 do
+            local guid = Readable(sources[index])
+
+            if guid == target then return true end
+            if GuidKind(guid) then elsewhere = true end
+        end
+    end
+
+    return not elsewhere
+end
+
 --------------------------------------------------------------------------------
 -- Recording
 --------------------------------------------------------------------------------
@@ -351,14 +410,11 @@ function Harvest:RecordCorpse()
     local caps = self:Capabilities()
     if not caps.usable then return end
 
-    -- Fishing pools and containers are not mobs.
-    if caps.fishingLoot then
-        local ok, fishing = pcall(IsFishingLoot)
-        if ok and fishing then return end
-    end
+    -- Fishing pools, herbs and veins are not mobs.
+    if self:IsNodeLoot() then return end
 
     local mob, level = self:LootSource()
-    if not mob then
+    if not mob or not self:LootIsTargets() then
         self.skipped = (self.skipped or 0) + 1
         return
     end

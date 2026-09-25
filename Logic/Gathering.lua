@@ -1,0 +1,648 @@
+-- Blackthornes Farmer -- Logic/Gathering.lua
+-- Herbs and ore: what each node gave, where, and how often.
+--
+-- A herb or a vein is not a corpse, so the harvester and the kill tally never
+-- saw it: they read the target to know whose loot a window is, and a node is
+-- not a unit. Most of the time that meant the loot was dropped. Now and then,
+-- with a looted corpse still targeted, it was worse: the herb went down as
+-- that mob's drop. This is where node loot goes instead.
+--
+-- How a window is known to be a node's. Picking a herb or mining a vein is a
+-- spell cast, Herb Gathering or Mining, and the client says so when the cast
+-- is sent, naming what it was cast on: "Peacebloom", "Copper Vein". A loot
+-- window that opens soon after one of those, which nothing interrupted, is
+-- that node's. No such cast, no gathering: nothing is put down to a node on
+-- a guess. Skinning is left alone -- skinned leather is the mob's drop
+-- (Trent's rule, PR #16) and the kill tally keeps it.
+--
+-- Each loot window is one gather. A vein mined three times is three gathers,
+-- which is what an ore rate should be over anyway.
+--
+-- Below MIN_GATHERS a node shows counts, never percentages, the same rule and
+-- the same number as kills and casts.
+--
+-- Everything is kept in saved variables. Nothing is sent anywhere.
+
+local _, ns = ...
+
+local Gathering = ns.NewModule("Gathering")
+
+local Util = ns.Util
+
+-- Same threshold as kills and fishing casts, for the same reason.
+local MIN_GATHERS = 20
+
+-- How long after a gathering cast is sent its loot window may open. A herb
+-- takes a few seconds to pick; this is long enough for a slow one and short
+-- enough that a cast from a minute ago cannot claim a corpse's loot.
+local GATHER_SECONDS = 10
+
+-- How long a node's name under the mouse still names the cast, for a client
+-- that sends the cast without saying what it was on.
+local HOVER_SECONDS = 8
+
+Gathering.MIN_GATHERS = MIN_GATHERS
+Gathering.GATHER_SECONDS = GATHER_SECONDS
+
+-- This session only: gathers per node, the order nodes were last gathered in,
+-- and how many gathers in all. The panel's Gathering section shows only while
+-- `sessionGathers` is above zero. `sessionItems` is how many of each item came
+-- off a node, for the session's gathered value.
+Gathering.session = {}
+Gathering.sessionItems = {}
+Gathering.recent = {}
+Gathering.clock = 0
+Gathering.sessionGathers = 0
+
+--------------------------------------------------------------------------------
+-- Which casts are gathering
+--------------------------------------------------------------------------------
+
+-- By spell id: every rank of Herb Gathering and Mining the game has had.
+local SPELL_KIND = {
+    [2366] = "herb", [2368] = "herb", [3570] = "herb", [11993] = "herb",
+    [2575] = "ore", [2576] = "ore", [3564] = "ore", [10248] = "ore",
+}
+
+-- By name, for a client whose ids differ.
+local NAME_KIND = {
+    ["Herb Gathering"] = "herb",
+    ["Herbalism"] = "herb",
+    ["Mining"] = "ore",
+}
+
+-- What a node is called when the client would not name it.
+local UNNAMED = { herb = "Herb", ore = "Mineral vein" }
+
+Gathering.SPELL_KIND = SPELL_KIND
+Gathering.NAME_KIND = NAME_KIND
+
+--- The client's clock in seconds, or nil if it will not say.
+local function Now()
+    if type(GetTime) ~= "function" then return nil end
+    local ok, now = pcall(GetTime)
+    return ok and ns.Harvest.ReadableNumber(now) or nil
+end
+
+--- A spell's name, or nil if the client will not say.
+local function SpellName(spellID)
+    if type(C_Spell) == "table" and type(C_Spell.GetSpellName) == "function" then
+        local ok, name = pcall(C_Spell.GetSpellName, spellID)
+        local text = ok and ns.Harvest.Readable(name) or nil
+        if text then return text end
+    end
+
+    if type(GetSpellInfo) == "function" then
+        local ok, name = pcall(GetSpellInfo, spellID)
+        return ok and ns.Harvest.Readable(name) or nil
+    end
+
+    return nil
+end
+
+--- "herb", "ore", or nil for any other spell.
+function Gathering.KindOf(spellID)
+    local id = ns.Harvest.ReadableNumber(spellID)
+    if not id then return nil end
+
+    if SPELL_KIND[id] then return SPELL_KIND[id] end
+
+    local name = SpellName(id)
+    return name and NAME_KIND[name] or nil
+end
+
+--------------------------------------------------------------------------------
+-- The cast
+--------------------------------------------------------------------------------
+
+--- The game tooltip just showed: remember a world object's name, in case the
+--- cast that follows does not say what it was on.
+--
+-- Units and items are never nodes, and one under the mouse means the node
+-- before it is not what you are about to click.
+function Gathering:OnTooltipShown()
+    local tooltip = GameTooltip
+    if not tooltip then return end
+
+    for _, method in ipairs({ "GetUnit", "GetItem" }) do
+        if type(tooltip[method]) == "function" then
+            local ok, name = pcall(tooltip[method], tooltip)
+            if ok and name ~= nil then
+                self.hovered = nil
+                return
+            end
+        end
+    end
+
+    local line = _G.GameTooltipTextLeft1
+    if not line or type(line.GetText) ~= "function" then return end
+
+    local ok, text = pcall(line.GetText, line)
+    local name = ok and ns.Harvest.Readable(text) or nil
+
+    if name then self.hovered = { name = name, at = Now() } end
+end
+
+--- A cast was sent. If it is you picking a herb or mining a vein, remember
+--- what it was on and when.
+--
+-- UNIT_SPELLCAST_SENT: unit, target, castGUID, spellID.
+function Gathering:OnCastSent(unit, target, castGUID, spellID)
+    if ns.Harvest.Readable(unit) ~= "player" then return end
+
+    local kind = Gathering.KindOf(spellID)
+
+    if not kind then
+        -- Any other cast of yours means you are not gathering any more.
+        if self.cast and not self.cast.looted then self.cast = nil end
+        return
+    end
+
+    local now = Now()
+    local node = ns.Harvest.Readable(target)
+
+    if not node then
+        local hovered = self.hovered
+        if hovered and hovered.at and now and now - hovered.at <= HOVER_SECONDS then
+            node = hovered.name
+        end
+    end
+
+    -- A name names one cast.
+    self.hovered = nil
+
+    self.cast = {
+        kind = kind,
+        node = node or UNNAMED[kind],
+        id = ns.Harvest.Readable(castGUID),
+        at = now,
+    }
+end
+
+--- A cast went through. A client that never sent UNIT_SPELLCAST_SENT still
+--- says this, so a gather is not missed for want of the first.
+function Gathering:OnCastSucceeded(unit, castGUID, spellID)
+    if ns.Harvest.Readable(unit) ~= "player" then return end
+
+    local kind = Gathering.KindOf(spellID)
+    if not kind then return end
+
+    local cast = self.cast
+    local id = ns.Harvest.Readable(castGUID)
+
+    if cast and not cast.looted and (not cast.id or not id or cast.id == id) then
+        cast.at = Now() or cast.at
+        return
+    end
+
+    self.cast = { kind = kind, node = UNNAMED[kind], id = id, at = Now() }
+end
+
+--- A cast failed or was interrupted: a gather that never finished opens no
+--- loot, so it must not claim the next window that does.
+function Gathering:OnCastStopped(unit, castGUID, spellID)
+    if ns.Harvest.Readable(unit) ~= "player" then return end
+
+    local cast = self.cast
+    if not cast or cast.looted then return end
+
+    local id = ns.Harvest.Readable(castGUID)
+
+    if (cast.id and id and cast.id == id) or (not id and Gathering.KindOf(spellID)) then
+        self.cast = nil
+    end
+end
+
+--- Is the open loot window a node's?
+--
+-- The harvester and the kill tally ask this before they read the target, so
+-- a herb picked beside a looted corpse is never that corpse's drop.
+function Gathering:IsGathering()
+    local cast = self.cast
+    if not cast then return false end
+
+    local now = Now()
+    if cast.at and now then return now - cast.at <= GATHER_SECONDS end
+
+    -- No clock to hold it to: it lasts until its loot window closes.
+    return true
+end
+
+--------------------------------------------------------------------------------
+-- The record
+--------------------------------------------------------------------------------
+
+--- Every node gathered, kept in saved variables from one session to the next.
+function Gathering:Store()
+    local db = ns.db
+
+    if type(db.gathering) ~= "table" then db.gathering = {} end
+    if type(db.gathering.nodes) ~= "table" then db.gathering.nodes = {} end
+
+    return db.gathering.nodes
+end
+
+function Gathering.NodeKey(zone, location, node)
+    return ("%s|%s|%s"):format(zone or "?", location or "", node or "?")
+end
+
+function Gathering:GetNode(zone, location, node, kind)
+    local key = Gathering.NodeKey(zone, location, node)
+    local nodes = self:Store()
+    local entry = nodes[key]
+
+    if type(entry) ~= "table" then
+        entry = { zone = zone, location = location, node = node, kind = kind }
+        nodes[key] = entry
+    end
+
+    entry.gathers = tonumber(entry.gathers) or 0
+    if type(entry.items) ~= "table" then entry.items = {} end
+
+    return entry, key
+end
+
+--- Count one gather. Returns the node.
+--
+-- `items` are names, each once; `quantities` how many of each came up.
+function Gathering:Record(zone, location, node, kind, items, quantities, coords)
+    local entry, key = self:GetNode(zone, location, node, kind)
+
+    entry.gathers = entry.gathers + 1
+
+    for _, name in ipairs(items or {}) do
+        local item = entry.items[name]
+
+        if type(item) ~= "table" then
+            item = { gathers = 0, count = 0 }
+            entry.items[name] = item
+        end
+
+        local quantity = quantities and quantities[name] or 1
+
+        item.gathers = (tonumber(item.gathers) or 0) + 1
+        item.count = (tonumber(item.count) or 0) + quantity
+        item.id = item.id or ns.Tracker:LookOf(name).id
+
+        self.sessionItems[name] = (self.sessionItems[name] or 0) + quantity
+    end
+
+    if coords and not entry.coords then
+        entry.coords = { coords[1], coords[2] }
+    end
+
+    self.session[key] = (self.session[key] or 0) + 1
+    self.sessionGathers = self.sessionGathers + 1
+    self.clock = self.clock + 1
+    self.recent[key] = self.clock
+
+    -- Whichever you did last goes on top of the panel.
+    ns.lastLoot = "gathering"
+
+    if ns.TrackerUI then ns.TrackerUI:Refresh() end
+
+    -- The gather that unlocks rates gets the same fanfare as a 20th kill.
+    if entry.gathers == MIN_GATHERS then
+        self:Celebrate(key)
+    end
+
+    return entry
+end
+
+function Gathering:Celebrate(key)
+    if ns.db.trackerCelebrate == false then return end
+
+    local summary = self:Summary(key)
+    if not summary then return end
+
+    local where = summary.place and (" in %s"):format(summary.place) or ""
+    local line = ("Gather rates unlocked for %s%s! %d gathered."):format(
+        Util.Colored("accent", summary.name), where, summary.gathers)
+
+    ns.Tracker:Fanfare(line, ("unlocked gather rates for %s%s after %d gathers! (Blackthornes Farmer)")
+        :format(summary.name, where, summary.gathers))
+end
+
+--- One node's yield, most often found first.
+function Gathering:Summary(key)
+    local entry = self:Store()[key]
+    if type(entry) ~= "table" then return nil end
+
+    local gathers = tonumber(entry.gathers) or 0
+    local items = {}
+
+    for name, item in pairs(type(entry.items) == "table" and entry.items or {}) do
+        local held = type(item) == "table" and tonumber(item.gathers) or 0
+        items[#items + 1] = {
+            name = name,
+            gathers = held,
+            count = type(item) == "table" and tonumber(item.count) or held,
+            id = type(item) == "table" and tonumber(item.id) or nil,
+            chance = gathers > 0 and math.min(100, held / gathers * 100) or 0,
+        }
+    end
+
+    table.sort(items, function(a, b)
+        if a.gathers ~= b.gathers then return a.gathers > b.gathers end
+        return a.name < b.name
+    end)
+
+    return {
+        key = key,
+        node = entry,
+        name = entry.node or "?",
+        place = ns.Tracker.PlaceName(entry.zone, entry.location),
+        gathers = gathers,
+        session = self.session[key] or 0,
+        rated = gathers >= MIN_GATHERS,
+        needed = math.max(0, MIN_GATHERS - gathers),
+        items = items,
+    }
+end
+
+--- Every node gathered this session, most recent first, as summaries.
+function Gathering:SessionNodes()
+    local nodes = {}
+
+    for key in pairs(self.session) do
+        local summary = self:Summary(key)
+        if summary then nodes[#nodes + 1] = summary end
+    end
+
+    table.sort(nodes, function(a, b)
+        return (self.recent[a.key] or 0) > (self.recent[b.key] or 0)
+    end)
+
+    return nodes
+end
+
+--- Every node ever gathered, most gathers first; only those in `zone` if given.
+function Gathering:Nodes(zone)
+    local nodes = {}
+
+    for key, entry in pairs(self:Store()) do
+        if type(entry) == "table" and (not zone or entry.zone == zone) then
+            local summary = self:Summary(key)
+            if summary and summary.gathers > 0 then nodes[#nodes + 1] = summary end
+        end
+    end
+
+    table.sort(nodes, function(a, b)
+        if a.gathers ~= b.gathers then return a.gathers > b.gathers end
+        return a.key < b.key
+    end)
+
+    return nodes
+end
+
+function Gathering:CountGathers()
+    local total = 0
+    for _, entry in pairs(self:Store()) do
+        if type(entry) == "table" then total = total + (tonumber(entry.gathers) or 0) end
+    end
+    return total
+end
+
+--- What one gather of a node is worth, in copper, once it has MIN_GATHERS.
+-- Nil below the threshold, or when nothing it gave has a price.
+function Gathering:WorthPerGather(key)
+    local summary = self:Summary(key)
+    if not (summary and summary.rated and ns.Value) then return nil end
+
+    local total, priced = 0, 0
+
+    for _, item in ipairs(summary.items) do
+        local unit = ns.Value:UnitPrice(ns.Value:ItemID(item.name))
+        if unit then
+            total = total + item.count / summary.gathers * unit
+            priced = priced + 1
+        end
+    end
+
+    if priced == 0 then return nil end
+
+    return total
+end
+
+function Gathering:Reset()
+    ns.db.gathering = nil
+    self.session = {}
+    self.sessionItems = {}
+    self.recent = {}
+    self.sessionGathers = 0
+    self.cast = nil
+
+    if ns.TrackerUI then ns.TrackerUI:Refresh() end
+end
+
+--------------------------------------------------------------------------------
+-- Reading the loot window
+--------------------------------------------------------------------------------
+
+function Gathering:OnLoot()
+    if not self:IsGathering() then return end
+
+    local cast = self.cast
+
+    -- One window is one gather. A second LOOT_OPENED for it is the same one.
+    if cast.looted then return end
+    cast.looted = true
+
+    -- A catch is fishing's, whatever else was going on.
+    if ns.Fishing and ns.Fishing:IsCatch() then return end
+
+    -- The same pause as the harvester: recording off means nothing recorded.
+    if ns.db.harvestPaused then return end
+
+    local zone, location = ns.Harvest:Where()
+    local items, quantities = ns.Tracker:LootedItems()
+    local x, y = ns.Harvest:PlayerPosition()
+
+    return self:Record(zone, location, cast.node, cast.kind, items, quantities,
+        x and { x, y } or nil)
+end
+
+--- The window closed: the gather it belonged to is over.
+function Gathering:OnLootClosed()
+    if self.cast and self.cast.looted then self.cast = nil end
+end
+
+--------------------------------------------------------------------------------
+-- Herbs and ore already credited to a mob
+--
+-- Before this module, a herb picked with a looted corpse still targeted went
+-- down as that corpse's drop. This finds any such entry in the kill tally and
+-- the harvest and lists it. It changes nothing: what to do with them is
+-- Trent's call.
+--------------------------------------------------------------------------------
+
+--- Is `name` a herb or an ore that no mob in the database drops?
+function Gathering.IsNodeOnly(name)
+    local item = ns.DB and ns.DB:GetItem(name)
+    if not item then return false end
+    if item.category ~= "Herbalism" and item.category ~= "Mining" then return false end
+
+    -- "node" is a vein, "herb" a herb. A single source of any other kind --
+    -- a mob, a container -- and a mob holding it could be right.
+    local any = false
+
+    for _, source in ipairs(item.sources or {}) do
+        if source.kind ~= "node" and source.kind ~= "herb" then return false end
+        any = true
+    end
+
+    return any
+end
+
+--- Every mob tally or harvest record holding a node-only item:
+--- { where = "tally" | "harvest", mob, item, times, of }.
+function Gathering:Suspects()
+    local found = {}
+
+    local tally = type(ns.db.tracker) == "table" and ns.db.tracker.mobs
+    for mobName, mob in pairs(type(tally) == "table" and tally or {}) do
+        if type(mob) == "table" and type(mob.items) == "table" then
+            for name, times in pairs(mob.items) do
+                if Gathering.IsNodeOnly(name) then
+                    found[#found + 1] = { where = "tally", mob = mobName, item = name,
+                        times = tonumber(times) or 0, of = tonumber(mob.kills) or 0 }
+                end
+            end
+        end
+    end
+
+    -- The live harvest; ns.db.harvest is the same table once it is restored.
+    local harvest = ns.Harvest.records or ns.db.harvest
+
+    for _, record in pairs(type(harvest) == "table" and harvest or {}) do
+        if type(record) == "table" and type(record.items) == "table" then
+            for name, entry in pairs(record.items) do
+                if Gathering.IsNodeOnly(name) then
+                    found[#found + 1] = { where = "harvest", mob = record.mob, item = name,
+                        times = type(entry) == "table" and tonumber(entry.corpses) or 0,
+                        of = tonumber(record.corpses) or 0 }
+                end
+            end
+        end
+    end
+
+    table.sort(found, function(a, b)
+        if a.where ~= b.where then return a.where > b.where end
+        if a.mob ~= b.mob then return tostring(a.mob) < tostring(b.mob) end
+        return a.item < b.item
+    end)
+
+    return found
+end
+
+--------------------------------------------------------------------------------
+-- Lifecycle
+--------------------------------------------------------------------------------
+
+function Gathering:OnEnable()
+    if not ns.Harvest:Capabilities().usable then return end
+
+    ns.RegisterEvent(self, "LOOT_OPENED", function() Gathering:OnLoot() end)
+    ns.RegisterEvent(self, "LOOT_CLOSED", function() Gathering:OnLootClosed() end)
+
+    ns.RegisterEvent(self, "UNIT_SPELLCAST_SENT", function(_, _, ...)
+        Gathering:OnCastSent(...)
+    end)
+
+    ns.RegisterEvent(self, "UNIT_SPELLCAST_SUCCEEDED", function(_, _, ...)
+        Gathering:OnCastSucceeded(...)
+    end)
+
+    for _, event in ipairs({ "UNIT_SPELLCAST_FAILED", "UNIT_SPELLCAST_INTERRUPTED" }) do
+        ns.RegisterEvent(self, event, function(_, _, ...)
+            Gathering:OnCastStopped(...)
+        end)
+    end
+
+    if GameTooltip and type(GameTooltip.HookScript) == "function" then
+        pcall(GameTooltip.HookScript, GameTooltip, "OnShow", function()
+            Gathering:OnTooltipShown()
+        end)
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Commands
+--------------------------------------------------------------------------------
+
+local function PrintNode(summary)
+    ns.PrintRaw(("%s  %s"):format(
+        Util.Colored("accent", summary.name),
+        Util.Colored("muted", ("%s, %s"):format(summary.place or "?",
+            Util.Plural(summary.gathers, "gather")))))
+
+    for _, item in ipairs(summary.items) do
+        local right = summary.rated and ns.Tracker.FormatChance(item.chance)
+            or ("%d of %d"):format(item.gathers, summary.gathers)
+        ns.PrintRaw(("  %s %s"):format(item.name, Util.Colored("muted", right)))
+    end
+
+    if not summary.rated then
+        ns.PrintRaw(Util.Colored("muted", ("  %d more %s for gather rates."):format(
+            summary.needed, summary.needed == 1 and "gather" or "gathers")))
+    end
+end
+
+local function PrintSuspects()
+    local found = Gathering:Suspects()
+
+    if #found == 0 then
+        ns.Print("no herbs or ore are credited to any mob. Your kill data is clean.")
+        return
+    end
+
+    ns.Print(("%s look like a herb or ore picked with a corpse still targeted. "
+        .. "Nothing has been changed:"):format(Util.Plural(#found, "entry", "entries")))
+
+    for _, entry in ipairs(found) do
+        local what = entry.where == "tally" and "kill tally" or "harvest"
+        local unit = entry.where == "tally" and "kills" or "corpses"
+        ns.PrintRaw(("  %s: %s %s"):format(
+            Util.Colored("accent", entry.mob or "?"), entry.item,
+            Util.Colored("muted", ("%d of %d %s, in the %s"):format(
+                entry.times, entry.of, unit, what))))
+    end
+end
+
+ns.RegisterCommand("gathering", "herbs and ore gathered in this zone (all: everywhere; check)", function(rest)
+    local argument = Util.Trim(rest):lower()
+
+    if argument == "check" then
+        PrintSuspects()
+        return
+    end
+
+    if argument == "reset" then
+        ns.Print(("this deletes all %s you have recorded, for good. "
+            .. "Type /farm gathering reset confirm to do it."):format(
+            Util.Plural(Gathering:CountGathers(), "gather")))
+        return
+    end
+
+    if argument == "reset confirm" then
+        Gathering:Reset()
+        ns.Print("gathering record cleared.")
+        return
+    end
+
+    local zone = argument ~= "all" and ns.Harvest:Where() or nil
+    local nodes = Gathering:Nodes(zone)
+
+    if #nodes == 0 then
+        if zone and Gathering:CountGathers() > 0 then
+            ns.Print(("nothing gathered in %s yet. /farm gathering all shows everywhere.")
+                :format(zone))
+        else
+            ns.Print("nothing gathered yet. Pick a herb or mine a vein and try again.")
+        end
+        return
+    end
+
+    ns.Print(zone and ("gathered in %s:"):format(zone) or "gathered everywhere:")
+    for _, summary in ipairs(nodes) do PrintNode(summary) end
+end)
