@@ -384,3 +384,36 @@ push.
 The tests load the addon against a stub client (`tools/testenv.lua`), so they
 check the search, the ranking, the data and the window's wiring without the
 game running.
+
+## Releasing
+
+Releases are cut by pushing a tag. `.github/workflows/release.yml` builds the
+player-facing zip with the
+[BigWigs packager](https://github.com/BigWigsMods/packager) and uploads it
+wherever a token is configured.
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The packager rewrites `## Version: @project-version@` in the TOC to the tag, so
+the version is never edited by hand. Running straight from a clone there is no
+packager, and the addon reports its version as `dev`.
+
+`.pkgmeta` decides what reaches a player. `tools/`, `deploy.ps1` and
+`Import Harvest.bat` are excluded: the harvest importer reads saved variables
+off this machine and has no business in a player's AddOns folder.
+
+Uploads are opt-in per site. The workflow reads these repository secrets, and
+skips any site whose secret is missing:
+
+| Secret | Site |
+|---|---|
+| `CF_API_KEY` | CurseForge |
+| `WAGO_API_TOKEN` | Wago Addons |
+| `WOWI_API_TOKEN` | WoWInterface |
+
+Each site also needs its project ID in the TOC — `X-Curse-Project-ID`,
+`X-Wago-ID`, `X-WoWI-ID` — which exist only once the project has been created
+there. They are present but commented out until then.

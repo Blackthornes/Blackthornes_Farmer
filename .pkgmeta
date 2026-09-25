@@ -1,0 +1,21 @@
+# Packaging instructions for the BigWigs packager, which builds the zip that
+# CurseForge, Wago and WoWInterface hand to players.
+#
+# The folder inside the zip must be named exactly as the .toc file, or the
+# client will not see the addon.
+package-as: Blackthornes_Farmer
+
+# Development-only files. The harvest importer and its desktop shortcut read
+# saved variables off this machine; none of that belongs in a player's
+# Interface\AddOns folder.
+ignore:
+  - .github
+  - .gitattributes
+  - .gitignore
+  - .pkgmeta
+  - docs
+  - tools
+  - deploy.ps1
+  - Import Harvest.bat
+
+license-output: LICENSE

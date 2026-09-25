@@ -2,9 +2,16 @@
 ## Title: Blackthornes Farmer
 ## Notes: Search for a material or item and get the mobs, zones and levels to farm it.
 ## Author: Blackthornes
-## Version: 0.1.0
+## Version: @project-version@
+## X-License: MIT
 ## SavedVariables: BlackthornesFarmerDB
 ## IconTexture: Interface\Icons\Trade_Mining
+
+# Filled in once the project exists on each site. The packager reads these
+# to know where to upload; a line that stays commented is simply skipped.
+# X-Curse-Project-ID: 
+# X-Wago-ID: 
+# X-WoWI-ID: 
 
 Core\Init.lua
 Core\Util.lua
