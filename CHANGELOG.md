@@ -4,6 +4,28 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.4.0
+
+For WoW: Forever (interface 16001).
+
+- Rankings: the main window now has Search and Rankings tabs. Rankings lists
+  every mob by what a kill is worth, on two separate boards: Your kills
+  (measured from 20 or more of your own kills, coin included) and Estimates
+  (from the database's drop rates, marked with ~). Mobs you have started on
+  show how many kills they still need. `/farm rankings` opens it.
+- Gathering: herbs you pick and veins you mine are recorded against the node,
+  zone and subzone, and the panel grows a Gathering section once you have
+  gathered this session. Yields show as counts until a node has 20 gathers,
+  then as rates. `/farm gathering` lists what you have gathered in this zone.
+- Fixed: herbs and ore could be counted as a mob's drop when a looted corpse
+  was still targeted. `/farm gathering check` lists any an older version
+  credited to a mob, without changing anything.
+- Gathered value: the top of the panel shows what this session's haul is
+  worth, the coin from your kills plus everything looted, fished up or
+  gathered. Items with no price are left out and counted in a note.
+- Grey items are now worth their vendor price only, whatever the auction
+  house shows, in worth per kill, Rankings and the session total.
+
 ## 0.3.0
 
 For WoW: Forever (interface 16001).
