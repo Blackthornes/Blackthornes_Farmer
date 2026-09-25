@@ -133,6 +133,7 @@ function env.InstallClient()
     -- into the next.
     _G.C_Item = nil
     _G.BlackthornesTS = nil
+    _G.PlaySound = nil
     _G.geterrorhandler = function() return function(err) error(err, 0) end end
     _G.BlackthornesFarmerDB = nil
 
