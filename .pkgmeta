@@ -1,0 +1,35 @@
+# Packaging instructions for the BigWigs packager, which builds the zip that
+# CurseForge, Wago and WoWInterface hand to players.
+#
+# The folder inside the zip must be named exactly as the .toc file, or the
+# client will not see the addon.
+package-as: Blackthornes_Farmer
+
+# Development-only files. The harvest importer and its desktop shortcut read
+# saved variables off this machine; none of that belongs in a player's
+# Interface\AddOns folder.
+ignore:
+  - .github
+  - .gitattributes
+  - .gitignore
+  - .pkgmeta
+  - docs
+  - tools
+  - deploy.ps1
+  - Import Harvest.bat
+  # The README is for working on the addon: it names Trent's own folders.
+  # Players read the CurseForge description instead.
+  - README.md
+  # Trent's own harvest from before saved variables worked. It is merged into
+  # his save once; in a player's install it would pour his kills into theirs.
+  # The TOC line that loads it is fenced with #@do-not-package@ to match.
+  - Data/Harvest_Carryover.lua
+
+license-output: LICENSE
+
+# Ship CHANGELOG.md as written. Without this the packager writes its own from
+# the full commit history, which is the private repository's development log
+# and not something a player needs to read.
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown

@@ -254,7 +254,7 @@ function SettingsUI:BuildHeader()
     subtitle:SetText("Settings")
 
     local version = Theme.CreateLabel(header, "tiny", "dim", "RIGHT")
-    version:SetText("v" .. tostring(ns.VERSION))
+    version:SetText(ns.VersionLabel())
 
     local close = Widgets.CreateButton(header, "X", function() SettingsUI:Hide() end,
         { width = 22, height = 20 })
