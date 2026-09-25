@@ -26,6 +26,13 @@ function Widgets.CreateButton(parent, text, onClick, opts)
     button.label:SetPoint("CENTER")
     button.label:SetText(text)
 
+    -- Never narrower than its text: the game's font runs wider than a width
+    -- picked by eye.
+    local function Fit(value)
+        button:SetWidth(math.max(opts.width or 80, Theme.TextWidth("small", value) + 12))
+    end
+    Fit(text)
+
     button:SetScript("OnEnter", function(self)
         self.background:SetColorTexture(Theme.Unpack("rowHover"))
     end)
@@ -42,6 +49,7 @@ function Widgets.CreateButton(parent, text, onClick, opts)
 
     function button:SetText(value)
         self.label:SetText(value)
+        Fit(value)
     end
 
     return button

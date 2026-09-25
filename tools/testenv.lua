@@ -38,11 +38,20 @@ local function Stub(fields)
     function frame:SetText(value) self._text = tostring(value or "") end
     function frame:SetTextColor(r, g, b) self._color = { r, g, b } end
     function frame:GetText() return self._text end
+    -- About as wide as the game's small font: 6 pixels a character.
+    function frame:GetStringWidth() return #(self._text or "") * 6 end
 
     function frame:SetScript(script, fn) self._scripts[script] = fn end
     function frame:GetScript(script) return self._scripts[script] end
 
-    function frame:GetPoint() return "CENTER", nil, "CENTER", 0, 40 end
+    function frame:GetPoint()
+        local p = self._point
+        if p and #p == 5 then return p[1], p[2], p[3], p[4], p[5] end
+        return "CENTER", nil, "CENTER", 0, 40
+    end
+    -- Nil until a test places the frame on screen, as before layout.
+    function frame:GetLeft() return self._left end
+    function frame:GetTop() return self._top end
     function frame:GetFrameLevel() return 1 end
 
     -- Recorded so a test can check where something was anchored.
@@ -119,6 +128,11 @@ function env.InstallClient()
     }
 
     _G.SlashCmdList = {}
+
+    -- Suites share one Lua state; prices one suite sets up must not leak
+    -- into the next.
+    _G.C_Item = nil
+    _G.BlackthornesTS = nil
     _G.geterrorhandler = function() return function(err) error(err, 0) end end
     _G.BlackthornesFarmerDB = nil
 
@@ -272,6 +286,7 @@ local FILES = {
     "Logic/Search.lua",
     "Logic/Harvest.lua",
     "Logic/Tracker.lua",
+    "Logic/Value.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
@@ -286,6 +301,7 @@ local UI_FILES = {
     "UI/Main.lua",
     "UI/Export.lua",
     "UI/Tracker.lua",
+    "UI/LootTable.lua",
     "UI/Settings.lua",
 }
 

@@ -28,11 +28,13 @@ Data\Harvest_Carryover.lua
 Logic\Search.lua
 Logic\Harvest.lua
 Logic\Tracker.lua
+Logic\Value.lua
 
 UI\Theme.lua
 UI\Widgets.lua
 UI\Main.lua
 UI\Export.lua
 UI\Tracker.lua
+UI\LootTable.lua
 UI\Settings.lua
 Data\Data_Harvested.lua

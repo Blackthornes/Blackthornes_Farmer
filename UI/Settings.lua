@@ -29,7 +29,9 @@ local HEADER = 36
 
 local COLUMN_WIDTH = 310
 local COLUMN_TWO_X = PADDING * 2 + COLUMN_WIDTH
-local CONTROL_X = 150
+-- Where the controls start: room for a label like "Search window size" in the
+-- game's font, which runs wider than it looks.
+local CONTROL_X = 170
 
 local WIDTH = COLUMN_WIDTH * 2 + PADDING * 3
 local HEIGHT = 450
@@ -152,7 +154,8 @@ function SettingsUI:SetRecording(on)
     end
 end
 
---- Put the search window and the tally panel back where they started.
+--- Put the search window and the tally panel back where, and how big, they
+--- started.
 function SettingsUI:ResetPositions()
     local defaults = ns.DEFAULTS
     local db = ns.db
@@ -166,10 +169,15 @@ function SettingsUI:ResetPositions()
     -- absent, which is where it started.
     db.trackerRelativePoint = nil
 
+    -- And its size, back to where it started.
+    db.trackerWidth = nil
+    db.trackerHeight = nil
+
     if ns.UI and ns.UI.frame then ns.UI:RestorePosition() end
 
     if ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.RestorePosition then
         ns.TrackerUI:RestorePosition()
+        if ns.TrackerUI.Refresh then ns.TrackerUI:Refresh() end
     end
 
     self:RestorePosition()

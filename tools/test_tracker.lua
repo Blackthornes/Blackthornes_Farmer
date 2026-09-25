@@ -31,6 +31,11 @@ suite.check("empty, it says so", Line("Nothing killed yet this session.") ~= nil
 suite.check("and is only as tall as that", ns.TrackerUI.frame:GetHeight() < 100,
     ns.TrackerUI.frame:GetHeight())
 
+-- Trent's screenshot, 2026-09-25: "Nothing killed yet this se..." -- a line
+-- with no value stopped where the value column would have started.
+suite.check("a line with no value runs the full width",
+    ns.TrackerUI.lines[1].leftStop == 8, ns.TrackerUI.lines[1].leftStop)
+
 local fire = ns.eventFrame:GetScript("OnEvent")
 
 local serial = 0
@@ -345,13 +350,79 @@ end
 
 local shown = ns.TrackerUI.shown
 suite.check("a long session fills the panel and no more",
-    #shown == #ns.TrackerUI.lines, #shown)
+    #shown == ns.TrackerUI:LinesFor(420), #shown)
 suite.check("the last line says how much did not fit",
     shown[#shown].left:find("^%+%d+ more lines") ~= nil, shown[#shown].left)
 suite.check("a full panel stops growing at its tallest",
     ns.TrackerUI.frame:GetHeight() <= 420, ns.TrackerUI.frame:GetHeight())
 suite.check("and the newest mob is still at the top",
     Line("Kobold 30") ~= nil)
+
+--------------------------------------------------------------------------------
+-- Resizing
+--------------------------------------------------------------------------------
+
+local TUI = ns.TrackerUI
+
+suite.check("a line with a value stops short of it",
+    TUI.lines[2].leftStop > 8, TUI.lines[2].leftStop)
+
+ns.db.trackerWidth, ns.db.trackerHeight = 400, 200
+TUI:Refresh()
+suite.check("a saved width is the width", TUI.frame:GetWidth() == 400, TUI.frame:GetWidth())
+suite.check("a saved height caps the lines", #TUI.shown == TUI:LinesFor(200), #TUI.shown)
+suite.check("and the panel is no taller than it",
+    TUI.frame:GetHeight() <= 200, TUI.frame:GetHeight())
+
+ns.db.trackerWidth, ns.db.trackerHeight = 5, 99999
+suite.check("too narrow is held at the minimum", TUI:Width() == 180, TUI:Width())
+suite.check("too tall is held at the maximum", TUI:MaxHeight() == 1000, TUI:MaxHeight())
+ns.db.trackerWidth, ns.db.trackerHeight = nil, nil
+
+-- Drag the grip: press, the frame is sized by the drag, release.
+local press = TUI.grip:GetScript("OnMouseDown")
+local release = TUI.grip:GetScript("OnMouseUp")
+suite.check("the panel has a resize grip", type(press) == "function" and type(release) == "function")
+
+-- The client left the panel hanging from its bottom after an earlier drag.
+TUI.frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 8, 300)
+TUI.frame._left, TUI.frame._top = 8, 900
+local heightBefore = TUI.frame:GetHeight()
+press(TUI.grip)
+suite.check("pressing the grip leaves the corner under the cursor",
+    TUI.frame:GetHeight() == heightBefore, TUI.frame:GetHeight())
+suite.check("pressing the grip starts sizing", TUI.sizing == true)
+local pinned = TUI.frame._point
+suite.check("pressing the grip pins the panel by its top",
+    pinned[1] == "TOPLEFT" and pinned[3] == "BOTTOMLEFT" and pinned[4] == 8 and pinned[5] == 900,
+    table.concat(pinned, ",", 3))
+TUI.frame:SetWidth(320)
+TUI.frame:SetHeight(260)
+TUI.frame:GetScript("OnSizeChanged")(TUI.frame)
+suite.check("mid-drag the lines follow the drag", #TUI.shown == TUI:LinesFor(260), #TUI.shown)
+release(TUI.grip)
+
+suite.check("letting go saves the width", ns.db.trackerWidth == 320, ns.db.trackerWidth)
+suite.check("and the height", ns.db.trackerHeight == 260, ns.db.trackerHeight)
+suite.check("and stops sizing", TUI.sizing == false)
+suite.check("the panel keeps the new width", TUI.frame:GetWidth() == 320, TUI.frame:GetWidth())
+suite.check("letting go keeps the top where it was",
+    TUI.frame._point[1] == "TOPLEFT" and TUI.frame._point[5] == 900, TUI.frame._point[1])
+suite.check("and saves it by the top",
+    ns.db.trackerPoint == "TOPLEFT" and ns.db.trackerRelativePoint == "BOTTOMLEFT"
+        and ns.db.trackerY == 900, ns.db.trackerPoint)
+
+-- Moving the panel: the client re-anchors it to the centre on the way.
+TUI.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+TUI.frame._left, TUI.frame._top = 100, 700
+TUI.frame:GetScript("OnDragStop")(TUI.frame)
+suite.check("a moved panel is saved by its top",
+    ns.db.trackerPoint == "TOPLEFT" and ns.db.trackerX == 100 and ns.db.trackerY == 700,
+    ns.db.trackerPoint)
+
+ns.SettingsUI:ResetPositions()
+suite.check("putting windows back resets the size too",
+    ns.db.trackerWidth == nil and TUI:Width() == 236, ns.db.trackerWidth)
 
 ns.HandleSlash("tracker off")
 suite.check("/farm tracker off hides it", not ns.TrackerUI.frame:IsShown())
@@ -373,11 +444,23 @@ suite.check("an old right-side panel moves to the left",
     point[1] == "TOPLEFT" and point[4] == 8, point[1])
 
 -- Dragged somewhere after that, it stays there.
-ns.db.trackerPoint, ns.db.trackerRelativePoint = "LEFT", "LEFT"
-ns.db.trackerX, ns.db.trackerY = 40, 0
+ns.db.trackerPoint, ns.db.trackerRelativePoint = "TOPLEFT", "BOTTOMLEFT"
+ns.db.trackerX, ns.db.trackerY = 40, 600
 ns.TrackerUI:RestorePosition()
 point = ns.TrackerUI.frame._point
-suite.check("a panel moved after that stays moved", point[1] == "LEFT" and point[4] == 40,
+suite.check("a panel moved after that stays moved",
+    point[1] == "TOPLEFT" and point[3] == "BOTTOMLEFT" and point[4] == 40 and point[5] == 600,
     point[1])
+
+-- One saved by an earlier version from its centre is re-pinned by its top.
+ns.db.trackerPoint, ns.db.trackerRelativePoint = "LEFT", "LEFT"
+ns.db.trackerX, ns.db.trackerY = 40, 0
+ns.TrackerUI.frame._left, ns.TrackerUI.frame._top = 40, 650
+ns.TrackerUI:RestorePosition()
+point = ns.TrackerUI.frame._point
+suite.check("a panel saved from its centre is pinned by its top where it sits",
+    point[1] == "TOPLEFT" and point[4] == 40 and point[5] == 650, point[1])
+suite.check("and saved that way", ns.db.trackerPoint == "TOPLEFT" and ns.db.trackerY == 650,
+    ns.db.trackerPoint)
 
 suite.done()
