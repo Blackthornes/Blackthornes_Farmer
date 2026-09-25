@@ -182,7 +182,8 @@ opens it too.
 in the panel gets a "Worth per kill" line, and hovering a mob in the search
 window shows the same. It is the coin a kill drops plus, for each item, how
 many dropped per kill times its price. The price is Tradeskills' auction
-market value, or what a vendor pays if that is more. Farmer only reads those
+market value, or what a vendor pays if that is more. Grey items only ever use
+the vendor price. Farmer only reads those
 prices and never changes them. Once a mob has 20 kills in your tally, the
 value comes from your own kills. Before that, it is an estimate from the
 database's drop rates, which leaves out coin, and it says "(est.)". Without

@@ -14,16 +14,23 @@ local Value = ns.Value
 local Tracker = ns.Tracker
 
 -- Item info: the 11th return is what a vendor pays.
-local VENDOR = { [5637] = 10, [2934] = 5 }
+local VENDOR = { [5637] = 10, [2934] = 5, [3300] = 20 }
+
+-- Quality is the 3rd return; 0 is grey. Everything else is white.
+local QUALITY = { [3300] = 0, [3301] = 0 }
+
+-- Item info the client has not cached yet answers nothing at all.
+local UNCACHED = {}
 
 _G.C_Item = {
     GetItemInfo = function(id)
-        return "item", nil, 1, 1, 1, "", "", 1, "", "", VENDOR[id] or 0
+        if UNCACHED[id] then return nil end
+        return "item", nil, QUALITY[id] or 1, 1, 1, "", "", 1, "", "", VENDOR[id] or 0
     end,
 }
 
 -- Tradeskills, as far as Farmer ever touches it.
-local AUCTION = { [5637] = 50, [2934] = 3 }
+local AUCTION = { [5637] = 50, [2934] = 3, [3300] = 500, [3301] = 500, [3302] = 500 }
 
 local function InstallTradeskills()
     _G.BlackthornesTS = {
@@ -181,6 +188,35 @@ suite.check("marked as the database's", details and details.basis == "database")
 suite.check("and the note says so", Value:PriceNote(details):find("database rates", 1, true) ~= nil)
 
 suite.check("a mob with no rates has no value", Value:ForMob("Nobody At All") == nil)
+
+--------------------------------------------------------------------------------
+-- Grey items: vendor price only (Trent, 2026-09-25)
+--------------------------------------------------------------------------------
+
+-- Rabbit Foot, say: a grey the auction house somehow shows at 5s.
+local unit, from = Value:UnitPrice(3300)
+suite.check("a grey item never takes the auction price", unit == 20 and from == "vendor", unit)
+
+unit = Value:UnitPrice(3301)
+suite.check("a grey item a vendor will not buy has no price", unit == nil, unit)
+
+-- Not cached yet, but its loot link was grey.
+UNCACHED[3302] = true
+Tracker:Looks()["Grey Thing"] = { id = 3302, color = Tracker.QUALITY[0] }
+unit = Value:UnitPrice(3302)
+suite.check("an uncached item with a grey link is not priced at auction", unit == nil, unit)
+
+Tracker:Looks()["Grey Thing"].color = Tracker.QUALITY[1]
+unit = Value:UnitPrice(3302)
+suite.check("an uncached white item still takes the auction price", unit == 500, unit)
+UNCACHED[3302] = nil
+
+-- A quality this client will not let us read costs nothing but the check.
+local realInfo = C_Item.GetItemInfo
+C_Item.GetItemInfo = function() return "item", nil, env.Secret("quality") end
+local ok2, err2 = pcall(Value.UnitPrice, Value, 5637)
+suite.check("a secret quality does not raise", ok2, err2)
+C_Item.GetItemInfo = realInfo
 
 --------------------------------------------------------------------------------
 -- A tally from before amounts were kept
