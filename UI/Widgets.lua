@@ -115,6 +115,10 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept)
         box:SetFocus()
     end
 
+    function holder:ClearFocus()
+        box:ClearFocus()
+    end
+
     UpdateHint()
     return holder
 end
@@ -251,6 +255,8 @@ end
 --   createRow  function(row)            -- build the row's children once
 --   updateRow  function(row, data, i)   -- fill a row with data
 --   onClick    function(data, button)
+--   onEnter    function(row, data)      -- the mouse came onto a row
+--   onLeave    function(row)
 --   onRefresh  function(list, shown, visible)
 function Widgets.CreateRowList(parent, opts)
     opts = opts or {}
@@ -304,14 +310,18 @@ function Widgets.CreateRowList(parent, opts)
             opts.createRow(row)
         end
 
+        -- Callers hook hovering through opts rather than HookScript on the
+        -- row: SetScript here would replace a hook set in createRow.
         row:SetScript("OnEnter", function(self)
             if self.data and self.data.type ~= "spacer" then
                 self.highlight:SetAlpha(0.6)
             end
+            if self.data and opts.onEnter then opts.onEnter(self, self.data) end
         end)
 
         row:SetScript("OnLeave", function(self)
             self.highlight:SetAlpha(0)
+            if opts.onLeave then opts.onLeave(self) end
         end)
 
         row:SetScript("OnClick", function(self, button)

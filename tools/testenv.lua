@@ -291,6 +291,7 @@ local FILES = {
     "Logic/Tracker.lua",
     "Logic/Fishing.lua",
     "Logic/Value.lua",
+    "Logic/Rankings.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
@@ -306,6 +307,7 @@ local UI_FILES = {
     "UI/Export.lua",
     "UI/Tracker.lua",
     "UI/LootTable.lua",
+    "UI/Rankings.lua",
     "UI/Settings.lua",
 }
 

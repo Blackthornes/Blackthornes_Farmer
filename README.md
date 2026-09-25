@@ -87,6 +87,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills or a fishing spot 20 casts, and its rates unlock (on by default) |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
+| `/farm rankings` | open the Rankings tab: mobs by what a kill is worth (`rank` works too) |
 | `/farm report` | report every kill's tally in chat, on or off (off to start) |
 | `/farm chat <text>` | print the results to chat instead |
 | `/farm data` | where the loaded data came from |
@@ -186,6 +187,16 @@ prices and never changes them. Once a mob has 20 kills in your tally, the
 value comes from your own kills. Before that, it is an estimate from the
 database's drop rates, which leaves out coin, and it says "(est.)". Without
 Tradeskills, vendor prices are used. `/farm value <mob>` breaks it down.
+
+**Rankings.** The main window has two tabs, **Search** and **Rankings**.
+Rankings lists every mob it can value, best per kill first, on two separate
+boards: **Your kills** (20 kills or more, measured from your own loot, coin
+included) and **Estimates** (the database's drop rates, one of each drop and
+no coin, so they run low, shown with a "~"). The two are never ranked against
+each other. Below them, mobs you have started on show how many kills each
+still needs. Hover a mob for what makes up its worth, click it for its loot
+table. `/farm rankings` (or `/farm rank`) opens it, and the window reopens on
+whichever tab you left it on.
 
 The kill that unlocks a mob's drop rates, its 20th, plays a fanfare and
 prints "Blackthornes Farmer: Drop rates unlocked for ..." with its best drop

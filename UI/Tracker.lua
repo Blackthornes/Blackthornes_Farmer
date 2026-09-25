@@ -700,6 +700,7 @@ function TrackerUI:Refresh()
 
     -- An open loot table follows the same tally.
     if ns.LootTableUI then ns.LootTableUI:Refresh() end
+    if ns.RankingsUI then ns.RankingsUI:Refresh() end
 
     if ns.db.trackerHidden then
         self.frame:Hide()
