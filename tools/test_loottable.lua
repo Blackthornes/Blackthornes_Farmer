@@ -64,8 +64,8 @@ suite.check("the mob's band opens its table", band and band.mob == WOLF)
 local under = {}
 for index = select(2, Line(WOLF)) + 1, #TUI.shown do
     local line = TUI.shown[index]
-    if line.style ~= "item" then break end
-    under[#under + 1] = line.left
+    if line.style ~= "item" and line.style ~= "place" then break end
+    if line.style == "item" then under[#under + 1] = line.left end
 end
 suite.check("the panel lists the mob's three most common drops",
     table.concat(under, ",") == "Ruined Leather Scraps,Large Fang,Wolf Paw",
@@ -115,6 +115,10 @@ suite.check("and still does after a drag", LTU.frame._point[1] == "TOPLEFT"
     and LTU.frame._point[4] == 300 and LTU.frame._point[5] == 800, LTU.frame._point[1])
 suite.check("it says rates are still to come",
     LTU.status:GetText():find("15 more kills", 1, true) ~= nil, LTU.status:GetText())
+suite.check("it says where the mob was killed",
+    LTU.where:GetText() == "Killed at: The Sepulcher, Silverpine Forest.", LTU.where:GetText())
+suite.check("the window is wide enough for that line",
+    LTU.frame:GetWidth() >= LTU:WidthFor(nil, "", LTU.where:GetText()), LTU.frame:GetWidth())
 
 row:GetScript("OnMouseUp")(row, "LeftButton")
 suite.check("clicking the same mob again closes it", not LTU:IsShown())
@@ -182,6 +186,8 @@ Tracker:Store()[BOAR] = { kills = 40, items = { ["Boar Ribs"] = 12 },
 suite.check("an old tally has no coin per kill until it records some",
     Tracker:CoinPerKill(BOAR) == nil)
 suite.check("and its drops count one each", Tracker:StackSize(BOAR, "Boar Ribs") == 1)
+suite.check("an old tally says places start from the next kill",
+    LTU:Table(BOAR).where == "Killed at: noted from your next kill.", LTU:Table(BOAR).where)
 
 local RIBS = { name = "Boar Ribs", id = 2677, quantity = 2 }
 local SILVER = { name = "1 Silver 5 Copper", money = true }
@@ -203,6 +209,9 @@ suite.check("the window shows the real coin per kill",
 suite.check("and says how many kills it is from",
     LTU.status:GetText():find("Coin is from your last 2 kills.", 1, true) ~= nil,
     LTU.status:GetText())
+suite.check("and owns up to the kills that have no place",
+    LTU.where:GetText() == "Killed at: The Sepulcher, Silverpine Forest. 40 kills with no place.",
+    LTU.where:GetText())
 LTU:Hide()
 
 -- The worth of a kill uses the same coin.

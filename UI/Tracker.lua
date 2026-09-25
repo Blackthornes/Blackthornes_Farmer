@@ -51,6 +51,7 @@ local MOB_ITEMS = 3
 local LAYOUT = 2
 
 local FALLBACK_ICON = [[Interface\Icons\INV_Misc_QuestionMark]]
+local PLACE_ICON = [[Interface\Icons\INV_Misc_Map_01]]
 
 --- A rate worth staying for should look different from one that is not.
 local function RateColor(chance)
@@ -339,7 +340,7 @@ end
 -- icon and colour to draw), `badge` (small green text beside the value),
 -- `bar` (0-1) and `barColor`, `rightColor`, and `mob` (a mob whose loot table
 -- a click opens).
--- Styles: "heading", "mob", "value", "item", "note", "link".
+-- Styles: "heading", "mob", "place", "value", "item", "note", "link".
 function TrackerUI:Lines()
     local Tracker = ns.Tracker
     local out = {}
@@ -385,6 +386,13 @@ function TrackerUI:Lines()
         if not summary.rated then
             band.bar = summary.kills / Tracker.MIN_KILLS
             band.barColor = "accent"
+        end
+
+        -- Where you kill it most; the loot table lists every place.
+        local top = summary.places[1]
+        if top then
+            Add({ style = "place", left = top.name,
+                right = #summary.places > 1 and ("+%d more"):format(#summary.places - 1) or nil })
         end
 
         -- What a kill is worth, priced by Tradeskills: from your own tally
@@ -462,6 +470,11 @@ function TrackerUI:DrawLine(row, line)
         else
             row.left:SetTextColor(Theme.Unpack("text"))
         end
+    elseif line.style == "place" then
+        row.icon:SetTexture(PLACE_ICON)
+        row.icon:Show()
+        indent = PADDING + 6 + ICON + 4
+        row.left:SetTextColor(Theme.Unpack("muted"))
     else
         row.icon:Hide()
 

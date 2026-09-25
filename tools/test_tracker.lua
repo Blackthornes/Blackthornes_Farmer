@@ -234,16 +234,17 @@ suite.check("the report on the 20th kill has rates",
 suite.check("and names the rarer drop too", said:find("5%", 1, true) ~= nil, said)
 
 local _, wolfAt = Line(WOLF)
+-- Under the band: where it was killed, then its drops.
 suite.check("a rated item carries a bar as long as its rate",
-    UI.shown[wolfAt + 1].bar == 0.25, UI.shown[wolfAt + 1].bar)
+    UI.shown[wolfAt + 2].bar == 0.25, UI.shown[wolfAt + 2].bar)
 suite.check("and the mob's progress bar is gone once rates show",
     UI.shown[wolfAt].bar == nil)
 
 suite.check("the latest mob is listed first",
     wolfAt and wolfAt < select(2, Line(BOAR)), wolfAt)
 suite.check("its items switch to percentages",
-    UI.shown[wolfAt + 1].left == "Wolf Fang" and UI.shown[wolfAt + 1].right == "25%",
-    UI.shown[wolfAt + 1].right)
+    UI.shown[wolfAt + 2].left == "Wolf Fang" and UI.shown[wolfAt + 2].right == "25%",
+    UI.shown[wolfAt + 2].right)
 suite.check("and the countdown goes", Line("0 more kills for drop rates") == nil)
 
 ns.HandleSlash("report off")
@@ -302,6 +303,86 @@ suite.check("a hidden panel stays hidden on the next kill", not UI.frame:IsShown
 
 ns.HandleSlash("tracker")
 suite.check("/farm tracker brings it back", not ns.db.trackerHidden and UI.frame:IsShown())
+
+--------------------------------------------------------------------------------
+-- Where each kill happened
+--------------------------------------------------------------------------------
+
+local BAT = "Vampiric Duskbat"
+env.world.zone, env.world.subZone = "Tirisfal Glades", "Brightwater Lake"
+Loot(BAT, {})
+Loot(BAT, {})
+env.world.subZone = "Agamand Mills"
+Loot(BAT, {})
+env.world.subZone = nil
+Loot(BAT, {})
+
+local places, unplaced = ns.Tracker:Places(BAT)
+suite.check("each kill notes its subzone and zone",
+    places[1].name == "Brightwater Lake, Tirisfal Glades" and places[1].kills == 2,
+    places[1] and places[1].name)
+suite.check("most kills first, then by name",
+    places[2].name == "Agamand Mills, Tirisfal Glades" and places[3].name == "Tirisfal Glades",
+    places[2] and places[2].name)
+suite.check("outside any subzone it is the zone alone", places[3].kills == 1)
+suite.check("every kill has a place", unplaced == 0, unplaced)
+
+-- A skinning window on the same corpse is not a second kill somewhere.
+env.world.subZone = "Brightwater Lake"
+Loot(BAT, {}, "Creature-bat-skin")
+env.world.subZone = "Agamand Mills"
+Loot(BAT, {}, "Creature-bat-skin")
+places = ns.Tracker:Places(BAT)
+suite.check("a corpse opened twice counts in one place",
+    places[1].kills == 3 and places[2].kills == 1, places[1].kills)
+
+-- A zone the client will not name: the kill counts, with no place.
+local realZone = env.world.zone
+env.world.zone = env.Secret("string")
+Loot(BAT, {})
+env.world.zone = realZone
+places, unplaced = ns.Tracker:Places(BAT)
+suite.check("an unreadable zone still counts the kill",
+    ns.Tracker:Summary(BAT).kills == 6, ns.Tracker:Summary(BAT).kills)
+suite.check("but gives it no place", unplaced == 1, unplaced)
+
+ns.TrackerUI:Refresh()
+local _, batAt = Line(BAT)
+local placeLine = batAt and ns.TrackerUI.shown[batAt + 1]
+suite.check("the panel shows the top place under the mob",
+    placeLine and placeLine.style == "place"
+        and placeLine.left == "Brightwater Lake, Tirisfal Glades",
+    placeLine and placeLine.left)
+suite.check("and how many more places there are",
+    placeLine and placeLine.right == "+2 more", placeLine and placeLine.right)
+
+suite.check("the places read as one line",
+    ns.Tracker.PlacesText(places, 2)
+        == "Brightwater Lake, Tirisfal Glades (3); Agamand Mills, Tirisfal Glades (1); +1 more",
+    ns.Tracker.PlacesText(places, 2))
+
+local mark = #env.chat
+ns.HandleSlash("kills " .. BAT)
+local said = ChatSince(mark)
+suite.check("/farm kills says where", said:find("Brightwater Lake, Tirisfal Glades (3)", 1, true) ~= nil, said)
+suite.check("and owns up to kills with no place",
+    said:find("1 kill with no place", 1, true) ~= nil, said)
+
+-- A tally from before places were kept: its kills are counted as unplaced,
+-- not shared out among the places that come after.
+ns.db.tracker.mobs["Old Timer"] = { kills = 9, items = {} }
+places, unplaced = ns.Tracker:Places("Old Timer")
+suite.check("an old tally has no places", #places == 0 and unplaced == 9, unplaced)
+env.world.subZone = "The Bulwark"
+Loot("Old Timer", {})
+places, unplaced = ns.Tracker:Places("Old Timer")
+suite.check("and starts noting them from the next kill",
+    #places == 1 and places[1].kills == 1 and unplaced == 9, unplaced)
+env.world.zone, env.world.subZone = "Silverpine Forest", "The Sepulcher"
+
+suite.check("a subzone named like its zone is the zone once",
+    ns.Tracker.PlaceName("Undercity", "Undercity") == "Undercity")
+suite.check("no zone, no place", ns.Tracker.PlaceName(nil, "Somewhere") == nil)
 
 --------------------------------------------------------------------------------
 -- Across a reload
