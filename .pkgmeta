@@ -19,3 +19,10 @@ ignore:
   - Import Harvest.bat
 
 license-output: LICENSE
+
+# Ship CHANGELOG.md as written. Without this the packager writes its own from
+# the full commit history, which is the private repository's development log
+# and not something a player needs to read.
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
