@@ -34,7 +34,7 @@ local COLUMN_TWO_X = PADDING * 2 + COLUMN_WIDTH
 local CONTROL_X = 170
 
 local WIDTH = COLUMN_WIDTH * 2 + PADDING * 3
-local HEIGHT = 450
+local HEIGHT = 500
 
 local ROW_HEIGHT = 50
 local ROW_GAP = -6
@@ -352,7 +352,16 @@ function SettingsUI:BuildTrackingColumn()
     end, false)
     controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local recording = CreateSection(frame, "LOOT RECORDING", { anchor = reportRow })
+    local announceRow = CreateRow(frame, reportRow, "Share milestones",
+        "At a mob's 20th kill, an /emote players near you can see. Your own chat "
+        .. "always gets the line.")
+
+    controls.announce = Widgets.CreateCheckbox(announceRow, "Emote it", function(checked)
+        ns.db.trackerAnnounce = checked
+    end, true)
+    controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local recording = CreateSection(frame, "LOOT RECORDING", { anchor = announceRow })
 
     local recordRow = CreateRow(frame, recording, "Record what drops",
         "Counts what every corpse held, so drop rates are measured on Forever. "
@@ -402,6 +411,7 @@ function SettingsUI:Refresh()
 
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.report:SetChecked(db.trackerReport == true)
+    controls.announce:SetChecked(db.trackerAnnounce ~= false)
 
     local usable = ns.Harvest:Capabilities().usable
 

@@ -19,6 +19,12 @@ _G.PlaySound = function(sound, channel)
     return not refuse[sound]
 end
 
+-- What the addon says in public, and on which chat type.
+local sent = {}
+_G.SendChatMessage = function(text, chatType)
+    sent[#sent + 1] = { text = text, chatType = chatType }
+end
+
 local serial = 0
 local function Loot(mob, items, guid)
     serial = serial + 1
@@ -56,6 +62,14 @@ suite.check("with no other addon prefix in front",
     said:find("Farmer|r |c", 1, true) == nil, said)
 suite.check("a sound plays", #played == 1 and played[1].sound == 12891, #played)
 
+-- Trent: "others should see it to promote the addon".
+suite.check("players nearby see one emote", #sent == 1 and sent[1].chatType == "EMOTE",
+    #sent)
+suite.check("naming the mob and the addon",
+    sent[1] and sent[1].text == "unlocked drop rates for Mangy Wolf after 20 kills! "
+        .. "(Blackthornes Farmer)", sent[1] and sent[1].text)
+suite.check("in plain text, with no colour codes", sent[1] and not sent[1].text:find("|", 1, true))
+
 -- A second window on the 20th corpse is not another kill.
 mark = #env.chat
 Loot(WOLF, {}, "C-twenty")
@@ -65,6 +79,39 @@ suite.check("skinning the 20th corpse does not celebrate again",
 Loot(WOLF, {})
 suite.check("nor does the 21st kill", not ChatSince(mark):find("unlocked", 1, true)
     and #played == 1)
+suite.check("and neither is said in public again", #sent == 1, #sent)
+
+-- Kept to yourself: the sound and your own line, no emote.
+ns.HandleSlash("announce off")
+mark = #env.chat
+for _ = 1, 20 do Loot("Defias Thug", {}) end
+suite.check("with announce off, your own chat still gets the line",
+    ChatSince(mark):find("Drop rates unlocked for", 1, true) ~= nil)
+suite.check("but nothing is said in public", #sent == 1, #sent)
+ns.HandleSlash("announce on")
+
+-- The newest clients keep SendChatMessage under C_ChatInfo.
+local modern = {}
+_G.C_ChatInfo = { SendChatMessage = function(text, chatType)
+    modern[#modern + 1] = { text = text, chatType = chatType }
+end }
+for _ = 1, 20 do Loot("Riverpaw Gnoll", {}) end
+suite.check("C_ChatInfo.SendChatMessage is used where it exists",
+    #modern == 1 and modern[1].chatType == "EMOTE" and #sent == 1, #modern)
+_G.C_ChatInfo = nil
+
+-- A mob name that would break a chat line is cleaned first.
+suite.check("a stray | is taken out", Tracker:Announce("a|b") and sent[#sent].text == "ab",
+    sent[#sent].text)
+
+-- The client refusing the emote costs the emote, not the kill.
+_G.SendChatMessage = function() error("blocked") end
+local ok_, err_ = pcall(function() for _ = 1, 20 do Loot("Murloc Forager", {}) end end)
+suite.check("a refused emote does not break the kill", ok_, err_)
+suite.check("which still counts", Tracker:Store()["Murloc Forager"].kills == 20)
+_G.SendChatMessage = function(text, chatType)
+    sent[#sent + 1] = { text = text, chatType = chatType }
+end
 
 -- A client that will not play the first sound gets the plainer one.
 refuse[12891] = true
@@ -86,13 +133,15 @@ suite.check("which still counts", Tracker:Store()["Young Wolf"].kills == 20)
 
 -- Turned off, it is silent.
 _G.PlaySound = function(sound) played[#played + 1] = { sound = sound } end
-local before = #played
+local before, sentBefore = #played, #sent
 ns.HandleSlash("celebrate off")
 suite.check("/farm celebrate off turns it off", ns.db.trackerCelebrate == false)
 mark = #env.chat
 for _ = 1, 20 do Loot("Kobold Vermin", {}) end
 suite.check("and then nothing plays or prints",
     #played == before and not ChatSince(mark):find("unlocked", 1, true))
+
+suite.check("or is said in public", #sent == sentBefore)
 
 ns.HandleSlash("celebrate on")
 suite.check("/farm celebrate on turns it back on", ns.db.trackerCelebrate == true)
