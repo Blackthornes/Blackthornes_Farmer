@@ -16,6 +16,9 @@ ignore:
   - docs
   - tools
   - deploy.ps1
+  # Notes for Claude about working on the addon, shared with the other
+  # addon's project. Not for players.
+  - CLAUDE.md
   - Import Harvest.bat
   # The README is for working on the addon: it names Trent's own folders.
   # Players read the CurseForge description instead.
