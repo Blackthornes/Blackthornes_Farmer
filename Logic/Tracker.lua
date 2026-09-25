@@ -68,12 +68,31 @@ function Tracker:GetMob(name)
     mob.kills = tonumber(mob.kills) or 0
     if type(mob.items) ~= "table" then mob.items = {} end
 
-    -- How many of each item came off it in all, and how much coin: what a
-    -- kill is worth needs amounts, not just how often something drops.
-    -- Tallies from before these were kept have neither, and are valued as
-    -- one of each item per corpse that held it, and no coin.
+    -- Coin and amounts, with how many kills and corpses they were counted
+    -- over. A kill's worth needs amounts, not just how often something drops,
+    -- and an average is only right over the kills that recorded it.
+    --
+    -- Coin and amounts were first kept without that count, so they were
+    -- divided by every kill, including all the ones from before: coin per
+    -- kill came out a fraction of the real thing. A tally from then has no
+    -- `coinKills`; its coin and amounts are set aside under old* rather than
+    -- deleted, and counting starts clean from this kill.
+    if mob.coinKills == nil then
+        if (tonumber(mob.copper) or 0) > 0 then
+            mob.oldCopper = (tonumber(mob.oldCopper) or 0) + tonumber(mob.copper)
+        end
+        if type(mob.qty) == "table" and next(mob.qty) then mob.oldQty = mob.qty end
+
+        mob.copper = 0
+        mob.qty = {}
+        mob.stacks = {}
+        mob.coinKills = 0
+    end
+
     if type(mob.qty) ~= "table" then mob.qty = {} end
+    if type(mob.stacks) ~= "table" then mob.stacks = {} end
     mob.copper = tonumber(mob.copper) or 0
+    mob.coinKills = tonumber(mob.coinKills) or 0
 
     return mob
 end
@@ -96,8 +115,10 @@ function Tracker:Record(mobName, guid, items, quantities, copper)
         self.session[mobName] = (self.session[mobName] or 0) + 1
 
         -- Coin is taken on the first opening; a second window on the same
-        -- corpse is skinning or leftovers, never more coin.
+        -- corpse is skinning or leftovers, never more coin. A kill with none
+        -- still counts toward the average: that is what "per kill" means.
         mob.copper = mob.copper + (tonumber(copper) or 0)
+        mob.coinKills = mob.coinKills + 1
     end
 
     -- An item counts once per corpse, however many slots or visits it took.
@@ -111,6 +132,7 @@ function Tracker:Record(mobName, guid, items, quantities, copper)
             local quantity = quantities and quantities[name] or 1
             self.sessionLoot[name] = (self.sessionLoot[name] or 0) + quantity
             mob.qty[name] = (tonumber(mob.qty[name]) or 0) + quantity
+            mob.stacks[name] = (tonumber(mob.stacks[name]) or 0) + 1
         end
     end
 
@@ -161,23 +183,47 @@ function Tracker:Summary(mobName)
     }
 end
 
---- A mob's whole loot table: its summary, with every item's total amount
---- looted and the coin it has dropped. Nil for a mob never killed.
+--- Average coin per kill, over the kills that recorded coin; nil before any.
+function Tracker:CoinPerKill(mobName)
+    local mob = mobName and self:Store()[mobName]
+    if type(mob) ~= "table" then return nil end
+
+    local kills = tonumber(mob.coinKills) or 0
+    if kills <= 0 then return nil end
+
+    return (tonumber(mob.copper) or 0) / kills
+end
+
+--- How many of an item one corpse that held it gave, on average. 1 for an
+--- item whose amounts were never recorded.
+function Tracker:StackSize(mobName, itemName)
+    local mob = mobName and self:Store()[mobName]
+    if type(mob) ~= "table" or mob.coinKills == nil then return 1 end
+
+    local qty = type(mob.qty) == "table" and tonumber(mob.qty[itemName])
+    local corpses = type(mob.stacks) == "table" and tonumber(mob.stacks[itemName])
+    if not (qty and corpses and corpses > 0) then return 1 end
+
+    return qty / corpses
+end
+
+--- A mob's whole loot table: its summary, with how many of each item it has
+--- given in all and its coin per kill. Nil for a mob never killed.
 --
--- Each item gains `amount`, the number of that item taken off all its corpses.
--- Tallies from before amounts were kept count one per corpse that held it.
+-- Each item gains `perCorpse`, its average stack, and `amount`: corpses that
+-- held it times that.
+-- `coinPerKill` is nil until a kill has recorded coin.
 function Tracker:LootTable(mobName)
     local summary = self:Summary(mobName)
     if not summary then return nil end
 
-    local mob = self:Store()[mobName]
-    local qty = type(mob.qty) == "table" and mob.qty or {}
-
     for _, item in ipairs(summary.items) do
-        item.amount = tonumber(qty[item.name]) or item.corpses
+        item.perCorpse = self:StackSize(mobName, item.name)
+        item.amount = math.floor(item.corpses * item.perCorpse + 0.5)
     end
 
-    summary.copper = tonumber(mob.copper) or 0
+    summary.coinPerKill = self:CoinPerKill(mobName)
+    summary.coinKills = tonumber(self:Store()[mobName].coinKills) or 0
 
     return summary
 end

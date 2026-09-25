@@ -117,19 +117,21 @@ function Value:FromTally(mobName)
     if kills < Tracker.MIN_KILLS then return nil end
 
     local details = { basis = "tally", kills = kills, priced = {}, unpriced = {} }
-    local coin = (tonumber(mob.copper) or 0) / kills
+
+    -- Coin over the kills that recorded it; items as how often each drops
+    -- (every kill counts) times how many come at once (from the kills that
+    -- recorded amounts). Old tallies with neither get no coin and one each.
+    local coin = Tracker:CoinPerKill(mobName) or 0
     local total = coin
 
     details.coin = coin
 
     for name, corpses in pairs(type(mob.items) == "table" and mob.items or {}) do
-        -- Old tallies have no amounts: one per corpse that held it.
-        local amount = type(mob.qty) == "table" and tonumber(mob.qty[name])
-            or tonumber(corpses) or 0
+        local perCorpse = Tracker:StackSize(mobName, name)
         local unit, from = self:UnitPrice(self:ItemID(name))
 
         if unit then
-            local perKill = amount / kills * unit
+            local perKill = (tonumber(corpses) or 0) / kills * perCorpse * unit
             total = total + perKill
             details.priced[#details.priced + 1] =
                 { name = name, perKill = perKill, unit = unit, from = from }

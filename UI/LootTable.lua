@@ -88,9 +88,10 @@ function LootTableUI:Table(mobName)
         rows = {},
     }
 
-    if loot.rated and loot.kills > 0 then
-        out.coinPerKill = loot.copper / loot.kills
-    end
+    -- Coin is measured, not a rate: it shows from the first kill that
+    -- recorded any.
+    out.coinPerKill = loot.coinPerKill
+    out.coinKills = loot.coinKills
 
     if Value then
         local worth, details = Value:ForMob(mobName)
@@ -112,7 +113,7 @@ function LootTableUI:Table(mobName)
             row.rate = Tracker.FormatChance(item.chance)
 
             local unit = Value and Value:UnitPrice(id)
-            if unit then row.perKill = item.amount / loot.kills * unit end
+            if unit then row.perKill = item.corpses / loot.kills * item.perCorpse * unit end
         end
 
         out.rows[#out.rows + 1] = row
@@ -373,14 +374,24 @@ function LootTableUI:Render()
         self.coin:SetTextColor(Theme.Unpack("dim"))
     end
 
+    local status
     if data.rated then
-        self.status:SetText(("%s, every one it has dropped. Rates are from your own kills.")
-            :format(Util.Plural(#data.rows, "item")))
+        status = ("%s, every one it has dropped. Rates are from your own kills.")
+            :format(Util.Plural(#data.rows, "item"))
     else
-        self.status:SetText(("%s so far. Drop rates and values after %s more %s.")
+        status = ("%s so far. Drop rates and values after %s more %s.")
             :format(Util.Plural(#data.rows, "item"), data.needed,
-                data.needed == 1 and "kill" or "kills"))
+                data.needed == 1 and "kill" or "kills")
     end
+
+    -- Coin started being counted after some of these kills; say how many
+    -- it is from, so a short average is not mistaken for the whole tally.
+    if data.coinKills < data.kills then
+        status = status .. (data.coinKills > 0
+            and (" Coin is from your last %s."):format(Util.Plural(data.coinKills, "kill"))
+            or " Coin is counted from your next kill.")
+    end
+    self.status:SetText(status)
 
     self.footer:SetText(ns.Value and ns.Value:HasAuctionPrices()
         and "Prices: Blackthornes Tradeskills market value, or the vendor price if higher."
