@@ -65,6 +65,8 @@ expect("an email address is refused",
        with_({"Core/Util.lua": "-- mail someone@example.com\n"}), False)
 expect("a WTF account path is refused",
        with_({"Core/Util.lua": "-- WTF/Account/NAME/SavedVariables\n"}), False)
+expect("a placeholder account path is allowed",
+       with_({"Core/Util.lua": "-- WTF\\Account\\<id>\\SavedVariables\n"}), True)
 expect("a GitHub token is refused",
        with_({"Core/Util.lua": "local t = 'ghp_" + "a" * 36 + "'\n"}), False)
 expect("an API key is refused",

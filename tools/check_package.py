@@ -37,7 +37,9 @@ FORBIDDEN_NAMES = {"Harvest_Carryover.lua", "BlackthornesFarmerDB.lua",
 PRIVATE = [
     ("a Windows path", re.compile(r"\b[A-Za-z]:\\[^\s\"']")),
     ("an email address", re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")),
-    ("a WTF account path", re.compile(r"WTF[\\/]+Account", re.I)),
+    # A real account folder, not a placeholder like WTF\Account\<id>.
+    ("a WTF account path",
+     re.compile(r"WTF[\\/]+Account[\\/]+[A-Za-z0-9#]", re.I)),
     # What the client writes: the table opens and its first key follows on
     # the next line. The addon's own `BlackthornesFarmerDB = {}` is not one.
     ("a saved-variables dump",
