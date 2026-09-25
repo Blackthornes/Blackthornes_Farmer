@@ -150,7 +150,22 @@ def published_corpses(path):
     return int(match.group(1)) if match else None
 
 
-def load_addon(lua, records):
+def published_casts(path):
+    """How many fishing casts the data file about to be replaced was built from.
+
+    0 for a file with no fishing line (written before fishing was recorded, or
+    with nothing caught), None for a file that is not there.
+    """
+    if not os.path.isfile(path):
+        return None
+
+    with open(path, encoding="utf-8") as handle:
+        match = re.search(r"^-- (\d+) fishing casts\.", handle.read(), re.M)
+
+    return int(match.group(1)) if match else 0
+
+
+def load_addon(lua, records, fishing=None):
     """Load the addon against the stub client and hand it `records`.
 
     Restore also prunes coin entries that older versions of the addon wrote
@@ -169,6 +184,12 @@ def load_addon(lua, records):
     # so adding it again here would count those corpses twice.
     ns.HarvestCarryover = None
     ns.db.harvest = records
+
+    # Catches are kept apart from the harvest (Logic/Fishing.lua) and written
+    # into the same file.
+    if fishing is not None:
+        ns.db.fishing = fishing
+
     restored = ns.Harvest.Restore(ns.Harvest)
 
     return ns, restored
@@ -186,6 +207,10 @@ def describe(ns):
         item = items[index]
         lines.append("  %-24s %4d from %d corpses" % (
             item.name, item.count, item.corpses))
+
+    casts = int(ns.Fishing.CountCasts(ns.Fishing))
+    if casts:
+        lines.append("and %d fishing casts" % casts)
 
     return "\n".join(lines)
 
@@ -271,7 +296,7 @@ def main():
             "nothing harvested in that file yet.\n"
             "Loot some corpses, log out, and run this again.")
 
-    ns, restored = load_addon(lua, records)
+    ns, restored = load_addon(lua, records, saved["fishing"])
 
     if restored == 0:
         raise SystemExit("the saved harvest holds no usable records.")
@@ -295,6 +320,18 @@ def main():
             "Nothing has been changed. If you cleared the harvest on purpose,\n"
             "run this again with --allow-smaller. If not, send this to Claude."
             % (now, os.path.basename(output), before))
+
+    # The same for fishing casts.
+    casts_before = published_casts(output)
+    casts_now = int(ns.Fishing.CountCasts(ns.Fishing))
+
+    if (casts_before is not None and casts_now < casts_before and not args.allow_smaller
+            and not (args.list or args.stdout)):
+        raise SystemExit(
+            "\nthe saved fishing record has %d casts but %s was built from %d.\n"
+            "Nothing has been changed. If you cleared it on purpose,\n"
+            "run this again with --allow-smaller. If not, send this to Claude."
+            % (casts_now, os.path.basename(output), casts_before))
 
     text = harvest.ExportAll(harvest, lua.table(generated=True))
 

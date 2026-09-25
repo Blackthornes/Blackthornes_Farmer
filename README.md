@@ -82,6 +82,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm minimap` | show or hide the minimap button |
 | `/farm tracker [on\|off]` | show or hide the kills and loot panel (`reset confirm` clears the tallies) |
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
+| `/farm fishing [all]` | what you have caught in this zone, or everywhere (`reset confirm` clears it) |
 | `/farm announce [on\|off]` | whether players near you see an emote at those milestones (on by default) |
 | `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills and its drop rates unlock (on by default) |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
@@ -144,6 +145,20 @@ grip in its bottom-right corner to resize it. The width is what you drag it
 to, or wider when a line needs it, so no text is cut off; the height is the
 tallest it grows, so a short session still gets a
 short panel. Settings > Window positions puts both back.
+
+**Fishing.** Once you have fished this session the panel grows a Fishing
+section, on top whenever fishing is what you did last. Each spot you fished is
+its own band: open water, or the school you cast into, with the zone and
+subzone under it. Catches show as counts until a spot has 20 casts, then as
+catch rates (casts that brought the item up, over casts), with what a cast is
+worth once there are rates and prices. A fish that gets away opens no loot
+window, so it is not counted.
+
+The game does not tell an addon whether the bobber landed in a school, so a
+cast counts as a school's only if you moused over the school just before
+casting, or you are recasting from the same spot, facing the same way, as a
+cast that did. Everything else is open water. So mouse over a school once
+before you fish it, or its catch goes down as open water.
 
 **A mob's full loot table.** The panel has room for each mob's three most
 common drops, and says "Show all N items" when there are more. Click a mob's
@@ -320,13 +335,15 @@ real Lua runtime and calls the same `Harvest:ExportAll` the in-game window
 calls, so the file and the window can never disagree about a drop rate.
 
 Rows come out marked `provenance = "forever"`, because they were measured here.
+Catches come out in the same file as `kind = "fishing"` rows named for the
+school or open water, with the same 20-cast floor for a `chance`.
 A mob with fewer than 20 corpses behind it exports without a `chance` and says
 how thin the sample was instead, since a rate off six kills is a number
 pretending to be evidence.
 
 Four things are deliberately **not** recorded, because a sample attributed to
-the wrong mob is worse than no sample at all: fishing pools and containers,
-player corpses, anything looted while your target is not the corpse, and
+the wrong mob is worse than no sample at all: fishing (kept separately, see
+the panel's Fishing section) and containers, player corpses, anything looted while your target is not the corpse, and
 coordinates the client will not give a straight answer for.
 
 Nothing leaves your machine. It accumulates in SavedVariables and comes back out

@@ -341,8 +341,8 @@ end
 -- `bar` (0-1) and `barColor`, `rightColor`, and `mob` (a mob whose loot table
 -- a click opens).
 -- Styles: "heading", "mob", "place", "value", "item", "note", "link".
+-- A fishing spot is drawn as a "mob" band with no `mob`, so a click opens nothing.
 function TrackerUI:Lines()
-    local Tracker = ns.Tracker
     local out = {}
 
     local function Add(line)
@@ -351,13 +351,32 @@ function TrackerUI:Lines()
         return line
     end
 
-    local mobs = Tracker:SessionMobs()
+    local mobs = ns.Tracker:SessionMobs()
 
-    if #mobs == 0 then
+    -- The Fishing section is there only once you have fished this session
+    -- (Trent, 2026-09-25), and on top when fishing is what you did last.
+    local fished = ns.Fishing and ns.Fishing.sessionCasts > 0
+
+    if #mobs == 0 and not fished then
         Add({ style = "note", left = "Nothing killed yet this session." })
         Add({ style = "note", left = "Loot a corpse and it shows up here." })
         return out
     end
+
+    if fished and (#mobs == 0 or ns.lastLoot == "fishing") then
+        self:FishingLines(Add)
+        if #mobs > 0 then self:KillLines(Add, mobs) end
+    else
+        self:KillLines(Add, mobs)
+        if fished then self:FishingLines(Add) end
+    end
+
+    return out
+end
+
+--- This session's kills: the loot heading, then each mob killed.
+function TrackerUI:KillLines(Add, mobs)
+    local Tracker = ns.Tracker
 
     Add({ style = "heading", left = "THIS SESSION",
         right = Util.Plural(Tracker:SessionKills(), "kill") })
@@ -432,8 +451,60 @@ function TrackerUI:Lines()
             Add({ style = "note", left = "nothing dropped yet" })
         end
     end
+end
 
-    return out
+--- This session's fishing: each spot fished, latest first, laid out like a
+--- mob -- casts on the band, where it is, what a cast is worth, best catches.
+function TrackerUI:FishingLines(Add)
+    local Fishing = ns.Fishing
+    local Tracker = ns.Tracker
+
+    Add({ style = "heading", left = "FISHING",
+        right = Util.Plural(Fishing.sessionCasts, "cast") })
+
+    for _, summary in ipairs(Fishing:SessionSpots()) do
+        local band = Add({ style = "mob", left = (summary.name:gsub("^%l", string.upper)),
+            right = tostring(summary.casts), badge = ("+%d"):format(summary.session) })
+
+        if not summary.rated then
+            band.bar = summary.casts / Fishing.MIN_CASTS
+            band.barColor = "accent"
+        end
+
+        if summary.place then
+            Add({ style = "place", left = summary.place })
+        end
+
+        local worth = Fishing:WorthPerCast(summary.key)
+        if worth then
+            Add({ style = "value", left = "Worth per cast",
+                right = ns.Value.Money(worth), rightColor = "good" })
+        end
+
+        for index = 1, math.min(#summary.items, MOB_ITEMS) do
+            local item = summary.items[index]
+
+            if summary.rated then
+                Add({ style = "item", item = item.name, left = item.name,
+                    right = Tracker.FormatChance(item.chance),
+                    rightColor = RateColor(item.chance),
+                    bar = item.chance / 100, barColor = RateColor(item.chance) })
+            else
+                Add({ style = "item", item = item.name, left = item.name,
+                    right = ("%d of %d"):format(item.casts, summary.casts) })
+            end
+        end
+
+        if #summary.items > MOB_ITEMS then
+            Add({ style = "note", left = ("+%d more  |  /farm fishing"):format(
+                #summary.items - MOB_ITEMS) })
+        end
+
+        if not summary.rated then
+            Add({ style = "note", left = ("%d more %s for catch rates"):format(
+                summary.needed, summary.needed == 1 and "cast" or "casts") })
+        end
+    end
 end
 
 --------------------------------------------------------------------------------
