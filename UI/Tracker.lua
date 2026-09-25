@@ -135,6 +135,8 @@ function TrackerUI:BuildGrip(frame)
 
     grip:SetScript("OnMouseDown", function()
         TrackerUI.sizing = true
+        -- Pin the top first, so the panel grows downward from where it is.
+        TrackerUI:AnchorTop()
         -- Grow from the full height, so dragging down has room to go.
         frame:SetHeight(TrackerUI:MaxHeight())
         frame:StartSizing("BOTTOMRIGHT")
@@ -143,6 +145,7 @@ function TrackerUI:BuildGrip(frame)
     grip:SetScript("OnMouseUp", function()
         frame:StopMovingOrSizing()
         TrackerUI.sizing = false
+        TrackerUI:AnchorTop()
         TrackerUI:SaveSize()
         TrackerUI:SavePosition()
         TrackerUI:Render()
@@ -177,6 +180,7 @@ function TrackerUI:Build()
     frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
+        TrackerUI:AnchorTop()
         TrackerUI:SavePosition()
     end)
 
@@ -516,6 +520,23 @@ end
 -- Position
 --------------------------------------------------------------------------------
 
+-- After a drag the client re-anchors the panel to whichever corner or edge is
+-- nearest, often the bottom or the centre. The panel's height then changes
+-- to fit its contents, and a bottom or centre anchor would move its top.
+-- Anchor it by its top-left corner instead, where it is now on screen.
+-- UIParent's bottom-left is 0,0 in every scale, so the panel's own left and
+-- top are the offsets.
+function TrackerUI:AnchorTop()
+    local frame = self.frame
+    if not frame then return end
+
+    local ok, left, top = pcall(function() return frame:GetLeft(), frame:GetTop() end)
+    if not (ok and type(left) == "number" and type(top) == "number") then return end
+
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+end
+
 function TrackerUI:SavePosition()
     if not (ns.db and self.frame) then return end
 
@@ -546,4 +567,10 @@ function TrackerUI:RestorePosition()
     self.frame:ClearAllPoints()
     self.frame:SetPoint(point, UIParent, db.trackerRelativePoint or point,
         db.trackerX or 8, db.trackerY or -190)
+
+    -- A panel saved by an earlier version may hang from its bottom or centre.
+    if point ~= "TOPLEFT" then
+        self:AnchorTop()
+        self:SavePosition()
+    end
 end
