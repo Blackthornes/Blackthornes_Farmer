@@ -387,7 +387,10 @@ suite.check("the panel has a resize grip", type(press) == "function" and type(re
 -- The client left the panel hanging from its bottom after an earlier drag.
 TUI.frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 8, 300)
 TUI.frame._left, TUI.frame._top = 8, 900
+local heightBefore = TUI.frame:GetHeight()
 press(TUI.grip)
+suite.check("pressing the grip leaves the corner under the cursor",
+    TUI.frame:GetHeight() == heightBefore, TUI.frame:GetHeight())
 suite.check("pressing the grip starts sizing", TUI.sizing == true)
 local pinned = TUI.frame._point
 suite.check("pressing the grip pins the panel by its top",
