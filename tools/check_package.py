@@ -32,7 +32,7 @@ ALLOWED_EXT = {".lua", ".toc", ".xml", ".tga", ".blp", ".md", ""}
 
 # Never shipped, wherever it turns up.
 FORBIDDEN_NAMES = {"Harvest_Carryover.lua", "BlackthornesFarmerDB.lua",
-                   "deploy.ps1", "Import Harvest.bat", ".pkgmeta"}
+                   "deploy.ps1", "CLAUDE.md", "Import Harvest.bat", ".pkgmeta"}
 
 PRIVATE = [
     ("a Windows path", re.compile(r"\b[A-Za-z]:\\[^\s\"']")),
