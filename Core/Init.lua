@@ -244,10 +244,14 @@ local DEFAULTS = {
     minimapHidden = false,
 
     -- Kill tracker: whether its panel is kept out of the way, whether each
-    -- kill is reported in chat (off unless asked for), and where it sits --
+    -- kill is reported in chat (off unless asked for), whether unlocking a
+    -- mob's drop rates gets a fanfare (on) and an /emote others see (on), and
+    -- where it sits --
     -- down the left edge, under the player and party frames, by default.
     trackerHidden = false,
     trackerReport = false,
+    trackerCelebrate = true,
+    trackerAnnounce = true,
     trackerPoint = "TOPLEFT",
     trackerX = 8,
     trackerY = -190,

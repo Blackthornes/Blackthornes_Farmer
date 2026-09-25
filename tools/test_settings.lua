@@ -92,6 +92,12 @@ suite.check("ticking it brings it back", ns.db.minimapHidden == false
 Toggle(controls.report)
 suite.check("chat report writes the /farm report setting", ns.db.trackerReport == true)
 
+suite.check("the share box starts ticked", controls.announce:GetChecked())
+Toggle(controls.announce)
+suite.check("unticking it keeps milestones to yourself", ns.db.trackerAnnounce == false)
+Toggle(controls.announce)
+suite.check("and ticking it shares them again", ns.db.trackerAnnounce == true)
+
 Toggle(controls.tracker)
 suite.check("the tally box writes the /farm tracker setting", ns.db.trackerHidden == true)
 Toggle(controls.tracker)
@@ -153,6 +159,10 @@ suite.check("which resizes the tally", trackerScaled and math.abs(trackerScaled 
 ns.HandleSlash("report off")
 suite.check("typing a command while it is open updates the page",
     controls.report:GetChecked() == false)
+
+ns.HandleSlash("announce off")
+suite.check("/farm announce updates the page", controls.announce:GetChecked() == false)
+ns.HandleSlash("announce on")
 
 ns.HandleSlash("minimap")
 suite.check("the minimap command too", controls.minimap:GetChecked() == false)

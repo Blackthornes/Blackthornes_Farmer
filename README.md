@@ -82,6 +82,8 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm minimap` | show or hide the minimap button |
 | `/farm tracker [on\|off]` | show or hide the kills and loot panel (`reset confirm` clears the tallies) |
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
+| `/farm announce [on\|off]` | whether players near you see an emote at those milestones (on by default) |
+| `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills and its drop rates unlock (on by default) |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
 | `/farm report` | report every kill's tally in chat, on or off (off to start) |
@@ -162,6 +164,14 @@ prices and never changes them. Once a mob has 20 kills in your tally, the
 value comes from your own kills. Before that, it is an estimate from the
 database's drop rates, which leaves out coin, and it says "(est.)". Without
 Tradeskills, vendor prices are used. `/farm value <mob>` breaks it down.
+
+The kill that unlocks a mob's drop rates, its 20th, plays a fanfare and
+prints "Blackthornes Farmer: Drop rates unlocked for ..." with its best drop
+in your own chat window. Players near you also see an emote: "Name unlocked
+drop rates for Mangy Wolf after 20 kills! (Blackthornes Farmer)". That emote,
+once per mob, is the only thing the addon ever says in public.
+`/farm announce off` (or Settings > Share milestones) keeps it to yourself;
+`/farm celebrate off` turns the whole thing off.
 
 A kill is a corpse you open. Skinning a corpse you already looted, or coming
 back for what you left, is still one kill. `/farm report on` also prints a

@@ -172,6 +172,11 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place)
         self:Report(mobName)
     end
 
+    -- The kill that unlocks drop rates gets a fanfare.
+    if newKill and mob.kills == MIN_KILLS then
+        self:Celebrate(mobName)
+    end
+
     return newKill
 end
 
@@ -565,6 +570,65 @@ function Tracker:Report(mobName)
     if line then ns.Print(line) end
 end
 
+--- Say `text` as an /emote: "Blackthornez unlocked drop rates for ...".
+--
+-- EMOTE, because the client lets an addon send it from an event. SAY and YELL
+-- need a key press or click behind them outside an instance, and a loot
+-- window opening is not one. Plain text only: no colours or links, and a
+-- stray "|" would make the chat server drop the line.
+function Tracker:Announce(text)
+    text = tostring(text):gsub("|", "")
+
+    local send = (C_ChatInfo and C_ChatInfo.SendChatMessage) or _G.SendChatMessage
+    if type(send) ~= "function" then return false end
+
+    return (pcall(send, text, "EMOTE"))
+end
+
+-- Sounds to try for the fanfare, best first: the achievement toast, then the
+-- level-up chime, which every client has. Ids, since this client's SOUNDKIT
+-- names are not known.
+local FANFARE = { 12891, 888 }
+
+--- Drop rates just unlocked for `mobName`: a sound, a line in your own chat,
+--- and an /emote the players around you see.
+--
+-- Trent asked for it (2026-09-25), and for others to see it too, to spread
+-- the word about the addon. The emote is the one public thing the addon ever
+-- says: once per mob, at its 20th kill. `/farm announce off` keeps it to
+-- yourself; `/farm celebrate off` turns the whole thing off.
+function Tracker:Celebrate(mobName)
+    if ns.db.trackerCelebrate == false then return end
+
+    local summary = self:Summary(mobName)
+    if not summary then return end
+
+    local line = ("Drop rates unlocked for %s! %d kills in."):format(
+        Util.Colored("accent", summary.mob), summary.kills)
+
+    local best = summary.items[1]
+    if best then
+        line = line .. (" Best drop: %s %s."):format(best.name,
+            Util.Colored("good", Tracker.FormatChance(best.chance)))
+    else
+        line = line .. " Nothing has dropped yet."
+    end
+
+    ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
+
+    if ns.db.trackerAnnounce ~= false then
+        self:Announce(("unlocked drop rates for %s after %d kills! (Blackthornes Farmer)")
+            :format(summary.mob, summary.kills))
+    end
+
+    if type(PlaySound) == "function" then
+        for _, sound in ipairs(FANFARE) do
+            local ok, willPlay = pcall(PlaySound, sound, "Master")
+            if ok and willPlay ~= false then break end
+        end
+    end
+end
+
 --------------------------------------------------------------------------------
 -- Lifecycle
 --------------------------------------------------------------------------------
@@ -628,6 +692,42 @@ ns.RegisterCommand("report", "report each kill's tally in chat (on/off)", functi
         ns.Print("kill reports off.")
     end
 end)
+
+ns.RegisterCommand("celebrate", "sound and cheer when a mob reaches 20 kills (on/off)",
+    function(rest)
+        local argument = Util.Trim(rest):lower()
+
+        if argument == "on" then
+            ns.db.trackerCelebrate = true
+        elseif argument == "off" then
+            ns.db.trackerCelebrate = false
+        else
+            ns.db.trackerCelebrate = ns.db.trackerCelebrate == false
+        end
+
+        ns.Print(ns.db.trackerCelebrate
+            and "a fanfare when a mob's drop rates unlock at 20 kills. /farm celebrate off to stop."
+            or "no fanfare when drop rates unlock. /farm celebrate on to bring it back.")
+    end)
+
+ns.RegisterCommand("announce", "emote your 20-kill milestones to players nearby (on/off)",
+    function(rest)
+        local argument = Util.Trim(rest):lower()
+
+        if argument == "on" then
+            ns.db.trackerAnnounce = true
+        elseif argument == "off" then
+            ns.db.trackerAnnounce = false
+        else
+            ns.db.trackerAnnounce = ns.db.trackerAnnounce == false
+        end
+
+        ns.Print(ns.db.trackerAnnounce
+            and "players near you see an emote when a mob's drop rates unlock. /farm announce off to stop."
+            or "drop-rate milestones stay in your own chat. /farm announce on to share them.")
+
+        if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
+    end)
 
 ns.RegisterCommand("kills", "a mob's kill tally and drop rates", function(rest)
     local mobName = Tracker:ResolveMob(rest or "")
