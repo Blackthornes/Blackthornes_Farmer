@@ -341,7 +341,8 @@ end
 -- `bar` (0-1) and `barColor`, `rightColor`, and `mob` (a mob whose loot table
 -- a click opens).
 -- Styles: "heading", "mob", "place", "value", "item", "note", "link".
--- A fishing spot is drawn as a "mob" band with no `mob`, so a click opens nothing.
+-- A fishing spot or a node is drawn as a "mob" band with no `mob`, so a click
+-- opens nothing.
 function TrackerUI:Lines()
     local out = {}
 
@@ -353,22 +354,50 @@ function TrackerUI:Lines()
 
     local mobs = ns.Tracker:SessionMobs()
 
-    -- The Fishing section is there only once you have fished this session
-    -- (Trent, 2026-09-25), and on top when fishing is what you did last.
+    -- The Fishing and Gathering sections are there only once you have done
+    -- that this session (Trent, 2026-09-25), and whichever you did last goes
+    -- on top.
     local fished = ns.Fishing and ns.Fishing.sessionCasts > 0
+    local gathered = ns.Gathering and ns.Gathering.sessionGathers > 0
 
-    if #mobs == 0 and not fished then
+    if #mobs == 0 and not fished and not gathered then
         Add({ style = "note", left = "Nothing killed yet this session." })
         Add({ style = "note", left = "Loot a corpse and it shows up here." })
         return out
     end
 
-    if fished and (#mobs == 0 or ns.lastLoot == "fishing") then
-        self:FishingLines(Add)
-        if #mobs > 0 then self:KillLines(Add, mobs) end
-    else
-        self:KillLines(Add, mobs)
-        if fished then self:FishingLines(Add) end
+    local sections = {}
+
+    if #mobs > 0 then
+        sections[#sections + 1] = { key = "kill", draw = function(withTotal)
+            self:KillLines(Add, mobs)
+        end }
+    end
+
+    if fished then
+        sections[#sections + 1] = { key = "fishing", draw = function(withTotal)
+            self:FishingLines(Add, withTotal)
+        end }
+    end
+
+    if gathered then
+        sections[#sections + 1] = { key = "gathering", draw = function(withTotal)
+            self:GatheringLines(Add, withTotal)
+        end }
+    end
+
+    for index, section in ipairs(sections) do
+        if section.key == ns.lastLoot and index > 1 then
+            table.remove(sections, index)
+            table.insert(sections, 1, section)
+            break
+        end
+    end
+
+    -- The haul's total goes with the kills when there are any, as it always
+    -- has; otherwise under whichever heading is on top.
+    for index, section in ipairs(sections) do
+        section.draw(#mobs == 0 and index == 1)
     end
 
     return out
@@ -476,15 +505,15 @@ end
 
 --- This session's fishing: each spot fished, latest first, laid out like a
 --- mob -- casts on the band, where it is, what a cast is worth, best catches.
-function TrackerUI:FishingLines(Add)
+function TrackerUI:FishingLines(Add, withTotal)
     local Fishing = ns.Fishing
     local Tracker = ns.Tracker
 
     Add({ style = "heading", left = "FISHING",
         right = Util.Plural(Fishing.sessionCasts, "cast") })
 
-    -- Fishing alone this session: the haul's total goes under this heading.
-    if #Tracker:SessionMobs() == 0 then self:TotalLines(Add) end
+    -- No kills this session and this on top: the haul's total goes here.
+    if withTotal then self:TotalLines(Add) end
 
     for _, summary in ipairs(Fishing:SessionSpots()) do
         local band = Add({ style = "mob", left = (summary.name:gsub("^%l", string.upper)),
@@ -527,6 +556,61 @@ function TrackerUI:FishingLines(Add)
         if not summary.rated then
             Add({ style = "note", left = ("%d more %s for catch rates"):format(
                 summary.needed, summary.needed == 1 and "cast" or "casts") })
+        end
+    end
+end
+
+--- This session's gathering: each herb or vein gathered, latest first, laid
+--- out like a fishing spot -- gathers on the band, where, worth, what it gave.
+function TrackerUI:GatheringLines(Add, withTotal)
+    local Gathering = ns.Gathering
+    local Tracker = ns.Tracker
+
+    Add({ style = "heading", left = "GATHERING",
+        right = Util.Plural(Gathering.sessionGathers, "node") })
+
+    if withTotal then self:TotalLines(Add) end
+
+    for _, summary in ipairs(Gathering:SessionNodes()) do
+        local band = Add({ style = "mob", left = summary.name,
+            right = tostring(summary.gathers), badge = ("+%d"):format(summary.session) })
+
+        if not summary.rated then
+            band.bar = summary.gathers / Gathering.MIN_GATHERS
+            band.barColor = "accent"
+        end
+
+        if summary.place then
+            Add({ style = "place", left = summary.place })
+        end
+
+        local worth = Gathering:WorthPerGather(summary.key)
+        if worth then
+            Add({ style = "value", left = "Worth per node",
+                right = ns.Value.Money(worth), rightColor = "good" })
+        end
+
+        for index = 1, math.min(#summary.items, MOB_ITEMS) do
+            local item = summary.items[index]
+
+            if summary.rated then
+                Add({ style = "item", item = item.name, left = item.name,
+                    right = Tracker.FormatChance(item.chance),
+                    rightColor = RateColor(item.chance),
+                    bar = item.chance / 100, barColor = RateColor(item.chance) })
+            else
+                Add({ style = "item", item = item.name, left = item.name,
+                    right = ("%d of %d"):format(item.gathers, summary.gathers) })
+            end
+        end
+
+        if #summary.items > MOB_ITEMS then
+            Add({ style = "note", left = ("+%d more  |  /farm gathering"):format(
+                #summary.items - MOB_ITEMS) })
+        end
+
+        if not summary.rated then
+            Add({ style = "note", left = ("%d more for gather rates"):format(summary.needed) })
         end
     end
 end

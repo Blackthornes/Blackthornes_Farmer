@@ -522,16 +522,13 @@ function Tracker:OnLoot()
     local caps = ns.Harvest:Capabilities()
     if not caps.usable then return end
 
-    -- Fishing pools and chests are not kills.
-    if caps.fishingLoot then
-        local ok, fishing = pcall(IsFishingLoot)
-        if ok and fishing then return end
-    end
+    -- Fishing pools, herbs and veins are not kills.
+    if ns.Harvest:IsNodeLoot() then return end
 
     -- Same rule as the harvester: if the target is not plainly the corpse,
     -- count nothing rather than count it against the wrong mob.
     local mobName = ns.Harvest:LootSource()
-    if not mobName then return end
+    if not mobName or not ns.Harvest:LootIsTargets() then return end
 
     local items, quantities, copper = self:LootedItems()
     local place = Tracker.PlaceName(ns.Harvest:Where())

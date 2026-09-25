@@ -31,6 +31,7 @@ Logic\Search.lua
 Logic\Harvest.lua
 Logic\Tracker.lua
 Logic\Fishing.lua
+Logic\Gathering.lua
 Logic\Value.lua
 Logic\Rankings.lua
 

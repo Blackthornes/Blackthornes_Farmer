@@ -197,18 +197,22 @@ end
 --------------------------------------------------------------------------------
 
 --- What everything gathered this session is worth, in copper: the coin off
---- your kills, plus every item looted or fished up times its unit price.
+--- your kills, plus every item looted, fished up or gathered times its unit
+--- price.
 -- Returns total, details { coin, priced = count, unpriced = { names } }, or
 -- nil when nothing has been gathered yet. Items with no price are left out of
 -- the total and listed, never guessed.
 function Value:Session()
-    local Tracker, Fishing = ns.Tracker, ns.Fishing
+    local Tracker, Fishing, Gathering = ns.Tracker, ns.Fishing, ns.Gathering
 
     local counts = {}
     for name, count in pairs(Tracker and Tracker.sessionLoot or {}) do
         counts[name] = (counts[name] or 0) + count
     end
     for name, count in pairs(Fishing and Fishing.sessionCatch or {}) do
+        counts[name] = (counts[name] or 0) + count
+    end
+    for name, count in pairs(Gathering and Gathering.sessionItems or {}) do
         counts[name] = (counts[name] or 0) + count
     end
 

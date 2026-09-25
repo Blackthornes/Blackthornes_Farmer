@@ -1,0 +1,392 @@
+-- Gathering: herbs and ore.
+--
+-- What matters: a herb picked or a vein mined is recorded against that node,
+-- never a kill and never a mob's drop -- not even with a looted corpse still
+-- targeted, which is how herbs used to turn up as a mob's loot; a gather is
+-- known only from a Herb Gathering or Mining cast that nothing interrupted, so
+-- a corpse looted after a failed or stale cast is still the mob's; skinning
+-- stays the mob's; loot the client says came from something other than the
+-- target is nobody's drop; no percentage before MIN_GATHERS; gathered items
+-- count toward the session's value; the panel's Gathering section shows only
+-- once you have gathered; the check lists herbs already credited to a mob and
+-- changes nothing; and nothing off the client is touched outside a pcall.
+
+local env = dofile(lfs_cwd .. "/tools/testenv.lua")
+local suite = env.NewSuite("gathering")
+
+local clock = 500
+
+local ns = env.Load({ ui = true })
+local Gathering = ns.Gathering
+local Tracker = ns.Tracker
+local Harvest = ns.Harvest
+
+_G.GetTime = function() return clock end
+
+local tooltipShown = {}
+local tooltip = {}
+
+_G.GameTooltip.HookScript = function(_, script, fn)
+    if script == "OnShow" then tooltipShown[#tooltipShown + 1] = fn end
+end
+_G.GameTooltip.GetUnit = function() return tooltip.unit end
+_G.GameTooltip.GetItem = function() return tooltip.item end
+_G.GameTooltipTextLeft1 = { GetText = function() return tooltip.text end }
+
+-- Prices, so the session's value has something to add up.
+local VENDOR = { [2447] = 10, [2770] = 5, [2835] = 2, [5637] = 50 }
+_G.C_Item = {
+    GetItemInfo = function(id)
+        return "item", nil, 1, 1, 1, "", "", 1, "", "", VENDOR[id] or 0
+    end,
+}
+
+Harvest:OnEnable()
+Tracker:OnEnable()
+ns.Fishing:OnEnable()
+Gathering:OnEnable()
+ns.TrackerUI:OnEnable()
+
+local fire = ns.eventFrame:GetScript("OnEvent")
+
+local HERB_GATHERING, MINING, SKINNING, FROSTBOLT = 2366, 2575, 8613, 116
+
+local PEACEBLOOM = { name = "Peacebloom", id = 2447 }
+local COPPER = { name = "Copper Ore", id = 2770 }
+local ROUGH = { name = "Rough Stone", id = 2835 }
+local FANG = { name = "Large Fang", id = 5637 }
+local LEATHER = { name = "Light Leather", id = 2318 }
+
+local casts = 0
+
+--- You start a cast on `target`. Returns its cast guid.
+local function Send(spell, target)
+    casts = casts + 1
+    local id = "Cast-" .. casts
+    fire(ns.eventFrame, "UNIT_SPELLCAST_SENT", "player", target, id, spell)
+    return id
+end
+
+--- A loot window opens on `items` and, unless told otherwise, closes.
+local function Open(items, opts)
+    opts = opts or {}
+    env.world.loot = items
+    fire(ns.eventFrame, "LOOT_OPENED")
+    if not opts.keepOpen then fire(ns.eventFrame, "LOOT_CLOSED") end
+end
+
+--- Pick a herb or mine a vein: the cast, it going through, the loot.
+local function Gather(spell, node, items)
+    local id = Send(spell, node)
+    clock = clock + 2
+    fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", id, spell)
+    Open(items)
+    clock = clock + 1
+end
+
+local serial = 0
+
+--- Kill and loot a mob. Returns its guid so it can stay targeted.
+local function Kill(name, items, guid)
+    serial = serial + 1
+    guid = guid or ("Creature-0-1-2-3-4-" .. serial)
+    env.world.target = { name = name, level = 8, dead = true, guid = guid }
+    Open(items)
+    return guid
+end
+
+local function Line(left)
+    for index, line in ipairs(ns.TrackerUI.shown or {}) do
+        if line.left == left then return line, index end
+    end
+end
+
+local function MobItem(mob, item)
+    local tally = ns.db.tracker and ns.db.tracker.mobs[mob]
+    return tally and tally.items[item]
+end
+
+local function HarvestItem(mob, item)
+    for _, record in pairs(Harvest.records) do
+        if record.mob == mob and record.items[item] then return record.items[item] end
+    end
+end
+
+env.world.zone = "Elwynn Forest"
+env.world.subZone = "Goldshire"
+
+suite.check("both tooltip hooks are installed", #tooltipShown >= 2, #tooltipShown)
+suite.check("no Gathering section before you gather", Line("GATHERING") == nil)
+
+--------------------------------------------------------------------------------
+-- Picking a herb with nothing targeted
+--------------------------------------------------------------------------------
+
+env.world.target = nil
+Gather(HERB_GATHERING, "Peacebloom", { PEACEBLOOM })
+
+local BLOOM = Gathering.NodeKey("Elwynn Forest", "Goldshire", "Peacebloom")
+local bloom = Gathering:Summary(BLOOM)
+
+suite.check("a herb picked is one gather", bloom and bloom.gathers == 1, bloom and bloom.gathers)
+suite.check("named for the node the cast was on", bloom.name == "Peacebloom", bloom.name)
+suite.check("in the zone and subzone", bloom.place == "Goldshire, Elwynn Forest", bloom.place)
+suite.check("what it gave is counted", bloom.items[1] and bloom.items[1].name == "Peacebloom")
+suite.check("with its item id", ns.db.gathering.nodes[BLOOM].items.Peacebloom.id == 2447)
+suite.check("and where you stood", type(bloom.node.coords) == "table")
+suite.check("a herb is a herb", bloom.node.kind == "herb", bloom.node.kind)
+suite.check("it is not a kill", next(Tracker:Store()) == nil)
+suite.check("nor a harvested corpse", Harvest:CountCorpses() == 0, Harvest:CountCorpses())
+suite.check("the window closing ends the gather", not Gathering:IsGathering())
+
+suite.check("the Gathering section appears once you have gathered", Line("GATHERING") ~= nil)
+suite.check("it counts this session's nodes", Line("GATHERING").right == "1 node",
+    Line("GATHERING").right)
+suite.check("gathering alone gets the session's total",
+    Line("Gathered value") and Line("Gathered value").right == ns.Value.Money(10),
+    Line("Gathered value") and Line("Gathered value").right)
+suite.check("a thin node says how many more",
+    Line("19 more for gather rates") ~= nil)
+
+--------------------------------------------------------------------------------
+-- The bug: a herb picked beside a corpse you just looted
+--------------------------------------------------------------------------------
+
+local wolf = Kill("Mangy Wolf", { FANG })
+suite.check("the wolf is one kill", Tracker:Store()["Mangy Wolf"].kills == 1)
+
+-- The corpse is still targeted when you walk over and pick the herb.
+Gather(HERB_GATHERING, "Peacebloom", { PEACEBLOOM })
+
+suite.check("the herb is not the wolf's drop in the tally",
+    MobItem("Mangy Wolf", "Peacebloom") == nil)
+suite.check("nor in the harvest", HarvestItem("Mangy Wolf", "Peacebloom") == nil)
+suite.check("nor another kill", Tracker:Store()["Mangy Wolf"].kills == 1)
+suite.check("it went to the node", Gathering:Summary(BLOOM).gathers == 2)
+
+-- An untouched corpse targeted is no different.
+env.world.target = { name = "Kobold Vermin", level = 3, dead = true, guid = "Creature-0-9" }
+Gather(HERB_GATHERING, "Peacebloom", { PEACEBLOOM })
+suite.check("picking beside an unlooted corpse is not a kill",
+    Tracker:Store()["Kobold Vermin"] == nil)
+suite.check("nor that corpse's loot", HarvestItem("Kobold Vermin", "Peacebloom") == nil)
+
+--------------------------------------------------------------------------------
+-- Casts that end without a gather
+--------------------------------------------------------------------------------
+
+-- Interrupted, then the wolf's corpse looted: that loot is the wolf's.
+local id = Send(HERB_GATHERING, "Peacebloom")
+fire(ns.eventFrame, "UNIT_SPELLCAST_INTERRUPTED", "player", id, HERB_GATHERING)
+Kill("Mangy Wolf", { FANG })
+suite.check("after an interrupted gather a corpse is still a kill",
+    Tracker:Store()["Mangy Wolf"].kills == 2)
+suite.check("and its loot is the mob's", MobItem("Mangy Wolf", "Large Fang") == 2)
+
+id = Send(MINING, "Copper Vein")
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "player", id, MINING)
+suite.check("a failed cast is no gather", not Gathering:IsGathering())
+
+-- Another player's failure of the same spell is not yours.
+Send(MINING, "Copper Vein")
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "party1", "Cast-other", MINING)
+suite.check("someone else's failed cast leaves yours", Gathering:IsGathering())
+
+-- A gather sent long ago cannot claim a corpse looted now.
+clock = clock + Gathering.GATHER_SECONDS + 1
+suite.check("a stale cast is no gather", not Gathering:IsGathering())
+Kill("Mangy Wolf", { FANG })
+suite.check("so the corpse after it is a kill", Tracker:Store()["Mangy Wolf"].kills == 3)
+
+-- Another spell of yours ends the gather.
+Send(MINING, "Copper Vein")
+Send(FROSTBOLT, "Mangy Wolf")
+suite.check("casting something else ends it", not Gathering:IsGathering())
+
+--------------------------------------------------------------------------------
+-- Skinning stays the mob's (Trent's rule)
+--------------------------------------------------------------------------------
+
+Kill("Mangy Wolf", { FANG }, "Creature-0-skin")
+local skinID = Send(SKINNING, "Mangy Wolf")
+fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", skinID, SKINNING)
+Open({ LEATHER })
+suite.check("skinning is not gathering", Gathering:Summary(
+    Gathering.NodeKey("Elwynn Forest", "Goldshire", "Mangy Wolf")) == nil)
+suite.check("the leather is the wolf's drop", MobItem("Mangy Wolf", "Light Leather") == 1)
+suite.check("and the skinned corpse is still one kill", Tracker:Store()["Mangy Wolf"].kills == 4)
+
+--------------------------------------------------------------------------------
+-- Mining
+--------------------------------------------------------------------------------
+
+env.world.target = nil
+Gather(MINING, "Copper Vein", { COPPER, ROUGH })
+Gather(MINING, "Copper Vein", { COPPER })
+
+local VEIN = Gathering.NodeKey("Elwynn Forest", "Goldshire", "Copper Vein")
+local vein = Gathering:Summary(VEIN)
+suite.check("each mining is one gather", vein.gathers == 2, vein.gathers)
+suite.check("ore is ore", vein.node.kind == "ore")
+suite.check("each item counted over the gathers that held it",
+    vein.items[1].name == "Copper Ore" and vein.items[1].gathers == 2
+    and vein.items[2].name == "Rough Stone" and vein.items[2].gathers == 1)
+suite.check("the panel puts the latest on top",
+    select(2, Line("Copper Vein")) < select(2, Line("Peacebloom")))
+suite.check("and gathering over the kills, since it was last",
+    select(2, Line("GATHERING")) < select(2, Line("THIS SESSION")))
+suite.check("the total stays with the kills",
+    select(2, Line("Gathered value")) > select(2, Line("THIS SESSION")))
+
+-- The session's value: 3 Peacebloom at 10, 2 Copper at 5, 1 Rough Stone at 2,
+-- and four Large Fangs at 50 off the wolves.
+suite.check("gathered items count toward the session's value",
+    ns.Value:Session() == 3 * 10 + 2 * 5 + 2 + 4 * 50, ns.Value:Session())
+
+-- A kill puts the kills back on top.
+Kill("Mangy Wolf", {})
+suite.check("a kill after it puts the kills on top",
+    select(2, Line("THIS SESSION")) < select(2, Line("GATHERING")))
+
+--------------------------------------------------------------------------------
+-- A client that will not name the node
+--------------------------------------------------------------------------------
+
+env.world.target = nil
+
+-- The cast names nothing; the tooltip showed the herb a moment ago.
+tooltip.text = "Silverleaf"
+for _, fn in ipairs(tooltipShown) do fn(_G.GameTooltip) end
+Gather(HERB_GATHERING, nil, { { name = "Silverleaf", id = 765 } })
+suite.check("the node under the mouse names it",
+    Gathering:Summary(Gathering.NodeKey("Elwynn Forest", "Goldshire", "Silverleaf")) ~= nil)
+
+-- A mob's tooltip is never a node.
+tooltip.text, tooltip.unit = "Mangy Wolf", "mouseover"
+for _, fn in ipairs(tooltipShown) do fn(_G.GameTooltip) end
+tooltip.unit = nil
+Gather(HERB_GATHERING, env.Secret("target"), { PEACEBLOOM })
+suite.check("an unreadable target is no error, and a unit is no node name",
+    Gathering:Summary(Gathering.NodeKey("Elwynn Forest", "Goldshire", "Herb")) ~= nil)
+
+-- Secret everything: a cast whose every value refuses to be read.
+local ok, err = pcall(fire, ns.eventFrame, "UNIT_SPELLCAST_SENT",
+    env.Secret("unit"), env.Secret("target"), env.Secret("guid"), env.Secret("spell"))
+suite.check("a secret cast raises nothing", ok, err)
+
+--------------------------------------------------------------------------------
+-- Loot the client says is not the target's
+--------------------------------------------------------------------------------
+
+local sources = {}
+_G.GetLootSourceInfo = function(slot) return sources[slot], 1 end
+
+-- A clam opened from the bags with the wolf's corpse targeted.
+env.world.target = { name = "Mangy Wolf", level = 8, dead = true, guid = "Creature-0-clam" }
+sources = { "Item-0-0-0-77" }
+Open({ { name = "Small Lustrous Pearl", id = 5498 } })
+suite.check("an item's loot is not the targeted corpse's",
+    MobItem("Mangy Wolf", "Small Lustrous Pearl") == nil
+    and HarvestItem("Mangy Wolf", "Small Lustrous Pearl") == nil)
+
+-- A chest.
+sources = { "GameObject-0-0-0-12" }
+Open({ { name = "Brilliant Smallfish", id = 6291 } })
+suite.check("a chest's loot is not the corpse's either",
+    MobItem("Mangy Wolf", "Brilliant Smallfish") == nil)
+
+-- Another corpse than the one targeted.
+sources = { "Creature-0-someone-else" }
+local kills = Tracker:Store()["Mangy Wolf"].kills
+Open({ FANG })
+suite.check("another corpse's loot is not the target's",
+    Tracker:Store()["Mangy Wolf"].kills == kills)
+
+-- The target's own loot still counts.
+sources = { "Creature-0-clam" }
+Open({ FANG })
+suite.check("the target's own loot counts", Tracker:Store()["Mangy Wolf"].kills == kills + 1)
+
+-- Guids spelled some other way, or unreadable: judged as before.
+env.world.target = { name = "Mangy Wolf", level = 8, dead = true, guid = "Creature-0-odd" }
+sources = { "0xF130000000001" }
+Open({ FANG })
+suite.check("a guid it cannot place leaves the loot the target's",
+    Tracker:Store()["Mangy Wolf"].kills == kills + 2)
+
+env.world.target = { name = "Mangy Wolf", level = 8, dead = true, guid = "Creature-0-secret" }
+sources = { env.Secret("source") }
+Open({ FANG })
+suite.check("a secret source leaves it the target's too",
+    Tracker:Store()["Mangy Wolf"].kills == kills + 3)
+
+_G.GetLootSourceInfo = nil
+
+--------------------------------------------------------------------------------
+-- Rates, and the pause
+--------------------------------------------------------------------------------
+
+env.world.target = nil
+for _ = 1, Gathering.MIN_GATHERS - 2 do
+    Gather(MINING, "Copper Vein", { COPPER })
+end
+vein = Gathering:Summary(VEIN)
+suite.check("rated from MIN_GATHERS", vein.rated and vein.gathers == 20, vein.gathers)
+suite.check("with a percentage", vein.items[1].chance == 100, vein.items[1].chance)
+suite.check("the rated node shows it", Line("Copper Ore") and Line("Copper Ore").right == "100%",
+    Line("Copper Ore") and Line("Copper Ore").right)
+
+ns.db.harvestPaused = true
+Gather(MINING, "Copper Vein", { COPPER })
+suite.check("paused records nothing", Gathering:Summary(VEIN).gathers == 20)
+suite.check("and credits nothing to a mob either", Tracker:Store()["Copper Vein"] == nil)
+ns.db.harvestPaused = nil
+
+--------------------------------------------------------------------------------
+-- Herbs already credited to a mob
+--------------------------------------------------------------------------------
+
+-- As the old code left it: a herb in a mob's tally and harvest record.
+local mobs = Tracker:Store()
+mobs["Mangy Wolf"].items["Peacebloom"] = 2
+local record = Harvest:GetRecord("Mangy Wolf", 8, "Elwynn Forest", "Goldshire")
+record.items["Copper Ore"] = { name = "Copper Ore", count = 1, corpses = 1 }
+
+local found = Gathering:Suspects()
+suite.check("the check finds both", #found == 2, #found)
+suite.check("the tally one", found[1].where == "tally" and found[1].item == "Peacebloom"
+    and found[1].times == 2, found[1].item)
+suite.check("the harvest one", found[2].where == "harvest" and found[2].item == "Copper Ore")
+suite.check("a mob drop is never a suspect", not Gathering.IsNodeOnly("Large Fang"))
+suite.check("nor an item mobs drop too", not Gathering.IsNodeOnly("Linen Cloth"))
+
+env.chat = {}
+ns.HandleSlash("gathering check")
+suite.check("it says so", env.chat[1] and env.chat[1]:find("2 entries", 1, true), env.chat[1])
+suite.check("and changes nothing", mobs["Mangy Wolf"].items["Peacebloom"] == 2
+    and record.items["Copper Ore"] ~= nil)
+
+mobs["Mangy Wolf"].items["Peacebloom"] = nil
+record.items["Copper Ore"] = nil
+env.chat = {}
+ns.HandleSlash("gathering check")
+suite.check("clean data says it is clean",
+    env.chat[1] and env.chat[1]:find("clean", 1, true), env.chat[1])
+
+--------------------------------------------------------------------------------
+-- The command, and reset
+--------------------------------------------------------------------------------
+
+env.chat = {}
+ns.HandleSlash("gathering")
+suite.check("/farm gathering lists this zone's nodes",
+    env.chat[1] and env.chat[1]:find("gathered in Elwynn Forest", 1, true), env.chat[1])
+
+local before = Gathering:CountGathers()
+ns.HandleSlash("gathering reset")
+suite.check("reset asks first", Gathering:CountGathers() == before)
+ns.HandleSlash("gathering reset confirm")
+suite.check("a confirmed reset clears it", Gathering:CountGathers() == 0)
+suite.check("and leaves the kills alone", Tracker:Store()["Mangy Wolf"].kills > 0)
+
+suite.done()

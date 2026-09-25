@@ -83,6 +83,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm tracker [on\|off]` | show or hide the kills and loot panel (`reset confirm` clears the tallies) |
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
 | `/farm fishing [all]` | what you have caught in this zone, or everywhere (`reset confirm` clears it) |
+| `/farm gathering [all\|check]` | herbs and ore you have gathered in this zone, or everywhere; `check` lists herbs or ore credited to a mob (`reset confirm` clears it) |
 | `/farm announce [on\|off]` | whether players near you see an emote at those milestones (on by default) |
 | `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills or a fishing spot 20 casts, and its rates unlock (on by default) |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
@@ -142,10 +143,10 @@ between sessions.
 
 **Gathered value.** Right under THIS SESSION, a "Gathered value" line adds up
 what the session has brought in: the coin off your kills plus every item
-looted or fished up, each at the same price "Worth per kill" uses (the
+looted, fished up or gathered, each at the same price "Worth per kill" uses (the
 Tradeskills auction value, or the vendor price when that is higher). Items
 with no price at all are left out, and a note says how many. When you have
-only fished, the line sits under the Fishing heading instead.
+only fished or gathered, the line sits under that heading instead.
 
 `/farm tracker` (or the panel's **X**) turns it off and on, and it stays the
 way you left it. Drag it by the panel if the left edge is busy, and drag the
@@ -167,6 +168,15 @@ cast counts as a school's only if you moused over the school just before
 casting, or you are recasting from the same spot, facing the same way, as a
 cast that did. Everything else is open water. So mouse over a school once
 before you fish it, or its catch goes down as open water.
+
+**Gathering.** Herbs you pick and veins you mine are recorded the same way,
+against the node, zone and subzone, and the panel grows a Gathering section
+once you have gathered this session. Each loot window is one gather, so a vein
+mined three times counts three. Yields show as counts until a node has 20
+gathers, then as rates. A gather is recognised from its Herb Gathering or
+Mining cast, so herbs never count as a mob's drop, even with a looted corpse
+still targeted. Skinned leather stays the mob's drop. `/farm gathering check`
+lists any herb or ore an older version credited to a mob, and changes nothing.
 
 **A mob's full loot table.** The panel has room for each mob's three most
 common drops, and says "Show all N items" when there are more. Click a mob's
@@ -361,9 +371,9 @@ A mob with fewer than 20 corpses behind it exports without a `chance` and says
 how thin the sample was instead, since a rate off six kills is a number
 pretending to be evidence.
 
-Four things are deliberately **not** recorded, because a sample attributed to
+These are deliberately **not** recorded, because a sample attributed to
 the wrong mob is worse than no sample at all: fishing (kept separately, see
-the panel's Fishing section) and containers, player corpses, anything looted while your target is not the corpse, and
+the panel's Fishing section), herbs and ore (see Gathering), containers, player corpses, anything looted while your target is not the corpse, and
 coordinates the client will not give a straight answer for.
 
 Nothing leaves your machine. It accumulates in SavedVariables and comes back out
