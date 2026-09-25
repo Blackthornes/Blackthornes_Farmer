@@ -353,8 +353,8 @@ function SettingsUI:BuildTrackingColumn()
     controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local announceRow = CreateRow(frame, reportRow, "Share milestones",
-        "At a mob's 20th kill, an /emote players near you can see. Your own chat "
-        .. "always gets the line.")
+        "A mob's 20th kill or a fishing spot's 20th cast: an /emote players near "
+        .. "you see. Your chat always gets it.")
 
     controls.announce = Widgets.CreateCheckbox(announceRow, "Emote it", function(checked)
         ns.db.trackerAnnounce = checked

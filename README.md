@@ -84,7 +84,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
 | `/farm fishing [all]` | what you have caught in this zone, or everywhere (`reset confirm` clears it) |
 | `/farm announce [on\|off]` | whether players near you see an emote at those milestones (on by default) |
-| `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills and its drop rates unlock (on by default) |
+| `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills or a fishing spot 20 casts, and its rates unlock (on by default) |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
 | `/farm report` | report every kill's tally in chat, on or off (off to start) |
@@ -183,8 +183,10 @@ Tradeskills, vendor prices are used. `/farm value <mob>` breaks it down.
 The kill that unlocks a mob's drop rates, its 20th, plays a fanfare and
 prints "Blackthornes Farmer: Drop rates unlocked for ..." with its best drop
 in your own chat window. Players near you also see an emote: "Name unlocked
-drop rates for Mangy Wolf after 20 kills! (Blackthornes Farmer)". That emote,
-once per mob, is the only thing the addon ever says in public.
+drop rates for Mangy Wolf after 20 kills! (Blackthornes Farmer)". A fishing
+spot's 20th cast gets the same: "Catch rates unlocked for open water in Crystal
+Lake, Elwynn Forest!" in your chat, and the matching emote. That emote, once
+per mob or fishing spot, is the only thing the addon ever says in public.
 `/farm announce off` (or Settings > Share milestones) keeps it to yourself;
 `/farm celebrate off` turns the whole thing off.
 
