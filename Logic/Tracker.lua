@@ -161,6 +161,27 @@ function Tracker:Summary(mobName)
     }
 end
 
+--- A mob's whole loot table: its summary, with every item's total amount
+--- looted and the coin it has dropped. Nil for a mob never killed.
+--
+-- Each item gains `amount`, the number of that item taken off all its corpses.
+-- Tallies from before amounts were kept count one per corpse that held it.
+function Tracker:LootTable(mobName)
+    local summary = self:Summary(mobName)
+    if not summary then return nil end
+
+    local mob = self:Store()[mobName]
+    local qty = type(mob.qty) == "table" and mob.qty or {}
+
+    for _, item in ipairs(summary.items) do
+        item.amount = tonumber(qty[item.name]) or item.corpses
+    end
+
+    summary.copper = tonumber(mob.copper) or 0
+
+    return summary
+end
+
 --- Every mob killed this session, most recent first, as summaries.
 function Tracker:SessionMobs()
     local mobs = {}

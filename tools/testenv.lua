@@ -126,6 +126,11 @@ function env.InstallClient()
     }
 
     _G.SlashCmdList = {}
+
+    -- Suites share one Lua state; prices one suite sets up must not leak
+    -- into the next.
+    _G.C_Item = nil
+    _G.BlackthornesTS = nil
     _G.geterrorhandler = function() return function(err) error(err, 0) end end
     _G.BlackthornesFarmerDB = nil
 
@@ -294,6 +299,7 @@ local UI_FILES = {
     "UI/Main.lua",
     "UI/Export.lua",
     "UI/Tracker.lua",
+    "UI/LootTable.lua",
     "UI/Settings.lua",
 }
 

@@ -28,5 +28,6 @@ UI\Widgets.lua
 UI\Main.lua
 UI\Export.lua
 UI\Tracker.lua
+UI\LootTable.lua
 UI\Settings.lua
 Data\Data_Harvested.lua
