@@ -22,17 +22,22 @@ local Theme = ns.Theme
 local Widgets = ns.Widgets
 local Util = ns.Util
 
+-- The starting size. Drag the corner grip to change it; the size is saved.
 local WIDTH = 236
 local HEIGHT = 420
+
+-- How small and how large the grip will let it go.
+local MIN_WIDTH, MAX_WIDTH = 180, 600
+local MIN_HEIGHT, MAX_HEIGHT = 120, 1000
 local PADDING = 8
 local HEADER = 28
 local LINE = 18
 local ICON = 14
 local BAR = 40
 
--- HEIGHT is the tallest the panel grows. Lines it can hold; anything past it
--- is summarised on the last line.
-local MAX_LINES = math.floor((HEIGHT - HEADER - PADDING * 2) / LINE)
+-- Right-hand value and the green badge beside it, in pixels.
+local RIGHT_WIDTH = 54
+local BADGE_WIDTH = 28
 
 -- How much of each section to show before moving on to the next.
 local LOOT_LINES = 6
@@ -64,6 +69,94 @@ local function HexColor(hex)
 end
 
 --------------------------------------------------------------------------------
+-- Size
+--
+-- The width is exactly what you drag it to. The height you drag to is the
+-- tallest it grows: a short session still gets a short panel, and a long one
+-- fills down to where you put the bottom edge and says what did not fit.
+--------------------------------------------------------------------------------
+
+local function Clamp(value, low, high)
+    value = tonumber(value)
+    if not value then return nil end
+    return math.max(low, math.min(high, value))
+end
+
+function TrackerUI:Width()
+    return Clamp(ns.db and ns.db.trackerWidth, MIN_WIDTH, MAX_WIDTH) or WIDTH
+end
+
+function TrackerUI:MaxHeight()
+    return Clamp(ns.db and ns.db.trackerHeight, MIN_HEIGHT, MAX_HEIGHT) or HEIGHT
+end
+
+--- How many lines fit under the header at a given height.
+function TrackerUI:LinesFor(height)
+    return math.max(2, math.floor((height - HEADER - PADDING * 2) / LINE))
+end
+
+--- Row `index`, made the first time it is needed.
+function TrackerUI:Line(index)
+    local row = self.lines[index]
+    if not row then
+        row = self:CreateLine(self.frame, index)
+        self.lines[index] = row
+    end
+    return row
+end
+
+function TrackerUI:SaveSize()
+    if not (ns.db and self.frame) then return end
+
+    ns.db.trackerWidth = math.floor(self.frame:GetWidth() + 0.5)
+    ns.db.trackerHeight = math.floor(self.frame:GetHeight() + 0.5)
+end
+
+--- The corner grip. Drag it and the panel follows; let go and it keeps that.
+function TrackerUI:BuildGrip(frame)
+    frame:SetResizable(true)
+
+    -- Retail spells the limits one way and older clients another; try both,
+    -- and let neither's absence stop the panel from building.
+    if not pcall(frame.SetResizeBounds, frame, MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT) then
+        pcall(frame.SetMinResize, frame, MIN_WIDTH, MIN_HEIGHT)
+        pcall(frame.SetMaxResize, frame, MAX_WIDTH, MAX_HEIGHT)
+    end
+
+    local grip = CreateFrame("Button", nil, frame)
+    grip:SetSize(14, 14)
+    grip:SetPoint("BOTTOMRIGHT", -2, 2)
+    grip:SetFrameLevel(frame:GetFrameLevel() + 5)
+    grip:EnableMouse(true)
+
+    pcall(grip.SetNormalTexture, grip, [[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Up]])
+    pcall(grip.SetHighlightTexture, grip, [[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Highlight]])
+    pcall(grip.SetPushedTexture, grip, [[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Down]])
+
+    grip:SetScript("OnMouseDown", function()
+        TrackerUI.sizing = true
+        -- Grow from the full height, so dragging down has room to go.
+        frame:SetHeight(TrackerUI:MaxHeight())
+        frame:StartSizing("BOTTOMRIGHT")
+    end)
+
+    grip:SetScript("OnMouseUp", function()
+        frame:StopMovingOrSizing()
+        TrackerUI.sizing = false
+        TrackerUI:SaveSize()
+        TrackerUI:SavePosition()
+        TrackerUI:Render()
+    end)
+
+    -- Redraw while dragging, so you see what fits as you go.
+    frame:SetScript("OnSizeChanged", function()
+        if TrackerUI.sizing then TrackerUI:Render() end
+    end)
+
+    self.grip = grip
+end
+
+--------------------------------------------------------------------------------
 -- Construction
 --------------------------------------------------------------------------------
 
@@ -71,7 +164,7 @@ function TrackerUI:Build()
     if self.frame then return self.frame end
 
     local frame = CreateFrame("Frame", "BlackthornesFarmerTracker", UIParent)
-    frame:SetSize(WIDTH, HEIGHT)
+    frame:SetSize(self:Width(), self:MaxHeight())
     frame:SetFrameStrata("LOW")
     frame:SetClampedToScreen(true)
     frame:EnableMouse(true)
@@ -115,15 +208,11 @@ function TrackerUI:Build()
     rule:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
     rule:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT")
 
-    local lines = {}
-
-    for index = 1, MAX_LINES do
-        lines[index] = self:CreateLine(frame, index)
-    end
-
     self.frame = frame
     self.title = title
-    self.lines = lines
+    self.lines = {}
+
+    self:BuildGrip(frame)
 
     self:RestorePosition()
     frame:Hide()
@@ -149,17 +238,19 @@ function TrackerUI:CreateLine(parent, index)
     -- Trim the icon's built-in border, as the bags do.
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
+    -- Anchored at both ends rather than given a width, so it stretches with
+    -- the panel; DrawLine sets where it stops.
     row.left = Theme.CreateLabel(row, "small", "text")
     row.left:SetPoint("LEFT", PADDING, 0)
-    row.left:SetWidth(WIDTH - PADDING * 2 - 70)
+    row.left:SetPoint("RIGHT", -PADDING, 0)
 
     row.right = Theme.CreateLabel(row, "small", "muted", "RIGHT")
     row.right:SetPoint("RIGHT", -PADDING, 0)
-    row.right:SetWidth(54)
+    row.right:SetWidth(RIGHT_WIDTH)
 
     row.badge = Theme.CreateLabel(row, "tiny", "good", "RIGHT")
     row.badge:SetPoint("RIGHT", row.right, "LEFT", -2, 0)
-    row.badge:SetWidth(28)
+    row.badge:SetWidth(BADGE_WIDTH)
 
     -- A thin bar under the value: a drop rate, or kills toward MIN_KILLS.
     row.track = row:CreateTexture(nil, "BORDER")
@@ -316,8 +407,18 @@ function TrackerUI:DrawLine(row, line)
         end
     end
 
+    -- The text runs to the value column, or all the way across when a line
+    -- has no value. That second case is what cut "Nothing killed yet this
+    -- session." short: it stopped where a value would have started.
+    local stop = PADDING
+    if line.right ~= "" then stop = stop + RIGHT_WIDTH + 4 end
+    if line.badge then stop = stop + BADGE_WIDTH + 2 end
+
     row.left:ClearAllPoints()
     row.left:SetPoint("LEFT", indent, 0)
+    row.left:SetPoint("RIGHT", -stop, 0)
+    row.leftStop = stop
+    row.leftIndent = indent
     row.left:SetText(line.left)
     row.left:Show()
 
@@ -352,28 +453,36 @@ function TrackerUI:Render()
 
     local lines = self:Lines()
 
+    -- While the grip is held, the panel is whatever size the drag says;
+    -- otherwise it is the saved size.
+    local limit = self.sizing and self.frame:GetHeight() or self:MaxHeight()
+    local maxLines = self:LinesFor(limit)
+
     -- Past the bottom, the last line says how much did not fit rather than
     -- cutting off mid-mob without a word.
-    if #lines > MAX_LINES then
-        local hidden = #lines - MAX_LINES + 1
-        for index = #lines, MAX_LINES, -1 do lines[index] = nil end
-        lines[MAX_LINES] = { style = "note", right = "",
+    if #lines > maxLines then
+        local hidden = #lines - maxLines + 1
+        for index = #lines, maxLines, -1 do lines[index] = nil end
+        lines[maxLines] = { style = "note", right = "",
             left = ("+%d more lines  |  /farm kills <mob>"):format(hidden) }
     end
 
     self.shown = lines
 
-    -- As tall as what it holds, up to HEIGHT: no empty tail under a short
-    -- session.
-    self.frame:SetHeight(HEADER + PADDING * 2 + #lines * LINE)
+    -- As tall as what it holds, up to the saved height: no empty tail under
+    -- a short session. Left alone mid-drag, where the drag is in charge.
+    if not self.sizing then
+        self.frame:SetWidth(self:Width())
+        self.frame:SetHeight(HEADER + PADDING * 2 + #lines * LINE)
+    end
 
-    for index, row in ipairs(self.lines) do
+    for index = 1, math.max(#lines, #self.lines) do
         local line = lines[index]
 
         if line then
-            self:DrawLine(row, line)
-        else
-            row:Hide()
+            self:DrawLine(self:Line(index), line)
+        elseif self.lines[index] then
+            self.lines[index]:Hide()
         end
     end
 end
