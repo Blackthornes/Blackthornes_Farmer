@@ -23,6 +23,15 @@ local HEIGHT = 480
 local PADDING = 14
 local ROW_HEIGHT = 20
 
+-- The Rankings tab never draws the window narrower than this either.
+UI.BASE_WIDTH = WIDTH
+
+-- The window's tabs, left to right.
+local TABS = {
+    { key = "search", label = "SEARCH" },
+    { key = "rankings", label = "RANKINGS" },
+}
+
 -- Column widths, left to right, at their narrowest. The source, where and
 -- drop columns widen to fit what a search turns up, and the window with them:
 -- the game's font runs wider than widths picked by eye, and names were being
@@ -127,6 +136,13 @@ function UI:Build()
     self:BuildHeader()
     self:BuildBody()
 
+    if ns.RankingsUI then
+        self.rankingsView = ns.RankingsUI:Build(frame)
+    end
+
+    self.tab = "search"
+    self.tabs.search:SetSelected(true)
+
     frame:Hide()
     return frame
 end
@@ -142,6 +158,19 @@ function UI:BuildHeader()
     local title = Theme.CreateLabel(header, "title", "accent")
     title:SetPoint("LEFT", PADDING, 0)
     title:SetText("Blackthornes Farmer")
+
+    -- Tabs sit after the title, sized to their labels.
+    self.tabs = {}
+    local anchor, gap = title, 16
+
+    for _, tab in ipairs(TABS) do
+        local chip = Widgets.CreateChip(header, tab.label, function() UI:ShowTab(tab.key) end)
+        chip:SetHeight(20)
+        chip:SetWidth(Theme.TextWidth("tiny", tab.label) + 22)
+        chip:SetPoint("LEFT", anchor, "RIGHT", gap, 0)
+        self.tabs[tab.key] = chip
+        anchor, gap = chip, 4
+    end
 
     local close = Widgets.CreateButton(header, "X", function() UI:Hide() end,
         { width = 22, height = 20 })
@@ -161,7 +190,11 @@ function UI:BuildHeader()
 end
 
 function UI:BuildBody()
-    local frame = self.frame
+    -- Everything below the header belongs to the Search tab, so choosing
+    -- another tab hides it in one go.
+    local frame = CreateFrame("Frame", nil, self.frame)
+    frame:SetAllPoints(self.frame)
+    self.searchView = frame
 
     local search = Widgets.CreateSearchBox(frame,
         "an item, a zone, a mob, or a place",
@@ -197,6 +230,8 @@ function UI:BuildBody()
         createRow = function(row) UI:CreateRow(row) end,
         updateRow = function(row, data) UI:UpdateRow(row, data) end,
         onClick = function(data, button) UI:OnRowClick(data, button) end,
+        onEnter = function(row) UI:ShowValueTooltip(row) end,
+        onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
     })
 
     list:SetPoint("TOPLEFT", 8, -24)
@@ -284,7 +319,10 @@ function UI:FitColumns(rows)
 
     self.columns = Columns(widths)
     self:PlaceHeadings()
-    self.frame:SetWidth(WIDTH + self.columns.extra)
+
+    if self.tab ~= "rankings" then
+        self.frame:SetWidth(WIDTH + self.columns.extra)
+    end
 end
 
 function UI:BuildColumnHeadings()
@@ -320,13 +358,19 @@ end
 function UI:ShowValueTooltip(row)
     local data = row and row.data
     if not (data and data.type == "source" and data.source.name) then return end
+
+    self:ShowMobTooltip(row, data.source.name)
+end
+
+--- What a kill of `mobName` is worth and what makes it up, beside `owner`.
+--- Shows nothing for a mob with no value.
+function UI:ShowMobTooltip(owner, mobName)
     if not (GameTooltip and ns.Value) then return end
 
-    local mobName = data.source.name
     local worth, details = ns.Value:ForMob(mobName)
     if not worth then return end
 
-    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     GameTooltip:AddLine(mobName)
     GameTooltip:AddLine(("Worth about %s a kill"):format(ns.Value.Money(worth)),
         Theme.Unpack("good"))
@@ -345,9 +389,6 @@ function UI:ShowValueTooltip(row)
 end
 
 function UI:CreateRow(row)
-    row:HookScript("OnEnter", function(self) UI:ShowValueTooltip(self) end)
-    row:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-
     -- An item heading: full width, so it reads as a break in the list.
     row.heading = Theme.CreateLabel(row, "small", "accent")
     row.heading:SetPoint("LEFT", 2, 0)
@@ -501,6 +542,9 @@ function UI:Search(query, typed)
     self:Build()
     self:Show()
 
+    -- A search from chat is an answer wanted now, whichever tab was open.
+    if self.tab ~= "search" then self:ShowTab("search") end
+
     query = Util.Trim(query or "")
 
     if not typed then
@@ -624,6 +668,35 @@ function UI:Refresh()
 end
 
 --------------------------------------------------------------------------------
+-- Tabs
+--------------------------------------------------------------------------------
+
+--- Switch the window to a tab: "search" or "rankings". Remembered for the
+--- next time the window opens.
+function UI:ShowTab(key)
+    self:Build()
+    if key ~= "rankings" or not self.rankingsView then key = "search" end
+
+    self.tab = key
+    if ns.db then ns.db.lastTab = key end
+
+    for tabKey, chip in pairs(self.tabs) do
+        chip:SetSelected(tabKey == key)
+    end
+
+    self.searchView:SetShown(key == "search")
+    if self.rankingsView then self.rankingsView:SetShown(key == "rankings") end
+
+    if key == "rankings" then
+        -- A hidden search box keeping the keyboard would eat your keys.
+        self.searchBox:ClearFocus()
+        ns.RankingsUI:Render()
+    else
+        self.frame:SetWidth(WIDTH + (self.columns or COLUMN).extra)
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Position
 --------------------------------------------------------------------------------
 
@@ -683,6 +756,12 @@ function UI:Toggle()
     end
 
     self:Show()
+
+    if ns.db and ns.db.lastTab == "rankings" then
+        self:ShowTab("rankings")
+        return
+    end
+
     self:Search(ns.db and ns.db.lastSearch or "")
     self.searchBox:SetFocus()
 end

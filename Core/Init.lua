@@ -227,6 +227,8 @@ local DEFAULTS = {
     x = 0,
     y = 40,
     lastSearch = "",
+    -- The main window's tab when it was last closed: "search" or "rankings".
+    lastTab = "search",
     debug = false,
 
     -- Window sizes in percent, set on the settings page.
