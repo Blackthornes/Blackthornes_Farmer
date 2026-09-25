@@ -82,6 +82,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm minimap` | show or hide the minimap button |
 | `/farm tracker [on\|off]` | show or hide the kills and loot panel (`reset confirm` clears the tallies) |
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
+| `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
 | `/farm report` | report every kill's tally in chat, on or off (off to start) |
 | `/farm chat <text>` | print the results to chat instead |
 | `/farm data` | where the loaded data came from |
@@ -136,6 +137,16 @@ between sessions.
 
 `/farm tracker` (or the panel's **X**) turns it off and on, and it stays the
 way you left it. Drag it by the panel if the left edge is busy.
+
+**What a kill is worth.** With Blackthornes Tradeskills loaded too, each mob
+in the panel gets a "Worth per kill" line, and hovering a mob in the search
+window shows the same. It is the coin a kill drops plus, for each item, how
+many dropped per kill times its price. The price is Tradeskills' auction
+market value, or what a vendor pays if that is more. Farmer only reads those
+prices and never changes them. Once a mob has 20 kills in your tally, the
+value comes from your own kills. Before that, it is an estimate from the
+database's drop rates, which leaves out coin, and it says "(est.)". Without
+Tradeskills, vendor prices are used. `/farm value <mob>` breaks it down.
 
 A kill is a corpse you open. Skinning a corpse you already looted, or coming
 back for what you left, is still one kill. `/farm report on` also prints a

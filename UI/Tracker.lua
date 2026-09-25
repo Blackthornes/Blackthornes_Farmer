@@ -155,7 +155,7 @@ function TrackerUI:CreateLine(parent, index)
 
     row.right = Theme.CreateLabel(row, "small", "muted", "RIGHT")
     row.right:SetPoint("RIGHT", -PADDING, 0)
-    row.right:SetWidth(44)
+    row.right:SetWidth(54)
 
     row.badge = Theme.CreateLabel(row, "tiny", "good", "RIGHT")
     row.badge:SetPoint("RIGHT", row.right, "LEFT", -2, 0)
@@ -186,7 +186,7 @@ end
 -- Each is { style, left, right }, plus as it applies: `item` (a name whose
 -- icon and colour to draw), `badge` (small green text beside the value),
 -- `bar` (0-1) and `barColor`, and `rightColor`.
--- Styles: "heading", "mob", "item", "note".
+-- Styles: "heading", "mob", "value", "item", "note".
 function TrackerUI:Lines()
     local Tracker = ns.Tracker
     local out = {}
@@ -232,6 +232,16 @@ function TrackerUI:Lines()
         if not summary.rated then
             band.bar = summary.kills / Tracker.MIN_KILLS
             band.barColor = "accent"
+        end
+
+        -- What a kill is worth, priced by Tradeskills: from your own tally
+        -- once it is rated, else from the database's rates, marked as such.
+        local worth, details
+        if ns.Value then worth, details = ns.Value:ForMob(summary.mob) end
+        if worth then
+            Add({ style = "value",
+                left = details.basis == "tally" and "Worth per kill" or "Worth per kill (est.)",
+                right = ns.Value.Money(worth), rightColor = "good" })
         end
 
         for index = 1, math.min(#summary.items, MOB_ITEMS) do
@@ -296,7 +306,7 @@ function TrackerUI:DrawLine(row, line)
     else
         row.icon:Hide()
 
-        if line.style == "note" then
+        if line.style == "note" or line.style == "value" then
             indent = PADDING + 6
             row.left:SetTextColor(Theme.Unpack("muted"))
         elseif line.style == "heading" then
