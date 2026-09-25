@@ -9,7 +9,7 @@
 
 # Filled in once the project exists on each site. The packager reads these
 # to know where to upload; a line that stays commented is simply skipped.
-# X-Curse-Project-ID: 
+## X-Curse-Project-ID: 1710618
 # X-Wago-ID: 
 # X-WoWI-ID: 
 
