@@ -11,8 +11,9 @@
 --
 -- A unit price is the auction market value, or what a vendor pays if that is
 -- more (nobody sells grey scraps on the auction house for less than the
--- vendor gives). Without Tradeskills only the vendor price is known, and the
--- value says so.
+-- vendor gives). A grey item is only ever its vendor price, whatever the
+-- auction house says. Without Tradeskills only the vendor price is known, and
+-- the value says so.
 --
 -- Where the numbers come from, best first:
 --   1. your own tally, once a mob has MIN_KILLS kills -- measured amounts and
@@ -77,12 +78,44 @@ function Value:AuctionPrice(itemID)
     return nil
 end
 
+--- True for a grey (poor quality) item: from the client's item info, else
+--- from the colour of a loot link we have seen for it.
+function Value:IsPoor(itemID)
+    local getInfo = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
+    if type(getInfo) == "function" then
+        local ok, quality = pcall(function()
+            return select(3, getInfo(itemID))
+        end)
+        quality = ok and ns.Harvest.ReadableNumber(quality) or nil
+        if quality then return quality == 0 end
+    end
+
+    -- Item info not cached yet: a grey loot link says the same thing.
+    local grey = ns.Tracker and ns.Tracker.QUALITY and ns.Tracker.QUALITY[0]
+    if grey and ns.Tracker.Looks then
+        for _, look in pairs(ns.Tracker:Looks()) do
+            if type(look) == "table" and look.id == itemID and look.color == grey then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 --- One unit's worth and where the number came from ("auction" or "vendor").
+-- A grey item is only ever worth what a vendor pays (Trent, 2026-09-25): the
+-- auction house is no price for vendor trash, whatever a scan once saw.
 function Value:UnitPrice(itemID)
     if not itemID then return nil end
 
-    local auction = self:AuctionPrice(itemID)
     local vendor = self:VendorPrice(itemID)
+    if self:IsPoor(itemID) then
+        if vendor then return vendor, "vendor" end
+        return nil
+    end
+
+    local auction = self:AuctionPrice(itemID)
 
     if auction and (not vendor or auction >= vendor) then return auction, "auction" end
     if vendor then return vendor, "vendor" end
