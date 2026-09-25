@@ -146,7 +146,9 @@ short panel. Settings > Window positions puts both back.
 common drops, and says "Show all N items" when there are more. Click a mob's
 name, or that line, and a window opens with everything it has ever dropped
 for you: how many corpses held each item, how many you took in all, and from
-20 kills its drop rate and what it adds to a kill. It updates as you loot.
+20 kills its drop rate and what it adds to a kill. Coin per kill shows from
+the first kill, averaged over the kills that recorded coin. It updates as you
+loot.
 Click the mob again, press Escape or its **X** to close it. `/farm loot <mob>`
 opens it too.
 

@@ -87,7 +87,9 @@ suite.check("how many were taken in all", data.rows[1].total == "x10", data.rows
 suite.check("the rarest is there too", data.rows[5].dropped == "1 of 5", data.rows[5].dropped)
 suite.check("no rate below the threshold", data.rows[1].rate == nil and data.rows[1].chance == nil)
 suite.check("and no value", data.rows[1].perKill == nil)
-suite.check("no coin per kill yet", data.coinPerKill == nil)
+-- Coin is measured, not a rate, so it shows from the first kill.
+suite.check("coin per kill shows before the rate threshold", data.coinPerKill == 10,
+    data.coinPerKill)
 suite.check("it knows how many kills are left", data.needed == 15, data.needed)
 
 suite.check("a mob never killed has no table", LTU:Table("Nobody") == nil)
@@ -165,6 +167,48 @@ suite.check("the window says rates are from your kills",
 
 Tracker:Reset()
 suite.check("clearing the tally closes it", not LTU:IsShown())
+
+--------------------------------------------------------------------------------
+-- A tally from before coin was counted per kill (Trent, 2026-09-25)
+--
+-- Coin was divided by every kill, including the many from before any coin was
+-- recorded, so coin per kill showed a fraction of the real amount.
+--------------------------------------------------------------------------------
+
+local BOAR = "Mottled Boar"
+Tracker:Store()[BOAR] = { kills = 40, items = { ["Boar Ribs"] = 12 },
+    qty = { ["Boar Ribs"] = 3 }, copper = 60 }
+
+suite.check("an old tally has no coin per kill until it records some",
+    Tracker:CoinPerKill(BOAR) == nil)
+suite.check("and its drops count one each", Tracker:StackSize(BOAR, "Boar Ribs") == 1)
+
+local RIBS = { name = "Boar Ribs", id = 2677, quantity = 2 }
+local SILVER = { name = "1 Silver 5 Copper", money = true }
+Loot(BOAR, { SILVER, RIBS })
+Loot(BOAR, { SILVER })
+
+suite.check("coin per kill is over the kills that recorded coin",
+    Tracker:CoinPerKill(BOAR) == 105, Tracker:CoinPerKill(BOAR))
+local boar = Tracker:Store()[BOAR]
+suite.check("the old coin is kept, set aside", boar.oldCopper == 60, boar.oldCopper)
+suite.check("and the old amounts", boar.oldQty and boar.oldQty["Boar Ribs"] == 3)
+suite.check("the kill count is untouched", boar.kills == 42, boar.kills)
+suite.check("stacks are from the kills that recorded them",
+    Tracker:StackSize(BOAR, "Boar Ribs") == 2, Tracker:StackSize(BOAR, "Boar Ribs"))
+
+LTU:Show(BOAR)
+suite.check("the window shows the real coin per kill",
+    LTU.coin:GetText() == ns.Value.Money(105), LTU.coin:GetText())
+suite.check("and says how many kills it is from",
+    LTU.status:GetText():find("Coin is from your last 2 kills.", 1, true) ~= nil,
+    LTU.status:GetText())
+LTU:Hide()
+
+-- The worth of a kill uses the same coin.
+local worth, details = ns.Value:ForMob(BOAR)
+suite.check("the value of a kill uses it too", details and details.coin == 105,
+    details and details.coin)
 
 --------------------------------------------------------------------------------
 -- /farm loot
