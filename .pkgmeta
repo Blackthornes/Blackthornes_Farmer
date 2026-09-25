@@ -17,6 +17,13 @@ ignore:
   - tools
   - deploy.ps1
   - Import Harvest.bat
+  # The README is for working on the addon: it names Trent's own folders.
+  # Players read the CurseForge description instead.
+  - README.md
+  # Trent's own harvest from before saved variables worked. It is merged into
+  # his save once; in a player's install it would pour his kills into theirs.
+  # The TOC line that loads it is fenced with #@do-not-package@ to match.
+  - Data/Harvest_Carryover.lua
 
 license-output: LICENSE
 

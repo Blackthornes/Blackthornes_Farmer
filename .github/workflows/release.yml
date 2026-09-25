@@ -1,9 +1,10 @@
 name: Release
 
-# Publishing is driven by tags. Push a tag like v0.2.0 and this builds the
-# player-facing zip and uploads it to whichever sites have a token configured.
-# A site with no token is skipped silently, so this workflow is safe to merge
-# before any account exists.
+# Publishing is driven by tags. Push a tag like v0.2.0 and this checks the
+# changelog has a section for it, runs the tests, builds the player-facing zip,
+# checks the zip is clear to post, and only then uploads it to whichever sites
+# have a token configured. A site with no token (or no project ID in the TOC)
+# is skipped, so this workflow is safe to merge before any account is linked.
 
 on:
   push:
@@ -20,9 +21,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # The packager builds the changelog from the commits since the last
-          # tag, so it needs the history rather than a shallow clone.
+          # The packager reads the tags to name the version, so it needs the
+          # history rather than a shallow clone.
           fetch-depth: 0
+
+      - name: The changelog says what this version is
+        run: python tools/check_release.py "${{ github.ref_name }}"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -41,8 +45,32 @@ jobs:
       - name: Tests
         run: python tools/runtests.py
 
-      - name: Package and upload
+      - name: Harvest importer tests
+        run: python tools/test_harvest_import.py
+
+      - name: Package tests
+        run: |
+          python tools/test_check_release.py
+          python tools/test_check_package.py
+
+      # Build first with nothing uploaded, so the package can be checked
+      # before anything leaves the repository.
+      - name: Build the package, without uploading
         uses: BigWigsMods/packager@v2
+        with:
+          args: -d -z
+
+      # Trent: "always check that it's clear to post." A failure here stops
+      # the release before any upload, and the log says what it found.
+      - name: Check the package is clear to post
+        run: python tools/check_package.py .release/Blackthornes_Farmer
+
+      # -c -o zip and upload the folder that was just checked, as it is,
+      # rather than building a fresh copy.
+      - name: Upload the checked package
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -c -o
         env:
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
           CF_API_KEY: ${{ secrets.CF_API_KEY }}

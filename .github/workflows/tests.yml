@@ -33,3 +33,9 @@ jobs:
 
       - name: The harvest importer writes what it should
         run: python tools/test_harvest_import.py
+
+      - name: The release check refuses what it should
+        run: python tools/test_check_release.py
+
+      - name: The clear-to-post check catches what it should
+        run: python tools/test_check_package.py

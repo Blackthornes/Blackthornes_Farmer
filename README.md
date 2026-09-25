@@ -413,23 +413,36 @@ game running.
 
 ## Releasing
 
-Releases are cut by pushing a tag. `.github/workflows/release.yml` builds the
-player-facing zip with the
-[BigWigs packager](https://github.com/BigWigsMods/packager) and uploads it
-wherever a token is configured.
+Releases are cut by pushing a tag like `v0.2.0`.
+`.github/workflows/release.yml` then:
 
-```bash
-git tag v0.2.0
-git push origin v0.2.0
-```
+1. refuses the tag unless `CHANGELOG.md` opens with a `## 0.2.0` section
+   (`tools/check_release.py`);
+2. runs the tests;
+3. builds the player-facing zip with the
+   [BigWigs packager](https://github.com/BigWigsMods/packager), uploading
+   nothing;
+4. checks that zip is clear to post (`tools/check_package.py`): only the
+   addon's own files, and nothing that looks private, such as a Windows path,
+   an email address, a saved-variables dump or a token;
+5. only then uploads that same zip to each site with a token, and attaches it
+   to a GitHub release.
 
-The packager rewrites `## Version: @project-version@` in the TOC to the tag, so
-the version is never edited by hand. Running straight from a clone there is no
-packager, and the addon reports its version as `dev`.
+To release from GitHub Desktop: add the new version's section to the top of
+`CHANGELOG.md` and merge it to `main`, pull `main`, then **History**, right-click
+the newest commit, **Create Tag...**, name it `v0.2.0`, and **Push origin**.
 
-`.pkgmeta` decides what reaches a player. `tools/`, `deploy.ps1` and
-`Import Harvest.bat` are excluded: the harvest importer reads saved variables
-off this machine and has no business in a player's AddOns folder.
+The version is never typed by hand. The TOC says
+`## Version: @project-version@` and the packager fills in the tag. Running
+straight from a clone there is no packager, and the addon calls itself a
+"dev build". The middle number moves for new behaviour, the last for fixes
+alone; a tag like `v0.3.0-beta1` is uploaded as a beta.
+
+`.pkgmeta` decides what reaches a player. `tools/`, `deploy.ps1`,
+`Import Harvest.bat` and this README are excluded, and so is
+`Data/Harvest_Carryover.lua`: that is Trent's own harvest from before saved
+variables worked, and in a player's install it would add his kills to theirs.
+Its TOC line is fenced with `#@do-not-package@` to match.
 
 Uploads are opt-in per site. The workflow reads these repository secrets, and
 skips any site whose secret is missing:
@@ -440,6 +453,5 @@ skips any site whose secret is missing:
 | `WAGO_API_TOKEN` | Wago Addons |
 | `WOWI_API_TOKEN` | WoWInterface |
 
-Each site also needs its project ID in the TOC — `X-Curse-Project-ID`,
-`X-Wago-ID`, `X-WoWI-ID` — which exist only once the project has been created
-there. They are present but commented out until then.
+Each site also needs its project ID in the TOC (`X-Curse-Project-ID`,
+`X-Wago-ID`, `X-WoWI-ID`). They are commented out until filled in.

@@ -23,7 +23,9 @@ Data\Data_Cloth.lua
 Data\Data_Leather.lua
 Data\Data_Misc.lua
 Data\Data_MobDrops.lua
+#@do-not-package@
 Data\Harvest_Carryover.lua
+#@end-do-not-package@
 
 Logic\Search.lua
 Logic\Harvest.lua
