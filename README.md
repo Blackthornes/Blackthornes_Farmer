@@ -139,6 +139,13 @@ a mob has 20 kills its items show as counts ("3 of 12"); from 20 on, as drop
 rates, which are corpses that held the item over kills. The tallies are kept
 between sessions.
 
+**Gathered value.** Right under THIS SESSION, a "Gathered value" line adds up
+what the session has brought in: the coin off your kills plus every item
+looted or fished up, each at the same price "Worth per kill" uses (the
+Tradeskills auction value, or the vendor price when that is higher). Items
+with no price at all are left out, and a note says how many. When you have
+only fished, the line sits under the Fishing heading instead.
+
 `/farm tracker` (or the panel's **X**) turns it off and on, and it stays the
 way you left it. Drag it by the panel if the left edge is busy, and drag the
 grip in its bottom-right corner to resize it. The width is what you drag it

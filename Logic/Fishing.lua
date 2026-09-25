@@ -47,8 +47,10 @@ Fishing.OPEN_WATER = OPEN_WATER
 
 -- This session only: casts per spot, the order spots were last fished in, and
 -- how many casts in all. The panel's Fishing section shows only while
--- `sessionCasts` is above zero.
+-- `sessionCasts` is above zero. `sessionCatch` is how many of each item came
+-- up, for the session's gathered value.
 Fishing.session = {}
+Fishing.sessionCatch = {}
 Fishing.recent = {}
 Fishing.clock = 0
 Fishing.sessionCasts = 0
@@ -266,6 +268,7 @@ function Fishing:Record(zone, location, school, items, quantities, skill, coords
 
         entry.casts = (tonumber(entry.casts) or 0) + 1
         entry.count = (tonumber(entry.count) or 0) + (quantities and quantities[name] or 1)
+        self.sessionCatch[name] = (self.sessionCatch[name] or 0) + (quantities and quantities[name] or 1)
 
         -- Kept here as well as with the item's looks, so the export has it
         -- from the fishing record alone.
@@ -428,6 +431,7 @@ end
 function Fishing:Reset()
     ns.db.fishing = nil
     self.session = {}
+    self.sessionCatch = {}
     self.recent = {}
     self.sessionCasts = 0
     self.cast = nil

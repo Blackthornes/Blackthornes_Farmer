@@ -193,6 +193,47 @@ function Value:ForMob(mobName)
 end
 
 --------------------------------------------------------------------------------
+-- This session's haul
+--------------------------------------------------------------------------------
+
+--- What everything gathered this session is worth, in copper: the coin off
+--- your kills, plus every item looted or fished up times its unit price.
+-- Returns total, details { coin, priced = count, unpriced = { names } }, or
+-- nil when nothing has been gathered yet. Items with no price are left out of
+-- the total and listed, never guessed.
+function Value:Session()
+    local Tracker, Fishing = ns.Tracker, ns.Fishing
+
+    local counts = {}
+    for name, count in pairs(Tracker and Tracker.sessionLoot or {}) do
+        counts[name] = (counts[name] or 0) + count
+    end
+    for name, count in pairs(Fishing and Fishing.sessionCatch or {}) do
+        counts[name] = (counts[name] or 0) + count
+    end
+
+    local coin = Tracker and tonumber(Tracker.sessionCopper) or 0
+    local details = { coin = coin, priced = 0, unpriced = {} }
+    local total = coin
+
+    for name, count in pairs(counts) do
+        local unit = self:UnitPrice(self:ItemID(name))
+        if unit then
+            total = total + count * unit
+            details.priced = details.priced + 1
+        else
+            details.unpriced[#details.unpriced + 1] = name
+        end
+    end
+
+    if details.priced == 0 and coin == 0 and #details.unpriced == 0 then return nil end
+
+    table.sort(details.unpriced)
+
+    return total, details
+end
+
+--------------------------------------------------------------------------------
 -- Showing it
 --------------------------------------------------------------------------------
 

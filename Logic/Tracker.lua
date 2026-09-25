@@ -43,6 +43,7 @@ Tracker.corpses = {}
 -- Also this session only: how much of each item came off your kills, and the
 -- order mobs were last killed in, so the panel can put the latest on top.
 Tracker.sessionLoot = {}
+Tracker.sessionCopper = 0
 Tracker.recent = {}
 Tracker.clock = 0
 
@@ -139,6 +140,7 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place)
         -- still counts toward the average: that is what "per kill" means.
         mob.copper = mob.copper + (tonumber(copper) or 0)
         mob.coinKills = mob.coinKills + 1
+        self.sessionCopper = self.sessionCopper + (tonumber(copper) or 0)
 
         if place then
             mob.places[place] = (tonumber(mob.places[place]) or 0) + 1
@@ -382,6 +384,7 @@ function Tracker:Reset()
     self.session = {}
     self.corpses = {}
     self.sessionLoot = {}
+    self.sessionCopper = 0
     self.recent = {}
     self.current = nil
 
