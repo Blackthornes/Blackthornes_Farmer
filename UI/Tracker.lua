@@ -11,6 +11,9 @@
 -- Items are drawn the way the bags draw them, icon and quality colour, both
 -- remembered from the loot window by the tracker.
 --
+-- Click a mob's band, or its "Show all" line, for its whole loot table in a
+-- window of its own (UI/LootTable.lua).
+--
 -- /farm tracker (or its X) turns it off and on, and it stays that way from one
 -- session to the next. Drag it if the left edge is busy.
 
@@ -267,6 +270,53 @@ function TrackerUI:CreateLine(parent, index)
     row.fill:SetPoint("BOTTOMLEFT", row.track, "BOTTOMLEFT")
     row.fill:SetHeight(2)
 
+    -- A mob's band and its "Show all" line open its loot table.
+    row.dragged = false
+    row.hover = Theme.Fill(row, "rowHover", 0.7, "BORDER")
+    row.hover:Hide()
+
+    row:SetScript("OnEnter", function(self)
+        if not (self.line and self.line.mob) then return end
+        self.hover:Show()
+
+        if GameTooltip then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(self.line.mob)
+            GameTooltip:AddLine("Click for everything it has dropped.", 1, 1, 1)
+            GameTooltip:Show()
+        end
+    end)
+
+    row:SetScript("OnLeave", function(self)
+        self.hover:Hide()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+
+    row:SetScript("OnMouseUp", function(self, button)
+        -- Letting go at the end of a drag is not a click.
+        if self.dragged then
+            self.dragged = false
+            return
+        end
+
+        if button == "LeftButton" and self.line and self.line.mob and ns.LootTableUI then
+            ns.LootTableUI:Toggle(self.line.mob)
+        end
+    end)
+
+    -- A row that takes the mouse would stop the panel dragging from it;
+    -- hand the drag on to the panel.
+    row:RegisterForDrag("LeftButton")
+    row:SetScript("OnDragStart", function(self)
+        self.dragged = true
+        local start = parent:GetScript("OnDragStart")
+        if start then start(parent) end
+    end)
+    row:SetScript("OnDragStop", function()
+        local stop = parent:GetScript("OnDragStop")
+        if stop then stop(parent) end
+    end)
+
     return row
 end
 
@@ -281,8 +331,9 @@ end
 --
 -- Each is { style, left, right }, plus as it applies: `item` (a name whose
 -- icon and colour to draw), `badge` (small green text beside the value),
--- `bar` (0-1) and `barColor`, and `rightColor`.
--- Styles: "heading", "mob", "value", "item", "note".
+-- `bar` (0-1) and `barColor`, `rightColor`, and `mob` (a mob whose loot table
+-- a click opens).
+-- Styles: "heading", "mob", "value", "item", "note", "link".
 function TrackerUI:Lines()
     local Tracker = ns.Tracker
     local out = {}
@@ -322,7 +373,7 @@ function TrackerUI:Lines()
     for _, summary in ipairs(mobs) do
         -- All-time kills on the band, this session's in green beside them,
         -- and until there are enough for rates, a bar filling toward it.
-        local band = Add({ style = "mob", left = summary.mob,
+        local band = Add({ style = "mob", left = summary.mob, mob = summary.mob,
             right = tostring(summary.kills), badge = ("+%d"):format(summary.session) })
 
         if not summary.rated then
@@ -352,6 +403,12 @@ function TrackerUI:Lines()
                 Add({ style = "item", item = item.name, left = item.name,
                     right = ("%d of %d"):format(item.corpses, summary.kills) })
             end
+        end
+
+        -- The rest are a click away, in the loot table window.
+        if #summary.items > MOB_ITEMS then
+            Add({ style = "link", mob = summary.mob,
+                left = ("Show all %d items"):format(#summary.items) })
         end
 
         if not summary.rated then
@@ -405,6 +462,9 @@ function TrackerUI:DrawLine(row, line)
         if line.style == "note" or line.style == "value" then
             indent = PADDING + 6
             row.left:SetTextColor(Theme.Unpack("muted"))
+        elseif line.style == "link" then
+            indent = PADDING + 6
+            row.left:SetTextColor(Theme.Unpack("accent"))
         elseif line.style == "heading" then
             row.left:SetTextColor(Theme.Unpack("muted"))
         else
@@ -449,6 +509,12 @@ function TrackerUI:DrawLine(row, line)
         row.track:Hide()
         row.fill:Hide()
     end
+
+    -- Only rows that open something take the mouse, so the rest of the panel
+    -- still drags from anywhere.
+    row.line = line
+    row.hover:Hide()
+    row:EnableMouse(line.mob ~= nil)
 
     row:Show()
 end
@@ -499,6 +565,9 @@ end
 --- Redraw, and show or hide to match the saved setting.
 function TrackerUI:Refresh()
     self:Build()
+
+    -- An open loot table follows the same tally.
+    if ns.LootTableUI then ns.LootTableUI:Refresh() end
 
     if ns.db.trackerHidden then
         self.frame:Hide()
