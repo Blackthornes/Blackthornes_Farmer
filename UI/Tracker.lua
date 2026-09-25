@@ -137,8 +137,9 @@ function TrackerUI:BuildGrip(frame)
         TrackerUI.sizing = true
         -- Pin the top first, so the panel grows downward from where it is.
         TrackerUI:AnchorTop()
-        -- Grow from the full height, so dragging down has room to go.
-        frame:SetHeight(TrackerUI:MaxHeight())
+        -- Start from the size on screen, so the corner stays under the
+        -- cursor. Changing the height here would move the corner away from
+        -- the mouse, and the drag would keep that gap the whole way.
         frame:StartSizing("BOTTOMRIGHT")
     end)
 
