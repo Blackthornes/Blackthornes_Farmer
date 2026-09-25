@@ -98,12 +98,7 @@ function Fishing:OnTooltipShown()
     local tooltip = GameTooltip
     if not tooltip then return end
 
-    for _, method in ipairs({ "GetUnit", "GetItem" }) do
-        if type(tooltip[method]) == "function" then
-            local ok, name = pcall(tooltip[method], tooltip)
-            if ok and name ~= nil then return end
-        end
-    end
+    if ns.Harvest.TooltipShowsUnitOrItem(tooltip) then return end
 
     local line = _G.GameTooltipTextLeft1
     if not line or type(line.GetText) ~= "function" then return end

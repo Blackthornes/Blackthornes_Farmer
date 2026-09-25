@@ -35,7 +35,7 @@ DB:RegisterItem({
     name = "Deviate Fish",
     id = 6522,
     category = "Fishing",
-    note = "Only from the pools -- open water in the zone will not give it.",
+    note = "Only from the pools. Open water in the zone will not give it.",
     sources = {
         { kind = "fishing", name = "Deviate Fish schools", zone = "The Barrens", minLevel = 10, maxLevel = 25, requires = "Fishing 1", note = "Lushwater Oasis and the Forgotten Pools" },
         { kind = "mob", name = "Deviate creatures", zone = "Wailing Caverns", minLevel = 17, maxLevel = 24, note = "instance" },
@@ -46,7 +46,7 @@ DB:RegisterItem({
     name = "Heavy Silken Thread",
     id = 4291,
     category = "Vendor",
-    note = "Not farmed -- buy it from any trade-goods vendor.",
+    note = "Not farmed. Buy it from any trade-goods vendor.",
     sources = {
         { kind = "vendor", name = "trade goods vendors", zone = "any capital city", minLevel = 1, maxLevel = 60 },
     },
@@ -360,7 +360,7 @@ DB:RegisterItem({
     name = "Oily Blackmouth",
     id = 6358,
     category = "Fishing",
-    note = "From schools only -- open water will not give it.",
+    note = "From schools only. Open water will not give it.",
     sources = {
         { kind = "fishing", name = "Oily Blackmouth schools", zone = "Westfall", minLevel = 10, maxLevel = 20 },
         { kind = "fishing", name = "Oily Blackmouth schools", zone = "The Barrens", minLevel = 10, maxLevel = 25 },
@@ -373,7 +373,7 @@ DB:RegisterItem({
     name = "Firefin Snapper",
     id = 6359,
     category = "Fishing",
-    note = "From schools only -- open water will not give it.",
+    note = "From schools only. Open water will not give it.",
     sources = {
         { kind = "fishing", name = "Firefin Snapper schools", zone = "Westfall", minLevel = 10, maxLevel = 20 },
         { kind = "fishing", name = "Firefin Snapper schools", zone = "The Barrens", minLevel = 10, maxLevel = 25 },
@@ -455,7 +455,7 @@ DB:RegisterItem({
     name = "Raw Summer Bass",
     id = 13756,
     category = "Fishing",
-    note = "Summer only -- April to September.",
+    note = "Summer only, April to September.",
     sources = {
         { kind = "fishing", name = "the coast", zone = "Feralas", minLevel = 40, maxLevel = 50 },
         { kind = "fishing", name = "the coast", zone = "Azshara", minLevel = 48, maxLevel = 55 },
@@ -466,7 +466,7 @@ DB:RegisterItem({
     name = "Winter Squid",
     id = 13755,
     category = "Fishing",
-    note = "Winter only -- October to March.",
+    note = "Winter only, October to March.",
     sources = {
         { kind = "fishing", name = "the coast", zone = "Feralas", minLevel = 40, maxLevel = 50 },
         { kind = "fishing", name = "the coast", zone = "Tanaris", minLevel = 40, maxLevel = 50 },

@@ -141,6 +141,36 @@ end
 Harvest.Readable = Readable
 Harvest.ReadableNumber = ReadableNumber
 
+--- Is the tooltip showing a unit or an item, rather than a world object such
+--- as a school or a herb?
+--
+-- Older clients ask the tooltip itself (GetUnit, GetItem); the retail engine
+-- moved both to TooltipUtil. Whichever this client has is asked, so a mob
+-- called "... Swarm" cannot pass for a fishing school, and a mob under the
+-- mouse is never remembered as the node about to be picked.
+function Harvest.TooltipShowsUnitOrItem(tooltip)
+    if type(tooltip) ~= "table" then return false end
+
+    for _, method in ipairs({ "GetUnit", "GetItem" }) do
+        if type(tooltip[method]) == "function" then
+            local ok, name = pcall(tooltip[method], tooltip)
+            if ok and name ~= nil then return true end
+        end
+    end
+
+    local util = _G.TooltipUtil
+    if type(util) == "table" then
+        for _, method in ipairs({ "GetDisplayedUnit", "GetDisplayedItem" }) do
+            if type(util[method]) == "function" then
+                local ok, name = pcall(util[method], tooltip)
+                if ok and name ~= nil then return true end
+            end
+        end
+    end
+
+    return false
+end
+
 --------------------------------------------------------------------------------
 -- Where and what
 --------------------------------------------------------------------------------
@@ -998,7 +1028,7 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
     local wanted = ns.Util.Trim(rest or "")
 
     if wanted == "" then
-        ns.UI:ShowExport(ns.Harvest:ExportAll(), "Export -- everything harvested")
+        ns.UI:ShowExport(ns.Harvest:ExportAll(), "Export: everything harvested")
         return
     end
 
@@ -1012,5 +1042,5 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
         return
     end
 
-    ns.UI:ShowExport(block, ("Export -- %s"):format(name))
+    ns.UI:ShowExport(block, ("Export: %s"):format(name))
 end)

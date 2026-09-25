@@ -63,6 +63,8 @@ local COINS = { name = "12 Copper", money = true }
 suite.check("Money: nothing", Value.Money(0) == "0c")
 suite.check("Money: silver and copper", Value.Money(250) == "2s 50c", Value.Money(250))
 suite.check("Money: past a gold, no copper", Value.Money(12345) == "1g 23s", Value.Money(12345))
+suite.check("Money: past a gold with no silver, no copper either",
+    Value.Money(10003) == "1g", Value.Money(10003))
 suite.check("Money: rounds", Value.Money(34.5) == "35c", Value.Money(34.5))
 
 suite.check("CoinCopper: mixed", Tracker.CoinCopper("1 Gold 2 Silver 3 Copper") == 10203)

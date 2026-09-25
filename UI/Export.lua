@@ -66,7 +66,7 @@ function UI:BuildExport()
     local hint = Theme.CreateLabel(frame, "small", "muted")
     hint:SetPoint("TOPLEFT", PADDING, -42)
     hint:SetPoint("TOPRIGHT", -PADDING, -42)
-    hint:SetText("Already selected -- press Ctrl+C, then paste into your editor.")
+    hint:SetText("Already selected. Press Ctrl+C, then paste it into your editor.")
 
     -- The box itself.
     local panel = Theme.CreatePanel(frame, "panel", "border")

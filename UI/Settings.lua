@@ -208,16 +208,11 @@ function SettingsUI:Build()
         SettingsUI:SavePosition()
     end)
 
-    frame:SetScript("OnKeyDown", function(self, key)
-        if key == "ESCAPE" then
-            self:SetPropagateKeyboardInput(false)
-            SettingsUI:Hide()
-        else
-            self:SetPropagateKeyboardInput(true)
-        end
-    end)
-    frame:EnableKeyboard(true)
-    frame:SetPropagateKeyboardInput(true)
+    -- Escape closes it, like the game's own windows (see UI/Main.lua for
+    -- why the keyboard is not taken instead).
+    if type(UISpecialFrames) == "table" then
+        table.insert(UISpecialFrames, "BlackthornesFarmerSettings")
+    end
 
     self.frame = frame
     self.controls = {}
@@ -380,7 +375,7 @@ function SettingsUI:BuildTrackingColumn()
     self.harvestSummary = summary
 
     local export = Widgets.CreateButton(frame, "Export", function()
-        ns.UI:ShowExport(ns.Harvest:ExportAll(), "Export -- everything harvested")
+        ns.UI:ShowExport(ns.Harvest:ExportAll(), "Export: everything harvested")
     end, { width = 80, height = 20 })
     export:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -8)
 

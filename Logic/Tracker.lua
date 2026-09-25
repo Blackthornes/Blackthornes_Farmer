@@ -634,8 +634,10 @@ function Tracker:Fanfare(line, emote)
 
     if type(PlaySound) == "function" then
         for _, sound in ipairs(FANFARE) do
+            -- A sound the client does not have answers nil, a refused one
+            -- false; either way the next one is tried.
             local ok, willPlay = pcall(PlaySound, sound, "Master")
-            if ok and willPlay ~= false then break end
+            if ok and willPlay then break end
         end
     end
 end

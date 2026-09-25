@@ -273,7 +273,7 @@ function Search:BuildRows(query, opts)
     if total > shown then
         rows[#rows + 1] = {
             type = "more",
-            text = ("and %d more items -- narrow the search to see them"):format(total - shown),
+            text = ("and %d more items. Narrow the search to see them."):format(total - shown),
         }
     end
 

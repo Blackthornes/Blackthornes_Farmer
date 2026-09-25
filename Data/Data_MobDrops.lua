@@ -34,7 +34,7 @@ DB:RegisterItem({
     name = "Shadow Silk",
     id = 7072,
     category = "Mob drop",
-    note = "The high-level spider silk -- same idea, different bracket.",
+    note = "The high-level spider silk. Same idea, different bracket.",
     sources = {
         { name = "spiders", zone = "Searing Gorge", minLevel = 45, maxLevel = 52 },
         { name = "spiders", zone = "The Hinterlands", minLevel = 45, maxLevel = 52 },
@@ -75,7 +75,7 @@ DB:RegisterItem({
     name = "Demonic Rune",
     id = 12662,
     category = "Mob drop",
-    note = "Mana for a health hit -- the classic warlock and mage farm.",
+    note = "Mana for a health hit, the classic warlock and mage farm.",
     sources = {
         { name = "Shadow Council and satyrs", zone = "Felwood", minLevel = 52, maxLevel = 56, note = "Jaedenar" },
         { name = "satyrs", zone = "Azshara", minLevel = 50, maxLevel = 55 },
@@ -278,7 +278,7 @@ DB:RegisterItem({
     category = "Mob drop",
     note = "Stratholme only.",
     sources = {
-        { name = "Scarlet Crusade", zone = "Eastern Plaguelands", location = "Stratholme", minLevel = 56, maxLevel = 60, note = "instance -- the living side" },
+        { name = "Scarlet Crusade", zone = "Eastern Plaguelands", location = "Stratholme", minLevel = 56, maxLevel = 60, note = "instance, the living side" },
     },
 })
 

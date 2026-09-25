@@ -285,10 +285,9 @@ function Value.Money(copper)
     local parts = {}
     if gold > 0 then parts[#parts + 1] = gold .. "g" end
     if silver > 0 then parts[#parts + 1] = silver .. "s" end
-    if rest > 0 or #parts == 0 then parts[#parts + 1] = rest .. "c" end
 
-    -- Past a gold, copper is noise.
-    if gold > 0 and #parts == 3 then parts[3] = nil end
+    -- Past a gold, copper is noise: "1g 3c" said it and "1g 2s 3c" did not.
+    if gold == 0 and (rest > 0 or #parts == 0) then parts[#parts + 1] = rest .. "c" end
 
     return table.concat(parts, " ")
 end

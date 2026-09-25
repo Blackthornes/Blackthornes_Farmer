@@ -187,7 +187,7 @@ suite.check("an old tally has no coin per kill until it records some",
     Tracker:CoinPerKill(BOAR) == nil)
 suite.check("and its drops count one each", Tracker:StackSize(BOAR, "Boar Ribs") == 1)
 suite.check("an old tally says places start from the next kill",
-    LTU:Table(BOAR).where == "Killed at: noted from your next kill.", LTU:Table(BOAR).where)
+    LTU:Table(BOAR).where == "Killed at: recorded from your next kill on.", LTU:Table(BOAR).where)
 
 local RIBS = { name = "Boar Ribs", id = 2677, quantity = 2 }
 local SILVER = { name = "1 Silver 5 Copper", money = true }

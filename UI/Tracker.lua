@@ -567,7 +567,7 @@ function TrackerUI:GatheringLines(Add, withTotal)
     local Tracker = ns.Tracker
 
     Add({ style = "heading", left = "GATHERING",
-        right = Util.Plural(Gathering.sessionGathers, "node") })
+        right = Util.Plural(Gathering.sessionGathers, "gather") })
 
     if withTotal then self:TotalLines(Add) end
 

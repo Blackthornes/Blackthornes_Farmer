@@ -71,7 +71,7 @@ DB:RegisterItem({
     name = "Stranglekelp",
     id = 3820,
     category = "Herbalism",
-    note = "Underwater only -- swim the coastline, not the interior.",
+    note = "Underwater only. Swim the coastline, not the interior.",
     sources = {
         { kind = "herb", zone = "Wetlands", minLevel = 20, maxLevel = 30, requires = "Herbalism 85", note = "shallow coast, easy pulls" },
         { kind = "herb", zone = "Hillsbrad Foothills", minLevel = 20, maxLevel = 30, requires = "Herbalism 85" },
@@ -134,7 +134,7 @@ DB:RegisterItem({
     name = "Black Lotus",
     id = 13468,
     category = "Herbalism",
-    note = "Very rare timed spawn -- run a full circuit of a zone rather than camping one point.",
+    note = "Very rare timed spawn. Run a full circuit of a zone rather than camping one point.",
     sources = {
         { kind = "herb", zone = "Burning Steppes", minLevel = 50, maxLevel = 58, requires = "Herbalism 300" },
         { kind = "herb", zone = "Eastern Plaguelands", minLevel = 53, maxLevel = 60, requires = "Herbalism 300" },
@@ -155,7 +155,7 @@ DB:RegisterItem({
     name = "Swiftthistle",
     id = 2452,
     category = "Herbalism",
-    note = "No node of its own -- a bonus that comes out of Mageroyal and Briarthorn.",
+    note = "No node of its own. It is a bonus that comes out of Mageroyal and Briarthorn.",
     sources = {
         { kind = "herb", name = "Mageroyal and Briarthorn", zone = "The Barrens", minLevel = 10, maxLevel = 25, requires = "Herbalism 50" },
         { kind = "herb", name = "Mageroyal and Briarthorn", zone = "Darkshore", minLevel = 10, maxLevel = 20, requires = "Herbalism 50" },
@@ -206,7 +206,7 @@ DB:RegisterItem({
     name = "Liferoot",
     id = 3357,
     category = "Herbalism",
-    note = "Grows beside water -- follow the rivers and lake shores.",
+    note = "Grows beside water. Follow the rivers and lake shores.",
     sources = {
         { kind = "herb", zone = "Wetlands", minLevel = 20, maxLevel = 30, requires = "Herbalism 150" },
         { kind = "herb", zone = "Hillsbrad Foothills", minLevel = 20, maxLevel = 30, requires = "Herbalism 150" },
@@ -314,7 +314,7 @@ DB:RegisterItem({
     name = "Blindweed",
     id = 8839,
     category = "Herbalism",
-    note = "A swamp herb -- wet, low ground.",
+    note = "A swamp herb: wet, low ground.",
     sources = {
         { kind = "herb", zone = "Swamp of Sorrows", minLevel = 35, maxLevel = 45, requires = "Herbalism 235" },
         { kind = "herb", zone = "Dustwallow Marsh", minLevel = 35, maxLevel = 45, requires = "Herbalism 235" },
@@ -337,7 +337,7 @@ DB:RegisterItem({
     name = "Gromsblood",
     id = 8846,
     category = "Herbalism",
-    note = "Grows where demons have been -- look near their camps.",
+    note = "Grows where demons have been. Look near their camps.",
     sources = {
         { kind = "herb", zone = "Ashenvale", location = "Demon Fall Canyon", minLevel = 18, maxLevel = 30, requires = "Herbalism 250" },
         { kind = "herb", zone = "Desolace", location = "Mannoroc Coven", minLevel = 30, maxLevel = 40, requires = "Herbalism 250" },

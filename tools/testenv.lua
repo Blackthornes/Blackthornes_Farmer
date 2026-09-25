@@ -136,6 +136,8 @@ function env.InstallClient()
     _G.GetLootSourceInfo = nil
     _G.PlaySound = nil
     _G.SendChatMessage = nil
+    -- The list the game closes with Escape.
+    _G.UISpecialFrames = {}
     _G.C_ChatInfo = nil
     _G.geterrorhandler = function() return function(err) error(err, 0) end end
     _G.BlackthornesFarmerDB = nil

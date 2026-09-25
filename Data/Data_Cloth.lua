@@ -36,7 +36,7 @@ DB:RegisterItem({
         { name = "Defias Overseer", zone = "Westfall",
           location = "The Deadmines", coords = { 42.0, 72.0 },
           minLevel = 16, maxLevel = 18, chance = 40,
-          note = "instance -- no competition for spawns" },
+          note = "instance, no competition for spawns" },
 
         { name = "Defias Miner", zone = "Westfall",
           location = "The Deadmines", coords = { 42.0, 72.0 },
@@ -110,7 +110,7 @@ DB:RegisterItem({
         { name = "Shadowfang Moonwalker", zone = "Silverpine Forest",
           location = "Shadowfang Keep", coords = { 45.0, 68.0 },
           minLevel = 22, maxLevel = 23, chance = 45,
-          note = "instance -- the densest wool in the bracket" },
+          note = "instance, the densest wool in the bracket" },
 
         { name = "Shadowfang Darksoul", zone = "Silverpine Forest",
           location = "Shadowfang Keep", coords = { 45.0, 68.0 },
@@ -123,7 +123,7 @@ DB:RegisterItem({
         { name = "Scarlet Neophyte", zone = "Tirisfal Glades",
           location = "Scarlet Monastery, Graveyard wing", coords = { 85.0, 32.0 },
           minLevel = 28, maxLevel = 30, chance = 35,
-          note = "instance -- starts dropping silk too at this level" },
+          note = "instance, starts dropping silk too at this level" },
 
         --------------------------------------------------------------------
         -- Outdoor camps
@@ -228,7 +228,7 @@ DB:RegisterItem({
         --------------------------------------------------------------------
         { name = "Galak centaurs", zone = "Thousand Needles",
           location = "Splithoof Heights", minLevel = 24, maxLevel = 28,
-          note = "the low end -- silk starts here, thinly" },
+          note = "the low end, silk starts here, thinly" },
 
         { name = "Raven Hill skeletons", zone = "Duskwood",
           location = "Raven Hill Cemetery", minLevel = 25, maxLevel = 25,
@@ -236,7 +236,7 @@ DB:RegisterItem({
 
         { name = "Leper gnomes", zone = "Dun Morogh",
           location = "Gnomeregan", minLevel = 25, maxLevel = 30,
-          note = "instance -- the low end" },
+          note = "instance, the low end" },
 
         --------------------------------------------------------------------
         -- Scarlet Monastery: the densest silk anywhere
@@ -244,7 +244,7 @@ DB:RegisterItem({
         { name = "Scarlet Chaplain", zone = "Tirisfal Glades",
           location = "Scarlet Monastery, Library wing", coords = { 85.0, 32.0 },
           minLevel = 34, maxLevel = 36, chance = 40,
-          note = "instance -- the standard silk run" },
+          note = "instance, the standard silk run" },
 
         { name = "Scarlet Monk", zone = "Tirisfal Glades",
           location = "Scarlet Monastery, Library wing", coords = { 85.0, 32.0 },
@@ -324,7 +324,7 @@ DB:RegisterItem({
     id = 14047,
     category = "Cloth",
     aliases = { "rune cloth" },
-    note = "Every humanoid above about 50 drops it -- pick the zone you can kill fastest in.",
+    note = "Every humanoid above about 50 drops it. Pick the zone you can kill fastest in.",
     sources = {
         { kind = "mob", name = "Deadwood / Winterfall furbolgs", zone = "Felwood", minLevel = 48, maxLevel = 55 },
         { kind = "mob", name = "Blackrock orcs", zone = "Burning Steppes", minLevel = 50, maxLevel = 58 },

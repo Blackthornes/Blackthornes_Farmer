@@ -117,7 +117,7 @@ function LootTableUI:Table(mobName)
                 :format(Util.Plural(loot.unplaced, "kill"))
         end
     else
-        out.where = "Killed at: noted from your next kill."
+        out.where = "Killed at: recorded from your next kill on."
     end
 
     if Value then
