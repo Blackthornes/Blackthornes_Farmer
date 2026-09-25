@@ -21,6 +21,8 @@ For WoW: Forever (interface 16001).
   it just unlocked. It also does one /emote so players nearby see the
   milestone. `/farm announce off` keeps it to yourself, and
   `/farm celebrate off` turns the celebration off. Both are in Settings too.
+- A fishing spot's 20th cast gets the same fanfare, chat line and /emote,
+  once per spot, under the same two switches.
 
 ## 0.2.0
 
