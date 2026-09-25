@@ -381,6 +381,8 @@ function TrackerUI:KillLines(Add, mobs)
     Add({ style = "heading", left = "THIS SESSION",
         right = Util.Plural(Tracker:SessionKills(), "kill") })
 
+    self:TotalLines(Add)
+
     local loot = Tracker:SessionLoot()
 
     if #loot == 0 then
@@ -453,6 +455,25 @@ function TrackerUI:KillLines(Add, mobs)
     end
 end
 
+--- What everything gathered this session is worth (Trent, 2026-09-25): coin,
+--- loot and fishing catches together, priced like worth per kill. Items with
+--- no price are left out and counted in a note, so the total never guesses.
+function TrackerUI:TotalLines(Add)
+    if not ns.Value then return end
+
+    local total, details = ns.Value:Session()
+    if not total then return end
+
+    Add({ style = "value", left = "Gathered value",
+        right = ns.Value.Money(total), rightColor = "good" })
+
+    local missing = #details.unpriced
+    if missing > 0 then
+        Add({ style = "note", left = ("%s with no price not counted"):format(
+            Util.Plural(missing, "item")) })
+    end
+end
+
 --- This session's fishing: each spot fished, latest first, laid out like a
 --- mob -- casts on the band, where it is, what a cast is worth, best catches.
 function TrackerUI:FishingLines(Add)
@@ -461,6 +482,9 @@ function TrackerUI:FishingLines(Add)
 
     Add({ style = "heading", left = "FISHING",
         right = Util.Plural(Fishing.sessionCasts, "cast") })
+
+    -- Fishing alone this session: the haul's total goes under this heading.
+    if #Tracker:SessionMobs() == 0 then self:TotalLines(Add) end
 
     for _, summary in ipairs(Fishing:SessionSpots()) do
         local band = Add({ style = "mob", left = (summary.name:gsub("^%l", string.upper)),
