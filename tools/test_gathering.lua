@@ -140,7 +140,7 @@ suite.check("nor a harvested corpse", Harvest:CountCorpses() == 0, Harvest:Count
 suite.check("the window closing ends the gather", not Gathering:IsGathering())
 
 suite.check("the Gathering section appears once you have gathered", Line("GATHERING") ~= nil)
-suite.check("it counts this session's nodes", Line("GATHERING").right == "1 node",
+suite.check("it counts this session's nodes", Line("GATHERING").right == "1 gather",
     Line("GATHERING").right)
 suite.check("gathering alone gets the session's total",
     Line("Gathered value") and Line("Gathered value").right == ns.Value.Money(10),

@@ -123,6 +123,21 @@ suite.check("nothing has dropped says so",
     table.concat(env.chat, "\n"):find("Nothing has dropped yet.", 1, true) ~= nil)
 refuse[12891] = nil
 
+-- A sound kit the client does not have answers nil rather than false, and
+-- that must fall back the same way (the fallback was never reached before).
+_G.PlaySound = function(sound)
+    played[#played + 1] = { sound = sound, channel = "Master" }
+    if sound == 12891 then return nil end
+    return true
+end
+for _ = 1, 20 do Loot("Timber Wolf", {}) end
+suite.check("a sound the client lacks falls back to the level-up chime",
+    played[#played].sound == 888, played[#played].sound)
+_G.PlaySound = function(sound, channel)
+    played[#played + 1] = { sound = sound, channel = channel }
+    return not refuse[sound]
+end
+
 -- A sound that errors costs the sound, not the kill.
 _G.PlaySound = function() error("no sound here") end
 local ok, err = pcall(function()
@@ -132,7 +147,7 @@ suite.check("a failing sound does not break the kill", ok, err)
 suite.check("which still counts", Tracker:Store()["Young Wolf"].kills == 20)
 
 -- Turned off, it is silent.
-_G.PlaySound = function(sound) played[#played + 1] = { sound = sound } end
+_G.PlaySound = function(sound) played[#played + 1] = { sound = sound } return true end
 local before, sentBefore = #played, #sent
 ns.HandleSlash("celebrate off")
 suite.check("/farm celebrate off turns it off", ns.db.trackerCelebrate == false)

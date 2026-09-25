@@ -70,7 +70,7 @@ DB:RegisterItem({
     name = "Devilsaur Leather",
     id = 15417,
     category = "Leatherworking",
-    note = "Only from devilsaurs -- expect the spawns to be contested.",
+    note = "Only from devilsaurs. Expect the spawns to be contested.",
     sources = {
         { kind = "skinning", name = "Devilsaur", zone = "Un'Goro Crater", minLevel = 55, maxLevel = 57, requires = "Skinning 300", note = "elite-damage hitters; bring a pet or a friend" },
         { kind = "skinning", name = "Tyrant Devilsaur", zone = "Un'Goro Crater", minLevel = 57, maxLevel = 57, requires = "Skinning 300", note = "rare spawn" },
@@ -238,7 +238,7 @@ DB:RegisterItem({
     name = "Core Leather",
     id = 17012,
     category = "Leatherworking",
-    note = "Raid only -- skinned off Molten Core's core hounds.",
+    note = "Raid only. Skinned off Molten Core's core hounds.",
     sources = {
         { kind = "skinning", name = "Core Hound", zone = "Searing Gorge", location = "Molten Core", minLevel = 60, maxLevel = 60, requires = "Skinning 300", note = "raid" },
     },

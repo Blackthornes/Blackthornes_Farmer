@@ -119,16 +119,14 @@ function UI:Build()
         UI:SavePosition()
     end)
 
-    frame:SetScript("OnKeyDown", function(self, key)
-        if key == "ESCAPE" then
-            self:SetPropagateKeyboardInput(false)
-            UI:Hide()
-        else
-            self:SetPropagateKeyboardInput(true)
-        end
-    end)
-    frame:EnableKeyboard(true)
-    frame:SetPropagateKeyboardInput(true)
+    -- Escape closes it, like the game's own windows. Listed here rather
+    -- than taking the keyboard: SetPropagateKeyboardInput is protected in
+    -- combat on this engine, so a window that called it on every key press
+    -- put "Interface action failed because of an AddOn" on screen whenever
+    -- it was open in a fight.
+    if type(UISpecialFrames) == "table" then
+        table.insert(UISpecialFrames, "BlackthornesFarmerFrame")
+    end
 
     self.frame = frame
     self:ApplyScale()
@@ -530,7 +528,7 @@ function UI:OnRowClick(data, button)
         parts[#parts + 1] = ("~%d%%"):format(source.chance)
     end
 
-    ns.Print(("%s -- %s"):format(
+    ns.Print(("%s: %s"):format(
         Util.Colored("accent", data.item.name), table.concat(parts, ", ")))
 end
 

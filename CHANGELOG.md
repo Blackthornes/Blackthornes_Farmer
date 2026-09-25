@@ -4,6 +4,24 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.4.1
+
+For WoW: Forever (interface 16001).
+
+- Fixed: the search and settings windows took the keyboard to watch for
+  Escape, which put "Interface action failed because of an AddOn" on screen
+  when one was open during a fight. Escape still closes them, through the
+  same list the game's own windows use.
+- Fixed: the 20-kill fanfare fell silent on a client without the achievement
+  sound, instead of falling back to the level-up chime.
+- Fixed: a value past a gold with no silver still showed its copper ("1g 3c"),
+  while one with silver did not. Copper is dropped past a gold either way.
+- A mob or item under the mouse is told apart from a school or a node on the
+  newer tooltip API too, so a mob named "... Swarm" cannot pass for a
+  fishing school.
+- Wording: the Gathering heading counts gathers, not nodes; a few chat lines
+  and data notes read more plainly.
+
 ## 0.4.0
 
 For WoW: Forever (interface 16001).

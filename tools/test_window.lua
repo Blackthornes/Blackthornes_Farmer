@@ -318,4 +318,23 @@ UI:UpdateRow(probe, {
 suite.check("a node row is not left in the drop rate's colour",
     ColorOf(probe.drop) ~= chanceColor, ColorOf(probe.drop))
 
+--------------------------------------------------------------------------------
+-- Escape closes the windows through the game's own list, not by taking the
+-- keyboard: SetPropagateKeyboardInput is protected in combat.
+--------------------------------------------------------------------------------
+
+local function Listed(name)
+    for _, listed in ipairs(_G.UISpecialFrames) do
+        if listed == name then return true end
+    end
+    return false
+end
+
+ns.SettingsUI:Build()
+suite.check("the search window closes on Escape", Listed("BlackthornesFarmerFrame"))
+suite.check("so does the settings window", Listed("BlackthornesFarmerSettings"))
+suite.check("neither takes the keyboard",
+    ns.UI.frame:GetScript("OnKeyDown") == nil
+        and ns.SettingsUI.frame:GetScript("OnKeyDown") == nil)
+
 suite.done()

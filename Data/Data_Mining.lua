@@ -45,7 +45,7 @@ DB:RegisterItem({
     id = 2775,
     category = "Mining",
     aliases = { "silver" },
-    note = "Rare spawn that shares node points with tin -- farm tin routes and take what appears.",
+    note = "Rare spawn that shares node points with tin. Farm tin routes and take what appears.",
     sources = {
         { kind = "node", name = "Silver Vein", zone = "Hillsbrad Foothills", minLevel = 20, maxLevel = 30, requires = "Mining 75" },
         { kind = "node", name = "Silver Vein", zone = "Wetlands", minLevel = 20, maxLevel = 30, requires = "Mining 75" },

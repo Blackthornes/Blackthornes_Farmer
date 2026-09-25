@@ -124,14 +124,9 @@ function Gathering:OnTooltipShown()
     local tooltip = GameTooltip
     if not tooltip then return end
 
-    for _, method in ipairs({ "GetUnit", "GetItem" }) do
-        if type(tooltip[method]) == "function" then
-            local ok, name = pcall(tooltip[method], tooltip)
-            if ok and name ~= nil then
-                self.hovered = nil
-                return
-            end
-        end
+    if ns.Harvest.TooltipShowsUnitOrItem(tooltip) then
+        self.hovered = nil
+        return
     end
 
     local line = _G.GameTooltipTextLeft1
@@ -316,7 +311,7 @@ function Gathering:Celebrate(key)
     if not summary then return end
 
     local where = summary.place and (" in %s"):format(summary.place) or ""
-    local line = ("Gather rates unlocked for %s%s! %d gathered."):format(
+    local line = ("Gather rates unlocked for %s%s! %d gathers in."):format(
         Util.Colored("accent", summary.name), where, summary.gathers)
 
     ns.Tracker:Fanfare(line, ("unlocked gather rates for %s%s after %d gathers! (Blackthornes Farmer)")
@@ -596,8 +591,9 @@ local function PrintSuspects()
         return
     end
 
-    ns.Print(("%s look like a herb or ore picked with a corpse still targeted. "
-        .. "Nothing has been changed:"):format(Util.Plural(#found, "entry", "entries")))
+    ns.Print(("%s %s like a herb or ore picked with a corpse still targeted. "
+        .. "Nothing has been changed:"):format(
+            Util.Plural(#found, "entry", "entries"), #found == 1 and "looks" or "look"))
 
     for _, entry in ipairs(found) do
         local what = entry.where == "tally" and "kill tally" or "harvest"
