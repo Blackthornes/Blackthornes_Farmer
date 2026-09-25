@@ -217,6 +217,27 @@ function Harvest:LootSource()
     return name, level
 end
 
+--- Where you are standing: the zone, and the subzone if you are in one.
+-- Either is nil when the client will not say.
+function Harvest:Where()
+    local caps = self:Capabilities()
+    local zone, location
+
+    if caps.realZone then
+        local gotZone, zoneText = pcall(GetRealZoneText)
+        if gotZone then zone = Readable(zoneText) end
+    end
+
+    if caps.subZone then
+        -- Readable answers nil for the empty string a mob outside any
+        -- subzone comes back with, which is what this wants anyway.
+        local gotSub, subText = pcall(GetSubZoneText)
+        if gotSub then location = Readable(subText) end
+    end
+
+    return zone, location
+end
+
 --- The corpse's guid, if the client will say. Read, not compared.
 function Harvest:CorpseID()
     if not UnitGUID then return nil end
@@ -357,19 +378,7 @@ function Harvest:RecordCorpse()
     if corpse then
         record = corpse.record
     else
-        local zone, location
-
-        if caps.realZone then
-            local gotZone, zoneText = pcall(GetRealZoneText)
-            if gotZone then zone = Readable(zoneText) end
-        end
-
-        if caps.subZone then
-            -- Readable answers nil for the empty string a mob outside any
-            -- subzone comes back with, which is what this wants anyway.
-            local gotSub, subText = pcall(GetSubZoneText)
-            if gotSub then location = Readable(subText) end
-        end
+        local zone, location = self:Where()
 
         record = self:GetRecord(mob, level, zone, location)
         record.corpses = record.corpses + 1

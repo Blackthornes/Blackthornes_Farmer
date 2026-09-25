@@ -14,6 +14,10 @@
 -- Below MIN_KILLS the panel shows counts, never percentages: three drops in
 -- five kills is not a 60% drop rate, it is five kills.
 --
+-- Each kill also notes where it happened, subzone and zone, so a mob found in
+-- three places says which one you actually farm it in. Kills from before this
+-- was kept have no place and are counted as such, never guessed at.
+--
 -- Reporting to chat is off unless asked for, and it goes to your own chat
 -- window only. Nothing is ever said on a channel anyone else can read.
 
@@ -94,7 +98,20 @@ function Tracker:GetMob(name)
     mob.copper = tonumber(mob.copper) or 0
     mob.coinKills = tonumber(mob.coinKills) or 0
 
+    -- Kills by where they happened: "The Sepulcher, Silverpine Forest" = 12.
+    if type(mob.places) ~= "table" then mob.places = {} end
+
     return mob
+end
+
+--- "The Sepulcher, Silverpine Forest", or the zone alone outside any subzone.
+-- Nil when the client would not name the zone.
+function Tracker.PlaceName(zone, location)
+    if type(zone) ~= "string" or zone == "" then return nil end
+    if type(location) ~= "string" or location == "" or location == zone then
+        return zone
+    end
+    return location .. ", " .. zone
 end
 
 --- Count one opened corpse. Returns true if it was a new kill.
@@ -102,7 +119,10 @@ end
 -- `guid` may be nil -- the client can refuse it inside an instance -- and then
 -- the corpse cannot be recognised a second time, so every opening counts. That
 -- over-counts a skinned corpse, which is the lesser harm next to dropping it.
-function Tracker:Record(mobName, guid, items, quantities, copper)
+--
+-- `place` is where it was killed (see PlaceName), or nil if the client would
+-- not say; such a kill still counts, it just has no place.
+function Tracker:Record(mobName, guid, items, quantities, copper, place)
     local mob = self:GetMob(mobName)
     local corpse = guid and self.corpses[guid]
     local newKill = not corpse
@@ -119,6 +139,10 @@ function Tracker:Record(mobName, guid, items, quantities, copper)
         -- still counts toward the average: that is what "per kill" means.
         mob.copper = mob.copper + (tonumber(copper) or 0)
         mob.coinKills = mob.coinKills + 1
+
+        if place then
+            mob.places[place] = (tonumber(mob.places[place]) or 0) + 1
+        end
     end
 
     -- An item counts once per corpse, however many slots or visits it took.
@@ -173,6 +197,8 @@ function Tracker:Summary(mobName)
         return a.name < b.name
     end)
 
+    local places, unplaced = self:Places(mobName)
+
     return {
         mob = mobName,
         kills = kills,
@@ -180,7 +206,56 @@ function Tracker:Summary(mobName)
         rated = kills >= MIN_KILLS,
         needed = math.max(0, MIN_KILLS - kills),
         items = items,
+        places = places,
+        unplaced = unplaced,
     }
+end
+
+--- Where a mob has been killed, most kills first: { name, kills }. Second,
+--- how many of its kills have no place: from before places were kept, or
+--- killed where the client would not name the zone.
+function Tracker:Places(mobName)
+    local mob = mobName and self:Store()[mobName]
+    if type(mob) ~= "table" then return {}, 0 end
+
+    local places, placed = {}, 0
+
+    for name, kills in pairs(type(mob.places) == "table" and mob.places or {}) do
+        kills = tonumber(kills) or 0
+        if kills > 0 then
+            places[#places + 1] = { name = name, kills = kills }
+            placed = placed + kills
+        end
+    end
+
+    table.sort(places, function(a, b)
+        if a.kills ~= b.kills then return a.kills > b.kills end
+        return a.name < b.name
+    end)
+
+    return places, math.max(0, (tonumber(mob.kills) or 0) - placed)
+end
+
+--- "The Sepulcher, Silverpine Forest (12); Silverpine Forest (3)": the first
+--- `limit` places, "+2 more" after them. Nil for a mob with no place yet.
+function Tracker.PlacesText(places, limit)
+    if type(places) ~= "table" or #places == 0 then return nil end
+
+    limit = limit or #places
+    local parts = {}
+
+    for index = 1, math.min(#places, limit) do
+        local place = places[index]
+        parts[#parts + 1] = #places == 1 and place.name
+            or ("%s (%d)"):format(place.name, place.kills)
+    end
+
+    if #places > limit then
+        parts[#parts + 1] = ("+%d more"):format(#places - limit)
+    end
+
+    -- Semicolons, since a place name has a comma of its own.
+    return table.concat(parts, "; ")
 end
 
 --- Average coin per kill, over the kills that recorded coin; nil before any.
@@ -448,8 +523,9 @@ function Tracker:OnLoot()
     if not mobName then return end
 
     local items, quantities, copper = self:LootedItems()
+    local place = Tracker.PlaceName(ns.Harvest:Where())
 
-    return self:Record(mobName, self:CorpseID(), items, quantities, copper)
+    return self:Record(mobName, self:CorpseID(), items, quantities, copper, place)
 end
 
 --------------------------------------------------------------------------------
@@ -568,6 +644,15 @@ ns.RegisterCommand("kills", "a mob's kill tally and drop rates", function(rest)
     end
 
     ns.Print(Tracker:ReportLine(mobName))
+
+    local where = Tracker.PlacesText(summary.places)
+    if where then
+        ns.PrintRaw("  killed at " .. Util.Colored("muted", where))
+    end
+    if summary.unplaced > 0 and #summary.places > 0 then
+        ns.PrintRaw(Util.Colored("muted", ("  %s with no place.")
+            :format(Util.Plural(summary.unplaced, "kill"))))
+    end
 
     -- The chat line names the top few; this names them all.
     if summary.rated and #summary.items > REPORT_ITEMS then

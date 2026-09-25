@@ -29,13 +29,18 @@ local HEADER = 32
 local ROW = 20
 local ICON = 16
 
--- Header, the numbers, the status line and the column titles above the list;
--- the price note under it.
+-- Header, the numbers, the status line, where it was killed and the column
+-- titles above the list; the price note under it.
 -- The status line has room for two lines of text, so it wraps rather than
 -- being cut off.
 local STATUS_TOP = HEADER + 50
 local STATUS_HEIGHT = 30
-local COLUMNS_TOP = STATUS_TOP + STATUS_HEIGHT + 6
+local PLACES_TOP = STATUS_TOP + STATUS_HEIGHT + 2
+local PLACES_HEIGHT = 14
+local COLUMNS_TOP = PLACES_TOP + PLACES_HEIGHT + 6
+
+-- How many places the "Killed at" line names before "+N more".
+local PLACES_SHOWN = 3
 local TOP = COLUMNS_TOP + ROW + 4
 local BOTTOM = 34
 
@@ -74,7 +79,9 @@ end
 --------------------------------------------------------------------------------
 
 --- The table for `mobName`: { mob, kills, session, rated, needed, coinPerKill,
---- worth, basis, rows }, or nil for a mob never killed.
+--- worth, basis, where, rows }, or nil for a mob never killed.
+--
+-- `where` is the "Killed at" line: its places, most kills first.
 --
 -- Each row: { name, id, dropped ("12 of 40"), total ("x57"), rate (text or
 -- nil), chance (0-100 or nil), perKill (copper or nil) }. Rates and values
@@ -99,6 +106,19 @@ function LootTableUI:Table(mobName)
     -- recorded any.
     out.coinPerKill = loot.coinPerKill
     out.coinKills = loot.coinKills
+
+    -- Kills from before places were kept have none, and say so rather than
+    -- being shared out among the places that are known.
+    local places = Tracker.PlacesText(loot.places, PLACES_SHOWN)
+    if places then
+        out.where = "Killed at: " .. places .. "."
+        if loot.unplaced > 0 then
+            out.where = out.where .. (" %s with no place.")
+                :format(Util.Plural(loot.unplaced, "kill"))
+        end
+    else
+        out.where = "Killed at: noted from your next kill."
+    end
 
     if Value then
         local worth, details = Value:ForMob(mobName)
@@ -301,6 +321,11 @@ function LootTableUI:Build()
     status:SetWordWrap(true)
     status:SetJustifyV("TOP")
 
+    local where = Theme.CreateLabel(frame, "small", "muted")
+    where:SetPoint("TOPLEFT", PADDING, -PLACES_TOP)
+    where:SetPoint("TOPRIGHT", -PADDING, -PLACES_TOP)
+    where:SetHeight(PLACES_HEIGHT)
+
     -- Column titles, on a band.
     local columns = Theme.CreatePanel(frame, "header", false)
     columns:SetPoint("TOPLEFT", 1, -COLUMNS_TOP)
@@ -340,6 +365,7 @@ function LootTableUI:Build()
     self.frame = frame
     self.title = title
     self.status = status
+    self.where = where
     self.list = list
     self.empty = empty
     self.footer = footer
@@ -402,7 +428,8 @@ function LootTableUI:Render()
             or " Coin is counted from your next kill.")
     end
     self.status:SetText(status)
-    self.frame:SetWidth(self:WidthFor(data.rows, status))
+    self.where:SetText(data.where)
+    self.frame:SetWidth(self:WidthFor(data.rows, status, data.where))
 
     self.footer:SetText(ns.Value and ns.Value:HasAuctionPrices()
         and "Prices: Blackthornes Tradeskills market value, or the vendor price if higher."
@@ -422,12 +449,12 @@ function LootTableUI:Render()
     self.shownMob = data.mob
 end
 
---- Wide enough for the longest item name on one line and the status in two,
---- between WIDTH and MAX_WIDTH.
+--- Wide enough for the longest item name on one line, the status in two and
+--- the places on one, between WIDTH and MAX_WIDTH.
 --
 -- Everything but the name column is a fixed width: the padding, the list's
 -- scrollbar, the icon, and the number columns.
-function LootTableUI:WidthFor(rows, status)
+function LootTableUI:WidthFor(rows, status, where)
     local fixed = PADDING * 2 + 14 + 4 + ICON + 6 + 4
     for _, column in ipairs(COLUMNS) do fixed = fixed + column.width + GAP end
 
@@ -438,6 +465,9 @@ function LootTableUI:WidthFor(rows, status)
 
     -- Two lines of wrapped text, with some slack for where the words break.
     needs = math.max(needs, PADDING * 2 + Theme.TextWidth("small", status) / 2 + 40)
+
+    -- The places on one line.
+    needs = math.max(needs, PADDING * 2 + Theme.TextWidth("small", where) + 4)
 
     return math.min(MAX_WIDTH, math.max(WIDTH, math.ceil(needs)))
 end
