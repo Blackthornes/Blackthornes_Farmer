@@ -135,6 +135,8 @@ function env.InstallClient()
     _G.BlackthornesTS = nil
     _G.GetLootSourceInfo = nil
     _G.PlaySound = nil
+    _G.PlaySoundFile = nil
+    _G.GetTime = nil
     _G.SendChatMessage = nil
     -- The list the game closes with Escape.
     _G.UISpecialFrames = {}

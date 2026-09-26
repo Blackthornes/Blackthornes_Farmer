@@ -317,7 +317,9 @@ function Fishing:Celebrate(key)
     end
 
     ns.Tracker:Fanfare(line, ("unlocked catch rates for %s%s after %d casts! (Blackthornes Farmer)")
-        :format(summary.name, where, summary.casts))
+        :format(summary.name, where, summary.casts),
+        { title = "CATCH RATES UNLOCKED", subject = ("%s  |  %d casts"):format(
+            (summary.name:gsub("^%l", string.upper)), summary.casts), key = "spot:" .. tostring(key) })
 end
 
 --- One spot's catch, best-caught first.
