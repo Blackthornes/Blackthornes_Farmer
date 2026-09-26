@@ -4,6 +4,20 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.5.0
+
+For WoW: Forever (interface 16001). This version adds sound files, so fully
+restart the game after updating; `/reload` is not enough.
+
+- The kills panel comes alive: Gathered value counts up with a "+" beside
+  it, loot floats off the panel's edge, counts that went up glow, and the mob
+  you just killed pulses gold with its bar sliding toward 20.
+- A new chime plays when an item of green quality or better drops.
+- The 20-kill fanfare now plays the addon's own sound.
+- `/farm effects full|subtle|off` sets how much the panel moves, and
+  `/farm raresound on|off` turns the rare-drop chime on or off. Both are in
+  Settings too.
+
 ## 0.4.2
 
 For WoW: Forever (interface 16001).
