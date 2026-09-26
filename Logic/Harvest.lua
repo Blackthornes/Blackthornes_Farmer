@@ -148,13 +148,21 @@ Harvest.ReadableNumber = ReadableNumber
 -- moved both to TooltipUtil. Whichever this client has is asked, so a mob
 -- called "... Swarm" cannot pass for a fishing school, and a mob under the
 -- mouse is never remembered as the node about to be picked.
+-- Is there a value at all? type() is the one thing a secret value answers,
+-- so this never touches the value itself. `name ~= nil` looked harmless, but
+-- on a mob in a dungeon the name is secret and the comparison raised, once
+-- per hook, every time the tooltip showed a mob.
+local function Present(value)
+    return type(value) ~= "nil"
+end
+
 function Harvest.TooltipShowsUnitOrItem(tooltip)
     if type(tooltip) ~= "table" then return false end
 
     for _, method in ipairs({ "GetUnit", "GetItem" }) do
         if type(tooltip[method]) == "function" then
             local ok, name = pcall(tooltip[method], tooltip)
-            if ok and name ~= nil then return true end
+            if ok and Present(name) then return true end
         end
     end
 
@@ -163,7 +171,7 @@ function Harvest.TooltipShowsUnitOrItem(tooltip)
         for _, method in ipairs({ "GetDisplayedUnit", "GetDisplayedItem" }) do
             if type(util[method]) == "function" then
                 local ok, name = pcall(util[method], tooltip)
-                if ok and name ~= nil then return true end
+                if ok and Present(name) then return true end
             end
         end
     end
@@ -285,7 +293,11 @@ end
 function Harvest:IsNodeLoot()
     if self:Capabilities().fishingLoot then
         local ok, fishing = pcall(IsFishingLoot)
-        if ok and fishing then return true end
+        if ok then
+            -- Read before it is believed, as Fishing:IsCatch does.
+            local readable, answer = pcall(function() return fishing == true or fishing == 1 end)
+            if readable and answer == true then return true end
+        end
     end
 
     return ns.Gathering ~= nil and ns.Gathering:IsGathering()

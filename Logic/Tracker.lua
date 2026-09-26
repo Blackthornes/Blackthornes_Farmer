@@ -573,6 +573,17 @@ function Tracker:Report(mobName)
     if line then ns.Print(line) end
 end
 
+--- Inside a dungeon, raid, battleground or arena? Read like any other client
+-- value; when the client will not say, assume yes, so nothing public is sent.
+function Tracker.InInstance()
+    if type(IsInInstance) ~= "function" then return false end
+    local ok, inside = pcall(IsInInstance)
+    if not ok then return true end
+    local readable, answer = pcall(function() return inside == true or inside == 1 end)
+    if not readable then return true end
+    return answer == true
+end
+
 --- Say `text` as an /emote: "Blackthornez unlocked drop rates for ...".
 --
 -- EMOTE, because the client lets an addon send it from an event. SAY and YELL
@@ -580,6 +591,11 @@ end
 -- window opening is not one. Plain text only: no colours or links, and a
 -- stray "|" would make the chat server drop the line.
 function Tracker:Announce(text)
+    -- Not inside a dungeon or raid: the client can lock chat down there, and a
+    -- blocked send shows the player an "Interface action failed" message that
+    -- a pcall cannot catch. The celebration still plays for you.
+    if Tracker.InInstance() then return false end
+
     text = tostring(text):gsub("|", "")
 
     local send = (C_ChatInfo and C_ChatInfo.SendChatMessage) or _G.SendChatMessage
