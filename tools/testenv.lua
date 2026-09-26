@@ -52,7 +52,8 @@ local function Stub(fields)
     -- Nil until a test places the frame on screen, as before layout.
     function frame:GetLeft() return self._left end
     function frame:GetTop() return self._top end
-    function frame:GetFrameLevel() return 1 end
+    function frame:GetFrameLevel() return rawget(self, "_frameLevel") or 1 end
+    function frame:SetFrameLevel(value) self._frameLevel = value end
 
     -- Recorded so a test can check where something was anchored.
     function frame:SetPoint(...) self._point = { ... } end

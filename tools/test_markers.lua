@@ -192,6 +192,16 @@ env.world.position = { 0.45, 0.68 }
 MapMarkers:Step(1)
 suite.check("the driver draws the minimap", #Shown(MapMarkers.minimapPool) == 2)
 
+-- A herb that has grown back is a blip the minimap draws on its own map, and
+-- addon frames are drawn over that map. So a minimap marker must leave the
+-- middle clear for the blip: an empty frame, no icon and no fill.
+local framePin = Shown(MapMarkers.minimapPool)[1]
+suite.check("a minimap marker is hollow", framePin.hollow == true and rawget(framePin, "icon") == nil
+    and rawget(framePin, "ring") == nil)
+suite.check("drawn as corner brackets", #framePin.corners == 8)
+suite.check("sitting just above the minimap, under anything else on it",
+    rawget(framePin, "_frameLevel") == Minimap:GetFrameLevel() + 1, rawget(framePin, "_frameLevel"))
+
 --------------------------------------------------------------------------------
 -- The world map
 --------------------------------------------------------------------------------
@@ -211,6 +221,8 @@ suite.check("the world map shows this map's spots", #Shown(world) == 3, #Shown(w
 local silver = PinFor(world, "Silverleaf")
 p = silver._point
 suite.check("placed on the canvas from its top left", p[2] == canvas and p[3] == "TOPLEFT")
+suite.check("at the bottom of the map's pins, so anything else draws over it",
+    rawget(silver, "_frameLevel") == canvas:GetFrameLevel() + 1, rawget(silver, "_frameLevel"))
 -- Zoomed in 2x, so the marker is drawn at half scale and placed in its own units.
 suite.check("at the spot, whatever the zoom",
     Near(p[4], 0.45 * 1000 * 2) and Near(p[5], -(0.68 - 50 / 2000) * 667 * 2),
@@ -237,8 +249,7 @@ GameTooltip._lines = {}
 silver:GetScript("OnEnter")(silver)
 suite.check("the hover names the node", GameTooltip._lines[1] == "Silverleaf", GameTooltip._lines[1])
 suite.check("and when", GameTooltip._lines[2] == "Gathered, last 12 min ago", GameTooltip._lines[2])
-suite.check("and that it is not a live node",
-    tostring(GameTooltip._lines[3]):find("not a live node") ~= nil)
+suite.check("and nothing more", GameTooltip._lines[3] == nil, GameTooltip._lines[3])
 
 Gathering:AddSpot(37, 0.45, 0.68 - 50 / 2000, "Silverleaf", "herb")
 GameTooltip._lines = {}
