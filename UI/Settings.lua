@@ -34,7 +34,7 @@ local COLUMN_TWO_X = PADDING * 2 + COLUMN_WIDTH
 local CONTROL_X = 170
 
 local WIDTH = COLUMN_WIDTH * 2 + PADDING * 3
-local HEIGHT = 500
+local HEIGHT = 612
 
 local ROW_HEIGHT = 50
 local ROW_GAP = -6
@@ -356,7 +356,27 @@ function SettingsUI:BuildTrackingColumn()
     end, true)
     controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local recording = CreateSection(frame, "LOOT RECORDING", { anchor = announceRow })
+    local effectsRow = CreateRow(frame, announceRow, "Panel effects",
+        "Full: counts glow, value counts up, loot floats off the panel. "
+        .. "Subtle: no floats. Same as /farm effects.")
+
+    local FX = ns.TrackerFX
+    controls.effects = Widgets.CreateStepper(effectsRow, {
+        min = 1, max = #FX.LEVELS, step = 1, value = #FX.LEVELS,
+        format = function(index) return FX.LEVEL_NAMES[FX.LEVELS[index]] end,
+        onChange = function(index) FX:SetLevel(FX.LEVELS[index]) end,
+    })
+    controls.effects:SetPoint("TOPLEFT", CONTROL_X, 0)
+
+    local rareRow = CreateRow(frame, effectsRow, "Rare drop sound",
+        "A chime when something green or better drops. Only you hear it.")
+
+    controls.rareSound = Widgets.CreateCheckbox(rareRow, "Play it", function(checked)
+        ns.db.trackerRareSound = checked
+    end, true)
+    controls.rareSound:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local recording = CreateSection(frame, "LOOT RECORDING", { anchor = rareRow })
 
     local recordRow = CreateRow(frame, recording, "Record what drops",
         "Counts what every corpse held, so drop rates are measured on Forever. "
@@ -407,6 +427,12 @@ function SettingsUI:Refresh()
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.report:SetChecked(db.trackerReport == true)
     controls.announce:SetChecked(db.trackerAnnounce ~= false)
+
+    local level = ns.TrackerFX.Level()
+    for index, name in ipairs(ns.TrackerFX.LEVELS) do
+        if name == level then controls.effects:SetValue(index, true) end
+    end
+    controls.rareSound:SetChecked(ns.TrackerFX.RareSoundOn())
 
     local usable = ns.Harvest:Capabilities().usable
 

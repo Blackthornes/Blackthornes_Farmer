@@ -86,6 +86,8 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm gathering [all\|check]` | herbs and ore you have gathered in this zone, or everywhere; `check` lists herbs or ore credited to a mob (`reset confirm` clears it) |
 | `/farm announce [on\|off]` | whether players near you see an emote at those milestones (on by default) |
 | `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills or a fishing spot 20 casts, and its rates unlock (on by default) |
+| `/farm effects [full\|subtle\|off]` | how much the kill panel moves when loot lands: glows, the value counting up, loot floating off the panel (full by default; subtle drops the floats) |
+| `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
 | `/farm rankings` | open the Rankings tab: mobs by what a kill is worth (`rank` works too) |
@@ -218,6 +220,18 @@ Lake, Elwynn Forest!" in your chat, and the matching emote. That emote, once
 per mob or fishing spot, is the only thing the addon ever says in public.
 `/farm announce off` (or Settings > Share milestones) keeps it to yourself;
 `/farm celebrate off` turns the whole thing off.
+
+The panel moves when loot lands. Gathered value counts up to its new total with
+a green "+38s" beside it for a few seconds, each item looted floats off the
+panel's right edge in its quality colour, any count that went up glows, and the
+mob you just killed glows gold with its kill count popping and its bar sliding
+toward 20. Something green or better also plays a chime. The fanfare and the
+chime are the addon's own sounds, in `Media/Sounds` (made by
+`tools/make_sounds.py`); until the game has been fully restarted once they
+cannot be found, and the fanfare falls back to the game's own. `/farm effects
+subtle` keeps the glows and the count-up and drops the floats and pops,
+`/farm effects off` stops it all, and `/farm raresound off` silences the
+chime. Both are in Settings too.
 
 A kill is a corpse you open. Skinning a corpse you already looted, or coming
 back for what you left, is still one kill. `/farm report on` also prints a

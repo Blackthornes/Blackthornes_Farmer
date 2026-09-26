@@ -37,6 +37,7 @@ local HEADER = 28
 local LINE = 18
 local ICON = 14
 local BAR = 40
+TrackerUI.BAR = BAR
 
 -- Right-hand value and the green badge beside it, in pixels.
 local RIGHT_WIDTH = 54
@@ -340,6 +341,9 @@ end
 -- icon and colour to draw), `badge` (small green text beside the value),
 -- `bar` (0-1) and `barColor`, `rightColor`, and `mob` (a mob whose loot table
 -- a click opens).
+-- A line whose number can go up also has a `key` that names it from one
+-- redraw to the next and that `count`, so UI/TrackerFX.lua can tell what just
+-- went up and make it move.
 -- Styles: "heading", "mob", "place", "value", "item", "note", "link".
 -- A fishing spot or a node is drawn as a "mob" band with no `mob`, so a click
 -- opens nothing.
@@ -420,7 +424,8 @@ function TrackerUI:KillLines(Add, mobs)
 
     for index = 1, math.min(#loot, LOOT_LINES) do
         Add({ style = "item", item = loot[index].name, left = loot[index].name,
-            right = ("x%d"):format(loot[index].count) })
+            right = ("x%d"):format(loot[index].count),
+            key = "loot:" .. loot[index].name, count = loot[index].count })
     end
 
     if #loot > LOOT_LINES then
@@ -431,7 +436,8 @@ function TrackerUI:KillLines(Add, mobs)
         -- All-time kills on the band, this session's in green beside them,
         -- and until there are enough for rates, a bar filling toward it.
         local band = Add({ style = "mob", left = summary.mob, mob = summary.mob,
-            right = tostring(summary.kills), badge = ("+%d"):format(summary.session) })
+            right = tostring(summary.kills), badge = ("+%d"):format(summary.session),
+            key = "mob:" .. summary.mob, count = summary.kills })
 
         if not summary.rated then
             band.bar = summary.kills / Tracker.MIN_KILLS
@@ -465,7 +471,8 @@ function TrackerUI:KillLines(Add, mobs)
                     bar = item.chance / 100, barColor = RateColor(item.chance) })
             else
                 Add({ style = "item", item = item.name, left = item.name,
-                    right = ("%d of %d"):format(item.corpses, summary.kills) })
+                    right = ("%d of %d"):format(item.corpses, summary.kills),
+                    key = ("mob:%s:%s"):format(summary.mob, item.name), count = item.corpses })
             end
         end
 
@@ -494,7 +501,8 @@ function TrackerUI:TotalLines(Add)
     if not total then return end
 
     Add({ style = "value", left = "Gathered value",
-        right = ns.Value.Money(total), rightColor = "good" })
+        right = ns.Value.Money(total), rightColor = "good",
+        key = "total", count = total })
 
     local missing = #details.unpriced
     if missing > 0 then
@@ -517,7 +525,8 @@ function TrackerUI:FishingLines(Add, withTotal)
 
     for _, summary in ipairs(Fishing:SessionSpots()) do
         local band = Add({ style = "mob", left = (summary.name:gsub("^%l", string.upper)),
-            right = tostring(summary.casts), badge = ("+%d"):format(summary.session) })
+            right = tostring(summary.casts), badge = ("+%d"):format(summary.session),
+            key = "spot:" .. tostring(summary.key), count = summary.casts })
 
         if not summary.rated then
             band.bar = summary.casts / Fishing.MIN_CASTS
@@ -544,7 +553,8 @@ function TrackerUI:FishingLines(Add, withTotal)
                     bar = item.chance / 100, barColor = RateColor(item.chance) })
             else
                 Add({ style = "item", item = item.name, left = item.name,
-                    right = ("%d of %d"):format(item.casts, summary.casts) })
+                    right = ("%d of %d"):format(item.casts, summary.casts),
+                    key = ("spot:%s:%s"):format(tostring(summary.key), item.name), count = item.casts })
             end
         end
 
@@ -573,7 +583,8 @@ function TrackerUI:GatheringLines(Add, withTotal)
 
     for _, summary in ipairs(Gathering:SessionNodes()) do
         local band = Add({ style = "mob", left = summary.name,
-            right = tostring(summary.gathers), badge = ("+%d"):format(summary.session) })
+            right = tostring(summary.gathers), badge = ("+%d"):format(summary.session),
+            key = "node:" .. tostring(summary.key), count = summary.gathers })
 
         if not summary.rated then
             band.bar = summary.gathers / Gathering.MIN_GATHERS
@@ -600,7 +611,8 @@ function TrackerUI:GatheringLines(Add, withTotal)
                     bar = item.chance / 100, barColor = RateColor(item.chance) })
             else
                 Add({ style = "item", item = item.name, left = item.name,
-                    right = ("%d of %d"):format(item.gathers, summary.gathers) })
+                    right = ("%d of %d"):format(item.gathers, summary.gathers),
+                    key = ("node:%s:%s"):format(tostring(summary.key), item.name), count = item.gathers })
             end
         end
 
@@ -733,6 +745,11 @@ function TrackerUI:Render()
 
     local lines = self:Lines()
 
+    -- Every line, before the ones past the bottom are cut: a count that is
+    -- only out of sight has not changed.
+    local all = {}
+    for index, line in ipairs(lines) do all[index] = line end
+
     -- While the grip is held, the panel is whatever size the drag says;
     -- otherwise it is the saved size.
     local limit = self.sizing and self.frame:GetHeight() or self:MaxHeight()
@@ -748,6 +765,16 @@ function TrackerUI:Render()
     end
 
     self.shown = lines
+
+    -- What went up since the last redraw, worked out before drawing so the
+    -- value line can carry its "+38s". Never allowed to stop the panel.
+    local FX = ns.TrackerFX
+    local plan
+    if FX then
+        local ok, result = pcall(FX.Prepare, FX, all, lines)
+        plan = ok and result or nil
+        if not ok then ns.Debug("panel effects:", tostring(result)) end
+    end
 
     -- As tall as what it holds, up to the saved height: no empty tail under
     -- a short session. Left alone mid-drag, where the drag is in charge.
@@ -772,6 +799,11 @@ function TrackerUI:Render()
         self.frame:SetWidth(self:FitWidth(needs))
         self.frame:SetHeight(HEADER + PADDING * 2 + #lines * LINE)
     end
+
+    if plan then
+        local ok, err = pcall(FX.Play, FX, plan, function(index) return self.lines[index] end)
+        if not ok then ns.Debug("panel effects:", tostring(err)) end
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -788,6 +820,8 @@ function TrackerUI:Refresh()
 
     if ns.db.trackerHidden then
         self.frame:Hide()
+        -- Hidden, nothing plays; shown again, the counts start from there.
+        if ns.TrackerFX then ns.TrackerFX:Forget() end
         return
     end
 
@@ -797,6 +831,7 @@ end
 
 function TrackerUI:Hide()
     if self.frame then self.frame:Hide() end
+    if ns.TrackerFX then ns.TrackerFX:Forget() end
 end
 
 function TrackerUI:OnEnable()
