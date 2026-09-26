@@ -428,6 +428,172 @@ function Gathering:Reset()
     self.cast = nil
 
     if ns.TrackerUI then ns.TrackerUI:Refresh() end
+    self:SpotsChanged()
+end
+
+--------------------------------------------------------------------------------
+-- Where on the map
+--
+-- The node record above is per zone and subzone, which says where to go but
+-- not where to stand. For the map markers each gather also keeps the exact
+-- spot: the map it was on and where on that map, as fractions of it, which is
+-- how the world map and the minimap both place things.
+--
+-- Gathering the same node again lands on the spot already there rather than a
+-- second marker on top of it: same map, same node name, within SAME_SPOT_YARDS
+-- (or SAME_SPOT_SHARE of the map, on a client that will not size its maps).
+--------------------------------------------------------------------------------
+
+local SAME_SPOT_YARDS = 15
+local SAME_SPOT_SHARE = 0.005
+
+-- Enough for every node in every zone many times over. Past it the spot
+-- gathered longest ago goes, so the saved file cannot grow for ever.
+local MAX_SPOTS = 2000
+
+Gathering.MAX_SPOTS = MAX_SPOTS
+
+--- Wall-clock seconds, which, unlike GetTime, mean the same after a restart.
+local function Clock()
+    if type(time) ~= "function" then return nil end
+    local ok, now = pcall(time)
+    return ok and ns.Harvest.ReadableNumber(now) or nil
+end
+
+Gathering.Clock = Clock
+
+local mapSizes = {}
+
+--- How big a map is, in yards: width, height. Nil if the client will not say.
+function Gathering.MapSize(mapID)
+    local cached = mapSizes[mapID]
+    if cached then return cached[1], cached[2] end
+    if cached == false or type(C_Map) ~= "table" then return nil end
+
+    local width, height
+
+    if type(C_Map.GetMapWorldSize) == "function" then
+        local ok, w, h = pcall(C_Map.GetMapWorldSize, mapID)
+        if ok then
+            width, height = ns.Harvest.ReadableNumber(w), ns.Harvest.ReadableNumber(h)
+        end
+    end
+
+    -- The older way round: where the map's two corners are in the world.
+    -- Across a map is along the world's y axis, down it along the x axis.
+    if not (width and height) and type(C_Map.GetWorldPosFromMapPos) == "function"
+        and type(CreateVector2D) == "function" then
+        local function Corner(u, v)
+            local ok, _, position = pcall(C_Map.GetWorldPosFromMapPos, mapID, CreateVector2D(u, v))
+            if not ok or type(position) ~= "table" then return nil end
+            local read, wx, wy = pcall(position.GetXY, position)
+            if not read then return nil end
+            return ns.Harvest.ReadableNumber(wx), ns.Harvest.ReadableNumber(wy)
+        end
+
+        local ax, ay = Corner(0, 0)
+        local bx, by = Corner(1, 1)
+        if ax and ay and bx and by then
+            width, height = math.abs(ay - by), math.abs(ax - bx)
+        end
+    end
+
+    if not (width and height and width > 0 and height > 0) then
+        mapSizes[mapID] = false
+        return nil
+    end
+
+    mapSizes[mapID] = { width, height }
+    return width, height
+end
+
+--- Every spot a node was gathered at, kept in saved variables.
+function Gathering:Spots()
+    local db = ns.db
+
+    if type(db.gathering) ~= "table" then db.gathering = {} end
+    if type(db.gathering.spots) ~= "table" then db.gathering.spots = {} end
+
+    return db.gathering.spots
+end
+
+--- Are two points on one map close enough to be the same node?
+local function SameSpot(mapID, ax, ay, bx, by)
+    local width, height = Gathering.MapSize(mapID)
+
+    if width then
+        local dx, dy = (ax - bx) * width, (ay - by) * height
+        return dx * dx + dy * dy <= SAME_SPOT_YARDS * SAME_SPOT_YARDS
+    end
+
+    local dx, dy = ax - bx, ay - by
+    return dx * dx + dy * dy <= SAME_SPOT_SHARE * SAME_SPOT_SHARE
+end
+
+--- Mark a gather on the map. `x` and `y` are fractions of map `mapID`.
+-- Returns the spot.
+function Gathering:AddSpot(mapID, x, y, node, kind)
+    if not (mapID and x and y) then return nil end
+
+    local spots = self:Spots()
+    local now = Clock()
+
+    for _, spot in ipairs(spots) do
+        if spot.map == mapID and spot.node == node and SameSpot(mapID, spot.x, spot.y, x, y) then
+            spot.gathers = (tonumber(spot.gathers) or 1) + 1
+            spot.last = now or spot.last
+            self:SpotsChanged()
+            return spot
+        end
+    end
+
+    local spot = {
+        map = mapID, x = x, y = y, node = node, kind = kind,
+        gathers = 1, first = now, last = now,
+    }
+    spots[#spots + 1] = spot
+
+    -- Over the cap: the one gathered longest ago goes.
+    while #spots > MAX_SPOTS do
+        local oldest, at = 1, math.huge
+        for index, candidate in ipairs(spots) do
+            local when = tonumber(candidate.last) or 0
+            if when < at then oldest, at = index, when end
+        end
+        table.remove(spots, oldest)
+    end
+
+    self:SpotsChanged()
+    return spot
+end
+
+--- Every spot on one map.
+function Gathering:SpotsOn(mapID)
+    local found = {}
+    if not mapID then return found end
+
+    for _, spot in ipairs(self:Spots()) do
+        if type(spot) == "table" and spot.map == mapID
+            and tonumber(spot.x) and tonumber(spot.y) then
+            found[#found + 1] = spot
+        end
+    end
+
+    return found
+end
+
+--- Forget every marked spot. The gathering record itself is left alone.
+function Gathering:ClearSpots()
+    local count = #self:Spots()
+    ns.db.gathering.spots = {}
+    self:SpotsChanged()
+    return count
+end
+
+--- Tell the markers to redraw.
+function Gathering:SpotsChanged()
+    self.spotsVersion = (self.spotsVersion or 0) + 1
+    if ns.MapMarkers then ns.MapMarkers:Refresh() end
 end
 
 --------------------------------------------------------------------------------
@@ -451,10 +617,12 @@ function Gathering:OnLoot()
 
     local zone, location = ns.Harvest:Where()
     local items, quantities = ns.Tracker:LootedItems()
-    local x, y = ns.Harvest:PlayerPosition()
+    local mapID, x, y = ns.Harvest:PlayerMapPosition()
+
+    if mapID then self:AddSpot(mapID, x, y, cast.node, cast.kind) end
 
     return self:Record(zone, location, cast.node, cast.kind, items, quantities,
-        x and { x, y } or nil)
+        mapID and { x * 100, y * 100 } or nil)
 end
 
 --- The window closed: the gather it belonged to is over.

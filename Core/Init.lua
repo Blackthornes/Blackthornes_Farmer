@@ -257,6 +257,11 @@ local DEFAULTS = {
     trackerPoint = "TOPLEFT",
     trackerX = 8,
     trackerY = -190,
+
+    -- Markers where herbs and ore were gathered, on the world map and the
+    -- minimap. Each can be turned off on its own.
+    markersWorld = true,
+    markersMinimap = true,
 }
 
 local function LoadSavedVariables()
