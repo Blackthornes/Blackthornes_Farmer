@@ -4,6 +4,17 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.6.1
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- Minimap markers are now an empty gold frame of corner brackets with the
+  check outside a corner, so a herb or ore node that has grown back shows
+  through the middle instead of being hidden.
+- Markers on both maps sit beneath other pins.
+- A marker's tooltip is now just the node and when you gathered it.
+
 ## 0.6.0
 
 For WoW: Forever (interface 16001). This version adds a file, so fully
