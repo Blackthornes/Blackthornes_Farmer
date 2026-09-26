@@ -13,7 +13,13 @@
 --     item's own colour for green-and-better drops.
 --   * The mob just killed glows gold, its kill count pops bigger for a beat,
 --     and its bar toward 20 slides up instead of jumping.
---   * A green-or-better drop plays the rare-drop sound.
+--   * A green-or-better drop plays the rare-drop sound, and its line pulses
+--     in its quality colour with an outline, and floats as "Rare! ...".
+--   * A kill streak (kills close together) pops at each kill and floats a
+--     "Streak x10!" at every fifth.
+--   * The kill that unlocks a mob's drop rates (or a spot's catch rates)
+--     drops a gold banner over the top of the panel, with sparkles, a shine
+--     across the title bar and a long gold pulse on the mob's band.
 --
 -- /farm effects (or Settings) picks Full, Subtle (washes and the count-up,
 -- no floats or pops) or Off. The rare-drop sound has its own switch.
@@ -55,6 +61,23 @@ local FLOAT_SIZE = 13
 local FLOAT_RARE_SIZE = 16
 local MAX_FLOATS = 6
 
+-- The rare-drop pulse, and the gold one on an unlocking mob's band.
+local PULSE_TIME = 2.2
+local PULSE_ALPHA = 0.55
+
+-- The unlock banner: how long it stays, and its height.
+local BANNER_TIME = 3.6
+local BANNER_HEIGHT = 38
+local SHINE_TIME = 0.9
+local SHINE_WIDTH = 36
+local BRIGHT_GOLD = { 1, 0.906, 0.639 }   -- #FFE7A3
+
+-- A streak floats a cheer at every this many kills.
+local STREAK_CHEER = 5
+
+-- What a float says ahead of a drop's name, by quality.
+local CHEERS = { [2] = "Nice!", [3] = "Rare!", [4] = "Epic!", [5] = "Legendary!" }
+
 -- Two rare-drop sounds in a row would step on each other.
 local RARE_GAP = 1
 
@@ -65,6 +88,7 @@ local RARE_QUALITY = 2
 -- than as fields on the frames themselves.
 local flashes = setmetatable({}, { __mode = "k" })
 local busy = setmetatable({}, { __mode = "k" })
+local outlines = setmetatable({}, { __mode = "k" })
 
 TrackerFX.effects = {}
 TrackerFX.clock = 0
@@ -201,6 +225,21 @@ function TrackerFX:Forget()
     if self.driver then self.driver:Hide() end
 end
 
+local function Color(key)
+    local r, g, b = Theme.Unpack(key)
+    return { r, g, b }
+end
+
+--- "ff1eff00" as three 0-1 numbers.
+local function HexRGB(hex)
+    if type(hex) ~= "string" or #hex ~= 8 then return nil end
+    local r = tonumber(hex:sub(3, 4), 16)
+    local g = tonumber(hex:sub(5, 6), 16)
+    local b = tonumber(hex:sub(7, 8), 16)
+    if not (r and g and b) then return nil end
+    return { r / 255, g / 255, b / 255 }
+end
+
 --------------------------------------------------------------------------------
 -- What changed
 --------------------------------------------------------------------------------
@@ -246,7 +285,7 @@ function TrackerFX:Prepare(all, shown)
 
     if not previous then return nil end
 
-    local plan = { lines = {}, items = {} }
+    local plan = { lines = {}, items = {}, shown = shown }
 
     for key, entry in pairs(items) do
         local before = previousItems and previousItems[key] and previousItems[key].count or 0
@@ -314,6 +353,18 @@ function TrackerFX:Play(plan, rowFor)
         end
     end
 
+    -- A green-or-better drop pulses on every line it is drawn on, counted
+    -- or not: a mob past 20 kills shows it as a rate.
+    for _, item in ipairs(plan.items) do
+        if (item.quality or 0) >= RARE_QUALITY then
+            local rgb = HexRGB(ns.Tracker:LookOf(item.name).color) or Color("good")
+            for index, line in ipairs(plan.shown or {}) do
+                local row = line.item == item.name and line.key and rowFor(index)
+                if row then self:Pulse(row, line.key, rgb) end
+            end
+        end
+    end
+
     if level == "full" then
         local first = rowFor(1)
 
@@ -328,21 +379,6 @@ end
 --------------------------------------------------------------------------------
 -- The effects
 --------------------------------------------------------------------------------
-
-local function Color(key)
-    local r, g, b = Theme.Unpack(key)
-    return { r, g, b }
-end
-
---- "ff1eff00" as three 0-1 numbers.
-local function HexRGB(hex)
-    if type(hex) ~= "string" or #hex ~= 8 then return nil end
-    local r = tonumber(hex:sub(3, 4), 16)
-    local g = tonumber(hex:sub(5, 6), 16)
-    local b = tonumber(hex:sub(7, 8), 16)
-    if not (r and g and b) then return nil end
-    return { r / 255, g / 255, b / 255 }
-end
 
 --- The wash over a row, and a brighter edge down its left side.
 local function Flash(row)
@@ -374,6 +410,9 @@ function TrackerFX:Glow(row, key, rgb, peak)
         edge:SetAlpha(0)
     end
 
+    -- A plain glow taking over from a pulse leaves no outline behind.
+    for _, line in ipairs(outlines[row] or {}) do line:SetAlpha(0) end
+
     self:Start({ slot = flash, row = row, key = key, duration = GLOW_TIME,
         apply = function(p)
             local alpha = peak * (1 - p) ^ 2
@@ -381,6 +420,57 @@ function TrackerFX:Glow(row, key, rgb, peak)
             edge:SetAlpha(math.min(1, alpha * 2.5))
         end,
         stop = Hide })
+end
+
+--- A one-pixel outline round a row, for the pulse.
+local function Outline(row)
+    local made = outlines[row]
+    if made then return made end
+
+    made = {}
+    for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+        local edge = row:CreateTexture(nil, "ARTWORK")
+        if side == "TOP" or side == "BOTTOM" then
+            edge:SetPoint(side .. "LEFT")
+            edge:SetPoint(side .. "RIGHT")
+            edge:SetHeight(1)
+        else
+            edge:SetPoint("TOP" .. side)
+            edge:SetPoint("BOTTOM" .. side)
+            edge:SetWidth(1)
+        end
+        edge:SetAlpha(0)
+        made[#made + 1] = edge
+    end
+
+    outlines[row] = made
+    return made
+end
+
+--- A longer, beating glow with an outline: a rare drop's line in its
+--- quality colour, or a mob's band in gold as its rates unlock.
+function TrackerFX:Pulse(row, key, rgb, peak)
+    peak = peak or PULSE_ALPHA
+
+    local flash, edge = Flash(row)
+    local outline = Outline(row)
+    flash:SetColorTexture(rgb[1], rgb[2], rgb[3], 1)
+    edge:SetColorTexture(rgb[1], rgb[2], rgb[3], 1)
+    for _, line in ipairs(outline) do line:SetColorTexture(rgb[1], rgb[2], rgb[3], 1) end
+
+    local function Alpha(alpha)
+        flash:SetAlpha(alpha)
+        edge:SetAlpha(math.min(1, alpha * 2))
+        for _, line in ipairs(outline) do line:SetAlpha(math.min(1, alpha * 1.8)) end
+    end
+
+    self:Start({ slot = flash, row = row, key = key, duration = PULSE_TIME,
+        apply = function(p)
+            -- Three beats, each a little weaker than the last.
+            local beat = 0.55 + 0.45 * math.cos(p * 6 * math.pi)
+            Alpha(peak * (1 - p) ^ 1.5 * beat)
+        end,
+        stop = function() Alpha(0) end })
 end
 
 --- The kill count, bigger for a beat and back.
@@ -449,6 +539,20 @@ function TrackerFX:LineGained(row, line, was, level)
         return
     end
 
+    if key == "streak" then
+        local cheer = was and line.count % STREAK_CHEER == 0
+        self:Glow(row, key, Color("accent"), cheer and PULSE_ALPHA or BAND_ALPHA)
+
+        if level == "full" then
+            self:Pop(row, key)
+            if cheer then
+                self:FloatText(Util.Colored("accent", ("Streak x%d!"):format(line.count)),
+                    row, 0, FLOAT_RARE_SIZE)
+            end
+        end
+        return
+    end
+
     if line.style == "mob" then
         self:Glow(row, key, Color("accent"), BAND_ALPHA)
         if level == "full" then self:Pop(row, key) end
@@ -499,19 +603,29 @@ function TrackerFX:FloatLabel()
     return label
 end
 
---- "+2 Wool Cloth" rising off the panel's right edge beside `anchor`.
+--- "+2 Wool Cloth" rising off the panel's right edge beside `anchor`; a
+--- green-or-better drop bigger, with a cheer ahead of it ("Rare! ...").
 function TrackerFX:Float(item, anchor, delay)
-    if not anchor then return end
-
-    local label = self:FloatLabel()
     local color = ns.Tracker:LookOf(item.name).color
     local text = ("+%d %s"):format(item.delta, item.name)
+
+    local cheer = CHEERS[item.quality or 0]
+    if cheer then text = cheer .. " " .. text end
+
     if type(color) == "string" and #color == 8 then
         text = ("|c%s%s|r"):format(color, text)
     end
 
     local rare = (item.quality or 0) >= RARE_QUALITY
-    pcall(label.SetFont, label, Theme.FONT, rare and FLOAT_RARE_SIZE or FLOAT_SIZE, "OUTLINE")
+    self:FloatText(text, anchor, delay, rare and FLOAT_RARE_SIZE or FLOAT_SIZE)
+end
+
+--- Any text rising off the panel's right edge beside `anchor`, and fading.
+function TrackerFX:FloatText(text, anchor, delay, size)
+    if not anchor then return end
+
+    local label = self:FloatLabel()
+    pcall(label.SetFont, label, Theme.FONT, size or FLOAT_SIZE, "OUTLINE")
     label:SetText(text)
     label:SetAlpha(0)
     busy[label] = true
@@ -537,6 +651,138 @@ function TrackerFX:Float(item, anchor, delay)
             label:Hide()
             busy[label] = nil
         end })
+end
+
+--------------------------------------------------------------------------------
+-- The unlock banner
+--------------------------------------------------------------------------------
+
+-- Where the sparkles sit on the banner, as fractions across and down.
+local SPARKS = {
+    { 0.04, 0.2 }, { 0.12, 0.85 }, { 0.3, 0.1 }, { 0.62, 0.9 },
+    { 0.8, 0.12 }, { 0.95, 0.75 }, { 0.5, 0.05 }, { 0.2, 0.5 },
+}
+
+function TrackerFX:Banner()
+    if self.banner then return self.banner end
+
+    local panel = ns.TrackerUI.frame
+    local header = ns.TrackerUI.HEADER
+
+    local banner = CreateFrame("Frame", nil, panel)
+    banner:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -(header + 4))
+    banner:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -4, -(header + 4))
+    banner:SetHeight(BANNER_HEIGHT)
+    banner:SetFrameLevel(panel:GetFrameLevel() + 12)
+
+    Theme.Fill(banner, "window", 0.96)
+    Theme.Border(banner, "accent")
+
+    -- A gold wash that breathes behind the words.
+    local wash = banner:CreateTexture(nil, "BORDER")
+    wash:SetAllPoints(banner)
+    wash:SetColorTexture(Theme.Unpack("accent"))
+    pcall(wash.SetBlendMode, wash, "ADD")
+    banner.wash = wash
+
+    local title = Theme.CreateLabel(banner, "normal", "accent", "CENTER")
+    pcall(title.SetFont, title, Theme.FONT, Theme.sizes.large, "OUTLINE")
+    title:SetTextColor(BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3], 1)
+    title:SetPoint("TOPLEFT", 6, -5)
+    title:SetPoint("TOPRIGHT", -6, -5)
+    banner.title = title
+
+    local subject = Theme.CreateLabel(banner, "small", "text", "CENTER")
+    subject:SetPoint("BOTTOMLEFT", 6, 5)
+    subject:SetPoint("BOTTOMRIGHT", -6, 5)
+    banner.subject = subject
+
+    banner.sparks = {}
+    for index = 1, #SPARKS do
+        local spark = banner:CreateTexture(nil, "OVERLAY")
+        spark:SetSize(3, 3)
+        spark:SetColorTexture(BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3], 1)
+        pcall(spark.SetBlendMode, spark, "ADD")
+        banner.sparks[index] = spark
+    end
+
+    -- The shine that sweeps across the title bar. The banner's own, though
+    -- it sits over the header: the header is a frame above the panel, so a
+    -- texture of the panel's would draw underneath it.
+    local shine = banner:CreateTexture(nil, "OVERLAY")
+    shine:SetHeight(header)
+    shine:SetWidth(SHINE_WIDTH)
+    shine:SetColorTexture(BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3], 1)
+    pcall(shine.SetBlendMode, shine, "ADD")
+    shine:SetAlpha(0)
+    banner.shine = shine
+
+    banner:Hide()
+    self.banner = banner
+    return banner
+end
+
+--- A mob's drop rates (or a spot's catch rates) just unlocked: `info` is
+--- { title, subject, key }. Tracker:Fanfare calls it with the sound.
+function TrackerFX:Unlocked(info)
+    if TrackerFX.Level() == "off" then return end
+    if not (ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown()) then return end
+
+    local banner = self:Banner()
+    banner.title:SetText(info.title or "RATES UNLOCKED")
+    banner.subject:SetText(info.subject or "")
+    banner:SetAlpha(0)
+    banner:Show()
+
+    local ok, width = pcall(banner.GetWidth, banner)
+    width = ok and tonumber(width) or 200
+
+    for index, spark in ipairs(banner.sparks) do
+        spark:ClearAllPoints()
+        spark:SetPoint("CENTER", banner, "TOPLEFT", SPARKS[index][1] * width,
+            -SPARKS[index][2] * BANNER_HEIGHT)
+    end
+
+    local panel = ns.TrackerUI.frame
+    local okPanel, panelWidth = pcall(panel.GetWidth, panel)
+    panelWidth = okPanel and tonumber(panelWidth) or width
+
+    self:Start({ slot = "banner", duration = BANNER_TIME,
+        apply = function(p)
+            -- In fast, a moment to read it, out slowly.
+            local alpha = p < 0.06 and p / 0.06 or (p > 0.8 and (1 - p) / 0.2 or 1)
+            banner:SetAlpha(alpha)
+            banner.wash:SetAlpha(0.12 + 0.1 * math.sin(p * 8 * math.pi))
+
+            for index, spark in ipairs(banner.sparks) do
+                local twinkle = 0.5 + 0.5 * math.sin(p * 14 * math.pi + index * 1.7)
+                spark:SetAlpha(twinkle * alpha)
+            end
+
+            -- The shine crosses the title bar once, in the first moment.
+            local sweep = p * BANNER_TIME / SHINE_TIME
+            if sweep < 1 then
+                banner.shine:ClearAllPoints()
+                banner.shine:SetPoint("TOPLEFT", panel, "TOPLEFT",
+                    (panelWidth - SHINE_WIDTH) * sweep, 0)
+                banner.shine:SetAlpha(0.35 * math.sin(sweep * math.pi))
+            else
+                banner.shine:SetAlpha(0)
+            end
+
+            if p >= 1 then banner:Hide() end
+        end,
+        stop = function()
+            banner:Hide()
+            banner.shine:SetAlpha(0)
+        end })
+
+    -- The mob's band beats gold for longer than a plain kill.
+    for index, line in ipairs(ns.TrackerUI.shown or {}) do
+        if line.key == info.key and ns.TrackerUI.lines[index] then
+            self:Pulse(ns.TrackerUI.lines[index], line.key, BRIGHT_GOLD, 0.6)
+        end
+    end
 end
 
 --------------------------------------------------------------------------------

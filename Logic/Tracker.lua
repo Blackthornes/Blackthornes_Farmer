@@ -47,6 +47,14 @@ Tracker.sessionCopper = 0
 Tracker.recent = {}
 Tracker.clock = 0
 
+-- Kill streak (Trent, 2026-09-26): kills with no more than STREAK_GAP seconds
+-- between them. `streak` is the one running, `bestStreak` this session's best.
+local STREAK_GAP = 60
+Tracker.STREAK_GAP = STREAK_GAP
+Tracker.streak = 0
+Tracker.bestStreak = 0
+Tracker.streakAt = nil
+
 --------------------------------------------------------------------------------
 -- The tally
 --------------------------------------------------------------------------------
@@ -145,6 +153,8 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place)
         if place then
             mob.places[place] = (tonumber(mob.places[place]) or 0) + 1
         end
+
+        self:NoteStreak()
     end
 
     -- An item counts once per corpse, however many slots or visits it took.
@@ -387,8 +397,48 @@ function Tracker:Reset()
     self.sessionCopper = 0
     self.recent = {}
     self.current = nil
+    self.streak = 0
+    self.bestStreak = 0
+    self.streakAt = nil
 
     if ns.TrackerUI then ns.TrackerUI:Refresh() end
+end
+
+--- The game's clock, in seconds. Nil where there is none (the tests).
+local function Now()
+    if type(GetTime) ~= "function" then return nil end
+    local ok, now = pcall(GetTime)
+    return ok and type(now) == "number" and now or nil
+end
+
+--- A new kill: the streak goes on if the last kill was recent, else starts
+--- again at one.
+function Tracker:NoteStreak(now)
+    now = now or Now()
+
+    if now and self.streakAt and now - self.streakAt <= STREAK_GAP then
+        self.streak = self.streak + 1
+    else
+        self.streak = 1
+    end
+
+    self.streakAt = now
+    self.bestStreak = math.max(self.bestStreak, self.streak)
+
+    -- The panel only redraws when something happens, so ask it to look
+    -- again once the gap has passed, when the streak has run out.
+    if now and C_Timer and type(C_Timer.After) == "function" then
+        pcall(C_Timer.After, STREAK_GAP + 1, function()
+            if ns.TrackerUI and Tracker:Streak() == 0 then ns.TrackerUI:Refresh() end
+        end)
+    end
+end
+
+--- The streak running now: zero once STREAK_GAP has passed since the last kill.
+function Tracker:Streak(now)
+    now = now or Now()
+    if now and self.streakAt and now - self.streakAt > STREAK_GAP then return 0 end
+    return self.streak
 end
 
 --------------------------------------------------------------------------------
@@ -653,15 +703,23 @@ function Tracker:Celebrate(mobName)
     end
 
     self:Fanfare(line, ("unlocked drop rates for %s after %d kills! (Blackthornes Farmer)")
-        :format(summary.mob, summary.kills))
+        :format(summary.mob, summary.kills),
+        { title = "DROP RATES UNLOCKED", subject = ("%s  |  %d kills"):format(summary.mob, summary.kills),
+            key = "mob:" .. summary.mob })
 end
 
 --- The fanfare itself: `line` in your own chat, `emote` to the players near
---- you (unless /farm announce is off), and the sound. Fishing uses it too, when
+--- you (unless /farm announce is off), the sound, and `banner` ({ title,
+--- subject, key }) across the top of the panel. Fishing uses it too, when
 --- a spot's catch rates unlock at 20 casts. The caller checks
 --- /farm celebrate.
-function Tracker:Fanfare(line, emote)
+function Tracker:Fanfare(line, emote, banner)
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
+
+    if banner and ns.TrackerFX then
+        local ok, err = pcall(ns.TrackerFX.Unlocked, ns.TrackerFX, banner)
+        if not ok then ns.Debug("unlock banner:", tostring(err)) end
+    end
 
     if emote and ns.db.trackerAnnounce ~= false then
         self:Announce(emote)

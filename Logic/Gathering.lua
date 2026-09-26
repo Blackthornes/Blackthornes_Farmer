@@ -315,7 +315,9 @@ function Gathering:Celebrate(key)
         Util.Colored("accent", summary.name), where, summary.gathers)
 
     ns.Tracker:Fanfare(line, ("unlocked gather rates for %s%s after %d gathers! (Blackthornes Farmer)")
-        :format(summary.name, where, summary.gathers))
+        :format(summary.name, where, summary.gathers),
+        { title = "GATHER RATES UNLOCKED", subject = ("%s  |  %d gathers"):format(summary.name, summary.gathers),
+            key = "node:" .. tostring(key) })
 end
 
 --- One node's yield, most often found first.

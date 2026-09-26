@@ -226,7 +226,11 @@ The panel moves when loot lands. Gathered value counts up to its new total with
 a green "+38s" beside it for a few seconds, each item looted floats off the
 panel's right edge in its quality colour, any count that went up glows, and the
 mob you just killed glows gold with its kill count popping and its bar sliding
-toward 20. Something green or better also plays a chime. The fanfare and the
+toward 20. Something green or better also plays a chime, pulses in its quality
+colour and floats as "Nice!", "Rare!" or "Epic!". Kills no more than a minute
+apart build a kill streak, shown from the third kill with the session's best
+beside it, and every fifth cheers. A mob's 20th kill drops a gold "Drop rates
+unlocked" banner over the top of the panel, with a shine across its title. The fanfare and the
 chime are the addon's own sounds, in `Media/Sounds` (made by
 `tools/make_sounds.py`); until the game has been fully restarted once they
 cannot be found, and the fanfare falls back to the game's own. `/farm effects

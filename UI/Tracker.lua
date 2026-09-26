@@ -34,6 +34,7 @@ local MIN_WIDTH, MAX_WIDTH = 180, 600
 local MIN_HEIGHT, MAX_HEIGHT = 120, 1000
 local PADDING = 8
 local HEADER = 28
+TrackerUI.HEADER = HEADER
 local LINE = 18
 local ICON = 14
 local BAR = 40
@@ -45,6 +46,9 @@ local BADGE_WIDTH = 28
 
 -- How much of each section to show before moving on to the next.
 local LOOT_LINES = 6
+
+-- A kill streak shows once it reaches this many.
+local STREAK_SHOWN = 3
 local MOB_ITEMS = 3
 
 -- Bumped when the default position moves, so a panel saved at the old spot
@@ -415,6 +419,16 @@ function TrackerUI:KillLines(Add, mobs)
         right = Util.Plural(Tracker:SessionKills(), "kill") })
 
     self:TotalLines(Add)
+
+    -- A streak shows from its third kill (Trent, 2026-09-26), with the
+    -- session's best beside it once there is a better one to beat.
+    local streak = Tracker:Streak()
+    if streak >= STREAK_SHOWN then
+        local best = Tracker.bestStreak
+        Add({ style = "value", key = "streak", count = streak,
+            left = best > streak and ("Kill streak  (best %d)"):format(best) or "Kill streak",
+            right = ("x%d"):format(streak), rightColor = "accent" })
+    end
 
     local loot = Tracker:SessionLoot()
 
