@@ -1,12 +1,15 @@
 -- Blackthornes Farmer -- UI/MapMarkers.lua
 -- Markers on the world map and the minimap where you gathered herbs and ore.
 --
--- Trent's rule for these: they must never read as a node you can gather. A
--- live herb or vein is a bright icon the game draws; these are Farmer's own:
--- the node's icon greyed out and faded, in a gold ring, with a green check in
--- the corner meaning "done here". The longer ago the gather, the fainter the
--- marker. Hover one and it says what it was, how many times you took it and
--- when last.
+-- Trent's rules for these: they must never read as a node you can gather, and
+-- a live node must always show over them. On the world map a marker is the
+-- node's icon greyed out and faded, in a gold ring, with a green check in the
+-- corner, at the bottom of the map's pins. On the minimap, where the game's
+-- node blips are part of the map and every addon frame draws over them, a
+-- marker is an empty gold frame with the check outside a corner, so a node
+-- that has grown back shows through its middle. The longer ago the gather,
+-- the fainter the marker. Hover one and it says what it was, how many times
+-- you took it and when last.
 --
 -- The spots themselves are Logic/Gathering.lua's. This file only draws them,
 -- and only the ones on the map you are looking at (world map) or standing on
@@ -25,9 +28,10 @@ local MapMarkers = ns.NewModule("MapMarkers")
 local Theme = ns.Theme
 local Util = ns.Util
 
--- On screen, whatever the zoom.
+-- On screen, whatever the zoom. The minimap's is the outside of its frame;
+-- the clear middle is a little smaller, and wider than the game's node blip.
 local WORLD_SIZE = 18
-local MINIMAP_SIZE = 13
+local MINIMAP_SIZE = 20
 
 -- The minimap is redrawn this often while you move, in seconds.
 local MINIMAP_STEP = 0.1
@@ -126,8 +130,6 @@ local function ShowTooltip(pin)
     if ago then line = ("%s, last %s"):format(line, ago) end
 
     GameTooltip:AddLine(line, Theme.Unpack("text"))
-    GameTooltip:AddLine("Already gathered. Farmer marker, not a live node.",
-        Theme.Unpack("muted"))
     GameTooltip:Show()
 end
 
@@ -135,7 +137,61 @@ local function HideTooltip()
     if GameTooltip then GameTooltip:Hide() end
 end
 
---- One marker: a greyed, faded node icon in a gold ring, checked.
+--- Hover and the marker's check, shared by both kinds.
+local function Complete(pin, size, corner)
+    local badge = pin:CreateTexture(nil, "OVERLAY")
+    badge:SetSize(math.ceil(size * 0.6), math.ceil(size * 0.6))
+    badge:SetPoint("CENTER", pin, corner, 0, 0)
+    badge:SetTexture(CHECK)
+    pin.badge = badge
+
+    pin:SetScript("OnEnter", ShowTooltip)
+    pin:SetScript("OnLeave", HideTooltip)
+    pin:Hide()
+
+    return pin
+end
+
+-- The minimap's own herb and ore blips are drawn by the minimap itself, as
+-- part of its map, and anything an addon puts on the minimap is drawn over
+-- that map: there is no layer between the two. So a marker there cannot sit
+-- under a live node; it has to leave the node room to show. It is an empty
+-- gold frame, four corner brackets round a clear middle wide enough for the
+-- game's blip, with the check outside a corner. A node that has grown back
+-- shows through the middle, untouched.
+local BRACKET = 2
+
+--- A minimap marker: gold corner brackets round an empty middle.
+function MapMarkers.CreateFramePin(parent, size)
+    local pin = CreateFrame("Frame", nil, parent)
+    pin:SetSize(size, size)
+    pin:EnableMouse(true)
+    pin.hollow = true
+
+    local arm = math.max(3, math.floor(size / 4))
+    local r, g, b = Theme.Unpack("accent")
+    local corners = {}
+
+    for _, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+        local across = pin:CreateTexture(nil, "ARTWORK")
+        across:SetColorTexture(r, g, b, 1)
+        across:SetSize(arm, BRACKET)
+        across:SetPoint(corner)
+
+        local down = pin:CreateTexture(nil, "ARTWORK")
+        down:SetColorTexture(r, g, b, 1)
+        down:SetSize(BRACKET, arm)
+        down:SetPoint(corner)
+
+        corners[#corners + 1] = across
+        corners[#corners + 1] = down
+    end
+
+    pin.corners = corners
+    return Complete(pin, math.floor(size * 0.7), "TOPRIGHT")
+end
+
+--- A world map marker: a greyed, faded node icon in a gold ring, checked.
 function MapMarkers.CreatePin(parent, size)
     local pin = CreateFrame("Frame", nil, parent)
     pin:SetSize(size, size)
@@ -155,30 +211,22 @@ function MapMarkers.CreatePin(parent, size)
     pcall(icon.SetDesaturated, icon, true)
     icon:SetVertexColor(0.8, 0.8, 0.8)
 
-    local badge = pin:CreateTexture(nil, "OVERLAY")
-    badge:SetSize(math.ceil(size * 0.6), math.ceil(size * 0.6))
-    badge:SetPoint("BOTTOMRIGHT", math.ceil(size * 0.2), -math.ceil(size * 0.2))
-    badge:SetTexture(CHECK)
+    pin.ring, pin.icon = ring, icon
 
-    pin.ring, pin.icon, pin.badge = ring, icon, badge
-
-    pin:SetScript("OnEnter", ShowTooltip)
-    pin:SetScript("OnLeave", HideTooltip)
-    pin:Hide()
-
-    return pin
+    return Complete(pin, size, "BOTTOMRIGHT")
 end
 
 --- Point a marker at a spot.
 function MapMarkers.Dress(pin, spot, now)
     pin.spot = spot
-    pin.icon:SetTexture(ICONS[spot.kind] or ICONS.herb)
+    if not pin.hollow then pin.icon:SetTexture(ICONS[spot.kind] or ICONS.herb) end
     pin:SetAlpha(MapMarkers.AlphaFor(spot.last, now))
 end
 
 --- A pool of markers under one parent, reused from one redraw to the next.
-local function Pool(parent, size)
-    return { parent = parent, size = size, pins = {}, used = 0 }
+local function Pool(parent, size, create)
+    return { parent = parent, size = size, create = create or MapMarkers.CreatePin,
+        pins = {}, used = 0 }
 end
 
 local function Acquire(pool)
@@ -186,7 +234,7 @@ local function Acquire(pool)
     local pin = pool.pins[pool.used]
 
     if not pin then
-        pin = MapMarkers.CreatePin(pool.parent, pool.size)
+        pin = pool.create(pool.parent, pool.size)
         pool.pins[pool.used] = pin
     end
 
@@ -279,8 +327,10 @@ function MapMarkers:DrawWorld()
     if not MapMarkers.WorldOn() then return Finish(pool) end
 
     local now = ns.Gathering.Clock()
+    -- The bottom of the canvas's own pins: whatever else the map shows, the
+    -- game's or another addon's, draws over a spot you have already taken.
     local okLevel, level = pcall(view.canvas.GetFrameLevel, view.canvas)
-    level = (okLevel and tonumber(level) or 1) + 50
+    level = (okLevel and tonumber(level) or 1) + 1
 
     -- Same size on screen at any zoom: shrink the marker as the canvas grows,
     -- and place it in its own, smaller, units.
@@ -382,7 +432,7 @@ end
 function MapMarkers:DrawMinimap()
     if not Minimap then return end
 
-    self.minimapPool = self.minimapPool or Pool(Minimap, MINIMAP_SIZE)
+    self.minimapPool = self.minimapPool or Pool(Minimap, MINIMAP_SIZE, MapMarkers.CreateFramePin)
     local pool = self.minimapPool
     Begin(pool)
 
@@ -422,8 +472,9 @@ function MapMarkers:PlaceMinimap(pool)
     table.sort(near, function(a, b) return a.distance < b.distance end)
 
     local now = ns.Gathering.Clock()
+    -- Just above the minimap, so another addon's pins draw over these.
     local okLevel, level = pcall(Minimap.GetFrameLevel, Minimap)
-    level = (okLevel and tonumber(level) or 1) + 5
+    level = (okLevel and tonumber(level) or 1) + 1
 
     for index = 1, math.min(#near, MINIMAP_MAX) do
         local entry = near[index]
