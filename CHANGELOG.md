@@ -4,6 +4,16 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.4.2
+
+For WoW: Forever (interface 16001).
+
+- Fixed: hovering a mob in a dungeon raised a Lua error, twice per hover.
+- Fixed: loot could be mistaken for a herb or ore node when the client
+  called it fishing loot.
+- The 20-kill /emote is no longer sent inside dungeons and raids. The
+  fanfare and chat line still play.
+
 ## 0.4.1
 
 For WoW: Forever (interface 16001).
