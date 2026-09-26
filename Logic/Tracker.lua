@@ -606,8 +606,27 @@ end
 
 -- Sounds to try for the fanfare, best first: the achievement toast, then the
 -- level-up chime, which every client has. Ids, since this client's SOUNDKIT
--- names are not known.
+-- names are not known. Our own fanfare (below) goes ahead of both.
 local FANFARE = { 12891, 888 }
+
+-- The addon's own sounds (Trent picked them, 2026-09-26), in Media/Sounds.
+-- Made for this addon, so they are ours to ship. The game only finds a file
+-- added since it started after a full restart; until then these fail and the
+-- built-in sounds play instead.
+local MEDIA = [[Interface\AddOns\Blackthornes_Farmer\Media\Sounds\]]
+
+Tracker.SOUNDS = {
+    unlock = MEDIA .. "drop-rates-unlocked.ogg",
+    rare = MEDIA .. "rare-drop.ogg",
+}
+
+--- Play one of the addon's sound files. True if the client says it will.
+function Tracker.PlayFile(path)
+    if type(PlaySoundFile) ~= "function" then return false end
+
+    local ok, willPlay = pcall(PlaySoundFile, path, "Master")
+    return (ok and willPlay) and true or false
+end
 
 --- Drop rates just unlocked for `mobName`: a sound, a line in your own chat,
 --- and an /emote the players around you see.
@@ -647,6 +666,8 @@ function Tracker:Fanfare(line, emote)
     if emote and ns.db.trackerAnnounce ~= false then
         self:Announce(emote)
     end
+
+    if Tracker.PlayFile(Tracker.SOUNDS.unlock) then return end
 
     if type(PlaySound) == "function" then
         for _, sound in ipairs(FANFARE) do
