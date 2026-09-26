@@ -184,12 +184,16 @@ end
 --------------------------------------------------------------------------------
 
 --- The player's position as map percentages, or nil if the client will not say.
-function Harvest:PlayerPosition()
+--- Where the player stands on the map the client is showing them in:
+--- mapID, x, y, with x and y as fractions of that map (0 to 1). Nil when the
+--- client will not say, which inside an instance it usually will not.
+function Harvest:PlayerMapPosition()
     local caps = self:Capabilities()
     if not (caps.bestMap and caps.playerPos) then return nil end
 
     local ok, mapID = pcall(C_Map.GetBestMapForUnit, "player")
-    if not ok or not mapID then return nil end
+    mapID = ok and ReadableNumber(mapID) or nil
+    if not mapID then return nil end
 
     local gotPosition, position = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
     if not gotPosition or not position then return nil end
@@ -202,7 +206,8 @@ function Harvest:PlayerPosition()
         local readable, px, py = pcall(position.GetXY, position)
         if readable then x, y = px, py end
     elseif type(position) == "number" then
-        x, y = position, select(2, C_Map.GetPlayerMapPosition(mapID, "player"))
+        local readable, _, py = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
+        if readable then x, y = position, py end
     end
 
     -- Read rather than type-checked: a coordinate off a restricted client is
@@ -211,6 +216,14 @@ function Harvest:PlayerPosition()
 
     if not x or not y then return nil end
     if x == 0 and y == 0 then return nil end
+
+    return mapID, x, y
+end
+
+--- The player's map coordinates in percent, as the game shows them: 45.2, 68.0.
+function Harvest:PlayerPosition()
+    local mapID, x, y = self:PlayerMapPosition()
+    if not mapID then return nil end
 
     return x * 100, y * 100
 end

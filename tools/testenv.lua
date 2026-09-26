@@ -313,6 +313,7 @@ local UI_FILES = {
     "UI/TrackerFX.lua",
     "UI/LootTable.lua",
     "UI/Rankings.lua",
+    "UI/MapMarkers.lua",
     "UI/Settings.lua",
 }
 

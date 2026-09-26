@@ -313,7 +313,26 @@ function SettingsUI:BuildWindowsColumn()
     end, { width = 110, height = 20 })
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
 
-    local advanced = CreateSection(frame, "ADVANCED", { anchor = positionRow })
+    local markers = CreateSection(frame, "GATHERED NODE MARKERS", { anchor = positionRow })
+
+    local worldRow = CreateRow(frame, markers, "World map",
+        "Greyed icons with a gold ring and a check where you gathered. "
+        .. "Same as /farm markers.")
+
+    controls.markersWorld = Widgets.CreateCheckbox(worldRow, "Show them", function(checked)
+        ns.MapMarkers:SetWorld(checked)
+    end, true)
+    controls.markersWorld:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local minimapMarkersRow = CreateRow(frame, worldRow, "Minimap",
+        "The same markers around you. Hover one to see when you gathered it.")
+
+    controls.markersMinimap = Widgets.CreateCheckbox(minimapMarkersRow, "Show them", function(checked)
+        ns.MapMarkers:SetMinimap(checked)
+    end, true)
+    controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local advanced = CreateSection(frame, "ADVANCED", { anchor = minimapMarkersRow })
 
     local debugRow = CreateRow(frame, advanced, "Debug output",
         "Extra messages in chat, to help track down a problem.")
@@ -423,6 +442,8 @@ function SettingsUI:Refresh()
     controls.windowScale:SetValue(db.windowScale or 100, true)
     controls.trackerScale:SetValue(db.trackerScale or 100, true)
     controls.debug:SetChecked(db.debug == true)
+    controls.markersWorld:SetChecked(db.markersWorld ~= false)
+    controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
 
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.report:SetChecked(db.trackerReport == true)

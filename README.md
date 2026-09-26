@@ -84,6 +84,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
 | `/farm fishing [all]` | what you have caught in this zone, or everywhere (`reset confirm` clears it) |
 | `/farm gathering [all\|check]` | herbs and ore you have gathered in this zone, or everywhere; `check` lists herbs or ore credited to a mob (`reset confirm` clears it) |
+| `/farm markers [on\|off]` | markers where you gathered herbs and ore, on the world map and minimap (on by default; `map on\|off` or `minimap on\|off` for one, `clear confirm` removes them) |
 | `/farm announce [on\|off]` | whether players near you see an emote at those milestones (on by default) |
 | `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills or a fishing spot 20 casts, and its rates unlock (on by default) |
 | `/farm effects [full\|subtle\|off]` | how much the kill panel moves when loot lands: glows, the value counting up, loot floating off the panel (full by default; subtle drops the floats) |
