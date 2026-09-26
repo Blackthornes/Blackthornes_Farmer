@@ -4,6 +4,23 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.6.0
+
+For WoW: Forever (interface 16001). This version adds a file, so fully
+restart the game after updating; `/reload` is not enough.
+
+- Gathered herb and ore spots are marked on the world map and minimap with a
+  faded node icon and a green check, so a marker never looks like a live
+  node. Hover one to see what it was and when you last took it. Each map has
+  its own switch in Settings and under `/farm markers`, and
+  `/farm markers clear confirm` removes the markers only.
+- Kill streaks: kills no more than a minute apart build a streak, shown from
+  the third kill with the session's best, and every fifth gets a cheer.
+- A green-or-better drop now pulses in its quality colour and floats off the
+  panel as "Nice!", "Rare!" or "Epic!".
+- A 20th kill, cast or gather drops a gold banner over the panel.
+- All of these follow `/farm effects`.
+
 ## 0.5.0
 
 For WoW: Forever (interface 16001). This version adds sound files, so fully
