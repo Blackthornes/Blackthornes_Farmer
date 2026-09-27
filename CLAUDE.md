@@ -35,6 +35,22 @@ CurseForge project IDs: Farmer **1710618**, Tradeskills **1710638**. Both
 release the same way (a `vX.Y.Z` tag on `main`, checked clear to post before
 upload; see the README under Releasing). v0.2.0 of both is on CurseForge.
 
+## What Tradeskills calls here
+
+Tradeskills' Gather tab has a **Set goal** button that makes a goal here for a
+material its craft queue needs. It shows only when Farmer is loaded and
+calls, inside a pcall:
+
+```lua
+_G.BlackthornesFarmer.Goals:Find(name)            -- optional
+_G.BlackthornesFarmer.Goals:Set(name, amount)     -- goal table, or nil and why
+_G.BlackthornesFarmer.GoalsUI:Show()
+```
+
+Keep the `_G.BlackthornesFarmer` global, `Goals:Set` (returning the goal with
+`item`, `target` and `have`, or nil and a reason) and `GoalsUI:Show` stable.
+If one has to change, change Tradeskills' `Logic/FarmerGoals.lua` too.
+
 ## Trent's standing rules (both addons)
 
 - **"Always check that it's clear to post."** Anything public is checked for
