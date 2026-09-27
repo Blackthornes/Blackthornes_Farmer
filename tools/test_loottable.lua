@@ -64,7 +64,9 @@ suite.check("the mob's band opens its table", band and band.mob == WOLF)
 local under = {}
 for index = select(2, Line(WOLF)) + 1, #TUI.shown do
     local line = TUI.shown[index]
-    if line.style ~= "item" and line.style ~= "place" then break end
+    -- Past its progress bar and countdown, while it has no rates yet.
+    local passing = line.style == "progress" or line.style == "note"
+    if not passing and line.style ~= "item" and line.style ~= "place" then break end
     if line.style == "item" then under[#under + 1] = line.left end
 end
 suite.check("the panel lists the mob's three most common drops",

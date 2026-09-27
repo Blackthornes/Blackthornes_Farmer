@@ -11,8 +11,11 @@
 --     its quality colour, and fades, like combat text.
 --   * Any line whose count went up gets a wash that fades out: green, or the
 --     item's own colour for green-and-better drops.
---   * The mob just killed glows gold, its kill count pops bigger for a beat,
---     and its bar toward 20 slides up instead of jumping.
+--   * The mob just killed glows gold and its kill count pops bigger for a
+--     beat. Its progress bar toward 20 moves like a goal's (Trent,
+--     2026-09-27): it slides up, the part just gained lights, a shine runs
+--     along it, passing a quarter, half or three quarters pulses it gold and
+--     floats "Halfway there!", and the last few float "2 more!" in green.
 --   * A green-or-better drop plays the rare-drop sound, and its line pulses
 --     in its quality colour with an outline, and floats as "Rare! ...".
 --   * A kill streak (kills close together) pops at each kill and floats a
@@ -52,6 +55,9 @@ local BAND_ALPHA = 0.45
 local POP_TIME = 0.4
 local POP_SIZE = 17
 local BAR_TIME = 0.45
+-- The progress bar toward rates slides and shines as a goal's does.
+local SLIDE_TIME = 0.5
+local BAR_SHINE = 26
 local COUNT_TIME = 0.7
 local CHIP_TIME = 4
 local FLOAT_TIME = 1.8
@@ -275,7 +281,8 @@ function TrackerFX:Prepare(all, shown)
     local seen = {}
     for _, line in ipairs(all) do
         if line.key and line.count then
-            seen[line.key] = { count = line.count, bar = line.bar }
+            seen[line.key] = { count = line.count, bar = line.bar,
+                progress = line.progress, milestone = line.milestone }
         end
     end
 
@@ -504,6 +511,73 @@ function TrackerFX:Slide(row, key, from, to)
         end })
 end
 
+-- What a mark on the progress bar floats as it is passed.
+local MARK_CHEERS = { "25%!", "Halfway there!", "75%!" }
+
+--- A band's progress bar went up: the goal bar's slide, lit gain and shine,
+--- a gold pulse at each mark, and the countdown floating in the last stretch.
+function TrackerFX:Progress(row, line, was, level)
+    local UI = ns.TrackerUI
+    local bar = row.progress
+    local key = line.key
+    if not (UI and bar) then return end
+
+    local from = was and tonumber(was.progress) or 0
+    local to = tonumber(line.progress) or 0
+    if to <= from then return end
+
+    local width = UI:ProgressWidth(row)
+    local full = level == "full"
+
+    local slide = { slot = bar.fill, row = row, key = key, duration = SLIDE_TIME,
+        apply = function(p)
+            UI:SetProgress(row, from + (to - from) * EaseOut(p), line.final)
+        end,
+        stop = function()
+            if row.line and row.line.key == key then UI:SetProgress(row, to, line.final) end
+        end }
+    self:Start(slide)
+    -- From where it was straight away, so the new length never shows first.
+    pcall(slide.apply, 0)
+
+    bar.fresh:ClearAllPoints()
+    bar.fresh:SetPoint("TOPLEFT", bar.track, "TOPLEFT", width * from, 0)
+    bar.fresh:SetWidth(math.max(1, width * (to - from)))
+    self:Start({ slot = bar.fresh, row = row, key = key, duration = GLOW_TIME,
+        delay = SLIDE_TIME * 0.6,
+        apply = function(p) bar.fresh:SetAlpha(0.6 * (1 - p) ^ 2) end,
+        stop = function() bar.fresh:SetAlpha(0) end })
+
+    if full then
+        local reach = math.max(BAR_SHINE, width * to)
+        bar.shine:SetWidth(BAR_SHINE)
+        self:Start({ slot = bar.shine, row = row, key = key, duration = SHINE_TIME,
+            delay = SLIDE_TIME * 0.5,
+            apply = function(p)
+                bar.shine:ClearAllPoints()
+                bar.shine:SetPoint("TOPLEFT", bar.track, "TOPLEFT",
+                    math.max(0, (reach - BAR_SHINE) * p), 0)
+                bar.shine:SetAlpha(0.55 * math.sin(p * math.pi))
+            end,
+            stop = function() bar.shine:SetAlpha(0) end })
+    end
+
+    local passed = was ~= nil and (line.milestone or 0) > (was.milestone or 0)
+    if passed then
+        self:Pulse(row, key, BRIGHT_GOLD, PULSE_ALPHA)
+    end
+
+    if not (full and was) then return end
+
+    if passed then
+        self:FloatText(Util.Colored("accent", MARK_CHEERS[line.milestone] or "Nice!"),
+            row, 0.35, FLOAT_RARE_SIZE)
+    elseif line.final then
+        local left = (line.target or 0) - (line.have or 0)
+        self:FloatText(Util.Colored("good", ("%d more!"):format(left)), row, 0.35, 15)
+    end
+end
+
 --- Gathered value, counting up to its new total.
 function TrackerFX:CountUp(row, key, from, to)
     local label = row.right
@@ -553,6 +627,11 @@ function TrackerFX:LineGained(row, line, was, level)
                     row, 0, FLOAT_RARE_SIZE)
             end
         end
+        return
+    end
+
+    if line.style == "progress" then
+        self:Progress(row, line, was, level)
         return
     end
 
