@@ -41,6 +41,8 @@ local function Loot(mob, items)
 end
 
 local function Shown(key)
+    -- The gathered value is drawn in the title bar, not a column row.
+    if key == "total" then return TUI.titleLine, TUI.titleRow end
     for index, line in ipairs(TUI.shown or {}) do
         if line.key == key then return line, TUI.lines[index] end
     end

@@ -366,7 +366,10 @@ function TrackerFX:Play(plan, rowFor)
     end
 
     if level == "full" then
+        -- The top row of the column. The gathered value in the title bar
+        -- stops short of the X, so floats would start on top of it.
         local first = rowFor(1)
+        if first and first.line and first.line.key == "total" then first = rowFor(2) or first end
 
         for index = 1, math.min(#plan.items, MAX_FLOATS) do
             local item = plan.items[index]
