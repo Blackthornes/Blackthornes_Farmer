@@ -4,9 +4,11 @@
 -- A tall, narrow column under the player and party frames that fills in as
 -- you farm. At the top, this session: how many kills, and everything looted
 -- with how many of each. Below it, every mob killed this session, latest
--- first, on its own band: its all-time kills, a bar filling toward the 20 it
--- takes for drop rates, and its best drops -- as counts until then, as rates
--- with a bar after.
+-- first, on its own band: its all-time kills, then until it has the 20 it
+-- takes for drop rates a progress bar like a goal's ("12 / 20", marks at a
+-- quarter, half and three quarters, green in the last stretch) and how many
+-- more, then its best drops -- as counts until then, as rates with a bar
+-- after.
 --
 -- Items are drawn the way the bags draw them, icon and quality colour, both
 -- remembered from the loot window by the tracker.
@@ -44,6 +46,17 @@ local LINE = 18
 local ICON = 14
 local BAR = 40
 TrackerUI.BAR = BAR
+
+-- The progress bar toward rates (Trent, 2026-09-27: "a progress bar like
+-- the goals"): as tall as a goal's, never shorter than MIN_PROGRESS.
+local PROGRESS_HEIGHT = 7
+local MIN_PROGRESS = 60
+local BRIGHT_GOLD = { 1, 0.906, 0.639 }
+local GREEN_TIP = { 0.66, 1, 0.77 }
+
+-- Marks on the bar, and the last stretch that turns it green: a goal's.
+local MARKS = { 0.25, 0.5, 0.75 }
+local FINAL = 0.1
 
 -- Right-hand value and the green badge beside it, in pixels.
 local RIGHT_WIDTH = 54
@@ -313,6 +326,47 @@ function TrackerUI:CreateLine(parent, index)
     row.fill:SetPoint("BOTTOMLEFT", row.track, "BOTTOMLEFT")
     row.fill:SetHeight(2)
 
+    -- The progress bar, the Goals panel's: a dark track, the fill, a
+    -- brighter tip, the part just gained, a shine, and the quarter marks.
+    -- DrawLine sets where the track runs.
+    local bar = {}
+    row.progress = bar
+
+    bar.track = row:CreateTexture(nil, "BORDER")
+    bar.track:SetHeight(PROGRESS_HEIGHT)
+    bar.track:SetColorTexture(Theme.Unpack("row"))
+
+    bar.fill = row:CreateTexture(nil, "ARTWORK")
+    bar.fill:SetPoint("TOPLEFT", bar.track, "TOPLEFT")
+    bar.fill:SetHeight(PROGRESS_HEIGHT)
+
+    bar.tip = row:CreateTexture(nil, "OVERLAY")
+    bar.tip:SetPoint("TOPRIGHT", bar.fill, "TOPRIGHT")
+    bar.tip:SetSize(4, PROGRESS_HEIGHT)
+
+    bar.fresh = row:CreateTexture(nil, "OVERLAY")
+    bar.fresh:SetHeight(PROGRESS_HEIGHT)
+    bar.fresh:SetColorTexture(1, 0.95, 0.8, 1)
+    pcall(bar.fresh.SetBlendMode, bar.fresh, "ADD")
+    bar.fresh:SetAlpha(0)
+
+    bar.shine = row:CreateTexture(nil, "OVERLAY")
+    bar.shine:SetHeight(PROGRESS_HEIGHT)
+    bar.shine:SetColorTexture(1, 1, 1, 1)
+    pcall(bar.shine.SetBlendMode, bar.shine, "ADD")
+    bar.shine:SetAlpha(0)
+
+    bar.marks = {}
+    for index = 1, #MARKS do
+        local mark = row:CreateTexture(nil, "OVERLAY")
+        mark:SetSize(1, PROGRESS_HEIGHT)
+        mark:SetColorTexture(1, 1, 1, 0.22)
+        bar.marks[index] = mark
+    end
+
+    bar.parts = { bar.track, bar.fill, bar.tip, bar.fresh, bar.shine }
+    for _, mark in ipairs(bar.marks) do bar.parts[#bar.parts + 1] = mark end
+
     -- A mob's band and its "Show all" line open its loot table.
     row.dragged = false
     row.hover = Theme.Fill(row, "rowHover", 0.7, "BORDER")
@@ -379,7 +433,9 @@ end
 -- A line whose number can go up also has a `key` that names it from one
 -- redraw to the next and that `count`, so UI/TrackerFX.lua can tell what just
 -- went up and make it move.
--- Styles: "heading", "mob", "place", "value", "item", "note", "link".
+-- Styles: "heading", "mob", "place", "value", "item", "note", "link",
+-- "progress" (the bar toward rates: `have`, `target`, `progress` 0-1,
+-- `milestone` for the marks passed, `final` in the last stretch).
 -- A fishing spot or a node is drawn as a "mob" band with no `mob`, so a click
 -- opens nothing.
 function TrackerUI:Lines()
@@ -442,6 +498,41 @@ function TrackerUI:Lines()
     return out
 end
 
+--- "12 / 20", the first part bright, as a goal's count reads.
+function TrackerUI.CountText(have, target)
+    return ("%d|c%s / %d|r"):format(have, ns.COLORS.muted, target)
+end
+
+--- In the last stretch toward `target`: a few left, and the bar goes green.
+function TrackerUI.Final(have, target)
+    local left = target - have
+    return left > 0 and left <= math.max(1, math.floor(target * FINAL))
+end
+
+--- Under a band still short of rates (Trent, 2026-09-27): a progress bar
+--- like a goal's, then how many more. `key` is the band's; `more` is the
+--- countdown's text, "%d" for the number.
+function TrackerUI:ProgressLines(Add, key, have, target, more)
+    have = math.max(0, math.min(have, target))
+    local fraction = target > 0 and have / target or 0
+
+    local milestone = 0
+    for index, at in ipairs(MARKS) do
+        if fraction >= at then milestone = index end
+    end
+
+    local final = TrackerUI.Final(have, target)
+    Add({ style = "progress", key = key .. ":progress", count = have,
+        have = have, target = target, progress = fraction,
+        milestone = milestone, final = final,
+        right = TrackerUI.CountText(have, target), rightColor = "text" })
+
+    -- The last few say so in green, as a goal's do.
+    local left = target - have
+    Add({ style = "note", left = more:format(left) .. (final and "!" or ""),
+        leftColor = final and "good" or nil })
+end
+
 --- This session's kills: the loot heading, then each mob killed.
 function TrackerUI:KillLines(Add, mobs)
     local Tracker = ns.Tracker
@@ -480,20 +571,20 @@ function TrackerUI:KillLines(Add, mobs)
     for _, summary in ipairs(mobs) do
         -- All-time kills on the band, this session's in green beside them,
         -- and until there are enough for rates, a bar filling toward it.
-        local band = Add({ style = "mob", left = summary.mob, mob = summary.mob,
+        Add({ style = "mob", left = summary.mob, mob = summary.mob,
             right = tostring(summary.kills), badge = ("+%d"):format(summary.session),
             key = "mob:" .. summary.mob, count = summary.kills })
-
-        if not summary.rated then
-            band.bar = summary.kills / Tracker.MIN_KILLS
-            band.barColor = "accent"
-        end
 
         -- Where you kill it most; the loot table lists every place.
         local top = summary.places[1]
         if top then
             Add({ style = "place", left = top.name,
                 right = #summary.places > 1 and ("+%d more"):format(#summary.places - 1) or nil })
+        end
+
+        if not summary.rated then
+            self:ProgressLines(Add, "mob:" .. summary.mob, summary.kills, Tracker.MIN_KILLS,
+                summary.needed == 1 and "%d more kill for drop rates" or "%d more kills for drop rates")
         end
 
         -- What a kill is worth, priced by Tradeskills: from your own tally
@@ -527,10 +618,7 @@ function TrackerUI:KillLines(Add, mobs)
                 left = ("Show all %d items"):format(#summary.items) })
         end
 
-        if not summary.rated then
-            Add({ style = "note", left = ("%d more %s for drop rates"):format(
-                summary.needed, summary.needed == 1 and "kill" or "kills") })
-        elseif #summary.items == 0 then
+        if summary.rated and #summary.items == 0 then
             Add({ style = "note", left = "nothing dropped yet" })
         end
     end
@@ -580,17 +668,17 @@ function TrackerUI:FishingLines(Add, withTotal)
     if withTotal then self:TotalLines(Add) end
 
     for _, summary in ipairs(Fishing:SessionSpots()) do
-        local band = Add({ style = "mob", left = (summary.name:gsub("^%l", string.upper)),
+        Add({ style = "mob", left = (summary.name:gsub("^%l", string.upper)),
             right = tostring(summary.casts), badge = ("+%d"):format(summary.session),
             key = "spot:" .. tostring(summary.key), count = summary.casts })
 
-        if not summary.rated then
-            band.bar = summary.casts / Fishing.MIN_CASTS
-            band.barColor = "accent"
-        end
-
         if summary.place then
             Add({ style = "place", left = summary.place })
+        end
+
+        if not summary.rated then
+            self:ProgressLines(Add, "spot:" .. tostring(summary.key), summary.casts, Fishing.MIN_CASTS,
+                summary.needed == 1 and "%d more cast for catch rates" or "%d more casts for catch rates")
         end
 
         local worth = Fishing:WorthPerCast(summary.key)
@@ -619,10 +707,6 @@ function TrackerUI:FishingLines(Add, withTotal)
                 #summary.items - MOB_ITEMS) })
         end
 
-        if not summary.rated then
-            Add({ style = "note", left = ("%d more %s for catch rates"):format(
-                summary.needed, summary.needed == 1 and "cast" or "casts") })
-        end
     end
 end
 
@@ -638,17 +722,17 @@ function TrackerUI:GatheringLines(Add, withTotal)
     if withTotal then self:TotalLines(Add) end
 
     for _, summary in ipairs(Gathering:SessionNodes()) do
-        local band = Add({ style = "mob", left = summary.name,
+        Add({ style = "mob", left = summary.name,
             right = tostring(summary.gathers), badge = ("+%d"):format(summary.session),
             key = "node:" .. tostring(summary.key), count = summary.gathers })
 
-        if not summary.rated then
-            band.bar = summary.gathers / Gathering.MIN_GATHERS
-            band.barColor = "accent"
-        end
-
         if summary.place then
             Add({ style = "place", left = summary.place })
+        end
+
+        if not summary.rated then
+            self:ProgressLines(Add, "node:" .. tostring(summary.key), summary.gathers,
+                Gathering.MIN_GATHERS, "%d more for gather rates")
         end
 
         local worth = Gathering:WorthPerGather(summary.key)
@@ -677,9 +761,6 @@ function TrackerUI:GatheringLines(Add, withTotal)
                 #summary.items - MOB_ITEMS) })
         end
 
-        if not summary.rated then
-            Add({ style = "note", left = ("%d more for gather rates"):format(summary.needed) })
-        end
     end
 end
 
@@ -725,9 +806,9 @@ function TrackerUI:DrawLine(row, line)
     else
         row.icon:Hide()
 
-        if line.style == "note" or line.style == "value" then
+        if line.style == "note" or line.style == "value" or line.style == "progress" then
             indent = PADDING + 6
-            row.left:SetTextColor(Theme.Unpack("muted"))
+            row.left:SetTextColor(Theme.Unpack(line.leftColor or "muted"))
         elseif line.style == "link" then
             indent = PADDING + 6
             row.left:SetTextColor(Theme.Unpack("accent"))
@@ -744,7 +825,7 @@ function TrackerUI:DrawLine(row, line)
     --
     -- The value and badge columns are as wide as their text needs, at least
     -- their usual width, so neither is cut short either.
-    local rightWidth = math.max(RIGHT_WIDTH, Theme.TextWidth("small", line.right) + 2)
+    local rightWidth = math.max(RIGHT_WIDTH, Theme.TextWidth("small", Util.StripColor(line.right)) + 2)
     local badgeWidth = math.max(BADGE_WIDTH, Theme.TextWidth("tiny", line.badge) + 2)
     row.right:SetWidth(rightWidth)
     row.badge:SetWidth(badgeWidth)
@@ -761,8 +842,25 @@ function TrackerUI:DrawLine(row, line)
 
     -- How wide the panel must be for this line to show in full.
     row.needs = indent + Theme.TextWidth("small", line.left) + stop + 4
-    row.left:SetText(line.left)
+    row.left:SetText(line.left or "")
     row.left:Show()
+
+    -- The progress bar runs from the indent to just short of its count.
+    local bar = row.progress
+    if line.style == "progress" then
+        row.barLeft = indent
+        row.barRight = stop
+        row.needs = indent + MIN_PROGRESS + stop + 4
+
+        bar.track:ClearAllPoints()
+        bar.track:SetPoint("LEFT", indent, 0)
+        bar.track:SetPoint("RIGHT", -stop, 0)
+        for _, part in ipairs(bar.parts) do part:Show() end
+        -- Drawn at its real width once the panel's width is settled.
+        self:SetProgress(row, line.progress, line.final)
+    else
+        for _, part in ipairs(bar.parts) do part:Hide() end
+    end
 
     row.right:SetText(line.right)
     row.right:SetTextColor(Theme.Unpack(line.rightColor
@@ -794,6 +892,35 @@ function TrackerUI:DrawLine(row, line)
     row:EnableMouse(line.mob ~= nil)
 
     row:Show()
+end
+
+--- How long a row's progress bar is: the panel's width, less the indent
+--- and the count.
+function TrackerUI:ProgressWidth(row)
+    local width = tonumber(self.frame and self.frame:GetWidth()) or self:Width()
+    return math.max(20, width - 2 - (row.barLeft or PADDING) - (row.barRight or PADDING))
+end
+
+--- A row's progress bar filled to `fraction`, green in the last stretch, as
+--- a goal's is (GoalsUI:SetBar).
+function TrackerUI:SetProgress(row, fraction, green)
+    local bar = row.progress
+    local width = self:ProgressWidth(row)
+    fraction = math.max(0, math.min(1, tonumber(fraction) or 0))
+
+    bar.fill:SetColorTexture(Theme.Unpack(green and "good" or "accent"))
+    bar.fill:SetWidth(math.max(1, width * fraction))
+    bar.fill:SetShown(fraction > 0)
+
+    local tip = green and GREEN_TIP or BRIGHT_GOLD
+    bar.tip:SetColorTexture(tip[1], tip[2], tip[3], 0.9)
+    bar.tip:SetShown(fraction > 0.02 and fraction < 1)
+
+    for index, at in ipairs(MARKS) do
+        local mark = bar.marks[index]
+        mark:ClearAllPoints()
+        mark:SetPoint("TOPLEFT", bar.track, "TOPLEFT", math.floor(width * at), 0)
+    end
 end
 
 function TrackerUI:Render()
@@ -879,6 +1006,13 @@ function TrackerUI:Render()
     end
 
     self:FitTitleBadge()
+
+    -- The progress bars again, now that the panel has its width.
+    for index, line in ipairs(lines) do
+        if line.style == "progress" then
+            self:SetProgress(self.lines[index], line.progress, line.final)
+        end
+    end
 
     if plan then
         local ok, err = pcall(FX.Play, FX, plan, RowFor)

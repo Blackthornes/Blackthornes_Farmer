@@ -126,8 +126,27 @@ suite.check("with its all-time kills", boarLine and boarLine.right == "6",
     boarLine and boarLine.right)
 suite.check("and this session's beside them", boarLine and boarLine.badge == "+6",
     boarLine and boarLine.badge)
-suite.check("and a bar filling toward 20", boarLine and math.abs(boarLine.bar - 0.3) < 1e-9,
-    boarLine and boarLine.bar)
+-- Under it, a progress bar like a goal's (Trent, 2026-09-27).
+local _, boarBandAt = Line(BOAR)
+if UI.shown[boarBandAt + 1].style == "place" then boarBandAt = boarBandAt + 1 end
+local boarBar = UI.shown[boarBandAt + 1]
+suite.check("a progress bar sits under the band", boarBar and boarBar.style == "progress",
+    boarBar and boarBar.style)
+suite.check("filling toward 20", boarBar and math.abs(boarBar.progress - 0.3) < 1e-9,
+    boarBar and boarBar.progress)
+suite.check("its count reads like a goal's",
+    boarBar and ns.Util.StripColor(boarBar.right) == "6 / 20", boarBar and boarBar.right)
+suite.check("one mark passed at 6 of 20", boarBar and boarBar.milestone == 1,
+    boarBar and boarBar.milestone)
+suite.check("not yet the last stretch", boarBar and not boarBar.final)
+suite.check("the band itself has no thin bar now", boarLine and boarLine.bar == nil)
+suite.check("the countdown comes straight after the bar",
+    UI.shown[boarBandAt + 2] and UI.shown[boarBandAt + 2].left == "14 more kills for drop rates",
+    UI.shown[boarBandAt + 2] and UI.shown[boarBandAt + 2].left)
+
+local barRow = UI.lines[boarBandAt + 1]
+suite.check("the bar row shows its bar", barRow and barRow.progress.track:IsShown())
+suite.check("and the row above it does not", not UI.lines[boarBandAt].progress.track:IsShown())
 
 local session = Line("THIS SESSION")
 suite.check("the session heading totals kills",
@@ -140,7 +159,10 @@ suite.check("session loot adds up quantities",
     scrapsLoot and scrapsLoot.right == "x2", scrapsLoot and scrapsLoot.right)
 
 local _, boarAt = Line(BOAR)
-local itemUnder = UI.shown[boarAt + 1]
+local itemUnder
+for index = boarAt + 1, #UI.shown do
+    if UI.shown[index].style == "item" then itemUnder = UI.shown[index] break end
+end
 suite.check("items under a mob show as counts, not percentages",
     itemUnder and itemUnder.right:find("%", 1, true) == nil, itemUnder and itemUnder.right)
 suite.check("and it says how many more kills",
@@ -218,6 +240,17 @@ end
 summary = Tracker:Summary(WOLF)
 suite.check("19 kills is not enough", summary.rated == false)
 
+-- The last stretch: green, and the countdown cheers.
+local _, wolfBandAt = Line(WOLF)
+if UI.shown[wolfBandAt + 1].style == "place" then wolfBandAt = wolfBandAt + 1 end
+local wolfBar = UI.shown[wolfBandAt + 1]
+suite.check("at 19 of 20 the bar is in its last stretch",
+    wolfBar and wolfBar.style == "progress" and wolfBar.final == true)
+suite.check("with every mark passed", wolfBar and wolfBar.milestone == 3)
+suite.check("and the countdown says so in green",
+    UI.shown[wolfBandAt + 2].left == "1 more kill for drop rates!"
+    and UI.shown[wolfBandAt + 2].leftColor == "good", UI.shown[wolfBandAt + 2].left)
+
 ns.HandleSlash("report on")
 mark = #env.chat
 Loot(WOLF, { HIDE })
@@ -238,7 +271,7 @@ local _, wolfAt = Line(WOLF)
 suite.check("a rated item carries a bar as long as its rate",
     UI.shown[wolfAt + 2].bar == 0.25, UI.shown[wolfAt + 2].bar)
 suite.check("and the mob's progress bar is gone once rates show",
-    UI.shown[wolfAt].bar == nil)
+    UI.shown[wolfAt + 1].style ~= "progress", UI.shown[wolfAt + 1].style)
 
 suite.check("the latest mob is listed first",
     wolfAt and wolfAt < select(2, Line(BOAR)), wolfAt)
