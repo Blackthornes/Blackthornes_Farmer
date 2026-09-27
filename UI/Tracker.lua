@@ -231,12 +231,30 @@ function TrackerUI:Build()
     end, { width = 18, height = 16 })
     close:SetPoint("RIGHT", -6, 0)
 
+    -- The session's gathered value, right-aligned in the title bar between
+    -- the title and the X (Trent, 2026-09-27). Built like a line row so the
+    -- count-up, glow and "+38s" in UI/TrackerFX.lua work on it unchanged.
+    local total = CreateFrame("Frame", nil, header)
+    -- From just past the title (DrawTitle measures it) to just short of the X.
+    total:SetPoint("TOPLEFT", header, "TOPLEFT", PADDING + 100, -1)
+    total:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", -(6 + 18 + 6), 1)
+
+    total.right = Theme.CreateLabel(total, "normal", "good", "RIGHT")
+    total.right:SetPoint("RIGHT", -2, 0)
+
+    total.badge = Theme.CreateLabel(total, "tiny", "good", "RIGHT")
+    total.badge:SetPoint("RIGHT", total.right, "LEFT", -4, 0)
+    total:Hide()
+
     local rule = Theme.CreateDivider(frame, "borderLit")
     rule:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
     rule:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT")
 
     self.frame = frame
     self.title = title
+    self.titleRow = total
+    self.header = header
+    self.closeButton = close
     self.lines = {}
 
     self:BuildGrip(frame)
@@ -514,16 +532,27 @@ end
 
 --- What everything gathered this session is worth (Trent, 2026-09-25): coin,
 --- loot and fishing catches together, priced like worth per kill. Items with
---- no price are left out and counted in a note, so the total never guesses.
+--- no price are left out, so the total never guesses.
+--
+-- The total itself sits in the title bar (Trent, 2026-09-27). Returns its
+-- line, or nil when nothing gathered this session has a price.
+function TrackerUI:TitleTotal()
+    if not ns.Value then return nil end
+
+    local total = ns.Value:Session()
+    if not total then return nil end
+
+    return { style = "value", left = "Gathered value",
+        right = ns.Value.Money(total), rightColor = "good",
+        key = "total", count = total }
+end
+
+--- The note under the top heading when some items had no price to count.
 function TrackerUI:TotalLines(Add)
     if not ns.Value then return end
 
     local total, details = ns.Value:Session()
     if not total then return end
-
-    Add({ style = "value", left = "Gathered value",
-        right = ns.Value.Money(total), rightColor = "good",
-        key = "total", count = total })
 
     local missing = #details.unpriced
     if missing > 0 then
@@ -787,12 +816,32 @@ function TrackerUI:Render()
 
     self.shown = lines
 
+    -- The gathered value goes in the title bar. The effects see it as the
+    -- first line, ahead of the column's.
+    local titleLine = self:TitleTotal()
+    self.titleLine = titleLine
+
+    local fxShown = lines
+    if titleLine then
+        table.insert(all, 1, titleLine)
+        fxShown = { titleLine }
+        for _, line in ipairs(lines) do fxShown[#fxShown + 1] = line end
+    end
+
+    local function RowFor(index)
+        if titleLine then
+            if index == 1 then return self.titleRow end
+            index = index - 1
+        end
+        return self.lines[index]
+    end
+
     -- What went up since the last redraw, worked out before drawing so the
     -- value line can carry its "+38s". Never allowed to stop the panel.
     local FX = ns.TrackerFX
     local plan
     if FX then
-        local ok, result = pcall(FX.Prepare, FX, all, lines)
+        local ok, result = pcall(FX.Prepare, FX, all, fxShown)
         plan = ok and result or nil
         if not ok then ns.Debug("panel effects:", tostring(result)) end
     end
@@ -813,6 +862,8 @@ function TrackerUI:Render()
         end
     end
 
+    needs = math.max(needs, self:DrawTitle(titleLine))
+
     -- At least the width you gave it, and wider when a line needs it, so no
     -- text is cut off (Trent, 2026-09-25: "Loot a corpse and it shows up
     -- he..."). Mid-drag the drag decides, and it widens again on letting go.
@@ -821,9 +872,63 @@ function TrackerUI:Render()
         self.frame:SetHeight(HEADER + PADDING * 2 + #lines * LINE)
     end
 
+    self:FitTitleBadge()
+
     if plan then
-        local ok, err = pcall(FX.Play, FX, plan, function(index) return self.lines[index] end)
+        local ok, err = pcall(FX.Play, FX, plan, RowFor)
         if not ok then ns.Debug("panel effects:", tostring(err)) end
+    end
+end
+
+--- The gathered value in the title bar, or nothing there when there is no
+--- total. Returns how wide the panel must be for the title and the value to
+--- both show in full beside the X.
+function TrackerUI:DrawTitle(line)
+    local row = self.titleRow
+    -- False rather than nil, so an effect still running on it sees no line.
+    row.line = line or false
+    self.titleBadgeNeeds = nil
+
+    local titleWidth = Theme.TextWidth("normal", self.title:GetText())
+    row:SetPoint("TOPLEFT", self.header, "TOPLEFT", PADDING + 4 + titleWidth + 8, -1)
+
+    -- Title, the gap before the value, and the X with its margins.
+    local needs = PADDING + 4 + titleWidth + 8 + 6 + 18 + 6
+
+    if not line then
+        row.right:SetText("")
+        row.badge:SetText("")
+        row.badge:Hide()
+        row:Hide()
+        return needs
+    end
+
+    local valueWidth = Theme.TextWidth("normal", line.right) + 2
+    row.right:SetWidth(valueWidth)
+    row.right:SetText(line.right)
+    row.right:SetTextColor(Theme.Unpack(line.rightColor or "good"))
+    row.right:Show()
+
+    local badgeWidth = line.badge and (Theme.TextWidth("tiny", line.badge) + 2) or 0
+    row.badge:SetWidth(math.max(1, badgeWidth))
+    row.badge:SetText(line.badge or "")
+    if line.badge then self.titleBadgeNeeds = needs + valueWidth + 2 + badgeWidth + 4 end
+
+    row:Show()
+    return needs + valueWidth + 2
+end
+
+--- The "+38s" only lasts a few seconds, so the panel does not widen for it:
+--- it shows when there is room between the title and the value.
+function TrackerUI:FitTitleBadge()
+    local row = self.titleRow
+    local width = self.frame:GetWidth()
+    local needs = self.titleBadgeNeeds
+
+    if needs and type(width) == "number" and needs <= width then
+        row.badge:Show()
+    else
+        row.badge:Hide()
     end
 end
 

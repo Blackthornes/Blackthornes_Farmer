@@ -1,6 +1,7 @@
 -- What this session's haul is worth (Trent, 2026-09-25).
 --
--- The top of the THIS SESSION section shows a "Gathered value": the coin off
+-- The panel's title bar shows a "Gathered value" (moved there from the top of
+-- THIS SESSION, Trent 2026-09-27): the coin off
 -- this session's kills plus every item looted or fished up, times its unit
 -- price (the same price worth per kill uses). What matters: every stack and
 -- every coin counts once, a second window on a skinned corpse adds only the
@@ -36,7 +37,8 @@ local function Line(left)
 end
 
 suite.check("nothing gathered has no total", Value:Session() == nil)
-suite.check("and the empty panel shows none", Line("Gathered value") == nil)
+suite.check("and the empty panel shows none", TUI.titleLine == nil)
+suite.check("so the title bar has no value", not TUI.titleRow:IsShown())
 
 local serial = 0
 local function Loot(mob, items, guid)
@@ -59,11 +61,16 @@ local total, details = Value:Session()
 suite.check("coin and loot add up", total == 12 + 50 + 2 * 5, total)
 suite.check("the coin is kept apart", details.coin == 12, details.coin)
 
-local line = Line("Gathered value")
+local line = TUI.titleLine
 suite.check("the panel shows it", line and line.right == Value.Money(72), line and line.right)
 suite.check("in the good colour", line and line.rightColor == "good")
-suite.check("right under THIS SESSION",
-    TUI.shown[1].left == "THIS SESSION" and TUI.shown[2] == line, TUI.shown[2] and TUI.shown[2].left)
+suite.check("in the title bar", TUI.titleRow:IsShown()
+    and TUI.titleRow.right:GetText() == Value.Money(72), TUI.titleRow.right:GetText())
+suite.check("not in the column", Line("Gathered value") == nil)
+suite.check("the column starts with THIS SESSION", TUI.shown[1].left == "THIS SESSION")
+suite.check("the panel is wide enough for title, value and X",
+    TUI.frame:GetWidth() >= ns.Theme.TextWidth("normal", "Kills & Loot")
+        + ns.Theme.TextWidth("normal", Value.Money(72)) + 50, TUI.frame:GetWidth())
 
 -- Skinning the same corpse: coin is not taken twice, the leather is new.
 Loot("Mangy Wolf", { LEATHER }, "W-1")
@@ -89,9 +96,9 @@ TUI:Refresh()
 total, details = Value:Session()
 suite.check("a tracker reset keeps the fish", total == 3, total)
 suite.check("and forgets the session's coin", details.coin == 0, details.coin)
-suite.check("fishing alone shows the total under FISHING",
-    TUI.shown[1].left == "FISHING" and TUI.shown[2].left == "Gathered value",
-    TUI.shown[2] and TUI.shown[2].left)
+suite.check("fishing alone still shows the total in the title bar",
+    TUI.shown[1].left == "FISHING" and TUI.titleLine and TUI.titleLine.right == Value.Money(3),
+    TUI.titleLine and TUI.titleLine.right)
 
 Fishing:Reset()
 suite.check("resetting both starts over", Value:Session() == nil)

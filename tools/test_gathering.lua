@@ -143,8 +143,8 @@ suite.check("the Gathering section appears once you have gathered", Line("GATHER
 suite.check("it counts this session's nodes", Line("GATHERING").right == "1 gather",
     Line("GATHERING").right)
 suite.check("gathering alone gets the session's total",
-    Line("Gathered value") and Line("Gathered value").right == ns.Value.Money(10),
-    Line("Gathered value") and Line("Gathered value").right)
+    ns.TrackerUI.titleLine and ns.TrackerUI.titleLine.right == ns.Value.Money(10),
+    ns.TrackerUI.titleLine and ns.TrackerUI.titleLine.right)
 suite.check("a thin node says how many more",
     Line("19 more for gather rates") ~= nil)
 
@@ -235,8 +235,8 @@ suite.check("the panel puts the latest on top",
     select(2, Line("Copper Vein")) < select(2, Line("Peacebloom")))
 suite.check("and gathering over the kills, since it was last",
     select(2, Line("GATHERING")) < select(2, Line("THIS SESSION")))
-suite.check("the total stays with the kills",
-    select(2, Line("Gathered value")) > select(2, Line("THIS SESSION")))
+suite.check("the total stays in the title bar, out of the column",
+    Line("Gathered value") == nil and ns.TrackerUI.titleLine ~= nil)
 
 -- The session's value: 3 Peacebloom at 10, 2 Copper at 5, 1 Rough Stone at 2,
 -- and four Large Fangs at 50 off the wolves.

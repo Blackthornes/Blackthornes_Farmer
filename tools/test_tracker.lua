@@ -445,8 +445,14 @@ suite.check("and the newest mob is still at the top",
 
 local TUI = ns.TrackerUI
 
+-- The first row with a value on the right (the gathered value that used to be
+-- row 2 is in the title bar now).
+local valued
+for index, line in ipairs(TUI.shown) do
+    if line.right and line.right ~= "" and line.style ~= "heading" then valued = TUI.lines[index] break end
+end
 suite.check("a line with a value stops short of it",
-    TUI.lines[2].leftStop > 8, TUI.lines[2].leftStop)
+    valued and valued.leftStop > 8, valued and valued.leftStop)
 
 ns.db.trackerWidth, ns.db.trackerHeight = 400, 200
 TUI:Refresh()
