@@ -231,11 +231,7 @@ function TrackerUI:Build()
     header:SetPoint("TOPRIGHT")
     header:SetHeight(HEADER)
 
-    local stripe = header:CreateTexture(nil, "ARTWORK")
-    stripe:SetPoint("TOPLEFT")
-    stripe:SetPoint("BOTTOMLEFT")
-    stripe:SetWidth(3)
-    stripe:SetColorTexture(Theme.Unpack("accent"))
+    Theme.HouseHeader(header)
 
     local title = Theme.CreateLabel(header, "normal", "accent")
     title:SetPoint("LEFT", header, "TOPLEFT", PADDING + 4, -TITLE_LINE / 2)
@@ -245,7 +241,7 @@ function TrackerUI:Build()
         ns.db.trackerHidden = true
         TrackerUI:Refresh()
         ns.Print("kill and loot panel hidden. /farm tracker brings it back.")
-    end, { width = 18, height = 16 })
+    end, { width = 18, height = 16, danger = true })
     close:SetPoint("RIGHT", header, "TOPRIGHT", -6, -TITLE_LINE / 2)
 
     -- The session's gathered value on the title bar's second line (Trent,

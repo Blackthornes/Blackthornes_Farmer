@@ -240,9 +240,19 @@ local function UpdateRow(row, data)
         row.cells.rate:SetText(data.rate)
         row.cells.rate:SetTextColor(Theme.Unpack(color))
         row.fill:SetColorTexture(Theme.Unpack(color))
-        row.fill:SetWidth(math.max(1, (COLUMNS[2].width - 10) * math.min(1, data.chance / 100)))
         row.track:Show()
         row.fill:Show()
+
+        -- Opening on a mob grows each bar from nothing, one row after another.
+        local width = math.max(1, (COLUMNS[2].width - 10) * math.min(1, data.chance / 100))
+        local fill = row.fill
+        if LootTableUI.arriving then
+            ns.Motion:Run(row, "bar", 0.45, function(p) fill:SetWidth(math.max(1, width * p)) end,
+                { delay = 0.1 + math.min((row.dataIndex or 1) - 1, 14) * 0.025 })
+        else
+            ns.Motion:Stop(row, "bar")
+            fill:SetWidth(width)
+        end
     else
         row.cells.rate:SetText("--")
         row.cells.rate:SetTextColor(Theme.Unpack("dim"))
@@ -291,18 +301,14 @@ function LootTableUI:Build()
     header:SetPoint("TOPRIGHT")
     header:SetHeight(HEADER)
 
-    local stripe = header:CreateTexture(nil, "ARTWORK")
-    stripe:SetPoint("TOPLEFT")
-    stripe:SetPoint("BOTTOMLEFT")
-    stripe:SetWidth(3)
-    stripe:SetColorTexture(Theme.Unpack("accent"))
+    Theme.HouseHeader(header)
 
     local title = Theme.CreateLabel(header, "large", "accent")
     title:SetPoint("LEFT", PADDING, 0)
     title:SetPoint("RIGHT", -40, 0)
 
     local close = Widgets.CreateButton(header, "X", function() LootTableUI:Hide() end,
-        { width = 22, height = 20 })
+        { width = 22, height = 20, danger = true })
     close:SetPoint("RIGHT", -8, 0)
 
     local rule = Theme.CreateDivider(frame, "borderLit")
@@ -389,9 +395,22 @@ function LootTableUI:Render()
     self.data = data
     self.title:SetText(data.mob)
 
-    self.kills:SetText(data.session > 0
-        and ("%d  %s"):format(data.kills, Util.Colored("good", ("+%d"):format(data.session)))
-        or tostring(data.kills))
+    -- Opening on a mob counts its kills up from nothing.
+    local function Kills(count)
+        return data.session > 0
+            and ("%d  %s"):format(count, Util.Colored("good", ("+%d"):format(data.session)))
+            or tostring(count)
+    end
+
+    local kills = self.kills
+    if self.shownMob ~= data.mob and data.kills > 1 then
+        ns.Motion:Run(kills, "count", 0.6, function(p)
+            kills:SetText(Kills(math.floor(data.kills * p + 0.5)))
+        end)
+    else
+        ns.Motion:Stop(kills, "count")
+        kills:SetText(Kills(data.kills))
+    end
 
     local Money = ns.Value and ns.Value.Money
     if data.worth and Money then
@@ -439,12 +458,17 @@ function LootTableUI:Render()
     self.frame:SetHeight(self:HeightFor(#data.rows))
 
     local offset = self.list.offset
+    local fresh = self.shownMob ~= data.mob
+    self.arriving = fresh
     self.list:SetData(data.rows)
+    self.arriving = false
 
     -- A redraw after new loot keeps your place in a long list.
-    if self.shownMob == data.mob then
+    if not fresh then
         self.list.offset = offset
         self.list:Refresh()
+    else
+        self.list:Arrive()
     end
     self.shownMob = data.mob
 end
@@ -497,8 +521,15 @@ function LootTableUI:Show(mobName)
 
     self:Build()
     self.mob = mobName
+
+    -- Closed and opened again on the same mob is a fresh look, so its rows
+    -- come in again.
+    local opening = not self.frame:IsShown()
+    if opening then self.shownMob = nil end
+
     self:Render()
     self.frame:Show()
+    if opening then ns.Motion:Open(self.frame) end
 
     return true
 end

@@ -250,6 +250,7 @@ function SettingsUI:BuildHeader()
     header:SetPoint("TOPLEFT")
     header:SetPoint("TOPRIGHT")
     header:SetHeight(HEADER)
+    Theme.HouseHeader(header, 20)
 
     local title = Theme.CreateLabel(header, "title", "accent")
     title:SetPoint("LEFT", PADDING, 0)
@@ -263,7 +264,7 @@ function SettingsUI:BuildHeader()
     version:SetText(ns.VersionLabel())
 
     local close = Widgets.CreateButton(header, "X", function() SettingsUI:Hide() end,
-        { width = 22, height = 20 })
+        { width = 22, height = 20, danger = true })
     close:SetPoint("RIGHT", -PADDING + 4, 0)
 
     version:SetPoint("RIGHT", close, "LEFT", -10, 0)
@@ -531,6 +532,7 @@ function SettingsUI:Show()
     if not self.frame:IsShown() then
         self:RestorePosition()
         self.frame:Show()
+        ns.Motion:Open(self.frame)
     end
 
     self:Refresh()

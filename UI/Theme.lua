@@ -197,6 +197,15 @@ function Theme.TopSheen(frame, alpha)
     return sheen
 end
 
+--- The house header's trim on `header`: the gold stripe down its left, the
+--- soft glow and the sheen along its top. Returns the stripe.
+function Theme.HouseHeader(header, glowHeight)
+    local stripe = Theme.AccentStripe(header, 3)
+    Theme.HeaderGlow(header, glowHeight or 16, 0.10)
+    Theme.TopSheen(header)
+    return stripe
+end
+
 --- A soft gold glow fading down from the top of a header, drawn as a
 --- gradient where the client has one and left out where it does not.
 function Theme.HeaderGlow(frame, height, alpha)

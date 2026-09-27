@@ -911,7 +911,7 @@ function UI:ShowTab(key)
     if key == "rankings" then
         -- A hidden search box keeping the keyboard would eat your keys.
         self.searchBox:ClearFocus()
-        ns.RankingsUI:Render()
+        ns.RankingsUI:Render(true)
     else
         self.frame:SetWidth(WIDTH + (self.columns or COLUMN).extra)
     end

@@ -145,7 +145,8 @@ suite.check("the same results do not arrive again", not Motion:Running(UI.list.r
 -- The item heading carries the item's icon.
 local heading
 for _, row in ipairs(UI.list.rows) do
-    if row.data and row.data.type == "item" then heading = row break end
+    local data = rawget(row, "data")
+    if data and data.type == "item" then heading = row break end
 end
 suite.check("an item heading has its icon", heading and heading.itemIcon:IsShown())
 suite.check("and its band", heading and heading.band:IsShown())
@@ -166,5 +167,51 @@ suite.check("a button lights under the mouse", Motion:Value(button, "hover") == 
 button:GetScript("OnLeave")(button)
 Motion:FinishAll()
 suite.check("and settles when it leaves", Motion:Value(button, "hover") == 0)
+
+--------------------------------------------------------------------------------
+-- The other windows
+--------------------------------------------------------------------------------
+
+-- Kill some wolves so there is a loot table and a board to draw.
+ns.TrackerUI:OnEnable()
+local serial = 0
+local function Loot(mob, items)
+    serial = serial + 1
+    env.world.target = { name = mob, level = 8, dead = true, guid = "M-" .. serial }
+    env.world.loot = items
+    ns.Tracker:OnLoot()
+end
+for _ = 1, 21 do Loot("Mangy Wolf", { { name = "10 Copper", money = true } }) end
+Motion:FinishAll()
+
+local LTU = ns.LootTableUI
+suite.check("the loot table opens", LTU:Show("Mangy Wolf"))
+suite.check("counting its kills up", Motion:Running(LTU.kills, "count"))
+Motion:FinishAll()
+suite.check("and lands on the full count", LTU.kills:GetText() == "21  " .. ns.Util.Colored("good", "+21"),
+    LTU.kills:GetText())
+
+-- A redraw while open does not count up again.
+LTU:Refresh()
+suite.check("a redraw does not count up again", not Motion:Running(LTU.kills, "count"))
+LTU:Hide()
+
+-- Rankings: the top of a board wears a medal.
+UI:ShowTab("rankings")
+Motion:FinishAll()
+local medalled
+for _, row in ipairs(ns.RankingsUI.list.rows) do
+    local data = rawget(row, "data")
+    if data and data.entry and data.entry.rank == 1 then medalled = row end
+end
+suite.check("the top mob has a medal", medalled and medalled.medal:IsShown())
+suite.check("three medals, gold first", #ns.RankingsUI.MEDALS == 3
+    and ns.RankingsUI.MEDALS[1][1] > ns.RankingsUI.MEDALS[1][3])
+UI:ShowTab("search")
+
+-- Settings fades up as it opens and lands fully drawn.
+ns.SettingsUI:Show()
+Motion:FinishAll()
+suite.check("settings opens", ns.SettingsUI.frame:IsShown())
 
 suite.done()
