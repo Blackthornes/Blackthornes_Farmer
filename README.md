@@ -81,6 +81,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm settings` | open the settings window (`options` and `config` work too) |
 | `/farm minimap` | show or hide the minimap button |
 | `/farm tracker [on\|off]` | show or hide the kills and loot panel (`reset confirm` clears the tallies) |
+| `/farm tracker group [on\|off]` | move the panel aside from the party and raid frames when grouped (on by default) |
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
 | `/farm fishing [all]` | what you have caught in this zone, or everywhere (`reset confirm` clears it) |
 | `/farm gathering [all\|check]` | herbs and ore you have gathered in this zone, or everywhere; `check` lists herbs or ore credited to a mob (`reset confirm` clears it) |
@@ -157,6 +158,11 @@ grip in its bottom-right corner to resize it. The width is what you drag it
 to, or wider when a line needs it, so no text is cut off; the height is the
 tallest it grows, so a short session still gets a
 short panel. Settings > Window positions puts both back.
+
+In a party or raid the panel moves to the right of the party and raid frames,
+and back when you leave the group. Drag it while grouped and it goes to that
+spot in every group from then on. Turn this off with **Move aside** in
+Settings or `/farm tracker group off`.
 
 **Fishing.** Once you have fished this session the panel grows a Fishing
 section, on top whenever fishing is what you did last. Each spot you fished is

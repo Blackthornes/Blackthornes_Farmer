@@ -751,7 +751,7 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("tracker", "show or hide the kill and loot panel", function(rest)
+ns.RegisterCommand("tracker", "show or hide the kill and loot panel (group on/off: move it aside in a party or raid)", function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "reset" then
@@ -763,6 +763,22 @@ ns.RegisterCommand("tracker", "show or hide the kill and loot panel", function(r
     if argument == "reset confirm" then
         Tracker:Reset()
         ns.Print("kill tallies cleared.")
+        return
+    end
+
+    local group = argument:match("^group%s*(%a*)$")
+    if group then
+        local on
+        if group == "on" then on = true
+        elseif group == "off" then on = false
+        else on = ns.db.trackerDodgeGroup == false end
+
+        if ns.TrackerUI then ns.TrackerUI:SetDodgeGroup(on)
+        else ns.db.trackerDodgeGroup = on end
+
+        ns.Print(on
+            and "in a group, the panel moves aside from the party and raid frames."
+            or "the panel stays put in a group. /farm tracker group on to move it aside.")
         return
     end
 

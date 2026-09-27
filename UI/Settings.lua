@@ -34,7 +34,8 @@ local COLUMN_TWO_X = PADDING * 2 + COLUMN_WIDTH
 local CONTROL_X = 170
 
 local WIDTH = COLUMN_WIDTH * 2 + PADDING * 3
-local HEIGHT = 612
+-- Tall enough for the right column: six tally rows, then loot recording.
+local HEIGHT = 668
 
 local ROW_HEIGHT = 50
 local ROW_GAP = -6
@@ -125,6 +126,8 @@ function SettingsUI:ApplyTrackerScale()
     local frame = TrackerUI.frame or (TrackerUI.Build and TrackerUI:Build())
     if frame then
         frame:SetScale((ns.db.trackerScale or 100) / 100)
+        -- A new size can change whether it overlaps the group frames.
+        if TrackerUI.Place then TrackerUI:Place() end
     end
 end
 
@@ -173,10 +176,15 @@ function SettingsUI:ResetPositions()
     db.trackerWidth = nil
     db.trackerHeight = nil
 
+    -- A spot picked for groups goes too; it goes back beside the group frames.
+    db.trackerGroupX = nil
+    db.trackerGroupY = nil
+
     if ns.UI and ns.UI.frame then ns.UI:RestorePosition() end
 
     if ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.RestorePosition then
         ns.TrackerUI:RestorePosition()
+        if ns.TrackerUI.Place then ns.TrackerUI:Place() end
         if ns.TrackerUI.Refresh then ns.TrackerUI:Refresh() end
     end
 
@@ -358,7 +366,16 @@ function SettingsUI:BuildTrackingColumn()
     end, true)
     controls.tracker:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local reportRow = CreateRow(frame, trackerRow, "Chat report",
+    local groupRow = CreateRow(frame, trackerRow, "In a group",
+        "Moves the panel right of the party and raid frames, and back when you "
+        .. "leave the group. Drag it while grouped to pick your own spot.")
+
+    controls.dodgeGroup = Widgets.CreateCheckbox(groupRow, "Move aside", function(checked)
+        ns.TrackerUI:SetDodgeGroup(checked)
+    end, true)
+    controls.dodgeGroup:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local reportRow = CreateRow(frame, groupRow, "Chat report",
         "One line per kill in your own chat window. Nobody else can see it.")
 
     controls.report = Widgets.CreateCheckbox(reportRow, "Report kills", function(checked)
@@ -446,6 +463,7 @@ function SettingsUI:Refresh()
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
 
     controls.tracker:SetChecked(not db.trackerHidden)
+    controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)
     controls.report:SetChecked(db.trackerReport == true)
     controls.announce:SetChecked(db.trackerAnnounce ~= false)
 

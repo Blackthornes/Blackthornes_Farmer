@@ -257,6 +257,8 @@ local DEFAULTS = {
     trackerPoint = "TOPLEFT",
     trackerX = 8,
     trackerY = -190,
+    -- In a party or raid, step aside from the group frames.
+    trackerDodgeGroup = true,
 
     -- Markers where herbs and ore were gathered, on the world map and the
     -- minimap. Each can be turned off on its own.
