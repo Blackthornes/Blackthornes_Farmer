@@ -90,6 +90,8 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills or a fishing spot 20 casts, and its rates unlock (on by default) |
 | `/farm effects [full\|subtle\|off]` | how much the kill panel moves when loot lands: glows, the value counting up, loot floating off the panel (full by default; subtle drops the floats) |
 | `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
+| `/farm goal <item> <amount>` | set a gathering goal, e.g. `/farm goal Copper Ore 40`; on its own, lists your goals (`remove <item>`, `clear` for finished ones, `bank on\|off` to count your bank) |
+| `/farm goals [dock]` | show or hide the goals panel; `dock` puts it back under the kills panel |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
 | `/farm rankings` | open the Rankings tab: mobs by what a kill is worth (`rank` works too) |
@@ -247,6 +249,30 @@ chime. Both are in Settings too.
 A kill is a corpse you open. Skinning a corpse you already looted, or coming
 back for what you left, is still one kill. `/farm report on` also prints a
 line in your own chat window on every kill; nobody else sees it.
+
+### Gathering goals
+
+Pick a material and a number and the Goals panel counts you toward it. Press
+**Goal** beside an item in the search results, choose 20, 40, 60, 100 or
+type your own, and **Set goal**; or type `/farm goal Copper Ore 40`. Up to six
+goals run at once.
+
+A goal is how many you have, so what is already in your bags counts. Tick
+**Include bank** on the picker (or `/farm goal bank on`) to count the bank
+as well. Only loot counts toward your pace: items from the bank, mail, a
+vendor, the auction house or a trade move the count but float nothing.
+
+The panel sits under the kills panel until you drag it elsewhere. Each goal
+shows its count, the best spot for it, a bar marked at a quarter, half and
+three quarters, how many are left and, once you have gathered a few, how long
+the rest should take at your pace. As you loot, the count ticks
+up, the bar slides with a shine along it and "+3 Copper Ore" floats off the
+side. Passing 25%, halfway and 75% pulses the card gold and tags it. In the
+last stretch the bar turns green and counts down "3 more!". The last one drops
+a GOAL COMPLETE banner with sparkles and the drop-rates-unlocked sound, and
+the card shows how many loots it took and what the pile is worth. Click a
+finished card to clear it. Click any other card to search for that item, or
+right-click to remove it. The effects follow `/farm effects`.
 
 ## The data
 

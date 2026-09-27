@@ -392,6 +392,16 @@ function UI:CreateRow(row)
     row.heading:SetPoint("LEFT", 2, 0)
     row.heading:SetPoint("RIGHT", -64, 0)
 
+    -- Set a gathering goal for the item (UI/Goals.lua).
+    row.goal = Widgets.CreateButton(row, "Goal", function(self)
+        local data = row.data
+        if data and data.type == "item" and ns.GoalsUI then
+            ns.GoalsUI:OpenPicker(data.item.name, self)
+        end
+    end, { width = 44, height = 15 })
+    row.goal:SetPoint("RIGHT", -2, 0)
+    row.goal:Hide()
+
     row.kindChip = row:CreateTexture(nil, "ARTWORK")
     row.kindChip:SetSize(BASE_WIDTH.kind - 6, 13)
 
@@ -434,6 +444,7 @@ end
 function UI:UpdateRow(row, data)
     self:PlaceRow(row)
     row.heading:Hide()
+    row.goal:Hide()
     HideSourceColumns(row)
 
     if data.type == "item" then
@@ -446,6 +457,17 @@ function UI:UpdateRow(row, data)
             Util.Colored("muted", ("(%s, %s)"):format(
                 data.item.category, Util.Plural(data.count, "spot")))))
         row.heading:Show()
+
+        -- "23/40" once it has a goal, so the list shows where you are.
+        local goal = ns.Goals and ns.Goals:Find(data.item.name)
+        if goal and not goal.done then
+            row.goal:SetText(("%d/%d"):format(goal.have or 0, goal.target or 0))
+            row.goal.label:SetTextColor(Theme.Unpack("accent"))
+        else
+            row.goal:SetText("Goal")
+            row.goal.label:SetTextColor(Theme.Unpack("text"))
+        end
+        row.goal:Show()
         return
     end
 
