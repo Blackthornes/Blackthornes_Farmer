@@ -91,6 +91,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm effects [full\|subtle\|off]` | how much the kill panel moves when loot lands: glows, the value counting up, loot floating off the panel (full by default; subtle drops the floats) |
 | `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
 | `/farm goal <item> <amount>` | set a gathering goal, e.g. `/farm goal Copper Ore 40`; on its own, lists your goals (`remove <item>`, `clear` for finished ones, `bank on\|off` to count your bank) |
+| `/farm where <item>` | the best places near you to farm it, nearest first |
 | `/farm goals [dock]` | show or hide the goals panel; `dock` puts it back under the kills panel |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
@@ -273,6 +274,16 @@ a GOAL COMPLETE banner with sparkles and the drop-rates-unlocked sound, and
 the card shows how many loots it took and what the pile is worth. Click a
 finished card to clear it. Click any other card to search for that item, or
 right-click to remove it. The effects follow `/farm effects`.
+
+**Where?** Each goal card has a **Where?** button, and the line under the
+goal's name already names the top pick. It lists up to six places to farm the
+item, best first, from where you are standing. Near means how many zones
+you would cross: your own zone, then the zones next to it, with the other
+continent last. A place well above your level drops down the list, a better
+drop rate moves one up, and places you have killed or gathered it yourself
+come first and say what you got there. Click a place to print it to chat;
+when it is in the zone you are in and has coordinates, it is also pinned on
+your map. `/farm where copper ore` opens the same list without a goal.
 
 ## The data
 

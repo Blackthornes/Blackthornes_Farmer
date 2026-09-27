@@ -301,6 +301,7 @@ local FILES = {
     "Logic/Value.lua",
     "Logic/Rankings.lua",
     "Logic/Goals.lua",
+    "Logic/Spots.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on

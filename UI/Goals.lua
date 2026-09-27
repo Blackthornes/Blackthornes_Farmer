@@ -320,6 +320,24 @@ function GoalsUI:Card(index)
     card.sub = Theme.CreateLabel(card, "tiny", "muted")
     card.sub:SetPoint("TOPLEFT", card.name, "BOTTOMLEFT", 0, -2)
 
+    -- The best places near you to farm it (Trent, 2026-09-27).
+    card.where = Widgets.CreateButton(card, "Where?", function()
+        if card.goal then GoalsUI:OpenSpots(card.goal.item, GoalsUI.frame) end
+    end, { width = 44, height = 13 })
+    card.where:SetPoint("TOPRIGHT", -PADDING, -23)
+    card.where.label:SetTextColor(Theme.Unpack("accent"))
+    card.where:SetScript("OnLeave", function(self)
+        self.background:SetColorTexture(Theme.Unpack("row"))
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    card.where:HookScript("OnEnter", function(self)
+        if GameTooltip then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine("Best places near you to farm this")
+            GameTooltip:Show()
+        end
+    end)
+
     -- The milestone tag: dark text on a gold chip.
     card.tagBack = card:CreateTexture(nil, "ARTWORK")
     card.tagBack:SetColorTexture(Theme.Unpack("accent"))
@@ -408,16 +426,18 @@ function GoalsUI:SetBar(card, fraction, green)
     card.tip:SetShown(fraction > 0.02 and fraction < 1)
 end
 
---- The small grey line under the name: where the goal is best met.
+--- The small grey line under the name: the best place near you, from the
+--- same ranking the Where button opens.
 local function SpotText(goal)
-    local spot = ns.Goals:BestSpot(goal.item)
+    local ok, spots = pcall(ns.Spots.For, ns.Spots, goal.item)
+    local spot = ok and spots and spots[1]
     if not spot then return "" end
 
-    local who = spot.name or ns.DB:KindLabel(spot.kind)
-    if spot.chance then
-        return ("%s, %d%%"):format(who, spot.chance)
+    local distance = ns.Spots.DistanceText(spot.hops, spot.zone)
+    if distance == "you are here" then
+        return ("%s, %s"):format(spot.name or "?", Util.Colored("good", "here"))
     end
-    return ("%s, %s"):format(who, spot.zone or "")
+    return ("%s, %s"):format(spot.name or "?", spot.zone or "?")
 end
 
 function GoalsUI:DrawCard(card, goal)
@@ -468,9 +488,11 @@ function GoalsUI:DrawCard(card, goal)
     end
 
     self:SetBar(card, fraction, final or goal.done)
+    card.where:SetShown(not goal.done)
 
     if goal.done then
         local recap = Goals:Recap(goal)
+        card.sub:SetWidth(self:BarWidth() - ICON - 8)
         card.sub:SetText(Util.Colored("good", "Goal done") .. (goal.doneIn and goal.doneIn >= 1
             and Util.Colored("muted", "  in " .. Goals.Duration(goal.doneIn)) or ""))
 
@@ -486,6 +508,7 @@ function GoalsUI:DrawCard(card, goal)
         card.right:SetText(recap.worth and Util.Colored("accent", ns.Value.Money(recap.worth)) or "")
     else
         card.sub:SetText(SpotText(goal))
+        card.sub:SetWidth(math.max(40, self:BarWidth() - ICON - 58))
 
         local left = Goals.Left(goal)
         if final then
@@ -980,6 +1003,230 @@ function GoalsUI:Dock()
     ns.db.goalsX = nil
     ns.db.goalsY = nil
     self:Place()
+end
+
+--------------------------------------------------------------------------------
+-- Where to farm it: the best places near you (Logic/Spots.lua)
+--------------------------------------------------------------------------------
+
+local SPOTS_WIDTH = 300
+local SPOT_ROW = 36
+local SPOTS_TOP = 44
+
+--- What a spot's distance looks like: here in green, next door in gold.
+local function DistanceColor(hops)
+    if hops == 0 then return "good" end
+    if hops == 1 then return "accent" end
+    return "muted"
+end
+
+--- The note under a spot: what you measured there, else the rate known.
+function GoalsUI.SpotNote(spot)
+    local yours = spot.yours
+    if yours and yours.gathers then
+        return Util.Colored("good", ("you gathered %d here"):format(yours.got or 0))
+    end
+    if yours and yours.kills then
+        if spot.measured then
+            return Util.Colored("good", ("%d%% in your %d kills"):format(spot.measured, yours.kills))
+        end
+        return Util.Colored("good", ("%d from your %d kills"):format(yours.got or 0, yours.kills))
+    end
+    if spot.chance then return ("%d%% drop"):format(spot.chance) end
+    if spot.requires then return spot.requires end
+    return ""
+end
+
+function GoalsUI:BuildSpots()
+    if self.spots then return self.spots end
+
+    local panel = CreateFrame("Frame", "BlackthornesFarmerGoalSpots", UIParent)
+    panel:SetSize(SPOTS_WIDTH, SPOTS_TOP + SPOT_ROW)
+    panel:SetFrameStrata("DIALOG")
+    panel:SetClampedToScreen(true)
+    panel:EnableMouse(true)
+
+    Theme.Fill(panel, "window", 0.96)
+    Theme.Border(panel, "accent")
+
+    local stripe = panel:CreateTexture(nil, "ARTWORK")
+    stripe:SetPoint("TOPLEFT")
+    stripe:SetPoint("BOTTOMLEFT")
+    stripe:SetWidth(3)
+    stripe:SetColorTexture(Theme.Unpack("accent"))
+
+    local title = Theme.CreateLabel(panel, "normal", "accent")
+    title:SetPoint("TOPLEFT", 12, -8)
+    title:SetPoint("TOPRIGHT", -30, -8)
+    panel.title = title
+
+    local from = Theme.CreateLabel(panel, "tiny", "muted")
+    from:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
+    from:SetPoint("RIGHT", -10, 0)
+    panel.from = from
+
+    local close = Widgets.CreateButton(panel, "X", function() panel:Hide() end,
+        { width = 16, height = 14 })
+    close:SetPoint("TOPRIGHT", -6, -6)
+
+    local rule = Theme.CreateDivider(panel, "borderLit")
+    rule:SetPoint("TOPLEFT", 1, -(SPOTS_TOP - 4))
+    rule:SetPoint("TOPRIGHT", -1, -(SPOTS_TOP - 4))
+
+    panel.empty = Theme.CreateLabel(panel, "small", "muted")
+    panel.empty:SetPoint("TOPLEFT", 12, -(SPOTS_TOP + 8))
+    panel.empty:SetText("No places known for this yet.")
+
+    panel.rows = {}
+
+    local hint = Theme.CreateLabel(panel, "tiny", "dim")
+    hint:SetPoint("BOTTOMLEFT", 12, 6)
+    hint:SetPoint("BOTTOMRIGHT", -10, 6)
+    hint:SetText("Click a place to print it to chat, pinned on your map when it is in this zone.")
+    hint:SetWordWrap(true)
+    panel.hint = hint
+
+    if type(UISpecialFrames) == "table" then
+        table.insert(UISpecialFrames, "BlackthornesFarmerGoalSpots")
+    end
+
+    panel:Hide()
+    self.spots = panel
+    return panel
+end
+
+function GoalsUI:SpotRow(index)
+    local panel = self.spots
+    local row = panel.rows[index]
+    if row then return row end
+
+    row = CreateFrame("Button", nil, panel)
+    row:SetHeight(SPOT_ROW)
+    row:SetPoint("TOPLEFT", 1, -(SPOTS_TOP + (index - 1) * SPOT_ROW))
+    row:SetPoint("TOPRIGHT", -1, -(SPOTS_TOP + (index - 1) * SPOT_ROW))
+
+    row.band = Theme.Fill(row, "row", index % 2 == 0 and 0.35 or 0.8)
+    row.hover = Theme.Fill(row, "rowHover", 0, "BORDER")
+
+    row.flash = row:CreateTexture(nil, "BORDER")
+    row.flash:SetAllPoints(row)
+    pcall(row.flash.SetBlendMode, row.flash, "ADD")
+    row.flash:SetColorTexture(Theme.Unpack("good"))
+    row.flash:SetAlpha(0)
+
+    row.rank = Theme.CreateLabel(row, "large", "accent", "CENTER")
+    pcall(row.rank.SetFont, row.rank, Theme.FONT, 15, "OUTLINE")
+    row.rank:SetPoint("LEFT", 6, 0)
+    row.rank:SetWidth(18)
+
+    row.name = Theme.CreateLabel(row, "normal", "text")
+    row.name:SetPoint("TOPLEFT", 30, -4)
+    row.name:SetPoint("RIGHT", -60, 0)
+
+    row.level = Theme.CreateLabel(row, "small", "text", "RIGHT")
+    row.level:SetPoint("TOPRIGHT", -10, -5)
+    row.level:SetWidth(50)
+
+    row.zone = Theme.CreateLabel(row, "tiny", "muted")
+    row.zone:SetPoint("BOTTOMLEFT", 30, 5)
+    row.zone:SetPoint("RIGHT", -110, 0)
+
+    row.note = Theme.CreateLabel(row, "tiny", "muted", "RIGHT")
+    row.note:SetPoint("BOTTOMRIGHT", -10, 5)
+    row.note:SetWidth(120)
+
+    row:SetScript("OnEnter", function(self) self.hover:SetAlpha(0.7) end)
+    row:SetScript("OnLeave", function(self) self.hover:SetAlpha(0) end)
+    row:SetScript("OnClick", function(self)
+        if not self.spot then return end
+        ns.Spots:Share(GoalsUI.spotsItem, self.spot)
+        GoalsUI:Animate({ slot = self.flash, duration = GLOW_TIME,
+            apply = function(p) self.flash:SetAlpha(0.35 * (1 - p) ^ 2) end,
+            stop = function() self.flash:SetAlpha(0) end })
+    end)
+
+    panel.rows[index] = row
+    return row
+end
+
+--- Level band coloured the way the search window colours it: red well
+--- above you, gold around you, grey below.
+local function LevelColor(spot, level)
+    if not (level and spot.minLevel) then return "text" end
+    if spot.minLevel > level + 2 then return "warn" end
+    if (spot.maxLevel or spot.minLevel) < level - 8 then return "muted" end
+    return "good"
+end
+
+--- Rank the places for `item` from where you are and show them beside
+--- `anchor` (the goals panel), or on their own.
+function GoalsUI:OpenSpots(item, anchor)
+    local panel = self:BuildSpots()
+
+    if panel:IsShown() and self.spotsItem == item then
+        panel:Hide()
+        return
+    end
+    self.spotsItem = item
+
+    local spots, player = ns.Spots:For(item)
+
+    panel.title:SetText(("Where to farm |c%s%s|r"):format(ns.COLORS.text, item))
+    if player.zone and player.level then
+        panel.from:SetText(("Nearest first, from %s at level %d"):format(player.zone, player.level))
+    elseif player.zone then
+        panel.from:SetText(("Nearest first, from %s"):format(player.zone))
+    else
+        panel.from:SetText("Your zone could not be read here, so these are by level and rate")
+    end
+
+    for index, spot in ipairs(spots) do
+        local row = self:SpotRow(index)
+        row.spot = spot
+
+        row.rank:SetText(tostring(index))
+        row.name:SetText(spot.name or "?")
+
+        row.level:SetText(spot.minLevel and ns.Search:LevelText(spot) or "")
+        row.level:SetTextColor(Theme.Unpack(LevelColor(spot, player.level)))
+
+        local distance = ns.Spots.DistanceText(spot.hops, spot.zone)
+        local where = spot.zone or "?"
+        if spot.location then where = where .. ", " .. spot.location end
+        if distance ~= "" then
+            where = where .. ("  |c%s%s|r"):format(ns.COLORS[DistanceColor(spot.hops)], distance)
+        end
+        row.zone:SetText(where)
+        row.note:SetText(GoalsUI.SpotNote(spot))
+        row:Show()
+    end
+
+    for index = #spots + 1, #panel.rows do
+        panel.rows[index]:Hide()
+        panel.rows[index].spot = nil
+    end
+
+    panel.empty:SetShown(#spots == 0)
+    panel:SetHeight(SPOTS_TOP + math.max(1, #spots) * SPOT_ROW + 30)
+
+    panel:ClearAllPoints()
+    if anchor and anchor.IsShown and anchor:IsShown() then
+        panel:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 6, 0)
+    else
+        panel:SetPoint("CENTER", UIParent, "CENTER", 0, 80)
+    end
+    panel:Show()
+
+    -- The rows slide in one after another.
+    if Level() ~= "off" then
+        for index = 1, #spots do
+            local row = panel.rows[index]
+            row:SetAlpha(0)
+            self:Animate({ slot = row, duration = 0.35, delay = (index - 1) * 0.06,
+                apply = function(p) row:SetAlpha(EaseOut(p)) end,
+                stop = function() row:SetAlpha(1) end })
+        end
+    end
 end
 
 --------------------------------------------------------------------------------
