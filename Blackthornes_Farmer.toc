@@ -35,6 +35,7 @@ Logic\Gathering.lua
 Logic\Value.lua
 Logic\Rankings.lua
 Logic\Goals.lua
+Logic\Spots.lua
 
 UI\Theme.lua
 UI\Widgets.lua
