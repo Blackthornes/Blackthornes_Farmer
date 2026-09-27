@@ -28,7 +28,7 @@ suite.check("it sits down the left side",
     ns.TrackerUI.frame._point[1] == "TOPLEFT" and ns.TrackerUI.frame._point[4] == 8,
     table.concat({ tostring(ns.TrackerUI.frame._point[1]), tostring(ns.TrackerUI.frame._point[4]) }, " "))
 suite.check("empty, it says so", Line("Nothing killed yet this session.") ~= nil)
-suite.check("and is only as tall as that", ns.TrackerUI.frame:GetHeight() < 100,
+suite.check("and is only as tall as that", ns.TrackerUI.frame:GetHeight() < ns.TrackerUI.HEADER + 60,
     ns.TrackerUI.frame:GetHeight())
 
 -- Trent's screenshot, 2026-09-25: "Nothing killed yet this se..." -- a line

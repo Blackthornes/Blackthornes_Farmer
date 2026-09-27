@@ -1,7 +1,7 @@
 -- What this session's haul is worth (Trent, 2026-09-25).
 --
--- The panel's title bar shows a "Gathered value" (moved there from the top of
--- THIS SESSION, Trent 2026-09-27): the coin off
+-- The panel's title bar shows a "Gathered value" on its second line (moved
+-- there from the top of THIS SESSION, Trent 2026-09-27): the coin off
 -- this session's kills plus every item looted or fished up, times its unit
 -- price (the same price worth per kill uses). What matters: every stack and
 -- every coin counts once, a second window on a skinned corpse adds only the
@@ -38,7 +38,9 @@ end
 
 suite.check("nothing gathered has no total", Value:Session() == nil)
 suite.check("and the empty panel shows none", TUI.titleLine == nil)
-suite.check("so the title bar has no value", not TUI.titleRow:IsShown())
+suite.check("so the title bar's second line reads 0c",
+    TUI.titleRow.right:GetText() == Value.Money(0), TUI.titleRow.right:GetText())
+suite.check("under the title", TUI.titleRow.left:GetText() == "Gathered value")
 
 local serial = 0
 local function Loot(mob, items, guid)
@@ -64,13 +66,13 @@ suite.check("the coin is kept apart", details.coin == 12, details.coin)
 local line = TUI.titleLine
 suite.check("the panel shows it", line and line.right == Value.Money(72), line and line.right)
 suite.check("in the good colour", line and line.rightColor == "good")
-suite.check("in the title bar", TUI.titleRow:IsShown()
-    and TUI.titleRow.right:GetText() == Value.Money(72), TUI.titleRow.right:GetText())
+suite.check("in the title bar", TUI.titleRow.right:GetText() == Value.Money(72),
+    TUI.titleRow.right:GetText())
 suite.check("not in the column", Line("Gathered value") == nil)
 suite.check("the column starts with THIS SESSION", TUI.shown[1].left == "THIS SESSION")
-suite.check("the panel is wide enough for title, value and X",
-    TUI.frame:GetWidth() >= ns.Theme.TextWidth("normal", "Kills & Loot")
-        + ns.Theme.TextWidth("normal", Value.Money(72)) + 50, TUI.frame:GetWidth())
+suite.check("the panel is wide enough for the label and the value",
+    TUI.frame:GetWidth() >= ns.Theme.TextWidth("small", "Gathered value")
+        + ns.Theme.TextWidth("normal", Value.Money(72)) + 20, TUI.frame:GetWidth())
 
 -- Skinning the same corpse: coin is not taken twice, the leather is new.
 Loot("Mangy Wolf", { LEATHER }, "W-1")
