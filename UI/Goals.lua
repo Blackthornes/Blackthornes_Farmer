@@ -35,7 +35,9 @@ local Util = ns.Util
 local WIDTH = 236
 local HEADER = 26
 local PADDING = 8
-local CARD = 52
+local CARD = 62
+-- As wide as the widest line needs, up to this, so nothing is cut off.
+local MAX_WIDTH = 380
 local FOOTER = 22
 local ICON = 22
 local BAR_HEIGHT = 7
@@ -198,7 +200,9 @@ function GoalsUI:Build()
     frame:SetMovable(true)
     frame:RegisterForDrag("LeftButton")
 
-    Theme.Fill(frame, "window", 0.88)
+    -- Solid enough that name plates and chat behind it do not show through
+    -- the text (Trent's screenshot, 2026-09-27).
+    Theme.Fill(frame, "window", 0.96)
     Theme.Border(frame, "border")
 
     frame:SetScript("OnDragStart", function(self)
@@ -274,7 +278,7 @@ function GoalsUI:Card(index)
     card:SetHeight(CARD)
     card:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
-    card.band = Theme.Fill(card, "row", 0.9)
+    card.band = Theme.Fill(card, "row", 1)
 
     -- The wash and the left edge the effects light up.
     card.flash = card:CreateTexture(nil, "BORDER")
@@ -323,8 +327,7 @@ function GoalsUI:Card(index)
     -- The best places near you to farm it (Trent, 2026-09-27).
     card.where = Widgets.CreateButton(card, "Where?", function()
         if card.goal then GoalsUI:OpenSpots(card.goal.item, GoalsUI.frame) end
-    end, { width = 44, height = 13 })
-    card.where:SetPoint("TOPRIGHT", -PADDING, -23)
+    end, { width = 46, height = 15 })
     card.where.label:SetTextColor(Theme.Unpack("accent"))
     card.where:SetScript("OnLeave", function(self)
         self.background:SetColorTexture(Theme.Unpack("row"))
@@ -355,8 +358,8 @@ function GoalsUI:Card(index)
     -- The bar: a dark track, the fill, a brighter tip, the part just
     -- gathered, and a shine that runs along it.
     card.track = card:CreateTexture(nil, "BORDER")
-    card.track:SetPoint("TOPLEFT", PADDING, -32)
-    card.track:SetPoint("TOPRIGHT", -PADDING, -32)
+    card.track:SetPoint("TOPLEFT", PADDING, -36)
+    card.track:SetPoint("TOPRIGHT", -PADDING, -36)
     card.track:SetHeight(BAR_HEIGHT)
     card.track:SetColorTexture(Theme.Unpack("window"))
 
@@ -393,7 +396,10 @@ function GoalsUI:Card(index)
     card.left:SetPoint("TOPLEFT", card.track, "BOTTOMLEFT", 0, -3)
 
     card.right = Theme.CreateLabel(card, "tiny", "muted", "RIGHT")
-    card.right:SetPoint("TOPRIGHT", card.track, "BOTTOMRIGHT", 0, -4)
+
+    -- The Where? button sits on the line under the bar, at its right end,
+    -- with the time left just before it.
+    card.where:SetPoint("TOPRIGHT", card.track, "BOTTOMRIGHT", 0, -3)
 
     card:SetScript("OnEnter", function(self) GoalsUI:ShowCardTooltip(self) end)
     card:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -490,9 +496,16 @@ function GoalsUI:DrawCard(card, goal)
     self:SetBar(card, fraction, final or goal.done)
     card.where:SetShown(not goal.done)
 
+    card.right:ClearAllPoints()
+    if goal.done then
+        card.right:SetPoint("TOPRIGHT", card.track, "BOTTOMRIGHT", 0, -5)
+    else
+        card.right:SetPoint("RIGHT", card.where, "LEFT", -6, 0)
+    end
+    card.sub:SetWidth(self:BarWidth() - ICON - 8)
+
     if goal.done then
         local recap = Goals:Recap(goal)
-        card.sub:SetWidth(self:BarWidth() - ICON - 8)
         card.sub:SetText(Util.Colored("good", "Goal done") .. (goal.doneIn and goal.doneIn >= 1
             and Util.Colored("muted", "  in " .. Goals.Duration(goal.doneIn)) or ""))
 
@@ -508,7 +521,6 @@ function GoalsUI:DrawCard(card, goal)
         card.right:SetText(recap.worth and Util.Colored("accent", ns.Value.Money(recap.worth)) or "")
     else
         card.sub:SetText(SpotText(goal))
-        card.sub:SetWidth(math.max(40, self:BarWidth() - ICON - 58))
 
         local left = Goals.Left(goal)
         if final then
@@ -526,12 +538,42 @@ function GoalsUI:DrawCard(card, goal)
     card:Show()
 end
 
+--- How wide a card has to be for none of its text to be cut off or run
+--- into something else. Measured, since the game's font runs wider than
+--- any width picked by eye.
+function GoalsUI:CardNeeds(card, goal)
+    local text = Util.StripColor
+    local count = Theme.TextWidth("large", text(card.count:GetText())) + 8
+
+    local top = PADDING + ICON + 8 + Theme.TextWidth("normal", goal.item) + count + PADDING
+    if card.tag:IsShown() then top = top + Theme.TextWidth("tiny", card.tag:GetText()) + 16 end
+
+    local sub = PADDING + ICON + 8 + Theme.TextWidth("tiny", text(card.sub:GetText())) + PADDING
+
+    local bottom = PADDING * 2 + Theme.TextWidth("small", text(card.left:GetText()))
+        + Theme.TextWidth("tiny", text(card.right:GetText())) + 16
+    if card.where:IsShown() then bottom = bottom + card.where:GetWidth() + 6 end
+
+    return math.max(top, sub, bottom) + 2
+end
+
 function GoalsUI:Render()
     self:Build()
 
     local list = ns.Goals:List()
     local width = self:Width()
     self.frame:SetWidth(width)
+
+    -- Draw once at the usual width, measure, and widen and draw again when
+    -- a line needs more room.
+    local needs = 0
+    for index, goal in ipairs(list) do
+        local card = self:Card(index)
+        self:DrawCard(card, goal)
+        needs = math.max(needs, self:CardNeeds(card, goal))
+    end
+    local fit = math.min(MAX_WIDTH, math.max(width, math.ceil(needs)))
+    if fit ~= width then self.frame:SetWidth(fit) end
 
     for index, goal in ipairs(list) do
         local card = self:Card(index)
@@ -1127,13 +1169,13 @@ function GoalsUI:SpotRow(index)
     row.level:SetPoint("TOPRIGHT", -10, -5)
     row.level:SetWidth(50)
 
-    row.zone = Theme.CreateLabel(row, "tiny", "muted")
-    row.zone:SetPoint("BOTTOMLEFT", 30, 5)
-    row.zone:SetPoint("RIGHT", -110, 0)
-
+    -- The note sizes to its own text; the zone line stops short of it.
     row.note = Theme.CreateLabel(row, "tiny", "muted", "RIGHT")
     row.note:SetPoint("BOTTOMRIGHT", -10, 5)
-    row.note:SetWidth(120)
+
+    row.zone = Theme.CreateLabel(row, "tiny", "muted")
+    row.zone:SetPoint("BOTTOMLEFT", 30, 5)
+    row.zone:SetPoint("RIGHT", row.note, "LEFT", -8, 0)
 
     row:SetScript("OnEnter", function(self) self.hover:SetAlpha(0.7) end)
     row:SetScript("OnLeave", function(self) self.hover:SetAlpha(0) end)
@@ -1205,6 +1247,18 @@ function GoalsUI:OpenSpots(item, anchor)
         panel.rows[index]:Hide()
         panel.rows[index].spot = nil
     end
+
+    -- Wide enough for every row's text, measured.
+    local needs = Theme.TextWidth("normal", Util.StripColor(panel.title:GetText())) + 42
+    needs = math.max(needs, Theme.TextWidth("tiny", panel.from:GetText()) + 22)
+    for index = 1, #spots do
+        local row = panel.rows[index]
+        needs = math.max(needs,
+            30 + Theme.TextWidth("normal", row.name:GetText()) + 70,
+            30 + Theme.TextWidth("tiny", Util.StripColor(row.zone:GetText())) + 8
+                + Theme.TextWidth("tiny", Util.StripColor(row.note:GetText())) + 12)
+    end
+    panel:SetWidth(math.min(480, math.max(SPOTS_WIDTH, math.ceil(needs))))
 
     panel.empty:SetShown(#spots == 0)
     panel:SetHeight(SPOTS_TOP + math.max(1, #spots) * SPOT_ROW + 30)
