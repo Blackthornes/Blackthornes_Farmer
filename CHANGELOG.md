@@ -4,6 +4,19 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.7.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- In a party or raid, the kills and loot panel moves to the right of the
+  group frames, and goes back to its own spot when you leave. Dragging it
+  while grouped saves a separate group spot. On by default; turn it off in
+  Settings under In a group, or with `/farm tracker group off`.
+- The session's gathered value now sits on a second line of the panel's
+  title bar, under "Kills & Loot", and still counts up with its "+" when
+  something is added. The panel is a little wider so both lines fit.
+
 ## 0.6.1
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
