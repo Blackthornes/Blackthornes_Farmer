@@ -18,6 +18,7 @@ Theme.colors = {
     row       = { 0.133, 0.145, 0.172 },   -- #22252C
     rowAlt    = { 0.106, 0.118, 0.141 },
     rowHover  = { 0.180, 0.200, 0.239 },
+    rowActive = { 0.220, 0.190, 0.110 },   -- a gold-tinted row, as in Tradeskills
 
     border    = { 0.204, 0.224, 0.263 },
     borderLit = { 0.302, 0.333, 0.388 },
@@ -25,6 +26,7 @@ Theme.colors = {
     accent    = { 0.784, 0.643, 0.302 },   -- #C8A44D
     good      = { 0.310, 0.820, 0.545 },   -- #4FD18B
     warn      = { 0.910, 0.757, 0.353 },
+    loss      = { 0.898, 0.376, 0.310 },   -- #E5604F, a close button under the mouse
 
     text      = { 0.902, 0.910, 0.925 },   -- #E6E8EC
     muted     = { 0.478, 0.502, 0.541 },   -- #7A8089
@@ -93,6 +95,16 @@ function Theme.Border(frame, key, alpha)
     return edges
 end
 
+--- Recolour a border drawn by Theme.Border.
+function Theme.SetBorderColor(frame, key, alpha)
+    if not frame.borderTextures then return end
+
+    local r, g, b, a = Theme.Unpack(key, alpha)
+    for _, edge in ipairs(frame.borderTextures) do
+        edge:SetColorTexture(r, g, b, a)
+    end
+end
+
 --- A panel: filled background plus a border.
 function Theme.CreatePanel(parent, backgroundKey, borderKey)
     local panel = CreateFrame("Frame", nil, parent)
@@ -154,4 +166,100 @@ function Theme.CreateDivider(parent, key)
     divider:SetColorTexture(Theme.Unpack(key or "border"))
     divider:SetHeight(1)
     return divider
+end
+
+--------------------------------------------------------------------------------
+-- House trim, shared with Blackthornes Tradeskills
+--
+-- The same few touches Tradeskills' Theme.lua draws, so the two windows read as
+-- one set: a gold stripe down the left of a header, a faint sheen along the
+-- top of a raised surface, and item icons trimmed the way the bags draw them.
+--------------------------------------------------------------------------------
+
+--- A gold stripe down the left edge of a header or band.
+function Theme.AccentStripe(frame, width, alpha)
+    local stripe = frame:CreateTexture(nil, "ARTWORK")
+    stripe:SetPoint("TOPLEFT")
+    stripe:SetPoint("BOTTOMLEFT")
+    stripe:SetWidth(width or 3)
+    stripe:SetColorTexture(Theme.Unpack("accent", alpha))
+    return stripe
+end
+
+--- A faint lighter line along the top edge, so a flat fill reads as a raised
+--- surface rather than a hole.
+function Theme.TopSheen(frame, alpha)
+    local sheen = frame:CreateTexture(nil, "BORDER")
+    sheen:SetPoint("TOPLEFT", 1, -1)
+    sheen:SetPoint("TOPRIGHT", -1, -1)
+    sheen:SetHeight(1)
+    sheen:SetColorTexture(1, 1, 1, alpha or 0.05)
+    return sheen
+end
+
+--- A soft gold glow fading down from the top of a header, drawn as a
+--- gradient where the client has one and left out where it does not.
+function Theme.HeaderGlow(frame, height, alpha)
+    local glow = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+    glow:SetPoint("TOPLEFT")
+    glow:SetPoint("TOPRIGHT")
+    glow:SetHeight(height or 18)
+    glow:SetColorTexture(1, 1, 1, 1)
+
+    local r, g, b = Theme.Unpack("accent")
+    local top, bottom = alpha or 0.10, 0
+
+    local ok = false
+    if type(CreateColor) == "function" and type(glow.SetGradient) == "function" then
+        ok = pcall(glow.SetGradient, glow, "VERTICAL",
+            CreateColor(r, g, b, bottom), CreateColor(r, g, b, top))
+    end
+
+    if not ok then glow:Hide() end
+    return glow
+end
+
+local FALLBACK_ICON = [[Interface\Icons\INV_Misc_QuestionMark]]
+
+--- An item's icon texture, or nil while the game has not sent it. Read in a
+--- pcall: this is the client, and inside an instance it can hand back a
+--- value that raises when touched.
+function Theme.ItemIcon(itemID)
+    if not itemID then return nil end
+
+    local icon
+    if type(C_Item) == "table" and type(C_Item.GetItemIconByID) == "function" then
+        local ok, value = pcall(C_Item.GetItemIconByID, itemID)
+        if ok then icon = value end
+    end
+    if not icon and type(GetItemIcon) == "function" then
+        local ok, value = pcall(GetItemIcon, itemID)
+        if ok then icon = value end
+    end
+
+    local readable = ns.Harvest and (ns.Harvest.ReadableNumber(icon) or ns.Harvest.Readable(icon))
+    return readable or nil
+end
+
+--- A square item icon, trimmed of its built-in border.
+function Theme.CreateItemIcon(parent, size)
+    local icon = parent:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(size or 16, size or 16)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    icon:Hide()
+    return icon
+end
+
+--- Show an item's icon, or the question mark while the game has not sent it.
+--- Hidden when there is no item at all.
+function Theme.SetItemIcon(icon, itemID)
+    if not icon then return end
+
+    if not itemID then
+        icon:Hide()
+        return
+    end
+
+    icon:SetTexture(Theme.ItemIcon(itemID) or FALLBACK_ICON)
+    icon:Show()
 end
