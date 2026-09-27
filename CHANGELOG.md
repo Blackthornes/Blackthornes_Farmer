@@ -4,6 +4,21 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.9.0
+
+For WoW: Forever (interface 16001). This version adds a file, so fully
+restart the game after updating; `/reload` is not enough.
+
+- Each goal card has a Where? button that lists the best places near you to
+  farm that item. Places are ranked by how far away they are, how their
+  level compares to yours, the drop rate, and where you've already killed
+  or gathered it. `/farm where <item>` does the same.
+- The line under each goal names the top place. Click a place in the list
+  to print it to chat, and to pin it on the map when it's in your zone.
+- Fixed: on the goal cards, text could overlap the progress bar or be cut
+  short, and things behind the panel showed through. Cards are now solid
+  and the panel widens to fit its text.
+
 ## 0.8.0
 
 For WoW: Forever (interface 16001). This version adds files, so fully
