@@ -107,6 +107,26 @@ local card = GUI.cards[1]
 suite.check("the card has a Where button", card.where and card.where:IsShown())
 suite.check("the line under the name is the nearest place", card.sub:GetText():find("here") ~= nil, card.sub:GetText())
 
+-- Layout (Trent, 2026-09-27: "the where button kind of overlaps the progress
+-- bar"): the button sits under the bar, the time left stops before it, and
+-- the panel is wide enough for every line.
+local wp = card.where._point
+suite.check("Where? hangs under the bar", wp and wp[2] == card.track and wp[3] == "BOTTOMRIGHT"
+    and wp[5] < 0, wp and tostring(wp[3]))
+local rp = card.right._point
+suite.check("time left ends before the button", rp and rp[2] == card.where and rp[3] == "LEFT")
+suite.check("wide enough for its lines", GUI.frame:GetWidth() >= GUI:CardNeeds(card, card.goal),
+    GUI.frame:GetWidth() .. " < " .. GUI:CardNeeds(card, card.goal))
+
+-- A long place name widens the panel rather than being cut off.
+local long = ns.Spots.For
+ns.Spots.For = function() return { { name = "A Very Long Named Thick-shelled Clam Bed", zone = "Desolace", hops = 4 } } end
+GUI:Refresh()
+suite.check("widens for a long line", GUI.frame:GetWidth() > 236, GUI.frame:GetWidth())
+suite.check("sub line gets the full width", card.sub._width == GUI:BarWidth() - 22 - 8, card.sub._width)
+ns.Spots.For = long
+GUI:Refresh()
+
 card.where:GetScript("OnClick")(card.where, "LeftButton")
 local panel = GUI.spots
 suite.check("the panel opens", panel and panel:IsShown())
