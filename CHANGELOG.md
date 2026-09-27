@@ -4,6 +4,26 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.8.0
+
+For WoW: Forever (interface 16001). This version adds files, so fully
+restart the game after updating; `/reload` is not enough.
+
+- Gathering goals: pick a material and a number and the new Goals panel
+  counts you toward it. Press Goal beside an item in the search results, or
+  type `/farm goal Copper Ore 40`. Up to six goals run at once.
+- Each goal shows how many you have, the best spot for it, how many are
+  left and how long the rest should take at your pace. What's already in
+  your bags counts, and `/farm goal bank on` counts your bank too.
+- Looting counts the goal up with a "+3 Copper Ore", the card pulses gold at
+  a quarter, half and three quarters, the bar turns green for the last few,
+  and finishing drops a GOAL COMPLETE banner with a recap. The effects
+  follow `/farm effects`.
+- The panel sits under the kills panel until you drag it. `/farm goals`
+  shows or hides it, and `/farm goals dock` puts it back.
+- With Blackthornes Tradeskills 0.10.0 or later, its Gather tab can set
+  Farmer goals for the materials you still need.
+
 ## 0.7.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
