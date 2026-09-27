@@ -15,7 +15,8 @@
 -- window of its own (UI/LootTable.lua).
 --
 -- /farm tracker (or its X) turns it off and on, and it stays that way from one
--- session to the next. Drag it if the left edge is busy.
+-- session to the next. Drag it if the left edge is busy. In a party or raid it
+-- steps aside from the group frames (see "In a group" at the bottom).
 
 local _, ns = ...
 
@@ -163,7 +164,9 @@ function TrackerUI:BuildGrip(frame)
         TrackerUI.sizing = false
         TrackerUI:AnchorTop()
         TrackerUI:SaveSize()
-        TrackerUI:SavePosition()
+        -- Resizing is not picking a spot; in a group it stays beside the
+        -- group frames rather than being pinned where it happens to be.
+        if not TrackerUI.grouped then TrackerUI:SavePosition() end
         TrackerUI:Render()
     end)
 
@@ -193,9 +196,13 @@ function TrackerUI:Build()
     Theme.Fill(frame, "window", 0.88)
     Theme.Border(frame, "border")
 
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStart", function(self)
+        TrackerUI.dragging = true
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
+        TrackerUI.dragging = false
         TrackerUI:AnchorTop()
         TrackerUI:SavePosition()
     end)
@@ -850,6 +857,13 @@ end
 
 function TrackerUI:OnEnable()
     self:Refresh()
+    self:Place()
+
+    local function Settle() TrackerUI:PlaceSoon() end
+    ns.RegisterEvent(self, "GROUP_ROSTER_UPDATE", Settle)
+    ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", Settle)
+    -- The group frames moved in Edit Mode. Clients without it skip this.
+    ns.RegisterEvent(self, "EDIT_MODE_LAYOUTS_UPDATED", Settle)
 end
 
 --------------------------------------------------------------------------------
@@ -877,6 +891,14 @@ function TrackerUI:SavePosition()
     if not (ns.db and self.frame) then return end
 
     local point, _, relativePoint, x, y = self.frame:GetPoint()
+
+    -- Moved while in a group: that is where it goes in a group from now on,
+    -- and the spot it has when you play alone stays as it was.
+    if self.grouped then
+        ns.db.trackerGroupX = x
+        ns.db.trackerGroupY = y
+        return
+    end
 
     ns.db.trackerPoint = point
     ns.db.trackerRelativePoint = relativePoint
@@ -909,4 +931,143 @@ function TrackerUI:RestorePosition()
         self:AnchorTop()
         self:SavePosition()
     end
+end
+
+--------------------------------------------------------------------------------
+-- In a group
+--------------------------------------------------------------------------------
+
+-- The default spot is right where the party frames are. In a party or raid
+-- the panel steps to the right of whichever group frames are showing, and
+-- goes back when you are on your own again. Drag it while grouped and it
+-- keeps that spot for groups instead (trackerGroupX/Y).
+--
+-- The panel is a plain frame anchored to UIParent, so moving it in combat is
+-- allowed; the group frames are only read, never touched.
+
+-- Blizzard's group frames, newest layout first. Whichever are showing count.
+local GROUP_FRAMES = {
+    "CompactRaidFrameContainer",
+    "CompactPartyFrame",
+    "PartyFrame",
+    "PartyMemberFrame1", "PartyMemberFrame2", "PartyMemberFrame3", "PartyMemberFrame4",
+}
+
+-- Space left between the group frames and the panel.
+local GROUP_GAP = 8
+
+-- How long to let the group frames lay themselves out after a change.
+local SETTLE = 0.5
+
+function TrackerUI:InGroup()
+    local ok, grouped = pcall(function()
+        if IsInRaid and IsInRaid() then return true end
+        if IsInGroup and IsInGroup() then return true end
+        return (GetNumGroupMembers and GetNumGroupMembers() or 0) > 0
+    end)
+    return ok and grouped == true
+end
+
+function TrackerUI:DodgeGroupOn()
+    return not (ns.db and ns.db.trackerDodgeGroup == false)
+end
+
+--- A frame's edges in the panel's own units, or nil if it is not on screen.
+local function EdgesIn(frame, scale)
+    local ok, left, right, top, bottom = pcall(function()
+        if not (frame.IsVisible and frame:IsVisible()) then return end
+        local own = frame:GetEffectiveScale() / scale
+        local l, r, t, b = frame:GetLeft(), frame:GetRight(), frame:GetTop(), frame:GetBottom()
+        -- Compared here, inside the pcall: a secret value raises on it.
+        if not (type(l) == "number" and type(r) == "number" and r > l
+            and type(t) == "number" and type(b) == "number" and t > b) then
+            return
+        end
+        return l * own, r * own, t * own, b * own
+    end)
+    if ok and left then return left, right, top, bottom end
+end
+
+--- Where the showing group frames are, as one box in the panel's units.
+function TrackerUI:GroupFrameBox()
+    local ok, scale = pcall(self.frame.GetEffectiveScale, self.frame)
+    if not (ok and type(scale) == "number" and scale > 0) then return end
+
+    local box
+    for _, name in ipairs(GROUP_FRAMES) do
+        local frame = _G[name]
+        if frame then
+            local left, right, top, bottom = EdgesIn(frame, scale)
+            if left then
+                if box then
+                    box.left = math.min(box.left, left)
+                    box.right = math.max(box.right, right)
+                    box.top = math.max(box.top, top)
+                    box.bottom = math.min(box.bottom, bottom)
+                else
+                    box = { left = left, right = right, top = top, bottom = bottom }
+                end
+            end
+        end
+    end
+    return box
+end
+
+--- Put the panel where it belongs for being solo or grouped.
+function TrackerUI:Place()
+    if not self.frame then return end
+    -- Never pull it out from under a drag.
+    if self.sizing or self.dragging then return end
+
+    self:RestorePosition()
+
+    local db = ns.db or {}
+    self.grouped = self:DodgeGroupOn() and self:InGroup()
+    if not self.grouped then return end
+
+    if type(db.trackerGroupX) == "number" and type(db.trackerGroupY) == "number" then
+        self.frame:ClearAllPoints()
+        self.frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", db.trackerGroupX, db.trackerGroupY)
+        return
+    end
+
+    local box = self:GroupFrameBox()
+    if not box then return end
+
+    local ok, left, top = pcall(function() return self.frame:GetLeft(), self.frame:GetTop() end)
+    if not (ok and type(left) == "number" and type(top) == "number") then return end
+
+    -- The panel grows downward as it fills, so check the whole height it may
+    -- take, not just what it has now.
+    local okWidth, width = pcall(self.frame.GetWidth, self.frame)
+    if not (okWidth and type(width) == "number") then width = self:Width() end
+    local right = left + width
+    local bottom = top - self:MaxHeight()
+    local overlaps = left < box.right and right > box.left
+        and top > box.bottom and bottom < box.top
+    if not overlaps then return end
+
+    self.frame:ClearAllPoints()
+    self.frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", box.right + GROUP_GAP, top)
+end
+
+--- Place it again once the group frames have settled.
+function TrackerUI:PlaceSoon()
+    if C_Timer and type(C_Timer.After) == "function" then
+        pcall(C_Timer.After, SETTLE, function() TrackerUI:Place() end)
+    else
+        self:Place()
+    end
+end
+
+function TrackerUI:SetDodgeGroup(on)
+    ns.db.trackerDodgeGroup = on and true or false
+    self:Place()
+end
+
+--- Forget the spot picked for groups; it goes back beside the group frames.
+function TrackerUI:ResetGroupSpot()
+    if not ns.db then return end
+    ns.db.trackerGroupX = nil
+    ns.db.trackerGroupY = nil
 end
