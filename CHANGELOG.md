@@ -15,6 +15,11 @@ restart the game after updating; `/reload` is not enough.
   or gathered it. `/farm where <item>` does the same.
 - The line under each goal names the top place. Click a place in the list
   to print it to chat, and to pin it on the map when it's in your zone.
+- In the kills panel, each mob, fishing spot and node still short of 20 has
+  a goal-style progress bar toward its drop rates: an "N / 20" count, marks
+  at a quarter, half and three quarters, and green for the last few. It
+  slides up with a shine, cheers at each mark and counts down "N more!" at
+  the end. It follows `/farm effects`.
 - Fixed: on the goal cards, text could overlap the progress bar or be cut
   short, and things behind the panel showed through. Cards are now solid
   and the panel widens to fit its text.
