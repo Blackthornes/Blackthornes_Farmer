@@ -34,7 +34,11 @@ local HEIGHT = 420
 local MIN_WIDTH, MAX_WIDTH = 180, 600
 local MIN_HEIGHT, MAX_HEIGHT = 120, 1000
 local PADDING = 8
-local HEADER = 28
+-- The title bar: "Kills & Loot" and the X on top, the session's gathered
+-- value on a second line under them.
+local TITLE_LINE = 28
+local TOTAL_LINE = 20
+local HEADER = TITLE_LINE + TOTAL_LINE
 TrackerUI.HEADER = HEADER
 local LINE = 18
 local ICON = 14
@@ -221,7 +225,7 @@ function TrackerUI:Build()
     stripe:SetColorTexture(Theme.Unpack("accent"))
 
     local title = Theme.CreateLabel(header, "normal", "accent")
-    title:SetPoint("LEFT", PADDING + 4, 0)
+    title:SetPoint("LEFT", header, "TOPLEFT", PADDING + 4, -TITLE_LINE / 2)
     title:SetText("Kills & Loot")
 
     local close = Widgets.CreateButton(header, "X", function()
@@ -229,22 +233,24 @@ function TrackerUI:Build()
         TrackerUI:Refresh()
         ns.Print("kill and loot panel hidden. /farm tracker brings it back.")
     end, { width = 18, height = 16 })
-    close:SetPoint("RIGHT", -6, 0)
+    close:SetPoint("RIGHT", header, "TOPRIGHT", -6, -TITLE_LINE / 2)
 
-    -- The session's gathered value, right-aligned in the title bar between
-    -- the title and the X (Trent, 2026-09-27). Built like a line row so the
-    -- count-up, glow and "+38s" in UI/TrackerFX.lua work on it unchanged.
+    -- The session's gathered value on the title bar's second line (Trent,
+    -- 2026-09-27). Built like a line row so the count-up, glow and "+38s" in
+    -- UI/TrackerFX.lua work on it unchanged.
     local total = CreateFrame("Frame", nil, header)
-    -- From just past the title (DrawTitle measures it) to just short of the X.
-    total:SetPoint("TOPLEFT", header, "TOPLEFT", PADDING + 100, -1)
-    total:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", -(6 + 18 + 6), 1)
+    total:SetPoint("TOPLEFT", header, "TOPLEFT", 3, -TITLE_LINE + 2)
+    total:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 2)
+
+    total.left = Theme.CreateLabel(total, "small", "muted")
+    total.left:SetPoint("LEFT", PADDING + 1, 0)
+    total.left:SetText("Gathered value")
 
     total.right = Theme.CreateLabel(total, "normal", "good", "RIGHT")
-    total.right:SetPoint("RIGHT", -2, 0)
+    total.right:SetPoint("RIGHT", -PADDING, 0)
 
     total.badge = Theme.CreateLabel(total, "tiny", "good", "RIGHT")
     total.badge:SetPoint("RIGHT", total.right, "LEFT", -4, 0)
-    total:Hide()
 
     local rule = Theme.CreateDivider(frame, "borderLit")
     rule:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
@@ -880,46 +886,39 @@ function TrackerUI:Render()
     end
 end
 
---- The gathered value in the title bar, or nothing there when there is no
---- total. Returns how wide the panel must be for the title and the value to
---- both show in full beside the X.
+--- The gathered value on the title bar's second line; "0c" until something
+--- gathered has a price. Returns how wide the panel must be for both title
+--- lines to show in full.
 function TrackerUI:DrawTitle(line)
     local row = self.titleRow
     -- False rather than nil, so an effect still running on it sees no line.
     row.line = line or false
     self.titleBadgeNeeds = nil
 
-    local titleWidth = Theme.TextWidth("normal", self.title:GetText())
-    row:SetPoint("TOPLEFT", self.header, "TOPLEFT", PADDING + 4 + titleWidth + 8, -1)
+    -- Top line: the title, a gap, and the X with its margins.
+    local top = PADDING + 4 + Theme.TextWidth("normal", self.title:GetText()) + 8 + 6 + 18 + 6
 
-    -- Title, the gap before the value, and the X with its margins.
-    local needs = PADDING + 4 + titleWidth + 8 + 6 + 18 + 6
-
-    if not line then
-        row.right:SetText("")
-        row.badge:SetText("")
-        row.badge:Hide()
-        row:Hide()
-        return needs
-    end
-
-    local valueWidth = Theme.TextWidth("normal", line.right) + 2
+    local value = line and line.right or (ns.Value and ns.Value.Money(0) or "0c")
+    local valueWidth = Theme.TextWidth("normal", value) + 2
     row.right:SetWidth(valueWidth)
-    row.right:SetText(line.right)
-    row.right:SetTextColor(Theme.Unpack(line.rightColor or "good"))
-    row.right:Show()
+    row.right:SetText(value)
+    row.right:SetTextColor(Theme.Unpack(line and (line.rightColor or "good") or "muted"))
 
-    local badgeWidth = line.badge and (Theme.TextWidth("tiny", line.badge) + 2) or 0
+    -- Second line: the label, a gap, and the value.
+    local labelEnd = 3 + PADDING + 1 + Theme.TextWidth("small", row.left:GetText())
+    local second = labelEnd + 12 + valueWidth + PADDING
+
+    local badge = line and line.badge
+    local badgeWidth = badge and (Theme.TextWidth("tiny", badge) + 2) or 0
     row.badge:SetWidth(math.max(1, badgeWidth))
-    row.badge:SetText(line.badge or "")
-    if line.badge then self.titleBadgeNeeds = needs + valueWidth + 2 + badgeWidth + 4 end
+    row.badge:SetText(badge or "")
+    if badge then self.titleBadgeNeeds = labelEnd + 8 + badgeWidth + 4 + valueWidth + PADDING end
 
-    row:Show()
-    return needs + valueWidth + 2
+    return math.max(top, second)
 end
 
 --- The "+38s" only lasts a few seconds, so the panel does not widen for it:
---- it shows when there is room between the title and the value.
+--- it shows when there is room between the label and the value.
 function TrackerUI:FitTitleBadge()
     local row = self.titleRow
     local width = self.frame:GetWidth()
