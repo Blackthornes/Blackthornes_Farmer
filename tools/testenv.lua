@@ -133,6 +133,7 @@ function env.InstallClient()
     -- Suites share one Lua state; prices one suite sets up must not leak
     -- into the next.
     _G.C_Item = nil
+    _G.GetItemCount = nil
     _G.BlackthornesTS = nil
     _G.GetLootSourceInfo = nil
     _G.PlaySound = nil
@@ -299,6 +300,7 @@ local FILES = {
     "Logic/Gathering.lua",
     "Logic/Value.lua",
     "Logic/Rankings.lua",
+    "Logic/Goals.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
@@ -314,6 +316,7 @@ local UI_FILES = {
     "UI/Export.lua",
     "UI/Tracker.lua",
     "UI/TrackerFX.lua",
+    "UI/Goals.lua",
     "UI/LootTable.lua",
     "UI/Rankings.lua",
     "UI/MapMarkers.lua",

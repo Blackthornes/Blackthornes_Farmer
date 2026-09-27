@@ -188,6 +188,9 @@ function SettingsUI:ResetPositions()
         if ns.TrackerUI.Refresh then ns.TrackerUI:Refresh() end
     end
 
+    -- The goals panel goes back under the kills panel.
+    if ns.GoalsUI and ns.GoalsUI.frame then ns.GoalsUI:Dock() end
+
     self:RestorePosition()
 end
 

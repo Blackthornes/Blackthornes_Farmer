@@ -34,6 +34,7 @@ Logic\Fishing.lua
 Logic\Gathering.lua
 Logic\Value.lua
 Logic\Rankings.lua
+Logic\Goals.lua
 
 UI\Theme.lua
 UI\Widgets.lua
@@ -41,6 +42,7 @@ UI\Main.lua
 UI\Export.lua
 UI\Tracker.lua
 UI\TrackerFX.lua
+UI\Goals.lua
 UI\LootTable.lua
 UI\Rankings.lua
 UI\MapMarkers.lua
