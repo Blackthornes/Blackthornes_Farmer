@@ -88,7 +88,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm markers [on\|off]` | markers where you gathered herbs and ore, on the world map and minimap (on by default; `map on\|off` or `minimap on\|off` for one, `clear confirm` removes them) |
 | `/farm announce [on\|off]` | whether players near you see an emote at those milestones (on by default) |
 | `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills or a fishing spot 20 casts, and its rates unlock (on by default) |
-| `/farm effects [full\|subtle\|off]` | how much the kill panel moves when loot lands: glows, the value counting up, loot floating off the panel (full by default; subtle drops the floats) |
+| `/farm effects [full\|subtle\|off]` | how much the addon moves: in the kill panel, glows, the value counting up and loot floating off the panel; in the windows, fading up as they open, results coming in row by row and bars growing (full by default; subtle drops the floats and the row-by-row; off stops it all) |
 | `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
 | `/farm goal <item> <amount>` | set a gathering goal, e.g. `/farm goal Copper Ore 40`; on its own, lists your goals (`remove <item>`, `clear` for finished ones, `bank on\|off` to count your bank) |
 | `/farm where <item>` | the best places near you to farm it, nearest first |
@@ -106,6 +106,9 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm help` | the command list |
 
 `/farmer` is the same command if `/farm` is taken.
+
+Open the window with nothing typed and it suggests a cloth, a leather, an ore
+and a herb that suit your level; click one to search for it.
 
 There is also a **minimap button** — the mining-pick icon on the ring. Click it
 to open the window, drag it to move it round the minimap, and it stays where

@@ -283,15 +283,23 @@ function Widgets.CreateButton(parent, text, onClick, opts)
         Motion:Blend(self, "hover", 0, HOVER_TIME * 1.5, Light)
     end)
 
-    -- The label dips a pixel while held, so a click feels pressed.
+    -- The label dips a pixel while held, so a click feels pressed. Wherever
+    -- the label was put (a caller may have moved it beside an icon), it
+    -- goes back to exactly there.
     button:SetScript("OnMouseDown", function(self)
-        self.label:ClearAllPoints()
-        self.label:SetPoint("CENTER", 0, -1)
+        local point, relativeTo, relativePoint, x, y = self.label:GetPoint(1)
+        if not (point and type(x) == "number" and type(y) == "number") then return end
+
+        self.restPoint = { point, relativeTo, relativePoint, x, y }
+        self.label:SetPoint(point, relativeTo, relativePoint, x, y - 1)
     end)
 
     button:SetScript("OnMouseUp", function(self)
-        self.label:ClearAllPoints()
-        self.label:SetPoint("CENTER")
+        local rest = rawget(self, "restPoint")
+        if not rest then return end
+
+        self.restPoint = nil
+        self.label:SetPoint(rest[1], rest[2], rest[3], rest[4], rest[5])
     end)
 
     if onClick then

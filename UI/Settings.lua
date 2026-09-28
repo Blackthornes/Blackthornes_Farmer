@@ -396,8 +396,8 @@ function SettingsUI:BuildTrackingColumn()
     end, true)
     controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local effectsRow = CreateRow(frame, announceRow, "Panel effects",
-        "Full: counts glow, value counts up, loot floats off the panel. "
+    local effectsRow = CreateRow(frame, announceRow, "Effects",
+        "Full: glows, counting up, loot floating off, results coming in row by row. "
         .. "Subtle: no floats. Same as /farm effects.")
 
     local FX = ns.TrackerFX

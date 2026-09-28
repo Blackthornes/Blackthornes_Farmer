@@ -176,7 +176,7 @@ function UI:BuildHeader()
     self.tabs = {}
     self.tabSpans = {}
     local anchor, gap = title, 16
-    local x = PADDING + 20 + 8 + Theme.TextWidth("title", "Blackthornes Farmer") + 16
+    local x = 0
 
     for _, tab in ipairs(TABS) do
         local chip = Widgets.CreateChip(header, tab.label, function() UI:ShowTab(tab.key) end)
@@ -221,11 +221,13 @@ function UI:MarkTab(key)
     local from = self.underlineAt or span
     self.underlineAt = span
 
+    -- Hung from the tab it is heading for, so it lands exactly under it
+    -- whatever the font; only the gap between the tabs is worked out.
+    local chip = self.tabs[key]
     ns.Motion:Run(line, "slide", 0.22, function(p)
-        local x = from.x + (span.x - from.x) * p
         local w = from.w + (span.w - from.w) * p
         line:ClearAllPoints()
-        line:SetPoint("BOTTOMLEFT", self.header, "BOTTOMLEFT", x + 3, 5)
+        line:SetPoint("TOPLEFT", chip, "BOTTOMLEFT", (from.x - span.x) * (1 - p) + 3, -1)
         line:SetWidth(math.max(1, w - 6))
     end)
 end
@@ -342,7 +344,13 @@ function UI:ShowEmpty()
     local empty = self.empty
     if not empty then return end
 
-    local level = UnitLevel and tonumber(UnitLevel("player")) or 0
+    -- Read in a pcall, as every client value is: inside an instance the
+    -- client can hand back one that raises when touched.
+    local level = 0
+    if UnitLevel then
+        local ok, value = pcall(UnitLevel, "player")
+        level = ok and ns.Harvest.ReadableNumber(value) or 0
+    end
     local picks = level > 0 and ns.Search:ForLevel(level) or {}
 
     for _, chip in ipairs(self.suggestChips) do chip:Hide() end
@@ -1057,7 +1065,9 @@ function UI:BuildMinimapButton()
     end
     button:SetScript("OnMouseDown", function() IconSize(16) end)
     button:SetScript("OnMouseUp", function()
-        ns.Motion:Run(button, "press", 0.2, function(p) IconSize(16 + 4 * p) end,
+        -- Back to its hover size if the mouse is still on it, else its own.
+        local target = 18 + 2 * ns.Motion:Value(button, "hover")
+        ns.Motion:Run(button, "press", 0.2, function(p) IconSize(16 + (target - 16) * p) end,
             { ease = ns.Motion.EaseOutBack })
     end)
 
