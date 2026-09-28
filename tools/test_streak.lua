@@ -104,7 +104,9 @@ suite.check("a shorter run shows the best", line and line.left == "Kill streak  
 ns.db.tracker.looks["Scouting Cloak"] = { color = "ff1eff00" }
 local CLOAK = { name = "Scouting Cloak", id = 4690 }
 
+-- Its line is on the Loot tab.
 Settle()
+TUI:SetTab("loot")
 clock = clock + 5
 Loot("Mangy Wolf", { CLOAK })
 local _, cloakRow = Shown("loot:Scouting Cloak")
@@ -123,6 +125,7 @@ for _, label in ipairs(FX.floats or {}) do
     end
 end
 suite.check("and floats with a cheer", nice)
+TUI:SetTab("farm")
 
 --------------------------------------------------------------------------------
 -- The unlock banner

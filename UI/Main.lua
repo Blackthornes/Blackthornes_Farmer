@@ -512,12 +512,12 @@ function UI:ShowMobTooltip(owner, mobName)
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     GameTooltip:AddLine(mobName)
-    GameTooltip:AddLine(("Worth about %s a kill"):format(ns.Value.Money(worth)),
+    GameTooltip:AddLine(("Worth about %s a kill"):format(ns.Value.Coins(worth)),
         Theme.Unpack("good"))
 
     for index = 1, math.min(#details.priced, 4) do
         local entry = details.priced[index]
-        GameTooltip:AddLine(("  %s  %s"):format(entry.name, ns.Value.Money(entry.perKill)),
+        GameTooltip:AddLine(("  %s  %s"):format(entry.name, ns.Value.Coins(entry.perKill)),
             Theme.Unpack("muted"))
     end
 

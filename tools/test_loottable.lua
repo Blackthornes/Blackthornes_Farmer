@@ -60,22 +60,22 @@ Loot(WOLF, { COINS, SCRAPS })
 local band = Line(WOLF)
 suite.check("the mob's band opens its table", band and band.mob == WOLF)
 
--- The mob's three most common drops sit under its band.
-local under = {}
+-- Every item the mob has dropped sits under its band as an icon, most
+-- common first (Trent, 2026-09-28: three was "limiting").
+local icons, iconsIndex
 for index = select(2, Line(WOLF)) + 1, #TUI.shown do
     local line = TUI.shown[index]
-    -- Past its progress bar and countdown, while it has no rates yet.
-    local passing = line.style == "progress" or line.style == "note"
-    if not passing and line.style ~= "item" and line.style ~= "place" then break end
-    if line.style == "item" then under[#under + 1] = line.left end
+    if line.style == "mob" then break end
+    if line.style == "icons" then icons, iconsIndex = line, index break end
 end
-suite.check("the panel lists the mob's three most common drops",
-    table.concat(under, ",") == "Ruined Leather Scraps,Large Fang,Wolf Paw",
-    table.concat(under, ","))
-
-local link, linkIndex = Line("Show all 5 items")
-suite.check("and says how many there are in all", link ~= nil)
-suite.check("that line opens the same mob", link and link.mob == WOLF and link.style == "link")
+local names = {}
+for _, icon in ipairs(icons and icons.icons or {}) do names[#names + 1] = icon.item end
+suite.check("the panel shows every item the mob has dropped",
+    #names == 5 and names[1] == "Ruined Leather Scraps" and names[2] == "Large Fang",
+    table.concat(names, ","))
+suite.check("each with how many corpses held it", icons and icons.icons[1].text == "5",
+    icons and icons.icons[1].text)
+suite.check("no Show all line any more", Line("Show all 5 items") == nil)
 
 --------------------------------------------------------------------------------
 -- The table, before there are enough kills for rates
@@ -101,11 +101,11 @@ suite.check("and does not open", LTU:Show("Nobody") == false)
 -- Clicking
 --------------------------------------------------------------------------------
 
-local row = TUI.lines[linkIndex]
-suite.check("the drawn row remembers its line", row.line == link)
+local slot = TUI.lines[iconsIndex].slots[1]
+suite.check("the drawn icon remembers its item", slot.line == icons.icons[1])
 
-row:GetScript("OnMouseUp")(row, "LeftButton")
-suite.check("clicking Show all opens the window", LTU:IsShown() and LTU.mob == WOLF)
+slot:GetScript("OnClick")(slot, "LeftButton")
+suite.check("clicking an item opens the window", LTU:IsShown() and LTU.mob == WOLF)
 suite.check("titled with the mob", LTU.title:GetText() == WOLF, LTU.title:GetText())
 suite.check("it is as tall as its rows", LTU.frame:GetHeight() == LTU:HeightFor(5)
     and LTU:HeightFor(5) < LTU:HeightFor(12), LTU.frame:GetHeight())
@@ -122,20 +122,20 @@ suite.check("it says where the mob was killed",
 suite.check("the window is wide enough for that line",
     LTU.frame:GetWidth() >= LTU:WidthFor(nil, "", LTU.where:GetText()), LTU.frame:GetWidth())
 
-row:GetScript("OnMouseUp")(row, "LeftButton")
+slot:GetScript("OnClick")(slot, "LeftButton")
 suite.check("clicking the same mob again closes it", not LTU:IsShown())
 
--- A drag that starts on a clickable row moves the panel, and letting go
--- does not count as a click.
-row:GetScript("OnDragStart")(row)
-row:GetScript("OnDragStop")(row)
-row:GetScript("OnMouseUp")(row, "LeftButton")
+-- A drag that starts on an icon moves the panel, and letting go does not
+-- count as a click.
+slot:GetScript("OnDragStart")(slot)
+slot:GetScript("OnDragStop")(slot)
+slot:GetScript("OnClick")(slot, "LeftButton")
 suite.check("letting go after a drag does not open it", not LTU:IsShown())
-row:GetScript("OnMouseUp")(row, "LeftButton")
+slot:GetScript("OnClick")(slot, "LeftButton")
 suite.check("the next click does", LTU:IsShown())
 
-local plain = TUI.lines[select(2, Line("Large Fang"))]
-suite.check("an item row opens nothing", plain.line.mob == nil)
+local plain = TUI.lines[select(2, Line("The Sepulcher, Silverpine Forest"))]
+suite.check("a place row opens nothing", plain.line.mob == nil and plain.line.openKey == nil)
 LTU:Hide()
 plain:GetScript("OnMouseUp")(plain, "LeftButton")
 suite.check("so clicking it does nothing", not LTU:IsShown())
@@ -207,7 +207,7 @@ suite.check("stacks are from the kills that recorded them",
 
 LTU:Show(BOAR)
 suite.check("the window shows the real coin per kill",
-    LTU.coin:GetText() == ns.Value.Money(105), LTU.coin:GetText())
+    LTU.coin:GetText() == ns.Value.Coins(105), LTU.coin:GetText())
 suite.check("and says how many kills it is from",
     LTU.status:GetText():find("Coin is from your last 2 kills.", 1, true) ~= nil,
     LTU.status:GetText())

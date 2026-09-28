@@ -43,6 +43,9 @@ Tracker.corpses = {}
 -- Also this session only: how much of each item came off your kills, and the
 -- order mobs were last killed in, so the panel can put the latest on top.
 Tracker.sessionLoot = {}
+-- Which mobs each item came from this session: sessionFrom[item][mob] = how
+-- many. The panel's Loot tab lists them under the item.
+Tracker.sessionFrom = {}
 Tracker.sessionCopper = 0
 Tracker.recent = {}
 Tracker.clock = 0
@@ -167,6 +170,8 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place)
 
             local quantity = quantities and quantities[name] or 1
             self.sessionLoot[name] = (self.sessionLoot[name] or 0) + quantity
+            self.sessionFrom[name] = self.sessionFrom[name] or {}
+            self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + quantity
             mob.qty[name] = (tonumber(mob.qty[name]) or 0) + quantity
             mob.stacks[name] = (tonumber(mob.stacks[name]) or 0) + 1
         end
@@ -394,6 +399,7 @@ function Tracker:Reset()
     self.session = {}
     self.corpses = {}
     self.sessionLoot = {}
+    self.sessionFrom = {}
     self.sessionCopper = 0
     self.recent = {}
     self.current = nil

@@ -39,7 +39,7 @@ end
 suite.check("nothing gathered has no total", Value:Session() == nil)
 suite.check("and the empty panel shows none", TUI.titleLine == nil)
 suite.check("so the title bar's second line reads 0c",
-    TUI.titleRow.right:GetText() == Value.Money(0), TUI.titleRow.right:GetText())
+    TUI.titleRow.right:GetText() == Value.Coins(0), TUI.titleRow.right:GetText())
 suite.check("under the title", TUI.titleRow.left:GetText() == "Gathered value")
 
 local serial = 0
@@ -64,9 +64,9 @@ suite.check("coin and loot add up", total == 12 + 50 + 2 * 5, total)
 suite.check("the coin is kept apart", details.coin == 12, details.coin)
 
 local line = TUI.titleLine
-suite.check("the panel shows it", line and line.right == Value.Money(72), line and line.right)
+suite.check("the panel shows it", line and line.right == Value.Coins(72), line and line.right)
 suite.check("in the good colour", line and line.rightColor == "good")
-suite.check("in the title bar", TUI.titleRow.right:GetText() == Value.Money(72),
+suite.check("in the title bar", TUI.titleRow.right:GetText() == Value.Coins(72),
     TUI.titleRow.right:GetText())
 suite.check("not in the column", Line("Gathered value") == nil)
 suite.check("the column starts with THIS SESSION", TUI.shown[1].left == "THIS SESSION")
@@ -99,7 +99,7 @@ total, details = Value:Session()
 suite.check("a tracker reset keeps the fish", total == 3, total)
 suite.check("and forgets the session's coin", details.coin == 0, details.coin)
 suite.check("fishing alone still shows the total in the title bar",
-    TUI.shown[1].left == "FISHING" and TUI.titleLine and TUI.titleLine.right == Value.Money(3),
+    TUI.shown[1].left == "FISHING" and TUI.titleLine and TUI.titleLine.right == Value.Coins(3),
     TUI.titleLine and TUI.titleLine.right)
 
 Fishing:Reset()

@@ -76,6 +76,10 @@ end
 local function Line(left)
     for index, line in ipairs(ns.TrackerUI.shown or {}) do
         if line.left == left then return line, index end
+        -- An item on an open card is an icon: its number is its right.
+        for _, icon in ipairs(line.icons or {}) do
+            if icon.item == left then return { left = icon.item, right = icon.text, icon = icon }, index end
+        end
     end
 end
 
@@ -124,7 +128,8 @@ suite.check("the spot is on a band", Line("Open water") ~= nil)
 suite.check("which opens nothing when clicked", Line("Open water").mob == nil)
 suite.check("with where it is", Line("Crystal Lake, Elwynn Forest") ~= nil)
 suite.check("counts, not a rate, below the threshold",
-    Line(SMALLFISH.name).right == "1 of 1", Line(SMALLFISH.name).right)
+    Line(SMALLFISH.name).right == "1" and Line(SMALLFISH.name).icon.about == "1 of 1 casts",
+    Line(SMALLFISH.name).right)
 suite.check("and how many more casts rates need",
     Line("19 more casts for catch rates") ~= nil)
 

@@ -98,6 +98,10 @@ end
 local function Line(left)
     for index, line in ipairs(ns.TrackerUI.shown or {}) do
         if line.left == left then return line, index end
+        -- An item on an open card is an icon: its number is its right.
+        for _, icon in ipairs(line.icons or {}) do
+            if icon.item == left then return { left = icon.item, right = icon.text, icon = icon }, index end
+        end
     end
 end
 
@@ -143,7 +147,7 @@ suite.check("the Gathering section appears once you have gathered", Line("GATHER
 suite.check("it counts this session's nodes", Line("GATHERING").right == "1 gather",
     Line("GATHERING").right)
 suite.check("gathering alone gets the session's total",
-    ns.TrackerUI.titleLine and ns.TrackerUI.titleLine.right == ns.Value.Money(10),
+    ns.TrackerUI.titleLine and ns.TrackerUI.titleLine.right == ns.Value.Coins(10),
     ns.TrackerUI.titleLine and ns.TrackerUI.titleLine.right)
 suite.check("a thin node says how many more",
     Line("19 more for gather rates") ~= nil)

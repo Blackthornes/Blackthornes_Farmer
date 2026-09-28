@@ -292,6 +292,19 @@ function Value.Money(copper)
     return table.concat(parts, " ")
 end
 
+-- The game's own coin colours (Trent, 2026-09-28: "gold for g, silver for
+-- s, copper for c").
+local COIN_COLORS = { g = "ffffd700", s = "ffc7c7cf", c = "ffeda55f" }
+Value.COIN_COLORS = COIN_COLORS
+
+--- Value.Money, each part in its coin's colour: "|cffffd7001g|r ...". For
+--- anything drawn on screen; Money stays plain for sums and tests.
+function Value.Coins(copper)
+    return (Value.Money(copper):gsub("(%d+)([gsc])", function(amount, unit)
+        return ("|c%s%s%s|r"):format(COIN_COLORS[unit], amount, unit)
+    end))
+end
+
 --- What the prices are, in a few words, for the end of a value line.
 function Value:PriceNote(details)
     local auction = false
@@ -328,17 +341,17 @@ ns.RegisterCommand("value", "what a mob is worth per kill, from Tradeskills pric
 
     ns.Print(("%s: about %s a kill %s"):format(
         Util.Colored("accent", mobName),
-        Util.Colored("good", Value.Money(value)),
+        Value.Coins(value),
         Util.Colored("muted", ("(%s)"):format(Value:PriceNote(details)))))
 
     if details.coin and details.coin > 0 then
-        ns.PrintRaw(("  coin  %s"):format(Util.Colored("muted", Value.Money(details.coin))))
+        ns.PrintRaw(("  coin  %s"):format(Value.Coins(details.coin)))
     end
 
     for index = 1, math.min(#details.priced, 6) do
         local entry = details.priced[index]
         ns.PrintRaw(("  %s  %s"):format(entry.name,
-            Util.Colored("muted", Value.Money(entry.perKill))))
+            Value.Coins(entry.perKill)))
     end
 
     if #details.unpriced > 0 then

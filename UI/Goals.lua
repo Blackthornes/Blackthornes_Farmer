@@ -512,7 +512,7 @@ function GoalsUI:DrawCard(card, goal)
         end
         card.left:SetText(table.concat(parts, "  |  "))
         card.left:SetTextColor(Theme.Unpack("muted"))
-        card.right:SetText(recap.worth and Util.Colored("accent", ns.Value.Money(recap.worth)) or "")
+        card.right:SetText(recap.worth and ns.Value.Coins(recap.worth) or "")
     else
         card.sub:SetText(SpotText(goal))
 
