@@ -4,6 +4,26 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.10.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- Every window has the same header as Tradeskills and fades in when it
+  opens. Buttons ease into their hover colour, close buttons light red, and
+  a gold line slides between the Search and Rankings tabs.
+- Search results come in row by row with their drop bars growing, and each
+  item heading shows the item's icon. The search box lights up while you
+  type and has a clear button.
+- An empty search suggests a cloth, a leather, an ore and a herb for your
+  level.
+- Rankings gives the top three mobs gold, silver and bronze medals, and its
+  bars grow in.
+- The loot table counts its kills up and grows its drop rate bars.
+- The minimap button grows when you point at it.
+- All of this follows `/farm effects`: Full shows everything, Subtle skips
+  the row-by-row arrivals, and Off shows everything at once.
+
 ## 0.9.0
 
 For WoW: Forever (interface 16001). This version adds a file, so fully
