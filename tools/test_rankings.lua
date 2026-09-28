@@ -147,7 +147,7 @@ end
 
 local wolf = DrawnRow("Mangy Wolf")
 suite.check("a measured row shows its rank", wolf and wolf.rank:GetText() == "1")
-suite.check("and its worth", wolf and wolf.worth:GetText() == ns.Value.Money(board.measured[1].value),
+suite.check("and its worth", wolf and wolf.worth:GetText() == ns.Value.Coins(board.measured[1].value),
     wolf and wolf.worth:GetText())
 suite.check("and its kills", wolf and wolf.basis:GetText() == "20 kills", wolf and wolf.basis:GetText())
 

@@ -23,6 +23,9 @@
 --   * The kill that unlocks a mob's drop rates (or a spot's catch rates)
 --     drops a gold banner over the top of the panel, with sparkles, a shine
 --     across the title bar and a long gold pulse on the mob's band.
+--   * On a card's loot icons (Trent, 2026-09-28): the icon whose count went
+--     up flashes and shows "+2" in its corner, and an item a mob has never
+--     dropped before pops in with a gold NEW tag.
 --
 -- /farm effects (or Settings) picks Full, Subtle (washes and the count-up,
 -- no floats or pops) or Off. The rare-drop sound has its own switch.
@@ -66,6 +69,12 @@ local FLOAT_GAP = 0.18
 local FLOAT_SIZE = 13
 local FLOAT_RARE_SIZE = 16
 local MAX_FLOATS = 6
+
+-- A loot icon: its flash, the "+2" in its corner, and how long NEW stays.
+local SLOT_FLASH = 0.7
+local GAIN_TIME = 2.2
+local NEW_TIME = 6
+local POP_GROW = 8
 
 -- The rare-drop pulse, and the gold one on an unlocking mob's band.
 local PULSE_TIME = 2.2
@@ -231,6 +240,12 @@ function TrackerFX:Forget()
     if self.driver then self.driver:Hide() end
 end
 
+--- What the panel shows changed without anything being gained (another tab,
+--- a card opened or folded, a new order): the next redraw only takes note.
+function TrackerFX:Rebase()
+    self.seen = nil
+end
+
 local function Color(key)
     local r, g, b = Theme.Unpack(key)
     return { r, g, b }
@@ -284,6 +299,10 @@ function TrackerFX:Prepare(all, shown)
             seen[line.key] = { count = line.count, bar = line.bar,
                 progress = line.progress, milestone = line.milestone }
         end
+        -- A card's loot icons are counted one by one.
+        for _, icon in ipairs(line.icons or {}) do
+            if icon.key and icon.count then seen[icon.key] = { count = icon.count } end
+        end
     end
 
     local items = SessionItems()
@@ -292,7 +311,7 @@ function TrackerFX:Prepare(all, shown)
 
     if not previous then return nil end
 
-    local plan = { lines = {}, items = {}, shown = shown }
+    local plan = { lines = {}, items = {}, icons = {}, shown = shown }
 
     for key, entry in pairs(items) do
         local before = previousItems and previousItems[key] and previousItems[key].count or 0
@@ -311,13 +330,31 @@ function TrackerFX:Prepare(all, shown)
         return a.name < b.name
     end)
 
+    -- Icons: one whose count went up, and one this mob never dropped before
+    -- (its first, and just looted).
+    local gained = {}
+    for _, item in ipairs(plan.items) do gained[item.name] = true end
+
+    for index, line in ipairs(shown) do
+        for slot, icon in ipairs(line.icons or {}) do
+            local was = icon.key and previous[icon.key]
+            if was and (icon.count or 0) > (was.count or 0) then
+                plan.icons[#plan.icons + 1] = { index = index, slot = slot, icon = icon,
+                    delta = icon.count - was.count }
+            elseif not was and icon.count == 1 and gained[icon.item] then
+                plan.icons[#plan.icons + 1] = { index = index, slot = slot, icon = icon,
+                    delta = 1, new = true }
+            end
+        end
+    end
+
     for index, line in ipairs(shown) do
         local was = line.key and previous[line.key]
         if line.key and line.count and (not was or line.count > was.count) then
             plan.lines[#plan.lines + 1] = { index = index, line = line, was = was }
 
             if line.key == "total" and was and TrackerFX.Level() ~= "off" then
-                self.chips.total = { text = "+" .. ns.Value.Money(line.count - was.count),
+                self.chips.total = { text = "+" .. ns.Value.Coins(line.count - was.count),
                     until_ = self.clock + CHIP_TIME }
             end
         end
@@ -357,6 +394,16 @@ function TrackerFX:Play(plan, rowFor)
         if row then
             rows[gain.line.key] = row
             self:LineGained(row, gain.line, gain.was, level)
+        end
+    end
+
+    -- A card's icons: their row is the anchor for their floats too.
+    for _, gain in ipairs(plan.icons or {}) do
+        local row = rowFor(gain.index)
+        local slot = row and row.slots and row.slots[gain.slot]
+        if slot and slot:IsShown() then
+            rows["loot:" .. gain.icon.item] = rows["loot:" .. gain.icon.item] or row
+            self:SlotGained(slot, gain, level)
         end
     end
 
@@ -584,12 +631,12 @@ function TrackerFX:CountUp(row, key, from, to)
 
     self:Start({ slot = "count", row = row, key = key, duration = COUNT_TIME,
         apply = function(p)
-            label:SetText(ns.Value.Money(from + (to - from) * EaseOut(p)))
+            label:SetText(ns.Value.Coins(from + (to - from) * EaseOut(p)))
         end,
         stop = function()
             -- Only if the row still shows the value: it may show another
             -- line by now.
-            if row.line and row.line.key == key then label:SetText(ns.Value.Money(to)) end
+            if row.line and row.line.key == key then label:SetText(ns.Value.Coins(to)) end
         end })
 
     -- The "+38s" beside it fades out at the end of its few seconds.
@@ -652,6 +699,71 @@ function TrackerFX:LineGained(row, line, was, level)
     end
 
     self:Glow(row, key, rgb, GLOW_ALPHA)
+end
+
+--------------------------------------------------------------------------------
+-- A card's loot icons
+--------------------------------------------------------------------------------
+
+--- An icon's count went up, or it is new: it flashes (in its quality
+--- colour for green and better), "+2" rises in its corner, and a first drop
+--- pops in bigger with a gold NEW tag.
+function TrackerFX:SlotGained(slot, gain, level)
+    local icon = gain.icon
+    local key = icon.key
+    local rgb = Color("good")
+    local quality = TrackerFX.QualityOf(icon.item) or 0
+    if quality >= RARE_QUALITY then
+        rgb = HexRGB(ns.Tracker:LookOf(icon.item).color) or rgb
+    end
+    if gain.new then rgb = BRIGHT_GOLD end
+
+    slot.flash:SetColorTexture(rgb[1], rgb[2], rgb[3], 1)
+    slot.glow:SetColorTexture(rgb[1], rgb[2], rgb[3], 1)
+    local rest = tonumber(rawget(slot, "rest")) or 0
+
+    self:Start({ slot = slot.flash, row = slot, key = key, duration = SLOT_FLASH * 2,
+        apply = function(p)
+            slot.flash:SetAlpha(0.65 * (1 - p) ^ 2)
+            slot.glow:SetAlpha(rest + (0.9 - rest) * (1 - p) ^ 1.5)
+        end,
+        stop = function()
+            slot.flash:SetAlpha(0)
+            slot.glow:SetAlpha(rest)
+        end })
+
+    if gain.new then
+        slot.tag:SetAlpha(1)
+        slot.tagText:SetAlpha(1)
+        self:Start({ slot = slot.tag, row = slot, key = key, duration = NEW_TIME,
+            apply = function(p)
+                local alpha = p < 0.8 and 1 or (1 - p) / 0.2
+                slot.tag:SetAlpha(alpha)
+                slot.tagText:SetAlpha(alpha)
+            end,
+            stop = function()
+                slot.tag:SetAlpha(0)
+                slot.tagText:SetAlpha(0)
+            end })
+
+        if level == "full" then
+            local size = ns.TrackerUI.SLOT
+            self:Start({ slot = slot, row = slot, key = key, duration = POP_TIME * 1.5,
+                apply = function(p)
+                    local grow = POP_GROW * (1 - EaseOut(p))
+                    slot:SetSize(size + grow, size + grow)
+                end,
+                stop = function() slot:SetSize(size, size) end })
+        end
+        return
+    end
+
+    slot.gain:SetText(("+%d"):format(gain.delta))
+    self:Start({ slot = slot.gain, row = slot, key = key, duration = GAIN_TIME,
+        apply = function(p)
+            slot.gain:SetAlpha(p < 0.1 and p / 0.1 or (p < 0.6 and 1 or (1 - p) / 0.4))
+        end,
+        stop = function() slot.gain:SetAlpha(0) end })
 end
 
 --------------------------------------------------------------------------------
@@ -749,7 +861,8 @@ function TrackerFX:Banner()
     if self.banner then return self.banner end
 
     local panel = ns.TrackerUI.frame
-    local header = ns.TrackerUI.HEADER
+    -- Over the top of the column, under the tabs.
+    local header = ns.TrackerUI.TOP or ns.TrackerUI.HEADER
 
     local banner = CreateFrame("Frame", nil, panel)
     banner:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -(header + 4))

@@ -50,6 +50,8 @@ Gathering.GATHER_SECONDS = GATHER_SECONDS
 -- off a node, for the session's gathered value.
 Gathering.session = {}
 Gathering.sessionItems = {}
+-- Which nodes each item came from this session: sessionFrom[item][node].
+Gathering.sessionFrom = {}
 Gathering.recent = {}
 Gathering.clock = 0
 Gathering.sessionGathers = 0
@@ -280,6 +282,10 @@ function Gathering:Record(zone, location, node, kind, items, quantities, coords)
         item.id = item.id or ns.Tracker:LookOf(name).id
 
         self.sessionItems[name] = (self.sessionItems[name] or 0) + quantity
+        if type(node) == "string" and node ~= "" then
+            self.sessionFrom[name] = self.sessionFrom[name] or {}
+            self.sessionFrom[name][node] = (self.sessionFrom[name][node] or 0) + quantity
+        end
     end
 
     if coords and not entry.coords then
@@ -425,6 +431,7 @@ function Gathering:Reset()
     ns.db.gathering = nil
     self.session = {}
     self.sessionItems = {}
+    self.sessionFrom = {}
     self.recent = {}
     self.sessionGathers = 0
     self.cast = nil

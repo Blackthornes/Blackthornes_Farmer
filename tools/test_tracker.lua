@@ -28,7 +28,7 @@ suite.check("it sits down the left side",
     ns.TrackerUI.frame._point[1] == "TOPLEFT" and ns.TrackerUI.frame._point[4] == 8,
     table.concat({ tostring(ns.TrackerUI.frame._point[1]), tostring(ns.TrackerUI.frame._point[4]) }, " "))
 suite.check("empty, it says so", Line("Nothing killed yet this session.") ~= nil)
-suite.check("and is only as tall as that", ns.TrackerUI.frame:GetHeight() < ns.TrackerUI.HEADER + 60,
+suite.check("and is only as tall as that", ns.TrackerUI.frame:GetHeight() < ns.TrackerUI.TOP + 60,
     ns.TrackerUI.frame:GetHeight())
 
 -- Trent's screenshot, 2026-09-25: "Nothing killed yet this se..." -- a line
@@ -154,25 +154,33 @@ suite.check("the session heading totals kills",
 
 -- Scraps: once from the first boar, once from the skinned one (the return
 -- visit adds none).
+-- This session's loot is on the Loot tab (Trent, 2026-09-28).
+UI:SetTab("loot")
 local scrapsLoot = Line(SCRAPS.name)
 suite.check("session loot adds up quantities",
     scrapsLoot and scrapsLoot.right == "x2", scrapsLoot and scrapsLoot.right)
+suite.check("and says which mob it came from",
+    scrapsLoot and scrapsLoot.sub == BOAR .. " 2", scrapsLoot and scrapsLoot.sub)
+suite.check("the Loot tab is saved", ns.db.trackerTab == "loot")
+UI:SetTab("farm")
 
 local _, boarAt = Line(BOAR)
 local itemUnder
 for index = boarAt + 1, #UI.shown do
-    if UI.shown[index].style == "item" then itemUnder = UI.shown[index] break end
+    if UI.shown[index].style == "icons" then itemUnder = UI.shown[index].icons[1] break end
 end
 suite.check("items under a mob show as counts, not percentages",
-    itemUnder and itemUnder.right:find("%", 1, true) == nil, itemUnder and itemUnder.right)
+    itemUnder and itemUnder.text:find("%", 1, true) == nil, itemUnder and itemUnder.text)
 suite.check("and it says how many more kills",
     Line("14 more kills for drop rates") ~= nil)
 
 -- Two slots of one item in a window add up in the session loot.
 Loot(BOAR, { { name = "Chunk of Boar Meat", quantity = 2 }, { name = "Chunk of Boar Meat", quantity = 1 } })
+UI:SetTab("loot")
 local meatLoot = Line(MEAT.name)
 suite.check("two slots of one item both count toward loot",
     meatLoot and meatLoot.right == "x4", meatLoot and meatLoot.right)
+UI:SetTab("farm")
 
 --------------------------------------------------------------------------------
 -- How items look
@@ -267,17 +275,24 @@ suite.check("the report on the 20th kill has rates",
 suite.check("and names the rarer drop too", said:find("5%", 1, true) ~= nil, said)
 
 local _, wolfAt = Line(WOLF)
--- Under the band: where it was killed, then its drops.
-suite.check("a rated item carries a bar as long as its rate",
-    UI.shown[wolfAt + 2].bar == 0.25, UI.shown[wolfAt + 2].bar)
-suite.check("and the mob's progress bar is gone once rates show",
-    UI.shown[wolfAt + 1].style ~= "progress", UI.shown[wolfAt + 1].style)
-
+-- Under the band: where it was killed, what a kill is worth, then its drops.
+local wolfIcons
+for index = wolfAt + 1, #UI.shown do
+    local line = UI.shown[index]
+    if line.style == "progress" then suite.check("the progress bar is gone once rates show", false) end
+    if line.style == "icons" then wolfIcons = line break end
+    if line.style == "mob" then break end
+end
 suite.check("the latest mob is listed first",
     wolfAt and wolfAt < select(2, Line(BOAR)), wolfAt)
 suite.check("its items switch to percentages",
-    UI.shown[wolfAt + 2].left == "Wolf Fang" and UI.shown[wolfAt + 2].right == "25%",
-    UI.shown[wolfAt + 2].right)
+    wolfIcons and wolfIcons.icons[1].item == "Wolf Fang" and wolfIcons.icons[1].text == "25%",
+    wolfIcons and wolfIcons.icons[1].text)
+suite.check("coloured by how good the rate is",
+    wolfIcons and wolfIcons.icons[2].textColor == "muted", wolfIcons and wolfIcons.icons[2].textColor)
+suite.check("the boar, no longer the one you are on, folds to one line",
+    Line(BOAR) and Line(BOAR).folded == true)
+suite.check("with its loot as small icons", Line(BOAR) and #Line(BOAR).minis > 0)
 suite.check("and the countdown goes", Line("0 more kills for drop rates") == nil)
 
 ns.HandleSlash("report off")
@@ -462,15 +477,51 @@ for index = 1, 30 do
     Loot("Kobold " .. index, { { name = "Linen Cloth" } })
 end
 
+--- Whether the lines showing fit a panel `height` tall.
+local function Fits(height)
+    local TUI = ns.TrackerUI
+    local used = 0
+    for _, line in ipairs(TUI.shown) do used = used + TUI:LineHeight(line, TUI.frame:GetWidth()) end
+    return used <= height - TUI.TOP - 16, used
+end
+
 local shown = ns.TrackerUI.shown
-suite.check("a long session fills the panel and no more",
-    #shown == ns.TrackerUI:LinesFor(420), #shown)
-suite.check("the last line says how much did not fit",
-    shown[#shown].left:find("^%+%d+ more lines") ~= nil, shown[#shown].left)
+suite.check("a long session fills the panel and no more", Fits(420) and #shown > 5, #shown)
+suite.check("folded, thirty mobs take a line each", #shown >= 15, #shown)
+suite.check("the bottom edge says how many more are below",
+    ns.TrackerUI.moreLabel:IsShown()
+    and ns.TrackerUI.moreLabel:GetText():find("more below, scroll", 1, true) ~= nil,
+    ns.TrackerUI.moreLabel:GetText())
 suite.check("a full panel stops growing at its tallest",
     ns.TrackerUI.frame:GetHeight() <= 420, ns.TrackerUI.frame:GetHeight())
 suite.check("and the newest mob is still at the top",
-    Line("Kobold 30") ~= nil)
+    Line("Kobold 30") ~= nil and Line("Kobold 30").folded == false)
+
+-- The wheel scrolls (Trent, 2026-09-28: no more cutting off).
+local top = shown[1]
+ns.TrackerUI:ScrollBy(4)
+suite.check("scrolling moves the column", ns.TrackerUI.scroll == 4 and ns.TrackerUI.shown[1] ~= top,
+    ns.TrackerUI.scroll)
+ns.TrackerUI:ScrollBy(999)
+suite.check("no further than the last line", ns.TrackerUI.scroll == ns.TrackerUI.maxScroll
+    and Line("Kobold 1") ~= nil, ns.TrackerUI.scroll)
+suite.check("and nothing is left below", not ns.TrackerUI.moreLabel:IsShown())
+ns.TrackerUI:ScrollBy(-999)
+suite.check("and back to the top", ns.TrackerUI.scroll == 0)
+local wheel = ns.TrackerUI.frame:GetScript("OnMouseWheel")
+wheel(ns.TrackerUI.frame, -1)
+suite.check("the mouse wheel scrolls it", ns.TrackerUI.scroll > 0, ns.TrackerUI.scroll)
+wheel(ns.TrackerUI.frame, 1)
+
+-- A folded mob opens with a click on its band, and folds again.
+local _, koboldAt = Line("Kobold 28")
+local koboldRow = koboldAt and ns.TrackerUI.lines[koboldAt]
+if koboldRow then koboldRow:GetScript("OnMouseUp")(koboldRow, "LeftButton") end
+suite.check("clicking a folded band opens it", Line("Kobold 28") and Line("Kobold 28").folded == false)
+_, koboldAt = Line("Kobold 28")
+koboldRow = ns.TrackerUI.lines[koboldAt]
+koboldRow:GetScript("OnMouseUp")(koboldRow, "LeftButton")
+suite.check("and again folds it", Line("Kobold 28").folded == true)
 
 --------------------------------------------------------------------------------
 -- Resizing
@@ -490,7 +541,7 @@ suite.check("a line with a value stops short of it",
 ns.db.trackerWidth, ns.db.trackerHeight = 400, 200
 TUI:Refresh()
 suite.check("a saved width is the width", TUI.frame:GetWidth() == 400, TUI.frame:GetWidth())
-suite.check("a saved height caps the lines", #TUI.shown == TUI:LinesFor(200), #TUI.shown)
+suite.check("a saved height caps the lines", Fits(200), #TUI.shown)
 suite.check("and the panel is no taller than it",
     TUI.frame:GetHeight() <= 200, TUI.frame:GetHeight())
 
@@ -519,7 +570,7 @@ suite.check("pressing the grip pins the panel by its top",
 TUI.frame:SetWidth(320)
 TUI.frame:SetHeight(260)
 TUI.frame:GetScript("OnSizeChanged")(TUI.frame)
-suite.check("mid-drag the lines follow the drag", #TUI.shown == TUI:LinesFor(260), #TUI.shown)
+suite.check("mid-drag the lines follow the drag", Fits(260), #TUI.shown)
 release(TUI.grip)
 
 suite.check("letting go saves the width", ns.db.trackerWidth == 320, ns.db.trackerWidth)
@@ -542,7 +593,7 @@ suite.check("a moved panel is saved by its top",
 
 ns.SettingsUI:ResetPositions()
 suite.check("putting windows back resets the size too",
-    ns.db.trackerWidth == nil and TUI:Width() == 236, ns.db.trackerWidth)
+    ns.db.trackerWidth == nil and TUI:Width() == 260, ns.db.trackerWidth)
 
 ns.HandleSlash("tracker off")
 suite.check("/farm tracker off hides it", not ns.TrackerUI.frame:IsShown())

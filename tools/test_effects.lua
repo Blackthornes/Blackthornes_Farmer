@@ -52,6 +52,22 @@ local function Settle()
     for _ = 1, 100 do FX:Step(0.1) end
 end
 
+--- An item's icon on an open card, and the slot drawing it.
+local function Icon(name)
+    for index, line in ipairs(TUI.shown or {}) do
+        for at, icon in ipairs(line.icons or {}) do
+            if icon.item == name then return icon, TUI.lines[index].slots[at] end
+        end
+    end
+end
+
+local function Moving(frame, part)
+    for _, effect in ipairs(FX.effects) do
+        if effect.row == frame and (part == nil or effect.slot == part) then return true end
+    end
+    return false
+end
+
 local WOOL = { name = "Wool Cloth", id = 2589, quantity = 2 }
 local FANG = { name = "Large Fang", id = 5637 }
 local CLOAK = { name = "Scouting Cloak", id = 4690 }
@@ -92,7 +108,7 @@ suite.check("the wolf's band is shown", band ~= nil)
 suite.check("and glows", bandRow and FX.FlashOf(bandRow) ~= nil)
 
 local total, totalRow = Shown("total")
-suite.check("value line carries the gain", total and total.badge == "+" .. ns.Value.Money(3800 + 26 + 50),
+suite.check("value line carries the gain", total and total.badge == "+" .. ns.Value.Coins(3800 + 26 + 50),
     total and total.badge)
 
 local floated = {}
@@ -108,12 +124,12 @@ suite.check("nothing white chimes", #played == 0, #played)
 -- Partway through, the value is between the two.
 FX:Step(0.2)
 local middle = totalRow.right:GetText()
-suite.check("value is counting up", middle ~= ns.Value.Money(total.count), middle)
+suite.check("value is counting up", middle ~= ns.Value.Coins(total.count), middle)
 
 Settle()
 suite.check("everything ends", #FX.effects == 0, #FX.effects)
 suite.check("the clock stops", not FX.driver:IsShown())
-suite.check("value lands on the total", totalRow.right:GetText() == ns.Value.Money(total.count),
+suite.check("value lands on the total", totalRow.right:GetText() == ns.Value.Coins(total.count),
     totalRow.right:GetText())
 suite.check("the + goes", not totalRow.badge:IsShown())
 suite.check("floats land", not FX.Floating(FX.floats[1]))
@@ -133,20 +149,43 @@ suite.check("green chimes", #played == 1, #played)
 suite.check("our own sound", played[1] and played[1].path == Tracker.SOUNDS.rare, played[1] and played[1].path)
 suite.check("on the master channel", played[1] and played[1].channel == "Master")
 
-local cloak, cloakRow = Shown("loot:Scouting Cloak")
-suite.check("the cloak's line is there", cloak ~= nil)
-suite.check("and washes", cloakRow and FX.FlashOf(cloakRow) ~= nil)
+local cloak, cloakSlot = Icon("Scouting Cloak")
+suite.check("the cloak's icon is there", cloak ~= nil)
+suite.check("and lights up", cloakSlot and Moving(cloakSlot))
+suite.check("with NEW on it, the wolf's first", cloakSlot and Moving(cloakSlot, cloakSlot.tag))
+
+-- A second fang is not new: its count goes up and says so.
+Settle()
+Loot("Mangy Wolf", { FANG })
+local _, fangSlot = Icon("Large Fang")
+suite.check("an icon whose count went up lights up", fangSlot and Moving(fangSlot))
+suite.check("and says by how many", fangSlot and fangSlot.gain:GetText() == "+1",
+    fangSlot and fangSlot.gain:GetText())
+suite.check("but it is not new", fangSlot and not Moving(fangSlot, fangSlot.tag))
+
+-- On the Loot tab, the cloak's own line washes in its colour.
+Settle()
+TUI:SetTab("loot")
+Loot("Mangy Wolf", { CLOAK })
+local _, cloakRow = Shown("loot:Scouting Cloak")
+suite.check("the cloak's Loot line washes", cloakRow and FX.FlashOf(cloakRow) ~= nil)
+TUI:SetTab("farm")
+Settle()
+played = {}
 
 -- Two in the same breath: one chime.
+Loot("Mangy Wolf", { CLOAK })
 Loot("Mangy Wolf", { CLOAK })
 suite.check("not twice at once", #played == 1, #played)
 
 Settle()
+FX.rareAt = nil
 Loot("Mangy Wolf", { CLOAK })
 suite.check("again once it has played out", #played == 2, #played)
 
 ns.HandleSlash("raresound off")
 Settle()
+FX.rareAt = nil
 Loot("Mangy Wolf", { CLOAK })
 suite.check("switched off, silent", #played == 2, #played)
 ns.HandleSlash("raresound on")

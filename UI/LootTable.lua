@@ -261,7 +261,7 @@ local function UpdateRow(row, data)
     end
 
     if data.perKill then
-        row.cells.perKill:SetText(ns.Value.Money(data.perKill))
+        row.cells.perKill:SetText(ns.Value.Coins(data.perKill))
         row.cells.perKill:SetTextColor(Theme.Unpack("good"))
     else
         row.cells.perKill:SetText("--")
@@ -412,7 +412,7 @@ function LootTableUI:Render()
         kills:SetText(Kills(data.kills))
     end
 
-    local Money = ns.Value and ns.Value.Money
+    local Money = ns.Value and ns.Value.Coins
     if data.worth and Money then
         self.worth:SetText(Money(data.worth) .. (data.basis == "tally" and "" or " (est.)"))
         self.worth:SetTextColor(Theme.Unpack("good"))

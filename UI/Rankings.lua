@@ -254,10 +254,10 @@ local function EntryTexts(data)
     texts.best = entry.best and entry.best.name or ""
 
     if entry.group == "measured" then
-        texts.worth = ns.Value.Money(entry.value)
+        texts.worth = ns.Value.Coins(entry.value)
         texts.basis = Util.Plural(entry.kills, "kill")
     else
-        texts.worth = "~" .. ns.Value.Money(entry.value)
+        texts.worth = "~" .. ns.Value.Coins(entry.value)
         texts.basis = "estimate"
     end
 

@@ -147,7 +147,8 @@ function Theme.TextWidth(size, text)
         measures[size] = label
     end
 
-    label:SetText(text)
+    -- Colour codes take no room on screen.
+    label:SetText(ns.Util and ns.Util.StripColor(text) or text)
 
     -- The unbounded width where the client has it, else the plain one.
     local width
