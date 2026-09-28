@@ -4,6 +4,29 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.11.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- The Kills & Loot panel has Farm and Loot tabs.
+- Farm: the mob you're killing is at the top, open and lit gold, with every
+  item it has dropped as icons (a count until 20 kills, then the drop
+  rate). Other mobs fold to one line with small icons and a bar toward 20
+  kills. Click a mob to open or fold it, or click an icon for its loot
+  table. Fishing spots and nodes work the same way.
+- Loot: everything you looted, fished and gathered this session, best
+  earners first, with medals on the top three and where each item came
+  from.
+- A Sort button (Recent, Worth per kill, Kills or Loot value; on Loot:
+  Value, Count or Name), and gold per hour once you've played 5 minutes.
+- The panel scrolls with the mouse wheel instead of cutting off.
+- A new drop flashes its icon with "+2", a mob's first drop of an item gets
+  a gold NEW tag, a Loot item that moves up says so, and the other tab gets
+  a green dot when something new lands there.
+- Money shows in gold, silver and copper colours in the panel, loot table,
+  Rankings, search tooltips, goals and `/farm value`.
+
 ## 0.10.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
