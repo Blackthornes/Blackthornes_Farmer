@@ -890,7 +890,7 @@ function TrackerFX:SetLevel(level)
     if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
 end
 
-ns.RegisterCommand("effects", "how much the kill panel moves: full, subtle or off", function(rest)
+ns.RegisterCommand("effects", "how much the panels and windows move: full, subtle or off", function(rest)
     local argument = Util.Trim(rest):lower()
 
     if not LEVEL_NAMES[argument] then

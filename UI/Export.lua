@@ -49,6 +49,7 @@ function UI:BuildExport()
     header:SetPoint("TOPLEFT")
     header:SetPoint("TOPRIGHT")
     header:SetHeight(32)
+    Theme.HouseHeader(header)
 
     local title = Theme.CreateLabel(header, "large", "accent")
     title:SetPoint("LEFT", PADDING, 0)
@@ -56,7 +57,7 @@ function UI:BuildExport()
     self.exportTitle = title
 
     local close = Widgets.CreateButton(header, "X", function() UI:HideExport() end,
-        { width = 22, height = 20 })
+        { width = 22, height = 20, danger = true })
     close:SetPoint("RIGHT", -PADDING + 2, 0)
 
     local divider = Theme.CreateDivider(frame, "borderLit")
@@ -185,7 +186,10 @@ function UI:ShowExport(text, title)
     for _ in text:gmatch("\n") do lines = lines + 1 end
     self.exportCount:SetText(("%d lines, %d characters"):format(lines, #text))
 
-    self.exportFrame:Show()
+    if not self.exportFrame:IsShown() then
+        self.exportFrame:Show()
+        ns.Motion:Open(self.exportFrame)
+    end
 
     -- One frame later: the edit box has to have laid out its text before
     -- highlighting it covers the whole thing.

@@ -123,7 +123,7 @@ function RankingsUI:Build(frame)
     local list = Widgets.CreateRowList(panel, {
         rowHeight = ROW_HEIGHT,
         createRow = function(row) RankingsUI:CreateRow(row) end,
-        updateRow = function(row, data) RankingsUI:UpdateRow(row, data) end,
+        updateRow = function(row, data, index) RankingsUI:UpdateRow(row, data, index) end,
         onClick = function(data) RankingsUI:OnRowClick(data) end,
         onEnter = function(row, data)
             if data.entry then ns.UI:ShowMobTooltip(row, data.entry.mob) end
@@ -162,9 +162,32 @@ end
 -- Rows
 --------------------------------------------------------------------------------
 
+-- The top three of each board: gold, silver and bronze.
+local MEDALS = {
+    { 1.00, 0.82, 0.30 },
+    { 0.78, 0.80, 0.84 },
+    { 0.80, 0.52, 0.30 },
+}
+RankingsUI.MEDALS = MEDALS
+
 function RankingsUI:CreateRow(row)
+    -- A board's heading sits on a band, as the search tab's items do.
+    row.band = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.band:SetAllPoints(row)
+    row.band:SetColorTexture(Theme.Unpack("header"))
+
+    row.bandStripe = row:CreateTexture(nil, "ARTWORK")
+    row.bandStripe:SetPoint("TOPLEFT")
+    row.bandStripe:SetPoint("BOTTOMLEFT")
+    row.bandStripe:SetWidth(2)
+    row.bandStripe:SetColorTexture(Theme.Unpack("accent", 0.8))
+
+    -- A medal behind the top three ranks.
+    row.medal = row:CreateTexture(nil, "ARTWORK")
+    row.medal:SetSize(16, 14)
+
     row.heading = Theme.CreateLabel(row, "small", "accent")
-    row.heading:SetPoint("LEFT", 2, 0)
+    row.heading:SetPoint("LEFT", 8, 0)
     row.heading:SetPoint("RIGHT", -2, 0)
 
     row.rank = Theme.CreateLabel(row, "small", "dim", "RIGHT")
@@ -199,6 +222,8 @@ function RankingsUI:PlaceRow(row)
     end
 
     Place(row.rank, "rank", 0, columns.rank.w - 4)
+    row.medal:ClearAllPoints()
+    row.medal:SetPoint("RIGHT", row, "LEFT", columns.rank.x + columns.rank.w + 1, 0)
     Place(row.mob, "mob")
     Place(row.barTrack, "worth", 0, BAR_WIDTH)
     row.barFill:ClearAllPoints()
@@ -239,13 +264,18 @@ local function EntryTexts(data)
     return texts
 end
 
-function RankingsUI:UpdateRow(row, data)
+function RankingsUI:UpdateRow(row, data, index)
     self:PlaceRow(row)
 
     row.heading:Hide()
+    row.band:Hide()
+    row.bandStripe:Hide()
+    row.medal:Hide()
     for _, key in ipairs(CELLS) do row[key]:Hide() end
 
     if data.type == "heading" then
+        row.band:Show()
+        row.bandStripe:Show()
         local heading = HEADINGS[data.group]
         row.heading:SetTextColor(Theme.Unpack("accent"))
         row.heading:SetText(("%s  %s"):format(heading[1],
@@ -282,17 +312,34 @@ function RankingsUI:UpdateRow(row, data)
     end
 
     row.rank:SetText(texts.rank)
-    -- The top three of a board stand out a little.
-    row.rank:SetTextColor(Theme.Unpack(entry.rank <= 3 and "accent" or "dim"))
+    -- The top three of a board wear gold, silver and bronze.
+    local medal = MEDALS[entry.rank]
+    if medal then
+        row.rank:SetTextColor(0.06, 0.06, 0.07)
+        row.medal:SetColorTexture(medal[1], medal[2], medal[3], measured and 0.95 or 0.6)
+        row.medal:Show()
+    else
+        row.rank:SetTextColor(Theme.Unpack("dim"))
+    end
     row.rank:Show()
 
     local color = measured and "good" or "accent"
     local share = data.top > 0 and entry.value / data.top or 0
+    local width = math.max(1, BAR_WIDTH * share)
+    local fill = row.barFill
 
     row.barTrack:Show()
-    row.barFill:SetWidth(math.max(1, BAR_WIDTH * share))
-    row.barFill:SetColorTexture(Theme.Unpack(color, measured and 1 or 0.6))
-    row.barFill:Show()
+    fill:SetColorTexture(Theme.Unpack(color, measured and 1 or 0.6))
+    fill:Show()
+
+    -- A board shown fresh grows its bars from nothing, top down.
+    if self.arriving and index then
+        ns.Motion:Run(row, "bar", 0.5, function(p) fill:SetWidth(math.max(1, width * p)) end,
+            { delay = 0.1 + math.min(index - 1, 14) * 0.025 })
+    else
+        ns.Motion:Stop(row, "bar")
+        fill:SetWidth(width)
+    end
 
     row.worth:SetText(texts.worth)
     row.worth:SetTextColor(Theme.Unpack(measured and "good" or "muted"))
@@ -396,7 +443,7 @@ function RankingsUI:PriceText()
 end
 
 --- Rebuild the board and draw it. Returns the window width it wants.
-function RankingsUI:Render()
+function RankingsUI:Render(arrive)
     if not self.view then return end
 
     for _, chip in ipairs(self.chips) do
@@ -408,7 +455,15 @@ function RankingsUI:Render()
     self.board = board
 
     local width = self:FitColumns(rows)
+
+    -- The board comes in row by row when the tab is opened or the filter
+    -- changes; a kill that redraws it while you look just redraws.
+    local fresh = arrive or self.shownGroup ~= self.group
+    self.shownGroup = self.group
+    self.arriving = fresh
     self.list:SetData(rows)
+    self.arriving = false
+    if fresh then self.list:Arrive() end
     self.summary:SetText(self:PriceText())
 
     -- The window grows to fit, never narrower than the search tab's base.

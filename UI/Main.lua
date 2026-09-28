@@ -140,6 +140,7 @@ function UI:Build()
 
     self.tab = "search"
     self.tabs.search:SetSelected(true)
+    self:MarkTab("search")
 
     frame:Hide()
     return frame
@@ -148,30 +149,54 @@ end
 function UI:BuildHeader()
     local frame = self.frame
 
+    -- The house header, as Tradeskills draws it: a gold stripe down the left,
+    -- a faint glow and sheen along the top, and a lit rule underneath.
     local header = Theme.CreatePanel(frame, "header", false)
     header:SetPoint("TOPLEFT")
     header:SetPoint("TOPRIGHT")
     header:SetHeight(36)
+    Theme.AccentStripe(header, 3)
+    Theme.HeaderGlow(header, 20, 0.10)
+    Theme.TopSheen(header)
+
+    local icon = header:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(20, 20)
+    icon:SetPoint("LEFT", PADDING, 0)
+    icon:SetTexture([[Interface\Icons\Trade_Mining]])
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    self.titleIcon = icon
 
     local title = Theme.CreateLabel(header, "title", "accent")
-    title:SetPoint("LEFT", PADDING, 0)
+    title:SetPoint("LEFT", icon, "RIGHT", 8, 0)
     title:SetText("Blackthornes Farmer")
 
-    -- Tabs sit after the title, sized to their labels.
+    -- Tabs sit after the title, sized to their labels. Their left edges are
+    -- worked out here too, so the gold line under the chosen tab can slide
+    -- from one to the other.
     self.tabs = {}
+    self.tabSpans = {}
     local anchor, gap = title, 16
+    local x = 0
 
     for _, tab in ipairs(TABS) do
         local chip = Widgets.CreateChip(header, tab.label, function() UI:ShowTab(tab.key) end)
+        local width = Theme.TextWidth("tiny", tab.label) + 22
         chip:SetHeight(20)
-        chip:SetWidth(Theme.TextWidth("tiny", tab.label) + 22)
+        chip:SetWidth(width)
         chip:SetPoint("LEFT", anchor, "RIGHT", gap, 0)
         self.tabs[tab.key] = chip
+        self.tabSpans[tab.key] = { x = x, w = width }
         anchor, gap = chip, 4
+        x = x + width + 4
     end
 
+    local underline = header:CreateTexture(nil, "OVERLAY")
+    underline:SetHeight(2)
+    underline:SetColorTexture(Theme.Unpack("accent"))
+    self.tabUnderline = underline
+
     local close = Widgets.CreateButton(header, "X", function() UI:Hide() end,
-        { width = 22, height = 20 })
+        { width = 22, height = 20, danger = true })
     close:SetPoint("RIGHT", -PADDING + 2, 0)
 
     local settings = Widgets.CreateButton(header, "Settings", function()
@@ -185,6 +210,26 @@ function UI:BuildHeader()
     divider:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT")
 
     self.header = header
+end
+
+--- Put the gold line under tab `key`, sliding there from wherever it was.
+function UI:MarkTab(key)
+    local span = self.tabSpans and self.tabSpans[key]
+    local line = self.tabUnderline
+    if not (span and line) then return end
+
+    local from = self.underlineAt or span
+    self.underlineAt = span
+
+    -- Hung from the tab it is heading for, so it lands exactly under it
+    -- whatever the font; only the gap between the tabs is worked out.
+    local chip = self.tabs[key]
+    ns.Motion:Run(line, "slide", 0.22, function(p)
+        local w = from.w + (span.w - from.w) * p
+        line:ClearAllPoints()
+        line:SetPoint("TOPLEFT", chip, "BOTTOMLEFT", (from.x - span.x) * (1 - p) + 3, -1)
+        line:SetWidth(math.max(1, w - 6))
+    end)
 end
 
 function UI:BuildBody()
@@ -226,7 +271,7 @@ function UI:BuildBody()
     local list = Widgets.CreateRowList(panel, {
         rowHeight = ROW_HEIGHT,
         createRow = function(row) UI:CreateRow(row) end,
-        updateRow = function(row, data) UI:UpdateRow(row, data) end,
+        updateRow = function(row, data, index) UI:UpdateRow(row, data, index) end,
         onClick = function(data, button) UI:OnRowClick(data, button) end,
         onEnter = function(row) UI:ShowValueTooltip(row) end,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
@@ -246,6 +291,103 @@ function UI:BuildBody()
     footer:SetText("Unmarked spots come from Classic data and are not confirmed on Forever yet. "
         .. "Click a row to print it to chat.")
     self.footer = footer
+
+    self:BuildEmpty()
+end
+
+--- What the results panel shows before you have typed anything: what to
+--- type, and a few materials that suit your level to start from.
+function UI:BuildEmpty()
+    local empty = CreateFrame("Frame", nil, self.panel)
+    empty:SetPoint("TOPLEFT", 8, -24)
+    empty:SetPoint("BOTTOMRIGHT", -8, 8)
+    self.empty = empty
+
+    local icon = empty:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(40, 40)
+    icon:SetPoint("TOP", 0, -40)
+    icon:SetTexture([[Interface\Icons\Trade_Mining]])
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    icon:SetAlpha(0.85)
+    self.emptyIcon = icon
+
+    -- A gold ring round the icon, drawn as its own small frame so the
+    -- border helper has something to wrap.
+    local ring = CreateFrame("Frame", nil, empty)
+    ring:SetPoint("TOPLEFT", icon, "TOPLEFT", -2, 2)
+    ring:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
+    Theme.Border(ring, "accent", 0.6)
+
+    local line = Theme.CreateLabel(empty, "large", "text", "CENTER")
+    line:SetPoint("TOP", icon, "BOTTOM", 0, -14)
+    line:SetText("What are you farming?")
+    self.emptyLine = line
+
+    local hint = Theme.CreateLabel(empty, "small", "muted", "CENTER")
+    hint:SetPoint("TOP", line, "BOTTOM", 0, -6)
+    hint:SetText("Type an item, a zone, a mob or a place.")
+
+    local caption = Theme.CreateLabel(empty, "tiny", "dim", "CENTER")
+    caption:SetPoint("TOP", hint, "BOTTOM", 0, -22)
+    self.emptyCaption = caption
+
+    self.suggestRow = CreateFrame("Frame", nil, empty)
+    self.suggestRow:SetHeight(20)
+    self.suggestRow:SetPoint("TOP", caption, "BOTTOM", 0, -8)
+    self.suggestChips = {}
+
+    empty:Hide()
+end
+
+--- Fill the empty panel's suggestions for the player's level, and bring it in.
+function UI:ShowEmpty()
+    local empty = self.empty
+    if not empty then return end
+
+    -- Read in a pcall, as every client value is: inside an instance the
+    -- client can hand back one that raises when touched.
+    local level = 0
+    if UnitLevel then
+        local ok, value = pcall(UnitLevel, "player")
+        level = ok and ns.Harvest.ReadableNumber(value) or 0
+    end
+    local picks = level > 0 and ns.Search:ForLevel(level) or {}
+
+    for _, chip in ipairs(self.suggestChips) do chip:Hide() end
+
+    local total = 0
+    for index, item in ipairs(picks) do
+        local chip = self.suggestChips[index]
+        if not chip then
+            chip = Widgets.CreateButton(self.suggestRow, "", function(clicked)
+                UI:Search(clicked.itemName)
+            end, { height = 20, width = 60 })
+            chip.icon = Theme.CreateItemIcon(chip, 14)
+            chip.icon:SetPoint("LEFT", 5, 0)
+            chip.label:ClearAllPoints()
+            chip.label:SetPoint("LEFT", chip.icon, "RIGHT", 5, 0)
+            self.suggestChips[index] = chip
+        end
+
+        chip.itemName = item.name
+        chip:SetText(item.name)
+        chip:SetWidth(Theme.TextWidth("small", item.name) + 32)
+        Theme.SetItemIcon(chip.icon, item.id)
+
+        chip:ClearAllPoints()
+        chip:SetPoint("LEFT", self.suggestRow, "LEFT", total, 0)
+        chip:Show()
+        total = total + chip:GetWidth() + 6
+    end
+
+    self.suggestRow:SetWidth(math.max(1, total - 6))
+    self.emptyCaption:SetText(#picks > 0 and ("GOOD AT LEVEL %d"):format(level) or "")
+    self.suggestRow:SetShown(#picks > 0)
+
+    if not empty:IsShown() then
+        empty:Show()
+        ns.Motion:Run(empty, "fade", 0.25, function(p) empty:SetAlpha(p) end)
+    end
 end
 
 function UI:PlaceHeadings()
@@ -387,7 +529,25 @@ function UI:ShowMobTooltip(owner, mobName)
 end
 
 function UI:CreateRow(row)
-    -- An item heading: full width, so it reads as a break in the list.
+    -- An item heading: full width on a band of its own, with the item's
+    -- icon, so it reads as a break in the list.
+    row.band = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.band:SetAllPoints(row)
+    row.band:SetColorTexture(Theme.Unpack("header"))
+
+    row.bandStripe = row:CreateTexture(nil, "ARTWORK")
+    row.bandStripe:SetPoint("TOPLEFT")
+    row.bandStripe:SetPoint("BOTTOMLEFT")
+    row.bandStripe:SetWidth(2)
+    row.bandStripe:SetColorTexture(Theme.Unpack("accent", 0.8))
+
+    row.fold = Theme.CreateLabel(row, "small", "muted", "CENTER")
+    row.fold:SetPoint("LEFT", 4, 0)
+    row.fold:SetWidth(10)
+
+    row.itemIcon = Theme.CreateItemIcon(row, 16)
+    row.itemIcon:SetPoint("LEFT", 16, 0)
+
     row.heading = Theme.CreateLabel(row, "small", "accent")
     row.heading:SetPoint("LEFT", 2, 0)
     row.heading:SetPoint("RIGHT", -64, 0)
@@ -441,19 +601,37 @@ local function HideSourceColumns(row)
     row.badge:Hide()
 end
 
-function UI:UpdateRow(row, data)
+--- Where a heading's text starts: after the icon on an item, indented on a
+--- note.
+local function PlaceHeading(row, left)
+    row.heading:ClearAllPoints()
+    row.heading:SetPoint("LEFT", left, 0)
+    row.heading:SetPoint("RIGHT", -64, 0)
+end
+
+function UI:UpdateRow(row, data, index)
     self:PlaceRow(row)
     row.heading:Hide()
     row.goal:Hide()
+    row.band:Hide()
+    row.bandStripe:Hide()
+    row.fold:Hide()
+    row.itemIcon:Hide()
     HideSourceColumns(row)
 
     if data.type == "item" then
-        local arrow = self.collapsed[data.item.name] and "+" or "-"
+        row.band:Show()
+        row.bandStripe:Show()
+
+        row.fold:SetText(self.collapsed[data.item.name] and "+" or "-")
+        row.fold:Show()
+        Theme.SetItemIcon(row.itemIcon, data.item.id)
 
         -- Set every time: this row may have drawn a muted note a moment ago,
         -- and a recycled row keeps whatever the last one left on it.
+        PlaceHeading(row, data.item.id and 38 or 18)
         row.heading:SetTextColor(Theme.Unpack("accent"))
-        row.heading:SetText(("%s  %s  %s"):format(arrow, data.item.name,
+        row.heading:SetText(("%s  %s"):format(data.item.name,
             Util.Colored("muted", ("(%s, %s)"):format(
                 data.item.category, Util.Plural(data.count, "spot")))))
         row.heading:Show()
@@ -472,6 +650,7 @@ function UI:UpdateRow(row, data)
     end
 
     if data.type == "note" or data.type == "more" then
+        PlaceHeading(row, 2)
         row.heading:SetTextColor(Theme.Unpack(data.type == "more" and "dim" or "muted"))
         row.heading:SetText("     " .. data.text)
         row.heading:Show()
@@ -507,9 +686,20 @@ function UI:UpdateRow(row, data)
     if source.chance then
         row.dropTrack:Show()
 
-        row.dropFill:SetWidth(math.max(1, DROP_BAR_WIDTH * (source.chance / 100)))
+        local width = math.max(1, DROP_BAR_WIDTH * (source.chance / 100))
         row.dropFill:SetColorTexture(DropColor(source.chance))
         row.dropFill:Show()
+
+        -- New results grow their bars from nothing, a beat behind their row.
+        local fill = row.dropFill
+        if self.arriving and index then
+            ns.Motion:Run(row, "bar", 0.45, function(p)
+                fill:SetWidth(math.max(1, width * p))
+            end, { delay = 0.08 + math.min(index - 1, 14) * 0.02 })
+        else
+            ns.Motion:Stop(row, "bar")
+            fill:SetWidth(width)
+        end
 
         row.drop:SetText(("%d%%"):format(source.chance))
         row.drop:SetTextColor(DropColor(source.chance))
@@ -592,11 +782,15 @@ function UI:Render()
 
     if query == "" then
         self.list:SetData({})
+        self.lastShape = nil
         self.summary:SetText(("%s, %s"):format(
             Util.Plural(ns.DB:CountItems(), "item"),
             Util.Plural(ns.DB:CountSources(), "spot")))
+        self:ShowEmpty()
         return
     end
+
+    if self.empty then self.empty:Hide() end
 
     local rows, total = ns.Search:BuildRows(query, { kind = self.filterKind })
 
@@ -613,7 +807,21 @@ function UI:Render()
     end
 
     self:FitColumns(visible)
+
+    -- New results come in row by row, with their drop bars growing; the
+    -- same results redrawn (another letter typed that finds the same items,
+    -- a heading folded) just redraw. The items found are what decides it.
+    local names = {}
+    for _, row in ipairs(visible) do
+        if row.type == "item" then names[#names + 1] = row.item.name end
+    end
+    local shape = table.concat(names, "\n") .. "|" .. tostring(self.filterKind)
+    self.arriving = shape ~= self.lastShape
+    self.lastShape = shape
+
     self.list:SetData(visible)
+    if self.arriving then self.list:Arrive() end
+    self.arriving = false
 
     if total == 0 then
         self.summary:SetText(Util.Colored("muted", "nothing found"))
@@ -703,6 +911,7 @@ function UI:ShowTab(key)
     for tabKey, chip in pairs(self.tabs) do
         chip:SetSelected(tabKey == key)
     end
+    self:MarkTab(key)
 
     self.searchView:SetShown(key == "search")
     if self.rankingsView then self.rankingsView:SetShown(key == "rankings") end
@@ -710,7 +919,7 @@ function UI:ShowTab(key)
     if key == "rankings" then
         -- A hidden search box keeping the keyboard would eat your keys.
         self.searchBox:ClearFocus()
-        ns.RankingsUI:Render()
+        ns.RankingsUI:Render(true)
     else
         self.frame:SetWidth(WIDTH + (self.columns or COLUMN).extra)
     end
@@ -759,6 +968,7 @@ function UI:Show()
 
     self:RestorePosition()
     self.frame:Show()
+    ns.Motion:Open(self.frame)
 end
 
 function UI:Hide()
@@ -843,6 +1053,24 @@ function UI:BuildMinimapButton()
     border:SetPoint("TOPLEFT")
     border:SetTexture([[Interface\Minimap\MiniMap-TrackingBorder]])
 
+    -- The game's own round glow under the mouse, as every minimap button has.
+    if button.SetHighlightTexture then
+        pcall(button.SetHighlightTexture, button,
+            [[Interface\Minimap\UI-Minimap-ZoomButton-Highlight]], "ADD")
+    end
+
+    -- The icon swells a little under the mouse and dips when pressed.
+    local function IconSize(size)
+        icon:SetSize(size, size)
+    end
+    button:SetScript("OnMouseDown", function() IconSize(16) end)
+    button:SetScript("OnMouseUp", function()
+        -- Back to its hover size if the mouse is still on it, else its own.
+        local target = 18 + 2 * ns.Motion:Value(button, "hover")
+        ns.Motion:Run(button, "press", 0.2, function(p) IconSize(16 + (target - 16) * p) end,
+            { ease = ns.Motion.EaseOutBack })
+    end)
+
     local function GetOrbitRadius()
         local size = Minimap:GetWidth()
         if not size or size <= 0 then size = 140 end
@@ -893,6 +1121,7 @@ function UI:BuildMinimapButton()
     end)
 
     button:SetScript("OnEnter", function(self)
+        ns.Motion:Blend(self, "hover", 1, 0.12, function(v) IconSize(18 + 2 * v) end)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("Blackthornes Farmer")
         GameTooltip:AddLine("Click to open", 0.7, 0.7, 0.7)
@@ -901,7 +1130,10 @@ function UI:BuildMinimapButton()
         GameTooltip:Show()
     end)
 
-    button:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    button:SetScript("OnLeave", function(self)
+        ns.Motion:Blend(self, "hover", 0, 0.18, function(v) IconSize(18 + 2 * v) end)
+        GameTooltip:Hide()
+    end)
 
     self.minimapButton = button
     self.lastMinimapWidth = Minimap:GetWidth()

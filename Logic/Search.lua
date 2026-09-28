@@ -314,6 +314,40 @@ function ns.RunSearch(query)
     end
 end
 
+-- The kinds of material the search window suggests for your level, in the
+-- order it shows them.
+Search.SUGGEST_CATEGORIES = { "Cloth", "Leatherworking", "Mining", "Herbalism" }
+
+--- One item per suggested category that suits a character of `level`: the
+--- one with the most places whose level band takes it in. Nothing for a
+--- category where no band does. For the empty search window.
+function Search:ForLevel(level)
+    level = tonumber(level) or 0
+    if level <= 0 then return {} end
+
+    local best = {}
+
+    for item in ns.DB:Iterate() do
+        local fits = 0
+        for _, source in ipairs(item.sources) do
+            local low = tonumber(source.minLevel)
+            local high = tonumber(source.maxLevel) or (low and low + 10)
+            if low and low <= level and level <= high then fits = fits + 1 end
+        end
+
+        local pick = best[item.category]
+        if fits > 0 and (not pick or fits > pick.fits) then
+            best[item.category] = { item = item, fits = fits }
+        end
+    end
+
+    local picks = {}
+    for _, category in ipairs(self.SUGGEST_CATEGORIES) do
+        if best[category] then picks[#picks + 1] = best[category].item end
+    end
+    return picks
+end
+
 function Search:PrintResults(query)
     local lines, total = self:BuildLines(query, 5)
 

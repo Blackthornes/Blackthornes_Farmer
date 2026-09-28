@@ -250,6 +250,7 @@ function SettingsUI:BuildHeader()
     header:SetPoint("TOPLEFT")
     header:SetPoint("TOPRIGHT")
     header:SetHeight(HEADER)
+    Theme.HouseHeader(header, 20)
 
     local title = Theme.CreateLabel(header, "title", "accent")
     title:SetPoint("LEFT", PADDING, 0)
@@ -263,7 +264,7 @@ function SettingsUI:BuildHeader()
     version:SetText(ns.VersionLabel())
 
     local close = Widgets.CreateButton(header, "X", function() SettingsUI:Hide() end,
-        { width = 22, height = 20 })
+        { width = 22, height = 20, danger = true })
     close:SetPoint("RIGHT", -PADDING + 4, 0)
 
     version:SetPoint("RIGHT", close, "LEFT", -10, 0)
@@ -395,8 +396,8 @@ function SettingsUI:BuildTrackingColumn()
     end, true)
     controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local effectsRow = CreateRow(frame, announceRow, "Panel effects",
-        "Full: counts glow, value counts up, loot floats off the panel. "
+    local effectsRow = CreateRow(frame, announceRow, "Effects",
+        "Full: glows, counting up, loot floating off, results coming in row by row. "
         .. "Subtle: no floats. Same as /farm effects.")
 
     local FX = ns.TrackerFX
@@ -531,6 +532,7 @@ function SettingsUI:Show()
     if not self.frame:IsShown() then
         self:RestorePosition()
         self.frame:Show()
+        ns.Motion:Open(self.frame)
     end
 
     self:Refresh()

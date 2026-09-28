@@ -218,11 +218,7 @@ function GoalsUI:Build()
     header:SetPoint("TOPRIGHT")
     header:SetHeight(HEADER)
 
-    local stripe = header:CreateTexture(nil, "ARTWORK")
-    stripe:SetPoint("TOPLEFT")
-    stripe:SetPoint("BOTTOMLEFT")
-    stripe:SetWidth(3)
-    stripe:SetColorTexture(Theme.Unpack("accent"))
+    Theme.HouseHeader(header)
 
     local title = Theme.CreateLabel(header, "normal", "accent")
     title:SetPoint("LEFT", PADDING + 4, 0)
@@ -232,7 +228,7 @@ function GoalsUI:Build()
         ns.db.goalsHidden = true
         GoalsUI:Refresh()
         ns.Print("goals panel hidden. /farm goals brings it back.")
-    end, { width = 18, height = 16 })
+    end, { width = 18, height = 16, danger = true })
     close:SetPoint("RIGHT", -6, 0)
 
     local rule = Theme.CreateDivider(frame, "borderLit")
@@ -327,10 +323,8 @@ function GoalsUI:Card(index)
     -- The best places near you to farm it (Trent, 2026-09-27).
     card.where = Widgets.CreateButton(card, "Where?", function()
         if card.goal then GoalsUI:OpenSpots(card.goal.item, GoalsUI.frame) end
-    end, { width = 46, height = 15 })
-    card.where.label:SetTextColor(Theme.Unpack("accent"))
-    card.where:SetScript("OnLeave", function(self)
-        self.background:SetColorTexture(Theme.Unpack("row"))
+    end, { width = 46, height = 15, labelKey = "accent" })
+    card.where:HookScript("OnLeave", function()
         if GameTooltip then GameTooltip:Hide() end
     end)
     card.where:HookScript("OnEnter", function(self)
@@ -1108,7 +1102,7 @@ function GoalsUI:BuildSpots()
     panel.from = from
 
     local close = Widgets.CreateButton(panel, "X", function() panel:Hide() end,
-        { width = 16, height = 14 })
+        { width = 16, height = 14, danger = true })
     close:SetPoint("TOPRIGHT", -6, -6)
 
     local rule = Theme.CreateDivider(panel, "borderLit")
@@ -1269,7 +1263,9 @@ function GoalsUI:OpenSpots(item, anchor)
     else
         panel:SetPoint("CENTER", UIParent, "CENTER", 0, 80)
     end
+    local opening = not panel:IsShown()
     panel:Show()
+    if opening then ns.Motion:Open(panel, 4) end
 
     -- The rows slide in one after another.
     if Level() ~= "off" then
@@ -1331,7 +1327,7 @@ function GoalsUI:BuildPicker()
     picker.title = title
 
     local close = Widgets.CreateButton(picker, "X", function() picker:Hide() end,
-        { width = 16, height = 14 })
+        { width = 16, height = 14, danger = true })
     close:SetPoint("TOPRIGHT", -6, -6)
 
     picker.chips = {}
@@ -1369,11 +1365,8 @@ function GoalsUI:BuildPicker()
     picker.bank = bank
 
     local set = Widgets.CreateButton(picker, "Set goal", function() GoalsUI:PickerSet() end,
-        { width = 80, height = 22 })
+        { width = 80, height = 22, primary = true })
     set:SetPoint("BOTTOMLEFT", 10, 10)
-    set.background:SetColorTexture(Theme.Unpack("accent", 0.35))
-    Theme.Border(set, "accent")
-    set:SetScript("OnLeave", function(self) self.background:SetColorTexture(Theme.Unpack("accent", 0.35)) end)
     picker.set = set
 
     local remove = Widgets.CreateButton(picker, "Remove goal", function()
@@ -1456,6 +1449,7 @@ function GoalsUI:OpenPicker(item, anchor)
         picker:SetPoint("CENTER", UIParent, "CENTER", 0, 80)
     end
     picker:Show()
+    ns.Motion:Open(picker, 4)
 end
 
 function GoalsUI:PickerSet()
