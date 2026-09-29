@@ -563,7 +563,11 @@ function Tracker:LootedItems()
 
     for slot = 1, count do
         local ok, slotIcon, slotName, slotQuantity = pcall(GetLootSlotInfo, slot)
-        local name = ok and ns.Harvest.Readable(slotName) or nil
+
+        -- Area loot: another corpse's drop is not this kill's.
+        local ours, share = ns.Harvest:SlotIsTargets(slot)
+        if share then slotQuantity = share end
+        local name = ours and ok and ns.Harvest.Readable(slotName) or nil
 
         if name and ns.Harvest:IsMoney(slot, name) then
             copper = copper + (Tracker.CoinCopper(name) or 0)

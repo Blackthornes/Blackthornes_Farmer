@@ -324,6 +324,23 @@ Open({ FANG })
 suite.check("a secret source leaves it the target's too",
     Tracker:Store()["Mangy Wolf"].kills == kills + 3)
 
+-- Area loot: one window, two corpses. Only the target's slot counts, and
+-- only its share of a slot both corpses filled.
+env.world.target = { name = "Mangy Wolf", level = 8, dead = true, guid = "Creature-0-area" }
+local sourcesOf = {
+    { "Creature-0-area", 1 },
+    { "Creature-0-other", 3 },
+    { "Creature-0-area", 2, "Creature-0-other", 5 },
+}
+_G.GetLootSourceInfo = function(slot) return unpack(sourcesOf[slot] or {}) end
+local function Qty(item) return tonumber(ns.db.tracker.mobs["Mangy Wolf"].qty[item]) or 0 end
+local fangsBefore, leatherBefore = Qty("Large Fang"), MobItem("Mangy Wolf", "Light Leather")
+Open({ FANG, LEATHER, { name = "Large Fang", id = 5637, quantity = 7 } })
+suite.check("area loot: the other corpse's leather is not the target's",
+    MobItem("Mangy Wolf", "Light Leather") == leatherBefore, MobItem("Mangy Wolf", "Light Leather"))
+suite.check("area loot: only the target's share of a shared slot",
+    Qty("Large Fang") == fangsBefore + 3, Qty("Large Fang") - fangsBefore)
+
 _G.GetLootSourceInfo = nil
 
 --------------------------------------------------------------------------------

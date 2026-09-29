@@ -92,6 +92,21 @@ local function DifficultyColor(level)
     return 0.60, 0.62, 0.66
 end
 
+-- Each kind of source has its own colour on its tag, so a column of them
+-- reads at a glance: red for mobs, green for herbs, copper for ore, blue for
+-- fishing.
+local KIND_COLORS = {
+    mob       = { 0.94, 0.42, 0.36 },
+    node      = { 0.90, 0.62, 0.36 },
+    herb      = { 0.36, 0.86, 0.52 },
+    skinning  = { 0.80, 0.60, 0.40 },
+    fishing   = { 0.40, 0.72, 1.00 },
+    container = { 0.86, 0.72, 0.38 },
+    vendor    = { 0.74, 0.76, 0.82 },
+    quest     = { 1.00, 0.84, 0.30 },
+}
+UI.KIND_COLORS = KIND_COLORS
+
 --- A drop rate worth crossing a continent for should look different from one
 -- that is barely worth the trip.
 local function DropColor(chance)
@@ -475,6 +490,22 @@ function UI:FitColumns(rows)
         widths[key] = math.min(most, math.ceil(widths[key]))
     end
 
+    -- Never wider than the screen: on a small screen, or with the window
+    -- scaled up, the widest columns give back room (their text ends in
+    -- "...") before the close button goes off the edge.
+    local room = self:ScreenRoom()
+    if room then
+        local over = (WIDTH + Columns(widths).extra) - room
+        for _, key in ipairs({ "where", "name", "drop" }) do
+            if over <= 0 then break end
+            local give = math.min(over, widths[key] - BASE_WIDTH[key])
+            if give > 0 then
+                widths[key] = widths[key] - give
+                over = over - give
+            end
+        end
+    end
+
     local current = self.columns or COLUMN
     if current.name.w == widths.name and current.where.w == widths.where
         and current.drop.w == widths.drop then
@@ -487,6 +518,18 @@ function UI:FitColumns(rows)
     if self.tab ~= "rankings" then
         self.frame:SetWidth(WIDTH + self.columns.extra)
     end
+end
+
+--- How wide the window can be and still fit on screen, in its own units;
+--- nil before the screen's size is known.
+function UI:ScreenRoom()
+    local ok, width, scale = pcall(function()
+        return UIParent:GetWidth(), self.frame and self.frame:GetScale() or 1
+    end)
+    if not (ok and type(width) == "number" and width > 0 and type(scale) == "number" and scale > 0) then
+        return nil
+    end
+    return math.floor(width / scale) - 40
 end
 
 function UI:BuildColumnHeadings()
@@ -559,6 +602,18 @@ function UI:CreateRow(row)
     row.band:SetAllPoints(row)
     row.band:SetColorTexture(Theme.Unpack("header"))
 
+    -- A gold wash fading across the band from its stripe, the house glow.
+    row.bandGlow = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+    row.bandGlow:SetAllPoints(row)
+    row.bandGlow:SetColorTexture(1, 1, 1, 1)
+    do
+        local r, g, b = Theme.Unpack("accent")
+        local ok = type(CreateColor) == "function" and pcall(row.bandGlow.SetGradient, row.bandGlow,
+            "HORIZONTAL", CreateColor(r, g, b, 0.16), CreateColor(r, g, b, 0))
+        if not ok then row.bandGlow:SetColorTexture(r, g, b, 0.05) end
+    end
+    row.bandGlow:Hide()
+
     row.bandStripe = row:CreateTexture(nil, "ARTWORK")
     row.bandStripe:SetPoint("TOPLEFT")
     row.bandStripe:SetPoint("BOTTOMLEFT")
@@ -589,6 +644,12 @@ function UI:CreateRow(row)
     row.kindChip = row:CreateTexture(nil, "ARTWORK")
     row.kindChip:SetSize(BASE_WIDTH.kind - 6, 13)
 
+    -- A bright edge down the tag's left, in its kind's colour.
+    row.kindEdge = row:CreateTexture(nil, "OVERLAY")
+    row.kindEdge:SetSize(2, 13)
+    row.kindEdge:SetPoint("LEFT", row.kindChip, "LEFT", 0, 0)
+    row.kindEdge:Hide()
+
     row.kind = Theme.CreateLabel(row, "tiny", "text", "CENTER")
 
     row.name = Theme.CreateLabel(row, "small", "text")
@@ -615,6 +676,7 @@ end
 
 local function HideSourceColumns(row)
     row.kindChip:Hide()
+    row.kindEdge:Hide()
     row.kind:Hide()
     row.name:Hide()
     row.where:Hide()
@@ -638,6 +700,7 @@ function UI:UpdateRow(row, data, index)
     row.heading:Hide()
     row.goal:Hide()
     row.band:Hide()
+    row.bandGlow:Hide()
     row.bandStripe:Hide()
     row.fold:Hide()
     row.itemIcon:Hide()
@@ -645,6 +708,7 @@ function UI:UpdateRow(row, data, index)
 
     if data.type == "item" then
         row.band:Show()
+        row.bandGlow:Show()
         row.bandStripe:Show()
 
         row.fold:SetText(self.collapsed[data.item.name] and "+" or "-")
@@ -685,11 +749,22 @@ function UI:UpdateRow(row, data, index)
 
     local source = data.source
 
-    row.kindChip:SetColorTexture(Theme.Unpack("row"))
+    local tint = KIND_COLORS[source.kind]
+    if tint then
+        row.kindChip:SetColorTexture(tint[1], tint[2], tint[3], 0.16)
+        row.kindEdge:SetColorTexture(tint[1], tint[2], tint[3], 0.9)
+        row.kindEdge:Show()
+    else
+        row.kindChip:SetColorTexture(Theme.Unpack("row"))
+    end
     row.kindChip:Show()
 
     row.kind:SetText(ns.DB:KindTag(source.kind))
-    row.kind:SetTextColor(Theme.Unpack("muted"))
+    if tint then
+        row.kind:SetTextColor(tint[1], tint[2], tint[3], 1)
+    else
+        row.kind:SetTextColor(Theme.Unpack("muted"))
+    end
     row.kind:Show()
 
     -- A node named after the thing it holds tells you nothing twice, so show

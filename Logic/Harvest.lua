@@ -362,6 +362,33 @@ function Harvest:LootIsTargets()
     return not elsewhere
 end
 
+--- Whether loot slot `slot` came off the corpse you target, and if the
+--- client says so, how many of it came off that corpse.
+--
+-- With area loot one window holds several corpses' drops. Counting them all
+-- against the one you clicked would make it look like it dropped three
+-- times as much, so a slot whose sources are readable and are all other
+-- corpses is left out. Anything unreadable counts, as before: this only
+-- ever takes away what the client plainly says is someone else's.
+function Harvest:SlotIsTargets(slot)
+    if type(GetLootSourceInfo) ~= "function" then return true end
+
+    local target = self:CorpseID()
+    if not GuidKind(target) then return true end
+
+    local ok, sources = pcall(function() return { GetLootSourceInfo(slot) } end)
+    if not ok then return true end
+
+    local elsewhere = false
+    for index = 1, #sources, 2 do
+        local guid = Readable(sources[index])
+        if guid == target then return true, ReadableNumber(sources[index + 1]) end
+        if GuidKind(guid) then elsewhere = true end
+    end
+
+    return not elsewhere
+end
+
 --------------------------------------------------------------------------------
 -- Recording
 --------------------------------------------------------------------------------
@@ -517,9 +544,14 @@ function Harvest:RecordCorpse()
     for slot = 1, count do
         local ok, _, slotName, quantity = pcall(GetLootSlotInfo, slot)
 
+        -- Another corpse's drop in the same window (area loot) is not this
+        -- one's; where the client gives this corpse's share, that is it.
+        local ours, share = self:SlotIsTargets(slot)
+        if share then quantity = share end
+
         -- An unreadable loot name loses that one slot. The corpse itself is
         -- already counted, and the rest of the window is still worth reading.
-        local name = ok and Readable(slotName) or nil
+        local name = ours and ok and Readable(slotName) or nil
 
         local already = name and counted[name] and not seenHere[name]
 

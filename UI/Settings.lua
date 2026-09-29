@@ -94,10 +94,18 @@ local function CreateRow(parent, anchor, labelText, description)
     hint:SetText(description or "")
 
     -- Sized for two lines of description; a longer one gets the room it
-    -- needs rather than running into the row below.
-    local lines = math.ceil(Theme.TextWidth("tiny", description or "") / COLUMN_WIDTH)
-    if lines > 2 then row:SetHeight(ROW_HEIGHT + (lines - 2) * 12) end
+    -- needs rather than running into the row below. The height the game
+    -- wrapped it to where it says, else a guess that allows for words
+    -- breaking early.
+    local height
+    local ok, value = pcall(hint.GetStringHeight, hint)
+    if ok and type(value) == "number" and value > 0 then height = value end
+    local lines = height and math.ceil(height / 12 - 0.1)
+        or math.ceil(Theme.TextWidth("tiny", description or "") / (COLUMN_WIDTH * 0.9))
+    row.extra = math.max(0, lines - 2) * 12
+    row:SetHeight(ROW_HEIGHT + row.extra)
     row.hintLines = lines
+    SettingsUI.rowsExtra = (SettingsUI.rowsExtra or 0) + row.extra
 
     row.label = label
     row.hint = hint
@@ -249,6 +257,9 @@ function SettingsUI:Build()
     self:BuildWindowsColumn()
     self:BuildTrackingColumn()
 
+    -- Room for any description that wrapped past two lines.
+    frame:SetHeight(HEIGHT + (SettingsUI.rowsExtra or 0))
+
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
     footer:SetPoint("BOTTOMLEFT", PADDING, 10)
     footer:SetPoint("BOTTOMRIGHT", -PADDING, 10)
@@ -392,8 +403,8 @@ function SettingsUI:BuildTrackingColumn()
     controls.tracker:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local groupRow = CreateRow(frame, trackerRow, "In a group",
-        "Moves the panel beside the party and raid frames. Drag it while "
-        .. "grouped to pick your own spot.")
+        "Moves the panel beside the party and raid frames. Drag it in a "
+        .. "group to pick a spot.")
 
     controls.dodgeGroup = Widgets.CreateCheckbox(groupRow, "Move aside", function(checked)
         ns.TrackerUI:SetDodgeGroup(checked)

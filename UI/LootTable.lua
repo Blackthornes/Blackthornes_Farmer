@@ -172,6 +172,18 @@ local function CreateRow(row)
     row.icon:SetPoint("LEFT", 4, 0)
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
+    -- The icon's edge in the item's quality colour, as the bags draw it,
+    -- and a faint wash across the row for green and better.
+    row.iconFrame = CreateFrame("Frame", nil, row)
+    row.iconFrame:SetPoint("TOPLEFT", row.icon, "TOPLEFT", -1, 1)
+    row.iconFrame:SetPoint("BOTTOMRIGHT", row.icon, "BOTTOMRIGHT", 1, -1)
+    Theme.Border(row.iconFrame, "borderLit")
+
+    row.wash = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+    row.wash:SetAllPoints(row)
+    row.wash:SetColorTexture(1, 1, 1, 1)
+    row.wash:Hide()
+
     row.cells = {}
     local right = 0
 
@@ -228,6 +240,24 @@ local function UpdateRow(row, data)
         row.name:SetTextColor(r, g, b, a)
     else
         row.name:SetTextColor(Theme.Unpack("text"))
+    end
+
+    local quality = ns.TrackerFX and ns.TrackerFX.QualityOf(data.name) or nil
+    if r and quality and quality >= 1 then
+        for _, edge in ipairs(row.iconFrame.borderTextures) do
+            edge:SetColorTexture(r, g, b, quality >= 2 and 1 or 0.5)
+        end
+    else
+        Theme.SetBorderColor(row.iconFrame, "borderLit")
+    end
+
+    if r and quality and quality >= 2 then
+        local ok = type(CreateColor) == "function" and pcall(row.wash.SetGradient, row.wash,
+            "HORIZONTAL", CreateColor(r, g, b, 0.2), CreateColor(r, g, b, 0))
+        if not ok then row.wash:SetColorTexture(r, g, b, 0.08) end
+        row.wash:Show()
+    else
+        row.wash:Hide()
     end
     row.name:SetText(data.name)
 

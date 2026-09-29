@@ -773,23 +773,35 @@ function TrackerFX:SlotGained(slot, gain, level)
         if level == "full" then
             -- It swells from its middle, over its neighbours, rather than
             -- from its top-left corner down onto the next icon.
+            -- Its resting level is the one the panel gives every slot, so a
+            -- second pop on the same slot can never stack the raise.
             local size = ns.TrackerUI.SLOT
-            local point, relativeTo, relativePoint, x, y = slot:GetPoint(1)
-            local canMove = point ~= nil and type(x) == "number" and type(y) == "number"
-            local level = slot:GetFrameLevel()
+            local row = slot:GetParent()
+            local level = (row and row:GetFrameLevel() or slot:GetFrameLevel()) + 2
+            local shift = 0
+
+            -- Moved by the change in half the growth since the last frame,
+            -- from wherever the slot is now: a redraw that moves it
+            -- mid-pop is kept, not undone.
+            local function Shift(to)
+                local point, relativeTo, relativePoint, x, y = slot:GetPoint(1)
+                if point and type(x) == "number" and type(y) == "number" then
+                    slot:SetPoint(point, relativeTo, relativePoint, x - (to - shift), y + (to - shift))
+                    shift = to
+                end
+            end
+
             slot:SetFrameLevel(level + 2)
             self:Start({ slot = slot, row = slot, key = key, duration = POP_TIME * 1.5,
                 apply = function(p)
                     local grow = POP_GROW * (1 - EaseOut(p))
                     slot:SetSize(size + grow, size + grow)
-                    if canMove then
-                        slot:SetPoint(point, relativeTo, relativePoint, x - grow / 2, y + grow / 2)
-                    end
+                    Shift(grow / 2)
                     if p >= 1 then slot:SetFrameLevel(level) end
                 end,
                 stop = function()
                     slot:SetSize(size, size)
-                    if canMove then slot:SetPoint(point, relativeTo, relativePoint, x, y) end
+                    Shift(0)
                     slot:SetFrameLevel(level)
                 end })
         end

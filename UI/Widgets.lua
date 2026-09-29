@@ -494,6 +494,14 @@ local function CreateScrollbar(list, thumbKey)
         if not over then Motion:Blend(self, "hover", 0, 0.2, Light) end
     end)
 
+    -- Hidden mid-drag (the list shrank), the mouse-up never comes: let go.
+    scrollbar:SetScript("OnHide", function(self)
+        self.held = false
+        Motion:Stop(self, "hover")
+        Motion:SetValue(self, "hover", 0)
+        Light(0)
+    end)
+
     --- Size the thumb for `visible` of `total` rows on screen.
     function scrollbar:SizeThumb(visible, total)
         local height = tonumber(self:GetHeight())

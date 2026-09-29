@@ -588,6 +588,9 @@ function GoalsUI:Render()
 
     local list = ns.Goals:List()
     local width = self:Width()
+    -- The width it started from, so the kills panel can tell when it has
+    -- changed and a redraw is due.
+    self.lastBase = width
     self.frame:SetWidth(width)
 
     -- Draw once at the usual width, measure, and widen and draw again when

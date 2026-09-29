@@ -393,12 +393,46 @@ function TrackerUI:Build()
     more:Hide()
     self.moreLabel = more
 
+    -- While the column scrolls, its cut edges fade into the panel rather
+    -- than stopping hard, so it reads as more above or below.
+    self.fadeTop = self:BuildFade(frame, "TOP")
+    self.fadeBottom = self:BuildFade(frame, "BOTTOM")
+
     self:BuildGrip(frame)
 
     self:RestorePosition()
     frame:Hide()
 
     return frame
+end
+
+--- A soft fade over one cut edge of the column, above the rows.
+function TrackerUI:BuildFade(frame, side)
+    local fade = CreateFrame("Frame", nil, frame)
+    fade:SetFrameLevel(frame:GetFrameLevel() + 12)
+    fade:SetHeight(16)
+    if side == "TOP" then
+        fade:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -(TOP + 1))
+        fade:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -1, -(TOP + 1))
+    else
+        fade:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 1, 14)
+        fade:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 14)
+    end
+
+    local texture = fade:CreateTexture(nil, "OVERLAY")
+    texture:SetAllPoints(fade)
+    texture:SetColorTexture(1, 1, 1, 1)
+    local r, g, b = Theme.Unpack("window")
+    local solid, clear = 0.95, 0
+    local ok = type(CreateColor) == "function" and pcall(texture.SetGradient, texture, "VERTICAL",
+        CreateColor(r, g, b, side == "TOP" and clear or solid),
+        CreateColor(r, g, b, side == "TOP" and solid or clear))
+    -- Without a gradient a flat band would hide a line; leave it out.
+    if not ok then fade.unused = true end
+
+    fade:EnableMouse(false)
+    fade:Hide()
+    return fade
 end
 
 --- The Farm and Loot tabs under the title bar: a gold line under the one
@@ -2007,6 +2041,8 @@ function TrackerUI:Render()
     else
         self.moreLabel:Hide()
     end
+    self.fadeTop:SetShown(self.scroll > 0 and not self.fadeTop.unused)
+    self.fadeBottom:SetShown(below > 0 and not self.fadeBottom.unused)
 
     if not self.sizing then
         self.frame:SetHeight(TOP + PADDING * 2 + used + (below > 0 and 10 or 0))
@@ -2191,8 +2227,7 @@ function TrackerUI:Refresh()
     -- when it comes back or changes width.
     local goals = ns.GoalsUI
     if goals and goals.frame and goals.frame:IsShown() and not ns.db.goalsX then
-        local ok, width = pcall(goals.frame.GetWidth, goals.frame)
-        if not (ok and width == goals:Width()) then pcall(goals.Render, goals) end
+        if goals.lastBase ~= goals:Width() then pcall(goals.Render, goals) end
         pcall(goals.Place, goals)
     end
 end
