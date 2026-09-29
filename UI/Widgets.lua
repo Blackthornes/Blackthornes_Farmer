@@ -830,7 +830,7 @@ function Widgets.CreateChip(parent, text, onClick)
     chip.label:SetText(text)
 
     -- Sized to its text, so a row of chips packs tightly whatever the labels.
-    chip:SetWidth(math.max(34, (chip.label:GetStringWidth() or 30) + 16))
+    chip:SetWidth(math.max(34, Theme.TextWidth("tiny", text) + 16))
 
     -- The All chip holds false; everything else holds a kind. Either way the
     -- caller gets nil or a string back, never an absent field.
@@ -917,7 +917,7 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     label:SetText(text)
 
     checkbox.label = label
-    checkbox:SetWidth((label:GetStringWidth() or 60) + 24)
+    checkbox:SetWidth(Theme.TextWidth("small", text) + 24)
     checkbox.checked = initial and true or false
     checkbox.disabled = false
     tick:SetShown(checkbox.checked)

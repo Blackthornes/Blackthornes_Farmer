@@ -186,9 +186,7 @@ function UI:BuildHeader()
     header:SetPoint("TOPLEFT")
     header:SetPoint("TOPRIGHT")
     header:SetHeight(36)
-    Theme.AccentStripe(header, 3)
-    Theme.HeaderGlow(header, 20, 0.10)
-    Theme.TopSheen(header)
+    Theme.HouseHeader(header, 20)
 
     local icon = header:CreateTexture(nil, "ARTWORK")
     icon:SetSize(20, 20)
@@ -296,8 +294,8 @@ function UI:BuildBody()
     self.chips = {}
 
     local summary = Theme.CreateLabel(frame, "small", "muted", "RIGHT")
+    summary:SetPoint("LEFT", filters, "LEFT", 8, 0)
     summary:SetPoint("RIGHT", filters, "RIGHT", -2, 0)
-    summary:SetWidth(260)
     self.summary = summary
 
     local panel = Theme.CreatePanel(frame, "panel", "border")
@@ -451,6 +449,7 @@ function UI:PlaceRow(row)
     end
 
     Place(row.kindChip, columns.kind)
+    row.kindChip:SetWidth(columns.kind.w - 6)
     Place(row.kind, columns.kind, 0, columns.kind.w - 6)
     Place(row.name, columns.name, 0, columns.name.w)
     Place(row.where, columns.where, 0, columns.where.w)
@@ -472,11 +471,15 @@ end
 --- Widen the columns, and the window, to fit these rows; never narrower
 --- than the base layout.
 function UI:FitColumns(rows)
-    local widths = { name = BASE_WIDTH.name, where = BASE_WIDTH.where, drop = BASE_WIDTH.drop }
+    local widths = { kind = BASE_WIDTH.kind, name = BASE_WIDTH.name, where = BASE_WIDTH.where,
+        drop = BASE_WIDTH.drop }
 
     for _, row in ipairs(rows) do
         if row.type == "source" then
             local name, where, drop = SourceTexts(row.source)
+            -- The kind's tag, in capitals, fits its chip: "QUEST" was "QU...".
+            widths.kind = math.max(widths.kind,
+                Theme.TextWidth("tiny", ns.DB:KindTag(row.source.kind)) + 14)
             widths.name = math.max(widths.name, Theme.TextWidth("small", name) + 8)
             widths.where = math.max(widths.where, Theme.TextWidth("small", where) + 8)
             if drop then
@@ -507,7 +510,7 @@ function UI:FitColumns(rows)
     end
 
     local current = self.columns or COLUMN
-    if current.name.w == widths.name and current.where.w == widths.where
+    if current.kind.w == widths.kind and current.name.w == widths.name and current.where.w == widths.where
         and current.drop.w == widths.drop then
         return
     end
@@ -939,6 +942,8 @@ function UI:BuildChips(query)
     for _, chip in ipairs(self.chips) do
         chip:Hide()
     end
+    self.chipsWidth = 0
+    self:PlaceSummary()
 
     if query == "" then return end
 
@@ -969,7 +974,7 @@ function UI:BuildChips(query)
         end
 
         chip.label:SetText(entry.label)
-        chip:SetWidth(math.max(34, (chip.label:GetStringWidth() or 30) + 16))
+        chip:SetWidth(math.max(34, Theme.TextWidth("tiny", entry.label) + 16))
 
         -- Stored as false rather than nil for the All chip, so "no filter" is
         -- a value the chip actually holds rather than an absent field.
@@ -981,8 +986,18 @@ function UI:BuildChips(query)
 
         offset = offset + chip:GetWidth() + 4
     end
+    self.chipsWidth = offset
+    self:PlaceSummary()
 
     self:RefreshChipStates()
+end
+
+--- The count on the right of the chips starts after the last chip, so a
+--- long row of them never runs under it.
+function UI:PlaceSummary()
+    self.summary:ClearAllPoints()
+    self.summary:SetPoint("LEFT", self.filters, "LEFT", (self.chipsWidth or 0) + 8, 0)
+    self.summary:SetPoint("RIGHT", self.filters, "RIGHT", -2, 0)
 end
 
 function UI:RefreshChipStates()

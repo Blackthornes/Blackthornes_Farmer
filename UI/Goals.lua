@@ -33,7 +33,8 @@ local Widgets = ns.Widgets
 local Util = ns.Util
 
 local WIDTH = 236
-local HEADER = 26
+-- As tall as the kills panel's title line, which it docks under.
+local HEADER = 28
 local PADDING = 8
 local CARD = 62
 -- As wide as the widest line needs, up to this, so nothing is cut off.
@@ -1505,6 +1506,9 @@ function GoalsUI:PickerSet()
 
     if not goal then
         picker.note:SetText(why and (why:sub(1, 1):upper() .. why:sub(2) .. ".") or "")
+        -- Wide enough for the note too, measured.
+        local wants = Theme.TextWidth("tiny", picker.note:GetText()) + 22
+        if wants > (tonumber(picker:GetWidth()) or 0) then picker:SetWidth(math.min(460, wants)) end
         return
     end
 

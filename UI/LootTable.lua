@@ -49,7 +49,8 @@ local COLUMNS = {
     { key = "perKill", title = "PER KILL", width = 70 },
     { key = "rate",    title = "RATE",     width = 50 },
     { key = "total",   title = "TOTAL",    width = 44 },
-    { key = "dropped", title = "DROPPED",  width = 64 },
+    -- "123 of 1204" once a mob passes a hundred kills.
+    { key = "dropped", title = "DROPPED",  width = 84 },
 }
 local GAP = 6
 
@@ -483,11 +484,11 @@ function LootTableUI:Render()
     end
     self.status:SetText(status)
     self.where:SetText(data.where)
-    self.frame:SetWidth(self:WidthFor(data.rows, status, data.where))
-
     self.footer:SetText(ns.Value and ns.Value:HasAuctionPrices()
         and "Prices: Blackthornes Tradeskills market value, or the vendor price if higher."
         or "Prices: vendor price. Load Blackthornes Tradeskills for market prices.")
+
+    self.frame:SetWidth(self:WidthFor(data.rows, status, data.where))
 
     self.empty:SetShown(#data.rows == 0)
     self.frame:SetHeight(self:HeightFor(#data.rows))
@@ -521,8 +522,9 @@ function LootTableUI:WidthFor(rows, status, where)
     -- Two lines of wrapped text, with some slack for where the words break.
     needs = math.max(needs, PADDING * 2 + Theme.TextWidth("small", status) / 2 + 40)
 
-    -- The places on one line.
+    -- The places on one line, and the price note under the list.
     needs = math.max(needs, PADDING * 2 + Theme.TextWidth("small", where) + 4)
+    needs = math.max(needs, PADDING * 2 + Theme.TextWidth("tiny", self.footer and self.footer:GetText()) + 4)
 
     return math.min(MAX_WIDTH, math.max(WIDTH, math.ceil(needs)))
 end
