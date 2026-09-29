@@ -778,17 +778,16 @@ function TrackerFX:SlotGained(slot, gain, level)
             local size = ns.TrackerUI.SLOT
             local row = slot:GetParent()
             local level = (row and row:GetFrameLevel() or slot:GetFrameLevel()) + 2
-            local shift = 0
 
-            -- Moved by the change in half the growth since the last frame,
-            -- from wherever the slot is now: a redraw that moves it
-            -- mid-pop is kept, not undone.
+            -- Set from the spot the panel last placed it in, never moved by a
+            -- difference: a redraw mid-pop, or a second pop replacing this
+            -- one, can't leave it off by a few pixels.
             local function Shift(to)
-                local point, relativeTo, relativePoint, x, y = slot:GetPoint(1)
-                if point and type(x) == "number" and type(y) == "number" then
-                    slot:SetPoint(point, relativeTo, relativePoint, x - (to - shift), y + (to - shift))
-                    shift = to
-                end
+                local x, y = slot.baseX, slot.baseY
+                local anchor = slot.baseTo or row
+                if type(x) ~= "number" or type(y) ~= "number" or not anchor then return end
+                slot:ClearAllPoints()
+                slot:SetPoint("TOPLEFT", anchor, "TOPLEFT", x - to, y + to)
             end
 
             slot:SetFrameLevel(level + 2)

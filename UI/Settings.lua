@@ -57,6 +57,9 @@ local TITLE = "Blackthornes Farmer"
 local function CreateSection(parent, text, opts)
     local section = CreateFrame("Frame", nil, parent)
     section:SetSize(COLUMN_WIDTH, 18)
+    -- Which column it sits in, so each column's extra height is counted
+    -- apart: they stand side by side, and the taller one sets the window.
+    section.column = opts.x or (opts.anchor and opts.anchor.column) or 0
 
     if opts.anchor then
         section:SetPoint("TOPLEFT", opts.anchor, "BOTTOMLEFT", 0, SECTION_GAP)
@@ -105,7 +108,11 @@ local function CreateRow(parent, anchor, labelText, description)
     row.extra = math.max(0, lines - 2) * 12
     row:SetHeight(ROW_HEIGHT + row.extra)
     row.hintLines = lines
-    SettingsUI.rowsExtra = (SettingsUI.rowsExtra or 0) + row.extra
+    row.column = anchor.column or 0
+    local columns = SettingsUI.columnExtra or {}
+    SettingsUI.columnExtra = columns
+    columns[row.column] = (columns[row.column] or 0) + row.extra
+    SettingsUI.rowsExtra = math.max(SettingsUI.rowsExtra or 0, columns[row.column])
 
     row.label = label
     row.hint = hint

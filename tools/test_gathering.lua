@@ -342,6 +342,12 @@ suite.check("area loot: the other corpse's leather is not the target's",
 suite.check("area loot: only the target's share of a shared slot",
     Qty("Large Fang") == fangsBefore + 3, Qty("Large Fang") - fangsBefore)
 
+-- The coin slot's name holds both corpses' coin; the share is the target's.
+sourcesOf = { { "Creature-0-area", 1500, "Creature-0-other", 2300 } }
+env.world.loot = { { name = "38 Silver", money = true } }
+local _, _, areaCopper = Tracker:LootedItems()
+suite.check("area loot: only the target's coin", areaCopper == 1500, areaCopper)
+
 _G.GetLootSourceInfo = nil
 
 --------------------------------------------------------------------------------

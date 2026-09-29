@@ -573,7 +573,10 @@ function Tracker:LootedItems(anySource)
         local name = ours and ok and ns.Harvest.Readable(slotName) or nil
 
         if name and ns.Harvest:IsMoney(slot, name) then
-            copper = copper + (Tracker.CoinCopper(name) or 0)
+            -- With area loot the name holds every corpse's coin; the share
+            -- is this corpse's, in copper.
+            local own = share and ns.Harvest.ReadableNumber(share) or nil
+            copper = copper + (own or Tracker.CoinCopper(name) or 0)
         elseif name then
             if not quantities[name] then
                 names[#names + 1] = name

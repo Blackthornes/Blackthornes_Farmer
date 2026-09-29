@@ -156,6 +156,17 @@ suite.check("the cloak's icon is there", cloak ~= nil)
 suite.check("and lights up", cloakSlot and Moving(cloakSlot))
 suite.check("with NEW on it, the wolf's first", cloakSlot and Moving(cloakSlot, cloakSlot.tag))
 
+-- A redraw mid-pop, then another pop on the same icon: it still lands where
+-- the panel put it.
+FX:Step(0.05)
+TUI:Refresh()
+FX:Step(0.05)
+if cloakSlot then FX:SlotGained(cloakSlot, { icon = cloak, new = true }, "full") end
+Settle()
+local _, _, _, landedX, landedY = cloakSlot:GetPoint(1)
+suite.check("the popped icon lands back in its place",
+    landedX == cloakSlot.baseX and landedY == cloakSlot.baseY, tostring(landedX) .. "," .. tostring(landedY))
+
 -- A second fang is not new: its count goes up and says so.
 Settle()
 Loot("Mangy Wolf", { FANG })

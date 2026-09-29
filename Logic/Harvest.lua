@@ -1115,8 +1115,11 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
     local block = name and ns.Harvest:ExportItem(name)
 
     if candidates then
-        ns.Print(("%s could be %s. Type more of the name."):format(wanted,
-            table.concat(candidates, ", ")))
+        local shown, more = {}, #candidates - 8
+        for index = 1, math.min(8, #candidates) do shown[index] = candidates[index] end
+        local list = table.concat(shown, ", ")
+        if more > 0 then list = ("%s and %d more"):format(list, more) end
+        ns.Print(("%s could be %s. Type more of the name."):format(wanted, list))
         return
     end
 

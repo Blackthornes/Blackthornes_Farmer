@@ -233,9 +233,11 @@ function GoalsUI:Build()
     Theme.Border(frame, "border")
 
     frame:SetScript("OnDragStart", function(self)
+        GoalsUI.dragging = true
         self:StartMoving()
     end)
     frame:SetScript("OnDragStop", function(self)
+        GoalsUI.dragging = nil
         self:StopMovingOrSizing()
         GoalsUI:SavePosition()
     end)

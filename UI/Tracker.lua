@@ -1744,9 +1744,11 @@ function TrackerUI:PlaceSlots(row, line, width)
         local slot = row.slots[index]
         local column = (index - 1) % perRow
         local down = math.floor((index - 1) / perRow)
+        slot.baseTo = row
+        slot.baseX = PADDING + 5 + column * (SLOT + SLOT_GAP)
+        slot.baseY = -(5 + down * (SLOT + SLOT_GAP))
         slot:ClearAllPoints()
-        slot:SetPoint("TOPLEFT", row, "TOPLEFT", PADDING + 5 + column * (SLOT + SLOT_GAP),
-            -(5 + down * (SLOT + SLOT_GAP)))
+        slot:SetPoint("TOPLEFT", row, "TOPLEFT", slot.baseX, slot.baseY)
     end
 end
 
@@ -2213,7 +2215,8 @@ function TrackerUI:Refresh()
     -- The goals panel hangs under this one, as wide as it is: follow it
     -- when it comes back or changes width.
     local goals = ns.GoalsUI
-    if goals and goals.frame and goals.frame:IsShown() and not ns.db.goalsX then
+    if goals and goals.frame and goals.frame:IsShown() and not ns.db.goalsX
+        and not goals.dragging then
         if goals.lastBase ~= goals:Width() then pcall(goals.Render, goals) end
         pcall(goals.Place, goals)
     end
