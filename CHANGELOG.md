@@ -4,6 +4,26 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.12.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- Every window shares one look: a soft gold glow that flares when it opens,
+  gold scrollbars, colours for each kind of source, a medal podium on
+  Rankings, quality borders on loot, a fade where a list has more rows, and
+  a gold glow on the row, chip or button under the mouse.
+- The loot window counts its worth up when it opens.
+- All of it follows `/farm effects` (Full, Subtle or Off).
+- Fixed: loot from an area loot was credited to the wrong mob. Now only the
+  mob you looted gets it.
+- Fixed: the window could grow past the edge of the screen.
+- Fixed: text was cut off in settings and on goal cards.
+- Fixed: hover highlights never showed.
+- Fixed: the rare drop sound stayed silent while the panel was hidden.
+- Fixed: exported drop rates under 1% were written as 0.
+- Resetting the tracker keeps item colours.
+
 ## 0.11.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
