@@ -49,7 +49,8 @@ local COLUMNS = {
     { key = "perKill", title = "PER KILL", width = 70 },
     { key = "rate",    title = "RATE",     width = 50 },
     { key = "total",   title = "TOTAL",    width = 44 },
-    { key = "dropped", title = "DROPPED",  width = 64 },
+    -- "123 of 1204" once a mob passes a hundred kills.
+    { key = "dropped", title = "DROPPED",  width = 84 },
 }
 local GAP = 6
 
@@ -172,6 +173,18 @@ local function CreateRow(row)
     row.icon:SetPoint("LEFT", 4, 0)
     row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
+    -- The icon's edge in the item's quality colour, as the bags draw it,
+    -- and a faint wash across the row for green and better.
+    row.iconFrame = CreateFrame("Frame", nil, row)
+    row.iconFrame:SetPoint("TOPLEFT", row.icon, "TOPLEFT", -1, 1)
+    row.iconFrame:SetPoint("BOTTOMRIGHT", row.icon, "BOTTOMRIGHT", 1, -1)
+    Theme.Border(row.iconFrame, "borderLit")
+
+    row.wash = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+    row.wash:SetAllPoints(row)
+    row.wash:SetColorTexture(1, 1, 1, 1)
+    row.wash:Hide()
+
     row.cells = {}
     local right = 0
 
@@ -229,6 +242,24 @@ local function UpdateRow(row, data)
     else
         row.name:SetTextColor(Theme.Unpack("text"))
     end
+
+    local quality = ns.TrackerFX and ns.TrackerFX.QualityOf(data.name) or nil
+    if r and quality and quality >= 1 then
+        for _, edge in ipairs(row.iconFrame.borderTextures) do
+            edge:SetColorTexture(r, g, b, quality >= 2 and 1 or 0.5)
+        end
+    else
+        Theme.SetBorderColor(row.iconFrame, "borderLit")
+    end
+
+    if r and quality and quality >= 2 then
+        local ok = type(CreateColor) == "function" and pcall(row.wash.SetGradient, row.wash,
+            "HORIZONTAL", CreateColor(r, g, b, 0.2), CreateColor(r, g, b, 0))
+        if not ok then row.wash:SetColorTexture(r, g, b, 0.08) end
+        row.wash:Show()
+    else
+        row.wash:Hide()
+    end
     row.name:SetText(data.name)
 
     row.cells.dropped:SetText(data.dropped)
@@ -284,8 +315,13 @@ function LootTableUI:Build()
 
     Theme.Fill(frame, "window", 0.96)
     Theme.Border(frame, "borderLit")
+    Theme.Halo(frame, 8, 0.10)
 
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStart", function(self)
+        -- Land an opening still running, or it would pull the window back.
+        ns.Motion:Stop(self, "open", true)
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         LootTableUI:AnchorTop()
@@ -356,6 +392,7 @@ function LootTableUI:Build()
         rowHeight = ROW,
         createRow = CreateRow,
         updateRow = UpdateRow,
+        fadeKey = "window",
     })
     list:SetPoint("TOPLEFT", PADDING, -TOP)
     list:SetPoint("BOTTOMRIGHT", -PADDING, BOTTOM)
@@ -403,7 +440,8 @@ function LootTableUI:Render()
     end
 
     local kills = self.kills
-    if self.shownMob ~= data.mob and data.kills > 1 then
+    local opening = self.shownMob ~= data.mob
+    if opening and data.kills > 1 then
         ns.Motion:Run(kills, "count", 0.6, function(p)
             kills:SetText(Kills(math.floor(data.kills * p + 0.5)))
         end)
@@ -413,18 +451,33 @@ function LootTableUI:Render()
     end
 
     local Money = ns.Value and ns.Value.Coins
+
+    -- The money counts up with the kills as the window opens.
+    local function Count(label, copper, suffix)
+        if opening and copper > 0 then
+            ns.Motion:Run(label, "count", 0.6, function(p)
+                label:SetText(Money(copper * p) .. suffix)
+            end)
+        else
+            ns.Motion:Stop(label, "count")
+            label:SetText(Money(copper) .. suffix)
+        end
+    end
+
     if data.worth and Money then
-        self.worth:SetText(Money(data.worth) .. (data.basis == "tally" and "" or " (est.)"))
+        Count(self.worth, data.worth, data.basis == "tally" and "" or " (est.)")
         self.worth:SetTextColor(Theme.Unpack("good"))
     else
+        ns.Motion:Stop(self.worth, "count")
         self.worth:SetText("--")
         self.worth:SetTextColor(Theme.Unpack("dim"))
     end
 
     if data.coinPerKill and Money then
-        self.coin:SetText(Money(data.coinPerKill))
+        Count(self.coin, data.coinPerKill, "")
         self.coin:SetTextColor(Theme.Unpack("text"))
     else
+        ns.Motion:Stop(self.coin, "count")
         self.coin:SetText("--")
         self.coin:SetTextColor(Theme.Unpack("dim"))
     end
@@ -448,26 +501,22 @@ function LootTableUI:Render()
     end
     self.status:SetText(status)
     self.where:SetText(data.where)
-    self.frame:SetWidth(self:WidthFor(data.rows, status, data.where))
-
     self.footer:SetText(ns.Value and ns.Value:HasAuctionPrices()
         and "Prices: Blackthornes Tradeskills market value, or the vendor price if higher."
         or "Prices: vendor price. Load Blackthornes Tradeskills for market prices.")
 
+    self.frame:SetWidth(self:WidthFor(data.rows, status, data.where))
+
     self.empty:SetShown(#data.rows == 0)
     self.frame:SetHeight(self:HeightFor(#data.rows))
 
-    local offset = self.list.offset
     local fresh = self.shownMob ~= data.mob
     self.arriving = fresh
-    self.list:SetData(data.rows)
+    -- A redraw after new loot keeps your place in a long list.
+    self.list:SetData(data.rows, not fresh)
     self.arriving = false
 
-    -- A redraw after new loot keeps your place in a long list.
-    if not fresh then
-        self.list.offset = offset
-        self.list:Refresh()
-    else
+    if fresh then
         self.list:Arrive()
     end
     self.shownMob = data.mob
@@ -490,8 +539,9 @@ function LootTableUI:WidthFor(rows, status, where)
     -- Two lines of wrapped text, with some slack for where the words break.
     needs = math.max(needs, PADDING * 2 + Theme.TextWidth("small", status) / 2 + 40)
 
-    -- The places on one line.
+    -- The places on one line, and the price note under the list.
     needs = math.max(needs, PADDING * 2 + Theme.TextWidth("small", where) + 4)
+    needs = math.max(needs, PADDING * 2 + Theme.TextWidth("tiny", self.footer and self.footer:GetText()) + 4)
 
     return math.min(MAX_WIDTH, math.max(WIDTH, math.ceil(needs)))
 end

@@ -175,6 +175,7 @@ suite.check("picking beside an unlooted corpse is not a kill",
     Tracker:Store()["Kobold Vermin"] == nil)
 suite.check("nor that corpse's loot", HarvestItem("Kobold Vermin", "Peacebloom") == nil)
 
+
 --------------------------------------------------------------------------------
 -- Casts that end without a gather
 --------------------------------------------------------------------------------
@@ -324,6 +325,29 @@ Open({ FANG })
 suite.check("a secret source leaves it the target's too",
     Tracker:Store()["Mangy Wolf"].kills == kills + 3)
 
+-- Area loot: one window, two corpses. Only the target's slot counts, and
+-- only its share of a slot both corpses filled.
+env.world.target = { name = "Mangy Wolf", level = 8, dead = true, guid = "Creature-0-area" }
+local sourcesOf = {
+    { "Creature-0-area", 1 },
+    { "Creature-0-other", 3 },
+    { "Creature-0-area", 2, "Creature-0-other", 5 },
+}
+_G.GetLootSourceInfo = function(slot) return unpack(sourcesOf[slot] or {}) end
+local function Qty(item) return tonumber(ns.db.tracker.mobs["Mangy Wolf"].qty[item]) or 0 end
+local fangsBefore, leatherBefore = Qty("Large Fang"), MobItem("Mangy Wolf", "Light Leather")
+Open({ FANG, LEATHER, { name = "Large Fang", id = 5637, quantity = 7 } })
+suite.check("area loot: the other corpse's leather is not the target's",
+    MobItem("Mangy Wolf", "Light Leather") == leatherBefore, MobItem("Mangy Wolf", "Light Leather"))
+suite.check("area loot: only the target's share of a shared slot",
+    Qty("Large Fang") == fangsBefore + 3, Qty("Large Fang") - fangsBefore)
+
+-- The coin slot's name holds both corpses' coin; the share is the target's.
+sourcesOf = { { "Creature-0-area", 1500, "Creature-0-other", 2300 } }
+env.world.loot = { { name = "38 Silver", money = true } }
+local _, _, areaCopper = Tracker:LootedItems()
+suite.check("area loot: only the target's coin", areaCopper == 1500, areaCopper)
+
 _G.GetLootSourceInfo = nil
 
 --------------------------------------------------------------------------------
@@ -392,5 +416,15 @@ suite.check("reset asks first", Gathering:CountGathers() == before)
 ns.HandleSlash("gathering reset confirm")
 suite.check("a confirmed reset clears it", Gathering:CountGathers() == 0)
 suite.check("and leaves the kills alone", Tracker:Store()["Mangy Wolf"].kills > 0)
+
+-- The client naming the node as the loot's source, with a corpse targeted:
+-- the herb is still the node's (the corpse check is for kills only).
+env.world.target = { name = "Kobold Vermin", level = 3, dead = true, guid = "Creature-0-9" }
+_G.GetLootSourceInfo = function() return "GameObject-0-1-2-3-99", 1 end
+Gather(HERB_GATHERING, "Peacebloom", { PEACEBLOOM })
+_G.GetLootSourceInfo = nil
+local sourced = Gathering:Summary(BLOOM)
+suite.check("a node's own loot counts with a corpse targeted",
+    sourced and sourced.gathers == 1 and sourced.items[1] and sourced.items[1].name == "Peacebloom")
 
 suite.done()

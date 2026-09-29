@@ -244,16 +244,25 @@ MapMarkers:Step(1)
 -- Hovering
 --------------------------------------------------------------------------------
 
+-- A minimap marker hovers on its check only; a world one on all of it.
+local function Hover(pin)
+    local target = rawget(pin, "hit") or pin
+    target:GetScript("OnEnter")(target)
+end
+
+suite.check("a minimap marker leaves its middle to the minimap",
+    rawget(framePin, "hit") ~= nil and framePin:GetScript("OnEnter") == nil)
+
 wall = wall + 12 * 60
 GameTooltip._lines = {}
-silver:GetScript("OnEnter")(silver)
+Hover(silver)
 suite.check("the hover names the node", GameTooltip._lines[1] == "Silverleaf", GameTooltip._lines[1])
 suite.check("and when", GameTooltip._lines[2] == "Gathered, last 12 min ago", GameTooltip._lines[2])
 suite.check("and nothing more", GameTooltip._lines[3] == nil, GameTooltip._lines[3])
 
 Gathering:AddSpot(37, 0.45, 0.68 - 50 / 2000, "Silverleaf", "herb")
 GameTooltip._lines = {}
-silver:GetScript("OnEnter")(silver)
+Hover(silver)
 suite.check("a node taken twice says so", GameTooltip._lines[2] == "Gathered 2 times, last just now",
     GameTooltip._lines[2])
 

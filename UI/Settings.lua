@@ -57,6 +57,9 @@ local TITLE = "Blackthornes Farmer"
 local function CreateSection(parent, text, opts)
     local section = CreateFrame("Frame", nil, parent)
     section:SetSize(COLUMN_WIDTH, 18)
+    -- Which column it sits in, so each column's extra height is counted
+    -- apart: they stand side by side, and the taller one sets the window.
+    section.column = opts.x or (opts.anchor and opts.anchor.column) or 0
 
     if opts.anchor then
         section:SetPoint("TOPLEFT", opts.anchor, "BOTTOMLEFT", 0, SECTION_GAP)
@@ -92,6 +95,24 @@ local function CreateRow(parent, anchor, labelText, description)
     hint:SetWidth(COLUMN_WIDTH)
     hint:SetWordWrap(true)
     hint:SetText(description or "")
+
+    -- Sized for two lines of description; a longer one gets the room it
+    -- needs rather than running into the row below. The height the game
+    -- wrapped it to where it says, else a guess that allows for words
+    -- breaking early.
+    local height
+    local ok, value = pcall(hint.GetStringHeight, hint)
+    if ok and type(value) == "number" and value > 0 then height = value end
+    local lines = height and math.ceil(height / 12 - 0.1)
+        or math.ceil(Theme.TextWidth("tiny", description or "") / (COLUMN_WIDTH * 0.9))
+    row.extra = math.max(0, lines - 2) * 12
+    row:SetHeight(ROW_HEIGHT + row.extra)
+    row.hintLines = lines
+    row.column = anchor.column or 0
+    local columns = SettingsUI.columnExtra or {}
+    SettingsUI.columnExtra = columns
+    columns[row.column] = (columns[row.column] or 0) + row.extra
+    SettingsUI.rowsExtra = math.max(SettingsUI.rowsExtra or 0, columns[row.column])
 
     row.label = label
     row.hint = hint
@@ -168,6 +189,12 @@ function SettingsUI:ResetPositions()
         db[key] = defaults[key]
     end
 
+    -- This window too: it goes back to the middle of the screen.
+    db.settingsPoint = nil
+    db.settingsRelativePoint = nil
+    db.settingsX = nil
+    db.settingsY = nil
+
     -- Not in the defaults: the tally anchors to its own point when this is
     -- absent, which is where it started.
     db.trackerRelativePoint = nil
@@ -212,8 +239,13 @@ function SettingsUI:Build()
 
     Theme.Fill(frame, "window")
     Theme.Border(frame, "borderLit")
+    Theme.Halo(frame, 8, 0.10)
 
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStart", function(self)
+        -- Land an opening still running, or it would pull the window back.
+        ns.Motion:Stop(self, "open", true)
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         SettingsUI:SavePosition()
@@ -232,9 +264,16 @@ function SettingsUI:Build()
     self:BuildWindowsColumn()
     self:BuildTrackingColumn()
 
+    -- Room for any description that wrapped past two lines.
+    frame:SetHeight(HEIGHT + (SettingsUI.rowsExtra or 0))
+
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
-    footer:SetPoint("BOTTOMLEFT", PADDING, 14)
-    footer:SetPoint("BOTTOMRIGHT", -PADDING, 14)
+    footer:SetPoint("BOTTOMLEFT", PADDING, 10)
+    footer:SetPoint("BOTTOMRIGHT", -PADDING, 10)
+    -- Two lines if it needs them, rather than cut off.
+    footer:SetHeight(26)
+    footer:SetWordWrap(true)
+    footer:SetJustifyV("BOTTOM")
     footer:SetText("Changes save as you make them. Clearing tallies or recorded loot "
         .. "is left to typed commands, so nothing here can delete your data.")
     self.footer = footer
@@ -371,8 +410,8 @@ function SettingsUI:BuildTrackingColumn()
     controls.tracker:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local groupRow = CreateRow(frame, trackerRow, "In a group",
-        "Moves the panel right of the party and raid frames, and back when you "
-        .. "leave the group. Drag it while grouped to pick your own spot.")
+        "Moves the panel beside the party and raid frames. Drag it in a "
+        .. "group to pick a spot.")
 
     controls.dodgeGroup = Widgets.CreateCheckbox(groupRow, "Move aside", function(checked)
         ns.TrackerUI:SetDodgeGroup(checked)
@@ -397,8 +436,8 @@ function SettingsUI:BuildTrackingColumn()
     controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local effectsRow = CreateRow(frame, announceRow, "Effects",
-        "Full: glows, counting up, loot floating off, results coming in row by row. "
-        .. "Subtle: no floats. Same as /farm effects.")
+        "Full: glows, counts, floating loot, rows sliding in. Subtle: no "
+        .. "floats. Same as /farm effects.")
 
     local FX = ns.TrackerFX
     controls.effects = Widgets.CreateStepper(effectsRow, {

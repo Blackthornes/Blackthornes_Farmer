@@ -203,6 +203,19 @@ end
 function Motion:Open(frame, rise)
     if not frame then return end
 
+    -- Opened again before the last opening finished: land that one first,
+    -- which puts its point back, or the window would start from the
+    -- lowered spot and settle a few pixels further down every time.
+    self:Stop(frame, "open", true)
+
+    -- A window with the house glow round it flares as it opens.
+    local rest = frame.haloTextures and frame.haloRest
+    if rest then
+        self:Run(frame, "halo", 0.7, function(p)
+            Theme.SetHalo(frame, rest * 3.2 + (rest - rest * 3.2) * p)
+        end)
+    end
+
     local level = self.Level()
     if level == "off" then
         frame:SetAlpha(1)
@@ -249,6 +262,10 @@ function Widgets.CreateButton(parent, text, onClick, opts)
     Theme.Border(button, edgeKey, opts.primary and edgeAlpha or nil)
     button.sheen = Theme.TopSheen(button)
 
+    -- The one button on a screen that does the main thing glows gold
+    -- round its edge under the mouse.
+    if opts.primary then Theme.Halo(button, 4, 0) end
+
     button.label = Theme.CreateLabel(button, "small", labelKey, "CENTER")
     button.label:SetPoint("CENTER")
     button.label:SetText(text)
@@ -272,6 +289,8 @@ function Widgets.CreateButton(parent, text, onClick, opts)
         if opts.danger then
             button.label:SetTextColor(Motion.Mix(labelKey, "loss", p))
         end
+
+        if opts.primary then Theme.SetHalo(button, 0.32 * p) end
     end
     button.Light = Light
 
@@ -438,6 +457,102 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept)
 end
 
 --------------------------------------------------------------------------------
+-- Scrollbar
+--------------------------------------------------------------------------------
+
+--- The thin bar down a list's right edge: a dark track, and a thumb that is
+--- as long as the part of the list on screen and lights gold under the
+--- mouse or while dragged.
+local function CreateScrollbar(list, thumbKey)
+    local scrollbar = CreateFrame("Slider", nil, list)
+    scrollbar:SetOrientation("VERTICAL")
+    scrollbar:SetWidth(8)
+    scrollbar:SetPoint("TOPRIGHT", 0, 0)
+    scrollbar:SetPoint("BOTTOMRIGHT", 0, 0)
+    scrollbar:SetValueStep(1)
+    scrollbar:SetObeyStepOnDrag(true)
+
+    local track = scrollbar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints(scrollbar)
+    track:SetColorTexture(Theme.Unpack("panel"))
+
+    local thumb = scrollbar:CreateTexture(nil, "ARTWORK")
+    thumb:SetColorTexture(Theme.Unpack(thumbKey))
+    thumb:SetSize(8, 40)
+    scrollbar:SetThumbTexture(thumb)
+    scrollbar.thumb = thumb
+
+    local function Light(p)
+        thumb:SetColorTexture(Motion.Mix(thumbKey, "accent", p, 1, 0.9))
+    end
+
+    scrollbar:SetScript("OnEnter", function(self) Motion:Blend(self, "hover", 1, 0.12, Light) end)
+    scrollbar:SetScript("OnLeave", function(self)
+        if not self.held then Motion:Blend(self, "hover", 0, 0.2, Light) end
+    end)
+    scrollbar:SetScript("OnMouseDown", function(self)
+        self.held = true
+        Motion:Blend(self, "hover", 1, 0.08, Light)
+    end)
+    scrollbar:SetScript("OnMouseUp", function(self)
+        self.held = false
+        local over = type(self.IsMouseOver) == "function" and self:IsMouseOver()
+        if not over then Motion:Blend(self, "hover", 0, 0.2, Light) end
+    end)
+
+    -- Hidden mid-drag (the list shrank), the mouse-up never comes: let go.
+    scrollbar:SetScript("OnHide", function(self)
+        self.held = false
+        Motion:Stop(self, "hover")
+        Motion:SetValue(self, "hover", 0)
+        Light(0)
+    end)
+
+    --- Size the thumb for `visible` of `total` rows on screen.
+    function scrollbar:SizeThumb(visible, total)
+        local height = tonumber(self:GetHeight())
+        if not (height and height > 0 and total and total > 0) then return end
+        thumb:SetHeight(math.max(18, math.min(height, height * visible / total)))
+    end
+
+    return scrollbar
+end
+
+--------------------------------------------------------------------------------
+-- Fade
+--------------------------------------------------------------------------------
+
+--- A soft fade over one cut edge of a scrolling list, drawn above its rows
+--- in the colour behind them (`key`), so a list with more above or below
+--- fades out rather than stopping hard. The caller anchors it. Nil where
+--- the client has no gradients: a flat band would only hide a row.
+function Widgets.CreateFade(parent, side, key, height)
+    if type(CreateColor) ~= "function" then return nil end
+
+    local fade = CreateFrame("Frame", nil, parent)
+    fade:SetFrameLevel(parent:GetFrameLevel() + 12)
+    fade:SetHeight(height or 16)
+
+    local texture = fade:CreateTexture(nil, "OVERLAY")
+    texture:SetAllPoints(fade)
+    texture:SetColorTexture(1, 1, 1, 1)
+
+    local r, g, b = Theme.Unpack(key or "panel")
+    local solid, clear = CreateColor(r, g, b, 0.95), CreateColor(r, g, b, 0)
+    local ok
+    if side == "TOP" then
+        ok = pcall(texture.SetGradient, texture, "VERTICAL", clear, solid)
+    else
+        ok = pcall(texture.SetGradient, texture, "VERTICAL", solid, clear)
+    end
+    if not ok then return nil end
+
+    fade:EnableMouse(false)
+    fade:Hide()
+    return fade
+end
+
+--------------------------------------------------------------------------------
 -- Line list
 --------------------------------------------------------------------------------
 
@@ -457,22 +572,7 @@ function Widgets.CreateLineList(parent, opts)
     list.rows = {}
     list.offset = 0
 
-    local scrollbar = CreateFrame("Slider", nil, list)
-    scrollbar:SetOrientation("VERTICAL")
-    scrollbar:SetWidth(8)
-    scrollbar:SetPoint("TOPRIGHT", 0, 0)
-    scrollbar:SetPoint("BOTTOMRIGHT", 0, 0)
-    scrollbar:SetValueStep(1)
-    scrollbar:SetObeyStepOnDrag(true)
-
-    local track = scrollbar:CreateTexture(nil, "BACKGROUND")
-    track:SetAllPoints(scrollbar)
-    track:SetColorTexture(Theme.Unpack("panel"))
-
-    local thumb = scrollbar:CreateTexture(nil, "ARTWORK")
-    thumb:SetColorTexture(Theme.Unpack("border"))
-    thumb:SetSize(8, 40)
-    scrollbar:SetThumbTexture(thumb)
+    local scrollbar = CreateScrollbar(list, "border")
 
     list.scrollbar = scrollbar
 
@@ -520,6 +620,7 @@ function Widgets.CreateLineList(parent, opts)
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
         scrollbar:SetShown(maxOffset > 0)
+        scrollbar:SizeThumb(visible, #(self.data or self.lines))
 
         if opts.onRefresh then
             opts.onRefresh(self, #self.lines, visible)
@@ -582,24 +683,20 @@ function Widgets.CreateRowList(parent, opts)
     list.rows = {}
     list.offset = 0
 
-    local scrollbar = CreateFrame("Slider", nil, list)
-    scrollbar:SetOrientation("VERTICAL")
-    scrollbar:SetWidth(8)
-    scrollbar:SetPoint("TOPRIGHT", 0, 0)
-    scrollbar:SetPoint("BOTTOMRIGHT", 0, 0)
-    scrollbar:SetValueStep(1)
-    scrollbar:SetObeyStepOnDrag(true)
-
-    local track = scrollbar:CreateTexture(nil, "BACKGROUND")
-    track:SetAllPoints(scrollbar)
-    track:SetColorTexture(Theme.Unpack("panel"))
-
-    local thumb = scrollbar:CreateTexture(nil, "ARTWORK")
-    thumb:SetColorTexture(Theme.Unpack("borderLit"))
-    thumb:SetSize(8, 40)
-    scrollbar:SetThumbTexture(thumb)
+    local scrollbar = CreateScrollbar(list, "borderLit")
 
     list.scrollbar = scrollbar
+
+    -- The cut edges fade while there is more above or below.
+    local fadeTop = Widgets.CreateFade(list, "TOP", opts.fadeKey, 14)
+    local fadeBottom = fadeTop and Widgets.CreateFade(list, "BOTTOM", opts.fadeKey, 14)
+    if fadeBottom then
+        fadeTop:SetPoint("TOPLEFT", list, "TOPLEFT", 0, 0)
+        fadeTop:SetPoint("TOPRIGHT", scrollbar, "TOPLEFT", -6, 0)
+        fadeBottom:SetPoint("BOTTOMLEFT", list, "BOTTOMLEFT", 0, 0)
+        fadeBottom:SetPoint("BOTTOMRIGHT", scrollbar, "BOTTOMLEFT", -6, 0)
+        list.fadeTop, list.fadeBottom = fadeTop, fadeBottom
+    end
 
     local function VisibleRowCount()
         local height = list:GetHeight()
@@ -617,8 +714,13 @@ function Widgets.CreateRowList(parent, opts)
         row:SetPoint("RIGHT", scrollbar, "LEFT", -6, 0)
         row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
-        row.stripe = Theme.Fill(row, "rowAlt", 0)
-        row.highlight = Theme.Fill(row, "rowHover", 0, "BORDER")
+        -- Filled at full strength and hidden with SetAlpha: a texture whose
+        -- colour is clear stays clear whatever alpha it is given later, which
+        -- is how the hover and the banding went missing.
+        row.stripe = Theme.Fill(row, "rowAlt")
+        row.stripe:SetAlpha(0)
+        row.highlight = Theme.Fill(row, "rowHover", nil, "BORDER")
+        row.highlight:SetAlpha(0)
 
         -- A thin gold edge on the row under the mouse, easing in with the
         -- highlight, so your place in a long list is easy to keep.
@@ -629,6 +731,21 @@ function Widgets.CreateRowList(parent, opts)
         row.edge:SetColorTexture(Theme.Unpack("accent"))
         row.edge:SetAlpha(0)
 
+        -- And a soft gold light bleeding off that edge into the row.
+        row.bleed = row:CreateTexture(nil, "BORDER", nil, 1)
+        row.bleed:SetPoint("TOPLEFT", 2, 0)
+        row.bleed:SetPoint("BOTTOMLEFT", 2, 0)
+        row.bleed:SetWidth(18)
+        row.bleed:SetColorTexture(1, 1, 1, 1)
+        pcall(row.bleed.SetBlendMode, row.bleed, "ADD")
+        do
+            local r, g, b = Theme.Unpack("accent")
+            local ok = type(CreateColor) == "function" and pcall(row.bleed.SetGradient, row.bleed,
+                "HORIZONTAL", CreateColor(r, g, b, 0.22), CreateColor(r, g, b, 0))
+            if not ok then row.bleed:SetColorTexture(r, g, b, 0.06) end
+        end
+        row.bleed:SetAlpha(0)
+
         if opts.createRow then
             opts.createRow(row)
         end
@@ -636,6 +753,7 @@ function Widgets.CreateRowList(parent, opts)
         local function Lit(value)
             row.highlight:SetAlpha(0.6 * value)
             row.edge:SetAlpha(value)
+            row.bleed:SetAlpha(value)
         end
 
         -- Callers hook hovering through opts rather than HookScript on the
@@ -686,6 +804,7 @@ function Widgets.CreateRowList(parent, opts)
             Motion:SetValue(row, "hover", 0)
             row.highlight:SetAlpha(0)
             row.edge:SetAlpha(0)
+            row.bleed:SetAlpha(0)
 
             if data then
                 -- Banding follows the row's place on screen rather than its
@@ -709,15 +828,24 @@ function Widgets.CreateRowList(parent, opts)
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
         scrollbar:SetShown(maxOffset > 0)
+        scrollbar:SizeThumb(visible, #(self.data or self.lines))
+
+        if fadeBottom then
+            fadeTop:SetShown(self.offset > 0)
+            fadeBottom:SetShown(self.offset < maxOffset)
+        end
 
         if opts.onRefresh then
             opts.onRefresh(self, #self.data, visible)
         end
     end
 
-    function list:SetData(data)
+    --- New rows. `keepPlace` keeps the list scrolled where it was (a redraw
+    --- of the same results after a kill, a heading folded); otherwise it
+    --- starts from the top.
+    function list:SetData(data, keepPlace)
         self.data = data or {}
-        self.offset = 0
+        if not keepPlace then self.offset = 0 end
         self:Refresh()
     end
 
@@ -762,8 +890,11 @@ end
 -- Filter chip
 --------------------------------------------------------------------------------
 
---- A small toggle used in a row of filters. Selected chips carry the accent.
-function Widgets.CreateChip(parent, text, onClick)
+--- A small toggle used in a row of filters. Selected chips carry the accent,
+--- and a gold line with a soft glow along their foot (opts.noUnderline for
+--- chips that have a sliding line of their own, like the window's tabs).
+function Widgets.CreateChip(parent, text, onClick, opts)
+    opts = opts or {}
     local chip = CreateFrame("Button", nil, parent)
     chip:SetHeight(18)
 
@@ -774,8 +905,30 @@ function Widgets.CreateChip(parent, text, onClick)
     chip.label:SetPoint("CENTER")
     chip.label:SetText(text)
 
+    local under, glow
+    if not opts.noUnderline then
+        under = chip:CreateTexture(nil, "OVERLAY")
+        under:SetHeight(1)
+        under:SetPoint("BOTTOMLEFT", 3, 1)
+        under:SetPoint("BOTTOMRIGHT", -3, 1)
+        under:SetColorTexture(Theme.Unpack("accent"))
+        under:SetAlpha(0)
+
+        glow = chip:CreateTexture(nil, "ARTWORK")
+        glow:SetHeight(5)
+        glow:SetPoint("BOTTOMLEFT", 1, 1)
+        glow:SetPoint("BOTTOMRIGHT", -1, 1)
+        glow:SetColorTexture(1, 1, 1, 1)
+        pcall(glow.SetBlendMode, glow, "ADD")
+        local r, g, b = Theme.Unpack("accent")
+        local ok = type(CreateColor) == "function" and pcall(glow.SetGradient, glow, "VERTICAL",
+            CreateColor(r, g, b, 0.3), CreateColor(r, g, b, 0))
+        if not ok then glow:SetColorTexture(r, g, b, 0.1) end
+        glow:SetAlpha(0)
+    end
+
     -- Sized to its text, so a row of chips packs tightly whatever the labels.
-    chip:SetWidth(math.max(34, (chip.label:GetStringWidth() or 30) + 16))
+    chip:SetWidth(math.max(34, Theme.TextWidth("tiny", text) + 16))
 
     -- The All chip holds false; everything else holds a kind. Either way the
     -- caller gets nil or a string back, never an absent field.
@@ -802,6 +955,11 @@ function Widgets.CreateChip(parent, text, onClick)
         local er, eg, eb, ea = Motion.Mix("border", "accent", on, 1, 0.6)
         for _, edge in ipairs(chip.borderTextures or {}) do
             edge:SetColorTexture(er, eg, eb, ea)
+        end
+
+        if under then
+            under:SetAlpha(on)
+            glow:SetAlpha(on)
         end
     end
 
@@ -862,7 +1020,7 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     label:SetText(text)
 
     checkbox.label = label
-    checkbox:SetWidth((label:GetStringWidth() or 60) + 24)
+    checkbox:SetWidth(Theme.TextWidth("small", text) + 24)
     checkbox.checked = initial and true or false
     checkbox.disabled = false
     tick:SetShown(checkbox.checked)

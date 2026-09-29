@@ -625,7 +625,7 @@ function Gathering:OnLoot()
     if ns.db.harvestPaused then return end
 
     local zone, location = ns.Harvest:Where()
-    local items, quantities = ns.Tracker:LootedItems()
+    local items, quantities = ns.Tracker:LootedItems(true)
     local mapID, x, y = ns.Harvest:PlayerMapPosition()
 
     if mapID then self:AddSpot(mapID, x, y, cast.node, cast.kind) end

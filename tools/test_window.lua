@@ -206,6 +206,10 @@ for index = 1, 100 do rows[index] = { type = "more", text = "line " .. index } e
 
 UI.list:SetData(rows)
 suite.check("a fresh list starts at the top", UI.list.offset == 0)
+if UI.list:MaxOffset() > 0 then
+    suite.check("more below: the bottom edge fades", UI.list.fadeBottom:IsShown())
+    suite.check("nothing above: the top does not", not UI.list.fadeTop:IsShown())
+end
 
 UI.list:Scroll(-1)
 suite.check("the wheel scrolls down", UI.list.offset == 3, UI.list.offset)
@@ -219,6 +223,10 @@ suite.check("scrolling stops at the top", UI.list.offset == 0, UI.list.offset)
 UI.list:Scroll(-500)
 suite.check("scrolling stops at the end",
     UI.list.offset == UI.list:MaxOffset(), UI.list.offset)
+if UI.list:MaxOffset() > 0 then
+    suite.check("at the end: only the top fades",
+        UI.list.fadeTop:IsShown() and not UI.list.fadeBottom:IsShown())
+end
 
 UI.list:SetData({ { type = "more", text = "one" } })
 UI.list:Scroll(-10)

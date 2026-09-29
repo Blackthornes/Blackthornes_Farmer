@@ -395,7 +395,12 @@ function Tracker:ResolveMob(text)
 end
 
 function Tracker:Reset()
-    ns.db.tracker = nil
+    -- The kills go; what each item looks like (its id, colour and icon, read
+    -- off loot links) stays. Prices, grey detection and the fishing and
+    -- gathering values all lean on it, and none of it is a tally.
+    local old = ns.db.tracker
+    local looks = type(old) == "table" and type(old.looks) == "table" and old.looks or nil
+    ns.db.tracker = looks and { looks = looks } or nil
     self.session = {}
     self.corpses = {}
     self.sessionLoot = {}
@@ -407,7 +412,10 @@ function Tracker:Reset()
     self.bestStreak = 0
     self.streakAt = nil
 
-    if ns.TrackerUI then ns.TrackerUI:Refresh() end
+    if ns.TrackerUI then
+        if ns.TrackerUI.ResetState then ns.TrackerUI:ResetState() end
+        ns.TrackerUI:Refresh()
+    end
 end
 
 --- The game's clock, in seconds. Nil where there is none (the tests).
@@ -546,7 +554,9 @@ end
 
 --- The items in the open loot window, each once, coins left out, and how
 --- many of each (two slots of one item add up). Third: the coin, in copper.
-function Tracker:LootedItems()
+-- `anySource` takes every slot: a node or a catch is looted with whatever
+-- happens to be targeted, so the corpse check below would throw it all away.
+function Tracker:LootedItems(anySource)
     local names, quantities, copper = {}, {}, 0
 
     local gotCount, lootCount = pcall(GetNumLootItems)
@@ -555,10 +565,18 @@ function Tracker:LootedItems()
 
     for slot = 1, count do
         local ok, slotIcon, slotName, slotQuantity = pcall(GetLootSlotInfo, slot)
-        local name = ok and ns.Harvest.Readable(slotName) or nil
+
+        -- Area loot: another corpse's drop is not this kill's.
+        local ours, share = true, nil
+        if not anySource then ours, share = ns.Harvest:SlotIsTargets(slot) end
+        if share then slotQuantity = share end
+        local name = ours and ok and ns.Harvest.Readable(slotName) or nil
 
         if name and ns.Harvest:IsMoney(slot, name) then
-            copper = copper + (Tracker.CoinCopper(name) or 0)
+            -- With area loot the name holds every corpse's coin; the share
+            -- is this corpse's, in copper.
+            local own = share and ns.Harvest.ReadableNumber(share) or nil
+            copper = copper + (own or Tracker.CoinCopper(name) or 0)
         elseif name then
             if not quantities[name] then
                 names[#names + 1] = name

@@ -145,8 +145,20 @@ local function Complete(pin, size, corner)
     badge:SetTexture(CHECK)
     pin.badge = badge
 
-    pin:SetScript("OnEnter", ShowTooltip)
-    pin:SetScript("OnLeave", HideTooltip)
+    if pin.hollow then
+        -- A minimap marker takes the mouse only on its check, never over
+        -- its clear middle: a node grown back in there keeps the game's own
+        -- tooltip, and a click there still pings the minimap.
+        local hit = CreateFrame("Frame", nil, pin)
+        hit:SetAllPoints(badge)
+        hit:EnableMouse(true)
+        hit:SetScript("OnEnter", function() ShowTooltip(pin) end)
+        hit:SetScript("OnLeave", HideTooltip)
+        pin.hit = hit
+    else
+        pin:SetScript("OnEnter", ShowTooltip)
+        pin:SetScript("OnLeave", HideTooltip)
+    end
     pin:Hide()
 
     return pin
@@ -165,7 +177,7 @@ local BRACKET = 2
 function MapMarkers.CreateFramePin(parent, size)
     local pin = CreateFrame("Frame", nil, parent)
     pin:SetSize(size, size)
-    pin:EnableMouse(true)
+    pin:EnableMouse(false)
     pin.hollow = true
 
     local arm = math.max(3, math.floor(size / 4))

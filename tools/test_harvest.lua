@@ -308,6 +308,15 @@ suite.check("a prefix beats a mid-word match",
     Harvest:ResolveItem("silver") == "Silver Bar")
 suite.check("nothing matching resolves to nothing",
     Harvest:ResolveItem("mithril") == nil)
+
+-- Two that fit loosely: no guess, and both named.
+Farm(APPRENTICE, 1, 1, { { name = "Linen Cloth", quantity = 1 } })
+local guess, both = Harvest:ResolveItem("cloth")
+suite.check("two loose matches are not guessed", guess == nil, guess)
+suite.check("both are offered", both and both[1] == "Linen Cloth" and both[2] == "Wool Cloth")
+suite.check("a prefix still picks its one", Harvest:ResolveItem("wool") == "Wool Cloth")
+Harvest:Reset()
+Farm(APPRENTICE, 2, 2, { WOOL, SILVER })
 suite.check("an empty name resolves to nothing", Harvest:ResolveItem("") == nil)
 
 --------------------------------------------------------------------------------
@@ -593,4 +602,15 @@ for _, item in ipairs(shipped.Harvest:Items()) do
 end
 suite.check("with no coins in it", coins == 0, coins)
 
+--------------------------------------------------------------------------------
+-- Export rates: the data refuses 0, so a rare drop keeps a decimal
+--------------------------------------------------------------------------------
+
+local EC = ns.Harvest.ExportChance
+suite.check("a whole rate", EC(12.4) == "chance = 12", EC(12.4))
+suite.check("rounds up", EC(12.5) == "chance = 13", EC(12.5))
+suite.check("a rare drop keeps a decimal", EC(0.4) == "chance = 0.4", EC(0.4))
+suite.check("never writes 0", EC(0.01) == nil, EC(0.01))
+suite.check("tops out at 100", EC(100) == "chance = 100", EC(100))
+suite.check("nothing for nothing", EC(nil) == nil)
 suite.done()

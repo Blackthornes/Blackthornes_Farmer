@@ -43,6 +43,10 @@ local COLUMN_GAP = 6
 
 local DROP_BAR_WIDTH = 46
 
+-- How bright the glow round the window sits; it flares brighter as the
+-- window opens (Motion:Open).
+local HALO_REST = 0.10
+
 --- Column left edges and widths, measured from the list's left edge, for the
 --- given widths (any not given are at their narrowest).
 local function Columns(widths)
@@ -70,7 +74,12 @@ local COLUMN = Columns()
 -- Falls back to plain text before the player's level is known, which is the
 -- case in tests and for a moment at login.
 local function DifficultyColor(level)
-    local player = UnitLevel and UnitLevel("player") or 0
+    -- Read in a pcall, as every client value is.
+    local player = 0
+    if UnitLevel then
+        local ok, value = pcall(UnitLevel, "player")
+        player = ok and ns.Harvest.ReadableNumber(value) or 0
+    end
     if not level or player <= 0 then return Theme.Unpack("text") end
 
     local difference = level - player
@@ -82,6 +91,21 @@ local function DifficultyColor(level)
 
     return 0.60, 0.62, 0.66
 end
+
+-- Each kind of source has its own colour on its tag, so a column of them
+-- reads at a glance: red for mobs, green for herbs, copper for ore, blue for
+-- fishing.
+local KIND_COLORS = {
+    mob       = { 0.94, 0.42, 0.36 },
+    node      = { 0.90, 0.62, 0.36 },
+    herb      = { 0.36, 0.86, 0.52 },
+    skinning  = { 0.80, 0.60, 0.40 },
+    fishing   = { 0.40, 0.72, 1.00 },
+    container = { 0.86, 0.72, 0.38 },
+    vendor    = { 0.74, 0.76, 0.82 },
+    quest     = { 1.00, 0.84, 0.30 },
+}
+UI.KIND_COLORS = KIND_COLORS
 
 --- A drop rate worth crossing a continent for should look different from one
 -- that is barely worth the trip.
@@ -112,8 +136,15 @@ function UI:Build()
 
     Theme.Fill(frame, "window")
     Theme.Border(frame, "borderLit")
+    -- The house's neon edge: a soft gold glow round the window that flares
+    -- as it opens and settles.
+    Theme.Halo(frame, 8, HALO_REST)
 
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStart", function(self)
+        -- Land an opening still running, or it would pull the window back.
+        ns.Motion:Stop(self, "open", true)
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         UI:SavePosition()
@@ -155,9 +186,7 @@ function UI:BuildHeader()
     header:SetPoint("TOPLEFT")
     header:SetPoint("TOPRIGHT")
     header:SetHeight(36)
-    Theme.AccentStripe(header, 3)
-    Theme.HeaderGlow(header, 20, 0.10)
-    Theme.TopSheen(header)
+    Theme.HouseHeader(header, 20)
 
     local icon = header:CreateTexture(nil, "ARTWORK")
     icon:SetSize(20, 20)
@@ -179,7 +208,8 @@ function UI:BuildHeader()
     local x = 0
 
     for _, tab in ipairs(TABS) do
-        local chip = Widgets.CreateChip(header, tab.label, function() UI:ShowTab(tab.key) end)
+        local chip = Widgets.CreateChip(header, tab.label, function() UI:ShowTab(tab.key) end,
+            { noUnderline = true })
         local width = Theme.TextWidth("tiny", tab.label) + 22
         chip:SetHeight(20)
         chip:SetWidth(width)
@@ -194,6 +224,14 @@ function UI:BuildHeader()
     underline:SetHeight(2)
     underline:SetColorTexture(Theme.Unpack("accent"))
     self.tabUnderline = underline
+
+    -- A soft glow under the gold line, as the kills panel's tabs have.
+    local glow = header:CreateTexture(nil, "ARTWORK")
+    glow:SetHeight(6)
+    glow:SetPoint("BOTTOMLEFT", underline, "BOTTOMLEFT", -2, 0)
+    glow:SetPoint("BOTTOMRIGHT", underline, "BOTTOMRIGHT", 2, 0)
+    glow:SetColorTexture(Theme.Unpack("accent", 0.22))
+    pcall(glow.SetBlendMode, glow, "ADD")
 
     local close = Widgets.CreateButton(header, "X", function() UI:Hide() end,
         { width = 22, height = 20, danger = true })
@@ -257,8 +295,8 @@ function UI:BuildBody()
     self.chips = {}
 
     local summary = Theme.CreateLabel(frame, "small", "muted", "RIGHT")
+    summary:SetPoint("LEFT", filters, "LEFT", 8, 0)
     summary:SetPoint("RIGHT", filters, "RIGHT", -2, 0)
-    summary:SetWidth(260)
     self.summary = summary
 
     local panel = Theme.CreatePanel(frame, "panel", "border")
@@ -412,6 +450,7 @@ function UI:PlaceRow(row)
     end
 
     Place(row.kindChip, columns.kind)
+    row.kindChip:SetWidth(columns.kind.w - 6)
     Place(row.kind, columns.kind, 0, columns.kind.w - 6)
     Place(row.name, columns.name, 0, columns.name.w)
     Place(row.where, columns.where, 0, columns.where.w)
@@ -433,11 +472,15 @@ end
 --- Widen the columns, and the window, to fit these rows; never narrower
 --- than the base layout.
 function UI:FitColumns(rows)
-    local widths = { name = BASE_WIDTH.name, where = BASE_WIDTH.where, drop = BASE_WIDTH.drop }
+    local widths = { kind = BASE_WIDTH.kind, name = BASE_WIDTH.name, where = BASE_WIDTH.where,
+        drop = BASE_WIDTH.drop }
 
     for _, row in ipairs(rows) do
         if row.type == "source" then
             local name, where, drop = SourceTexts(row.source)
+            -- The kind's tag, in capitals, fits its chip: "QUEST" was "QU...".
+            widths.kind = math.max(widths.kind,
+                Theme.TextWidth("tiny", ns.DB:KindTag(row.source.kind)) + 14)
             widths.name = math.max(widths.name, Theme.TextWidth("small", name) + 8)
             widths.where = math.max(widths.where, Theme.TextWidth("small", where) + 8)
             if drop then
@@ -451,8 +494,24 @@ function UI:FitColumns(rows)
         widths[key] = math.min(most, math.ceil(widths[key]))
     end
 
+    -- Never wider than the screen: on a small screen, or with the window
+    -- scaled up, the widest columns give back room (their text ends in
+    -- "...") before the close button goes off the edge.
+    local room = self:ScreenRoom()
+    if room then
+        local over = (WIDTH + Columns(widths).extra) - room
+        for _, key in ipairs({ "where", "name", "drop" }) do
+            if over <= 0 then break end
+            local give = math.min(over, widths[key] - BASE_WIDTH[key])
+            if give > 0 then
+                widths[key] = widths[key] - give
+                over = over - give
+            end
+        end
+    end
+
     local current = self.columns or COLUMN
-    if current.name.w == widths.name and current.where.w == widths.where
+    if current.kind.w == widths.kind and current.name.w == widths.name and current.where.w == widths.where
         and current.drop.w == widths.drop then
         return
     end
@@ -463,6 +522,18 @@ function UI:FitColumns(rows)
     if self.tab ~= "rankings" then
         self.frame:SetWidth(WIDTH + self.columns.extra)
     end
+end
+
+--- How wide the window can be and still fit on screen, in its own units;
+--- nil before the screen's size is known.
+function UI:ScreenRoom()
+    local ok, width, scale = pcall(function()
+        return UIParent:GetWidth(), self.frame and self.frame:GetScale() or 1
+    end)
+    if not (ok and type(width) == "number" and width > 0 and type(scale) == "number" and scale > 0) then
+        return nil
+    end
+    return math.floor(width / scale) - 40
 end
 
 function UI:BuildColumnHeadings()
@@ -535,6 +606,18 @@ function UI:CreateRow(row)
     row.band:SetAllPoints(row)
     row.band:SetColorTexture(Theme.Unpack("header"))
 
+    -- A gold wash fading across the band from its stripe, the house glow.
+    row.bandGlow = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+    row.bandGlow:SetAllPoints(row)
+    row.bandGlow:SetColorTexture(1, 1, 1, 1)
+    do
+        local r, g, b = Theme.Unpack("accent")
+        local ok = type(CreateColor) == "function" and pcall(row.bandGlow.SetGradient, row.bandGlow,
+            "HORIZONTAL", CreateColor(r, g, b, 0.16), CreateColor(r, g, b, 0))
+        if not ok then row.bandGlow:SetColorTexture(r, g, b, 0.05) end
+    end
+    row.bandGlow:Hide()
+
     row.bandStripe = row:CreateTexture(nil, "ARTWORK")
     row.bandStripe:SetPoint("TOPLEFT")
     row.bandStripe:SetPoint("BOTTOMLEFT")
@@ -565,6 +648,12 @@ function UI:CreateRow(row)
     row.kindChip = row:CreateTexture(nil, "ARTWORK")
     row.kindChip:SetSize(BASE_WIDTH.kind - 6, 13)
 
+    -- A bright edge down the tag's left, in its kind's colour.
+    row.kindEdge = row:CreateTexture(nil, "OVERLAY")
+    row.kindEdge:SetSize(2, 13)
+    row.kindEdge:SetPoint("LEFT", row.kindChip, "LEFT", 0, 0)
+    row.kindEdge:Hide()
+
     row.kind = Theme.CreateLabel(row, "tiny", "text", "CENTER")
 
     row.name = Theme.CreateLabel(row, "small", "text")
@@ -591,6 +680,7 @@ end
 
 local function HideSourceColumns(row)
     row.kindChip:Hide()
+    row.kindEdge:Hide()
     row.kind:Hide()
     row.name:Hide()
     row.where:Hide()
@@ -614,6 +704,7 @@ function UI:UpdateRow(row, data, index)
     row.heading:Hide()
     row.goal:Hide()
     row.band:Hide()
+    row.bandGlow:Hide()
     row.bandStripe:Hide()
     row.fold:Hide()
     row.itemIcon:Hide()
@@ -621,6 +712,7 @@ function UI:UpdateRow(row, data, index)
 
     if data.type == "item" then
         row.band:Show()
+        row.bandGlow:Show()
         row.bandStripe:Show()
 
         row.fold:SetText(self.collapsed[data.item.name] and "+" or "-")
@@ -661,11 +753,22 @@ function UI:UpdateRow(row, data, index)
 
     local source = data.source
 
-    row.kindChip:SetColorTexture(Theme.Unpack("row"))
+    local tint = KIND_COLORS[source.kind]
+    if tint then
+        row.kindChip:SetColorTexture(tint[1], tint[2], tint[3], 0.16)
+        row.kindEdge:SetColorTexture(tint[1], tint[2], tint[3], 0.9)
+        row.kindEdge:Show()
+    else
+        row.kindChip:SetColorTexture(Theme.Unpack("row"))
+    end
     row.kindChip:Show()
 
     row.kind:SetText(ns.DB:KindTag(source.kind))
-    row.kind:SetTextColor(Theme.Unpack("muted"))
+    if tint then
+        row.kind:SetTextColor(tint[1], tint[2], tint[3], 1)
+    else
+        row.kind:SetTextColor(Theme.Unpack("muted"))
+    end
     row.kind:Show()
 
     -- A node named after the thing it holds tells you nothing twice, so show
@@ -783,6 +886,9 @@ function UI:Render()
     if query == "" then
         self.list:SetData({})
         self.lastShape = nil
+        -- Back to its own width over the empty panel, not the width the
+        -- last search's long names needed.
+        self:FitColumns({})
         self.summary:SetText(("%s, %s"):format(
             Util.Plural(ns.DB:CountItems(), "item"),
             Util.Plural(ns.DB:CountSources(), "spot")))
@@ -819,7 +925,9 @@ function UI:Render()
     self.arriving = shape ~= self.lastShape
     self.lastShape = shape
 
-    self.list:SetData(visible)
+    -- The same results redrawn (a heading folded, a goal's count moving)
+    -- keep your place in the list; new ones start from the top.
+    self.list:SetData(visible, not self.arriving)
     if self.arriving then self.list:Arrive() end
     self.arriving = false
 
@@ -835,6 +943,8 @@ function UI:BuildChips(query)
     for _, chip in ipairs(self.chips) do
         chip:Hide()
     end
+    self.chipsWidth = 0
+    self:PlaceSummary()
 
     if query == "" then return end
 
@@ -865,7 +975,7 @@ function UI:BuildChips(query)
         end
 
         chip.label:SetText(entry.label)
-        chip:SetWidth(math.max(34, (chip.label:GetStringWidth() or 30) + 16))
+        chip:SetWidth(math.max(34, Theme.TextWidth("tiny", entry.label) + 16))
 
         -- Stored as false rather than nil for the All chip, so "no filter" is
         -- a value the chip actually holds rather than an absent field.
@@ -877,8 +987,18 @@ function UI:BuildChips(query)
 
         offset = offset + chip:GetWidth() + 4
     end
+    self.chipsWidth = offset
+    self:PlaceSummary()
 
     self:RefreshChipStates()
+end
+
+--- The count on the right of the chips starts after the last chip, so a
+--- long row of them never runs under it.
+function UI:PlaceSummary()
+    self.summary:ClearAllPoints()
+    self.summary:SetPoint("LEFT", self.filters, "LEFT", (self.chipsWidth or 0) + 8, 0)
+    self.summary:SetPoint("RIGHT", self.filters, "RIGHT", -2, 0)
 end
 
 function UI:RefreshChipStates()
@@ -1096,9 +1216,12 @@ function UI:BuildMinimapButton()
     button:SetScript("OnDragStart", function(self)
         self.dragging = true
         self:SetScript("OnUpdate", function()
+            -- The minimap's centre is in its own units, and many layouts
+            -- scale the minimap apart from the rest of the UI, so the cursor
+            -- is brought into the minimap's units rather than UIParent's.
             local mx, my = Minimap:GetCenter()
             local cx, cy = GetCursorPosition()
-            local scale = UIParent:GetEffectiveScale()
+            local scale = Minimap:GetEffectiveScale()
 
             local newAngle = math.atan2((cy / scale) - my, (cx / scale) - mx)
             UpdatePosition(newAngle)

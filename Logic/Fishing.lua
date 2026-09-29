@@ -470,7 +470,7 @@ function Fishing:OnLoot()
     self.cast = nil
 
     local zone, location = ns.Harvest:Where()
-    local items, quantities = ns.Tracker:LootedItems()
+    local items, quantities = ns.Tracker:LootedItems(true)
 
     local x, y = ns.Harvest:PlayerPosition()
 
@@ -579,9 +579,8 @@ function Fishing:ExportItem(entry)
             fields[#fields + 1] = ("maxLevel = %d"):format(high)
         end
 
-        if summary.rated then
-            fields[#fields + 1] = ("chance = %d"):format(math.floor(row.item.chance + 0.5))
-        end
+        local chance = summary.rated and ns.Harvest.ExportChance(row.item.chance)
+        if chance then fields[#fields + 1] = chance end
 
         fields[#fields + 1] = 'provenance = "forever"'
 

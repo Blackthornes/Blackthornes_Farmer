@@ -206,6 +206,8 @@ suite.check("stacks are from the kills that recorded them",
     Tracker:StackSize(BOAR, "Boar Ribs") == 2, Tracker:StackSize(BOAR, "Boar Ribs"))
 
 LTU:Show(BOAR)
+suite.check("opening counts the coin up", ns.Motion:Running(LTU.coin, "count"))
+ns.Motion:FinishAll()
 suite.check("the window shows the real coin per kill",
     LTU.coin:GetText() == ns.Value.Coins(105), LTU.coin:GetText())
 suite.check("and says how many kills it is from",

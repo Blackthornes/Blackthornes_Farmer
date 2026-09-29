@@ -156,6 +156,17 @@ local function Present(value)
     return type(value) ~= "nil"
 end
 
+--- A drop rate as the export writes it, or nil to leave the field out. The
+--- data refuses 0, so a rare drop is kept to a decimal place, and one too rare
+--- to show at all is listed without a rate.
+function Harvest.ExportChance(percent)
+    if type(percent) ~= "number" or percent ~= percent then return nil end
+    if percent >= 99.95 then return "chance = 100" end
+    if percent >= 0.95 then return ("chance = %d"):format(math.floor(percent + 0.5)) end
+    if percent >= 0.05 then return ("chance = %.1f"):format(percent) end
+    return nil
+end
+
 function Harvest.TooltipShowsUnitOrItem(tooltip)
     if type(tooltip) ~= "table" then return false end
 
@@ -362,6 +373,33 @@ function Harvest:LootIsTargets()
     return not elsewhere
 end
 
+--- Whether loot slot `slot` came off the corpse you target, and if the
+--- client says so, how many of it came off that corpse.
+--
+-- With area loot one window holds several corpses' drops. Counting them all
+-- against the one you clicked would make it look like it dropped three
+-- times as much, so a slot whose sources are readable and are all other
+-- corpses is left out. Anything unreadable counts, as before: this only
+-- ever takes away what the client plainly says is someone else's.
+function Harvest:SlotIsTargets(slot)
+    if type(GetLootSourceInfo) ~= "function" then return true end
+
+    local target = self:CorpseID()
+    if not GuidKind(target) then return true end
+
+    local ok, sources = pcall(function() return { GetLootSourceInfo(slot) } end)
+    if not ok then return true end
+
+    local elsewhere = false
+    for index = 1, #sources, 2 do
+        local guid = Readable(sources[index])
+        if guid == target then return true, ReadableNumber(sources[index + 1]) end
+        if GuidKind(guid) then elsewhere = true end
+    end
+
+    return not elsewhere
+end
+
 --------------------------------------------------------------------------------
 -- Recording
 --------------------------------------------------------------------------------
@@ -517,9 +555,14 @@ function Harvest:RecordCorpse()
     for slot = 1, count do
         local ok, _, slotName, quantity = pcall(GetLootSlotInfo, slot)
 
+        -- Another corpse's drop in the same window (area loot) is not this
+        -- one's; where the client gives this corpse's share, that is it.
+        local ours, share = self:SlotIsTargets(slot)
+        if share then quantity = share end
+
         -- An unreadable loot name loses that one slot. The corpse itself is
         -- already counted, and the rest of the window is still worth reading.
-        local name = ok and Readable(slotName) or nil
+        local name = ours and ok and Readable(slotName) or nil
 
         local already = name and counted[name] and not seenHere[name]
 
@@ -608,7 +651,7 @@ function Harvest:ResolveItem(text)
     if text == "" then return nil end
 
     local items = self:Items()
-    local prefix, contains
+    local prefixes, contains = {}, {}
 
     for _, item in ipairs(items) do
         local name = item.name:lower()
@@ -616,13 +659,22 @@ function Harvest:ResolveItem(text)
         if name == text then
             return item.name
         elseif name:sub(1, #text) == text then
-            prefix = prefix or item.name
+            prefixes[#prefixes + 1] = item.name
         elseif name:find(text, 1, true) then
-            contains = contains or item.name
+            contains[#contains + 1] = item.name
         end
     end
 
-    return prefix or contains
+    if #prefixes == 1 then return prefixes[1] end
+    if #prefixes == 0 and #contains == 1 then return contains[1] end
+
+    -- More than one fits: say which, rather than picking one.
+    local candidates = #prefixes > 0 and prefixes or contains
+    if #candidates > 1 then
+        table.sort(candidates)
+        return nil, candidates
+    end
+    return nil
 end
 
 --- Every item seen, with how many corpses back each one.
@@ -711,9 +763,9 @@ function Harvest:ExportItem(itemName)
         end
 
         -- A rate off five corpses is a number pretending to be evidence.
-        if record.corpses >= MIN_SAMPLE then
-            fields[#fields + 1] = ("chance = %d"):format(row.chance)
-        end
+        local chance = record.corpses >= MIN_SAMPLE
+            and Harvest.ExportChance(row.entry.corpses / record.corpses * 100)
+        if chance then fields[#fields + 1] = chance end
 
         fields[#fields + 1] = 'provenance = "forever"'
 
@@ -1059,8 +1111,17 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
 
     -- Name an item and you get only that item, which is the usual case: you
     -- farmed one thing for an evening and want that one block.
-    local name = ns.Harvest:ResolveItem(wanted)
+    local name, candidates = ns.Harvest:ResolveItem(wanted)
     local block = name and ns.Harvest:ExportItem(name)
+
+    if candidates then
+        local shown, more = {}, #candidates - 8
+        for index = 1, math.min(8, #candidates) do shown[index] = candidates[index] end
+        local list = table.concat(shown, ", ")
+        if more > 0 then list = ("%s and %d more"):format(list, more) end
+        ns.Print(("%s could be %s. Type more of the name."):format(wanted, list))
+        return
+    end
 
     if not block then
         ns.Print(("nothing harvested for %s yet."):format(wanted))

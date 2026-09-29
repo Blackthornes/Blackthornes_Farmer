@@ -176,6 +176,24 @@ function RankingsUI:CreateRow(row)
     row.band:SetAllPoints(row)
     row.band:SetColorTexture(Theme.Unpack("header"))
 
+    -- The house glow: gold fading across the band from its stripe.
+    row.bandGlow = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+    row.bandGlow:SetAllPoints(row)
+    row.bandGlow:SetColorTexture(1, 1, 1, 1)
+    do
+        local r, g, b = Theme.Unpack("accent")
+        local ok = type(CreateColor) == "function" and pcall(row.bandGlow.SetGradient, row.bandGlow,
+            "HORIZONTAL", CreateColor(r, g, b, 0.16), CreateColor(r, g, b, 0))
+        if not ok then row.bandGlow:SetColorTexture(r, g, b, 0.05) end
+    end
+    row.bandGlow:Hide()
+
+    -- The top three glow faintly in their medal's colour.
+    row.podium = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+    row.podium:SetAllPoints(row)
+    row.podium:SetColorTexture(1, 1, 1, 1)
+    row.podium:Hide()
+
     row.bandStripe = row:CreateTexture(nil, "ARTWORK")
     row.bandStripe:SetPoint("TOPLEFT")
     row.bandStripe:SetPoint("BOTTOMLEFT")
@@ -269,12 +287,15 @@ function RankingsUI:UpdateRow(row, data, index)
 
     row.heading:Hide()
     row.band:Hide()
+    row.bandGlow:Hide()
+    row.podium:Hide()
     row.bandStripe:Hide()
     row.medal:Hide()
     for _, key in ipairs(CELLS) do row[key]:Hide() end
 
     if data.type == "heading" then
         row.band:Show()
+        row.bandGlow:Show()
         row.bandStripe:Show()
         local heading = HEADINGS[data.group]
         row.heading:SetTextColor(Theme.Unpack("accent"))
@@ -314,12 +335,25 @@ function RankingsUI:UpdateRow(row, data, index)
     row.rank:SetText(texts.rank)
     -- The top three of a board wear gold, silver and bronze.
     local medal = MEDALS[entry.rank]
+    row.rank:ClearAllPoints()
     if medal then
         row.rank:SetTextColor(0.06, 0.06, 0.07)
         row.medal:SetColorTexture(medal[1], medal[2], medal[3], measured and 0.95 or 0.6)
         row.medal:Show()
+        -- The number sits in the middle of its medal.
+        row.rank:SetPoint("CENTER", row.medal, "CENTER", 0, 0)
+        row.rank:SetJustifyH("CENTER")
+
+        local r, g, b = medal[1], medal[2], medal[3]
+        local peak = measured and 0.14 or 0.07
+        local ok = type(CreateColor) == "function" and pcall(row.podium.SetGradient, row.podium,
+            "HORIZONTAL", CreateColor(r, g, b, peak), CreateColor(r, g, b, 0))
+        if not ok then row.podium:SetColorTexture(r, g, b, peak * 0.4) end
+        row.podium:Show()
     else
         row.rank:SetTextColor(Theme.Unpack("dim"))
+        row.rank:SetPoint("LEFT", self.columns.rank.x, 0)
+        row.rank:SetJustifyH("RIGHT")
     end
     row.rank:Show()
 
@@ -461,7 +495,8 @@ function RankingsUI:Render(arrive)
     local fresh = arrive or self.shownGroup ~= self.group
     self.shownGroup = self.group
     self.arriving = fresh
-    self.list:SetData(rows)
+    -- A redraw after a kill keeps your place on the board.
+    self.list:SetData(rows, not fresh)
     self.arriving = false
     if fresh then self.list:Arrive() end
     self.summary:SetText(self:PriceText())

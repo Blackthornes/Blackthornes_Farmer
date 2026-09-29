@@ -38,9 +38,19 @@ function UI:BuildExport()
 
     Theme.Fill(frame, "window")
     Theme.Border(frame, "borderLit")
+    Theme.Halo(frame, 8, 0.10)
 
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStart", function(self)
+        -- Land an opening still running, or it would pull the window back.
+        ns.Motion:Stop(self, "open", true)
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+
+    -- Escape closes it even once the box has let go of the keyboard.
+    if type(UISpecialFrames) == "table" then
+        table.insert(UISpecialFrames, "BlackthornesFarmerExportFrame")
+    end
 
     self.exportFrame = frame
 
@@ -104,18 +114,25 @@ function UI:BuildExport()
     local slider = CreateFrame("Slider", nil, panel)
     slider:SetPoint("TOPRIGHT", -8, -8)
     slider:SetPoint("BOTTOMRIGHT", -8, 8)
-    slider:SetWidth(10)
+    slider:SetWidth(8)
     slider:SetOrientation("VERTICAL")
     slider:SetMinMaxValues(0, 0)
     slider:SetValue(0)
     slider:SetValueStep(1)
     slider:SetObeyStepOnDrag(true)
-    Theme.Fill(slider, "row")
+    Theme.Fill(slider, "panel")
 
+    -- The same bar as the lists': it lights gold under the mouse.
     local thumb = slider:CreateTexture(nil, "ARTWORK")
     thumb:SetColorTexture(Theme.Unpack("borderLit"))
-    thumb:SetSize(10, 40)
+    thumb:SetSize(8, 40)
     slider:SetThumbTexture(thumb)
+
+    local function Light(p)
+        thumb:SetColorTexture(ns.Motion.Mix("borderLit", "accent", p, 1, 0.9))
+    end
+    slider:SetScript("OnEnter", function(self) ns.Motion:Blend(self, "hover", 1, 0.12, Light) end)
+    slider:SetScript("OnLeave", function(self) ns.Motion:Blend(self, "hover", 0, 0.2, Light) end)
 
     slider:SetScript("OnValueChanged", function(self, value)
         scroll:SetVerticalScroll(value)
@@ -125,6 +142,20 @@ function UI:BuildExport()
         vertical = vertical or self:GetVerticalScrollRange() or 0
         slider:SetMinMaxValues(0, math.max(vertical, 0))
         if slider:GetValue() > vertical then slider:SetValue(vertical) end
+    end)
+
+    -- Arrow keys and selecting past the edge bring the cursor into view.
+    edit:SetScript("OnCursorChanged", function(_, _, y, _, height)
+        pcall(function()
+            local top = slider:GetValue()
+            local visible = scroll:GetHeight()
+            local line = -y
+            if line < top then
+                slider:SetValue(line)
+            elseif line + height > top + visible then
+                slider:SetValue(line + height - visible)
+            end
+        end)
     end)
 
     scroll:SetScript("OnMouseWheel", function(self, delta)

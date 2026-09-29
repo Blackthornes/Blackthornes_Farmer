@@ -75,6 +75,14 @@ Spots:Score(safe, player)
 suite.check("far above your level ranks lower", safe.score < near.score, safe.score .. " vs " .. near.score)
 suite.check("marked as dangerous", near.danger == 28, near.danger)
 
+-- A spot whose zone was never read is not "near", nor "in many places".
+local lost = { name = "Lost", zone = nil, minLevel = 10 }
+Spots:Score(lost, player)
+Spots:Score(safe, player)
+suite.check("an unread zone ranks below a real spot", lost.score > safe.score, lost.score .. " vs " .. safe.score)
+suite.check("and says nothing about distance", Spots.DistanceText(lost.hops, lost.zone) == "")
+suite.check("any coastline is still many places", Spots.DistanceText(1, "any coastline") == "in many places")
+
 -- Unreadable zone: still ranked, by level and rate.
 spots = Spots:For("Copper Ore", { zone = nil, level = 12 })
 suite.check("no zone, still an answer", #spots > 0)

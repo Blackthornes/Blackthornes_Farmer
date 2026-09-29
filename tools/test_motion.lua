@@ -214,4 +214,33 @@ ns.SettingsUI:Show()
 Motion:FinishAll()
 suite.check("settings opens", ns.SettingsUI.frame:IsShown())
 
+-- Opened again before the first opening lands, a window starts from where it
+-- was put, not from a few pixels down, so it never creeps down the screen.
+do
+    local frame = env.Stub()
+    frame:SetPoint("TOPLEFT", nil, "BOTTOMLEFT", 100, 500)
+    Motion:Open(frame)
+    Motion:Step(0.05)
+    Motion:Open(frame)
+    Motion:FinishAll()
+    local _, _, _, x, y = frame:GetPoint()
+    suite.check("reopened mid-opening, it lands where it was", x == 100 and y == 500, y)
+end
+
+-- The glow round a window flares as it opens and settles where it rests.
+do
+    local frame = env.Stub()
+    frame:SetPoint("CENTER", nil, "CENTER", 0, 0)
+    ns.Theme.Halo(frame, 8, 0.1)
+    suite.check("a halo has four sides", #frame.haloTextures == 4)
+    local seen = {}
+    local SetHalo = ns.Theme.SetHalo
+    ns.Theme.SetHalo = function(f, alpha, key) seen[#seen + 1] = alpha; return SetHalo(f, alpha, key) end
+    Motion:Open(frame)
+    Motion:FinishAll()
+    ns.Theme.SetHalo = SetHalo
+    suite.check("it flares brighter than it rests", seen[1] and seen[1] > 0.1, seen[1])
+    suite.check("and settles at rest", math.abs((seen[#seen] or 0) - 0.1) < 1e-6, seen[#seen])
+end
+
 suite.done()
