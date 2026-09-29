@@ -110,6 +110,8 @@ suite.check("and glows", bandRow and FX.FlashOf(bandRow) ~= nil)
 local total, totalRow = Shown("total")
 suite.check("value line carries the gain", total and total.badge == "+" .. ns.Value.Coins(3800 + 26 + 50),
     total and total.badge)
+suite.check("and the title bar shows it", totalRow.badge:IsShown()
+    and totalRow.badge:GetText() == total.badge, totalRow.badge:GetText())
 
 local floated = {}
 for _, label in ipairs(FX.floats or {}) do
@@ -190,6 +192,19 @@ Loot("Mangy Wolf", { CLOAK })
 suite.check("switched off, silent", #played == 2, #played)
 ns.HandleSlash("raresound on")
 suite.check("back on", FX.RareSoundOn())
+
+-- The panel hidden: the chime has its own switch and still plays.
+ns.db.trackerHidden = true
+TUI:Refresh()
+FX.rareAt = nil
+Loot("Mangy Wolf", { CLOAK })
+suite.check("hidden panel, green still chimes", #played == 3, #played)
+FX.rareAt = nil
+Loot("Mangy Wolf", { WOOL })
+suite.check("hidden panel, white stays quiet", #played == 3, #played)
+ns.db.trackerHidden = false
+TUI:Refresh()
+played = { 1, 2 }
 
 --------------------------------------------------------------------------------
 -- Subtle and Off

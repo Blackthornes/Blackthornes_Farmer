@@ -286,6 +286,30 @@ local function SessionItems()
     return items
 end
 
+--- The panel is hidden, but a green-or-better drop still chimes: the sound
+--- has its own switch and does not depend on the panel being on screen.
+--- Keeps its own count of the session's items, from the first hidden
+--- redraw on; the panel coming back clears it (TrackerFX:Shown).
+function TrackerFX:HiddenLoot()
+    local items = SessionItems()
+    local was = self.hiddenLoot
+    self.hiddenLoot = {}
+    for key, item in pairs(items) do self.hiddenLoot[key] = item.count end
+    if not was then return end
+
+    for key, item in pairs(items) do
+        if item.count > (was[key] or 0) and (TrackerFX.QualityOf(item.name) or 0) >= RARE_QUALITY then
+            self:PlayRare()
+            return
+        end
+    end
+end
+
+--- The panel is drawing again; the hidden count is done with.
+function TrackerFX:Shown()
+    self.hiddenLoot = nil
+end
+
 --- Before the panel draws `shown` (the lines that fit, out of `all`): work
 --- out what went up since the last redraw, and give the value line its
 --- "+38s". Returns what Play needs, or nil when there is nothing to play.
@@ -747,13 +771,27 @@ function TrackerFX:SlotGained(slot, gain, level)
             end })
 
         if level == "full" then
+            -- It swells from its middle, over its neighbours, rather than
+            -- from its top-left corner down onto the next icon.
             local size = ns.TrackerUI.SLOT
+            local point, relativeTo, relativePoint, x, y = slot:GetPoint(1)
+            local canMove = point ~= nil and type(x) == "number" and type(y) == "number"
+            local level = slot:GetFrameLevel()
+            slot:SetFrameLevel(level + 2)
             self:Start({ slot = slot, row = slot, key = key, duration = POP_TIME * 1.5,
                 apply = function(p)
                     local grow = POP_GROW * (1 - EaseOut(p))
                     slot:SetSize(size + grow, size + grow)
+                    if canMove then
+                        slot:SetPoint(point, relativeTo, relativePoint, x - grow / 2, y + grow / 2)
+                    end
+                    if p >= 1 then slot:SetFrameLevel(level) end
                 end,
-                stop = function() slot:SetSize(size, size) end })
+                stop = function()
+                    slot:SetSize(size, size)
+                    if canMove then slot:SetPoint(point, relativeTo, relativePoint, x, y) end
+                    slot:SetFrameLevel(level)
+                end })
         end
         return
     end
@@ -920,8 +958,16 @@ end
 --- A mob's drop rates (or a spot's catch rates) just unlocked: `info` is
 --- { title, subject, key }. Tracker:Fanfare calls it with the sound.
 function TrackerFX:Unlocked(info)
-    if TrackerFX.Level() == "off" then return end
+    local level = TrackerFX.Level()
+    if level == "off" then return end
     if not (ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown()) then return end
+
+    -- Subtle keeps the long gold pulse on the band; the banner, sparkles
+    -- and shine are Full's.
+    if level ~= "full" then
+        self:PulseUnlocked(info)
+        return
+    end
 
     local banner = self:Banner()
     banner.title:SetText(info.title or "RATES UNLOCKED")
@@ -972,7 +1018,11 @@ function TrackerFX:Unlocked(info)
             banner.shine:SetAlpha(0)
         end })
 
-    -- The mob's band beats gold for longer than a plain kill.
+    self:PulseUnlocked(info)
+end
+
+--- The mob's band beats gold for longer than a plain kill.
+function TrackerFX:PulseUnlocked(info)
     for index, line in ipairs(ns.TrackerUI.shown or {}) do
         if line.key == info.key and ns.TrackerUI.lines[index] then
             self:Pulse(ns.TrackerUI.lines[index], line.key, BRIGHT_GOLD, 0.6)

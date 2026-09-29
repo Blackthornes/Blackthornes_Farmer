@@ -461,7 +461,8 @@ function RankingsUI:Render(arrive)
     local fresh = arrive or self.shownGroup ~= self.group
     self.shownGroup = self.group
     self.arriving = fresh
-    self.list:SetData(rows)
+    -- A redraw after a kill keeps your place on the board.
+    self.list:SetData(rows, not fresh)
     self.arriving = false
     if fresh then self.list:Arrive() end
     self.summary:SetText(self:PriceText())

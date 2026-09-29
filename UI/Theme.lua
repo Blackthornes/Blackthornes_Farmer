@@ -229,6 +229,75 @@ function Theme.HeaderGlow(frame, height, alpha)
     return glow
 end
 
+--- A soft glow round the outside of a frame, fading out from its edge: the
+--- neon edge the open card on the kills panel has, for whole windows.
+--- Returns the four sides, so a caller can brighten or dim them together
+--- with Theme.SetHalo. Where the client cannot draw a gradient the glow is
+--- a flat, fainter band instead.
+function Theme.Halo(frame, spread, alpha, key)
+    spread = spread or 6
+    local sides = {}
+
+    for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+        local halo = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
+        pcall(halo.SetBlendMode, halo, "ADD")
+
+        if side == "TOP" or side == "BOTTOM" then
+            local out = side == "TOP" and 1 or -1
+            halo:SetPoint(side .. "LEFT", frame, side .. "LEFT", 0, out * spread)
+            halo:SetPoint(side .. "RIGHT", frame, side .. "RIGHT", 0, out * spread)
+            halo:SetHeight(spread)
+        else
+            local out = side == "LEFT" and -1 or 1
+            halo:SetPoint("TOP" .. side, frame, "TOP" .. side, out * spread, 0)
+            halo:SetPoint("BOTTOM" .. side, frame, "BOTTOM" .. side, out * spread, 0)
+            halo:SetWidth(spread)
+        end
+
+        halo.side = side
+        sides[#sides + 1] = halo
+    end
+
+    frame.haloTextures = sides
+    -- Where it settles; Motion:Open flares it from brighter as a window opens.
+    frame.haloRest = alpha or 0.12
+    Theme.SetHalo(frame, frame.haloRest, key)
+    return sides
+end
+
+--- Relight a halo drawn by Theme.Halo: `alpha` at the frame's edge, in the
+--- palette colour `key` (gold unless given).
+function Theme.SetHalo(frame, alpha, key)
+    local sides = frame and frame.haloTextures
+    if not sides then return end
+
+    local r, g, b = Theme.Unpack(key or "accent")
+    alpha = math.max(0, tonumber(alpha) or 0)
+
+    for _, halo in ipairs(sides) do
+        halo:SetColorTexture(1, 1, 1, 1)
+
+        -- The bright end sits against the frame: the bottom of the band
+        -- above it, the top of the band below, and so on.
+        local inner, outer = CreateColor and CreateColor(r, g, b, alpha), CreateColor and CreateColor(r, g, b, 0)
+        local ok = false
+        if inner and type(halo.SetGradient) == "function" then
+            if halo.side == "TOP" then
+                ok = pcall(halo.SetGradient, halo, "VERTICAL", inner, outer)
+            elseif halo.side == "BOTTOM" then
+                ok = pcall(halo.SetGradient, halo, "VERTICAL", outer, inner)
+            elseif halo.side == "LEFT" then
+                ok = pcall(halo.SetGradient, halo, "HORIZONTAL", outer, inner)
+            else
+                ok = pcall(halo.SetGradient, halo, "HORIZONTAL", inner, outer)
+            end
+        end
+
+        if not ok then halo:SetColorTexture(r, g, b, alpha * 0.4) end
+        halo:SetShown(alpha > 0)
+    end
+end
+
 local FALLBACK_ICON = [[Interface\Icons\INV_Misc_QuestionMark]]
 
 --- An item's icon texture, or nil while the game has not sent it. Read in a

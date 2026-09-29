@@ -38,9 +38,19 @@ function UI:BuildExport()
 
     Theme.Fill(frame, "window")
     Theme.Border(frame, "borderLit")
+    Theme.Halo(frame, 8, 0.10)
 
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStart", function(self)
+        -- Land an opening still running, or it would pull the window back.
+        ns.Motion:Stop(self, "open", true)
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+
+    -- Escape closes it even once the box has let go of the keyboard.
+    if type(UISpecialFrames) == "table" then
+        table.insert(UISpecialFrames, "BlackthornesFarmerExportFrame")
+    end
 
     self.exportFrame = frame
 

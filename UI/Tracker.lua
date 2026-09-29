@@ -494,7 +494,7 @@ function TrackerUI:DrawTabs(counts)
 
     local from = self.tabLineX
     self.tabLineX = target
-    if ns.Motion and from and from ~= target then
+    if ns.Motion and from and from ~= target and not self.sizing then
         ns.Motion:Run(self, "tabline", 0.25, function(p) Place(from + (target - from) * p) end)
     else
         Place(target)
@@ -561,20 +561,32 @@ end
 --- What the session is earning an hour, in copper, once it has run long
 --- enough to mean something. Timed from the first thing gathered.
 function TrackerUI:PerHour()
-    if not ns.Value then return nil end
-    local total = ns.Value:Session()
+    local total = self:NoteStart()
     local now = type(GetTime) == "function" and GetTime() or nil
+    if not (total and self.startedAt and type(now) == "number") then return nil end
 
-    if not (total and total > 0 and type(now) == "number") then
-        if not total then self.startedAt = nil end
-        return nil
-    end
-
-    self.startedAt = self.startedAt or now
     local elapsed = now - self.startedAt
     if elapsed < PER_HOUR_AFTER then return nil end
 
     return total / elapsed * 3600
+end
+
+--- Start the per-hour clock at the first thing gathered, and stop it when
+--- the session is cleared. Called on every refresh, shown or not: timed
+--- only from when the panel was first drawn, a panel opened an hour into a
+--- session said you earned a fortune. Returns the session's value.
+function TrackerUI:NoteStart()
+    local total = ns.Value and ns.Value:Session()
+    if not (total and total > 0) then
+        self.startedAt = nil
+        return nil
+    end
+
+    if not self.startedAt and type(GetTime) == "function" then
+        local ok, now = pcall(GetTime)
+        if ok and type(now) == "number" then self.startedAt = now end
+    end
+    return total
 end
 
 --- One row of the column. Every row can be any kind of line; DrawLine
@@ -1960,6 +1972,10 @@ function TrackerUI:Render()
         local ok, result = pcall(FX.Prepare, FX, fxAll, fxShown)
         plan = ok and result or nil
         if not ok then ns.Debug("panel effects:", tostring(result)) end
+
+        -- Prepare is what gives the gathered value its "+38s": draw the
+        -- title again so the badge is there to show.
+        if titleLine and titleLine.badge then self:DrawTitle(titleLine) end
     end
 
     -- Drawn top down, each row under the last.
@@ -2026,6 +2042,18 @@ function TrackerUI:Needs(line)
     return row.needs or 0
 end
 
+--- Whether the line at `index`, a note or value line at the top of the
+--- column, belongs to a card scrolled half out of sight: the card's icons
+--- or bar come after it before any band or heading does.
+function TrackerUI:InCard(shown, index)
+    for next = index + 1, #shown do
+        local style = shown[next].style
+        if style == "icons" or style == "progress" then return true end
+        if style == "mob" or style == "heading" or style == "loot" then return false end
+    end
+    return false
+end
+
 --- The cards behind every open card showing: from its band to its icons.
 function TrackerUI:DrawCards(shown)
     local used = 0
@@ -2045,7 +2073,9 @@ function TrackerUI:DrawCards(shown)
                 open = { first = index, live = line.live == true }
             end
         elseif not open and (line.style == "place" or line.style == "progress"
-            or line.style == "icons") then
+            or line.style == "icons"
+            or ((line.style == "note" or line.style == "value") and index == 1
+                and self:InCard(shown, index))) then
             -- A card scrolled half out of sight: its rest still sits on one.
             open = { first = index, live = false }
         end
@@ -2093,7 +2123,10 @@ function TrackerUI:DrawTitle(line)
 
     local value = line and line.right or (ns.Value and ns.Value.Coins(0) or "0c")
     local valueWidth = Theme.TextWidth("normal", Util.StripColor(value)) + 2
-    row.right:SetWidth(valueWidth)
+    -- No fixed width: hung from its right edge, it sizes to its text, so
+    -- the count-up passing through "99s 87c" on its way to "1g 2s" is
+    -- never cut to "99s...".
+    row.right:SetWidth(0)
     row.right:SetText(value)
     row.right:SetTextColor(Theme.Unpack(line and (line.rightColor or "good") or "muted"))
 
@@ -2136,15 +2169,44 @@ function TrackerUI:Refresh()
     if ns.LootTableUI then ns.LootTableUI:Refresh() end
     if ns.RankingsUI then ns.RankingsUI:Refresh() end
 
+    self:NoteStart()
+
     if ns.db.trackerHidden then
         self.frame:Hide()
-        -- Hidden, nothing plays; shown again, the counts start from there.
-        if ns.TrackerFX then ns.TrackerFX:Forget() end
+        -- Hidden, nothing plays but the rare-drop chime; shown again, the
+        -- counts start from there.
+        if ns.TrackerFX then
+            ns.TrackerFX:Forget()
+            pcall(ns.TrackerFX.HiddenLoot, ns.TrackerFX)
+        end
         return
     end
 
+    if ns.TrackerFX and ns.TrackerFX.Shown then ns.TrackerFX:Shown() end
+
     self:Render()
     self.frame:Show()
+
+    -- The goals panel hangs under this one, as wide as it is: follow it
+    -- when it comes back or changes width.
+    local goals = ns.GoalsUI
+    if goals and goals.frame and goals.frame:IsShown() and not ns.db.goalsX then
+        local ok, width = pcall(goals.frame.GetWidth, goals.frame)
+        if not (ok and width == goals:Width()) then pcall(goals.Render, goals) end
+        pcall(goals.Place, goals)
+    end
+end
+
+--- Forget what the panel remembered about the last session's lines: its
+--- widest width on each tab, which cards you opened or folded, the
+--- per-hour clock, the Loot tab's ranks and the scroll. For a reset.
+function TrackerUI:ResetState()
+    self.tabNeeds = nil
+    self.open = nil
+    self.startedAt = nil
+    self.ranks = nil
+    self.scroll = 0
+    self.dots = nil
 end
 
 function TrackerUI:Hide()

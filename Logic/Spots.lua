@@ -285,6 +285,9 @@ end
 
 --- Why a spot is where it is, in a few words.
 function Spots.DistanceText(hops, zone)
+    -- A spot recorded where the zone could not be read (inside an
+    -- instance) says nothing, rather than "in many places".
+    if type(zone) ~= "string" then return "" end
     if not Spots.ZoneOf(zone) then return "in many places" end
     if hops == nil then return "" end
     if hops == 0 then return "you are here" end
@@ -295,7 +298,11 @@ end
 
 function Spots:Score(spot, player)
     local hops
-    if not Spots.ZoneOf(spot.zone) then
+    if type(spot.zone) ~= "string" then
+        -- Where it is was never read: it ranks as far as an unknown place,
+        -- never as near as "any coastline".
+        hops = nil
+    elseif not Spots.ZoneOf(spot.zone) then
         hops = ANYWHERE_HOPS
     elseif player.zone then
         hops = Spots.Hops(player.zone, spot.zone)

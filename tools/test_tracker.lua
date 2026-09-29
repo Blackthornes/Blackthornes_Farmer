@@ -457,8 +457,11 @@ ns.HandleSlash("tracker reset")
 suite.check("reset alone asks for confirmation", ns.Tracker:Summary(WOLF) ~= nil)
 
 local harvested = ns.Harvest:CountCorpses()
+ns.Tracker:Looks()["Reset Test Cloth"] = { id = 4306, color = "ffffffff" }
 
 ns.HandleSlash("tracker reset confirm")
+suite.check("and keeps what each item looks like, for its price",
+    ns.Tracker:Looks()["Reset Test Cloth"] and ns.Tracker:Looks()["Reset Test Cloth"].id == 4306)
 suite.check("reset confirm clears it", ns.Tracker:Summary(WOLF) == nil)
 suite.check("and leaves the harvest alone", ns.Harvest:CountCorpses() == harvested,
     ns.Harvest:CountCorpses())

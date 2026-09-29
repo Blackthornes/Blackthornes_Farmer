@@ -203,6 +203,19 @@ end
 function Motion:Open(frame, rise)
     if not frame then return end
 
+    -- Opened again before the last opening finished: land that one first,
+    -- which puts its point back, or the window would start from the
+    -- lowered spot and settle a few pixels further down every time.
+    self:Stop(frame, "open", true)
+
+    -- A window with the house glow round it flares as it opens.
+    local rest = frame.haloTextures and frame.haloRest
+    if rest then
+        self:Run(frame, "halo", 0.7, function(p)
+            Theme.SetHalo(frame, rest * 3.2 + (rest - rest * 3.2) * p)
+        end)
+    end
+
     local level = self.Level()
     if level == "off" then
         frame:SetAlpha(1)
@@ -438,6 +451,60 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept)
 end
 
 --------------------------------------------------------------------------------
+-- Scrollbar
+--------------------------------------------------------------------------------
+
+--- The thin bar down a list's right edge: a dark track, and a thumb that is
+--- as long as the part of the list on screen and lights gold under the
+--- mouse or while dragged.
+local function CreateScrollbar(list, thumbKey)
+    local scrollbar = CreateFrame("Slider", nil, list)
+    scrollbar:SetOrientation("VERTICAL")
+    scrollbar:SetWidth(8)
+    scrollbar:SetPoint("TOPRIGHT", 0, 0)
+    scrollbar:SetPoint("BOTTOMRIGHT", 0, 0)
+    scrollbar:SetValueStep(1)
+    scrollbar:SetObeyStepOnDrag(true)
+
+    local track = scrollbar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints(scrollbar)
+    track:SetColorTexture(Theme.Unpack("panel"))
+
+    local thumb = scrollbar:CreateTexture(nil, "ARTWORK")
+    thumb:SetColorTexture(Theme.Unpack(thumbKey))
+    thumb:SetSize(8, 40)
+    scrollbar:SetThumbTexture(thumb)
+    scrollbar.thumb = thumb
+
+    local function Light(p)
+        thumb:SetColorTexture(Motion.Mix(thumbKey, "accent", p, 1, 0.9))
+    end
+
+    scrollbar:SetScript("OnEnter", function(self) Motion:Blend(self, "hover", 1, 0.12, Light) end)
+    scrollbar:SetScript("OnLeave", function(self)
+        if not self.held then Motion:Blend(self, "hover", 0, 0.2, Light) end
+    end)
+    scrollbar:SetScript("OnMouseDown", function(self)
+        self.held = true
+        Motion:Blend(self, "hover", 1, 0.08, Light)
+    end)
+    scrollbar:SetScript("OnMouseUp", function(self)
+        self.held = false
+        local over = type(self.IsMouseOver) == "function" and self:IsMouseOver()
+        if not over then Motion:Blend(self, "hover", 0, 0.2, Light) end
+    end)
+
+    --- Size the thumb for `visible` of `total` rows on screen.
+    function scrollbar:SizeThumb(visible, total)
+        local height = tonumber(self:GetHeight())
+        if not (height and height > 0 and total and total > 0) then return end
+        thumb:SetHeight(math.max(18, math.min(height, height * visible / total)))
+    end
+
+    return scrollbar
+end
+
+--------------------------------------------------------------------------------
 -- Line list
 --------------------------------------------------------------------------------
 
@@ -457,22 +524,7 @@ function Widgets.CreateLineList(parent, opts)
     list.rows = {}
     list.offset = 0
 
-    local scrollbar = CreateFrame("Slider", nil, list)
-    scrollbar:SetOrientation("VERTICAL")
-    scrollbar:SetWidth(8)
-    scrollbar:SetPoint("TOPRIGHT", 0, 0)
-    scrollbar:SetPoint("BOTTOMRIGHT", 0, 0)
-    scrollbar:SetValueStep(1)
-    scrollbar:SetObeyStepOnDrag(true)
-
-    local track = scrollbar:CreateTexture(nil, "BACKGROUND")
-    track:SetAllPoints(scrollbar)
-    track:SetColorTexture(Theme.Unpack("panel"))
-
-    local thumb = scrollbar:CreateTexture(nil, "ARTWORK")
-    thumb:SetColorTexture(Theme.Unpack("border"))
-    thumb:SetSize(8, 40)
-    scrollbar:SetThumbTexture(thumb)
+    local scrollbar = CreateScrollbar(list, "border")
 
     list.scrollbar = scrollbar
 
@@ -520,6 +572,7 @@ function Widgets.CreateLineList(parent, opts)
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
         scrollbar:SetShown(maxOffset > 0)
+        scrollbar:SizeThumb(visible, #(self.data or self.lines))
 
         if opts.onRefresh then
             opts.onRefresh(self, #self.lines, visible)
@@ -582,22 +635,7 @@ function Widgets.CreateRowList(parent, opts)
     list.rows = {}
     list.offset = 0
 
-    local scrollbar = CreateFrame("Slider", nil, list)
-    scrollbar:SetOrientation("VERTICAL")
-    scrollbar:SetWidth(8)
-    scrollbar:SetPoint("TOPRIGHT", 0, 0)
-    scrollbar:SetPoint("BOTTOMRIGHT", 0, 0)
-    scrollbar:SetValueStep(1)
-    scrollbar:SetObeyStepOnDrag(true)
-
-    local track = scrollbar:CreateTexture(nil, "BACKGROUND")
-    track:SetAllPoints(scrollbar)
-    track:SetColorTexture(Theme.Unpack("panel"))
-
-    local thumb = scrollbar:CreateTexture(nil, "ARTWORK")
-    thumb:SetColorTexture(Theme.Unpack("borderLit"))
-    thumb:SetSize(8, 40)
-    scrollbar:SetThumbTexture(thumb)
+    local scrollbar = CreateScrollbar(list, "borderLit")
 
     list.scrollbar = scrollbar
 
@@ -617,8 +655,13 @@ function Widgets.CreateRowList(parent, opts)
         row:SetPoint("RIGHT", scrollbar, "LEFT", -6, 0)
         row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
-        row.stripe = Theme.Fill(row, "rowAlt", 0)
-        row.highlight = Theme.Fill(row, "rowHover", 0, "BORDER")
+        -- Filled at full strength and hidden with SetAlpha: a texture whose
+        -- colour is clear stays clear whatever alpha it is given later, which
+        -- is how the hover and the banding went missing.
+        row.stripe = Theme.Fill(row, "rowAlt")
+        row.stripe:SetAlpha(0)
+        row.highlight = Theme.Fill(row, "rowHover", nil, "BORDER")
+        row.highlight:SetAlpha(0)
 
         -- A thin gold edge on the row under the mouse, easing in with the
         -- highlight, so your place in a long list is easy to keep.
@@ -709,15 +752,19 @@ function Widgets.CreateRowList(parent, opts)
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
         scrollbar:SetShown(maxOffset > 0)
+        scrollbar:SizeThumb(visible, #(self.data or self.lines))
 
         if opts.onRefresh then
             opts.onRefresh(self, #self.data, visible)
         end
     end
 
-    function list:SetData(data)
+    --- New rows. `keepPlace` keeps the list scrolled where it was (a redraw
+    --- of the same results after a kill, a heading folded); otherwise it
+    --- starts from the top.
+    function list:SetData(data, keepPlace)
         self.data = data or {}
-        self.offset = 0
+        if not keepPlace then self.offset = 0 end
         self:Refresh()
     end
 

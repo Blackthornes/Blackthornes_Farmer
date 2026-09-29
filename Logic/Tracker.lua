@@ -395,7 +395,12 @@ function Tracker:ResolveMob(text)
 end
 
 function Tracker:Reset()
-    ns.db.tracker = nil
+    -- The kills go; what each item looks like (its id, colour and icon, read
+    -- off loot links) stays. Prices, grey detection and the fishing and
+    -- gathering values all lean on it, and none of it is a tally.
+    local old = ns.db.tracker
+    local looks = type(old) == "table" and type(old.looks) == "table" and old.looks or nil
+    ns.db.tracker = looks and { looks = looks } or nil
     self.session = {}
     self.corpses = {}
     self.sessionLoot = {}
@@ -407,7 +412,10 @@ function Tracker:Reset()
     self.bestStreak = 0
     self.streakAt = nil
 
-    if ns.TrackerUI then ns.TrackerUI:Refresh() end
+    if ns.TrackerUI then
+        if ns.TrackerUI.ResetState then ns.TrackerUI:ResetState() end
+        ns.TrackerUI:Refresh()
+    end
 end
 
 --- The game's clock, in seconds. Nil where there is none (the tests).

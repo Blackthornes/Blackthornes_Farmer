@@ -284,8 +284,13 @@ function LootTableUI:Build()
 
     Theme.Fill(frame, "window", 0.96)
     Theme.Border(frame, "borderLit")
+    Theme.Halo(frame, 8, 0.10)
 
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStart", function(self)
+        -- Land an opening still running, or it would pull the window back.
+        ns.Motion:Stop(self, "open", true)
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         LootTableUI:AnchorTop()
@@ -457,17 +462,13 @@ function LootTableUI:Render()
     self.empty:SetShown(#data.rows == 0)
     self.frame:SetHeight(self:HeightFor(#data.rows))
 
-    local offset = self.list.offset
     local fresh = self.shownMob ~= data.mob
     self.arriving = fresh
-    self.list:SetData(data.rows)
+    -- A redraw after new loot keeps your place in a long list.
+    self.list:SetData(data.rows, not fresh)
     self.arriving = false
 
-    -- A redraw after new loot keeps your place in a long list.
-    if not fresh then
-        self.list.offset = offset
-        self.list:Refresh()
-    else
+    if fresh then
         self.list:Arrive()
     end
     self.shownMob = data.mob

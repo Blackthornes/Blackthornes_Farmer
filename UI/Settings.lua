@@ -93,6 +93,12 @@ local function CreateRow(parent, anchor, labelText, description)
     hint:SetWordWrap(true)
     hint:SetText(description or "")
 
+    -- Sized for two lines of description; a longer one gets the room it
+    -- needs rather than running into the row below.
+    local lines = math.ceil(Theme.TextWidth("tiny", description or "") / COLUMN_WIDTH)
+    if lines > 2 then row:SetHeight(ROW_HEIGHT + (lines - 2) * 12) end
+    row.hintLines = lines
+
     row.label = label
     row.hint = hint
     return row
@@ -168,6 +174,12 @@ function SettingsUI:ResetPositions()
         db[key] = defaults[key]
     end
 
+    -- This window too: it goes back to the middle of the screen.
+    db.settingsPoint = nil
+    db.settingsRelativePoint = nil
+    db.settingsX = nil
+    db.settingsY = nil
+
     -- Not in the defaults: the tally anchors to its own point when this is
     -- absent, which is where it started.
     db.trackerRelativePoint = nil
@@ -212,8 +224,13 @@ function SettingsUI:Build()
 
     Theme.Fill(frame, "window")
     Theme.Border(frame, "borderLit")
+    Theme.Halo(frame, 8, 0.10)
 
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStart", function(self)
+        -- Land an opening still running, or it would pull the window back.
+        ns.Motion:Stop(self, "open", true)
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         SettingsUI:SavePosition()
@@ -233,8 +250,12 @@ function SettingsUI:Build()
     self:BuildTrackingColumn()
 
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
-    footer:SetPoint("BOTTOMLEFT", PADDING, 14)
-    footer:SetPoint("BOTTOMRIGHT", -PADDING, 14)
+    footer:SetPoint("BOTTOMLEFT", PADDING, 10)
+    footer:SetPoint("BOTTOMRIGHT", -PADDING, 10)
+    -- Two lines if it needs them, rather than cut off.
+    footer:SetHeight(26)
+    footer:SetWordWrap(true)
+    footer:SetJustifyV("BOTTOM")
     footer:SetText("Changes save as you make them. Clearing tallies or recorded loot "
         .. "is left to typed commands, so nothing here can delete your data.")
     self.footer = footer
@@ -371,8 +392,8 @@ function SettingsUI:BuildTrackingColumn()
     controls.tracker:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local groupRow = CreateRow(frame, trackerRow, "In a group",
-        "Moves the panel right of the party and raid frames, and back when you "
-        .. "leave the group. Drag it while grouped to pick your own spot.")
+        "Moves the panel beside the party and raid frames. Drag it while "
+        .. "grouped to pick your own spot.")
 
     controls.dodgeGroup = Widgets.CreateCheckbox(groupRow, "Move aside", function(checked)
         ns.TrackerUI:SetDodgeGroup(checked)
@@ -397,8 +418,8 @@ function SettingsUI:BuildTrackingColumn()
     controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local effectsRow = CreateRow(frame, announceRow, "Effects",
-        "Full: glows, counting up, loot floating off, results coming in row by row. "
-        .. "Subtle: no floats. Same as /farm effects.")
+        "Full: glows, counts, floating loot, rows sliding in. Subtle: no "
+        .. "floats. Same as /farm effects.")
 
     local FX = ns.TrackerFX
     controls.effects = Widgets.CreateStepper(effectsRow, {

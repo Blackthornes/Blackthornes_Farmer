@@ -308,6 +308,15 @@ suite.check("a prefix beats a mid-word match",
     Harvest:ResolveItem("silver") == "Silver Bar")
 suite.check("nothing matching resolves to nothing",
     Harvest:ResolveItem("mithril") == nil)
+
+-- Two that fit loosely: no guess, and both named.
+Farm(APPRENTICE, 1, 1, { { name = "Linen Cloth", quantity = 1 } })
+local guess, both = Harvest:ResolveItem("cloth")
+suite.check("two loose matches are not guessed", guess == nil, guess)
+suite.check("both are offered", both and both[1] == "Linen Cloth" and both[2] == "Wool Cloth")
+suite.check("a prefix still picks its one", Harvest:ResolveItem("wool") == "Wool Cloth")
+Harvest:Reset()
+Farm(APPRENTICE, 2, 2, { WOOL, SILVER })
 suite.check("an empty name resolves to nothing", Harvest:ResolveItem("") == nil)
 
 --------------------------------------------------------------------------------

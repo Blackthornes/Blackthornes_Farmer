@@ -171,6 +171,23 @@ function GoalsUI:Step(elapsed)
     if #live == 0 and self.driver then self.driver:Hide() end
 end
 
+--- Stop the effects running on `card`, put back as they were. For a card
+--- about to show a different goal: a glow or count still running there
+--- belonged to the goal that was on it.
+function GoalsUI:StopCard(card)
+    local slots = { [card.flash] = true, [card.count] = true, [card.fill] = true,
+        [card.fresh] = true, [card.shine] = true }
+    local live = {}
+    for _, effect in ipairs(self.effects) do
+        if effect.slot and slots[effect.slot] then
+            if effect.stop then pcall(effect.stop) end
+        else
+            live[#live + 1] = effect
+        end
+    end
+    self.effects = live
+end
+
 --- Everything stopped and put back.
 function GoalsUI:Forget()
     for _, effect in ipairs(self.effects) do
@@ -185,6 +202,15 @@ end
 --------------------------------------------------------------------------------
 
 function GoalsUI:Width()
+    -- Docked under the kills panel, as wide as it is on screen (it widens
+    -- past its saved width to fit its lines), so the two line up.
+    local tracker = ns.TrackerUI and ns.TrackerUI.frame
+    if not ns.db.goalsX and tracker and tracker:IsShown() then
+        local ok, width = pcall(tracker.GetWidth, tracker)
+        if ok and type(width) == "number" and width > 0 then
+            return math.min(MAX_WIDTH, math.floor(width + 0.5))
+        end
+    end
     if ns.TrackerUI and ns.TrackerUI.Width then return ns.TrackerUI:Width() end
     return WIDTH
 end
@@ -448,7 +474,13 @@ function GoalsUI:DrawCard(card, goal)
 
     -- The name in its quality colour where the tracker has seen it.
     local look = ns.Tracker and ns.Tracker:LookOf(goal.item) or {}
-    local maxName = self:BarWidth() - ICON - 70
+    -- The name stops short of the count and the milestone tag, both
+    -- measured: a width picked by eye let a long name run into "23 / 40".
+    local countText = GoalsUI.CountText(goal.have or 0, goal.target or 0)
+    local maxName = self:BarWidth() - ICON - 8 - Theme.TextWidth("large", Util.StripColor(countText)) - 10
+    local tagText = goal.done and "DONE"
+        or ((goal.milestone or 0) > 0 and Goals.MILESTONES[goal.milestone].tag) or nil
+    if tagText then maxName = maxName - Theme.TextWidth("tiny", tagText) - 16 end
     local name = goal.item
     if Theme.TextWidth("normal", name) > maxName then
         while #name > 4 and Theme.TextWidth("normal", name .. "...") > maxName do
@@ -563,6 +595,7 @@ function GoalsUI:Render()
     local needs = 0
     for index, goal in ipairs(list) do
         local card = self:Card(index)
+        if card.goal ~= nil and card.goal ~= goal then self:StopCard(card) end
         self:DrawCard(card, goal)
         needs = math.max(needs, self:CardNeeds(card, goal))
     end
@@ -578,6 +611,7 @@ function GoalsUI:Render()
     end
 
     for index = #list + 1, #self.cards do
+        self:StopCard(self.cards[index])
         self.cards[index]:Hide()
         self.cards[index].goal = nil
     end
@@ -970,7 +1004,8 @@ function GoalsUI:Play(change, level, floats)
 
     if change.done then
         self:Glow(card, BRIGHT_GOLD, 0.6, PULSE_TIME, 3)
-        self:Complete(goal)
+        -- The banner, its sparkles and shine are Full's; Subtle keeps the glow.
+        if full then self:Complete(goal) end
     elseif change.milestone then
         self:Glow(card, BRIGHT_GOLD, 0.55, PULSE_TIME, 3)
     elseif up then
@@ -1268,7 +1303,7 @@ function GoalsUI:OpenSpots(item, anchor)
     if opening then ns.Motion:Open(panel, 4) end
 
     -- The rows slide in one after another.
-    if Level() ~= "off" then
+    if Level() == "full" then
         for index = 1, #spots do
             local row = panel.rows[index]
             row:SetAlpha(0)
@@ -1412,6 +1447,12 @@ function GoalsUI:FillPicker()
     picker.have:SetText(("You have |c%s%d|r %s."):format(ns.COLORS.text, have,
         ns.Goals:CountsBank() and "in your bags and bank" or "in your bags"))
     picker.bank:SetChecked(ns.Goals:CountsBank())
+
+    -- As wide as its title needs, measured: a long name in capitals ran
+    -- past a fixed width and ended in "...".
+    picker:SetWidth(math.min(460, math.max(PICK_WIDTH,
+        Theme.TextWidth("small", Util.StripColor(picker.title:GetText())) + 42,
+        Theme.TextWidth("small", Util.StripColor(picker.have:GetText())) + 22)))
 
     for index, amount in ipairs(GoalsUI.Presets(have)) do
         local chip = picker.chips[index]

@@ -43,6 +43,10 @@ local COLUMN_GAP = 6
 
 local DROP_BAR_WIDTH = 46
 
+-- How bright the glow round the window sits; it flares brighter as the
+-- window opens (Motion:Open).
+local HALO_REST = 0.10
+
 --- Column left edges and widths, measured from the list's left edge, for the
 --- given widths (any not given are at their narrowest).
 local function Columns(widths)
@@ -70,7 +74,12 @@ local COLUMN = Columns()
 -- Falls back to plain text before the player's level is known, which is the
 -- case in tests and for a moment at login.
 local function DifficultyColor(level)
-    local player = UnitLevel and UnitLevel("player") or 0
+    -- Read in a pcall, as every client value is.
+    local player = 0
+    if UnitLevel then
+        local ok, value = pcall(UnitLevel, "player")
+        player = ok and ns.Harvest.ReadableNumber(value) or 0
+    end
     if not level or player <= 0 then return Theme.Unpack("text") end
 
     local difference = level - player
@@ -112,8 +121,15 @@ function UI:Build()
 
     Theme.Fill(frame, "window")
     Theme.Border(frame, "borderLit")
+    -- The house's neon edge: a soft gold glow round the window that flares
+    -- as it opens and settles.
+    Theme.Halo(frame, 8, HALO_REST)
 
-    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStart", function(self)
+        -- Land an opening still running, or it would pull the window back.
+        ns.Motion:Stop(self, "open", true)
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         UI:SavePosition()
@@ -194,6 +210,14 @@ function UI:BuildHeader()
     underline:SetHeight(2)
     underline:SetColorTexture(Theme.Unpack("accent"))
     self.tabUnderline = underline
+
+    -- A soft glow under the gold line, as the kills panel's tabs have.
+    local glow = header:CreateTexture(nil, "ARTWORK")
+    glow:SetHeight(6)
+    glow:SetPoint("BOTTOMLEFT", underline, "BOTTOMLEFT", -2, 0)
+    glow:SetPoint("BOTTOMRIGHT", underline, "BOTTOMRIGHT", 2, 0)
+    glow:SetColorTexture(Theme.Unpack("accent", 0.22))
+    pcall(glow.SetBlendMode, glow, "ADD")
 
     local close = Widgets.CreateButton(header, "X", function() UI:Hide() end,
         { width = 22, height = 20, danger = true })
@@ -783,6 +807,9 @@ function UI:Render()
     if query == "" then
         self.list:SetData({})
         self.lastShape = nil
+        -- Back to its own width over the empty panel, not the width the
+        -- last search's long names needed.
+        self:FitColumns({})
         self.summary:SetText(("%s, %s"):format(
             Util.Plural(ns.DB:CountItems(), "item"),
             Util.Plural(ns.DB:CountSources(), "spot")))
@@ -819,7 +846,9 @@ function UI:Render()
     self.arriving = shape ~= self.lastShape
     self.lastShape = shape
 
-    self.list:SetData(visible)
+    -- The same results redrawn (a heading folded, a goal's count moving)
+    -- keep your place in the list; new ones start from the top.
+    self.list:SetData(visible, not self.arriving)
     if self.arriving then self.list:Arrive() end
     self.arriving = false
 
@@ -1096,9 +1125,12 @@ function UI:BuildMinimapButton()
     button:SetScript("OnDragStart", function(self)
         self.dragging = true
         self:SetScript("OnUpdate", function()
+            -- The minimap's centre is in its own units, and many layouts
+            -- scale the minimap apart from the rest of the UI, so the cursor
+            -- is brought into the minimap's units rather than UIParent's.
             local mx, my = Minimap:GetCenter()
             local cx, cy = GetCursorPosition()
-            local scale = UIParent:GetEffectiveScale()
+            local scale = Minimap:GetEffectiveScale()
 
             local newAngle = math.atan2((cy / scale) - my, (cx / scale) - mx)
             UpdatePosition(newAngle)

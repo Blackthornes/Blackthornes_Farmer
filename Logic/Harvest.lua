@@ -608,7 +608,7 @@ function Harvest:ResolveItem(text)
     if text == "" then return nil end
 
     local items = self:Items()
-    local prefix, contains
+    local prefixes, contains = {}, {}
 
     for _, item in ipairs(items) do
         local name = item.name:lower()
@@ -616,13 +616,22 @@ function Harvest:ResolveItem(text)
         if name == text then
             return item.name
         elseif name:sub(1, #text) == text then
-            prefix = prefix or item.name
+            prefixes[#prefixes + 1] = item.name
         elseif name:find(text, 1, true) then
-            contains = contains or item.name
+            contains[#contains + 1] = item.name
         end
     end
 
-    return prefix or contains
+    if #prefixes == 1 then return prefixes[1] end
+    if #prefixes == 0 and #contains == 1 then return contains[1] end
+
+    -- More than one fits: say which, rather than picking one.
+    local candidates = #prefixes > 0 and prefixes or contains
+    if #candidates > 1 then
+        table.sort(candidates)
+        return nil, candidates
+    end
+    return nil
 end
 
 --- Every item seen, with how many corpses back each one.
@@ -1059,8 +1068,14 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
 
     -- Name an item and you get only that item, which is the usual case: you
     -- farmed one thing for an evening and want that one block.
-    local name = ns.Harvest:ResolveItem(wanted)
+    local name, candidates = ns.Harvest:ResolveItem(wanted)
     local block = name and ns.Harvest:ExportItem(name)
+
+    if candidates then
+        ns.Print(("%s could be %s. Type more of the name."):format(wanted,
+            table.concat(candidates, ", ")))
+        return
+    end
 
     if not block then
         ns.Print(("nothing harvested for %s yet."):format(wanted))
