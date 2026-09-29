@@ -392,6 +392,7 @@ function LootTableUI:Build()
         rowHeight = ROW,
         createRow = CreateRow,
         updateRow = UpdateRow,
+        fadeKey = "window",
     })
     list:SetPoint("TOPLEFT", PADDING, -TOP)
     list:SetPoint("BOTTOMRIGHT", -PADDING, BOTTOM)
@@ -439,7 +440,8 @@ function LootTableUI:Render()
     end
 
     local kills = self.kills
-    if self.shownMob ~= data.mob and data.kills > 1 then
+    local opening = self.shownMob ~= data.mob
+    if opening and data.kills > 1 then
         ns.Motion:Run(kills, "count", 0.6, function(p)
             kills:SetText(Kills(math.floor(data.kills * p + 0.5)))
         end)
@@ -449,18 +451,33 @@ function LootTableUI:Render()
     end
 
     local Money = ns.Value and ns.Value.Coins
+
+    -- The money counts up with the kills as the window opens.
+    local function Count(label, copper, suffix)
+        if opening and copper > 0 then
+            ns.Motion:Run(label, "count", 0.6, function(p)
+                label:SetText(Money(copper * p) .. suffix)
+            end)
+        else
+            ns.Motion:Stop(label, "count")
+            label:SetText(Money(copper) .. suffix)
+        end
+    end
+
     if data.worth and Money then
-        self.worth:SetText(Money(data.worth) .. (data.basis == "tally" and "" or " (est.)"))
+        Count(self.worth, data.worth, data.basis == "tally" and "" or " (est.)")
         self.worth:SetTextColor(Theme.Unpack("good"))
     else
+        ns.Motion:Stop(self.worth, "count")
         self.worth:SetText("--")
         self.worth:SetTextColor(Theme.Unpack("dim"))
     end
 
     if data.coinPerKill and Money then
-        self.coin:SetText(Money(data.coinPerKill))
+        Count(self.coin, data.coinPerKill, "")
         self.coin:SetTextColor(Theme.Unpack("text"))
     else
+        ns.Motion:Stop(self.coin, "count")
         self.coin:SetText("--")
         self.coin:SetTextColor(Theme.Unpack("dim"))
     end

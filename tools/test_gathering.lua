@@ -175,6 +175,7 @@ suite.check("picking beside an unlooted corpse is not a kill",
     Tracker:Store()["Kobold Vermin"] == nil)
 suite.check("nor that corpse's loot", HarvestItem("Kobold Vermin", "Peacebloom") == nil)
 
+
 --------------------------------------------------------------------------------
 -- Casts that end without a gather
 --------------------------------------------------------------------------------
@@ -409,5 +410,15 @@ suite.check("reset asks first", Gathering:CountGathers() == before)
 ns.HandleSlash("gathering reset confirm")
 suite.check("a confirmed reset clears it", Gathering:CountGathers() == 0)
 suite.check("and leaves the kills alone", Tracker:Store()["Mangy Wolf"].kills > 0)
+
+-- The client naming the node as the loot's source, with a corpse targeted:
+-- the herb is still the node's (the corpse check is for kills only).
+env.world.target = { name = "Kobold Vermin", level = 3, dead = true, guid = "Creature-0-9" }
+_G.GetLootSourceInfo = function() return "GameObject-0-1-2-3-99", 1 end
+Gather(HERB_GATHERING, "Peacebloom", { PEACEBLOOM })
+_G.GetLootSourceInfo = nil
+local sourced = Gathering:Summary(BLOOM)
+suite.check("a node's own loot counts with a corpse targeted",
+    sourced and sourced.gathers == 1 and sourced.items[1] and sourced.items[1].name == "Peacebloom")
 
 suite.done()

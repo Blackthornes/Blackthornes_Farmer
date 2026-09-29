@@ -262,6 +262,10 @@ function Widgets.CreateButton(parent, text, onClick, opts)
     Theme.Border(button, edgeKey, opts.primary and edgeAlpha or nil)
     button.sheen = Theme.TopSheen(button)
 
+    -- The one button on a screen that does the main thing glows gold
+    -- round its edge under the mouse.
+    if opts.primary then Theme.Halo(button, 4, 0) end
+
     button.label = Theme.CreateLabel(button, "small", labelKey, "CENTER")
     button.label:SetPoint("CENTER")
     button.label:SetText(text)
@@ -285,6 +289,8 @@ function Widgets.CreateButton(parent, text, onClick, opts)
         if opts.danger then
             button.label:SetTextColor(Motion.Mix(labelKey, "loss", p))
         end
+
+        if opts.primary then Theme.SetHalo(button, 0.32 * p) end
     end
     button.Light = Light
 
@@ -513,6 +519,40 @@ local function CreateScrollbar(list, thumbKey)
 end
 
 --------------------------------------------------------------------------------
+-- Fade
+--------------------------------------------------------------------------------
+
+--- A soft fade over one cut edge of a scrolling list, drawn above its rows
+--- in the colour behind them (`key`), so a list with more above or below
+--- fades out rather than stopping hard. The caller anchors it. Nil where
+--- the client has no gradients: a flat band would only hide a row.
+function Widgets.CreateFade(parent, side, key, height)
+    if type(CreateColor) ~= "function" then return nil end
+
+    local fade = CreateFrame("Frame", nil, parent)
+    fade:SetFrameLevel(parent:GetFrameLevel() + 12)
+    fade:SetHeight(height or 16)
+
+    local texture = fade:CreateTexture(nil, "OVERLAY")
+    texture:SetAllPoints(fade)
+    texture:SetColorTexture(1, 1, 1, 1)
+
+    local r, g, b = Theme.Unpack(key or "panel")
+    local solid, clear = CreateColor(r, g, b, 0.95), CreateColor(r, g, b, 0)
+    local ok
+    if side == "TOP" then
+        ok = pcall(texture.SetGradient, texture, "VERTICAL", clear, solid)
+    else
+        ok = pcall(texture.SetGradient, texture, "VERTICAL", solid, clear)
+    end
+    if not ok then return nil end
+
+    fade:EnableMouse(false)
+    fade:Hide()
+    return fade
+end
+
+--------------------------------------------------------------------------------
 -- Line list
 --------------------------------------------------------------------------------
 
@@ -647,6 +687,17 @@ function Widgets.CreateRowList(parent, opts)
 
     list.scrollbar = scrollbar
 
+    -- The cut edges fade while there is more above or below.
+    local fadeTop = Widgets.CreateFade(list, "TOP", opts.fadeKey, 14)
+    local fadeBottom = fadeTop and Widgets.CreateFade(list, "BOTTOM", opts.fadeKey, 14)
+    if fadeBottom then
+        fadeTop:SetPoint("TOPLEFT", list, "TOPLEFT", 0, 0)
+        fadeTop:SetPoint("TOPRIGHT", scrollbar, "TOPLEFT", -6, 0)
+        fadeBottom:SetPoint("BOTTOMLEFT", list, "BOTTOMLEFT", 0, 0)
+        fadeBottom:SetPoint("BOTTOMRIGHT", scrollbar, "BOTTOMLEFT", -6, 0)
+        list.fadeTop, list.fadeBottom = fadeTop, fadeBottom
+    end
+
     local function VisibleRowCount()
         local height = list:GetHeight()
         if not height or height <= 0 then return 0 end
@@ -680,6 +731,21 @@ function Widgets.CreateRowList(parent, opts)
         row.edge:SetColorTexture(Theme.Unpack("accent"))
         row.edge:SetAlpha(0)
 
+        -- And a soft gold light bleeding off that edge into the row.
+        row.bleed = row:CreateTexture(nil, "BORDER", nil, 1)
+        row.bleed:SetPoint("TOPLEFT", 2, 0)
+        row.bleed:SetPoint("BOTTOMLEFT", 2, 0)
+        row.bleed:SetWidth(18)
+        row.bleed:SetColorTexture(1, 1, 1, 1)
+        pcall(row.bleed.SetBlendMode, row.bleed, "ADD")
+        do
+            local r, g, b = Theme.Unpack("accent")
+            local ok = type(CreateColor) == "function" and pcall(row.bleed.SetGradient, row.bleed,
+                "HORIZONTAL", CreateColor(r, g, b, 0.22), CreateColor(r, g, b, 0))
+            if not ok then row.bleed:SetColorTexture(r, g, b, 0.06) end
+        end
+        row.bleed:SetAlpha(0)
+
         if opts.createRow then
             opts.createRow(row)
         end
@@ -687,6 +753,7 @@ function Widgets.CreateRowList(parent, opts)
         local function Lit(value)
             row.highlight:SetAlpha(0.6 * value)
             row.edge:SetAlpha(value)
+            row.bleed:SetAlpha(value)
         end
 
         -- Callers hook hovering through opts rather than HookScript on the
@@ -737,6 +804,7 @@ function Widgets.CreateRowList(parent, opts)
             Motion:SetValue(row, "hover", 0)
             row.highlight:SetAlpha(0)
             row.edge:SetAlpha(0)
+            row.bleed:SetAlpha(0)
 
             if data then
                 -- Banding follows the row's place on screen rather than its
@@ -761,6 +829,11 @@ function Widgets.CreateRowList(parent, opts)
         scrollbar:SetValue(self.offset)
         scrollbar:SetShown(maxOffset > 0)
         scrollbar:SizeThumb(visible, #(self.data or self.lines))
+
+        if fadeBottom then
+            fadeTop:SetShown(self.offset > 0)
+            fadeBottom:SetShown(self.offset < maxOffset)
+        end
 
         if opts.onRefresh then
             opts.onRefresh(self, #self.data, visible)
@@ -817,8 +890,11 @@ end
 -- Filter chip
 --------------------------------------------------------------------------------
 
---- A small toggle used in a row of filters. Selected chips carry the accent.
-function Widgets.CreateChip(parent, text, onClick)
+--- A small toggle used in a row of filters. Selected chips carry the accent,
+--- and a gold line with a soft glow along their foot (opts.noUnderline for
+--- chips that have a sliding line of their own, like the window's tabs).
+function Widgets.CreateChip(parent, text, onClick, opts)
+    opts = opts or {}
     local chip = CreateFrame("Button", nil, parent)
     chip:SetHeight(18)
 
@@ -828,6 +904,28 @@ function Widgets.CreateChip(parent, text, onClick)
     chip.label = Theme.CreateLabel(chip, "tiny", "muted", "CENTER")
     chip.label:SetPoint("CENTER")
     chip.label:SetText(text)
+
+    local under, glow
+    if not opts.noUnderline then
+        under = chip:CreateTexture(nil, "OVERLAY")
+        under:SetHeight(1)
+        under:SetPoint("BOTTOMLEFT", 3, 1)
+        under:SetPoint("BOTTOMRIGHT", -3, 1)
+        under:SetColorTexture(Theme.Unpack("accent"))
+        under:SetAlpha(0)
+
+        glow = chip:CreateTexture(nil, "ARTWORK")
+        glow:SetHeight(5)
+        glow:SetPoint("BOTTOMLEFT", 1, 1)
+        glow:SetPoint("BOTTOMRIGHT", -1, 1)
+        glow:SetColorTexture(1, 1, 1, 1)
+        pcall(glow.SetBlendMode, glow, "ADD")
+        local r, g, b = Theme.Unpack("accent")
+        local ok = type(CreateColor) == "function" and pcall(glow.SetGradient, glow, "VERTICAL",
+            CreateColor(r, g, b, 0.3), CreateColor(r, g, b, 0))
+        if not ok then glow:SetColorTexture(r, g, b, 0.1) end
+        glow:SetAlpha(0)
+    end
 
     -- Sized to its text, so a row of chips packs tightly whatever the labels.
     chip:SetWidth(math.max(34, Theme.TextWidth("tiny", text) + 16))
@@ -857,6 +955,11 @@ function Widgets.CreateChip(parent, text, onClick)
         local er, eg, eb, ea = Motion.Mix("border", "accent", on, 1, 0.6)
         for _, edge in ipairs(chip.borderTextures or {}) do
             edge:SetColorTexture(er, eg, eb, ea)
+        end
+
+        if under then
+            under:SetAlpha(on)
+            glow:SetAlpha(on)
         end
     end
 

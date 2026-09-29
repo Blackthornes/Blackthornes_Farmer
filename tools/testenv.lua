@@ -91,6 +91,9 @@ function env.InstallClient()
 
     _G.UIParent = Stub()
 
+    -- Gradients: the glows, halos and fades are drawn with these.
+    _G.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
+
     -- A default-sized minimap, and a cursor parked somewhere unambiguous so a
     -- simulated drag lands at a known angle.
     _G.Minimap = Stub({ _width = 140, _cx = 500, _cy = 500 })

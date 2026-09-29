@@ -602,4 +602,15 @@ for _, item in ipairs(shipped.Harvest:Items()) do
 end
 suite.check("with no coins in it", coins == 0, coins)
 
+--------------------------------------------------------------------------------
+-- Export rates: the data refuses 0, so a rare drop keeps a decimal
+--------------------------------------------------------------------------------
+
+local EC = ns.Harvest.ExportChance
+suite.check("a whole rate", EC(12.4) == "chance = 12", EC(12.4))
+suite.check("rounds up", EC(12.5) == "chance = 13", EC(12.5))
+suite.check("a rare drop keeps a decimal", EC(0.4) == "chance = 0.4", EC(0.4))
+suite.check("never writes 0", EC(0.01) == nil, EC(0.01))
+suite.check("tops out at 100", EC(100) == "chance = 100", EC(100))
+suite.check("nothing for nothing", EC(nil) == nil)
 suite.done()

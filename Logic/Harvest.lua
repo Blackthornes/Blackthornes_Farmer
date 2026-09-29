@@ -156,6 +156,17 @@ local function Present(value)
     return type(value) ~= "nil"
 end
 
+--- A drop rate as the export writes it, or nil to leave the field out. The
+--- data refuses 0, so a rare drop is kept to a decimal place, and one too rare
+--- to show at all is listed without a rate.
+function Harvest.ExportChance(percent)
+    if type(percent) ~= "number" or percent ~= percent then return nil end
+    if percent >= 99.95 then return "chance = 100" end
+    if percent >= 0.95 then return ("chance = %d"):format(math.floor(percent + 0.5)) end
+    if percent >= 0.05 then return ("chance = %.1f"):format(percent) end
+    return nil
+end
+
 function Harvest.TooltipShowsUnitOrItem(tooltip)
     if type(tooltip) ~= "table" then return false end
 
@@ -752,9 +763,9 @@ function Harvest:ExportItem(itemName)
         end
 
         -- A rate off five corpses is a number pretending to be evidence.
-        if record.corpses >= MIN_SAMPLE then
-            fields[#fields + 1] = ("chance = %d"):format(row.chance)
-        end
+        local chance = record.corpses >= MIN_SAMPLE
+            and Harvest.ExportChance(row.entry.corpses / record.corpses * 100)
+        if chance then fields[#fields + 1] = chance end
 
         fields[#fields + 1] = 'provenance = "forever"'
 

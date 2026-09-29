@@ -408,9 +408,8 @@ end
 
 --- A soft fade over one cut edge of the column, above the rows.
 function TrackerUI:BuildFade(frame, side)
-    local fade = CreateFrame("Frame", nil, frame)
-    fade:SetFrameLevel(frame:GetFrameLevel() + 12)
-    fade:SetHeight(16)
+    local fade = Widgets.CreateFade(frame, side, "window", 16)
+    if not fade then return nil end
     if side == "TOP" then
         fade:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -(TOP + 1))
         fade:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -1, -(TOP + 1))
@@ -418,20 +417,6 @@ function TrackerUI:BuildFade(frame, side)
         fade:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 1, 14)
         fade:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 14)
     end
-
-    local texture = fade:CreateTexture(nil, "OVERLAY")
-    texture:SetAllPoints(fade)
-    texture:SetColorTexture(1, 1, 1, 1)
-    local r, g, b = Theme.Unpack("window")
-    local solid, clear = 0.95, 0
-    local ok = type(CreateColor) == "function" and pcall(texture.SetGradient, texture, "VERTICAL",
-        CreateColor(r, g, b, side == "TOP" and clear or solid),
-        CreateColor(r, g, b, side == "TOP" and solid or clear))
-    -- Without a gradient a flat band would hide a line; leave it out.
-    if not ok then fade.unused = true end
-
-    fade:EnableMouse(false)
-    fade:Hide()
     return fade
 end
 
@@ -2041,8 +2026,10 @@ function TrackerUI:Render()
     else
         self.moreLabel:Hide()
     end
-    self.fadeTop:SetShown(self.scroll > 0 and not self.fadeTop.unused)
-    self.fadeBottom:SetShown(below > 0 and not self.fadeBottom.unused)
+    if self.fadeTop then
+        self.fadeTop:SetShown(self.scroll > 0)
+        self.fadeBottom:SetShown(below > 0)
+    end
 
     if not self.sizing then
         self.frame:SetHeight(TOP + PADDING * 2 + used + (below > 0 and 10 or 0))

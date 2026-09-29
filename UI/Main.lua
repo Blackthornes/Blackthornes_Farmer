@@ -208,7 +208,8 @@ function UI:BuildHeader()
     local x = 0
 
     for _, tab in ipairs(TABS) do
-        local chip = Widgets.CreateChip(header, tab.label, function() UI:ShowTab(tab.key) end)
+        local chip = Widgets.CreateChip(header, tab.label, function() UI:ShowTab(tab.key) end,
+            { noUnderline = true })
         local width = Theme.TextWidth("tiny", tab.label) + 22
         chip:SetHeight(20)
         chip:SetWidth(width)

@@ -554,7 +554,9 @@ end
 
 --- The items in the open loot window, each once, coins left out, and how
 --- many of each (two slots of one item add up). Third: the coin, in copper.
-function Tracker:LootedItems()
+-- `anySource` takes every slot: a node or a catch is looted with whatever
+-- happens to be targeted, so the corpse check below would throw it all away.
+function Tracker:LootedItems(anySource)
     local names, quantities, copper = {}, {}, 0
 
     local gotCount, lootCount = pcall(GetNumLootItems)
@@ -565,7 +567,8 @@ function Tracker:LootedItems()
         local ok, slotIcon, slotName, slotQuantity = pcall(GetLootSlotInfo, slot)
 
         -- Area loot: another corpse's drop is not this kill's.
-        local ours, share = ns.Harvest:SlotIsTargets(slot)
+        local ours, share = true, nil
+        if not anySource then ours, share = ns.Harvest:SlotIsTargets(slot) end
         if share then slotQuantity = share end
         local name = ours and ok and ns.Harvest.Readable(slotName) or nil
 
