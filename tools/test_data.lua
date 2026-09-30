@@ -132,8 +132,13 @@ if env.HasHarvested() then
             if source.provenance == "forever" then
                 suite.check(("measured %s in %s names its mob"):format(
                     item.name, source.zone), source.name ~= nil)
+                -- A fishing row borrows its zone's level band from the other
+                -- data (Fishing:ZoneBand), and a city like Undercity has none,
+                -- so there it rightly has no level.
+                local needsLevel = source.kind ~= "fishing"
+                    or harvested.Fishing:ZoneBand(source.zone) ~= nil
                 suite.check(("measured %s in %s carries a level"):format(
-                    item.name, source.zone), source.minLevel ~= nil)
+                    item.name, source.zone), not needsLevel or source.minLevel ~= nil)
             end
         end
     end
