@@ -84,7 +84,7 @@ suite.check("19 kills has no value from the tally", Value:FromTally(WOLF) == nil
 local mark = #env.chat
 ns.HandleSlash("value mangy")
 local said = table.concat(env.chat, "\n", mark + 1)
-suite.check("/farm value says how many more kills", said:find("1 more kills", 1, true) ~= nil, said)
+suite.check("/farm value says how many more kills", said:find("1 more kill before", 1, true) ~= nil, said)
 
 --------------------------------------------------------------------------------
 -- From the tally
@@ -233,5 +233,25 @@ worth = Value:ForMob(WOLF)
 local expected = 5 / 21 * 50 + 20 / 21 * 5
 suite.check("an old tally is valued one per corpse, no coin",
     worth and math.abs(worth - expected) < 1e-9, worth)
+
+--------------------------------------------------------------------------------
+-- A mob typed in any case
+--------------------------------------------------------------------------------
+
+suite.check("a mob you have killed resolves from your tally",
+    Value:ResolveMob("mangy wolf") == WOLF, Value:ResolveMob("mangy wolf"))
+suite.check("a mob only the database knows resolves in its own spelling",
+    Value:ResolveMob("defias trapper") == "Defias Trapper", Value:ResolveMob("defias trapper"))
+suite.check("a start of a name resolves too",
+    Value:ResolveMob("defias trap") == "Defias Trapper", Value:ResolveMob("defias trap"))
+suite.check("a name nobody knows resolves to nothing", Value:ResolveMob("zzz nobody") == nil)
+
+-- A kill of yours whose name only starts with what was typed does not hide
+-- the database's mob of exactly that name.
+Loot("Defias Trapper Scout", { COINS })
+suite.check("an exact database name beats a prefix of your own kill",
+    Value:ResolveMob("defias trapper") == "Defias Trapper", Value:ResolveMob("defias trapper"))
+suite.check("and the prefix still finds your kill",
+    Value:ResolveMob("defias trapper s") == "Defias Trapper Scout", Value:ResolveMob("defias trapper s"))
 
 suite.done()

@@ -318,9 +318,40 @@ function Value:PriceNote(details)
     return note
 end
 
+--- A mob named loosely, spelled its own way whatever the case typed: one
+--- you have killed or the database has by that exact name, else one whose
+--- name starts with it, your own kills first. Nil when neither knows it.
+function Value:ResolveMob(text)
+    local wanted = Util.Trim(text or ""):lower()
+    local found = ns.Tracker and ns.Tracker:ResolveMob(text or "")
+
+    -- Your own kill by its full name, or the mob you last looted when
+    -- nothing was typed. A start of a name waits: the database may have a
+    -- mob by exactly that name.
+    if found and (wanted == "" or found:lower() == wanted) then return found end
+    if wanted == "" or not ns.DB then return found end
+
+    local prefix
+    for item in ns.DB:Iterate() do
+        for _, source in ipairs(item.sources or {}) do
+            local name = source.name
+            local kind = source.kind or "mob"
+            if type(name) == "string" and (kind == "mob" or kind == "skinning") then
+                local lowered = name:lower()
+                if lowered == wanted then return name end
+                if lowered:sub(1, #wanted) == wanted and (not prefix or name < prefix) then
+                    prefix = name
+                end
+            end
+        end
+    end
+
+    return found or prefix
+end
+
 ns.RegisterCommand("value", "what a mob is worth per kill, from Tradeskills prices", function(rest)
     local wanted = Util.Trim(rest or "")
-    local mobName = ns.Tracker:ResolveMob(wanted) or (wanted ~= "" and wanted) or nil
+    local mobName = Value:ResolveMob(wanted) or (wanted ~= "" and wanted) or nil
 
     if not mobName then
         ns.Print("name a mob: /farm value <mob>.")
@@ -332,7 +363,8 @@ ns.RegisterCommand("value", "what a mob is worth per kill, from Tradeskills pric
     if not value then
         local summary = ns.Tracker:Summary(mobName)
         if summary and not summary.rated then
-            ns.Print(("%s: %d more kills before it has a value."):format(mobName, summary.needed))
+            ns.Print(("%s: %d more %s before it has a value."):format(mobName,
+                summary.needed, summary.needed == 1 and "kill" or "kills"))
         else
             ns.Print(("%s: no drop rates with prices to value it by yet."):format(mobName))
         end

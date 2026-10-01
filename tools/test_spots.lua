@@ -157,6 +157,36 @@ local far = { name = "Copper Vein", zone = "Westfall", coords = { 50, 50 }, hops
 Spots:Share("Copper Ore", far)
 suite.check("another zone is not pinned", placed == nil)
 
+-- A dungeon inside the zone counts as "here" (hops 0) for the ranking, but
+-- its coordinates are on a map of its own: never pinned on the zone's map.
+placed = nil
+local inside = { name = "Copper Vein", zone = "Ragefire Chasm", coords = { 50, 50 }, hops = 0 }
+Spots:Share("Copper Ore", inside)
+suite.check("a dungeon in your zone is not pinned", placed == nil, placed and placed.map)
+
+-- Standing in a city or cave map inside the zone, the pin goes on the zone's
+-- map, found by walking up the parents.
+local MAPS = {
+    [1426] = { name = "Dun Morogh", parentMapID = 1415 },
+    [1415] = { name = "Eastern Kingdoms", parentMapID = 947 },
+    [427] = { name = "Coldridge Valley", parentMapID = 1426 },
+}
+env.world.zone = "Dun Morogh"
+env.world.mapID = 427
+_G.C_Map.GetMapInfo = function(id) return MAPS[id] end
+placed = nil
+Spots:Share("Copper Ore", { name = "Copper Vein", zone = "Dun Morogh", coords = { 40, 60 }, hops = 0 })
+suite.check("a sub-map pins on the zone's map", placed and placed.map == 1426, placed and placed.map)
+
+-- No map up the chain carries the zone's name (Forever may spell a map its
+-- own way): the pin still goes on the map you are on, as it always did.
+env.world.zone = "Loch Modan"
+placed = nil
+Spots:Share("Copper Ore", { name = "Copper Vein", zone = "Loch Modan", coords = { 40, 60 }, hops = 0 })
+suite.check("no matching map pins where you stand", placed and placed.map == 427, placed and placed.map)
+_G.C_Map.GetMapInfo = nil
+env.world.mapID = 21
+
 -- The same button again closes it.
 card.where:GetScript("OnClick")(card.where, "LeftButton")
 suite.check("second click closes", not panel:IsShown())
