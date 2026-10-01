@@ -4,6 +4,24 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.13.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- Drop data measured on Forever: 1,850 looted corpses across 268 mobs, with
+  drop rates for the ones killed 20 times or more, and the first fishing
+  catches. These show with the green Forever tag.
+- The Where? pin only goes down for a spot in the zone you're standing in,
+  and on that zone's map when you're in a cave or city inside it. A dungeon
+  no longer gets a pin in the wrong place.
+- "Set another" on the Goals panel switches to the Search tab first, so what
+  you type isn't lost on the Rankings tab.
+- `/farm value` finds mobs only the database knows, and an exact name now
+  beats a longer one that starts with it.
+- Exported drop rows keep one order when a mob has equal counts in two places.
+- Fixed: "1 more kills" now reads "1 more kill".
+
 ## 0.12.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
