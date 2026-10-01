@@ -277,6 +277,9 @@ function GoalsUI:Build()
     footer.next = Widgets.CreateButton(footer, "Set another", function()
         if ns.UI then
             ns.UI:Show()
+            -- The search box is on the Search tab: focused while the window
+            -- shows Rankings, it would take your keys out of sight.
+            if ns.UI.tab ~= "search" then ns.UI:ShowTab("search") end
             if ns.UI.searchBox then ns.UI.searchBox:SetFocus() end
         end
     end, { width = 70, height = 16 })

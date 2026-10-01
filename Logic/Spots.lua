@@ -369,9 +369,42 @@ end
 -- Marking a spot
 --------------------------------------------------------------------------------
 
+--- The map id of `zone`, found from the map you are on: that map, or one it
+--- sits inside (a cave or a mine can have a map of its own). When no map on
+--- the way up carries the zone's name, the map you are on, as before: the
+--- zone was already matched by name (Mark), and a map name Forever spells
+--- differently must not stop the pin. Nil only when the client will not say.
+local function ZoneMapID(zone)
+    local here = ns.Harvest.ReadableNumber(Read(C_Map.GetBestMapForUnit, "player"))
+    if not here then return nil end
+    local mapID = here
+
+    -- A client that cannot name its maps: the map you are on is the best
+    -- there is.
+    if type(C_Map.GetMapInfo) ~= "function" then return here end
+
+    for _ = 1, 8 do
+        local info = Read(C_Map.GetMapInfo, mapID)
+        if type(info) ~= "table" then return here end
+
+        local ok, name, parent = pcall(function() return info.name, info.parentMapID end)
+        if not ok then return here end
+        if ns.Harvest.Readable(name) == zone then return mapID end
+
+        mapID = ns.Harvest.ReadableNumber(parent)
+        if not mapID or mapID <= 0 then return here end
+    end
+
+    return here
+end
+
 --- Put the map's pin on a spot. Only for one in the zone you are standing in
 --- with coordinates, where the zone's map id comes live from the client
 --- rather than from a table that may not match Forever. True if placed.
+--
+-- "Here" for the ranking takes in a dungeon or a capital inside the zone,
+-- but their coordinates are on maps of their own: a pin is only put down
+-- when the spot's zone is the very zone you are in.
 function Spots:Mark(spot)
     if not (spot and spot.coords and spot.hops == 0) then return false end
     if not (type(C_Map) == "table" and type(C_Map.SetUserWaypoint) == "function") then return false end
@@ -379,7 +412,9 @@ function Spots:Mark(spot)
         return false
     end
 
-    local mapID = ns.Harvest.ReadableNumber(Read(C_Map.GetBestMapForUnit, "player"))
+    if type(spot.zone) ~= "string" or self:Player().zone ~= spot.zone then return false end
+
+    local mapID = ZoneMapID(spot.zone)
     if not mapID then return false end
 
     local ok = pcall(function()

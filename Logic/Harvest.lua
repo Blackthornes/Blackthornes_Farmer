@@ -635,7 +635,13 @@ function Harvest:ForItem(itemName)
         if a.record.corpses ~= b.record.corpses then
             return a.record.corpses > b.record.corpses
         end
-        return a.record.mob < b.record.mob
+        if a.record.mob ~= b.record.mob then return a.record.mob < b.record.mob end
+        -- One mob in two places with as many corpses each: the same order
+        -- every time, so an export does not shuffle its rows.
+        if (a.record.zone or "") ~= (b.record.zone or "") then
+            return (a.record.zone or "") < (b.record.zone or "")
+        end
+        return (a.record.location or "") < (b.record.location or "")
     end)
 
     return rows
