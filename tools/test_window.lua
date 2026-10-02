@@ -19,6 +19,24 @@ suite.check("it has a search box", UI.searchBox ~= nil)
 suite.check("it has a result list", UI.list ~= nil)
 
 --------------------------------------------------------------------------------
+-- The Search tab is never blank
+--
+-- Only a search drew it, so reaching it before searching (the window opened
+-- on Rankings, or by a goal's "Set another") showed an empty panel.
+--------------------------------------------------------------------------------
+
+UI:ShowTab("rankings")
+UI:ShowTab("search")
+suite.check("reached from Rankings, the Search tab says what to type", UI.empty:IsShown())
+suite.check("and what is loaded",
+    Util.StripColor(UI.summary:GetText()):find("item", 1, true) ~= nil, UI.summary:GetText())
+
+UI.empty:Hide()
+UI:Show()
+suite.check("opened straight onto it, the same", UI.empty:IsShown())
+UI:Hide()
+
+--------------------------------------------------------------------------------
 -- Searching
 --------------------------------------------------------------------------------
 
@@ -78,7 +96,7 @@ suite.check("the level column shows the band",
     row.level:GetText())
 
 suite.check("the drop column shows the rate",
-    row.drop:GetText() == ("%d%%"):format(row.data.source.chance),
+    row.drop:GetText() == ns.Tracker.FormatChance(row.data.source.chance),
     row.drop:GetText())
 
 suite.check("the kind column is tagged", row.kind:GetText() == "MOB", row.kind:GetText())
@@ -325,6 +343,184 @@ UI:UpdateRow(probe, {
 
 suite.check("a node row is not left in the drop rate's colour",
     ColorOf(probe.drop) ~= chanceColor, ColorOf(probe.drop))
+
+--------------------------------------------------------------------------------
+-- A rare drop reads "<1%"; "%d" made it "0%"
+--------------------------------------------------------------------------------
+
+local wool = ns.DB:GetItem("Wool Cloth")
+local rare = { kind = "mob", name = "a rare mob", zone = "Durotar", minLevel = 5, maxLevel = 6,
+    chance = 0.4 }
+
+UI:UpdateRow(probe, { type = "source", item = wool, source = rare })
+suite.check("a rare drop's rate reads <1%", probe.drop:GetText() == "<1%", probe.drop:GetText())
+
+local chatMark = #env.chat
+UI:OnRowClick({ type = "source", item = wool, source = rare })
+local said = Util.StripColor(env.chat[#env.chat] or "")
+suite.check("and is printed that way", #env.chat > chatMark and said:find("<1%", 1, true) ~= nil,
+    said)
+
+--------------------------------------------------------------------------------
+-- Only a mob's row says what a kill is worth
+--
+-- "open water" has catches with drop rates, so it was valued like a mob:
+-- "Worth about 25c a kill".
+--------------------------------------------------------------------------------
+
+local savedItem = _G.C_Item
+_G.C_Item = { GetItemInfo = function() return "item", nil, 1, 1, 1, "", "", 1, "", "", 25 end }
+
+local trapper
+for _, source in ipairs(ns.DB:GetItem("Linen Cloth").sources) do
+    if source.name == "Defias Trapper" then trapper = source end
+end
+
+GameTooltip._lines = {}
+UI:ShowValueTooltip({ data = { type = "source", source = trapper } })
+suite.check("a mob's row has its worth", #GameTooltip._lines > 0)
+
+GameTooltip._lines = {}
+UI:ShowValueTooltip({ data = { type = "source",
+    source = { kind = "fishing", name = trapper.name, zone = "Westfall", chance = 30 } } })
+suite.check("a fishing spot's does not, whatever it is called", #GameTooltip._lines == 0,
+    GameTooltip._lines[2])
+
+_G.C_Item = savedItem
+
+--------------------------------------------------------------------------------
+-- A new list opens at its top
+--
+-- The client clamps a slider's value to its new range and reports that as
+-- the player moving it. After a long list scrolled to its end, a new, shorter
+-- one opened at its end too.
+--------------------------------------------------------------------------------
+
+local savedCreateFrame = _G.CreateFrame
+_G.CreateFrame = function(kind, name, parent)
+    local frame = savedCreateFrame(kind, name, parent)
+    if kind == "Slider" then
+        function frame:SetMinMaxValues(low, high)
+            self._min, self._max = low, high
+            self:SetValue(rawget(self, "_value") or 0)
+        end
+        function frame:SetValue(value)
+            value = math.max(rawget(self, "_min") or 0, math.min(rawget(self, "_max") or value, value))
+            if value == rawget(self, "_value") then return end
+            self._value = value
+            local moved = self:GetScript("OnValueChanged")
+            if moved then moved(self, value) end
+        end
+    end
+    return frame
+end
+
+local clampedRows = ns.Widgets.CreateRowList(UIParent, { rowHeight = 20 })
+local clampedLines = ns.Widgets.CreateLineList(UIParent, { rowHeight = 15 })
+_G.CreateFrame = savedCreateFrame
+
+local function Rows(count)
+    local made = {}
+    for index = 1, count do made[index] = { type = "more", text = "row " .. index } end
+    return made
+end
+
+clampedRows:SetData(Rows(100))
+clampedRows:Scroll(-500)
+suite.check("a long list scrolls to its end",
+    clampedRows.offset > 0 and clampedRows.offset == clampedRows:MaxOffset(), clampedRows.offset)
+clampedRows:SetData(Rows(30))
+suite.check("a new, shorter list opens at its top", clampedRows.offset == 0, clampedRows.offset)
+suite.check("with its scrollbar there too", clampedRows.scrollbar:GetValue() == 0,
+    clampedRows.scrollbar:GetValue())
+
+clampedRows.scrollbar:SetValue(5)
+suite.check("dragging the scrollbar still scrolls", clampedRows.offset == 5, clampedRows.offset)
+
+-- The stub answers any field it was never given with a function, and a
+-- line list has no data of its own: say so, as the client's nil would.
+clampedLines.data = false
+
+local textLines = {}
+for index = 1, 100 do textLines[index] = "line " .. index end
+clampedLines:SetLines(textLines)
+clampedLines:Scroll(-500)
+clampedLines:SetLines({ "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen",
+    "eighteen", "nineteen", "twenty", "twenty-one", "twenty-two" })
+suite.check("so does a new list of lines", clampedLines.offset == 0, clampedLines.offset)
+
+--------------------------------------------------------------------------------
+-- The row under a still mouse follows a scroll
+--
+-- Scrolled under the mouse, a row went dark and kept the tooltip of the row
+-- it showed before, until the mouse was moved off it and back.
+--------------------------------------------------------------------------------
+
+local entered, left = {}, 0
+local hover = ns.Widgets.CreateRowList(UIParent, {
+    rowHeight = 20,
+    onEnter = function(_, data) entered[#entered + 1] = data end,
+    onLeave = function() left = left + 1 end,
+})
+local hoverRows = Rows(100)
+hover:SetData(hoverRows)
+
+-- The stub client has no mouse; this row is the one under it.
+local under = hover.rows[3]
+local mouseOn = true
+under.IsVisible = function(self) return self:IsShown() end
+under.IsMouseOver = function() return mouseOn end
+
+under:GetScript("OnEnter")(under)
+ns.Motion:FinishAll()
+suite.check("the mouse coming onto a row tells the list's owner", entered[1] == hoverRows[3])
+suite.check("and lights it", ns.Motion:Value(under, "hover") == 1)
+
+hover:Scroll(-1)
+suite.check("a scroll leaves the row and enters it again", left == 1 and #entered == 2, left)
+suite.check("for what it shows now", entered[2] == hoverRows[6], entered[2] and entered[2].text)
+suite.check("still lit, without fading out and back in",
+    ns.Motion:Value(under, "hover") == 1 and not ns.Motion:Running(under, "hover"))
+
+-- The mouse went off it without the client saying so: let it go quietly.
+mouseOn = false
+hover:Scroll(-1)
+suite.check("a row the mouse has left is not entered again", #entered == 2 and left == 1)
+suite.check("and goes dark", ns.Motion:Value(under, "hover") == 0)
+
+mouseOn = true
+under:GetScript("OnEnter")(under)
+hover:SetData(Rows(2))
+suite.check("a row emptied under the mouse only leaves", #entered == 3 and left == 2,
+    ("%d entered, %d left"):format(#entered, left))
+
+--------------------------------------------------------------------------------
+-- A button pressed with two mouse buttons at once
+--
+-- The second press took the dipped label as its resting place, so the label
+-- sank a pixel each time.
+--------------------------------------------------------------------------------
+
+local pressed = ns.Widgets.CreateButton(UIParent, "Press", nil, {})
+local down, up = pressed:GetScript("OnMouseDown"), pressed:GetScript("OnMouseUp")
+local restY = select(5, pressed.label:GetPoint(1))
+
+for _ = 1, 3 do
+    down(pressed, "LeftButton")
+    down(pressed, "RightButton")
+    up(pressed, "LeftButton")
+    up(pressed, "RightButton")
+end
+suite.check("its label goes back to where it was", select(5, pressed.label:GetPoint(1)) == restY,
+    select(5, pressed.label:GetPoint(1)))
+
+--------------------------------------------------------------------------------
+-- Chat text has the dim grey the window has
+--------------------------------------------------------------------------------
+
+suite.check("dim is a colour of its own, not the text colour",
+    Util.Colored("dim", "/") ~= Util.Colored("text", "/"), Util.Colored("dim", "/"))
 
 --------------------------------------------------------------------------------
 -- Escape closes the windows through the game's own list, not by taking the

@@ -34,7 +34,11 @@ local function MatchScore(haystack, needle)
     return 0
 end
 
---- Ranked search. Returns an array of { item, score, why }.
+--- Ranked search. Returns an array of { item, score, why, sources }.
+--
+-- `sources` is set when the item was found through some of its sources (a
+-- zone, a landmark or a mob) and holds just those. A search for "defias"
+-- wants the Defias, not every mob in the game that drops linen.
 function Search:Run(query)
     local results = {}
 
@@ -43,6 +47,7 @@ function Search:Run(query)
 
     for item in ns.DB:Iterate() do
         local score, why = MatchScore(item.name:lower(), query), "name"
+        local matched
 
         for _, alias in ipairs(item.aliases) do
             local aliasScore = MatchScore(alias:lower(), query)
@@ -57,27 +62,35 @@ function Search:Run(query)
 
         if score == 0 then
             for _, source in ipairs(item.sources) do
+                local how
+
                 if MatchScore(source.zone:lower(), query) > 0 then
-                    score, why = SCORE.zone, "zone"
-                    break
-                end
+                    how = "zone"
 
                 -- A landmark is how people actually name a farming spot to
                 -- each other: "Durnholde", "Raven Hill". Worth matching.
-                if source.location and MatchScore(source.location:lower(), query) > 0 then
-                    score, why = SCORE.zone, "location"
-                    break
+                elseif source.location and MatchScore(source.location:lower(), query) > 0 then
+                    how = "location"
+
+                elseif source.name and MatchScore(source.name:lower(), query) > 0 then
+                    how = "source"
                 end
 
-                if source.name and MatchScore(source.name:lower(), query) > 0 then
-                    score, why = SCORE.source, "source"
-                    break
+                if how then
+                    matched = matched or {}
+                    matched[#matched + 1] = source
+
+                    -- The first source that matches ranks the item; the
+                    -- rest are only listed under it.
+                    if score == 0 then
+                        score, why = how == "source" and SCORE.source or SCORE.zone, how
+                    end
                 end
             end
         end
 
         if score > 0 then
-            results[#results + 1] = { item = item, score = score, why = why }
+            results[#results + 1] = { item = item, score = score, why = why, sources = matched }
         end
     end
 
@@ -89,11 +102,12 @@ function Search:Run(query)
     return results
 end
 
---- An item's sources, lowest level first, so the closest to your level is at
---- the top rather than wherever the data file happened to list it.
-function Search:SortedSources(item)
+--- An item's sources (or only `sources`, some of them), lowest level first,
+--- so the closest to your level is at the top rather than wherever the data
+--- file happened to list it.
+function Search:SortedSources(item, sources)
     local sorted = {}
-    for index, source in ipairs(item.sources) do
+    for index, source in ipairs(sources or item.sources) do
         sorted[index] = source
     end
 
@@ -120,6 +134,22 @@ function Search:LevelText(source)
     return tostring(source.minLevel)
 end
 
+--- A database drop rate as a line gives it: "~4%", or "<1%" for a rare
+--- drop, which "%d" printed as "0%".
+function Search:ChanceText(chance)
+    local text = ns.Tracker.FormatChance(chance)
+    if chance < 1 then return text end
+    return "~" .. text
+end
+
+--- "12 spots", or "3 of 12 spots" when only some of them are shown.
+function Search:SpotsText(shown, total)
+    if shown < total then
+        return ("%d of %s"):format(shown, Util.Plural(total, "spot"))
+    end
+    return Util.Plural(total, "spot")
+end
+
 --- One source as a line, e.g.
 ---   [10-20] Westfall - Copper Vein (mining node, needs Mining 1)
 --- A source with no name of its own -- a herb node, which is just called after
@@ -132,7 +162,7 @@ function Search:SourceLine(source)
     end
 
     if source.chance then
-        detail = ("%s, ~%d%%"):format(detail, source.chance)
+        detail = ("%s, %s"):format(detail, self:ChanceText(source.chance))
     end
 
     local line = ("%s %s"):format(
@@ -162,11 +192,12 @@ function Search:SourceLine(source)
     return line
 end
 
-function Search:ItemHeader(item)
+--- `shown` is how many of its spots are listed under it, when not all.
+function Search:ItemHeader(item, shown)
     return ("%s %s"):format(
         Util.Colored("text", item.name),
         Util.Colored("muted", ("(%s, %s)"):format(
-            item.category, Util.Plural(#item.sources, "spot"))))
+            item.category, self:SpotsText(shown or #item.sources, #item.sources))))
 end
 
 --- Flat display lines for a query, shared by the window and `/farm chat`.
@@ -188,15 +219,17 @@ function Search:BuildLines(query, maxItems)
     local shown = math.min(total, maxItems)
 
     for index = 1, shown do
-        local item = results[index].item
+        local result = results[index]
+        local item = result.item
+        local sources = self:SortedSources(item, result.sources)
 
-        lines[#lines + 1] = self:ItemHeader(item)
+        lines[#lines + 1] = self:ItemHeader(item, #sources)
 
         if item.note then
             lines[#lines + 1] = "  " .. Util.Colored("muted", item.note)
         end
 
-        for _, source in ipairs(self:SortedSources(item)) do
+        for _, source in ipairs(sources) do
             lines[#lines + 1] = "  " .. self:SourceLine(source)
         end
 
@@ -229,20 +262,13 @@ function Search:BuildRows(query, opts)
 
     local maxItems = opts.max or 40
     local rows = {}
+    local total, drawn = 0, 0
 
-    local results = self:Run(query)
-    local total = #results
-    local drawn = 0
-
-    if total == 0 then
-        return rows, 0, 0
-    end
-
-    local shown = math.min(total, maxItems)
-
-    for index = 1, shown do
-        local item = results[index].item
-        local sources = self:SortedSources(item)
+    -- The kind filter comes before the cap. Capped first, a chip could show
+    -- nothing but "and 55 more items" while its kind sat further down.
+    for _, result in ipairs(self:Run(query)) do
+        local item = result.item
+        local sources = self:SortedSources(item, result.sources)
 
         -- A kind filter that empties an item hides the item too, rather than
         -- leaving a heading with nothing under it.
@@ -257,6 +283,11 @@ function Search:BuildRows(query, opts)
         end
 
         if #sources > 0 then
+            total = total + 1
+        end
+
+        -- Past the cap an item is only counted, for the "more" line.
+        if #sources > 0 and total <= maxItems then
             rows[#rows + 1] = { type = "item", item = item, count = #sources }
 
             if item.note then
@@ -270,10 +301,10 @@ function Search:BuildRows(query, opts)
         end
     end
 
-    if total > shown then
+    if total > maxItems then
         rows[#rows + 1] = {
             type = "more",
-            text = ("and %d more items. Narrow the search to see them."):format(total - shown),
+            text = ("and %d more items. Narrow the search to see them."):format(total - maxItems),
         }
     end
 
@@ -286,7 +317,7 @@ function Search:KindsInResults(query)
     local seen, order = {}, {}
 
     for _, result in ipairs(self:Run(query)) do
-        for _, source in ipairs(result.item.sources) do
+        for _, source in ipairs(result.sources or result.item.sources) do
             if not seen[source.kind] then
                 seen[source.kind] = true
                 order[#order + 1] = source.kind

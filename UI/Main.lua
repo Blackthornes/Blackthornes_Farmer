@@ -35,13 +35,24 @@ local TABS = {
 -- Column widths, left to right, at their narrowest. The source, where and
 -- drop columns widen to fit what a search turns up, and the window with them:
 -- the game's font runs wider than widths picked by eye, and names were being
--- cut off.
-local COLUMN_ORDER = { "kind", "name", "where", "level", "drop" }
-local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110 }
-local MAX_WIDTH = { name = 320, where = 400, drop = 220 }
+-- cut off. The last slot holds the [Forever] badge, as wide as its text when
+-- a row has one, so a long "needs" in the drop column never runs under it.
+local COLUMN_ORDER = { "kind", "name", "where", "level", "drop", "badge" }
+local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110, badge = 8 }
+-- Where has room for the longest place in the data (a zone, a landmark and
+-- coordinates) in the game's font; at 400 it cut 47 of them off.
+local MAX_WIDTH = { name = 320, where = 520, drop = 220 }
 local COLUMN_GAP = 6
 
 local DROP_BAR_WIDTH = 46
+local BADGE_TEXT = "Forever"
+
+-- A row is this much narrower than the window: the window's padding, the
+-- list's inset in its panel, and the scrollbar beside the rows.
+local ROW_INSET = PADDING * 2 + 16 + 14
+
+-- A note sits indented under its item's heading.
+local NOTE_INDENT = "     "
 
 -- How bright the glow round the window sits; it flares brighter as the
 -- window opens (Motion:Open).
@@ -59,7 +70,7 @@ local function Columns(widths)
     end
 
     -- How much wider than the narrowest layout, for the window to grow by.
-    columns.extra = x - COLUMN_GAP - 586
+    columns.extra = x - COLUMN_GAP - 600
 
     return columns
 end
@@ -458,6 +469,7 @@ function UI:PlaceRow(row)
     Place(row.dropTrack, columns.drop)
     Place(row.dropFill, columns.drop)
     Place(row.drop, columns.drop, DROP_BAR_WIDTH + 6, columns.drop.w - DROP_BAR_WIDTH - 6)
+    Place(row.badge, columns.badge, 0, columns.badge.w)
 end
 
 --- The text a source row shows in each column that can grow.
@@ -473,7 +485,8 @@ end
 --- than the base layout.
 function UI:FitColumns(rows)
     local widths = { kind = BASE_WIDTH.kind, name = BASE_WIDTH.name, where = BASE_WIDTH.where,
-        drop = BASE_WIDTH.drop }
+        drop = BASE_WIDTH.drop, badge = BASE_WIDTH.badge }
+    local note = 0
 
     for _, row in ipairs(rows) do
         if row.type == "source" then
@@ -487,11 +500,24 @@ function UI:FitColumns(rows)
                 widths.drop = math.max(widths.drop,
                     Theme.TextWidth("small", drop) + DROP_BAR_WIDTH + 12)
             end
+            if row.source.provenance == "forever" then
+                widths.badge = math.max(widths.badge, Theme.TextWidth("tiny", BADGE_TEXT))
+            end
+        elseif row.type == "note" then
+            -- A note is one line across the whole row.
+            note = math.max(note, Theme.TextWidth("small", NOTE_INDENT .. row.text) + 4)
         end
     end
 
     for key, most in pairs(MAX_WIDTH) do
         widths[key] = math.min(most, math.ceil(widths[key]))
+    end
+
+    -- A note longer than the row widens the window too: the where column
+    -- takes the extra room, up to its cap.
+    local short = note - (WIDTH - ROW_INSET + Columns(widths).extra)
+    if short > 0 then
+        widths.where = math.min(MAX_WIDTH.where, widths.where + short)
     end
 
     -- Never wider than the screen: on a small screen, or with the window
@@ -512,7 +538,7 @@ function UI:FitColumns(rows)
 
     local current = self.columns or COLUMN
     if current.kind.w == widths.kind and current.name.w == widths.name and current.where.w == widths.where
-        and current.drop.w == widths.drop then
+        and current.drop.w == widths.drop and current.badge.w == widths.badge then
         return
     end
 
@@ -566,9 +592,14 @@ end
 --------------------------------------------------------------------------------
 
 --- Hovering a mob's row says what a kill is worth, priced by Tradeskills.
+-- Only a mob's: "open water" has catches with rates too, but nothing to kill.
+-- A source with no kind is a mob, as the database reads it.
 function UI:ShowValueTooltip(row)
     local data = row and row.data
-    if not (data and data.type == "source" and data.source.name) then return end
+    if not (data and data.type == "source" and data.source.name
+        and (data.source.kind or "mob") == "mob") then
+        return
+    end
 
     self:ShowMobTooltip(row, data.source.name)
 end
@@ -671,9 +702,8 @@ function UI:CreateRow(row)
 
     row.drop = Theme.CreateLabel(row, "small", "muted")
 
+    -- Placed in its own slot after the drop column (PlaceRow).
     row.badge = Theme.CreateLabel(row, "tiny", "good", "RIGHT")
-    row.badge:SetPoint("RIGHT", -2, 0)
-    row.badge:SetWidth(60)
 
     self:PlaceRow(row)
 end
@@ -691,12 +721,12 @@ local function HideSourceColumns(row)
     row.badge:Hide()
 end
 
---- Where a heading's text starts: after the icon on an item, indented on a
---- note.
-local function PlaceHeading(row, left)
+--- Where a heading's text starts and ends: after the icon on an item and
+--- short of its Goal button; on a note, which has no button, across the row.
+local function PlaceHeading(row, left, right)
     row.heading:ClearAllPoints()
     row.heading:SetPoint("LEFT", left, 0)
-    row.heading:SetPoint("RIGHT", -64, 0)
+    row.heading:SetPoint("RIGHT", -(right or 64), 0)
 end
 
 function UI:UpdateRow(row, data, index)
@@ -725,7 +755,7 @@ function UI:UpdateRow(row, data, index)
         row.heading:SetTextColor(Theme.Unpack("accent"))
         row.heading:SetText(("%s  %s"):format(data.item.name,
             Util.Colored("muted", ("(%s, %s)"):format(
-                data.item.category, Util.Plural(data.count, "spot")))))
+                data.item.category, ns.Search:SpotsText(data.count, #data.item.sources)))))
         row.heading:Show()
 
         -- "23/40" once it has a goal, so the list shows where you are.
@@ -742,9 +772,9 @@ function UI:UpdateRow(row, data, index)
     end
 
     if data.type == "note" or data.type == "more" then
-        PlaceHeading(row, 2)
+        PlaceHeading(row, 2, 2)
         row.heading:SetTextColor(Theme.Unpack(data.type == "more" and "dim" or "muted"))
-        row.heading:SetText("     " .. data.text)
+        row.heading:SetText(NOTE_INDENT .. data.text)
         row.heading:Show()
         return
     end
@@ -804,7 +834,8 @@ function UI:UpdateRow(row, data, index)
             fill:SetWidth(width)
         end
 
-        row.drop:SetText(("%d%%"):format(source.chance))
+        -- "<1%" for a rare drop, which "%d" showed as "0%".
+        row.drop:SetText(ns.Tracker.FormatChance(source.chance))
         row.drop:SetTextColor(DropColor(source.chance))
         row.drop:Show()
     elseif source.requires and source.name then
@@ -815,7 +846,7 @@ function UI:UpdateRow(row, data, index)
     end
 
     if source.provenance == "forever" then
-        row.badge:SetText("Forever")
+        row.badge:SetText(BADGE_TEXT)
         row.badge:Show()
     end
 end
@@ -840,7 +871,7 @@ function UI:OnRowClick(data, button)
     parts[#parts + 1] = ("level %s"):format(ns.Search:LevelText(source))
 
     if source.chance then
-        parts[#parts + 1] = ("~%d%%"):format(source.chance)
+        parts[#parts + 1] = ns.Search:ChanceText(source.chance)
     end
 
     ns.Print(("%s: %s"):format(
@@ -1042,7 +1073,15 @@ function UI:ShowTab(key)
         ns.RankingsUI:Render(true)
     else
         self.frame:SetWidth(WIDTH + (self.columns or COLUMN).extra)
+        self:DrawUnsearched()
     end
+end
+
+--- The Search tab before anything was searched shows what to type, not a
+--- blank panel. It is only drawn by a search, and two ways reach it without
+--- one: the window opened on Rankings, and a goal's "Set another".
+function UI:DrawUnsearched()
+    if self.lastQuery == nil then self:Render() end
 end
 
 --------------------------------------------------------------------------------
@@ -1089,6 +1128,8 @@ function UI:Show()
     self:RestorePosition()
     self.frame:Show()
     ns.Motion:Open(self.frame)
+
+    if self.tab == "search" then self:DrawUnsearched() end
 end
 
 function UI:Hide()

@@ -51,6 +51,9 @@ ns.COLORS = {
     accent = "ffc8a44d",
     good   = "ff4fd18b",
     muted  = "ff7a8089",
+    -- Theme's dim (#6B707B), for the " / " between a zone and its landmark:
+    -- missing here, it came out in the bright text colour.
+    dim    = "ff6b707b",
     warn   = "ffe8c15a",
     text   = "ffe6e8ec",
 }

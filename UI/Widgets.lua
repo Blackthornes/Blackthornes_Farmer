@@ -306,6 +306,10 @@ function Widgets.CreateButton(parent, text, onClick, opts)
     -- the label was put (a caller may have moved it beside an icon), it
     -- goes back to exactly there.
     button:SetScript("OnMouseDown", function(self)
+        -- Already held with another mouse button: dipped once is enough.
+        -- Taking the dipped spot as the rest sank the label a pixel a time.
+        if rawget(self, "restPoint") then return end
+
         local point, relativeTo, relativePoint, x, y = self.label:GetPoint(1)
         if not (point and type(x) == "number" and type(y) == "number") then return end
 
@@ -576,6 +580,9 @@ function Widgets.CreateLineList(parent, opts)
 
     list.scrollbar = scrollbar
 
+    -- True while Refresh sets the scrollbar itself (see there).
+    local syncing = false
+
     local function VisibleRowCount()
         local height = list:GetHeight()
         if not height or height <= 0 then return 0 end
@@ -617,8 +624,13 @@ function Widgets.CreateLineList(parent, opts)
             self.rows[index]:Hide()
         end
 
+        -- The client clamps the slider's value to a new range and reports
+        -- that as the player moving it. Taken as a move, a new list that was
+        -- shorter than the last one opened scrolled to its end.
+        syncing = true
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
+        syncing = false
         scrollbar:SetShown(maxOffset > 0)
         scrollbar:SizeThumb(visible, #(self.data or self.lines))
 
@@ -639,6 +651,8 @@ function Widgets.CreateLineList(parent, opts)
     end
 
     scrollbar:SetScript("OnValueChanged", function(_, value)
+        if syncing then return end
+
         local wanted = math.floor(value + 0.5)
         if wanted ~= list.offset then
             list.offset = wanted
@@ -657,6 +671,13 @@ end
 --------------------------------------------------------------------------------
 -- Row list
 --------------------------------------------------------------------------------
+
+--- Whether the mouse is on `row` and the row is on screen. Read in a pcall,
+--- as every client value is; a client that cannot say answers no.
+local function UnderMouse(row)
+    local ok, over = pcall(function() return row:IsVisible() and row:IsMouseOver() end)
+    return ok and over and true or false
+end
 
 --- A scrolling list that recycles row frames.
 --
@@ -702,6 +723,36 @@ function Widgets.CreateRowList(parent, opts)
         local height = list:GetHeight()
         if not height or height <= 0 then return 0 end
         return math.floor(height / rowHeight)
+    end
+
+    -- True while Refresh sets the scrollbar itself (see there).
+    local syncing = false
+
+    -- The row under the mouse, from its OnEnter to its OnLeave.
+    local hovered
+
+    --- How lit a row is: 0 at rest, 1 under the mouse.
+    local function Lit(row, value)
+        row.highlight:SetAlpha(0.6 * value)
+        row.edge:SetAlpha(value)
+        row.bleed:SetAlpha(value)
+    end
+
+    local function Unlight(row)
+        Motion:Stop(row, "hover")
+        Motion:SetValue(row, "hover", 0)
+        Lit(row, 0)
+    end
+
+    --- The mouse is on `row`: light it, and let the caller show its tooltip.
+    local function Enter(row)
+        hovered = row
+        if row.data and row.data.type ~= "spacer" then
+            Motion:Blend(row, "hover", 1, 0.08, function(value) Lit(row, value) end)
+        else
+            Unlight(row)
+        end
+        if row.data and opts.onEnter then opts.onEnter(row, row.data) end
     end
 
     local function AcquireRow(index)
@@ -750,23 +801,13 @@ function Widgets.CreateRowList(parent, opts)
             opts.createRow(row)
         end
 
-        local function Lit(value)
-            row.highlight:SetAlpha(0.6 * value)
-            row.edge:SetAlpha(value)
-            row.bleed:SetAlpha(value)
-        end
-
         -- Callers hook hovering through opts rather than HookScript on the
         -- row: SetScript here would replace a hook set in createRow.
-        row:SetScript("OnEnter", function(self)
-            if self.data and self.data.type ~= "spacer" then
-                Motion:Blend(self, "hover", 1, 0.08, Lit)
-            end
-            if self.data and opts.onEnter then opts.onEnter(self, self.data) end
-        end)
+        row:SetScript("OnEnter", Enter)
 
         row:SetScript("OnLeave", function(self)
-            Motion:Blend(self, "hover", 0, 0.18, Lit)
+            if hovered == self then hovered = nil end
+            Motion:Blend(self, "hover", 0, 0.18, function(value) Lit(self, value) end)
             if opts.onLeave then opts.onLeave(self) end
         end)
 
@@ -791,6 +832,10 @@ function Widgets.CreateRowList(parent, opts)
         if self.offset > maxOffset then self.offset = maxOffset end
         if self.offset < 0 then self.offset = 0 end
 
+        -- Asked before the rows change: one emptied below is hidden, and a
+        -- hidden row is under no mouse.
+        local stillOver = hovered and UnderMouse(hovered)
+
         for index = 1, visible do
             local row = AcquireRow(index)
             local data = self.data[index + self.offset]
@@ -798,13 +843,9 @@ function Widgets.CreateRowList(parent, opts)
             row.data = data
             row.dataIndex = index + self.offset
 
-            -- A row handed new data under a still mouse starts unlit; the
-            -- next OnEnter lights it again.
-            Motion:Stop(row, "hover")
-            Motion:SetValue(row, "hover", 0)
-            row.highlight:SetAlpha(0)
-            row.edge:SetAlpha(0)
-            row.bleed:SetAlpha(0)
+            -- A row handed new data starts unlit, except the one under the
+            -- mouse, which is lit again for its new data below.
+            if not (stillOver and row == hovered) then Unlight(row) end
 
             if data then
                 -- Banding follows the row's place on screen rather than its
@@ -825,8 +866,28 @@ function Widgets.CreateRowList(parent, opts)
             self.rows[index]:Hide()
         end
 
+        -- A scroll or a redraw hands the row under a still mouse new data,
+        -- and no OnEnter comes for that: it went dark, and its tooltip
+        -- still spoke of the last row. Leave and enter it again, as if the
+        -- mouse had just come onto what it shows now.
+        if hovered then
+            local row = hovered
+            hovered = nil
+            if stillOver and opts.onLeave then opts.onLeave(row) end
+            if stillOver and row.data and row:IsShown() then
+                Enter(row)
+            else
+                Unlight(row)
+            end
+        end
+
+        -- The client clamps the slider's value to a new range and reports
+        -- that as the player moving it. Taken as a move, a new list that was
+        -- shorter than the last one opened scrolled to its end.
+        syncing = true
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
+        syncing = false
         scrollbar:SetShown(maxOffset > 0)
         scrollbar:SizeThumb(visible, #(self.data or self.lines))
 
@@ -871,6 +932,8 @@ function Widgets.CreateRowList(parent, opts)
     end
 
     scrollbar:SetScript("OnValueChanged", function(_, value)
+        if syncing then return end
+
         local wanted = math.floor(value + 0.5)
         if wanted ~= list.offset then
             list.offset = wanted
