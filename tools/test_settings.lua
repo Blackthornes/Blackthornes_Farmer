@@ -207,6 +207,20 @@ suite.check("no control on the page clears recorded loot",
     ns.Harvest:CountCorpses() == corpses, ns.Harvest:CountCorpses())
 
 --------------------------------------------------------------------------------
+-- The export hint stays inside the window
+--
+-- On one line it ran past the window's right edge in the game's font.
+--------------------------------------------------------------------------------
+
+local hint = SettingsUI.exportHint
+local exportButton = hint._point[2]
+-- 310 is a settings column's width.
+suite.check("the export hint is kept to its column beside the button",
+    exportButton:GetWidth() + 8 + hint:GetWidth() <= 310, hint:GetWidth())
+suite.check("and has room for its text on two lines",
+    ns.Theme.TextWidth("tiny", hint:GetText()) <= 2 * hint:GetWidth(), hint:GetText())
+
+--------------------------------------------------------------------------------
 -- A client without the options API
 --------------------------------------------------------------------------------
 

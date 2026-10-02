@@ -478,9 +478,14 @@ function SettingsUI:BuildTrackingColumn()
     end, { width = 80, height = 20 })
     export:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -8)
 
+    -- Kept to the column beside the button, on two lines if the font needs
+    -- them: on one it ran past the window's right edge.
     local exportHint = Theme.CreateLabel(frame, "tiny", "dim")
     exportHint:SetPoint("LEFT", export, "RIGHT", 8, 0)
+    exportHint:SetWidth(COLUMN_WIDTH - export:GetWidth() - 8)
+    exportHint:SetWordWrap(true)
     exportHint:SetText("Your recorded loot, as a data file.")
+    self.exportHint = exportHint
 end
 
 --------------------------------------------------------------------------------
