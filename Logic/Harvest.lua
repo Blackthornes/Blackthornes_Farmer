@@ -519,13 +519,22 @@ function Harvest:RecordCorpse()
     -- -- is still a drop from that corpse and is counted, once.
     --
     -- Without a readable guid (an instance can refuse it) the corpse cannot
-    -- be recognised again, so each opening counts as before.
+    -- be recognised again, so each opening counts as before, apart from a
+    -- skinning one, which never starts a corpse (next).
+    --
+    -- A corpse first opened by skinning is no sample at all: it is another
+    -- player's kill, one whose drops an area loot already took with another
+    -- corpse's, or one looted before a /reload. Its drops are not in this
+    -- window, so counting it would add a corpse that held nothing.
     local guid = self:CorpseID()
     local corpse = guid and self.opened[guid]
     local record
 
     if corpse then
         record = corpse.record
+    elseif ns.Gathering ~= nil and ns.Gathering:IsSkinning() then
+        self.skipped = (self.skipped or 0) + 1
+        return
     else
         local zone, location = self:Where()
 

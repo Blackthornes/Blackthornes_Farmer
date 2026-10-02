@@ -436,6 +436,146 @@ suite.check("a node's own loot counts with a corpse targeted",
     sourced and sourced.gathers == 1 and sourced.items[1] and sourced.items[1].name == "Peacebloom")
 
 --------------------------------------------------------------------------------
+-- Skinning, told apart
+--
+-- Never a gather, but the harvester and the kill tally need to know a loot
+-- window is a skin's: IsSkinning is true from your own Skinning cast until
+-- its window closes, it fails or is interrupted, or GATHER_SECONDS pass.
+--------------------------------------------------------------------------------
+
+suite.check("every rank of Skinning is skinning", Gathering.IsSkinningSpell(8613)
+    and Gathering.IsSkinningSpell(8617) and Gathering.IsSkinningSpell(8618)
+    and Gathering.IsSkinningSpell(10768))
+suite.check("a gather is not", not Gathering.IsSkinningSpell(HERB_GATHERING))
+suite.check("nor a secret spell, and it raises nothing",
+    not Gathering.IsSkinningSpell(env.Secret("spell")))
+
+-- A client whose ids differ: known by name.
+local realSpell = _G.C_Spell
+_G.C_Spell = { GetSpellName = function(spell) return spell == 194174 and "Skinning" or nil end }
+suite.check("known by name where the id differs", Gathering.IsSkinningSpell(194174))
+_G.C_Spell = realSpell
+
+env.world.target = nil
+suite.check("no skin, no skinning", not Gathering:IsSkinning())
+
+fire(ns.eventFrame, "UNIT_SPELLCAST_SENT", "party1", "Mangy Wolf", "Cast-party", SKINNING)
+suite.check("someone else's skin is not yours", not Gathering:IsSkinning())
+
+local skin = Send(SKINNING, "Mangy Wolf")
+suite.check("a skin sent is skinning", Gathering:IsSkinning())
+suite.check("and no gather", not Gathering:IsGathering())
+
+-- The window you had open shuts as the skin begins: it is not the skin's.
+fire(ns.eventFrame, "LOOT_CLOSED")
+suite.check("a window closing before the skin's own leaves it", Gathering:IsSkinning())
+
+fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", skin, SKINNING)
+suite.check("still skinning once it goes through", Gathering:IsSkinning())
+Open({ LEATHER }, { keepOpen = true })
+suite.check("and while its window is open", Gathering:IsSkinning())
+fire(ns.eventFrame, "LOOT_CLOSED")
+suite.check("over when its window closes", not Gathering:IsSkinning())
+
+-- A client that says the cast went through only once its window is open.
+skin = Send(SKINNING, "Mangy Wolf")
+Open({ LEATHER }, { keepOpen = true })
+fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", skin, SKINNING)
+fire(ns.eventFrame, "LOOT_CLOSED")
+suite.check("a late word that it went through does not outlast its window",
+    not Gathering:IsSkinning())
+
+skin = Send(SKINNING, "Mangy Wolf")
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "player", skin, SKINNING)
+suite.check("a failed skin is over", not Gathering:IsSkinning())
+
+skin = Send(SKINNING, "Mangy Wolf")
+fire(ns.eventFrame, "UNIT_SPELLCAST_INTERRUPTED", "player", skin, SKINNING)
+suite.check("so is an interrupted one", not Gathering:IsSkinning())
+
+skin = Send(SKINNING, "Mangy Wolf")
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "player", "Cast-other", FROSTBOLT)
+suite.check("another spell failing is not the skin failing", Gathering:IsSkinning())
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "party1", skin, SKINNING)
+suite.check("nor is someone else's", Gathering:IsSkinning())
+clock = clock + Gathering.GATHER_SECONDS + 1
+suite.check("a skin from long ago is over", not Gathering:IsSkinning())
+
+-- Cast guids the client will not hand over: told apart by the spell.
+fire(ns.eventFrame, "UNIT_SPELLCAST_SENT", "player", "Mangy Wolf", env.Secret("guid"), SKINNING)
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "player", env.Secret("guid"), FROSTBOLT)
+suite.check("without guids another spell failing is still not the skin", Gathering:IsSkinning())
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "player", env.Secret("guid"), SKINNING)
+suite.check("but the skin failing is", not Gathering:IsSkinning())
+
+-- A client that only says the cast went through.
+casts = casts + 1
+fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-" .. casts, SKINNING)
+suite.check("a skin seen only going through counts", Gathering:IsSkinning())
+Open({ LEATHER })
+suite.check("and ends with its window", not Gathering:IsSkinning())
+
+--------------------------------------------------------------------------------
+-- A corpse first opened by skinning is no harvest sample
+--
+-- Its drops were never in your window: another player took them, an area
+-- loot took them with another corpse's, or you looted it before a /reload
+-- made the harvester forget it. Counting it would add a corpse that held
+-- nothing and pull every other rate down.
+--------------------------------------------------------------------------------
+
+local function Skin(guid, name, items)
+    env.world.target = { name = name, level = 7, dead = true, guid = guid }
+    local id = Send(SKINNING, name)
+    clock = clock + 2
+    fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", id, SKINNING)
+    Open(items)
+    clock = clock + 1
+end
+
+local function HarvestRecord(mob)
+    for _, entry in pairs(Harvest.records) do
+        if entry.mob == mob then return entry end
+    end
+end
+
+-- Another player's kill, looted by them: you only skin it.
+local skipped = Harvest.skipped or 0
+Skin("Creature-0-theirs", "Timber Wolf", { LEATHER })
+suite.check("someone else's kill you only skinned is no corpse",
+    HarvestRecord("Timber Wolf") == nil)
+suite.check("it is counted as skipped", (Harvest.skipped or 0) == skipped + 1)
+
+-- Area loot: two wolves, one window holding a fang from each. Only the one
+-- you clicked is counted, with its own fang. Then you skin both.
+local WOLF_A, WOLF_B = "Creature-0-area-a", "Creature-0-area-b"
+local shares = { { WOLF_A, 1, WOLF_B, 1 } }
+_G.GetLootSourceInfo = function(slot) return unpack(shares[slot] or {}) end
+env.world.target = { name = "Timber Wolf", level = 7, dead = true, guid = WOLF_A }
+Open({ { name = "Large Fang", id = 5637, quantity = 2 } })
+shares = { { WOLF_A, 1 } }
+Skin(WOLF_A, "Timber Wolf", { LEATHER })
+shares = { { WOLF_B, 1 } }
+Skin(WOLF_B, "Timber Wolf", { LEATHER })
+_G.GetLootSourceInfo = nil
+
+local timber = HarvestRecord("Timber Wolf")
+suite.check("a corpse the area loot emptied is not counted when skinned",
+    timber and timber.corpses == 1, timber and timber.corpses)
+suite.check("so every corpse still held its fang",
+    timber and timber.items["Large Fang"] and timber.items["Large Fang"].corpses == 1)
+suite.check("and the leather off the one you looted counts",
+    timber and timber.items["Light Leather"] and timber.items["Light Leather"].corpses == 1)
+
+-- Looted, then a /reload forgets the corpse, then skinned.
+env.world.target = { name = "Timber Wolf", level = 7, dead = true, guid = "Creature-0-reload" }
+Open({ { name = "Large Fang", id = 5637 } })
+Harvest.opened = {}
+Skin("Creature-0-reload", "Timber Wolf", { LEATHER })
+suite.check("a corpse skinned after a /reload is not counted twice",
+    timber and timber.corpses == 2, timber and timber.corpses)
+
+--------------------------------------------------------------------------------
 -- The same check with the measured data loaded, as in game
 --
 -- Data/Data_Harvested.lua adds "forever" rows to every item it measured. A
