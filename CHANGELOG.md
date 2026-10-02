@@ -4,6 +4,48 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.14.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- More drop data measured on Forever: 1,900 looted corpses across 176 mobs
+  (mobs are now counted once however many places they were looted in).
+- Goals belong to the character that set them. Logging in on a bank alt no
+  longer counts its bags toward your main's goals or finishes them. The limit
+  of six goals is per character. A goal set before this update shows on every
+  character until one of them loots toward it or changes it.
+- A goal only finishes once your bags have settled after loot, never on a
+  login or loading screen. Crafting the item, or what reaches your bags just
+  after a bank, mail, vendor, auction house or trade window closes, doesn't
+  count as loot. The time left at your pace no longer starts out twice too
+  quick.
+- With area loot, the session's loot, coin, gathered value and per hour count
+  everything the loot window gave you. A corpse you only skin is no longer
+  counted as a kill, so drop rates stop being pulled down and rates no longer
+  unlock early. An item being rolled for still counts as the mob's drop but
+  not as your loot.
+- Herbs picked with a corpse targeted are no longer listed as that mob's
+  drops (Peacebloom and Silverleaf on Cursed Darkhounds and Greater
+  Duskbats), and the export keeps them out.
+- Searching a zone, landmark or mob lists only the spots that match it, and
+  the heading says how many are shown ("5 of 47 spots").
+- Drop rates under 1% read "<1%" instead of "0%".
+- Where to farm says "10 zones away" or "by boat" instead of "other
+  continent" for a far spot on your own continent.
+- The kill and goals panels wear the house glow and flare when rates unlock,
+  a goal is done or a milestone passes. Cards, rows, checkboxes, search boxes
+  and tabs ease under the mouse. "Window effects" in Settings (Full, Subtle,
+  Off) controls all of it.
+- Text fits everywhere: long goal names, the Rankings tab on a small screen
+  or scaled window, ranks of 100 and up, the loot table's "Killed at" line,
+  and the unlock banner on a narrow panel.
+- The kill panel stays within the height you set.
+- Fixed: `/farm gathering reset confirm` also removed your map markers.
+- Fixed: resetting the kill tallies made per hour read far too high.
+- Fixed: a card that just unfolded redrew its bar from empty and skipped its
+  cheers and countdown.
+
 ## 0.13.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
