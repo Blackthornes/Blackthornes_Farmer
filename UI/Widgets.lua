@@ -236,6 +236,17 @@ function Motion:Open(frame, rise)
 end
 
 --------------------------------------------------------------------------------
+-- Reading the client
+--------------------------------------------------------------------------------
+
+--- Whether the mouse is on `frame` and the frame is on screen. Read in a
+--- pcall, as every client value is; a client that cannot say answers no.
+local function UnderMouse(frame)
+    local ok, over = pcall(function() return frame:IsVisible() and frame:IsMouseOver() end)
+    return ok and over and true or false
+end
+
+--------------------------------------------------------------------------------
 -- Button
 --------------------------------------------------------------------------------
 
@@ -679,11 +690,38 @@ end
 -- Row list
 --------------------------------------------------------------------------------
 
---- Whether the mouse is on `row` and the row is on screen. Read in a pcall,
---- as every client value is; a client that cannot say answers no.
-local function UnderMouse(row)
-    local ok, over = pcall(function() return row:IsVisible() and row:IsMouseOver() end)
-    return ok and over and true or false
+--- The light a row wears under the mouse, built on `row` once: a lifted
+--- wash, a thin gold edge down its left so your place in a long list is easy
+--- to keep, and a soft gold light bleeding off that edge into the row.
+--- Unlit until Widgets.SetRowLight lights it.
+function Widgets.RowLight(row)
+    -- Filled at full strength and hidden with SetAlpha: a texture whose
+    -- colour is clear stays clear whatever alpha it is given later, which
+    -- is how the hover went missing.
+    row.highlight = Theme.Fill(row, "rowHover", nil, "BORDER")
+    row.highlight:SetAlpha(0)
+
+    row.edge = row:CreateTexture(nil, "OVERLAY")
+    row.edge:SetPoint("TOPLEFT")
+    row.edge:SetPoint("BOTTOMLEFT")
+    row.edge:SetWidth(2)
+    row.edge:SetColorTexture(Theme.Unpack("accent"))
+    row.edge:SetAlpha(0)
+
+    row.bleed = row:CreateTexture(nil, "BORDER", nil, 1)
+    row.bleed:SetPoint("TOPLEFT", 2, 0)
+    row.bleed:SetPoint("BOTTOMLEFT", 2, 0)
+    row.bleed:SetWidth(18)
+    Theme.SetGradientAlpha(row.bleed, "HORIZONTAL", "accent", 0.22, 0)
+    pcall(row.bleed.SetBlendMode, row.bleed, "ADD")
+    row.bleed:SetAlpha(0)
+end
+
+--- How lit a row from Widgets.RowLight is: 0 at rest, 1 under the mouse.
+function Widgets.SetRowLight(row, value)
+    row.highlight:SetAlpha(0.6 * value)
+    row.edge:SetAlpha(value)
+    row.bleed:SetAlpha(value)
 end
 
 --- A scrolling list that recycles row frames.
@@ -739,11 +777,7 @@ function Widgets.CreateRowList(parent, opts)
     local hovered
 
     --- How lit a row is: 0 at rest, 1 under the mouse.
-    local function Lit(row, value)
-        row.highlight:SetAlpha(0.6 * value)
-        row.edge:SetAlpha(value)
-        row.bleed:SetAlpha(value)
-    end
+    local Lit = Widgets.SetRowLight
 
     local function Unlight(row)
         Motion:Stop(row, "hover")
@@ -777,32 +811,10 @@ function Widgets.CreateRowList(parent, opts)
         -- is how the hover and the banding went missing.
         row.stripe = Theme.Fill(row, "rowAlt")
         row.stripe:SetAlpha(0)
-        row.highlight = Theme.Fill(row, "rowHover", nil, "BORDER")
-        row.highlight:SetAlpha(0)
 
-        -- A thin gold edge on the row under the mouse, easing in with the
-        -- highlight, so your place in a long list is easy to keep.
-        row.edge = row:CreateTexture(nil, "OVERLAY")
-        row.edge:SetPoint("TOPLEFT")
-        row.edge:SetPoint("BOTTOMLEFT")
-        row.edge:SetWidth(2)
-        row.edge:SetColorTexture(Theme.Unpack("accent"))
-        row.edge:SetAlpha(0)
-
-        -- And a soft gold light bleeding off that edge into the row.
-        row.bleed = row:CreateTexture(nil, "BORDER", nil, 1)
-        row.bleed:SetPoint("TOPLEFT", 2, 0)
-        row.bleed:SetPoint("BOTTOMLEFT", 2, 0)
-        row.bleed:SetWidth(18)
-        row.bleed:SetColorTexture(1, 1, 1, 1)
-        pcall(row.bleed.SetBlendMode, row.bleed, "ADD")
-        do
-            local r, g, b = Theme.Unpack("accent")
-            local ok = type(CreateColor) == "function" and pcall(row.bleed.SetGradient, row.bleed,
-                "HORIZONTAL", CreateColor(r, g, b, 0.22), CreateColor(r, g, b, 0))
-            if not ok then row.bleed:SetColorTexture(r, g, b, 0.06) end
-        end
-        row.bleed:SetAlpha(0)
+        -- The wash, the gold edge and the gold light that come up under the
+        -- mouse.
+        Widgets.RowLight(row)
 
         if opts.createRow then
             opts.createRow(row)

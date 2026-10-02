@@ -67,6 +67,14 @@ local SHINE_WIDTH = 26
 
 local BRIGHT_GOLD = { 1, 0.906, 0.639 }
 
+-- How bright the glow round the panel sits: low, since the panel is up all
+-- the time. It flares as the panel opens, and more on the big moments.
+local HALO_REST = 0.08
+-- A flare peaks at this many times the resting glow and settles back over
+-- this long: a goal done outshines a milestone passed.
+local FLARE_DONE, FLARE_DONE_TIME = 5, 1.4
+local FLARE_MILESTONE, FLARE_MILESTONE_TIME = 3.2, 0.9
+
 GoalsUI.cards = {}
 GoalsUI.effects = {}
 
@@ -235,6 +243,8 @@ function GoalsUI:Build()
     -- the text (Trent's screenshot, 2026-09-27).
     Theme.Fill(frame, "window", 0.96)
     Theme.Border(frame, "border")
+    -- The house's neon edge, as the other windows have.
+    Theme.Halo(frame, 8, HALO_REST)
 
     frame:SetScript("OnDragStart", function(self)
         GoalsUI.dragging = true
@@ -311,6 +321,15 @@ function GoalsUI:Card(index)
     card:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     card.band = Theme.Fill(card, "row", 1)
+
+    -- Under the mouse the card lifts, a lighter wash and a lit edge easing
+    -- in, so it reads as something to click. Both start clear.
+    card.hover = card:CreateTexture(nil, "BACKGROUND", nil, 1)
+    card.hover:SetAllPoints(card)
+    card.hover:SetColorTexture(Theme.Unpack("rowHover"))
+    card.hover:SetAlpha(0)
+    Theme.Border(card, "borderLit")
+    for _, line in ipairs(card.borderTextures) do line:SetAlpha(0) end
 
     -- The wash and the left edge the effects light up.
     card.flash = card:CreateTexture(nil, "BORDER")
@@ -402,6 +421,14 @@ function GoalsUI:Card(index)
     card.tip:SetSize(4, BAR_HEIGHT)
     card.tip:SetColorTexture(BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3], 0.9)
 
+    -- And a soft spark round the tip, spilling past the bar, so the bar
+    -- reads as on its way. Coloured by SetBar, with the bar.
+    card.spark = card:CreateTexture(nil, "OVERLAY", nil, 1)
+    card.spark:SetPoint("RIGHT", card.fill, "RIGHT", 4, 0)
+    card.spark:SetSize(14, 10)
+    pcall(card.spark.SetBlendMode, card.spark, "ADD")
+    card.spark:Hide()
+
     card.fresh = card:CreateTexture(nil, "OVERLAY")
     card.fresh:SetHeight(BAR_HEIGHT)
     card.fresh:SetColorTexture(1, 0.95, 0.8, 1)
@@ -431,8 +458,26 @@ function GoalsUI:Card(index)
     -- with the time left just before it.
     card.where:SetPoint("TOPRIGHT", card.track, "BOTTOMRIGHT", 0, -3)
 
-    card:SetScript("OnEnter", function(self) GoalsUI:ShowCardTooltip(self) end)
-    card:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    local function Lit(value)
+        card.hover:SetAlpha(0.6 * value)
+        for _, line in ipairs(card.borderTextures) do line:SetAlpha(value) end
+    end
+
+    card:SetScript("OnEnter", function(self)
+        ns.Motion:Blend(self, "hover", 1, 0.12, Lit)
+        GoalsUI:ShowCardTooltip(self)
+    end)
+    card:SetScript("OnLeave", function(self)
+        ns.Motion:Blend(self, "hover", 0, 0.18, Lit)
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    -- Hidden under the mouse (its goal cleared, the panel closed), no leave
+    -- may come: let go, or the next goal it shows starts lit.
+    card:SetScript("OnHide", function(self)
+        ns.Motion:Stop(self, "hover")
+        ns.Motion:SetValue(self, "hover", 0)
+        Lit(0)
+    end)
     card:SetScript("OnClick", function(self, button) GoalsUI:OnCardClick(self, button) end)
 
     self.cards[index] = card
@@ -460,6 +505,15 @@ function GoalsUI:SetBar(card, fraction, green)
         card.tip:SetColorTexture(BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3], 0.9)
     end
     card.tip:SetShown(fraction > 0.02 and fraction < 1)
+
+    -- The spark turns green with the bar. Drawn again only when it changes
+    -- colour: this runs every frame while the bar slides.
+    local sparkKey = green and "good" or "accent"
+    if card.sparkKey ~= sparkKey then
+        Theme.SetGradientAlpha(card.spark, "HORIZONTAL", sparkKey, 0, 0.55)
+        card.sparkKey = sparkKey
+    end
+    card.spark:SetShown(fraction > 0.02 and fraction < 1)
 end
 
 --- The small grey line under the name: the best place near you, from the
@@ -664,7 +718,13 @@ function GoalsUI:Refresh()
 
     self:Render()
     self:Place()
+
+    -- It fades up, its glow flaring, only as it appears: this also runs
+    -- each time a goal is set or removed, and a panel already up must not
+    -- blink. It never rises, since players drag it into place.
+    local opening = not self.frame:IsShown()
     self.frame:Show()
+    if opening then ns.Motion:Open(self.frame, 0) end
 end
 
 function GoalsUI:Show()
@@ -1007,11 +1067,35 @@ function GoalsUI:Changed(changes)
     if level == "off" then return end
 
     local floats = 0
+    local done, milestone = false, false
     for _, change in ipairs(changes) do
         local ok, err = pcall(self.Play, self, change, level, floats)
         if not ok then ns.Debug("goal effects:", tostring(err)) end
         if change.gathered then floats = floats + 1 end
+        if change.done then done = true elseif change.milestone then milestone = true end
     end
+
+    -- The glow round the panel flares once, for the biggest moment in
+    -- this count.
+    if done then
+        self:Flare(FLARE_DONE, FLARE_DONE_TIME)
+    elseif milestone then
+        self:Flare(FLARE_MILESTONE, FLARE_MILESTONE_TIME)
+    end
+end
+
+--- The glow round the panel flares to `strength` times its rest and eases
+--- back over `duration` seconds. Through Motion, so with effects off it
+--- simply stays at rest.
+function GoalsUI:Flare(strength, duration)
+    local frame = self.frame
+    local rest = frame and frame.haloRest
+    if not rest then return end
+
+    local peak = rest * strength
+    ns.Motion:Run(frame, "halo", duration, function(p)
+        Theme.SetHalo(frame, peak + (rest - peak) * p)
+    end)
 end
 
 function GoalsUI:Play(change, level, floats)
@@ -1178,6 +1262,8 @@ function GoalsUI:BuildSpots()
 
     Theme.Fill(panel, "window", 0.96)
     Theme.Border(panel, "accent")
+    -- The house glow round it, flaring as it opens.
+    Theme.Halo(panel, 8, 0.10)
 
     local stripe = panel:CreateTexture(nil, "ARTWORK")
     stripe:SetPoint("TOPLEFT")
@@ -1236,7 +1322,9 @@ function GoalsUI:SpotRow(index)
     row:SetPoint("TOPRIGHT", -1, -(SPOTS_TOP + (index - 1) * SPOT_ROW))
 
     row.band = Theme.Fill(row, "row", index % 2 == 0 and 0.35 or 0.8)
-    row.hover = Theme.Fill(row, "rowHover", 0, "BORDER")
+    -- The light the lists' rows wear under the mouse. The wash here was
+    -- filled clear, so no alpha could ever show it.
+    Widgets.RowLight(row)
 
     row.flash = row:CreateTexture(nil, "BORDER")
     row.flash:SetAllPoints(row)
@@ -1265,8 +1353,16 @@ function GoalsUI:SpotRow(index)
     row.zone:SetPoint("BOTTOMLEFT", 30, 5)
     row.zone:SetPoint("RIGHT", row.note, "LEFT", -8, 0)
 
-    row:SetScript("OnEnter", function(self) self.hover:SetAlpha(0.7) end)
-    row:SetScript("OnLeave", function(self) self.hover:SetAlpha(0) end)
+    local function Lit(value) Widgets.SetRowLight(row, value) end
+    row:SetScript("OnEnter", function(self) ns.Motion:Blend(self, "hover", 1, 0.12, Lit) end)
+    row:SetScript("OnLeave", function(self) ns.Motion:Blend(self, "hover", 0, 0.18, Lit) end)
+    -- Closed with Escape under the mouse, no leave may come: let go, or the
+    -- row is lit when the panel opens again.
+    row:SetScript("OnHide", function(self)
+        ns.Motion:Stop(self, "hover")
+        ns.Motion:SetValue(self, "hover", 0)
+        Lit(0)
+    end)
     row:SetScript("OnClick", function(self)
         if not self.spot then return end
         ns.Spots:Share(GoalsUI.spotsItem, self.spot)
@@ -1411,6 +1507,8 @@ function GoalsUI:BuildPicker()
 
     Theme.Fill(picker, "panel", 0.98)
     Theme.Border(picker, "accent")
+    -- The house glow round it, flaring as it opens.
+    Theme.Halo(picker, 8, 0.10)
 
     local title = Theme.CreateLabel(picker, "small", "accent")
     title:SetPoint("TOPLEFT", 10, -9)
