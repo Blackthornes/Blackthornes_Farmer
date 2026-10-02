@@ -829,7 +829,8 @@ end
 --
 -- Trent asked for it (2026-09-25), and for others to see it too, to spread
 -- the word about the addon. The emote is the one public thing the addon ever
--- says: once per mob, at its 20th kill. `/farm announce off` keeps it to
+-- says: once per mob at its 20th kill, and the same for a fishing spot's
+-- 20th cast and a node's 20th gather. `/farm announce off` keeps it to
 -- yourself; `/farm celebrate off` turns the whole thing off.
 function Tracker:Celebrate(mobName)
     if ns.db.trackerCelebrate == false then return end
@@ -856,9 +857,9 @@ end
 
 --- The fanfare itself: `line` in your own chat, `emote` to the players near
 --- you (unless /farm announce is off), the sound, and `banner` ({ title,
---- subject, key }) across the top of the panel. Fishing uses it too, when
---- a spot's catch rates unlock at 20 casts. The caller checks
---- /farm celebrate.
+--- subject, key }) across the top of the panel. Fishing and gathering use
+--- it too, when a spot's catch rates unlock at 20 casts or a node's gather
+--- rates at 20 gathers. The caller checks /farm celebrate.
 function Tracker:Fanfare(line, emote, banner)
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
 
@@ -963,7 +964,7 @@ ns.RegisterCommand("report", "report each kill's tally in chat (on/off)", functi
     end
 end)
 
-ns.RegisterCommand("celebrate", "sound and cheer at a mob's 20th kill or a fishing spot's 20th cast (on/off)",
+ns.RegisterCommand("celebrate", "sound and cheer at a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather (on/off)",
     function(rest)
         local argument = Util.Trim(rest):lower()
 
@@ -976,11 +977,11 @@ ns.RegisterCommand("celebrate", "sound and cheer at a mob's 20th kill or a fishi
         end
 
         ns.Print(ns.db.trackerCelebrate
-            and "a fanfare when a mob's drop rates unlock at 20 kills. /farm celebrate off to stop."
-            or "no fanfare when drop rates unlock. /farm celebrate on to bring it back.")
+            and "a fanfare when rates unlock at 20 kills, casts or gathers. /farm celebrate off to stop."
+            or "no fanfare when rates unlock. /farm celebrate on to bring it back.")
     end)
 
-ns.RegisterCommand("announce", "emote your 20-kill milestones to players nearby (on/off)",
+ns.RegisterCommand("announce", "emote your 20 kill, cast and gather milestones to players nearby (on/off)",
     function(rest)
         local argument = Util.Trim(rest):lower()
 
@@ -993,8 +994,8 @@ ns.RegisterCommand("announce", "emote your 20-kill milestones to players nearby 
         end
 
         ns.Print(ns.db.trackerAnnounce
-            and "players near you see an emote when a mob's drop rates unlock. /farm announce off to stop."
-            or "drop-rate milestones stay in your own chat. /farm announce on to share them.")
+            and "players near you see an emote when rates unlock. /farm announce off to stop."
+            or "milestones stay in your own chat. /farm announce on to share them.")
 
         if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
     end)

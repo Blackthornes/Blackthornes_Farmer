@@ -1140,7 +1140,9 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
     -- Name an item and you get only that item, which is the usual case: you
     -- farmed one thing for an evening and want that one block.
     local name, candidates = ns.Harvest:ResolveItem(wanted)
-    local block = name and ns.Harvest:ExportItem(name)
+    -- A herb or ore credited to a mob stays out, as in ExportAll.
+    local nodeOnly = name and ns.Gathering ~= nil and ns.Gathering.IsNodeOnly(name)
+    local block = name and not nodeOnly and ns.Harvest:ExportItem(name)
 
     if candidates then
         local shown, more = {}, #candidates - 8
@@ -1148,6 +1150,11 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
         local list = table.concat(shown, ", ")
         if more > 0 then list = ("%s and %d more"):format(list, more) end
         ns.Print(("%s could be %s. Type more of the name."):format(wanted, list))
+        return
+    end
+
+    if nodeOnly then
+        ns.Print(("%s comes from nodes, not mobs, so it is never exported."):format(name))
         return
     end
 

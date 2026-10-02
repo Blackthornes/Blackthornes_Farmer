@@ -405,6 +405,17 @@ suite.check("the export leaves the ore out",
 suite.check("and keeps the mob's own drop",
     exported:find('name = "Large Fang"', 1, true) ~= nil)
 
+-- Asked for by name, the ore stays out too.
+env.chat = {}
+local exportShown
+local ShowExport = ns.UI.ShowExport
+ns.UI.ShowExport = function(_, text) exportShown = text end
+ns.HandleSlash("export copper ore")
+ns.UI.ShowExport = ShowExport
+suite.check("/farm export of an ore opens no window", exportShown == nil, exportShown)
+suite.check("and says why", env.chat[1] and env.chat[1]:find("comes from nodes", 1, true) ~= nil,
+    env.chat[1])
+
 mobs["Mangy Wolf"].items["Peacebloom"] = nil
 record.items["Copper Ore"] = nil
 env.chat = {}
