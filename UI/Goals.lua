@@ -465,7 +465,7 @@ local function SpotText(goal)
     local spot = ok and spots and spots[1]
     if not spot then return "" end
 
-    local distance = ns.Spots.DistanceText(spot.hops, spot.zone)
+    local distance = ns.Spots.DistanceText(spot.hops, spot.zone, spot.travel)
     if distance == "you are here" then
         return ("%s, %s"):format(spot.name or "?", Util.Colored("good", "here"))
     end
@@ -1270,7 +1270,7 @@ function GoalsUI:OpenSpots(item, anchor)
         row.level:SetText(spot.minLevel and ns.Search:LevelText(spot) or "")
         row.level:SetTextColor(Theme.Unpack(LevelColor(spot, player.level)))
 
-        local distance = ns.Spots.DistanceText(spot.hops, spot.zone)
+        local distance = ns.Spots.DistanceText(spot.hops, spot.zone, spot.travel)
         local where = spot.zone or "?"
         if spot.location then where = where .. ", " .. spot.location end
         if distance ~= "" then
