@@ -246,6 +246,22 @@ local function UnderMouse(frame)
     return ok and over and true or false
 end
 
+--- Every point `region` hangs from, as SetPoint takes them, or nil when one
+--- of them cannot be read. A client that will not count them gets the
+--- first, which is all most labels have.
+local function Points(region)
+    local ok, count = pcall(function() return region:GetNumPoints() end)
+    count = ok and tonumber(count) or 1
+
+    local points = {}
+    for index = 1, math.max(1, count) do
+        local point, relativeTo, relativePoint, x, y = region:GetPoint(index)
+        if not (point and type(x) == "number" and type(y) == "number") then return nil end
+        points[index] = { point, relativeTo, relativePoint, x, y }
+    end
+    return points
+end
+
 --------------------------------------------------------------------------------
 -- Button
 --------------------------------------------------------------------------------
@@ -313,28 +329,34 @@ function Widgets.CreateButton(parent, text, onClick, opts)
         Motion:Blend(self, "hover", 0, HOVER_TIME * 1.5, Light)
     end)
 
-    -- The label dips a pixel while held, so a click feels pressed. Wherever
-    -- the label was put (a caller may have moved it beside an icon), it
-    -- goes back to exactly there.
+    -- The label dips a pixel while held, so a click feels pressed. Every
+    -- point it hangs from moves together, or a label held at both ends
+    -- would tilt; and wherever it was put (a caller may have moved it
+    -- beside an icon), it goes back to exactly there.
     button:SetScript("OnMouseDown", function(self)
         -- Already held with another mouse button: dipped once is enough.
         -- Taking the dipped spot as the rest sank the label a pixel a time.
-        if rawget(self, "restPoint") then return end
+        if rawget(self, "restPoints") then return end
 
-        local point, relativeTo, relativePoint, x, y = self.label:GetPoint(1)
-        if not (point and type(x) == "number" and type(y) == "number") then return end
+        local points = Points(self.label)
+        if not points then return end
 
-        self.restPoint = { point, relativeTo, relativePoint, x, y }
-        self.label:SetPoint(point, relativeTo, relativePoint, x, y - 1)
+        self.restPoints = points
+        for _, p in ipairs(points) do self.label:SetPoint(p[1], p[2], p[3], p[4], p[5] - 1) end
     end)
 
-    button:SetScript("OnMouseUp", function(self)
-        local rest = rawget(self, "restPoint")
+    local function Release(self)
+        local rest = rawget(self, "restPoints")
         if not rest then return end
 
-        self.restPoint = nil
-        self.label:SetPoint(rest[1], rest[2], rest[3], rest[4], rest[5])
-    end)
+        self.restPoints = nil
+        for _, p in ipairs(rest) do self.label:SetPoint(p[1], p[2], p[3], p[4], p[5]) end
+    end
+
+    button:SetScript("OnMouseUp", Release)
+    -- Hidden while held (the click closed its window), the mouse-up never
+    -- comes: let go, or the label would stay a pixel low from then on.
+    button:SetScript("OnHide", Release)
 
     if onClick then
         button:SetScript("OnClick", function(self, mouseButton)
@@ -406,8 +428,6 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept, opts)
     local cross = Theme.CreateLabel(clear, "normal", "muted", "CENTER")
     cross:SetPoint("CENTER", 0, 0)
     cross:SetText("x")
-    clear:SetScript("OnEnter", function() cross:SetTextColor(Theme.Unpack("text")) end)
-    clear:SetScript("OnLeave", function() cross:SetTextColor(Theme.Unpack("muted")) end)
     clear:Hide()
     holder.clear = clear
 
@@ -417,19 +437,69 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept, opts)
         clear:SetShown(not empty and not opts.plain)
     end
 
-    --- Gold edge and a brighter magnifier while it has the keyboard.
-    local function Focus(p)
-        local r, g, b, a = Motion.Mix("border", "accent", p, 1, 0.8)
-        for _, edge in ipairs(holder.borderTextures or {}) do edge:SetColorTexture(r, g, b, a) end
-        icon:SetVertexColor(Motion.Mix("muted", "accent", p))
+    --- The edge and the magnifier, from how far the mouse and the keyboard
+    --- have each eased in: the edge lifts under the mouse and turns gold
+    --- while the box has the keyboard, and the keyboard's gold wins.
+    local function Paint()
+        local hover = Motion:Value(holder, "hover")
+        local focus = Motion:Value(holder, "focus")
+
+        local r1, g1, b1 = Motion.Mix("border", "borderLit", hover)
+        local r2, g2, b2 = Theme.Unpack("accent")
+        local r, g, b = r1 + (r2 - r1) * focus, g1 + (g2 - g1) * focus, b1 + (b2 - b1) * focus
+        for _, edge in ipairs(holder.borderTextures or {}) do
+            edge:SetColorTexture(r, g, b, 1 - 0.2 * focus)
+        end
+
+        icon:SetVertexColor(Motion.Mix("muted", "accent", math.max(focus, hover * 0.4)))
     end
 
+    --- The mouse came onto part of the box or left it. Lit while it is
+    --- anywhere on the box: going from the margin onto the text, or onto
+    --- the x, is a leave and an enter of their own.
+    local function Hover()
+        local over = UnderMouse(holder)
+        Motion:Blend(holder, "hover", over and 1 or 0, over and 0.12 or 0.18, Paint)
+    end
+
+    holder:EnableMouse(true)
+    holder:SetScript("OnEnter", Hover)
+    holder:SetScript("OnLeave", Hover)
+    box:SetScript("OnEnter", Hover)
+    box:SetScript("OnLeave", Hover)
+    -- The margin answers the mouse now, so a click there (on the
+    -- magnifier, say) gives the box the keyboard rather than nothing.
+    holder:SetScript("OnMouseDown", function() box:SetFocus() end)
+
+    -- The x lifts to the text colour under the mouse, eased like the rest.
+    local function LightCross(p)
+        cross:SetTextColor(Motion.Mix("muted", "text", p))
+    end
+    clear:SetScript("OnEnter", function(self)
+        Motion:Blend(self, "hover", 1, 0.12, LightCross)
+        Hover()
+    end)
+    clear:SetScript("OnLeave", function(self)
+        Motion:Blend(self, "hover", 0, 0.18, LightCross)
+        Hover()
+    end)
+
+    -- Hidden under the mouse (its window closing, or the x going with the
+    -- text it cleared), no leave may come: let go, or it shows again lit.
+    local function LetGo(frame, apply)
+        Motion:Stop(frame, "hover")
+        Motion:SetValue(frame, "hover", 0)
+        apply(0)
+    end
+    holder:SetScript("OnHide", function() LetGo(holder, Paint) end)
+    clear:SetScript("OnHide", function() LetGo(clear, LightCross) end)
+
     box:SetScript("OnEditFocusGained", function()
-        Motion:Blend(holder, "focus", 1, 0.15, Focus)
+        Motion:Blend(holder, "focus", 1, 0.15, Paint)
     end)
 
     box:SetScript("OnEditFocusLost", function()
-        Motion:Blend(holder, "focus", 0, 0.2, Focus)
+        Motion:Blend(holder, "focus", 0, 0.2, Paint)
     end)
 
     box:SetScript("OnTextChanged", function(self, userInput)
@@ -1091,6 +1161,8 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     box:SetPoint("LEFT")
     box.background = Theme.Fill(box, "row")
     Theme.Border(box, "border")
+    -- A faint sheen along its top, as the buttons have.
+    Theme.TopSheen(box)
 
     local tick = box:CreateTexture(nil, "OVERLAY")
     tick:SetPoint("CENTER")
@@ -1102,14 +1174,34 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     label:SetText(text)
 
     checkbox.label = label
+    checkbox.box = box
     checkbox:SetWidth(Theme.TextWidth("small", text) + 24)
     checkbox.checked = initial and true or false
     checkbox.disabled = false
-    tick:SetShown(checkbox.checked)
+
+    --- The box and its label, from its state and from how far the mouse has
+    --- eased in. A ticked box wears a gold edge, so its state shows at a
+    --- glance and not only by the small mark; an unticked one lifts under
+    --- the mouse; the label eases to gold. A disabled one does not answer
+    --- the mouse.
+    local function Paint()
+        local hover = checkbox.disabled and 0 or Motion:Value(checkbox, "hover")
+        tick:SetShown(checkbox.checked)
+
+        local r, g, b, a
+        if checkbox.checked then
+            r, g, b, a = Theme.Unpack("accent", checkbox.disabled and 0.4 or 1)
+        else
+            r, g, b, a = Motion.Mix("border", "borderLit", hover)
+        end
+        for _, edge in ipairs(box.borderTextures or {}) do edge:SetColorTexture(r, g, b, a) end
+
+        label:SetTextColor(Motion.Mix(checkbox.disabled and "dim" or "text", "accent", hover))
+    end
 
     function checkbox:SetChecked(value)
         self.checked = value and true or false
-        tick:SetShown(self.checked)
+        Paint()
     end
 
     function checkbox:GetChecked()
@@ -1120,8 +1212,8 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     --- setting this client cannot honour.
     function checkbox:SetDisabled(disabled)
         self.disabled = disabled and true or false
-        label:SetTextColor(Theme.Unpack(self.disabled and "dim" or "text"))
         tick:SetAlpha(self.disabled and 0.4 or 1)
+        Paint()
     end
 
     checkbox:SetScript("OnClick", function(self)
@@ -1140,17 +1232,14 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     end)
 
     checkbox:SetScript("OnEnter", function(self)
-        if not self.disabled then
-            label:SetTextColor(Theme.Unpack("accent"))
-            Theme.SetBorderColor(box, "accent", 0.7)
-        end
+        Motion:Blend(self, "hover", 1, 0.12, Paint)
     end)
 
     checkbox:SetScript("OnLeave", function(self)
-        label:SetTextColor(Theme.Unpack(self.disabled and "dim" or "text"))
-        Theme.SetBorderColor(box, "border")
+        Motion:Blend(self, "hover", 0, 0.18, Paint)
     end)
 
+    Paint()
     return checkbox
 end
 
