@@ -13,7 +13,8 @@
 --     fold to one line with their loot as small icons; click a band to open
 --     or fold it. The Sort button orders the rest.
 --   * Loot: everything looted, fished and gathered this session in one list,
---     best earners first, medals on the top three, and where each came from.
+--     best earners first with medals on the top three, and where each came
+--     from.
 --
 -- Items are drawn the way the bags draw them, icon and quality colour, both
 -- remembered from the loot window by the tracker. Click an item icon for
@@ -35,9 +36,10 @@ local Util = ns.Util
 local WIDTH = 260
 local HEIGHT = 420
 
--- How small and how large the grip will let it go.
+-- How small and how large the grip will let it go. The shortest is further
+-- down, after the sizes it is made of.
 local MIN_WIDTH, MAX_WIDTH = 180, 600
-local MIN_HEIGHT, MAX_HEIGHT = 120, 1000
+local MAX_HEIGHT = 1000
 local PADDING = 8
 -- The title bar: "Kills & Loot" and the X on top, the session's gathered
 -- value on a second line under them.
@@ -80,6 +82,11 @@ local MINI = 12
 local MINIS = 6
 TrackerUI.SLOT = SLOT
 
+-- The shortest the grip goes: the header, and room under it for one row of
+-- an open card's loot icons (see LineHeight). A shorter panel could not hold
+-- that row, and was drawn taller than the height you set to fit it.
+local MIN_HEIGHT = TOP + PADDING * 2 + SLOT + SLOT_GAP + 6
+
 -- A Loot tab row: two lines, its icon, and the rank's medal.
 local LOOT_ROW = 32
 local LOOT_ICON = 22
@@ -96,6 +103,10 @@ local MEDALS = {
 
 -- Lines the wheel moves at a time.
 local SCROLL_STEP = 2
+
+-- The strip under the lines that says "12 more below" while some are out of
+-- sight. It comes out of the same height as the lines.
+local MORE_HEIGHT = 10
 
 -- Per hour shows once the session has run this long, in seconds; before
 -- that one lucky drop would say you earn a fortune.
@@ -170,11 +181,23 @@ function TrackerUI:Line(index)
     return row
 end
 
-function TrackerUI:SaveSize()
+--- The panel's size on screen, in whole pixels.
+function TrackerUI:SizeNow()
+    return { width = math.floor((tonumber(self.frame:GetWidth()) or 0) + 0.5),
+        height = math.floor((tonumber(self.frame:GetHeight()) or 0) + 0.5) }
+end
+
+--- Save the size on screen. `from` is the size when the grip was pressed,
+--- and a side the drag left alone keeps what was saved: the panel is drawn
+--- shorter than its saved height while there is less to show, so saving
+--- what was on screen made a click on the grip, or a drag only to widen it,
+--- the panel's new height for good.
+function TrackerUI:SaveSize(from)
     if not (ns.db and self.frame) then return end
 
-    ns.db.trackerWidth = math.floor(self.frame:GetWidth() + 0.5)
-    ns.db.trackerHeight = math.floor(self.frame:GetHeight() + 0.5)
+    local now = self:SizeNow()
+    if not (from and from.width == now.width) then ns.db.trackerWidth = now.width end
+    if not (from and from.height == now.height) then ns.db.trackerHeight = now.height end
 end
 
 --- The corner grip. Drag it and the panel follows; let go and it keeps that.
@@ -205,6 +228,7 @@ function TrackerUI:BuildGrip(frame)
         -- Start from the size on screen, so the corner stays under the
         -- cursor. Changing the height here would move the corner away from
         -- the mouse, and the drag would keep that gap the whole way.
+        TrackerUI.sizeFrom = TrackerUI:SizeNow()
         frame:StartSizing("BOTTOMRIGHT")
     end)
 
@@ -213,7 +237,8 @@ function TrackerUI:BuildGrip(frame)
         TrackerUI.sizing = false
         TrackerUI.tabNeeds = nil
         TrackerUI:AnchorTop()
-        TrackerUI:SaveSize()
+        TrackerUI:SaveSize(TrackerUI.sizeFrom)
+        TrackerUI.sizeFrom = nil
         -- Resizing is not picking a spot; in a group it stays beside the
         -- group frames rather than being pinned where it happens to be.
         if not TrackerUI.grouped then TrackerUI:SavePosition() end
@@ -350,6 +375,9 @@ function TrackerUI:Build()
     local close = Widgets.CreateButton(header, "X", function()
         ns.db.trackerHidden = true
         TrackerUI:Refresh()
+        -- An open Settings page shows the panel's switch: keep it in step,
+        -- as /farm tracker off does.
+        if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
         ns.Print("kill and loot panel hidden. /farm tracker brings it back.")
     end, { width = 18, height = 16, danger = true })
     close:SetPoint("RIGHT", header, "TOPRIGHT", -6, -TITLE_LINE / 2)
@@ -1620,7 +1648,9 @@ end
 --- A Loot tab row's rank and medal, icon and quality wash. Returns where
 --- its name starts.
 function TrackerUI:DrawLootParts(row, line)
-    local medal = MEDALS[line.rank]
+    -- A medal says best earner, so only the Value order hands them out:
+    -- sorted by name, the top three are only first in the alphabet.
+    local medal = self:Sort("loot") == "value" and MEDALS[line.rank] or nil
     row.medal:ClearAllPoints()
     row.medal:SetPoint("LEFT", PADDING - 2, 0)
     row.rank:ClearAllPoints()
@@ -1945,12 +1975,14 @@ function TrackerUI:Render()
     end
 
     -- Scrolled no further than it takes to bring the last line to the
-    -- bottom edge.
+    -- bottom edge. A last line taller than the whole room (an open card's
+    -- icons on a short panel) is shown on its own, never scrolled past:
+    -- scrolled past, nothing at all was drawn.
     local maxScroll, tail = 0, 0
     for index = #all, 1, -1 do
         tail = tail + heights[index]
         if tail > room then
-            maxScroll = index
+            maxScroll = math.min(index, #all - 1)
             break
         end
     end
@@ -1962,6 +1994,15 @@ function TrackerUI:Render()
         if used + heights[index] > room and #shown > 0 then break end
         shown[#shown + 1] = all[index]
         used = used + heights[index]
+    end
+
+    -- Lines left below take the "more below" strip from the same room, so the
+    -- panel is never taller than the height you set.
+    if self.scroll + #shown < #all then
+        while #shown > 1 and used + MORE_HEIGHT > room do
+            used = used - heights[self.scroll + #shown]
+            shown[#shown] = nil
+        end
     end
     local first = self.scroll + 1
     local below = #all - (self.scroll + #shown)
@@ -2034,7 +2075,7 @@ function TrackerUI:Render()
     end
 
     if not self.sizing then
-        self.frame:SetHeight(TOP + PADDING * 2 + used + (below > 0 and 10 or 0))
+        self.frame:SetHeight(TOP + PADDING * 2 + used + (below > 0 and MORE_HEIGHT or 0))
     end
 
     self:FitTitleBadge()
@@ -2186,6 +2227,18 @@ end
 -- On and off
 --------------------------------------------------------------------------------
 
+--- The goals panel hangs under this one until it is dragged, as wide as it
+--- is: follow it when it comes back, changes width or goes, so it never
+--- hangs under empty space.
+local function FollowGoals()
+    local goals = ns.GoalsUI
+    if goals and goals.frame and goals.frame:IsShown() and not ns.db.goalsX
+        and not goals.dragging then
+        if goals.lastBase ~= goals:Width() then pcall(goals.Render, goals) end
+        pcall(goals.Place, goals)
+    end
+end
+
 --- Redraw, and show or hide to match the saved setting.
 function TrackerUI:Refresh()
     self:Build()
@@ -2204,6 +2257,7 @@ function TrackerUI:Refresh()
             ns.TrackerFX:Forget()
             pcall(ns.TrackerFX.HiddenLoot, ns.TrackerFX)
         end
+        FollowGoals()
         return
     end
 
@@ -2212,23 +2266,20 @@ function TrackerUI:Refresh()
     self:Render()
     self.frame:Show()
 
-    -- The goals panel hangs under this one, as wide as it is: follow it
-    -- when it comes back or changes width.
-    local goals = ns.GoalsUI
-    if goals and goals.frame and goals.frame:IsShown() and not ns.db.goalsX
-        and not goals.dragging then
-        if goals.lastBase ~= goals:Width() then pcall(goals.Render, goals) end
-        pcall(goals.Place, goals)
-    end
+    FollowGoals()
 end
 
 --- Forget what the panel remembered about the last session's lines: its
---- widest width on each tab, which cards you opened or folded, the
---- per-hour clock, the Loot tab's ranks and the scroll. For a reset.
+--- widest width on each tab, which cards you opened or folded, the Loot
+--- tab's ranks and the scroll. For a reset.
+--
+-- The per-hour clock is left to NoteStart: a reset clears the kills, but
+-- what you fished and gathered is still in the session's value, and timed
+-- from the reset, an hour of fishing read as earned in minutes. NoteStart
+-- stops the clock itself once nothing is left.
 function TrackerUI:ResetState()
     self.tabNeeds = nil
     self.open = nil
-    self.startedAt = nil
     self.ranks = nil
     self.scroll = 0
     self.dots = nil
