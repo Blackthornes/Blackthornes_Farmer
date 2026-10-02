@@ -5,11 +5,14 @@
 -- targeted, which is how herbs used to turn up as a mob's loot; a gather is
 -- known only from a Herb Gathering or Mining cast that nothing interrupted, so
 -- a corpse looted after a failed or stale cast is still the mob's; skinning
--- stays the mob's; loot the client says came from something other than the
--- target is nobody's drop; no percentage before MIN_GATHERS; gathered items
--- count toward the session's value; the panel's Gathering section shows only
--- once you have gathered; the check lists herbs already credited to a mob and
--- changes nothing; and nothing off the client is touched outside a pcall.
+-- stays the mob's, but a corpse first opened by skinning is no harvest
+-- sample; loot the client says came from something other than the target is
+-- nobody's drop; no percentage before MIN_GATHERS; gathered items count
+-- toward the session's value; the panel's Gathering section shows only once
+-- you have gathered; the check lists herbs already credited to a mob, even
+-- with the measured data loaded, changes nothing, and keeps them out of the
+-- export; a reset keeps the map markers; and nothing off the client is
+-- touched outside a pcall.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("gathering")
@@ -419,11 +422,18 @@ suite.check("/farm gathering lists this zone's nodes",
     env.chat[1] and env.chat[1]:find("gathered in Elwynn Forest", 1, true), env.chat[1])
 
 local before = Gathering:CountGathers()
+local markers = #Gathering:Spots()
+env.chat = {}
 ns.HandleSlash("gathering reset")
 suite.check("reset asks first", Gathering:CountGathers() == before)
+suite.check("and says the map markers stay",
+    env.chat[1] and env.chat[1]:find("map markers stay", 1, true) ~= nil, env.chat[1])
 ns.HandleSlash("gathering reset confirm")
 suite.check("a confirmed reset clears it", Gathering:CountGathers() == 0)
 suite.check("and leaves the kills alone", Tracker:Store()["Mangy Wolf"].kills > 0)
+-- The markers have their own clear (/farm markers clear confirm).
+suite.check("and the map markers", markers > 0 and #Gathering:Spots() == markers,
+    markers .. " before, " .. #Gathering:Spots() .. " after")
 
 -- The client naming the node as the loot's source, with a corpse targeted:
 -- the herb is still the node's (the corpse check is for kills only).

@@ -618,9 +618,16 @@ function Harvest:CountCorpses()
     return total
 end
 
+--- How many mobs, by name. A mob looted in two places keeps a record for
+--- each, but it is still one mob.
 function Harvest:CountMobs()
-    local total = 0
-    for _ in pairs(self.records) do total = total + 1 end
+    local seen, total = {}, 0
+    for _, record in pairs(self.records) do
+        if not seen[record.mob] then
+            seen[record.mob] = true
+            total = total + 1
+        end
+    end
     return total
 end
 
@@ -632,10 +639,12 @@ function Harvest:ForItem(itemName)
         local entry = record.items[itemName]
 
         if entry then
+            -- Not rounded: one in 300 is a third of a percent, not 0. Shown
+            -- through Tracker.FormatChance, which says "<1%".
             rows[#rows + 1] = {
                 record = record,
                 entry = entry,
-                chance = math.floor((entry.corpses / record.corpses * 100) + 0.5),
+                chance = entry.corpses / record.corpses * 100,
             }
         end
     end

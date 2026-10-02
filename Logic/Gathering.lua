@@ -494,7 +494,9 @@ function Gathering:WorthPerGather(key)
 end
 
 function Gathering:Reset()
-    ns.db.gathering = nil
+    -- The record only. The map markers live in the same table and have their
+    -- own clear (/farm markers clear), so they stay.
+    if type(ns.db.gathering) == "table" then ns.db.gathering.nodes = nil end
     self.session = {}
     self.sessionItems = {}
     self.sessionFrom = {}
@@ -869,8 +871,8 @@ ns.RegisterCommand("gathering", "herbs and ore gathered in this zone (all: every
     end
 
     if argument == "reset" then
-        ns.Print(("this deletes all %s you have recorded, for good. "
-            .. "Type /farm gathering reset confirm to do it."):format(
+        ns.Print(("this deletes all %s you have recorded, for good. Your map "
+            .. "markers stay. Type /farm gathering reset confirm to do it."):format(
             Util.Plural(Gathering:CountGathers(), "gather")))
         return
     end
