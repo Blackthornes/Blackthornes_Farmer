@@ -1026,10 +1026,9 @@ function TrackerUI.Final(have, target)
     return left > 0 and left <= math.max(1, math.floor(target * FINAL))
 end
 
---- Under a band still short of rates (Trent, 2026-09-27): a progress bar
---- like a goal's, then how many more. `key` is the band's; `more` is the
---- countdown's text, "%d" for the number.
-function TrackerUI:ProgressLines(Add, key, have, target, more)
+--- A bar toward `target`: the count it shows (held to 0..target), how full
+--- it is, and how many of the MARKS it has passed.
+function TrackerUI.ProgressOf(have, target)
     have = math.max(0, math.min(have, target))
     local fraction = target > 0 and have / target or 0
 
@@ -1037,6 +1036,16 @@ function TrackerUI:ProgressLines(Add, key, have, target, more)
     for index, at in ipairs(MARKS) do
         if fraction >= at then milestone = index end
     end
+
+    return have, fraction, milestone
+end
+
+--- Under a band still short of rates (Trent, 2026-09-27): a progress bar
+--- like a goal's, then how many more. `key` is the band's; `more` is the
+--- countdown's text, "%d" for the number.
+function TrackerUI:ProgressLines(Add, key, have, target, more)
+    local fraction, milestone
+    have, fraction, milestone = TrackerUI.ProgressOf(have, target)
 
     local final = TrackerUI.Final(have, target)
     Add({ style = "progress", key = key .. ":progress", count = have,
@@ -1078,6 +1087,21 @@ function TrackerUI:CardLines(Add, card)
         band.minis = {}
         for index = 1, math.min(#card.items, MINIS) do
             band.minis[index] = card.items[index].name
+        end
+
+        -- What its progress bar and icons would count, open. A kill on this
+        -- mob opens the card in the same redraw, and the effects need the
+        -- counts from before it to slide the bar from where it was, cheer
+        -- the marks it passes and flash the icon that went up.
+        band.hidden = {}
+        if not card.rated then
+            local have, fraction, milestone = TrackerUI.ProgressOf(card.total, card.target)
+            band.hidden[1] = { key = card.key .. ":progress", count = have,
+                progress = fraction, milestone = milestone }
+        end
+        for _, item in ipairs(card.items) do
+            band.hidden[#band.hidden + 1] = { key = ("%s:%s"):format(card.key, item.name),
+                count = item.n }
         end
         return
     end

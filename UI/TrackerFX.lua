@@ -327,6 +327,12 @@ function TrackerFX:Prepare(all, shown)
         for _, icon in ipairs(line.icons or {}) do
             if icon.key and icon.count then seen[icon.key] = { count = icon.count } end
         end
+        -- A folded card counts its bar and icons too, though they are not
+        -- drawn: the kill that opens it must find where they were.
+        for _, hidden in ipairs(line.hidden or {}) do
+            seen[hidden.key] = { count = hidden.count, progress = hidden.progress,
+                milestone = hidden.milestone }
+        end
     end
 
     local items = SessionItems()
@@ -966,6 +972,15 @@ function TrackerFX:Banner()
     return banner
 end
 
+--- The banner's second line for a label `room` pixels wide: whole if it fits,
+--- else the name alone. "Defias Pillager  |  20 kills" can need more room
+--- than a narrow panel has, and the name is the part that matters; the
+--- panel is already as wide as the name needs, for the card under it.
+function TrackerFX.FitSubject(subject, room)
+    if Theme.TextWidth("small", subject) <= room then return subject end
+    return subject:match("^(.-)  |  ") or subject
+end
+
 --- A mob's drop rates (or a spot's catch rates) just unlocked: `info` is
 --- { title, subject, key }. Tracker:Fanfare calls it with the sound.
 function TrackerFX:Unlocked(info)
@@ -982,12 +997,14 @@ function TrackerFX:Unlocked(info)
 
     local banner = self:Banner()
     banner.title:SetText(info.title or "RATES UNLOCKED")
-    banner.subject:SetText(info.subject or "")
     banner:SetAlpha(0)
     banner:Show()
 
     local ok, width = pcall(banner.GetWidth, banner)
     width = ok and tonumber(width) or 200
+
+    -- Its label runs 6 pixels in from each side.
+    banner.subject:SetText(TrackerFX.FitSubject(info.subject or "", width - 12))
 
     for index, spark in ipairs(banner.sparks) do
         spark:ClearAllPoints()
