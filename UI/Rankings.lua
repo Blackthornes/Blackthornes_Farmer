@@ -300,7 +300,7 @@ function RankingsUI:UpdateRow(row, data, index)
         local heading = HEADINGS[data.group]
         row.heading:SetTextColor(Theme.Unpack("accent"))
         row.heading:SetText(("%s  %s"):format(heading[1],
-            Util.Colored("muted", "(" .. heading[2] .. ")")))
+            Util.Colored("muted", "(" .. (data.note or heading[2]) .. ")")))
         row.heading:Show()
         return
     end
@@ -395,6 +395,17 @@ end
 -- Drawing
 --------------------------------------------------------------------------------
 
+--- What the mobs not ranked yet are waiting on, when it is not only kills:
+--- a mob with its kills but nothing priced waits on prices.
+local function PendingNote(entries)
+    local kills, prices = false, false
+    for _, entry in ipairs(entries) do
+        if entry.unpriced then prices = true else kills = true end
+    end
+    if not prices then return nil end
+    return kills and "waiting on kills or prices" or "waiting on prices"
+end
+
 --- The board as list rows, for the chosen filter.
 function RankingsUI:Rows(board)
     local rows = {}
@@ -404,7 +415,8 @@ function RankingsUI:Rows(board)
         local entries = board[group]
         if #entries == 0 and not emptyText then return end
 
-        rows[#rows + 1] = { type = "heading", group = group }
+        rows[#rows + 1] = { type = "heading", group = group,
+            note = group == "pending" and PendingNote(entries) or nil }
 
         if #entries == 0 then
             rows[#rows + 1] = { type = "note", text = emptyText }
@@ -448,6 +460,10 @@ function RankingsUI:FitColumns(rows)
                 widths.worth = math.max(widths.worth,
                     Theme.TextWidth("small", texts.worth) + BAR_WIDTH + 12)
             end
+            -- A long board's ranks run to three figures: "100" was cut off.
+            if texts.rank then
+                widths.rank = math.max(widths.rank, Theme.TextWidth("small", texts.rank) + 8)
+            end
         end
     end
 
@@ -455,9 +471,25 @@ function RankingsUI:FitColumns(rows)
         widths[key] = math.min(most, math.ceil(widths[key]))
     end
 
+    -- Never wider than the screen, as the search tab: on a small screen, or
+    -- with the window scaled up, the widest columns give back room (their
+    -- text ends in "...") before the close button goes off the edge.
+    local room = ns.UI and ns.UI.ScreenRoom and ns.UI:ScreenRoom()
+    if room then
+        local over = Columns(widths).total + CHROME - room
+        for _, key in ipairs({ "where", "best", "mob", "worth", "basis" }) do
+            if over <= 0 then break end
+            local give = math.min(over, widths[key] - BASE_WIDTH[key])
+            if give > 0 then
+                widths[key] = widths[key] - give
+                over = over - give
+            end
+        end
+    end
+
     local current = self.columns
     local changed = false
-    for key in pairs(MAX_WIDTH) do
+    for _, key in ipairs(COLUMN_ORDER) do
         if current[key].w ~= widths[key] then changed = true end
     end
 

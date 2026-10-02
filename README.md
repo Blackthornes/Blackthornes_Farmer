@@ -223,7 +223,8 @@ boards: **Your kills** (20 kills or more, measured from your own loot, coin
 included) and **Estimates** (the database's drop rates, one of each drop and
 no coin, so they run low, shown with a "~"). The two are never ranked against
 each other. Below them, mobs you have started on show how many kills each
-still needs. Hover a mob for what makes up its worth, click it for its loot
+still needs, or that nothing they drop has a price yet. Hover a mob for what
+makes up its worth, click it for its loot
 table. `/farm rankings` (or `/farm rank`) opens it, and the window reopens on
 whichever tab you left it on.
 

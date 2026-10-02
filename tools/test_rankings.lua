@@ -179,7 +179,9 @@ suite.check("the Measured filter leaves estimates out",
     not Kinds():find("estimate", 1, true), Kinds())
 RankingsUI.group = nil
 
--- Text fits: a long mob name widens its column rather than being cut off.
+-- Text fits: a long mob name widens its column rather than being cut off,
+-- on a screen with room for it.
+UIParent._width = 1920
 local long = "Venture Co. Deforestation Supervisor Extraordinaire"
 for _ = 1, 20 do Loot(long, { COINS }) end
 RankingsUI:Render()
@@ -188,6 +190,35 @@ suite.check("a long name widens the mob column, up to its cap",
     RankingsUI.columns.mob.w == 300, RankingsUI.columns.mob.w)
 suite.check("and the window with it",
     UI.frame:GetWidth() >= RankingsUI.columns.total + 74, UI.frame:GetWidth())
+
+-- Never wider than the screen, as the search tab: the widest columns give
+-- the room back first (0.12.0 capped the search tab and missed this one).
+UIParent._width = 900
+RankingsUI:Render()
+suite.check("on a narrow screen the window still fits",
+    UI.frame:GetWidth() <= UI:ScreenRoom(), UI.frame:GetWidth() .. " > " .. tostring(UI:ScreenRoom()))
+suite.check("the long name gives the room back", RankingsUI.columns.mob.w < 300, RankingsUI.columns.mob.w)
+UIParent._width = nil
+
+-- A long board's ranks run to three figures; the rank column makes room.
+RankingsUI:FitColumns({ { type = "mob", top = 10, entry = { mob = "Test Ogre", group = "estimate",
+    rank = 120, value = 5, where = "Nowhere", level = "30" } } })
+suite.check("a rank of 120 fits its column",
+    RankingsUI.columns.rank.w - 4 >= ns.Theme.TextWidth("small", "120"), RankingsUI.columns.rank.w)
+
+-- The mobs not ranked yet: one short of kills, one with its kills and
+-- nothing priced. The heading says what they wait on, not just "keep killing".
+local pendingHeading
+for _, data in ipairs(RankingsUI.list.data) do
+    if data.type == "heading" and data.group == "pending" then pendingHeading = data end
+end
+suite.check("the waiting mobs' heading names both reasons",
+    pendingHeading and pendingHeading.note == "waiting on kills or prices", pendingHeading and pendingHeading.note)
+local spare = RankingsUI.list.rows[1]
+RankingsUI:UpdateRow(spare, pendingHeading)
+suite.check("and draws it", spare.heading:GetText():find("waiting on kills or prices", 1, true) ~= nil,
+    spare.heading:GetText())
+RankingsUI:Render()
 
 -- A kill while the tab is open redraws it.
 for _ = 1, 13 do Loot("Defias Thug", { COINS }) end
