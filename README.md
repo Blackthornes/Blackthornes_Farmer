@@ -86,8 +86,8 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm fishing [all]` | what you have caught in this zone, or everywhere (`reset confirm` clears it) |
 | `/farm gathering [all\|check]` | herbs and ore you have gathered in this zone, or everywhere; `check` lists herbs or ore credited to a mob (`reset confirm` clears it) |
 | `/farm markers [on\|off]` | markers where you gathered herbs and ore, on the world map and minimap (on by default; `map on\|off` or `minimap on\|off` for one, `clear confirm` removes them) |
-| `/farm announce [on\|off]` | whether players near you see an emote at those milestones (on by default) |
-| `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills or a fishing spot 20 casts, and its rates unlock (on by default) |
+| `/farm announce [on\|off]` | whether players near you see an emote when a mob reaches 20 kills, a fishing spot 20 casts or a node 20 gathers (on by default) |
+| `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills, a fishing spot 20 casts or a node 20 gathers, and its rates unlock (on by default) |
 | `/farm effects [full\|subtle\|off]` | how much the addon moves: in the kill panel, glows, the value counting up and loot floating off the panel; in the windows, fading up as they open, results coming in row by row and bars growing (full by default; subtle drops the floats and the row-by-row; off stops it all) |
 | `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
 | `/farm goal <item> <amount>` | set a gathering goal, e.g. `/farm goal Copper Ore 40`; on its own, lists your goals (`remove <item>`, `clear` for finished ones, `bank on\|off` to count your bank) |
@@ -229,8 +229,10 @@ prints "Blackthornes Farmer: Drop rates unlocked for ..." with its best drop
 in your own chat window. Players near you also see an emote: "Name unlocked
 drop rates for Mangy Wolf after 20 kills! (Blackthornes Farmer)". A fishing
 spot's 20th cast gets the same: "Catch rates unlocked for open water in Crystal
-Lake, Elwynn Forest!" in your chat, and the matching emote. That emote, once
-per mob or fishing spot, is the only thing the addon ever says in public.
+Lake, Elwynn Forest!" in your chat, and the matching emote. So does a node's
+20th gather: "Gather rates unlocked for Copper Vein in Jasperlode Mine, Elwynn
+Forest!" in your chat, and the matching emote. That emote, once per mob,
+fishing spot or node, is the only thing the addon ever says in public.
 `/farm announce off` (or Settings > Share milestones) keeps it to yourself;
 `/farm celebrate off` turns the whole thing off.
 
