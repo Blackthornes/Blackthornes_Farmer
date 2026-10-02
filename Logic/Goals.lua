@@ -18,6 +18,12 @@
 --
 -- Goals live in BlackthornesFarmerDB.goals. They are your plan, not recorded
 -- loot, so removing one removes nothing the addon measured.
+--
+-- That table is the account's, but a count is one character's bags, so a goal
+-- belongs to the character that set it (goal.owner) and shows only there. A
+-- goal saved before goals had owners shows on every character, and none of
+-- them finishes it until one gathers toward it or changes it, which makes it
+-- that character's.
 
 local _, ns = ...
 
@@ -55,9 +61,17 @@ local AWAY = {
     { open = "MERCHANT_SHOW", close = "MERCHANT_CLOSED", kind = "vendor" },
     { open = "AUCTION_HOUSE_SHOW", close = "AUCTION_HOUSE_CLOSED", kind = "auction" },
     { open = "TRADE_SHOW", close = "TRADE_CLOSED", kind = "trade" },
+    -- What you craft is not loot either.
+    { open = "TRADE_SKILL_SHOW", close = "TRADE_SKILL_CLOSE", kind = "craft" },
 }
 
 Goals.away = {}
+
+-- What one of those windows moved can reach the bags just after it closes
+-- (the last of a trade, the last craft): for this long after, a rise is
+-- still not loot.
+local AWAY_GRACE = 2
+Goals.awayUntil = 0
 
 -- For a few seconds after login, a /reload or a loading screen the bags are
 -- still being filled in, and a count going from 0 to 23 is not loot.
@@ -78,18 +92,55 @@ function Goals:Store()
     return store
 end
 
-function Goals:List()
-    return self:Store().list
+--- The character playing, as goals are tagged with it: "Name-Realm", or
+--- nil while the client will not say.
+function Goals:Owner()
+    if self.me then return self.me end
+
+    local name, realm
+    if type(UnitName) == "function" then
+        local ok, value = pcall(UnitName, "player")
+        name = ok and ns.Harvest.Readable(value) or nil
+    end
+    if not name or name == _G.UNKNOWNOBJECT then return nil end
+
+    if type(GetRealmName) == "function" then
+        local ok, value = pcall(GetRealmName)
+        realm = ok and ns.Harvest.Readable(value) or nil
+        -- Asked again later rather than tagged without it, so one
+        -- character is never two.
+        if not realm then return nil end
+        name = name .. "-" .. realm
+    end
+
+    self.me = name
+    return name
 end
 
---- The goal for `name`, and where it is in the list.
+--- Whether `goal` shows on this character: one it set, or one saved before
+--- goals had owners.
+function Goals:IsMine(goal)
+    if goal.owner == nil then return true end
+    return goal.owner == self:Owner()
+end
+
+--- This character's goals, in the order they were set.
+function Goals:List()
+    local mine = {}
+    for _, goal in ipairs(self:Store().list) do
+        if type(goal) == "table" and self:IsMine(goal) then mine[#mine + 1] = goal end
+    end
+    return mine
+end
+
+--- This character's goal for `name`, and where it is in the saved list.
 function Goals:Find(name)
     if type(name) ~= "string" then return nil end
     local wanted = Util.Trim(name):lower()
 
-    for index, goal in ipairs(self:List()) do
+    for index, goal in ipairs(self:Store().list) do
         if type(goal) == "table" and type(goal.item) == "string"
-            and goal.item:lower() == wanted then
+            and goal.item:lower() == wanted and self:IsMine(goal) then
             return goal, index
         end
     end
@@ -104,7 +155,11 @@ end
 
 function Goals:SetCountsBank(on)
     self:Store().bank = on and true or false
+    -- The bank's share is not loot, so it is read quietly; a quiet read
+    -- finishes nothing, so a goal the bank took past its number finishes
+    -- on the read after.
     self:Update(true)
+    self:Update()
 end
 
 --------------------------------------------------------------------------------
@@ -224,16 +279,21 @@ function Goals:Set(name, target)
     end
 
     local goal = self:Find(name)
-    local list = self:List()
+    local list = self:Store().list
 
     if not goal then
-        -- A finished goal still on the panel makes room for a new one.
-        if #list >= Goals.MAX then
+        -- A finished goal still on the panel makes room for a new one. Only
+        -- this character's count: another's goals are not on its panel.
+        if #self:List() >= Goals.MAX then
             for index = #list, 1, -1 do
-                if list[index].done then table.remove(list, index) break end
+                local other = list[index]
+                if type(other) == "table" and other.done and self:IsMine(other) then
+                    table.remove(list, index)
+                    break
+                end
             end
         end
-        if #list >= Goals.MAX then
+        if #self:List() >= Goals.MAX then
             return nil, ("%d goals is the most at once"):format(Goals.MAX)
         end
 
@@ -241,12 +301,15 @@ function Goals:Set(name, target)
         list[#list + 1] = goal
     end
 
+    -- Changing a goal saved before goals had owners makes it yours.
+    goal.owner = self:Owner() or goal.owner
     goal.target = target
     goal.have = have
     goal.start = have
     goal.done = nil
     goal.doneIn = nil
     goal.gained = 0
+    goal.paced = 0
     goal.loots = 0
     goal.active = 0
     goal.lastGain = nil
@@ -260,17 +323,18 @@ function Goals:Remove(name)
     local goal, index = self:Find(name)
     if not goal then return false end
 
-    table.remove(self:List(), index)
+    table.remove(self:Store().list, index)
     if ns.GoalsUI then ns.GoalsUI:Refresh() end
     return true
 end
 
---- Take finished goals off the panel.
+--- Take this character's finished goals off the panel.
 function Goals:ClearDone()
-    local list = self:List()
+    local list = self:Store().list
     local removed = 0
     for index = #list, 1, -1 do
-        if list[index].done then
+        local goal = list[index]
+        if type(goal) == "table" and goal.done and self:IsMine(goal) then
             table.remove(list, index)
             removed = removed + 1
         end
@@ -310,8 +374,13 @@ function Goals.Final(goal)
 end
 
 --- Seconds to finish at the pace so far, or nil until there is a pace.
+--
+-- The first loot only starts the clock, so what it brought is left out of
+-- the pace (goal.paced); counted, it made the first estimates about twice
+-- too quick. A goal set before that count was kept goes on with all it
+-- gained.
 function Goals.Eta(goal)
-    local gained = tonumber(goal.gained) or 0
+    local gained = tonumber(goal.paced) or tonumber(goal.gained) or 0
     local active = tonumber(goal.active) or 0
     if gained < PACE_ITEMS or active < PACE_SECONDS then return nil end
 
@@ -369,33 +438,42 @@ end
 --------------------------------------------------------------------------------
 
 --- What each goal's count did since it was last read. `quiet` reads the
---- counts without calling anything gathered (login, the bank tick box).
+--- counts without calling anything gathered (login, the bank tick box), and
+--- never finishes a goal.
 --
 -- Returns a list of { goal, from, to, gathered, milestone, done } for the
--- goals whose count moved, which is what the panel animates.
+-- goals whose count moved or that finished, which is what the panel
+-- animates.
 function Goals:Update(quiet)
     local changes = {}
-    local away = next(self.away) ~= nil
     local now = Now()
+    local away = next(self.away) ~= nil or now < (self.awayUntil or 0)
     if now < (self.quietUntil or 0) then quiet = true end
 
     for _, goal in ipairs(self:List()) do
         if type(goal) == "table" and not goal.done then
             local have = self:Have(goal.item)
             local was = tonumber(goal.have) or 0
+            local change
 
             if have and have ~= was then
-                local change = { goal = goal, from = was, to = have }
+                change = { goal = goal, from = was, to = have }
                 goal.have = have
 
                 if have > was and not quiet and not away then
                     change.gathered = have - was
                     goal.gained = (tonumber(goal.gained) or 0) + change.gathered
                     goal.loots = (tonumber(goal.loots) or 0) + 1
+                    -- Gathering toward a goal saved before goals had owners
+                    -- makes it yours.
+                    goal.owner = goal.owner or self:Owner()
 
                     if goal.lastGain then
                         goal.active = (tonumber(goal.active) or 0)
                             + math.min(BREAK, math.max(0, now - goal.lastGain))
+                        if goal.paced then
+                            goal.paced = (tonumber(goal.paced) or 0) + change.gathered
+                        end
                     end
                     goal.lastGain = now
                 end
@@ -407,19 +485,23 @@ function Goals:Update(quiet)
                     change.milestone = Goals.MILESTONES[reached]
                 end
                 goal.milestone = reached
-
-                if have >= (tonumber(goal.target) or math.huge) then
-                    goal.done = true
-                    goal.doneIn = goal.active or 0
-                    if not quiet then
-                        change.done = true
-                        change.milestone = nil
-                        NoteDoneToday(self)
-                    end
-                end
-
-                changes[#changes + 1] = change
             end
+
+            -- Finished only on a read that is not quiet, by the character the
+            -- goal belongs to: the bags filling in at login, or another
+            -- character's bags, finish nothing. A count a quiet read took to
+            -- the number finishes on the next read.
+            if have and have >= (tonumber(goal.target) or math.huge)
+                and not quiet and goal.owner ~= nil then
+                change = change or { goal = goal, from = was, to = have }
+                goal.done = true
+                goal.doneIn = goal.active or 0
+                change.done = true
+                change.milestone = nil
+                NoteDoneToday(self)
+            end
+
+            if change then changes[#changes + 1] = change end
         end
     end
 
@@ -470,13 +552,20 @@ end
 -- Events
 --------------------------------------------------------------------------------
 
-function Goals:OnEnable()
+--- After login, a /reload or a loading screen: quiet while the bags fill in,
+--- then one read that can finish a goal they took to its number.
+function Goals:Settle()
     self.quietUntil = Now() + SETTLE
+    if C_Timer and type(C_Timer.After) == "function" then
+        pcall(C_Timer.After, SETTLE + 1, function() Goals:Update() end)
+    end
+end
+
+function Goals:OnEnable()
+    self:Settle()
     self:Update(true)
 
-    ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", function()
-        Goals.quietUntil = Now() + SETTLE
-    end)
+    ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", function() Goals:Settle() end)
 
     local function Changed() Goals:Update() end
     -- Once per burst of bag changes where the client has it; each change
@@ -489,6 +578,7 @@ function Goals:OnEnable()
         ns.RegisterEvent(self, window.open, function() Goals.away[window.kind] = true end)
         ns.RegisterEvent(self, window.close, function()
             Goals.away[window.kind] = nil
+            Goals.awayUntil = Now() + AWAY_GRACE
             -- Whatever moved while it was open is already counted; read the
             -- bags once more so the next loot is measured from here.
             Goals:Update(true)

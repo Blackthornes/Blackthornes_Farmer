@@ -270,12 +270,19 @@ your own chat window on every kill; nobody else sees it.
 Pick a material and a number and the Goals panel counts you toward it. Press
 **Goal** beside an item in the search results, choose 20, 40, 60, 100 or
 type your own, and **Set goal**; or type `/farm goal Copper Ore 40`. Up to six
-goals run at once.
+goals run at once on each character.
 
 A goal is how many you have, so what is already in your bags counts. Tick
 **Include bank** on the picker (or `/farm goal bank on`) to count the bank
 as well. Only loot counts toward your pace: items from the bank, mail, a
-vendor, the auction house or a trade move the count but float nothing.
+vendor, the auction house, a trade or your own crafting move the count but
+float nothing.
+
+Goals belong to the character that set them: a goal counts that character's
+bags and shows only on that character's panel, so logging in on an alt leaves
+your main's goals alone. A goal set before goals had owners shows on every
+character until one of them loots toward it or changes it, and then it is
+that character's.
 
 The panel sits under the kills panel until you drag it elsewhere. Each goal
 shows its count, the best spot for it, a bar marked at a quarter, half and

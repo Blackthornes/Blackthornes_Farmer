@@ -127,9 +127,12 @@ changes = Bags(12)
 suite.check("no second 25%", changes[1].milestone == nil)
 Settle()
 
--- The pace: 6 gathered over 60 seconds is one every 10 seconds.
+-- The pace: the first loot (3) only starts the clock, then 3 more came in
+-- over 60 seconds, one every 20 seconds. Counting the first 3 as well made
+-- it one every 10, and the estimate half what it should be.
 suite.check("a pace by now", Goals.Eta(goal) ~= nil)
-suite.check("28 left at 0.1 a second is about 5 min", Goals.Duration(Goals.Eta(goal), true) == "about 5 min",
+suite.check("the first loot is not part of the pace", goal.paced == 3, goal.paced)
+suite.check("28 left at one every 20 seconds is about 9 min", Goals.Duration(Goals.Eta(goal), true) == "about 9 min",
     Goals.Duration(Goals.Eta(goal), true))
 suite.check("shown on the card", GUI.cards[1].right:GetText():find("at your pace") ~= nil)
 
@@ -164,6 +167,20 @@ Settle()
 -- Crafting some away drops the count without a fuss.
 changes = Bags(24)
 suite.check("a drop is followed", goal.have == 24 and changes[1].gathered == nil)
+Settle()
+
+-- Crafting it is not gathering either (a goal for bars, say), nor is the
+-- last craft reaching the bags just after the window shuts.
+ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "TRADE_SKILL_SHOW")
+suite.check("crafting noted", Goals.away.craft == true)
+changes = Bags(25)
+suite.check("a craft is not gathered", changes[1] and changes[1].gathered == nil)
+ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "TRADE_SKILL_CLOSE")
+changes = Bags(26)
+suite.check("nor one landing just after the window shuts", changes[1] and changes[1].gathered == nil)
+clock = clock + 5
+changes = Bags(27)
+suite.check("a little later a rise is loot again", changes[1] and changes[1].gathered == 1)
 Settle()
 
 --------------------------------------------------------------------------------
@@ -253,6 +270,133 @@ GUI.picker.amount:SetText("60")
 GUI:PickerSet()
 suite.check("set from the picker", Goals:Find("Tin Ore") and Goals:Find("Tin Ore").target == 60)
 suite.check("picker closes", not GUI.picker:IsShown())
+
+--------------------------------------------------------------------------------
+-- Each character's own goals
+--------------------------------------------------------------------------------
+
+-- The goals are saved for the account, but a count is one character's bags.
+-- Logging in on a bank alt used to count its bags toward every goal, finish
+-- them without a word, and leave "120 / 40 DONE" on the main.
+local realUnitName, realAfter = _G.UnitName, C_Timer.After
+local settleRead
+C_Timer.After = function(_, fn) settleRead = fn end
+
+local function LogIn(name, copper)
+    _G.UnitName = function(unit)
+        if unit == "player" then return name end
+        return realUnitName(unit)
+    end
+    Goals.me = nil
+    bags[COPPER] = copper
+    clock = clock + 600
+    Goals:Settle()
+    Goals:Update(true)
+    GUI:Refresh()
+end
+
+-- The bags have settled: the read that can finish a goal.
+local function BagsSettled()
+    clock = clock + 10
+    if settleRead then settleRead() end
+end
+
+Goals:Remove("Copper Ore")
+Goals:Remove("Tin Ore")
+
+LogIn("Blackthornes", 6)
+BagsSettled()
+ns.HandleSlash("goal Copper Ore 40")
+local main = Goals:Find("Copper Ore")
+suite.check("a new goal is its character's", main and main.owner == "Blackthornes", main and main.owner)
+clock = clock + 30
+Bags(30)
+
+env.chat = {}
+local doneToday = Goals:DoneToday()
+LogIn("Bankalt", 120)
+BagsSettled()
+suite.check("another character does not see it", Goals:Find("Copper Ore") == nil and #Goals:List() == 0)
+suite.check("so its panel stays shut", not GUI.frame:IsShown())
+suite.check("its bags are not the goal's count", main.have == 30, main.have)
+suite.check("and do not finish it", not main.done and Goals:DoneToday() == doneToday and Chat("Goal done") == nil)
+suite.check("nor can it remove it", not Goals:Remove("Copper Ore") and #ns.db.goals.list == 1)
+
+-- Six of its own, whatever the other character has.
+local six = { "Tin Ore", "Silverleaf", "Peacebloom", "Linen Cloth", "Wool Cloth", "Iron Ore" }
+for _, item in ipairs(six) do Goals:Set(item, 500) end
+suite.check("six of its own", #Goals:List() == 6, #Goals:List())
+local seventh, why = Goals:Set("Mageweave Cloth", 500)
+suite.check("and no seventh", seventh == nil and tostring(why):find("most at once") ~= nil, why)
+for _, item in ipairs(six) do Goals:Remove(item) end
+
+env.chat = {}
+LogIn("Blackthornes", 30)
+BagsSettled()
+suite.check("back on the first, its goal is there", Goals:Find("Copper Ore") == main and #Goals:List() == 1)
+suite.check("at its own count", main.have == 30 and not main.done, main.have)
+suite.check("on its panel", GUI.frame:IsShown() and GUI.cards[1].goal == main)
+
+-- A quiet read never finishes a goal; the read once the bags settle does.
+LogIn("Blackthornes", 45)
+suite.check("bags filling in past the number finish nothing", main.have == 45 and not main.done)
+BagsSettled()
+suite.check("the read after they settle does", main.done == true and Chat("Goal done") ~= nil)
+suite.check("and counts it for today", Goals:DoneToday() == doneToday + 1, Goals:DoneToday())
+Settle()
+
+LogIn("Bankalt", 120)
+suite.check("another character's clear leaves it be", Goals:ClearDone() == 0)
+LogIn("Blackthornes", 45)
+suite.check("still there, done", Goals:Find("Copper Ore") == main and main.done)
+Goals:ClearDone()
+
+-- A goal saved before goals had owners shows on every character, and none
+-- finishes it until one gathers toward it or changes it.
+local old = { item = "Copper Ore", target = 40, have = 30, start = 6, gained = 24, loots = 6,
+    active = 300, milestone = 2 }
+table.insert(ns.db.goals.list, old)
+
+LogIn("Bankalt", 120)
+suite.check("an old goal shows on every character", Goals:Find("Copper Ore") == old)
+BagsSettled()
+suite.check("read there, never finished there", old.have == 120 and not old.done and old.owner == nil)
+ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "MERCHANT_SHOW")
+Bags(110)
+ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "MERCHANT_CLOSED")
+suite.check("selling some is not gathering toward it", not old.done and old.owner == nil)
+
+LogIn("Blackthornes", 30)
+BagsSettled()
+suite.check("its own character sees it too", Goals:Find("Copper Ore") == old and old.have == 30)
+clock = clock + 30
+Bags(33)
+suite.check("gathering toward it makes it yours", old.owner == "Blackthornes", old.owner)
+suite.check("and it keeps the pace it had", old.paced == nil and Goals.Eta(old) ~= nil)
+
+LogIn("Bankalt", 120)
+suite.check("then the others no longer see it", Goals:Find("Copper Ore") == nil)
+
+local older = { item = "Tin Ore", target = 80, have = 30, start = 30, gained = 0, loots = 0, active = 0 }
+table.insert(ns.db.goals.list, older)
+Goals:Set("Tin Ore", 90)
+suite.check("changing an old goal makes it yours", older.owner == "Bankalt" and older.target == 90, older.owner)
+LogIn("Blackthornes", 33)
+suite.check("and only yours", Goals:Find("Tin Ore") == nil)
+
+-- With a realm the tag carries it; one the client will not read is asked
+-- for again rather than left off, so one character is never two.
+local realRealm = _G.GetRealmName
+_G.GetRealmName = function() return env.Secret("realm") end
+Goals.me = nil
+suite.check("an unreadable realm tags nothing yet", Goals:Owner() == nil and Goals.me == nil)
+_G.GetRealmName = function() return "Forever" end
+suite.check("name and realm", Goals:Owner() == "Blackthornes-Forever", Goals:Owner())
+
+_G.GetRealmName = realRealm
+_G.UnitName = realUnitName
+C_Timer.After = realAfter
+Goals.me = nil
 
 --------------------------------------------------------------------------------
 -- Nothing recorded is touched
