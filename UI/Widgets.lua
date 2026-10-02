@@ -12,11 +12,12 @@ local Theme = ns.Theme
 --------------------------------------------------------------------------------
 -- Motion
 --
--- Small tweens for the windows and controls: a button easing into its hover
--- colour, a window fading up as it opens, rows arriving one after another.
--- The kills panel and the goals panel keep their own clocks (TrackerFX,
--- GoalsUI); this one is for everything else, and follows the same
--- /farm effects setting. Off means every tween lands at its end at once.
+-- Small tweens for the windows, the panels and the controls: a button easing
+-- into its hover colour, a window or panel fading up as it opens, a glow
+-- flaring, rows arriving one after another. The kill panel's and the goals
+-- panel's own effects (floats, counts, bars) keep their own clocks
+-- (TrackerFX, GoalsUI). This one follows the same /farm effects setting:
+-- Off means every tween lands at its end at once.
 --
 -- One OnUpdate on one small frame, shown only while something is moving, so
 -- an idle window costs nothing per frame. A tween that errors is dropped

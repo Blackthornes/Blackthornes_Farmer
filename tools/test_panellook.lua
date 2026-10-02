@@ -188,6 +188,17 @@ suite.check("fading as it goes", rest ~= nil and fading < rest * 5 and fading > 
 Settle()
 suite.check("and settling back to rest", Near(Last(glow), rest), Last(glow))
 
+-- Subtle keeps the flare, as it keeps the goals panel's; the banner is Full's.
+ns.db.trackerEffects = "subtle"
+if FX.banner then FX.banner:Hide() end
+glow = {}
+FX:Unlocked({ title = "DROP RATES UNLOCKED", subject = "Mangy Wolf  |  20 kills", key = "mob:Mangy Wolf" })
+suite.check("on Subtle the glow flares too, with no banner",
+    Motion:Running(frame, "halo") and Near(glow[1], rest * 5)
+    and not (FX.banner and FX.banner:IsShown()), glow[1])
+Settle()
+ns.db.trackerEffects = "full"
+
 --------------------------------------------------------------------------------
 -- The card you are on
 --------------------------------------------------------------------------------

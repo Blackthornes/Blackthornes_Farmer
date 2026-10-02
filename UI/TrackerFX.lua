@@ -1028,9 +1028,11 @@ function TrackerFX:Unlocked(info)
     if level == "off" then return end
     if not (ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown()) then return end
 
-    -- Subtle keeps the long gold pulse on the band; the banner, sparkles,
-    -- shine and the flare round the panel are Full's.
+    -- Subtle keeps the long gold pulse on the band and the flare round the
+    -- panel, as it keeps the goals panel's flares and every window's; the
+    -- banner, sparkles and shine are Full's.
     if level ~= "full" then
+        self:Flare()
         self:PulseUnlocked(info)
         return
     end
