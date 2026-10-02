@@ -336,9 +336,12 @@ function LootTableUI:Build()
     title:SetPoint("LEFT", PADDING, 0)
     title:SetPoint("RIGHT", -40, 0)
 
+    -- Where the search window has its X, so it does not shift going from
+    -- one window to the other.
     local close = Widgets.CreateButton(header, "X", function() LootTableUI:Hide() end,
         { width = 22, height = 20, danger = true })
-    close:SetPoint("RIGHT", -8, 0)
+    close:SetPoint("RIGHT", -PADDING + 2, 0)
+    self.closeButton = close
 
     local rule = Theme.CreateDivider(frame, "borderLit")
     rule:SetPoint("TOPLEFT", header, "BOTTOMLEFT")

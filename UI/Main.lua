@@ -234,18 +234,29 @@ function UI:BuildHeader()
         x = x + width + 4
     end
 
-    local underline = header:CreateTexture(nil, "OVERLAY")
+    -- The line and its glow ride on a layer of their own above the tabs:
+    -- drawn on the header, the glow sat behind the tab showing, and all
+    -- that showed of it was a duller, thicker line. The layer takes no
+    -- clicks, so the tabs under it still do.
+    local layer = CreateFrame("Frame", nil, header)
+    layer:SetAllPoints(header)
+    layer:SetFrameLevel(header:GetFrameLevel() + 5)
+    self.tabLayer = layer
+
+    local underline = layer:CreateTexture(nil, "OVERLAY")
     underline:SetHeight(2)
     underline:SetColorTexture(Theme.Unpack("accent"))
     self.tabUnderline = underline
 
-    -- A soft glow under the gold line, as the kills panel's tabs have.
-    local glow = header:CreateTexture(nil, "ARTWORK")
-    glow:SetHeight(6)
+    -- A soft glow rising off the gold line into the tab showing, brightest
+    -- at the line, as Tradeskills' tabs have.
+    local glow = layer:CreateTexture(nil, "ARTWORK")
+    glow:SetHeight(7)
     glow:SetPoint("BOTTOMLEFT", underline, "BOTTOMLEFT", -2, 0)
     glow:SetPoint("BOTTOMRIGHT", underline, "BOTTOMRIGHT", 2, 0)
-    glow:SetColorTexture(Theme.Unpack("accent", 0.22))
+    Theme.SetGradientAlpha(glow, "VERTICAL", "accent", 0.32, 0)
     pcall(glow.SetBlendMode, glow, "ADD")
+    self.tabGlow = glow
 
     local close = Widgets.CreateButton(header, "X", function() UI:Hide() end,
         { width = 22, height = 20, danger = true })
@@ -264,22 +275,28 @@ function UI:BuildHeader()
     self.header = header
 end
 
---- Put the gold line under tab `key`, sliding there from wherever it was.
+--- Put the gold line under tab `key`, sliding there from wherever it is
+--- now: a tab picked mid-slide turns the line round, where sliding from
+--- the last tab it was sent to made it jump back there first.
 function UI:MarkTab(key)
     local span = self.tabSpans and self.tabSpans[key]
     local line = self.tabUnderline
     if not (span and line) then return end
 
-    local from = self.underlineAt or span
     self.underlineAt = span
+    local fromX, fromW = self.lineX or span.x, self.lineW or span.w
+    local still = fromX == span.x and fromW == span.w
 
     -- Hung from the tab it is heading for, so it lands exactly under it
-    -- whatever the font; only the gap between the tabs is worked out.
+    -- whatever the font; only the distance still to go is worked out.
     local chip = self.tabs[key]
-    ns.Motion:Run(line, "slide", 0.22, function(p)
-        local w = from.w + (span.w - from.w) * p
+    ns.Motion:Run(line, "slide", still and 0 or 0.22, function(p)
+        local x = fromX + (span.x - fromX) * p
+        local w = fromW + (span.w - fromW) * p
+        self.lineX, self.lineW = x, w
+
         line:ClearAllPoints()
-        line:SetPoint("TOPLEFT", chip, "BOTTOMLEFT", (from.x - span.x) * (1 - p) + 3, -1)
+        line:SetPoint("TOPLEFT", chip, "BOTTOMLEFT", x - span.x + 3, -1)
         line:SetWidth(math.max(1, w - 6))
     end)
 end
@@ -370,7 +387,8 @@ function UI:BuildEmpty()
     ring:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
     Theme.Border(ring, "accent", 0.6)
 
-    local line = Theme.CreateLabel(empty, "large", "text", "CENTER")
+    -- In gold, as every heading in the house is.
+    local line = Theme.CreateLabel(empty, "large", "accent", "CENTER")
     line:SetPoint("TOP", icon, "BOTTOM", 0, -14)
     line:SetText("What are you farming?")
     self.emptyLine = line
