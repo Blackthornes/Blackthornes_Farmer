@@ -9,6 +9,8 @@ the top; a release is refused if its version has no section here.
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
 enough after updating.
 
+- More drop data measured on Forever: 1,900 looted corpses across 176 mobs
+  (mobs are now counted once however many places they were looted in).
 - Goals belong to the character that set them. Logging in on a bank alt no
   longer counts its bags toward your main's goals or finishes them. The limit
   of six goals is per character. A goal set before this update shows on every
