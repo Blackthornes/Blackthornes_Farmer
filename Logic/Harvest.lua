@@ -836,7 +836,11 @@ function Harvest:ExportAll(opts)
     out[#out + 1] = ""
 
     for _, item in ipairs(items) do
-        local block = self:ExportItem(item.name)
+        -- Herbs and ore count per node, never as a mob's drop. One the seed
+        -- data knows only from nodes was picked with a corpse targeted, by a
+        -- version before Logic/Gathering.lua, and stays out of the data.
+        local nodeOnly = ns.Gathering ~= nil and ns.Gathering.IsNodeOnly(item.name)
+        local block = not nodeOnly and self:ExportItem(item.name)
         if block then
             out[#out + 1] = block
             out[#out + 1] = ""

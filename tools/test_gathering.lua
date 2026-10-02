@@ -394,6 +394,14 @@ suite.check("it says so", env.chat[1] and env.chat[1]:find("2 entries", 1, true)
 suite.check("and changes nothing", mobs["Mangy Wolf"].items["Peacebloom"] == 2
     and record.items["Copper Ore"] ~= nil)
 
+-- Nor does it go into the data: herbs and ore count per node, never as a
+-- mob's drop. What the mob does drop still goes.
+local exported = Harvest:ExportAll()
+suite.check("the export leaves the ore out",
+    exported:find('name = "Copper Ore"', 1, true) == nil)
+suite.check("and keeps the mob's own drop",
+    exported:find('name = "Large Fang"', 1, true) ~= nil)
+
 mobs["Mangy Wolf"].items["Peacebloom"] = nil
 record.items["Copper Ore"] = nil
 env.chat = {}
@@ -426,5 +434,55 @@ _G.GetLootSourceInfo = nil
 local sourced = Gathering:Summary(BLOOM)
 suite.check("a node's own loot counts with a corpse targeted",
     sourced and sourced.gathers == 1 and sourced.items[1] and sourced.items[1].name == "Peacebloom")
+
+--------------------------------------------------------------------------------
+-- The same check with the measured data loaded, as in game
+--
+-- Data/Data_Harvested.lua adds "forever" rows to every item it measured. A
+-- herb an import once credited to a mob must not vouch for itself there:
+-- 0.13.0 shipped Peacebloom and Silverleaf as Cursed Darkhound drops, and
+-- with them loaded the check said the data was clean.
+--------------------------------------------------------------------------------
+
+if env.HasHarvested() then
+    local live = env.Load({ harvested = true })
+
+    local credited = {}
+    for item in live.DB:Iterate() do
+        if item.category == "Herbalism" or item.category == "Mining" then
+            for _, source in ipairs(item.sources) do
+                if source.provenance == "forever" and source.kind == "mob" then
+                    credited[#credited + 1] = item.name .. " on " .. tostring(source.name)
+                end
+            end
+        end
+    end
+    suite.check("no herb or ore in the measured data is a mob's drop",
+        #credited == 0, table.concat(credited, ", "))
+
+    -- An import that kept one, the way 0.13.0's did.
+    live.DB:RegisterItem({ name = "Silverleaf", sources = {
+        { name = "Cursed Darkhound", zone = "Tirisfal Glades", minLevel = 7, maxLevel = 8,
+            chance = 3, provenance = "forever" },
+    } })
+    suite.check("a measured mob row does not make a herb a mob's drop",
+        live.Gathering.IsNodeOnly("Silverleaf"))
+
+    local hound = live.Harvest:GetRecord("Cursed Darkhound", 7, "Tirisfal Glades", nil)
+    hound.corpses = 33
+    hound.items["Silverleaf"] = { name = "Silverleaf", count = 1, corpses = 1 }
+    hound.items["Linen Cloth"] = { name = "Linen Cloth", count = 9, corpses = 8 }
+
+    env.chat = {}
+    live.HandleSlash("gathering check")
+    suite.check("so the check still lists it",
+        env.chat[1] and env.chat[1]:find("1 entry", 1, true) ~= nil, env.chat[1])
+
+    local data = live.Harvest:ExportAll()
+    suite.check("and the export leaves it out",
+        data:find('name = "Silverleaf"', 1, true) == nil)
+    suite.check("but keeps what the mob does drop",
+        data:find('name = "Linen Cloth"', 1, true) ~= nil)
+end
 
 suite.done()

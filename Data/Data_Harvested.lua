@@ -1629,17 +1629,6 @@ DB:RegisterItem({
 })
 
 DB:RegisterItem({
-    name = "Silverleaf",
-    id = 765,
-    sources = {
-        { name = "Cursed Darkhound", zone = "Tirisfal Glades", coords = { 55.0, 61.8 }, minLevel = 7, maxLevel = 8, chance = 3, provenance = "forever" },
-            -- 1 of 33 corpses
-        { name = "Cursed Darkhound", zone = "Tirisfal Glades", location = "Nightmare Vale", coords = { 46.3, 59.4 }, minLevel = 7, maxLevel = 8, provenance = "forever" },
-            -- 2 of 18 corpses: too few for a rate
-    },
-})
-
-DB:RegisterItem({
     name = "Vile Fin Scale",
     id = 2859,
     sources = {
@@ -2387,17 +2376,6 @@ DB:RegisterItem({
             -- 1 of 28 corpses
         { name = "Ferocious Grizzled Bear", zone = "Silverpine Forest", coords = { 50.1, 36.2 }, minLevel = 11, maxLevel = 12, provenance = "forever" },
             -- 1 of 16 corpses: too few for a rate
-    },
-})
-
-DB:RegisterItem({
-    name = "Peacebloom",
-    id = 2447,
-    sources = {
-        { name = "Cursed Darkhound", zone = "Tirisfal Glades", coords = { 55.0, 61.8 }, minLevel = 7, maxLevel = 8, chance = 3, provenance = "forever" },
-            -- 1 of 33 corpses
-        { name = "Greater Duskbat", zone = "Tirisfal Glades", coords = { 43.5, 51.3 }, minLevel = 6, maxLevel = 7, chance = 4, provenance = "forever" },
-            -- 1 of 26 corpses
     },
 })
 

@@ -648,7 +648,7 @@ end
 -- Trent's call.
 --------------------------------------------------------------------------------
 
---- Is `name` a herb or an ore that no mob in the database drops?
+--- Is `name` a herb or an ore that no mob in the seed data drops?
 function Gathering.IsNodeOnly(name)
     local item = ns.DB and ns.DB:GetItem(name)
     if not item then return false end
@@ -656,11 +656,17 @@ function Gathering.IsNodeOnly(name)
 
     -- "node" is a vein, "herb" a herb. A single source of any other kind --
     -- a mob, a container -- and a mob holding it could be right.
+    --
+    -- Only the seed data is asked. Rows marked "forever" were written by the
+    -- harvest import from the very records this check reads, so a herb once
+    -- credited to a mob would vouch for itself and never be listed.
     local any = false
 
     for _, source in ipairs(item.sources or {}) do
-        if source.kind ~= "node" and source.kind ~= "herb" then return false end
-        any = true
+        if source.provenance ~= "forever" then
+            if source.kind ~= "node" and source.kind ~= "herb" then return false end
+            any = true
+        end
     end
 
     return any

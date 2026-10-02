@@ -139,6 +139,20 @@ def with_fishing(text, casts, fish):
 \t} },""" % (casts, fish, fish), 1)
 
 
+def with_herb(text):
+    """`text` with Peacebloom on the first mob, as a version before
+    Logic/Gathering.lua recorded a herb picked with a corpse targeted."""
+    return text.replace(
+        '\t\t\t\t["Wool Cloth"] = {',
+        """\t\t\t\t["Peacebloom"] = {
+\t\t\t\t\t["name"] = "Peacebloom",
+\t\t\t\t\t["count"] = 30,
+\t\t\t\t\t["corpses"] = 25,
+\t\t\t\t\t["id"] = 2447,
+\t\t\t\t},
+\t\t\t\t["Wool Cloth"] = {""", 1)
+
+
 checks = 0
 failures = []
 
@@ -329,6 +343,25 @@ def main():
             capture_output=True, text=True, cwd=repo)
         check("the addon's tests pass with fishing rows in the data",
               tests.returncode == 0, tests.stderr[-800:])
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
+
+    # -- A herb credited to a mob -----------------------------------------------
+    #
+    # Herbs and ore count per node. One an older version recorded on a mob is
+    # left out of the data file, and the mob's own drops are still written.
+    sandbox, repo, client = build_sandbox(stamped(with_herb(SAVED)))
+    try:
+        generated = os.path.join(repo, "Data", "Data_Harvested.lua")
+        result = run_import(repo, client)
+        check("an import with a herb on a mob succeeds", result.returncode == 0,
+              result.stderr)
+
+        text = open(generated, encoding="utf-8").read() if os.path.isfile(generated) else ""
+
+        check("the herb is not written as a mob's drop",
+              'name = "Peacebloom"' not in text, text)
+        check("the mob's own drop still is", "chance = 62" in text, text)
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)
 
