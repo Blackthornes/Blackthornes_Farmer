@@ -22,7 +22,8 @@
 --     "Streak x10!" at every fifth.
 --   * The kill that unlocks a mob's drop rates (or a spot's catch rates)
 --     drops a gold banner over the top of the panel, with sparkles, a shine
---     across the title bar and a long gold pulse on the mob's band.
+--     across the title bar, a long gold pulse on the mob's band, and the
+--     glow round the panel flaring and settling.
 --   * On a card's loot icons (Trent, 2026-09-28): the icon whose count went
 --     up flashes and shows "+2" in its corner, and an item a mob has never
 --     dropped before pops in with a gold NEW tag.
@@ -86,6 +87,14 @@ local BANNER_HEIGHT = 38
 local SHINE_TIME = 0.9
 local SHINE_WIDTH = 36
 local BRIGHT_GOLD = { 1, 0.906, 0.639 }   -- #FFE7A3
+
+-- What the banner says when its whole title will not fit a narrow panel.
+local SHORT_TITLE = "RATES UNLOCKED"
+
+-- As rates unlock, the glow round the panel flares to this many times its
+-- resting brightness and settles back over this long.
+local FLARE = 5
+local FLARE_TIME = 1.4
 
 -- A streak floats a cheer at every this many kills.
 local STREAK_CHEER = 5
@@ -981,6 +990,37 @@ function TrackerFX.FitSubject(subject, room)
     return subject:match("^(.-)  |  ") or subject
 end
 
+--- The banner's title for a label `room` pixels wide, and the size to draw
+--- it at: whole and large if it fits, else whole a size down, else the
+--- short "RATES UNLOCKED". "GATHER RATES UNLOCKED" in large outlined
+--- capitals needs more room than a narrow panel has, and ended in "...".
+function TrackerFX.FitTitle(title, room)
+    local tries = { { title, "large" }, { title, "normal" },
+        { SHORT_TITLE, "large" }, { SHORT_TITLE, "normal" } }
+
+    for _, try in ipairs(tries) do
+        -- The outline takes a pixel each side.
+        if Theme.TextWidth(try[2], try[1]) + 2 <= room then
+            return try[1], Theme.sizes[try[2]]
+        end
+    end
+    return SHORT_TITLE, Theme.sizes.normal
+end
+
+--- The glow round the panel flares and settles back, the way a window's
+--- does as it opens. Through Motion, so Off leaves it at rest, and in the
+--- slot the panel's fade-up flares in, so the two never fight.
+function TrackerFX:Flare()
+    local panel = ns.TrackerUI and ns.TrackerUI.frame
+    local rest = panel and tonumber(panel.haloRest)
+    if not (rest and ns.Motion) then return end
+
+    local peak = rest * FLARE
+    ns.Motion:Run(panel, "halo", FLARE_TIME, function(p)
+        Theme.SetHalo(panel, peak + (rest - peak) * p)
+    end)
+end
+
 --- A mob's drop rates (or a spot's catch rates) just unlocked: `info` is
 --- { title, subject, key }. Tracker:Fanfare calls it with the sound.
 function TrackerFX:Unlocked(info)
@@ -988,22 +1028,24 @@ function TrackerFX:Unlocked(info)
     if level == "off" then return end
     if not (ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown()) then return end
 
-    -- Subtle keeps the long gold pulse on the band; the banner, sparkles
-    -- and shine are Full's.
+    -- Subtle keeps the long gold pulse on the band; the banner, sparkles,
+    -- shine and the flare round the panel are Full's.
     if level ~= "full" then
         self:PulseUnlocked(info)
         return
     end
 
     local banner = self:Banner()
-    banner.title:SetText(info.title or "RATES UNLOCKED")
     banner:SetAlpha(0)
     banner:Show()
 
     local ok, width = pcall(banner.GetWidth, banner)
     width = ok and tonumber(width) or 200
 
-    -- Its label runs 6 pixels in from each side.
+    -- Its labels run 6 pixels in from each side.
+    local title, size = TrackerFX.FitTitle(info.title or SHORT_TITLE, width - 12)
+    pcall(banner.title.SetFont, banner.title, Theme.FONT, size, "OUTLINE")
+    banner.title:SetText(title)
     banner.subject:SetText(TrackerFX.FitSubject(info.subject or "", width - 12))
 
     for index, spark in ipairs(banner.sparks) do
@@ -1046,6 +1088,7 @@ function TrackerFX:Unlocked(info)
             banner.shine:SetAlpha(0)
         end })
 
+    self:Flare()
     self:PulseUnlocked(info)
 end
 
@@ -1077,7 +1120,12 @@ end
 
 function TrackerFX:SetLevel(level)
     ns.db.trackerEffects = level
-    if level == "off" then self:Forget() end
+    if level == "off" then
+        self:Forget()
+        -- What is moving in any window lands at once rather than finishing
+        -- slowly.
+        if ns.Motion then ns.Motion:FinishAll() end
+    end
     if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
 end
 
@@ -1095,9 +1143,9 @@ ns.RegisterCommand("effects", "how much the panels and windows move: full, subtl
     TrackerFX:SetLevel(argument)
 
     local lines = {
-        full = "panel effects: full. Counts glow, value counts up, loot floats off the panel.",
-        subtle = "panel effects: subtle. Counts glow and value counts up; nothing floats.",
-        off = "panel effects off. /farm effects full turns them back on.",
+        full = "window effects: full. Windows fade up and glow, counts glow and loot floats off the kill panel.",
+        subtle = "window effects: subtle. Shorter fades, and nothing floats.",
+        off = "window effects off. Nothing moves. /farm effects full turns them back on.",
     }
     ns.Print(lines[argument])
 end)
