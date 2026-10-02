@@ -50,7 +50,12 @@ end
 ns.COLORS = {
     accent = "ffc8a44d",
     good   = "ff4fd18b",
-    muted  = "ff7a8089",
+    -- Theme's muted (#8B919B), so grey text in chat and on the windows is
+    -- the same grey.
+    muted  = "ff8b919b",
+    -- Theme's dim (#6B707B), for the " / " between a zone and its landmark:
+    -- missing here, it came out in the bright text colour.
+    dim    = "ff6b707b",
     warn   = "ffe8c15a",
     text   = "ffe6e8ec",
 }

@@ -118,7 +118,7 @@ end
 
 suite.check("the source column fits every name", columns.name.w >= math.min(320, widest.name),
     columns.name.w .. " < " .. widest.name)
-suite.check("the where column fits every place", columns.where.w >= math.min(400, widest.where),
+suite.check("the where column fits every place", columns.where.w >= math.min(520, widest.where),
     columns.where.w .. " < " .. widest.where)
 suite.check("columns follow one another",
     columns.where.x == columns.name.x + columns.name.w + 6, columns.where.x)
@@ -126,6 +126,46 @@ suite.check("the window grows with its columns",
     UI.frame:GetWidth() == baseWidth + columns.extra, UI.frame:GetWidth())
 suite.check("the headings move with them",
     UI.headings.where._point[2] == 8 + columns.where.x, UI.headings.where._point[2])
+
+-- A row is the window less its padding, the list's inset and the scrollbar.
+local function RowWidth() return UI.frame:GetWidth() - 58 end
+
+-- The longest places in the data ran past 400 pixels in the game's font.
+local far = { kind = "mob", name = "x", zone = "Tirisfal Glades", location = string.rep("x", 70) }
+UI:FitColumns({ { type = "source", source = far } })
+suite.check("the where column grows past 400 for a long place", UI.columns.where.w > 400,
+    UI.columns.where.w)
+
+-- The [Forever] badge sat over the end of the drop column, on a long
+-- "needs" text; it has a slot of its own now, as wide as its text.
+UI:FitColumns({ { type = "source", source = { kind = "node", name = "Copper Vein",
+    zone = "Durotar", requires = "Mining 1", provenance = "forever" } } })
+columns = UI.columns
+suite.check("the badge's slot starts after the drop column",
+    columns.badge.x >= columns.drop.x + columns.drop.w, columns.badge.x)
+suite.check("and holds its text", columns.badge.w >= Theme.TextWidth("tiny", "Forever"),
+    columns.badge.w)
+suite.check("inside the row", columns.badge.x + columns.badge.w <= RowWidth(),
+    columns.badge.x + columns.badge.w)
+
+local badged = env.Stub()
+UI:CreateRow(badged)
+suite.check("a row puts its badge in that slot", badged.badge._point[2] == columns.badge.x,
+    badged.badge._point[2])
+
+-- A note is one line across its row; a long one widens the window.
+local note = string.rep("a long note ", 12)
+UI:FitColumns({ { type = "note", text = note } })
+suite.check("a long note fits its row", Theme.TextWidth("small", "     " .. note) + 4 <= RowWidth(),
+    RowWidth())
+UI:UpdateRow(badged, { type = "note", text = note })
+suite.check("which it spans, with no room kept for a Goal button",
+    badged.heading._point[1] == "RIGHT" and badged.heading._point[2] == -2,
+    badged.heading._point[2])
+
+UI:FitColumns({ { type = "note", text = "short" } })
+suite.check("a short note leaves the window at its usual width",
+    UI.frame:GetWidth() == baseWidth, UI.frame:GetWidth())
 
 --------------------------------------------------------------------------------
 -- Buttons

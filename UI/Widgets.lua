@@ -12,11 +12,12 @@ local Theme = ns.Theme
 --------------------------------------------------------------------------------
 -- Motion
 --
--- Small tweens for the windows and controls: a button easing into its hover
--- colour, a window fading up as it opens, rows arriving one after another.
--- The kills panel and the goals panel keep their own clocks (TrackerFX,
--- GoalsUI); this one is for everything else, and follows the same
--- /farm effects setting. Off means every tween lands at its end at once.
+-- Small tweens for the windows, the panels and the controls: a button easing
+-- into its hover colour, a window or panel fading up as it opens, a glow
+-- flaring, rows arriving one after another. The kill panel's and the goals
+-- panel's own effects (floats, counts, bars) keep their own clocks
+-- (TrackerFX, GoalsUI). This one follows the same /farm effects setting:
+-- Off means every tween lands at its end at once.
 --
 -- One OnUpdate on one small frame, shown only while something is moving, so
 -- an idle window costs nothing per frame. A tween that errors is dropped
@@ -236,6 +237,33 @@ function Motion:Open(frame, rise)
 end
 
 --------------------------------------------------------------------------------
+-- Reading the client
+--------------------------------------------------------------------------------
+
+--- Whether the mouse is on `frame` and the frame is on screen. Read in a
+--- pcall, as every client value is; a client that cannot say answers no.
+local function UnderMouse(frame)
+    local ok, over = pcall(function() return frame:IsVisible() and frame:IsMouseOver() end)
+    return ok and over and true or false
+end
+
+--- Every point `region` hangs from, as SetPoint takes them, or nil when one
+--- of them cannot be read. A client that will not count them gets the
+--- first, which is all most labels have.
+local function Points(region)
+    local ok, count = pcall(function() return region:GetNumPoints() end)
+    count = ok and tonumber(count) or 1
+
+    local points = {}
+    for index = 1, math.max(1, count) do
+        local point, relativeTo, relativePoint, x, y = region:GetPoint(index)
+        if not (point and type(x) == "number" and type(y) == "number") then return nil end
+        points[index] = { point, relativeTo, relativePoint, x, y }
+    end
+    return points
+end
+
+--------------------------------------------------------------------------------
 -- Button
 --------------------------------------------------------------------------------
 
@@ -302,24 +330,34 @@ function Widgets.CreateButton(parent, text, onClick, opts)
         Motion:Blend(self, "hover", 0, HOVER_TIME * 1.5, Light)
     end)
 
-    -- The label dips a pixel while held, so a click feels pressed. Wherever
-    -- the label was put (a caller may have moved it beside an icon), it
-    -- goes back to exactly there.
+    -- The label dips a pixel while held, so a click feels pressed. Every
+    -- point it hangs from moves together, or a label held at both ends
+    -- would tilt; and wherever it was put (a caller may have moved it
+    -- beside an icon), it goes back to exactly there.
     button:SetScript("OnMouseDown", function(self)
-        local point, relativeTo, relativePoint, x, y = self.label:GetPoint(1)
-        if not (point and type(x) == "number" and type(y) == "number") then return end
+        -- Already held with another mouse button: dipped once is enough.
+        -- Taking the dipped spot as the rest sank the label a pixel a time.
+        if rawget(self, "restPoints") then return end
 
-        self.restPoint = { point, relativeTo, relativePoint, x, y }
-        self.label:SetPoint(point, relativeTo, relativePoint, x, y - 1)
+        local points = Points(self.label)
+        if not points then return end
+
+        self.restPoints = points
+        for _, p in ipairs(points) do self.label:SetPoint(p[1], p[2], p[3], p[4], p[5] - 1) end
     end)
 
-    button:SetScript("OnMouseUp", function(self)
-        local rest = rawget(self, "restPoint")
+    local function Release(self)
+        local rest = rawget(self, "restPoints")
         if not rest then return end
 
-        self.restPoint = nil
-        self.label:SetPoint(rest[1], rest[2], rest[3], rest[4], rest[5])
-    end)
+        self.restPoints = nil
+        for _, p in ipairs(rest) do self.label:SetPoint(p[1], p[2], p[3], p[4], p[5]) end
+    end
+
+    button:SetScript("OnMouseUp", Release)
+    -- Hidden while held (the click closed its window), the mouse-up never
+    -- comes: let go, or the label would stay a pixel low from then on.
+    button:SetScript("OnHide", Release)
 
     if onClick then
         button:SetScript("OnClick", function(self, mouseButton)
@@ -351,7 +389,13 @@ end
 -- onChange fires on every keystroke so results follow typing; onAccept fires on
 -- Enter. Escape clears focus rather than the text, because losing what you
 -- typed on a mis-key is worse than an extra keystroke.
-function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept)
+--
+-- opts.plain leaves out the magnifier and the clear button, for a small box
+-- that is not a search: the room they keep is most of a narrow box.
+function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept, opts)
+    opts = opts or {}
+    local inset = opts.plain and 6 or 26
+
     local holder = Theme.CreatePanel(parent, "row", "border")
     holder:SetHeight(24)
     Theme.TopSheen(holder, 0.04)
@@ -362,18 +406,19 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept)
     icon:SetPoint("LEFT", 7, 0)
     icon:SetTexture([[Interface\Common\UI-Searchbox-Icon]])
     icon:SetVertexColor(Theme.Unpack("muted"))
+    icon:SetShown(not opts.plain)
     holder.icon = icon
 
     local box = CreateFrame("EditBox", nil, holder)
-    box:SetPoint("TOPLEFT", 26, 0)
-    box:SetPoint("BOTTOMRIGHT", -26, 0)
+    box:SetPoint("TOPLEFT", inset, 0)
+    box:SetPoint("BOTTOMRIGHT", -inset, 0)
     box:SetAutoFocus(false)
     box:SetFont(Theme.FONT, Theme.sizes.normal, "")
     box:SetTextColor(Theme.Unpack("text"))
     box:SetMaxLetters(80)
 
     local hint = Theme.CreateLabel(holder, "normal", "dim")
-    hint:SetPoint("LEFT", 26, 0)
+    hint:SetPoint("LEFT", inset, 0)
     hint:SetText(placeholder or "")
 
     -- Clears what you typed in one click, and only shows when there is
@@ -384,30 +429,78 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept)
     local cross = Theme.CreateLabel(clear, "normal", "muted", "CENTER")
     cross:SetPoint("CENTER", 0, 0)
     cross:SetText("x")
-    clear:SetScript("OnEnter", function() cross:SetTextColor(Theme.Unpack("text")) end)
-    clear:SetScript("OnLeave", function() cross:SetTextColor(Theme.Unpack("muted")) end)
     clear:Hide()
     holder.clear = clear
 
     local function UpdateHint()
         local empty = box:GetText() == ""
         hint:SetShown(empty)
-        clear:SetShown(not empty)
+        clear:SetShown(not empty and not opts.plain)
     end
 
-    --- Gold edge and a brighter magnifier while it has the keyboard.
-    local function Focus(p)
-        local r, g, b, a = Motion.Mix("border", "accent", p, 1, 0.8)
-        for _, edge in ipairs(holder.borderTextures or {}) do edge:SetColorTexture(r, g, b, a) end
-        icon:SetVertexColor(Motion.Mix("muted", "accent", p))
+    --- The edge and the magnifier, from how far the mouse and the keyboard
+    --- have each eased in: the edge lifts under the mouse and turns gold
+    --- while the box has the keyboard, and the keyboard's gold wins.
+    local function Paint()
+        local hover = Motion:Value(holder, "hover")
+        local focus = Motion:Value(holder, "focus")
+
+        local r1, g1, b1 = Motion.Mix("border", "borderLit", hover)
+        local r2, g2, b2 = Theme.Unpack("accent")
+        local r, g, b = r1 + (r2 - r1) * focus, g1 + (g2 - g1) * focus, b1 + (b2 - b1) * focus
+        for _, edge in ipairs(holder.borderTextures or {}) do
+            edge:SetColorTexture(r, g, b, 1 - 0.2 * focus)
+        end
+
+        icon:SetVertexColor(Motion.Mix("muted", "accent", math.max(focus, hover * 0.4)))
     end
+
+    --- The mouse came onto part of the box or left it. Lit while it is
+    --- anywhere on the box: going from the margin onto the text, or onto
+    --- the x, is a leave and an enter of their own.
+    local function Hover()
+        local over = UnderMouse(holder)
+        Motion:Blend(holder, "hover", over and 1 or 0, over and 0.12 or 0.18, Paint)
+    end
+
+    holder:EnableMouse(true)
+    holder:SetScript("OnEnter", Hover)
+    holder:SetScript("OnLeave", Hover)
+    box:SetScript("OnEnter", Hover)
+    box:SetScript("OnLeave", Hover)
+    -- The margin answers the mouse now, so a click there (on the
+    -- magnifier, say) gives the box the keyboard rather than nothing.
+    holder:SetScript("OnMouseDown", function() box:SetFocus() end)
+
+    -- The x lifts to the text colour under the mouse, eased like the rest.
+    local function LightCross(p)
+        cross:SetTextColor(Motion.Mix("muted", "text", p))
+    end
+    clear:SetScript("OnEnter", function(self)
+        Motion:Blend(self, "hover", 1, 0.12, LightCross)
+        Hover()
+    end)
+    clear:SetScript("OnLeave", function(self)
+        Motion:Blend(self, "hover", 0, 0.18, LightCross)
+        Hover()
+    end)
+
+    -- Hidden under the mouse (its window closing, or the x going with the
+    -- text it cleared), no leave may come: let go, or it shows again lit.
+    local function LetGo(frame, apply)
+        Motion:Stop(frame, "hover")
+        Motion:SetValue(frame, "hover", 0)
+        apply(0)
+    end
+    holder:SetScript("OnHide", function() LetGo(holder, Paint) end)
+    clear:SetScript("OnHide", function() LetGo(clear, LightCross) end)
 
     box:SetScript("OnEditFocusGained", function()
-        Motion:Blend(holder, "focus", 1, 0.15, Focus)
+        Motion:Blend(holder, "focus", 1, 0.15, Paint)
     end)
 
     box:SetScript("OnEditFocusLost", function()
-        Motion:Blend(holder, "focus", 0, 0.2, Focus)
+        Motion:Blend(holder, "focus", 0, 0.2, Paint)
     end)
 
     box:SetScript("OnTextChanged", function(self, userInput)
@@ -576,6 +669,9 @@ function Widgets.CreateLineList(parent, opts)
 
     list.scrollbar = scrollbar
 
+    -- True while Refresh sets the scrollbar itself (see there).
+    local syncing = false
+
     local function VisibleRowCount()
         local height = list:GetHeight()
         if not height or height <= 0 then return 0 end
@@ -617,8 +713,13 @@ function Widgets.CreateLineList(parent, opts)
             self.rows[index]:Hide()
         end
 
+        -- The client clamps the slider's value to a new range and reports
+        -- that as the player moving it. Taken as a move, a new list that was
+        -- shorter than the last one opened scrolled to its end.
+        syncing = true
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
+        syncing = false
         scrollbar:SetShown(maxOffset > 0)
         scrollbar:SizeThumb(visible, #(self.data or self.lines))
 
@@ -639,6 +740,8 @@ function Widgets.CreateLineList(parent, opts)
     end
 
     scrollbar:SetScript("OnValueChanged", function(_, value)
+        if syncing then return end
+
         local wanted = math.floor(value + 0.5)
         if wanted ~= list.offset then
             list.offset = wanted
@@ -657,6 +760,40 @@ end
 --------------------------------------------------------------------------------
 -- Row list
 --------------------------------------------------------------------------------
+
+--- The light a row wears under the mouse, built on `row` once: a lifted
+--- wash, a thin gold edge down its left so your place in a long list is easy
+--- to keep, and a soft gold light bleeding off that edge into the row.
+--- Unlit until Widgets.SetRowLight lights it.
+function Widgets.RowLight(row)
+    -- Filled at full strength and hidden with SetAlpha: a texture whose
+    -- colour is clear stays clear whatever alpha it is given later, which
+    -- is how the hover went missing.
+    row.highlight = Theme.Fill(row, "rowHover", nil, "BORDER")
+    row.highlight:SetAlpha(0)
+
+    row.edge = row:CreateTexture(nil, "OVERLAY")
+    row.edge:SetPoint("TOPLEFT")
+    row.edge:SetPoint("BOTTOMLEFT")
+    row.edge:SetWidth(2)
+    row.edge:SetColorTexture(Theme.Unpack("accent"))
+    row.edge:SetAlpha(0)
+
+    row.bleed = row:CreateTexture(nil, "BORDER", nil, 1)
+    row.bleed:SetPoint("TOPLEFT", 2, 0)
+    row.bleed:SetPoint("BOTTOMLEFT", 2, 0)
+    row.bleed:SetWidth(18)
+    Theme.SetGradientAlpha(row.bleed, "HORIZONTAL", "accent", 0.22, 0)
+    pcall(row.bleed.SetBlendMode, row.bleed, "ADD")
+    row.bleed:SetAlpha(0)
+end
+
+--- How lit a row from Widgets.RowLight is: 0 at rest, 1 under the mouse.
+function Widgets.SetRowLight(row, value)
+    row.highlight:SetAlpha(0.6 * value)
+    row.edge:SetAlpha(value)
+    row.bleed:SetAlpha(value)
+end
 
 --- A scrolling list that recycles row frames.
 --
@@ -704,6 +841,32 @@ function Widgets.CreateRowList(parent, opts)
         return math.floor(height / rowHeight)
     end
 
+    -- True while Refresh sets the scrollbar itself (see there).
+    local syncing = false
+
+    -- The row under the mouse, from its OnEnter to its OnLeave.
+    local hovered
+
+    --- How lit a row is: 0 at rest, 1 under the mouse.
+    local Lit = Widgets.SetRowLight
+
+    local function Unlight(row)
+        Motion:Stop(row, "hover")
+        Motion:SetValue(row, "hover", 0)
+        Lit(row, 0)
+    end
+
+    --- The mouse is on `row`: light it, and let the caller show its tooltip.
+    local function Enter(row)
+        hovered = row
+        if row.data and row.data.type ~= "spacer" then
+            Motion:Blend(row, "hover", 1, 0.08, function(value) Lit(row, value) end)
+        else
+            Unlight(row)
+        end
+        if row.data and opts.onEnter then opts.onEnter(row, row.data) end
+    end
+
     local function AcquireRow(index)
         local row = list.rows[index]
         if row then return row end
@@ -719,54 +882,22 @@ function Widgets.CreateRowList(parent, opts)
         -- is how the hover and the banding went missing.
         row.stripe = Theme.Fill(row, "rowAlt")
         row.stripe:SetAlpha(0)
-        row.highlight = Theme.Fill(row, "rowHover", nil, "BORDER")
-        row.highlight:SetAlpha(0)
 
-        -- A thin gold edge on the row under the mouse, easing in with the
-        -- highlight, so your place in a long list is easy to keep.
-        row.edge = row:CreateTexture(nil, "OVERLAY")
-        row.edge:SetPoint("TOPLEFT")
-        row.edge:SetPoint("BOTTOMLEFT")
-        row.edge:SetWidth(2)
-        row.edge:SetColorTexture(Theme.Unpack("accent"))
-        row.edge:SetAlpha(0)
-
-        -- And a soft gold light bleeding off that edge into the row.
-        row.bleed = row:CreateTexture(nil, "BORDER", nil, 1)
-        row.bleed:SetPoint("TOPLEFT", 2, 0)
-        row.bleed:SetPoint("BOTTOMLEFT", 2, 0)
-        row.bleed:SetWidth(18)
-        row.bleed:SetColorTexture(1, 1, 1, 1)
-        pcall(row.bleed.SetBlendMode, row.bleed, "ADD")
-        do
-            local r, g, b = Theme.Unpack("accent")
-            local ok = type(CreateColor) == "function" and pcall(row.bleed.SetGradient, row.bleed,
-                "HORIZONTAL", CreateColor(r, g, b, 0.22), CreateColor(r, g, b, 0))
-            if not ok then row.bleed:SetColorTexture(r, g, b, 0.06) end
-        end
-        row.bleed:SetAlpha(0)
+        -- The wash, the gold edge and the gold light that come up under the
+        -- mouse.
+        Widgets.RowLight(row)
 
         if opts.createRow then
             opts.createRow(row)
         end
 
-        local function Lit(value)
-            row.highlight:SetAlpha(0.6 * value)
-            row.edge:SetAlpha(value)
-            row.bleed:SetAlpha(value)
-        end
-
         -- Callers hook hovering through opts rather than HookScript on the
         -- row: SetScript here would replace a hook set in createRow.
-        row:SetScript("OnEnter", function(self)
-            if self.data and self.data.type ~= "spacer" then
-                Motion:Blend(self, "hover", 1, 0.08, Lit)
-            end
-            if self.data and opts.onEnter then opts.onEnter(self, self.data) end
-        end)
+        row:SetScript("OnEnter", Enter)
 
         row:SetScript("OnLeave", function(self)
-            Motion:Blend(self, "hover", 0, 0.18, Lit)
+            if hovered == self then hovered = nil end
+            Motion:Blend(self, "hover", 0, 0.18, function(value) Lit(self, value) end)
             if opts.onLeave then opts.onLeave(self) end
         end)
 
@@ -791,6 +922,10 @@ function Widgets.CreateRowList(parent, opts)
         if self.offset > maxOffset then self.offset = maxOffset end
         if self.offset < 0 then self.offset = 0 end
 
+        -- Asked before the rows change: one emptied below is hidden, and a
+        -- hidden row is under no mouse.
+        local stillOver = hovered and UnderMouse(hovered)
+
         for index = 1, visible do
             local row = AcquireRow(index)
             local data = self.data[index + self.offset]
@@ -798,13 +933,9 @@ function Widgets.CreateRowList(parent, opts)
             row.data = data
             row.dataIndex = index + self.offset
 
-            -- A row handed new data under a still mouse starts unlit; the
-            -- next OnEnter lights it again.
-            Motion:Stop(row, "hover")
-            Motion:SetValue(row, "hover", 0)
-            row.highlight:SetAlpha(0)
-            row.edge:SetAlpha(0)
-            row.bleed:SetAlpha(0)
+            -- A row handed new data starts unlit, except the one under the
+            -- mouse, which is lit again for its new data below.
+            if not (stillOver and row == hovered) then Unlight(row) end
 
             if data then
                 -- Banding follows the row's place on screen rather than its
@@ -825,8 +956,28 @@ function Widgets.CreateRowList(parent, opts)
             self.rows[index]:Hide()
         end
 
+        -- A scroll or a redraw hands the row under a still mouse new data,
+        -- and no OnEnter comes for that: it went dark, and its tooltip
+        -- still spoke of the last row. Leave and enter it again, as if the
+        -- mouse had just come onto what it shows now.
+        if hovered then
+            local row = hovered
+            hovered = nil
+            if stillOver and opts.onLeave then opts.onLeave(row) end
+            if stillOver and row.data and row:IsShown() then
+                Enter(row)
+            else
+                Unlight(row)
+            end
+        end
+
+        -- The client clamps the slider's value to a new range and reports
+        -- that as the player moving it. Taken as a move, a new list that was
+        -- shorter than the last one opened scrolled to its end.
+        syncing = true
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
+        syncing = false
         scrollbar:SetShown(maxOffset > 0)
         scrollbar:SizeThumb(visible, #(self.data or self.lines))
 
@@ -871,6 +1022,8 @@ function Widgets.CreateRowList(parent, opts)
     end
 
     scrollbar:SetScript("OnValueChanged", function(_, value)
+        if syncing then return end
+
         local wanted = math.floor(value + 0.5)
         if wanted ~= list.offset then
             list.offset = wanted
@@ -1009,6 +1162,8 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     box:SetPoint("LEFT")
     box.background = Theme.Fill(box, "row")
     Theme.Border(box, "border")
+    -- A faint sheen along its top, as the buttons have.
+    Theme.TopSheen(box)
 
     local tick = box:CreateTexture(nil, "OVERLAY")
     tick:SetPoint("CENTER")
@@ -1020,14 +1175,34 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     label:SetText(text)
 
     checkbox.label = label
+    checkbox.box = box
     checkbox:SetWidth(Theme.TextWidth("small", text) + 24)
     checkbox.checked = initial and true or false
     checkbox.disabled = false
-    tick:SetShown(checkbox.checked)
+
+    --- The box and its label, from its state and from how far the mouse has
+    --- eased in. A ticked box wears a gold edge, so its state shows at a
+    --- glance and not only by the small mark; an unticked one lifts under
+    --- the mouse; the label eases to gold. A disabled one does not answer
+    --- the mouse.
+    local function Paint()
+        local hover = checkbox.disabled and 0 or Motion:Value(checkbox, "hover")
+        tick:SetShown(checkbox.checked)
+
+        local r, g, b, a
+        if checkbox.checked then
+            r, g, b, a = Theme.Unpack("accent", checkbox.disabled and 0.4 or 1)
+        else
+            r, g, b, a = Motion.Mix("border", "borderLit", hover)
+        end
+        for _, edge in ipairs(box.borderTextures or {}) do edge:SetColorTexture(r, g, b, a) end
+
+        label:SetTextColor(Motion.Mix(checkbox.disabled and "dim" or "text", "accent", hover))
+    end
 
     function checkbox:SetChecked(value)
         self.checked = value and true or false
-        tick:SetShown(self.checked)
+        Paint()
     end
 
     function checkbox:GetChecked()
@@ -1038,8 +1213,8 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     --- setting this client cannot honour.
     function checkbox:SetDisabled(disabled)
         self.disabled = disabled and true or false
-        label:SetTextColor(Theme.Unpack(self.disabled and "dim" or "text"))
         tick:SetAlpha(self.disabled and 0.4 or 1)
+        Paint()
     end
 
     checkbox:SetScript("OnClick", function(self)
@@ -1058,17 +1233,14 @@ function Widgets.CreateCheckbox(parent, text, onToggle, initial)
     end)
 
     checkbox:SetScript("OnEnter", function(self)
-        if not self.disabled then
-            label:SetTextColor(Theme.Unpack("accent"))
-            Theme.SetBorderColor(box, "accent", 0.7)
-        end
+        Motion:Blend(self, "hover", 1, 0.12, Paint)
     end)
 
     checkbox:SetScript("OnLeave", function(self)
-        label:SetTextColor(Theme.Unpack(self.disabled and "dim" or "text"))
-        Theme.SetBorderColor(box, "border")
+        Motion:Blend(self, "hover", 0, 0.18, Paint)
     end)
 
+    Paint()
     return checkbox
 end
 

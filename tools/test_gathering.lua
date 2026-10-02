@@ -5,11 +5,14 @@
 -- targeted, which is how herbs used to turn up as a mob's loot; a gather is
 -- known only from a Herb Gathering or Mining cast that nothing interrupted, so
 -- a corpse looted after a failed or stale cast is still the mob's; skinning
--- stays the mob's; loot the client says came from something other than the
--- target is nobody's drop; no percentage before MIN_GATHERS; gathered items
--- count toward the session's value; the panel's Gathering section shows only
--- once you have gathered; the check lists herbs already credited to a mob and
--- changes nothing; and nothing off the client is touched outside a pcall.
+-- stays the mob's, but a corpse first opened by skinning is no harvest
+-- sample; loot the client says came from something other than the target is
+-- nobody's drop; no percentage before MIN_GATHERS; gathered items count
+-- toward the session's value; the panel's Gathering section shows only once
+-- you have gathered; the check lists herbs already credited to a mob, even
+-- with the measured data loaded, changes nothing, and keeps them out of the
+-- export; a reset keeps the map markers; and nothing off the client is
+-- touched outside a pcall.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("gathering")
@@ -394,6 +397,25 @@ suite.check("it says so", env.chat[1] and env.chat[1]:find("2 entries", 1, true)
 suite.check("and changes nothing", mobs["Mangy Wolf"].items["Peacebloom"] == 2
     and record.items["Copper Ore"] ~= nil)
 
+-- Nor does it go into the data: herbs and ore count per node, never as a
+-- mob's drop. What the mob does drop still goes.
+local exported = Harvest:ExportAll()
+suite.check("the export leaves the ore out",
+    exported:find('name = "Copper Ore"', 1, true) == nil)
+suite.check("and keeps the mob's own drop",
+    exported:find('name = "Large Fang"', 1, true) ~= nil)
+
+-- Asked for by name, the ore stays out too.
+env.chat = {}
+local exportShown
+local ShowExport = ns.UI.ShowExport
+ns.UI.ShowExport = function(_, text) exportShown = text end
+ns.HandleSlash("export copper ore")
+ns.UI.ShowExport = ShowExport
+suite.check("/farm export of an ore opens no window", exportShown == nil, exportShown)
+suite.check("and says why", env.chat[1] and env.chat[1]:find("comes from nodes", 1, true) ~= nil,
+    env.chat[1])
+
 mobs["Mangy Wolf"].items["Peacebloom"] = nil
 record.items["Copper Ore"] = nil
 env.chat = {}
@@ -411,11 +433,18 @@ suite.check("/farm gathering lists this zone's nodes",
     env.chat[1] and env.chat[1]:find("gathered in Elwynn Forest", 1, true), env.chat[1])
 
 local before = Gathering:CountGathers()
+local markers = #Gathering:Spots()
+env.chat = {}
 ns.HandleSlash("gathering reset")
 suite.check("reset asks first", Gathering:CountGathers() == before)
+suite.check("and says the map markers stay",
+    env.chat[1] and env.chat[1]:find("map markers stay", 1, true) ~= nil, env.chat[1])
 ns.HandleSlash("gathering reset confirm")
 suite.check("a confirmed reset clears it", Gathering:CountGathers() == 0)
 suite.check("and leaves the kills alone", Tracker:Store()["Mangy Wolf"].kills > 0)
+-- The markers have their own clear (/farm markers clear confirm).
+suite.check("and the map markers", markers > 0 and #Gathering:Spots() == markers,
+    markers .. " before, " .. #Gathering:Spots() .. " after")
 
 -- The client naming the node as the loot's source, with a corpse targeted:
 -- the herb is still the node's (the corpse check is for kills only).
@@ -426,5 +455,195 @@ _G.GetLootSourceInfo = nil
 local sourced = Gathering:Summary(BLOOM)
 suite.check("a node's own loot counts with a corpse targeted",
     sourced and sourced.gathers == 1 and sourced.items[1] and sourced.items[1].name == "Peacebloom")
+
+--------------------------------------------------------------------------------
+-- Skinning, told apart
+--
+-- Never a gather, but the harvester and the kill tally need to know a loot
+-- window is a skin's: IsSkinning is true from your own Skinning cast until
+-- its window closes, it fails or is interrupted, or GATHER_SECONDS pass.
+--------------------------------------------------------------------------------
+
+suite.check("every rank of Skinning is skinning", Gathering.IsSkinningSpell(8613)
+    and Gathering.IsSkinningSpell(8617) and Gathering.IsSkinningSpell(8618)
+    and Gathering.IsSkinningSpell(10768))
+suite.check("a gather is not", not Gathering.IsSkinningSpell(HERB_GATHERING))
+suite.check("nor a secret spell, and it raises nothing",
+    not Gathering.IsSkinningSpell(env.Secret("spell")))
+
+-- A client whose ids differ: known by name.
+local realSpell = _G.C_Spell
+_G.C_Spell = { GetSpellName = function(spell) return spell == 194174 and "Skinning" or nil end }
+suite.check("known by name where the id differs", Gathering.IsSkinningSpell(194174))
+_G.C_Spell = realSpell
+
+env.world.target = nil
+suite.check("no skin, no skinning", not Gathering:IsSkinning())
+
+fire(ns.eventFrame, "UNIT_SPELLCAST_SENT", "party1", "Mangy Wolf", "Cast-party", SKINNING)
+suite.check("someone else's skin is not yours", not Gathering:IsSkinning())
+
+local skin = Send(SKINNING, "Mangy Wolf")
+suite.check("a skin sent is skinning", Gathering:IsSkinning())
+suite.check("and no gather", not Gathering:IsGathering())
+
+-- The window you had open shuts as the skin begins: it is not the skin's.
+fire(ns.eventFrame, "LOOT_CLOSED")
+suite.check("a window closing before the skin's own leaves it", Gathering:IsSkinning())
+
+fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", skin, SKINNING)
+suite.check("still skinning once it goes through", Gathering:IsSkinning())
+Open({ LEATHER }, { keepOpen = true })
+suite.check("and while its window is open", Gathering:IsSkinning())
+fire(ns.eventFrame, "LOOT_CLOSED")
+suite.check("over when its window closes", not Gathering:IsSkinning())
+
+-- A client that says the cast went through only once its window is open.
+skin = Send(SKINNING, "Mangy Wolf")
+Open({ LEATHER }, { keepOpen = true })
+fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", skin, SKINNING)
+fire(ns.eventFrame, "LOOT_CLOSED")
+suite.check("a late word that it went through does not outlast its window",
+    not Gathering:IsSkinning())
+
+skin = Send(SKINNING, "Mangy Wolf")
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "player", skin, SKINNING)
+suite.check("a failed skin is over", not Gathering:IsSkinning())
+
+skin = Send(SKINNING, "Mangy Wolf")
+fire(ns.eventFrame, "UNIT_SPELLCAST_INTERRUPTED", "player", skin, SKINNING)
+suite.check("so is an interrupted one", not Gathering:IsSkinning())
+
+skin = Send(SKINNING, "Mangy Wolf")
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "player", "Cast-other", FROSTBOLT)
+suite.check("another spell failing is not the skin failing", Gathering:IsSkinning())
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "party1", skin, SKINNING)
+suite.check("nor is someone else's", Gathering:IsSkinning())
+clock = clock + Gathering.GATHER_SECONDS + 1
+suite.check("a skin from long ago is over", not Gathering:IsSkinning())
+
+-- Cast guids the client will not hand over: told apart by the spell.
+fire(ns.eventFrame, "UNIT_SPELLCAST_SENT", "player", "Mangy Wolf", env.Secret("guid"), SKINNING)
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "player", env.Secret("guid"), FROSTBOLT)
+suite.check("without guids another spell failing is still not the skin", Gathering:IsSkinning())
+fire(ns.eventFrame, "UNIT_SPELLCAST_FAILED", "player", env.Secret("guid"), SKINNING)
+suite.check("but the skin failing is", not Gathering:IsSkinning())
+
+-- A client that only says the cast went through.
+casts = casts + 1
+fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-" .. casts, SKINNING)
+suite.check("a skin seen only going through counts", Gathering:IsSkinning())
+Open({ LEATHER })
+suite.check("and ends with its window", not Gathering:IsSkinning())
+
+--------------------------------------------------------------------------------
+-- A corpse first opened by skinning is no harvest sample
+--
+-- Its drops were never in your window: another player took them, an area
+-- loot took them with another corpse's, or you looted it before a /reload
+-- made the harvester forget it. Counting it would add a corpse that held
+-- nothing and pull every other rate down.
+--------------------------------------------------------------------------------
+
+local function Skin(guid, name, items)
+    env.world.target = { name = name, level = 7, dead = true, guid = guid }
+    local id = Send(SKINNING, name)
+    clock = clock + 2
+    fire(ns.eventFrame, "UNIT_SPELLCAST_SUCCEEDED", "player", id, SKINNING)
+    Open(items)
+    clock = clock + 1
+end
+
+local function HarvestRecord(mob)
+    for _, entry in pairs(Harvest.records) do
+        if entry.mob == mob then return entry end
+    end
+end
+
+-- Another player's kill, looted by them: you only skin it.
+local skipped = Harvest.skipped or 0
+Skin("Creature-0-theirs", "Timber Wolf", { LEATHER })
+suite.check("someone else's kill you only skinned is no corpse",
+    HarvestRecord("Timber Wolf") == nil)
+suite.check("it is counted as skipped", (Harvest.skipped or 0) == skipped + 1)
+
+-- Area loot: two wolves, one window holding a fang from each. Only the one
+-- you clicked is counted, with its own fang. Then you skin both.
+local WOLF_A, WOLF_B = "Creature-0-area-a", "Creature-0-area-b"
+local shares = { { WOLF_A, 1, WOLF_B, 1 } }
+_G.GetLootSourceInfo = function(slot) return unpack(shares[slot] or {}) end
+env.world.target = { name = "Timber Wolf", level = 7, dead = true, guid = WOLF_A }
+Open({ { name = "Large Fang", id = 5637, quantity = 2 } })
+shares = { { WOLF_A, 1 } }
+Skin(WOLF_A, "Timber Wolf", { LEATHER })
+shares = { { WOLF_B, 1 } }
+Skin(WOLF_B, "Timber Wolf", { LEATHER })
+_G.GetLootSourceInfo = nil
+
+local timber = HarvestRecord("Timber Wolf")
+suite.check("a corpse the area loot emptied is not counted when skinned",
+    timber and timber.corpses == 1, timber and timber.corpses)
+suite.check("so every corpse still held its fang",
+    timber and timber.items["Large Fang"] and timber.items["Large Fang"].corpses == 1)
+suite.check("and the leather off the one you looted counts",
+    timber and timber.items["Light Leather"] and timber.items["Light Leather"].corpses == 1)
+
+-- Looted, then a /reload forgets the corpse, then skinned.
+env.world.target = { name = "Timber Wolf", level = 7, dead = true, guid = "Creature-0-reload" }
+Open({ { name = "Large Fang", id = 5637 } })
+Harvest.opened = {}
+Skin("Creature-0-reload", "Timber Wolf", { LEATHER })
+suite.check("a corpse skinned after a /reload is not counted twice",
+    timber and timber.corpses == 2, timber and timber.corpses)
+
+--------------------------------------------------------------------------------
+-- The same check with the measured data loaded, as in game
+--
+-- Data/Data_Harvested.lua adds "forever" rows to every item it measured. A
+-- herb an import once credited to a mob must not vouch for itself there:
+-- 0.13.0 shipped Peacebloom and Silverleaf as Cursed Darkhound drops, and
+-- with them loaded the check said the data was clean.
+--------------------------------------------------------------------------------
+
+if env.HasHarvested() then
+    local live = env.Load({ harvested = true })
+
+    local credited = {}
+    for item in live.DB:Iterate() do
+        if item.category == "Herbalism" or item.category == "Mining" then
+            for _, source in ipairs(item.sources) do
+                if source.provenance == "forever" and source.kind == "mob" then
+                    credited[#credited + 1] = item.name .. " on " .. tostring(source.name)
+                end
+            end
+        end
+    end
+    suite.check("no herb or ore in the measured data is a mob's drop",
+        #credited == 0, table.concat(credited, ", "))
+
+    -- An import that kept one, the way 0.13.0's did.
+    live.DB:RegisterItem({ name = "Silverleaf", sources = {
+        { name = "Cursed Darkhound", zone = "Tirisfal Glades", minLevel = 7, maxLevel = 8,
+            chance = 3, provenance = "forever" },
+    } })
+    suite.check("a measured mob row does not make a herb a mob's drop",
+        live.Gathering.IsNodeOnly("Silverleaf"))
+
+    local hound = live.Harvest:GetRecord("Cursed Darkhound", 7, "Tirisfal Glades", nil)
+    hound.corpses = 33
+    hound.items["Silverleaf"] = { name = "Silverleaf", count = 1, corpses = 1 }
+    hound.items["Linen Cloth"] = { name = "Linen Cloth", count = 9, corpses = 8 }
+
+    env.chat = {}
+    live.HandleSlash("gathering check")
+    suite.check("so the check still lists it",
+        env.chat[1] and env.chat[1]:find("1 entry", 1, true) ~= nil, env.chat[1])
+
+    local data = live.Harvest:ExportAll()
+    suite.check("and the export leaves it out",
+        data:find('name = "Silverleaf"', 1, true) == nil)
+    suite.check("but keeps what the mob does drop",
+        data:find('name = "Linen Cloth"', 1, true) ~= nil)
+end
 
 suite.done()

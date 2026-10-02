@@ -10,6 +10,8 @@
 -- its contents attached, and a drop rate needs both halves. One corpse opened
 -- twice -- skinned after looting, or come back to for what was left -- is still
 -- one kill, which is why each corpse is remembered by its guid for the session.
+-- A corpse you only skinned shows none of its drops, so it is no kill; its
+-- leather still counts in the session's loot.
 --
 -- Below MIN_KILLS the panel shows counts, never percentages: three drops in
 -- five kills is not a 60% drop rate, it is five kills.
@@ -40,8 +42,9 @@ Tracker.MIN_KILLS = MIN_KILLS
 Tracker.session = {}
 Tracker.corpses = {}
 
--- Also this session only: how much of each item came off your kills, and the
--- order mobs were last killed in, so the panel can put the latest on top.
+-- Also this session only: how much of each item came off corpses (your kills,
+-- the rest of an area loot, corpses you only skinned), and the order mobs
+-- were last killed in, so the panel can put the latest on top.
 Tracker.sessionLoot = {}
 -- Which mobs each item came from this session: sessionFrom[item][mob] = how
 -- many. The panel's Loot tab lists them under the item.
@@ -130,11 +133,17 @@ end
 --
 -- `guid` may be nil -- the client can refuse it inside an instance -- and then
 -- the corpse cannot be recognised a second time, so every opening counts. That
--- over-counts a skinned corpse, which is the lesser harm next to dropping it.
+-- over-counts a corpse you come back to, which is the lesser harm next to
+-- dropping it. A window from your own Skinning cast on a corpse never opened
+-- is not a kill at all (see OnLoot).
 --
 -- `place` is where it was killed (see PlaceName), or nil if the client would
 -- not say; such a kill still counts, it just has no place.
-function Tracker:Record(mobName, guid, items, quantities, copper, place)
+--
+-- `haul` is what LootedItems found beside this corpse's own loot: the rest of
+-- an area loot window, and how much of this corpse's is locked. `skinning`
+-- says the window came from your own Skinning cast.
+function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, skinning)
     local mob = self:GetMob(mobName)
     local corpse = guid and self.corpses[guid]
     local newKill = not corpse
@@ -153,6 +162,11 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place)
         mob.coinKills = mob.coinKills + 1
         self.sessionCopper = self.sessionCopper + (tonumber(copper) or 0)
 
+        -- Area loot: the other corpses' part of the window is not this kill's
+        -- drop, so the tally never sees it, but it is in your bags all the
+        -- same, so the session's loot and coin take it.
+        self:AddHaul(mobName, haul)
+
         if place then
             mob.places[place] = (tonumber(mob.places[place]) or 0) + 1
         end
@@ -163,17 +177,33 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place)
     -- An item counts once per corpse, however many slots or visits it took.
     -- Leftovers seen again on a return visit add nothing to the loot total
     -- either: they were counted the first time the window showed them.
+    --
+    -- Skinning is not a return visit. A corpse is only skinned once it is
+    -- empty, so everything the skinning window gives is new, even an item
+    -- the corpse already gave (Ruined Leather Scraps looted, then skinned).
+    -- Its amount counts; the corpse still held the item once.
+    local locked = haul and haul.locked or {}
     for _, name in ipairs(items or {}) do
-        if not corpse[name] then
-            corpse[name] = true
-            mob.items[name] = (tonumber(mob.items[name]) or 0) + 1
-
+        local fresh = not corpse[name]
+        if fresh or skinning then
             local quantity = quantities and quantities[name] or 1
-            self.sessionLoot[name] = (self.sessionLoot[name] or 0) + quantity
-            self.sessionFrom[name] = self.sessionFrom[name] or {}
-            self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + quantity
+
+            if fresh then
+                corpse[name] = true
+                mob.items[name] = (tonumber(mob.items[name]) or 0) + 1
+                mob.stacks[name] = (tonumber(mob.stacks[name]) or 0) + 1
+            end
             mob.qty[name] = (tonumber(mob.qty[name]) or 0) + quantity
-            mob.stacks[name] = (tonumber(mob.stacks[name]) or 0) + 1
+
+            -- A locked slot (a roll, or the master looter's to give) still
+            -- dropped, so the tally has it, but it is not yours unless you
+            -- win it, so the session's loot leaves it out.
+            local yours = quantity - (tonumber(locked[name]) or 0)
+            if yours > 0 then
+                self.sessionLoot[name] = (self.sessionLoot[name] or 0) + yours
+                self.sessionFrom[name] = self.sessionFrom[name] or {}
+                self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + yours
+            end
         end
     end
 
@@ -198,6 +228,47 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place)
     end
 
     return newKill
+end
+
+--- Loot that is yours but no kill's to tally: the rest of an area loot
+--- window, or a corpse you only skinned. It goes into the session's loot and
+--- coin under `mobName`, the corpse you opened, since the client names no
+--- other.
+function Tracker:AddHaul(mobName, haul)
+    if type(haul) ~= "table" then return end
+
+    for name, count in pairs(type(haul.items) == "table" and haul.items or {}) do
+        self.sessionLoot[name] = (self.sessionLoot[name] or 0) + count
+        self.sessionFrom[name] = self.sessionFrom[name] or {}
+        self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + count
+    end
+
+    self.sessionCopper = self.sessionCopper + (tonumber(haul.copper) or 0)
+end
+
+--- A corpse skinned without being opened first. What it gave is yours, so
+--- the session's loot takes it; the kill tally never hears of it.
+function Tracker:Skinned(mobName, items, quantities, haul)
+    haul = haul or { items = {}, copper = 0, locked = {} }
+
+    for _, name in ipairs(items or {}) do
+        local yours = (quantities and quantities[name] or 1) - (tonumber(haul.locked[name]) or 0)
+        if yours > 0 then haul.items[name] = (haul.items[name] or 0) + yours end
+    end
+    self:AddHaul(mobName, haul)
+
+    if ns.TrackerUI then
+        ns.TrackerUI:Refresh()
+    end
+
+    return false
+end
+
+--- Is the open loot window from your own Skinning cast? Gathering watches the
+--- cast. Without it, every window counts the way it always has.
+function Tracker.Skinning()
+    local Gathering = ns.Gathering
+    return (Gathering and Gathering.IsSkinning and Gathering:IsSkinning()) and true or false
 end
 
 --- One mob's tally, items best-seen first.
@@ -552,44 +623,81 @@ function Tracker.CoinCopper(name)
     return copper
 end
 
+--- Is a loot slot locked? Only a plain true says so. Anything else, a value
+--- the client will not let us read included, reads as no, which is how every
+--- slot was read before this was asked.
+local function IsLocked(value)
+    if type(value) ~= "boolean" then return false end
+    local ok, locked = pcall(function() return value == true end)
+    return ok and locked == true
+end
+
 --- The items in the open loot window, each once, coins left out, and how
 --- many of each (two slots of one item add up). Third: the coin, in copper.
+--- Fourth, the haul: what else the window means for the session (below).
 -- `anySource` takes every slot: a node or a catch is looted with whatever
 -- happens to be targeted, so the corpse check below would throw it all away.
+--
+-- With area loot one window holds several corpses' drops. Only the one you
+-- opened is this kill's, but the rest goes into your bags all the same:
+-- `haul.items` and `haul.copper` are that rest, for the session's totals.
+-- A slot the client shows locked (an item being rolled for, or waiting on the
+-- master looter) still dropped, so it stays in this kill's items, but it may
+-- never be yours: `haul.locked[name]` is how many of this corpse's are, and
+-- nothing locked goes into `haul.items`.
 function Tracker:LootedItems(anySource)
     local names, quantities, copper = {}, {}, 0
+    local haul = { items = {}, copper = 0, locked = {} }
 
     local gotCount, lootCount = pcall(GetNumLootItems)
     local count = gotCount and ns.Harvest.ReadableNumber(lootCount) or nil
-    if not count then return names, quantities, copper end
+    if not count then return names, quantities, copper, haul end
 
     for slot = 1, count do
-        local ok, slotIcon, slotName, slotQuantity = pcall(GetLootSlotInfo, slot)
+        local ok, slotIcon, slotName, slotQuantity, _, _, slotLocked = pcall(GetLootSlotInfo, slot)
+        local text = ok and ns.Harvest.Readable(slotName) or nil
+        local whole = ok and ns.Harvest.ReadableNumber(slotQuantity) or nil
 
         -- Area loot: another corpse's drop is not this kill's.
         local ours, share = true, nil
         if not anySource then ours, share = ns.Harvest:SlotIsTargets(slot) end
-        if share then slotQuantity = share end
-        local name = ours and ok and ns.Harvest.Readable(slotName) or nil
+        local name = ours and text or nil
 
-        if name and ns.Harvest:IsMoney(slot, name) then
+        if text and ns.Harvest:IsMoney(slot, text) then
             -- With area loot the name holds every corpse's coin; the share
             -- is this corpse's, in copper.
-            local own = share and ns.Harvest.ReadableNumber(share) or nil
-            copper = copper + (own or Tracker.CoinCopper(name) or 0)
-        elseif name then
-            if not quantities[name] then
-                names[#names + 1] = name
-                quantities[name] = 0
-                self:NoteLook(slot, name, slotIcon)
+            local all = Tracker.CoinCopper(text) or 0
+            local own = 0
+            if name then
+                own = share and ns.Harvest.ReadableNumber(share) or all
+                copper = copper + own
+            end
+            haul.copper = haul.copper + math.max(0, all - own)
+        elseif text then
+            local own = share or whole or 1
+            local locked = IsLocked(slotLocked)
+
+            if name then
+                if not quantities[name] then
+                    names[#names + 1] = name
+                    quantities[name] = 0
+                    self:NoteLook(slot, name, slotIcon)
+                end
+
+                quantities[name] = quantities[name] + own
+                if locked then haul.locked[name] = (haul.locked[name] or 0) + own end
             end
 
-            local quantity = ok and ns.Harvest.ReadableNumber(slotQuantity) or nil
-            quantities[name] = quantities[name] + (quantity or 1)
+            -- What is left of the slot came off the other corpses.
+            local rest = (whole or 1) - (name and own or 0)
+            if rest > 0 and not locked then
+                if not name then self:NoteLook(slot, text, slotIcon) end
+                haul.items[text] = (haul.items[text] or 0) + rest
+            end
         end
     end
 
-    return names, quantities, copper
+    return names, quantities, copper, haul
 end
 
 function Tracker:OnLoot()
@@ -604,10 +712,24 @@ function Tracker:OnLoot()
     local mobName = ns.Harvest:LootSource()
     if not mobName or not ns.Harvest:LootIsTargets() then return end
 
-    local items, quantities, copper = self:LootedItems()
+    local items, quantities, copper, haul = self:LootedItems()
+    local guid = self:CorpseID()
+    local skinning = Tracker.Skinning()
+
+    -- A corpse skinned without being opened first this session (another
+    -- player's kill, or one a party member looted) shows none of what it
+    -- dropped. Counted as a kill, its leather alone would pull every other
+    -- drop's rate down, so it is not one; the leather is yours, so the
+    -- session's loot takes it. Your own kill with nothing on it is no loss:
+    -- an empty corpse opens no window unless you skin it, so it was never
+    -- counted for anyone without Skinning either.
+    if skinning and not (guid and self.corpses[guid]) then
+        return self:Skinned(mobName, items, quantities, haul)
+    end
+
     local place = Tracker.PlaceName(ns.Harvest:Where())
 
-    return self:Record(mobName, self:CorpseID(), items, quantities, copper, place)
+    return self:Record(mobName, guid, items, quantities, copper, place, haul, skinning)
 end
 
 --------------------------------------------------------------------------------
@@ -707,7 +829,8 @@ end
 --
 -- Trent asked for it (2026-09-25), and for others to see it too, to spread
 -- the word about the addon. The emote is the one public thing the addon ever
--- says: once per mob, at its 20th kill. `/farm announce off` keeps it to
+-- says: once per mob at its 20th kill, and the same for a fishing spot's
+-- 20th cast and a node's 20th gather. `/farm announce off` keeps it to
 -- yourself; `/farm celebrate off` turns the whole thing off.
 function Tracker:Celebrate(mobName)
     if ns.db.trackerCelebrate == false then return end
@@ -734,9 +857,9 @@ end
 
 --- The fanfare itself: `line` in your own chat, `emote` to the players near
 --- you (unless /farm announce is off), the sound, and `banner` ({ title,
---- subject, key }) across the top of the panel. Fishing uses it too, when
---- a spot's catch rates unlock at 20 casts. The caller checks
---- /farm celebrate.
+--- subject, key }) across the top of the panel. Fishing and gathering use
+--- it too, when a spot's catch rates unlock at 20 casts or a node's gather
+--- rates at 20 gathers. The caller checks /farm celebrate.
 function Tracker:Fanfare(line, emote, banner)
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
 
@@ -841,7 +964,7 @@ ns.RegisterCommand("report", "report each kill's tally in chat (on/off)", functi
     end
 end)
 
-ns.RegisterCommand("celebrate", "sound and cheer at a mob's 20th kill or a fishing spot's 20th cast (on/off)",
+ns.RegisterCommand("celebrate", "sound and cheer at a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather (on/off)",
     function(rest)
         local argument = Util.Trim(rest):lower()
 
@@ -854,11 +977,11 @@ ns.RegisterCommand("celebrate", "sound and cheer at a mob's 20th kill or a fishi
         end
 
         ns.Print(ns.db.trackerCelebrate
-            and "a fanfare when a mob's drop rates unlock at 20 kills. /farm celebrate off to stop."
-            or "no fanfare when drop rates unlock. /farm celebrate on to bring it back.")
+            and "a fanfare when rates unlock at 20 kills, casts or gathers. /farm celebrate off to stop."
+            or "no fanfare when rates unlock. /farm celebrate on to bring it back.")
     end)
 
-ns.RegisterCommand("announce", "emote your 20-kill milestones to players nearby (on/off)",
+ns.RegisterCommand("announce", "emote your 20 kill, cast and gather milestones to players nearby (on/off)",
     function(rest)
         local argument = Util.Trim(rest):lower()
 
@@ -871,8 +994,8 @@ ns.RegisterCommand("announce", "emote your 20-kill milestones to players nearby 
         end
 
         ns.Print(ns.db.trackerAnnounce
-            and "players near you see an emote when a mob's drop rates unlock. /farm announce off to stop."
-            or "drop-rate milestones stay in your own chat. /farm announce on to share them.")
+            and "players near you see an emote when rates unlock. /farm announce off to stop."
+            or "milestones stay in your own chat. /farm announce on to share them.")
 
         if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
     end)

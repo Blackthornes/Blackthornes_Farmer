@@ -92,6 +92,8 @@ local INSIDE = {
     ["The Deadmines"] = "Westfall", ["The Stockade"] = "Elwynn Forest",
     ["Shadowfang Keep"] = "Silverpine Forest", ["Blackfathom Deeps"] = "Ashenvale",
     ["Ragefire Chasm"] = "Durotar", ["Wailing Caverns"] = "The Barrens",
+    -- Forever's own name for it, read inside: the harvest recorded it so.
+    ["The Wailing Caverns"] = "The Barrens",
     ["Razorfen Kraul"] = "The Barrens", ["Razorfen Downs"] = "Thousand Needles",
     ["Gnomeregan"] = "Dun Morogh", ["Scarlet Monastery"] = "Tirisfal Glades",
     ["Uldaman"] = "Badlands", ["Zul'Farrak"] = "Tanaris", ["Maraudon"] = "Desolace",
@@ -140,12 +142,16 @@ end
 
 --- How many zones apart `from` and `to` are, crossing borders. Nil when
 --- either is not on the map.
+--
+-- When the way is not over borders, the count is only a weight for the
+-- ranking, so a second answer says how you get there: "other continent" or
+-- "by boat". A walk of eight zones is not the other continent.
 function Spots.Hops(from, to)
     from, to = Spots.ZoneOf(from), Spots.ZoneOf(to)
     if not (from and to and BORDERS[from] and BORDERS[to]) then return nil end
     if from == to then return 0 end
 
-    if Spots.Continent(from) ~= Spots.Continent(to) then return OTHER_CONTINENT end
+    if Spots.Continent(from) ~= Spots.Continent(to) then return OTHER_CONTINENT, "other continent" end
 
     local seen = { [from] = true }
     local frontier = { from }
@@ -167,7 +173,7 @@ function Spots.Hops(from, to)
     end
 
     -- Same continent, no road on this map (Teldrassil): a boat away.
-    return UNKNOWN_HOPS
+    return UNKNOWN_HOPS, "by boat"
 end
 
 --------------------------------------------------------------------------------
@@ -283,21 +289,22 @@ end
 -- Ranking
 --------------------------------------------------------------------------------
 
---- Why a spot is where it is, in a few words.
-function Spots.DistanceText(hops, zone)
+--- Why a spot is where it is, in a few words. `travel` is how Hops said the
+--- way goes when it is not over borders (spot.travel after Score).
+function Spots.DistanceText(hops, zone, travel)
     -- A spot recorded where the zone could not be read (inside an
     -- instance) says nothing, rather than "in many places".
     if type(zone) ~= "string" then return "" end
     if not Spots.ZoneOf(zone) then return "in many places" end
     if hops == nil then return "" end
+    if travel then return travel end
     if hops == 0 then return "you are here" end
     if hops == 1 then return "next zone over" end
-    if hops >= OTHER_CONTINENT then return "other continent" end
     return ("%d zones away"):format(hops)
 end
 
 function Spots:Score(spot, player)
-    local hops
+    local hops, travel
     if type(spot.zone) ~= "string" then
         -- Where it is was never read: it ranks as far as an unknown place,
         -- never as near as "any coastline".
@@ -305,9 +312,9 @@ function Spots:Score(spot, player)
     elseif not Spots.ZoneOf(spot.zone) then
         hops = ANYWHERE_HOPS
     elseif player.zone then
-        hops = Spots.Hops(player.zone, spot.zone)
+        hops, travel = Spots.Hops(player.zone, spot.zone)
     end
-    spot.hops = hops
+    spot.hops, spot.travel = hops, travel
 
     local score = (hops or UNKNOWN_HOPS) * PER_HOP
 
@@ -360,7 +367,7 @@ function Spots:Line(spot)
         text = text .. ("  %.1f, %.1f"):format(spot.coords[1], spot.coords[2])
     end
 
-    local distance = Spots.DistanceText(spot.hops, spot.zone)
+    local distance = Spots.DistanceText(spot.hops, spot.zone, spot.travel)
     if distance ~= "" then text = text .. ", " .. distance end
     return text
 end

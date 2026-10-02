@@ -200,6 +200,26 @@ function Theme.TopSheen(frame, alpha)
     return sheen
 end
 
+--- Shade `texture` from one alpha of a palette colour to another, along
+--- "VERTICAL" (bottom to top) or "HORIZONTAL" (left to right). Where the
+--- client cannot draw a gradient it gets one flat, fainter wash instead.
+--- Returns true when the gradient was drawn.
+function Theme.SetGradientAlpha(texture, orientation, key, fromAlpha, toAlpha)
+    local r, g, b = Theme.Unpack(key or "accent")
+    texture:SetColorTexture(1, 1, 1, 1)
+
+    local ok = false
+    if type(CreateColor) == "function" and type(texture.SetGradient) == "function" then
+        ok = pcall(texture.SetGradient, texture, orientation,
+            CreateColor(r, g, b, fromAlpha), CreateColor(r, g, b, toAlpha))
+    end
+
+    if not ok then
+        texture:SetColorTexture(r, g, b, math.max(fromAlpha, toAlpha) * 0.4)
+    end
+    return ok
+end
+
 --- The house header's trim on `header`: the gold stripe down its left, the
 --- soft glow and the sheen along its top. Returns the stripe.
 function Theme.HouseHeader(header, glowHeight)
@@ -261,6 +281,8 @@ function Theme.Halo(frame, spread, alpha, key)
     end
 
     frame.haloTextures = sides
+    -- Its colour, so a flare that names none keeps it.
+    frame.haloKey = key
     -- Where it settles; Motion:Open flares it from brighter as a window opens.
     frame.haloRest = alpha or 0.12
     Theme.SetHalo(frame, frame.haloRest, key)
@@ -273,29 +295,21 @@ function Theme.SetHalo(frame, alpha, key)
     local sides = frame and frame.haloTextures
     if not sides then return end
 
-    local r, g, b = Theme.Unpack(key or "accent")
+    key = key or frame.haloKey or "accent"
     alpha = math.max(0, tonumber(alpha) or 0)
 
     for _, halo in ipairs(sides) do
-        halo:SetColorTexture(1, 1, 1, 1)
-
         -- The bright end sits against the frame: the bottom of the band
         -- above it, the top of the band below, and so on.
-        local inner, outer = CreateColor and CreateColor(r, g, b, alpha), CreateColor and CreateColor(r, g, b, 0)
-        local ok = false
-        if inner and type(halo.SetGradient) == "function" then
-            if halo.side == "TOP" then
-                ok = pcall(halo.SetGradient, halo, "VERTICAL", inner, outer)
-            elseif halo.side == "BOTTOM" then
-                ok = pcall(halo.SetGradient, halo, "VERTICAL", outer, inner)
-            elseif halo.side == "LEFT" then
-                ok = pcall(halo.SetGradient, halo, "HORIZONTAL", outer, inner)
-            else
-                ok = pcall(halo.SetGradient, halo, "HORIZONTAL", inner, outer)
-            end
+        if halo.side == "TOP" then
+            Theme.SetGradientAlpha(halo, "VERTICAL", key, alpha, 0)
+        elseif halo.side == "BOTTOM" then
+            Theme.SetGradientAlpha(halo, "VERTICAL", key, 0, alpha)
+        elseif halo.side == "LEFT" then
+            Theme.SetGradientAlpha(halo, "HORIZONTAL", key, 0, alpha)
+        else
+            Theme.SetGradientAlpha(halo, "HORIZONTAL", key, alpha, 0)
         end
-
-        if not ok then halo:SetColorTexture(r, g, b, alpha * 0.4) end
         halo:SetShown(alpha > 0)
     end
 end

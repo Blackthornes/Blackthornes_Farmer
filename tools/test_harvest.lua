@@ -27,6 +27,13 @@ local function Farm(mob, count, withItems, items)
     end
 end
 
+--- How many records a harvest holds: one per mob, zone and subzone.
+local function CountRecords(harvest)
+    local total = 0
+    for _ in pairs(harvest.records) do total = total + 1 end
+    return total
+end
+
 --------------------------------------------------------------------------------
 -- Capabilities
 --------------------------------------------------------------------------------
@@ -75,6 +82,17 @@ suite.check("two stacks in one corpse is one corpse",
     doubled.entry.corpses == 1, doubled.entry.corpses)
 suite.check("but both stacks are counted", doubled.entry.count == 2, doubled.entry.count)
 
+-- One corpse in 300 is a third of a percent, not none: the rate is kept
+-- whole and shown as "<1%", never rounded down to "0%".
+Harvest:Reset()
+Farm(APPRENTICE, 300, 1, { WOOL })
+local rare = Harvest:ForItem("Wool Cloth")[1]
+suite.check("a rare drop keeps its fraction",
+    rare and math.abs(rare.chance - 100 / 300) < 1e-9, rare and rare.chance)
+suite.check("and shows as under 1%",
+    rare and ns.Tracker.FormatChance(rare.chance) == "<1%",
+    rare and ns.Tracker.FormatChance(rare.chance))
+
 --------------------------------------------------------------------------------
 -- What it refuses to record
 --------------------------------------------------------------------------------
@@ -107,7 +125,9 @@ env.Loot(ns, APPRENTICE, { WOOL })
 env.world.zone = "Hillsbrad Foothills"
 env.Loot(ns, APPRENTICE, { WOOL })
 suite.check("the same mob in two zones is two records",
-    Harvest:CountMobs() == 2, Harvest:CountMobs())
+    CountRecords(Harvest) == 2, CountRecords(Harvest))
+-- But it is one mob: "1,850 corpses across 268 mobs" counted the records.
+suite.check("and still one mob", Harvest:CountMobs() == 1, Harvest:CountMobs())
 env.world.zone = "Silverpine Forest"
 
 --------------------------------------------------------------------------------
@@ -593,7 +613,9 @@ local shipped = Relog(nil, SHIPPED_CARRYOVER)
 suite.check("the shipped carryover loads",
     SHIPPED_CARRYOVER ~= nil and shipped.Harvest:CountCorpses() == 84,
     shipped.Harvest:CountCorpses())
-suite.check("across all 22 spots", shipped.Harvest:CountMobs() == 22,
+suite.check("across all 22 spots", CountRecords(shipped.Harvest) == 22,
+    CountRecords(shipped.Harvest))
+suite.check("which are 19 mobs", shipped.Harvest:CountMobs() == 19,
     shipped.Harvest:CountMobs())
 
 local coins = 0

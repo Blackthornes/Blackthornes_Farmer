@@ -29,6 +29,40 @@ suite.check("a dungeon counts as its zone", Spots.Hops("Tanaris", "Zul'Farrak") 
 suite.check("a capital counts as its zone", Spots.Hops("Orgrimmar", "The Barrens") == 1)
 suite.check("unknown place, no answer", Spots.Hops("Westfall", "Somewhere Odd") == nil)
 suite.check("'any coastline' is no one zone", Spots.ZoneOf("any coastline") == nil)
+-- Forever's name for it, read from inside.
+suite.check("The Wailing Caverns is in the Barrens",
+    Spots.Hops("The Wailing Caverns", "The Barrens") == 0)
+
+-- How far, said right: a long walk on your own continent is so many zones,
+-- not "other continent", and Teldrassil to the mainland is a boat.
+local hops, travel = Spots.Hops("Tirisfal Glades", "Elwynn Forest")
+suite.check("a long walk is a walk", hops == 10 and travel == nil,
+    tostring(hops) .. ", " .. tostring(travel))
+suite.check("and says how many zones",
+    Spots.DistanceText(hops, "Elwynn Forest", travel) == "10 zones away",
+    Spots.DistanceText(hops, "Elwynn Forest", travel))
+hops, travel = Spots.Hops("Elwynn Forest", "Durotar")
+suite.check("the other continent says so",
+    Spots.DistanceText(hops, "Durotar", travel) == "other continent",
+    Spots.DistanceText(hops, "Durotar", travel))
+hops, travel = Spots.Hops("Teldrassil", "Darkshore")
+suite.check("Teldrassil to Darkshore is a boat",
+    Spots.DistanceText(hops, "Darkshore", travel) == "by boat",
+    Spots.DistanceText(hops, "Darkshore", travel))
+
+-- Scored and printed the same way; a spot scored again from somewhere else
+-- forgets how it was reached before.
+local trapper = { name = "Defias Trapper", zone = "Westfall", minLevel = 12, maxLevel = 13 }
+Spots:Score(trapper, { zone = "Tirisfal Glades", level = 14 })
+suite.check("the chat line counts the zones",
+    Spots:Line(trapper):find("11 zones away", 1, true) ~= nil, Spots:Line(trapper))
+local shore = { name = "Copper Vein", zone = "Darkshore" }
+Spots:Score(shore, { zone = "Teldrassil", level = 10 })
+suite.check("by boat from Teldrassil",
+    Spots:Line(shore):find("by boat", 1, true) ~= nil, Spots:Line(shore))
+Spots:Score(shore, { zone = "Ashenvale", level = 10 })
+suite.check("next door from Ashenvale", shore.travel == nil
+    and Spots:Line(shore):find("next zone over", 1, true) ~= nil, Spots:Line(shore))
 
 -- Every border goes both ways, so the ranking does not depend on direction.
 local oneWay = {}
@@ -98,6 +132,12 @@ suite.check("merged with nothing false", mine and mine.yours.got == 3, mine and 
 suite.check("and first", spots[1] == mine, spots[1] and spots[1].name)
 suite.check("its note says so", GUI.SpotNote(mine):find("you gathered 3 here") ~= nil)
 
+-- A rare drop reads "<1%", as the kills panel writes it, not "0%".
+suite.check("a rare rate is not 0%", GUI.SpotNote({ chance = 0.4 }) == "<1% drop", GUI.SpotNote({ chance = 0.4 }))
+local rare = ns.Util.StripColor(GUI.SpotNote({ measured = 0.4, yours = { kills = 250, got = 1 } }))
+suite.check("nor is one you measured", rare == "<1% in your 250 kills", rare)
+suite.check("a common rate reads as before", GUI.SpotNote({ chance = 25 }) == "25% drop", GUI.SpotNote({ chance = 25 }))
+
 --------------------------------------------------------------------------------
 -- The panel and the button
 --------------------------------------------------------------------------------
@@ -142,6 +182,21 @@ suite.check("titled for the item", panel.title:GetText():find("Copper Ore") ~= n
 suite.check("says where from", panel.from:GetText():find("Loch Modan") ~= nil, panel.from:GetText())
 suite.check("rows drawn", panel.rows[1]:IsShown() and panel.rows[1].rank:GetText() == "1")
 suite.check("first row is yours", panel.rows[1].spot == Spots:For("Copper Ore")[1] or panel.rows[1].spot.yours ~= nil)
+
+-- Levels are coloured as the search window colours them: red well above
+-- you. They were yellow there, the colour it gives your own level.
+local levels, sameColour = 0, true
+for _, row in ipairs(panel.rows) do
+    if row:IsShown() and row.spot and row.spot.minLevel then
+        levels = levels + 1
+        local r, g, b = ns.UI.DifficultyColor(row.spot.maxLevel or row.spot.minLevel)
+        local c = row.level._color or {}
+        if c[1] ~= r or c[2] ~= g or c[3] ~= b then sameColour = false end
+    end
+end
+suite.check("levels coloured as the search window does", levels > 0 and sameColour, levels)
+local _, green = ns.UI.DifficultyColor(30)
+suite.check("so a place well above you is red", green < 0.5, green)
 
 for _ = 1, 30 do GUI:Step(0.1) end
 
@@ -194,6 +249,17 @@ suite.check("second click closes", not panel:IsShown())
 -- /farm where works without a goal.
 ns.HandleSlash("where tin")
 suite.check("/farm where opens it", panel:IsShown() and panel.title:GetText():find("Tin Ore") ~= nil)
+
+-- From Teldrassil the mainland is a boat away, on the panel too.
+env.world.zone = "Teldrassil"
+panel:Hide()
+GUI:OpenSpots("Copper Ore")
+local boat = false
+for _, row in ipairs(panel.rows) do
+    if row:IsShown() and row.zone:GetText():find("by boat", 1, true) then boat = true end
+end
+suite.check("the panel says how you get there", boat)
+env.world.zone = "Loch Modan"
 
 -- A zone the client refuses to read: the panel still opens.
 _G.GetRealZoneText = function() return env.Secret("zone") end

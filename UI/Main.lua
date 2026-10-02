@@ -35,13 +35,24 @@ local TABS = {
 -- Column widths, left to right, at their narrowest. The source, where and
 -- drop columns widen to fit what a search turns up, and the window with them:
 -- the game's font runs wider than widths picked by eye, and names were being
--- cut off.
-local COLUMN_ORDER = { "kind", "name", "where", "level", "drop" }
-local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110 }
-local MAX_WIDTH = { name = 320, where = 400, drop = 220 }
+-- cut off. The last slot holds the [Forever] badge, as wide as its text when
+-- a row has one, so a long "needs" in the drop column never runs under it.
+local COLUMN_ORDER = { "kind", "name", "where", "level", "drop", "badge" }
+local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110, badge = 8 }
+-- Where has room for the longest place in the data (a zone, a landmark and
+-- coordinates) in the game's font; at 400 it cut 47 of them off.
+local MAX_WIDTH = { name = 320, where = 520, drop = 220 }
 local COLUMN_GAP = 6
 
 local DROP_BAR_WIDTH = 46
+local BADGE_TEXT = "Forever"
+
+-- A row is this much narrower than the window: the window's padding, the
+-- list's inset in its panel, and the scrollbar beside the rows.
+local ROW_INSET = PADDING * 2 + 16 + 14
+
+-- A note sits indented under its item's heading.
+local NOTE_INDENT = "     "
 
 -- How bright the glow round the window sits; it flares brighter as the
 -- window opens (Motion:Open).
@@ -59,7 +70,7 @@ local function Columns(widths)
     end
 
     -- How much wider than the narrowest layout, for the window to grow by.
-    columns.extra = x - COLUMN_GAP - 586
+    columns.extra = x - COLUMN_GAP - 600
 
     return columns
 end
@@ -91,6 +102,9 @@ local function DifficultyColor(level)
 
     return 0.60, 0.62, 0.66
 end
+
+-- The goals panel's Where? list colours its levels the same way.
+UI.DifficultyColor = DifficultyColor
 
 -- Each kind of source has its own colour on its tag, so a column of them
 -- reads at a glance: red for mobs, green for herbs, copper for ore, blue for
@@ -220,18 +234,29 @@ function UI:BuildHeader()
         x = x + width + 4
     end
 
-    local underline = header:CreateTexture(nil, "OVERLAY")
+    -- The line and its glow ride on a layer of their own above the tabs:
+    -- drawn on the header, the glow sat behind the tab showing, and all
+    -- that showed of it was a duller, thicker line. The layer takes no
+    -- clicks, so the tabs under it still do.
+    local layer = CreateFrame("Frame", nil, header)
+    layer:SetAllPoints(header)
+    layer:SetFrameLevel(header:GetFrameLevel() + 5)
+    self.tabLayer = layer
+
+    local underline = layer:CreateTexture(nil, "OVERLAY")
     underline:SetHeight(2)
     underline:SetColorTexture(Theme.Unpack("accent"))
     self.tabUnderline = underline
 
-    -- A soft glow under the gold line, as the kills panel's tabs have.
-    local glow = header:CreateTexture(nil, "ARTWORK")
-    glow:SetHeight(6)
+    -- A soft glow rising off the gold line into the tab showing, brightest
+    -- at the line, as Tradeskills' tabs have.
+    local glow = layer:CreateTexture(nil, "ARTWORK")
+    glow:SetHeight(7)
     glow:SetPoint("BOTTOMLEFT", underline, "BOTTOMLEFT", -2, 0)
     glow:SetPoint("BOTTOMRIGHT", underline, "BOTTOMRIGHT", 2, 0)
-    glow:SetColorTexture(Theme.Unpack("accent", 0.22))
+    Theme.SetGradientAlpha(glow, "VERTICAL", "accent", 0.32, 0)
     pcall(glow.SetBlendMode, glow, "ADD")
+    self.tabGlow = glow
 
     local close = Widgets.CreateButton(header, "X", function() UI:Hide() end,
         { width = 22, height = 20, danger = true })
@@ -250,22 +275,28 @@ function UI:BuildHeader()
     self.header = header
 end
 
---- Put the gold line under tab `key`, sliding there from wherever it was.
+--- Put the gold line under tab `key`, sliding there from wherever it is
+--- now: a tab picked mid-slide turns the line round, where sliding from
+--- the last tab it was sent to made it jump back there first.
 function UI:MarkTab(key)
     local span = self.tabSpans and self.tabSpans[key]
     local line = self.tabUnderline
     if not (span and line) then return end
 
-    local from = self.underlineAt or span
     self.underlineAt = span
+    local fromX, fromW = self.lineX or span.x, self.lineW or span.w
+    local still = fromX == span.x and fromW == span.w
 
     -- Hung from the tab it is heading for, so it lands exactly under it
-    -- whatever the font; only the gap between the tabs is worked out.
+    -- whatever the font; only the distance still to go is worked out.
     local chip = self.tabs[key]
-    ns.Motion:Run(line, "slide", 0.22, function(p)
-        local w = from.w + (span.w - from.w) * p
+    ns.Motion:Run(line, "slide", still and 0 or 0.22, function(p)
+        local x = fromX + (span.x - fromX) * p
+        local w = fromW + (span.w - fromW) * p
+        self.lineX, self.lineW = x, w
+
         line:ClearAllPoints()
-        line:SetPoint("TOPLEFT", chip, "BOTTOMLEFT", (from.x - span.x) * (1 - p) + 3, -1)
+        line:SetPoint("TOPLEFT", chip, "BOTTOMLEFT", x - span.x + 3, -1)
         line:SetWidth(math.max(1, w - 6))
     end)
 end
@@ -356,7 +387,8 @@ function UI:BuildEmpty()
     ring:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 2, -2)
     Theme.Border(ring, "accent", 0.6)
 
-    local line = Theme.CreateLabel(empty, "large", "text", "CENTER")
+    -- In gold, as every heading in the house is.
+    local line = Theme.CreateLabel(empty, "large", "accent", "CENTER")
     line:SetPoint("TOP", icon, "BOTTOM", 0, -14)
     line:SetText("What are you farming?")
     self.emptyLine = line
@@ -458,6 +490,7 @@ function UI:PlaceRow(row)
     Place(row.dropTrack, columns.drop)
     Place(row.dropFill, columns.drop)
     Place(row.drop, columns.drop, DROP_BAR_WIDTH + 6, columns.drop.w - DROP_BAR_WIDTH - 6)
+    Place(row.badge, columns.badge, 0, columns.badge.w)
 end
 
 --- The text a source row shows in each column that can grow.
@@ -473,7 +506,8 @@ end
 --- than the base layout.
 function UI:FitColumns(rows)
     local widths = { kind = BASE_WIDTH.kind, name = BASE_WIDTH.name, where = BASE_WIDTH.where,
-        drop = BASE_WIDTH.drop }
+        drop = BASE_WIDTH.drop, badge = BASE_WIDTH.badge }
+    local note = 0
 
     for _, row in ipairs(rows) do
         if row.type == "source" then
@@ -487,11 +521,24 @@ function UI:FitColumns(rows)
                 widths.drop = math.max(widths.drop,
                     Theme.TextWidth("small", drop) + DROP_BAR_WIDTH + 12)
             end
+            if row.source.provenance == "forever" then
+                widths.badge = math.max(widths.badge, Theme.TextWidth("tiny", BADGE_TEXT))
+            end
+        elseif row.type == "note" then
+            -- A note is one line across the whole row.
+            note = math.max(note, Theme.TextWidth("small", NOTE_INDENT .. row.text) + 4)
         end
     end
 
     for key, most in pairs(MAX_WIDTH) do
         widths[key] = math.min(most, math.ceil(widths[key]))
+    end
+
+    -- A note longer than the row widens the window too: the where column
+    -- takes the extra room, up to its cap.
+    local short = note - (WIDTH - ROW_INSET + Columns(widths).extra)
+    if short > 0 then
+        widths.where = math.min(MAX_WIDTH.where, widths.where + short)
     end
 
     -- Never wider than the screen: on a small screen, or with the window
@@ -512,7 +559,7 @@ function UI:FitColumns(rows)
 
     local current = self.columns or COLUMN
     if current.kind.w == widths.kind and current.name.w == widths.name and current.where.w == widths.where
-        and current.drop.w == widths.drop then
+        and current.drop.w == widths.drop and current.badge.w == widths.badge then
         return
     end
 
@@ -566,9 +613,14 @@ end
 --------------------------------------------------------------------------------
 
 --- Hovering a mob's row says what a kill is worth, priced by Tradeskills.
+-- Only a mob's: "open water" has catches with rates too, but nothing to kill.
+-- A source with no kind is a mob, as the database reads it.
 function UI:ShowValueTooltip(row)
     local data = row and row.data
-    if not (data and data.type == "source" and data.source.name) then return end
+    if not (data and data.type == "source" and data.source.name
+        and (data.source.kind or "mob") == "mob") then
+        return
+    end
 
     self:ShowMobTooltip(row, data.source.name)
 end
@@ -671,9 +723,8 @@ function UI:CreateRow(row)
 
     row.drop = Theme.CreateLabel(row, "small", "muted")
 
+    -- Placed in its own slot after the drop column (PlaceRow).
     row.badge = Theme.CreateLabel(row, "tiny", "good", "RIGHT")
-    row.badge:SetPoint("RIGHT", -2, 0)
-    row.badge:SetWidth(60)
 
     self:PlaceRow(row)
 end
@@ -691,12 +742,12 @@ local function HideSourceColumns(row)
     row.badge:Hide()
 end
 
---- Where a heading's text starts: after the icon on an item, indented on a
---- note.
-local function PlaceHeading(row, left)
+--- Where a heading's text starts and ends: after the icon on an item and
+--- short of its Goal button; on a note, which has no button, across the row.
+local function PlaceHeading(row, left, right)
     row.heading:ClearAllPoints()
     row.heading:SetPoint("LEFT", left, 0)
-    row.heading:SetPoint("RIGHT", -64, 0)
+    row.heading:SetPoint("RIGHT", -(right or 64), 0)
 end
 
 function UI:UpdateRow(row, data, index)
@@ -725,7 +776,7 @@ function UI:UpdateRow(row, data, index)
         row.heading:SetTextColor(Theme.Unpack("accent"))
         row.heading:SetText(("%s  %s"):format(data.item.name,
             Util.Colored("muted", ("(%s, %s)"):format(
-                data.item.category, Util.Plural(data.count, "spot")))))
+                data.item.category, ns.Search:SpotsText(data.count, #data.item.sources)))))
         row.heading:Show()
 
         -- "23/40" once it has a goal, so the list shows where you are.
@@ -742,9 +793,9 @@ function UI:UpdateRow(row, data, index)
     end
 
     if data.type == "note" or data.type == "more" then
-        PlaceHeading(row, 2)
+        PlaceHeading(row, 2, 2)
         row.heading:SetTextColor(Theme.Unpack(data.type == "more" and "dim" or "muted"))
-        row.heading:SetText("     " .. data.text)
+        row.heading:SetText(NOTE_INDENT .. data.text)
         row.heading:Show()
         return
     end
@@ -804,7 +855,8 @@ function UI:UpdateRow(row, data, index)
             fill:SetWidth(width)
         end
 
-        row.drop:SetText(("%d%%"):format(source.chance))
+        -- "<1%" for a rare drop, which "%d" showed as "0%".
+        row.drop:SetText(ns.Tracker.FormatChance(source.chance))
         row.drop:SetTextColor(DropColor(source.chance))
         row.drop:Show()
     elseif source.requires and source.name then
@@ -815,7 +867,7 @@ function UI:UpdateRow(row, data, index)
     end
 
     if source.provenance == "forever" then
-        row.badge:SetText("Forever")
+        row.badge:SetText(BADGE_TEXT)
         row.badge:Show()
     end
 end
@@ -840,7 +892,7 @@ function UI:OnRowClick(data, button)
     parts[#parts + 1] = ("level %s"):format(ns.Search:LevelText(source))
 
     if source.chance then
-        parts[#parts + 1] = ("~%d%%"):format(source.chance)
+        parts[#parts + 1] = ns.Search:ChanceText(source.chance)
     end
 
     ns.Print(("%s: %s"):format(
@@ -1042,7 +1094,15 @@ function UI:ShowTab(key)
         ns.RankingsUI:Render(true)
     else
         self.frame:SetWidth(WIDTH + (self.columns or COLUMN).extra)
+        self:DrawUnsearched()
     end
+end
+
+--- The Search tab before anything was searched shows what to type, not a
+--- blank panel. It is only drawn by a search, and two ways reach it without
+--- one: the window opened on Rankings, and a goal's "Set another".
+function UI:DrawUnsearched()
+    if self.lastQuery == nil then self:Render() end
 end
 
 --------------------------------------------------------------------------------
@@ -1089,6 +1149,8 @@ function UI:Show()
     self:RestorePosition()
     self.frame:Show()
     ns.Motion:Open(self.frame)
+
+    if self.tab == "search" then self:DrawUnsearched() end
 end
 
 function UI:Hide()

@@ -117,4 +117,102 @@ suite.check("a broad query is capped", broadTotal > 2, broadTotal)
 suite.check("the cap says how much was left out",
     Util.StripColor(broad[#broad]):find("and %d+ more") ~= nil, broad[#broad])
 
+--------------------------------------------------------------------------------
+-- Rare drops
+--
+-- "%d" printed a rate under one percent as "0%", which reads as never.
+--------------------------------------------------------------------------------
+
+local rare = { kind = "mob", name = "a rare mob", zone = "Durotar", minLevel = 5, chance = 0.4 }
+local rareLine = Util.StripColor(Search:SourceLine(rare))
+suite.check("a rate under one percent reads <1%", rareLine:find("<1%", 1, true) ~= nil, rareLine)
+suite.check("not 0%", rareLine:find("0%", 1, true) == nil, rareLine)
+
+rare.chance = 7.5
+rareLine = Util.StripColor(Search:SourceLine(rare))
+suite.check("a small rate keeps its decimal", rareLine:find("~7.5%", 1, true) ~= nil, rareLine)
+
+rare.chance = 38
+rareLine = Util.StripColor(Search:SourceLine(rare))
+suite.check("a common rate is about a whole number", rareLine:find("~38%", 1, true) ~= nil, rareLine)
+
+--------------------------------------------------------------------------------
+-- A search for a place or a mob shows that place or mob
+--
+-- "/farm defias" listed every mob that drops linen, all 93 rows of it, with
+-- the first Defias at row 51.
+--------------------------------------------------------------------------------
+
+local function Matches(source, text)
+    for _, field in ipairs({ source.zone, source.location, source.name }) do
+        if field and field:lower():find(text, 1, true) then return true end
+    end
+    return false
+end
+
+for _, query in ipairs({ "defias", "westfall", "wailing caverns" }) do
+    local rows = Search:BuildRows(query)
+    local strays = 0
+    for _, row in ipairs(rows) do
+        if row.type == "source" and not Matches(row.source, query) then strays = strays + 1 end
+    end
+    suite.check(("%s: every spot shown is one it named"):format(query), strays == 0, strays)
+end
+
+local linen = ns.DB:GetItem("Linen Cloth")
+local defiasRows = Search:BuildRows("defias")
+suite.check("the item heading says how many of its spots are shown",
+    defiasRows[1].type == "item" and defiasRows[1].count < #linen.sources,
+    defiasRows[1].count)
+suite.check("in so many words",
+    Search:SpotsText(5, 47) == "5 of 47 spots" and Search:SpotsText(3, 3) == "3 spots",
+    Search:SpotsText(5, 47))
+
+local defiasLines = Search:BuildLines("defias", 5)
+suite.check("chat says it too", Util.StripColor(defiasLines[1]):find(
+    ("of %d spots"):format(#linen.sources), 1, true) ~= nil, defiasLines[1])
+
+-- Named by its own name, an item still shows everywhere it comes from.
+local byName = 0
+for _, row in ipairs(Search:BuildRows("linen cloth")) do
+    if row.type == "source" and row.item == linen then byName = byName + 1 end
+end
+suite.check("a name match keeps every spot", byName == #linen.sources, byName)
+
+-- Its filter chips come from the spots shown: Wailing Caverns' items are
+-- fished elsewhere, but not there.
+local caverns = Search:KindsInResults("wailing caverns")
+local fishing = false
+for _, kind in ipairs(caverns) do if kind == "fishing" then fishing = true end end
+suite.check("no chip for a kind found only elsewhere", not fishing, table.concat(caverns, ","))
+
+--------------------------------------------------------------------------------
+-- The kind filter comes before the cap
+--
+-- Capped first, the chips for a zone that matched many items showed one
+-- herb, or nothing but "and 55 more items".
+--------------------------------------------------------------------------------
+
+for _, kind in ipairs(Search:KindsInResults("barrens")) do
+    local expected = 0
+    for _, result in ipairs(Search:Run("barrens")) do
+        for _, source in ipairs(result.sources or result.item.sources) do
+            if source.kind == kind then expected = expected + 1 break end
+        end
+    end
+
+    local rows, total = Search:BuildRows("barrens", { kind = kind, max = 3 })
+    local shown, wrong = 0, 0
+    for _, row in ipairs(rows) do
+        if row.type == "item" then shown = shown + 1 end
+        if row.type == "source" and row.source.kind ~= kind then wrong = wrong + 1 end
+    end
+
+    suite.check(("%s: its chip shows its items"):format(kind),
+        shown == math.min(3, expected) and wrong == 0, ("%d shown, %d wrong"):format(shown, wrong))
+    suite.check(("%s: and counts all of them"):format(kind), total == expected, total)
+    suite.check(("%s: the rest are owned up to"):format(kind),
+        expected <= 3 or rows[#rows].type == "more", rows[#rows].type)
+end
+
 suite.done()

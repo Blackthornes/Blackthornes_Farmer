@@ -243,4 +243,21 @@ do
     suite.check("and settles at rest", math.abs((seen[#seen] or 0) - 0.1) < 1e-6, seen[#seen])
 end
 
+-- A halo in another colour keeps it as it flares, rather than turning gold.
+do
+    local frame = env.Stub()
+    frame:SetPoint("CENTER", nil, "CENTER", 0, 0)
+    ns.Theme.Halo(frame, 8, 0.1, "good")
+    local keys = {}
+    local SetGradientAlpha = ns.Theme.SetGradientAlpha
+    ns.Theme.SetGradientAlpha = function(texture, orientation, key, ...)
+        keys[key] = true
+        return SetGradientAlpha(texture, orientation, key, ...)
+    end
+    Motion:Open(frame)
+    Motion:FinishAll()
+    ns.Theme.SetGradientAlpha = SetGradientAlpha
+    suite.check("a green halo flares green", keys.good == true and keys.accent == nil)
+end
+
 suite.done()

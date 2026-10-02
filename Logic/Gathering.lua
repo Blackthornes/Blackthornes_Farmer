@@ -13,7 +13,9 @@
 -- window that opens soon after one of those, which nothing interrupted, is
 -- that node's. No such cast, no gathering: nothing is put down to a node on
 -- a guess. Skinning is left alone -- skinned leather is the mob's drop
--- (Trent's rule, PR #16) and the kill tally keeps it.
+-- (Trent's rule, PR #16) and the kill tally keeps it. Its cast is only
+-- noted (IsSkinning), so a corpse first opened by skinning is not taken for
+-- a fresh kill with nothing in it.
 --
 -- Each loot window is one gather. A vein mined three times is three gathers,
 -- which is what an ore rate should be over anyway.
@@ -113,6 +115,20 @@ function Gathering.KindOf(spellID)
     return name and NAME_KIND[name] or nil
 end
 
+-- Skinning, by every rank's id and by name for a client whose ids differ. It
+-- is never a gather: it is only told apart, for IsSkinning.
+local SKINNING_ID = { [8613] = true, [8617] = true, [8618] = true, [10768] = true }
+
+--- Is `spellID` Skinning?
+function Gathering.IsSkinningSpell(spellID)
+    local id = ns.Harvest.ReadableNumber(spellID)
+    if not id then return false end
+
+    if SKINNING_ID[id] then return true end
+
+    return SpellName(id) == "Skinning"
+end
+
 --------------------------------------------------------------------------------
 -- The cast
 --------------------------------------------------------------------------------
@@ -146,6 +162,12 @@ end
 -- UNIT_SPELLCAST_SENT: unit, target, castGUID, spellID.
 function Gathering:OnCastSent(unit, target, castGUID, spellID)
     if ns.Harvest.Readable(unit) ~= "player" then return end
+
+    -- A skin is only noted, for IsSkinning. It is no gather, so it still ends
+    -- any gather in hand below.
+    if Gathering.IsSkinningSpell(spellID) then
+        self.skinning = { id = ns.Harvest.Readable(castGUID), at = Now() }
+    end
 
     local kind = Gathering.KindOf(spellID)
 
@@ -181,6 +203,19 @@ end
 function Gathering:OnCastSucceeded(unit, castGUID, spellID)
     if ns.Harvest.Readable(unit) ~= "player" then return end
 
+    -- A skin gone through: its loot window opens next. The one noted when it
+    -- was sent is held from now, as a gather is; one whose window is already
+    -- open is left as it is.
+    if Gathering.IsSkinningSpell(spellID) then
+        local skinning, id = self.skinning, ns.Harvest.Readable(castGUID)
+        if skinning and (not skinning.id or not id or skinning.id == id) then
+            if not skinning.looted then skinning.at = Now() or skinning.at end
+        else
+            self.skinning = { id = id, at = Now() }
+        end
+        return
+    end
+
     local kind = Gathering.KindOf(spellID)
     if not kind then return end
 
@@ -200,10 +235,23 @@ end
 function Gathering:OnCastStopped(unit, castGUID, spellID)
     if ns.Harvest.Readable(unit) ~= "player" then return end
 
+    local id = ns.Harvest.Readable(castGUID)
+
+    -- The same for a skin. By its cast guid when both can be read, else by
+    -- the spell: another spell failing while you skin is not the skin.
+    local skinning = self.skinning
+    if skinning then
+        local same
+        if skinning.id and id then
+            same = skinning.id == id
+        else
+            same = Gathering.IsSkinningSpell(spellID)
+        end
+        if same then self.skinning = nil end
+    end
+
     local cast = self.cast
     if not cast or cast.looted then return end
-
-    local id = ns.Harvest.Readable(castGUID)
 
     if (cast.id and id and cast.id == id) or (not id and Gathering.KindOf(spellID)) then
         self.cast = nil
@@ -220,6 +268,24 @@ function Gathering:IsGathering()
 
     local now = Now()
     if cast.at and now then return now - cast.at <= GATHER_SECONDS end
+
+    -- No clock to hold it to: it lasts until its loot window closes.
+    return true
+end
+
+--- Is the open loot window one you are skinning?
+--
+-- True from your own Skinning cast, sent or gone through, until its loot
+-- window closes or GATHER_SECONDS pass; a skin that failed or was
+-- interrupted ends it. The harvester and the kill tally ask this so a corpse
+-- first opened by skinning (another player's kill, one an area loot already
+-- emptied, one looted before a /reload) is not taken for a fresh kill.
+function Gathering:IsSkinning()
+    local skinning = self.skinning
+    if not skinning then return false end
+
+    local now = Now()
+    if skinning.at and now then return now - skinning.at <= GATHER_SECONDS end
 
     -- No clock to hold it to: it lasts until its loot window closes.
     return true
@@ -428,7 +494,9 @@ function Gathering:WorthPerGather(key)
 end
 
 function Gathering:Reset()
-    ns.db.gathering = nil
+    -- The record only. The map markers live in the same table and have their
+    -- own clear (/farm markers clear), so they stay.
+    if type(ns.db.gathering) == "table" then ns.db.gathering.nodes = nil end
     self.session = {}
     self.sessionItems = {}
     self.sessionFrom = {}
@@ -610,6 +678,11 @@ end
 --------------------------------------------------------------------------------
 
 function Gathering:OnLoot()
+    -- A skin's window is open: the skin ends when it closes. Marked rather
+    -- than ended on any close, so a window shut as the skin began does not
+    -- end it early.
+    if self.skinning then self.skinning.looted = true end
+
     if not self:IsGathering() then return end
 
     local cast = self.cast
@@ -634,9 +707,10 @@ function Gathering:OnLoot()
         mapID and { x * 100, y * 100 } or nil)
 end
 
---- The window closed: the gather it belonged to is over.
+--- The window closed: the gather or the skin it belonged to is over.
 function Gathering:OnLootClosed()
     if self.cast and self.cast.looted then self.cast = nil end
+    if self.skinning and self.skinning.looted then self.skinning = nil end
 end
 
 --------------------------------------------------------------------------------
@@ -648,7 +722,7 @@ end
 -- Trent's call.
 --------------------------------------------------------------------------------
 
---- Is `name` a herb or an ore that no mob in the database drops?
+--- Is `name` a herb or an ore that no mob in the seed data drops?
 function Gathering.IsNodeOnly(name)
     local item = ns.DB and ns.DB:GetItem(name)
     if not item then return false end
@@ -656,11 +730,17 @@ function Gathering.IsNodeOnly(name)
 
     -- "node" is a vein, "herb" a herb. A single source of any other kind --
     -- a mob, a container -- and a mob holding it could be right.
+    --
+    -- Only the seed data is asked. Rows marked "forever" were written by the
+    -- harvest import from the very records this check reads, so a herb once
+    -- credited to a mob would vouch for itself and never be listed.
     local any = false
 
     for _, source in ipairs(item.sources or {}) do
-        if source.kind ~= "node" and source.kind ~= "herb" then return false end
-        any = true
+        if source.provenance ~= "forever" then
+            if source.kind ~= "node" and source.kind ~= "herb" then return false end
+            any = true
+        end
     end
 
     return any
@@ -791,8 +871,8 @@ ns.RegisterCommand("gathering", "herbs and ore gathered in this zone (all: every
     end
 
     if argument == "reset" then
-        ns.Print(("this deletes all %s you have recorded, for good. "
-            .. "Type /farm gathering reset confirm to do it."):format(
+        ns.Print(("this deletes all %s you have recorded, for good. Your map "
+            .. "markers stay. Type /farm gathering reset confirm to do it."):format(
             Util.Plural(Gathering:CountGathers(), "gather")))
         return
     end

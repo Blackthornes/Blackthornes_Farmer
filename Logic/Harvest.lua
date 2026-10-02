@@ -519,13 +519,22 @@ function Harvest:RecordCorpse()
     -- -- is still a drop from that corpse and is counted, once.
     --
     -- Without a readable guid (an instance can refuse it) the corpse cannot
-    -- be recognised again, so each opening counts as before.
+    -- be recognised again, so each opening counts as before, apart from a
+    -- skinning one, which never starts a corpse (next).
+    --
+    -- A corpse first opened by skinning is no sample at all: it is another
+    -- player's kill, one whose drops an area loot already took with another
+    -- corpse's, or one looted before a /reload. Its drops are not in this
+    -- window, so counting it would add a corpse that held nothing.
     local guid = self:CorpseID()
     local corpse = guid and self.opened[guid]
     local record
 
     if corpse then
         record = corpse.record
+    elseif ns.Gathering ~= nil and ns.Gathering:IsSkinning() then
+        self.skipped = (self.skipped or 0) + 1
+        return
     else
         local zone, location = self:Where()
 
@@ -609,9 +618,16 @@ function Harvest:CountCorpses()
     return total
 end
 
+--- How many mobs, by name. A mob looted in two places keeps a record for
+--- each, but it is still one mob.
 function Harvest:CountMobs()
-    local total = 0
-    for _ in pairs(self.records) do total = total + 1 end
+    local seen, total = {}, 0
+    for _, record in pairs(self.records) do
+        if not seen[record.mob] then
+            seen[record.mob] = true
+            total = total + 1
+        end
+    end
     return total
 end
 
@@ -623,10 +639,12 @@ function Harvest:ForItem(itemName)
         local entry = record.items[itemName]
 
         if entry then
+            -- Not rounded: one in 300 is a third of a percent, not 0. Shown
+            -- through Tracker.FormatChance, which says "<1%".
             rows[#rows + 1] = {
                 record = record,
                 entry = entry,
-                chance = math.floor((entry.corpses / record.corpses * 100) + 0.5),
+                chance = entry.corpses / record.corpses * 100,
             }
         end
     end
@@ -836,7 +854,11 @@ function Harvest:ExportAll(opts)
     out[#out + 1] = ""
 
     for _, item in ipairs(items) do
-        local block = self:ExportItem(item.name)
+        -- Herbs and ore count per node, never as a mob's drop. One the seed
+        -- data knows only from nodes was picked with a corpse targeted, by a
+        -- version before Logic/Gathering.lua, and stays out of the data.
+        local nodeOnly = ns.Gathering ~= nil and ns.Gathering.IsNodeOnly(item.name)
+        local block = not nodeOnly and self:ExportItem(item.name)
         if block then
             out[#out + 1] = block
             out[#out + 1] = ""
@@ -1118,7 +1140,9 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
     -- Name an item and you get only that item, which is the usual case: you
     -- farmed one thing for an evening and want that one block.
     local name, candidates = ns.Harvest:ResolveItem(wanted)
-    local block = name and ns.Harvest:ExportItem(name)
+    -- A herb or ore credited to a mob stays out, as in ExportAll.
+    local nodeOnly = name and ns.Gathering ~= nil and ns.Gathering.IsNodeOnly(name)
+    local block = name and not nodeOnly and ns.Harvest:ExportItem(name)
 
     if candidates then
         local shown, more = {}, #candidates - 8
@@ -1126,6 +1150,11 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
         local list = table.concat(shown, ", ")
         if more > 0 then list = ("%s and %d more"):format(list, more) end
         ns.Print(("%s could be %s. Type more of the name."):format(wanted, list))
+        return
+    end
+
+    if nodeOnly then
+        ns.Print(("%s comes from nodes, not mobs, so it is never exported."):format(name))
         return
     end
 

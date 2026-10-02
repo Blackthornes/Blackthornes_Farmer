@@ -239,4 +239,76 @@ suite.check("/farm loot for a mob never killed says so",
     table.concat(env.chat, "\n", mark + 1):find("no kills of kobold", 1, true) ~= nil)
 suite.check("and opens nothing", not LTU:IsShown())
 
+--------------------------------------------------------------------------------
+-- A long "Killed at" line wraps rather than being cut off
+--------------------------------------------------------------------------------
+
+local Theme = ns.Theme
+
+LTU:Show(WOLF)
+local oneLine = LTU.where:GetHeight()
+local listTop, titlesTop = LTU.list._point[3], LTU.titles._point[3]
+suite.check("a short Killed at line keeps one line", LTU.placesExtra == 0
+    and LTU.frame:GetHeight() == LTU:HeightFor(#LTU.data.rows), LTU.placesExtra)
+
+local DARKSOUL = "Moonrage Darksoul"
+local savedZone, savedSubZone = env.world.zone, env.world.subZone
+env.world.zone = "Silverpine Forest"
+for _, place in ipairs({ "Deep Elem Mine", "North Tide's Hollow", "North Tide's Run",
+    "The Shining Strand" }) do
+    env.world.subZone = place
+    for _ = 1, 3 do Loot(DARKSOUL, { SCRAPS }) end
+end
+env.world.zone, env.world.subZone = savedZone, savedSubZone
+
+LTU:Show(DARKSOUL)
+local room = LTU.frame:GetWidth() - 28
+local needs = Theme.TextWidth("small", LTU.where:GetText())
+suite.check("four places are too long for the widest window", needs > room, needs)
+suite.check("so they take a second line", LTU.where:GetHeight() == 2 * oneLine
+    and needs <= 2 * room, LTU.where:GetHeight())
+suite.check("the column titles and the list move down a line",
+    LTU.list._point[3] == listTop - oneLine and LTU.titles._point[3] == titlesTop - oneLine,
+    LTU.list._point[3])
+suite.check("and the window grows by it",
+    LTU.frame:GetHeight() == LTU:HeightFor(#LTU.data.rows) + oneLine, LTU.frame:GetHeight())
+
+LTU:Show(WOLF)
+suite.check("a short line again puts them back", LTU.where:GetHeight() == oneLine
+    and LTU.list._point[3] == listTop, LTU.list._point[3])
+LTU:Hide()
+
+--------------------------------------------------------------------------------
+-- An item looted before icons were kept shows the game's icon for it
+--------------------------------------------------------------------------------
+
+local OLD = "Old Tally Mob"
+Tracker:Store()[OLD] = { kills = 3, items = { ["Linen Cloth"] = 2 } }
+
+local savedItem = _G.C_Item
+_G.C_Item = {
+    GetItemInfo = savedItem.GetItemInfo,
+    GetItemIconByID = function(id) return id == 2589 and 132889 or nil end,
+}
+
+LTU:Show(OLD)
+local iconRow = LTU.list.rows[1]
+iconRow.icon.SetTexture = function(self, texture) self._texture = texture end
+LTU.list:Refresh()
+suite.check("no icon recorded: the game's own", iconRow.icon._texture == 132889,
+    iconRow.icon._texture)
+
+--------------------------------------------------------------------------------
+-- Hovering an item shows its tooltip, through the list
+--------------------------------------------------------------------------------
+
+local tipFor
+GameTooltip.SetItemByID = function(_, id) tipFor = id end
+iconRow:GetScript("OnEnter")(iconRow)
+suite.check("hovering an item shows the item", tipFor == 2589, tipFor)
+GameTooltip.SetItemByID = nil
+
+LTU:Hide()
+_G.C_Item = savedItem
+
 suite.done()

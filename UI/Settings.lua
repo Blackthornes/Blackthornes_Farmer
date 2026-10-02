@@ -34,7 +34,8 @@ local COLUMN_TWO_X = PADDING * 2 + COLUMN_WIDTH
 local CONTROL_X = 170
 
 local WIDTH = COLUMN_WIDTH * 2 + PADDING * 3
--- Tall enough for the right column: six tally rows, then loot recording.
+-- Tall enough for the left column, the taller: five window rows, the two
+-- marker rows and debug output, over the footer.
 local HEIGHT = 668
 
 local ROW_HEIGHT = 50
@@ -364,7 +365,22 @@ function SettingsUI:BuildWindowsColumn()
     end, { width = 110, height = 20 })
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
 
-    local markers = CreateSection(frame, "GATHERED NODE MARKERS", { anchor = positionRow })
+    -- Every window and both panels follow it, so it sits with the windows
+    -- rather than under the kill tally. The saved key keeps its old name.
+    local effectsRow = CreateRow(frame, positionRow, "Window effects",
+        "Full: windows fade up and glow, and loot floats off the kill panel. "
+        .. "Subtle: shorter fades, and nothing floats. Off: no movement at all. "
+        .. "Same as /farm effects.")
+
+    local FX = ns.TrackerFX
+    controls.effects = Widgets.CreateStepper(effectsRow, {
+        min = 1, max = #FX.LEVELS, step = 1, value = #FX.LEVELS,
+        format = function(index) return FX.LEVEL_NAMES[FX.LEVELS[index]] end,
+        onChange = function(index) FX:SetLevel(FX.LEVELS[index]) end,
+    })
+    controls.effects:SetPoint("TOPLEFT", CONTROL_X, 0)
+
+    local markers = CreateSection(frame, "GATHERED NODE MARKERS", { anchor = effectsRow })
 
     local worldRow = CreateRow(frame, markers, "World map",
         "Greyed icons with a gold ring and a check where you gathered. "
@@ -427,27 +443,15 @@ function SettingsUI:BuildTrackingColumn()
     controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local announceRow = CreateRow(frame, reportRow, "Share milestones",
-        "A mob's 20th kill or a fishing spot's 20th cast: an /emote players near "
-        .. "you see. Your chat always gets it.")
+        "A mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather: "
+        .. "an /emote players near you see. Your chat always gets it.")
 
     controls.announce = Widgets.CreateCheckbox(announceRow, "Emote it", function(checked)
         ns.db.trackerAnnounce = checked
     end, true)
     controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local effectsRow = CreateRow(frame, announceRow, "Effects",
-        "Full: glows, counts, floating loot, rows sliding in. Subtle: no "
-        .. "floats. Same as /farm effects.")
-
-    local FX = ns.TrackerFX
-    controls.effects = Widgets.CreateStepper(effectsRow, {
-        min = 1, max = #FX.LEVELS, step = 1, value = #FX.LEVELS,
-        format = function(index) return FX.LEVEL_NAMES[FX.LEVELS[index]] end,
-        onChange = function(index) FX:SetLevel(FX.LEVELS[index]) end,
-    })
-    controls.effects:SetPoint("TOPLEFT", CONTROL_X, 0)
-
-    local rareRow = CreateRow(frame, effectsRow, "Rare drop sound",
+    local rareRow = CreateRow(frame, announceRow, "Rare drop sound",
         "A chime when something green or better drops. Only you hear it.")
 
     controls.rareSound = Widgets.CreateCheckbox(rareRow, "Play it", function(checked)
@@ -478,9 +482,14 @@ function SettingsUI:BuildTrackingColumn()
     end, { width = 80, height = 20 })
     export:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -8)
 
+    -- Kept to the column beside the button, on two lines if the font needs
+    -- them: on one it ran past the window's right edge.
     local exportHint = Theme.CreateLabel(frame, "tiny", "dim")
     exportHint:SetPoint("LEFT", export, "RIGHT", 8, 0)
+    exportHint:SetWidth(COLUMN_WIDTH - export:GetWidth() - 8)
+    exportHint:SetWordWrap(true)
     exportHint:SetText("Your recorded loot, as a data file.")
+    self.exportHint = exportHint
 end
 
 --------------------------------------------------------------------------------

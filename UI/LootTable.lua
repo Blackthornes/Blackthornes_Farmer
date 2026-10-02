@@ -32,7 +32,8 @@ local ICON = 16
 -- Header, the numbers, the status line, where it was killed and the column
 -- titles above the list; the price note under it.
 -- The status line has room for two lines of text, so it wraps rather than
--- being cut off.
+-- being cut off. The places get a second line only when the widest window
+-- cannot fit them on one, and the titles and the list move down for it.
 local STATUS_TOP = HEADER + 50
 local STATUS_HEIGHT = 30
 local PLACES_TOP = STATUS_TOP + STATUS_HEIGHT + 2
@@ -166,8 +167,6 @@ local function Stat(parent, x, caption)
 end
 
 local function CreateRow(row)
-    row.hooked = false
-
     row.icon = row:CreateTexture(nil, "ARTWORK")
     row.icon:SetSize(ICON, ICON)
     row.icon:SetPoint("LEFT", 4, 0)
@@ -225,16 +224,10 @@ local function ShowItemTooltip(row)
 end
 
 local function UpdateRow(row, data)
-    -- The list sets its own enter and leave the first time a row is made;
-    -- add the item tooltip to them once.
-    if not row.hooked then
-        row:HookScript("OnEnter", ShowItemTooltip)
-        row:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-        row.hooked = true
-    end
-
+    -- An item looted before icons were kept has none recorded: the game's
+    -- own icon for it, before the question mark.
     local look = ns.Tracker:LookOf(data.name)
-    row.icon:SetTexture(look.icon or FALLBACK_ICON)
+    row.icon:SetTexture(look.icon or Theme.ItemIcon(data.id) or FALLBACK_ICON)
 
     local r, g, b, a = HexColor(look.color)
     if r then
@@ -343,9 +336,12 @@ function LootTableUI:Build()
     title:SetPoint("LEFT", PADDING, 0)
     title:SetPoint("RIGHT", -40, 0)
 
+    -- Where the search window has its X, so it does not shift going from
+    -- one window to the other.
     local close = Widgets.CreateButton(header, "X", function() LootTableUI:Hide() end,
         { width = 22, height = 20, danger = true })
-    close:SetPoint("RIGHT", -8, 0)
+    close:SetPoint("RIGHT", -PADDING + 2, 0)
+    self.closeButton = close
 
     local rule = Theme.CreateDivider(frame, "borderLit")
     rule:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
@@ -367,11 +363,11 @@ function LootTableUI:Build()
     where:SetPoint("TOPLEFT", PADDING, -PLACES_TOP)
     where:SetPoint("TOPRIGHT", -PADDING, -PLACES_TOP)
     where:SetHeight(PLACES_HEIGHT)
+    where:SetWordWrap(true)
+    where:SetJustifyV("TOP")
 
-    -- Column titles, on a band.
+    -- Column titles, on a band. Placed, with the list, by PlaceBody.
     local columns = Theme.CreatePanel(frame, "header", false)
-    columns:SetPoint("TOPLEFT", 1, -COLUMNS_TOP)
-    columns:SetPoint("TOPRIGHT", -1, -COLUMNS_TOP)
     columns:SetHeight(ROW)
 
     local itemTitle = Theme.CreateLabel(columns, "tiny", "muted")
@@ -392,9 +388,12 @@ function LootTableUI:Build()
         rowHeight = ROW,
         createRow = CreateRow,
         updateRow = UpdateRow,
+        -- The item's own tooltip, through the list, which redoes it when a
+        -- scroll or new loot puts another item under a still mouse.
+        onEnter = ShowItemTooltip,
+        onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
         fadeKey = "window",
     })
-    list:SetPoint("TOPLEFT", PADDING, -TOP)
     list:SetPoint("BOTTOMRIGHT", -PADDING, BOTTOM)
 
     local empty = Theme.CreateLabel(frame, "small", "muted")
@@ -409,12 +408,24 @@ function LootTableUI:Build()
     self.title = title
     self.status = status
     self.where = where
+    self.titles = columns
     self.list = list
     self.empty = empty
     self.footer = footer
+    self:PlaceBody(0)
 
     frame:Hide()
     return frame
+end
+
+--- The column titles and the list, `extra` pixels lower when the places
+--- take a second line.
+function LootTableUI:PlaceBody(extra)
+    self.placesExtra = extra
+    self.where:SetHeight(PLACES_HEIGHT + extra)
+    self.titles:SetPoint("TOPLEFT", 1, -(COLUMNS_TOP + extra))
+    self.titles:SetPoint("TOPRIGHT", -1, -(COLUMNS_TOP + extra))
+    self.list:SetPoint("TOPLEFT", PADDING, -(TOP + extra))
 end
 
 --------------------------------------------------------------------------------
@@ -505,10 +516,16 @@ function LootTableUI:Render()
         and "Prices: Blackthornes Tradeskills market value, or the vendor price if higher."
         or "Prices: vendor price. Load Blackthornes Tradeskills for market prices.")
 
-    self.frame:SetWidth(self:WidthFor(data.rows, status, data.where))
+    local width = self:WidthFor(data.rows, status, data.where)
+    self.frame:SetWidth(width)
+
+    -- The window widens for the places up to its widest; past that they
+    -- wrap onto a second line, which the window grows a line for.
+    local fits = PADDING * 2 + Theme.TextWidth("small", data.where) + 4 <= width
+    self:PlaceBody(fits and 0 or PLACES_HEIGHT)
 
     self.empty:SetShown(#data.rows == 0)
-    self.frame:SetHeight(self:HeightFor(#data.rows))
+    self.frame:SetHeight(self:HeightFor(#data.rows) + self.placesExtra)
 
     local fresh = self.shownMob ~= data.mob
     self.arriving = fresh

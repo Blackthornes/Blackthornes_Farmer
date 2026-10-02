@@ -13,7 +13,8 @@
 --     fold to one line with their loot as small icons; click a band to open
 --     or fold it. The Sort button orders the rest.
 --   * Loot: everything looted, fished and gathered this session in one list,
---     best earners first, medals on the top three, and where each came from.
+--     best earners first with medals on the top three, and where each came
+--     from.
 --
 -- Items are drawn the way the bags draw them, icon and quality colour, both
 -- remembered from the loot window by the tracker. Click an item icon for
@@ -35,9 +36,10 @@ local Util = ns.Util
 local WIDTH = 260
 local HEIGHT = 420
 
--- How small and how large the grip will let it go.
+-- How small and how large the grip will let it go. The shortest is further
+-- down, after the sizes it is made of.
 local MIN_WIDTH, MAX_WIDTH = 180, 600
-local MIN_HEIGHT, MAX_HEIGHT = 120, 1000
+local MAX_HEIGHT = 1000
 local PADDING = 8
 -- The title bar: "Kills & Loot" and the X on top, the session's gathered
 -- value on a second line under them.
@@ -66,6 +68,14 @@ local GREEN_TIP = { 0.66, 1, 0.77 }
 local MARKS = { 0.25, 0.5, 0.75 }
 local FINAL = 0.1
 
+-- How bright the glow round the panel rests: lower than a window's, as this
+-- one is on screen the whole time you farm. It flares as the panel comes
+-- into view and as rates unlock (UI/TrackerFX.lua).
+local HALO_REST = 0.08
+
+-- The glow round the card you are on.
+local LIVE_HALO = 0.22
+
 -- Right-hand value and the green badge beside it, in pixels.
 local RIGHT_WIDTH = 54
 local BADGE_WIDTH = 28
@@ -79,6 +89,11 @@ local SLOT_GAP = 4
 local MINI = 12
 local MINIS = 6
 TrackerUI.SLOT = SLOT
+
+-- The shortest the grip goes: the header, and room under it for one row of
+-- an open card's loot icons (see LineHeight). A shorter panel could not hold
+-- that row, and was drawn taller than the height you set to fit it.
+local MIN_HEIGHT = TOP + PADDING * 2 + SLOT + SLOT_GAP + 6
 
 -- A Loot tab row: two lines, its icon, and the rank's medal.
 local LOOT_ROW = 32
@@ -96,6 +111,10 @@ local MEDALS = {
 
 -- Lines the wheel moves at a time.
 local SCROLL_STEP = 2
+
+-- The strip under the lines that says "12 more below" while some are out of
+-- sight. It comes out of the same height as the lines.
+local MORE_HEIGHT = 10
 
 -- Per hour shows once the session has run this long, in seconds; before
 -- that one lucky drop would say you earn a fortune.
@@ -170,11 +189,23 @@ function TrackerUI:Line(index)
     return row
 end
 
-function TrackerUI:SaveSize()
+--- The panel's size on screen, in whole pixels.
+function TrackerUI:SizeNow()
+    return { width = math.floor((tonumber(self.frame:GetWidth()) or 0) + 0.5),
+        height = math.floor((tonumber(self.frame:GetHeight()) or 0) + 0.5) }
+end
+
+--- Save the size on screen. `from` is the size when the grip was pressed,
+--- and a side the drag left alone keeps what was saved: the panel is drawn
+--- shorter than its saved height while there is less to show, so saving
+--- what was on screen made a click on the grip, or a drag only to widen it,
+--- the panel's new height for good.
+function TrackerUI:SaveSize(from)
     if not (ns.db and self.frame) then return end
 
-    ns.db.trackerWidth = math.floor(self.frame:GetWidth() + 0.5)
-    ns.db.trackerHeight = math.floor(self.frame:GetHeight() + 0.5)
+    local now = self:SizeNow()
+    if not (from and from.width == now.width) then ns.db.trackerWidth = now.width end
+    if not (from and from.height == now.height) then ns.db.trackerHeight = now.height end
 end
 
 --- The corner grip. Drag it and the panel follows; let go and it keeps that.
@@ -205,6 +236,7 @@ function TrackerUI:BuildGrip(frame)
         -- Start from the size on screen, so the corner stays under the
         -- cursor. Changing the height here would move the corner away from
         -- the mouse, and the drag would keep that gap the whole way.
+        TrackerUI.sizeFrom = TrackerUI:SizeNow()
         frame:StartSizing("BOTTOMRIGHT")
     end)
 
@@ -213,7 +245,8 @@ function TrackerUI:BuildGrip(frame)
         TrackerUI.sizing = false
         TrackerUI.tabNeeds = nil
         TrackerUI:AnchorTop()
-        TrackerUI:SaveSize()
+        TrackerUI:SaveSize(TrackerUI.sizeFrom)
+        TrackerUI.sizeFrom = nil
         -- Resizing is not picking a spot; in a group it stays beside the
         -- group frames rather than being pinned where it happens to be.
         if not TrackerUI.grouped then TrackerUI:SavePosition() end
@@ -316,6 +349,8 @@ function TrackerUI:Build()
 
     Theme.Fill(frame, "window", 0.88)
     Theme.Border(frame, "border")
+    -- The house glow round its edge, as the windows have.
+    Theme.Halo(frame, 8, HALO_REST)
 
     frame:SetScript("OnDragStart", function(self)
         TrackerUI.dragging = true
@@ -350,6 +385,9 @@ function TrackerUI:Build()
     local close = Widgets.CreateButton(header, "X", function()
         ns.db.trackerHidden = true
         TrackerUI:Refresh()
+        -- An open Settings page shows the panel's switch: keep it in step,
+        -- as /farm tracker off does.
+        if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
         ns.Print("kill and loot panel hidden. /farm tracker brings it back.")
     end, { width = 18, height = 16, danger = true })
     close:SetPoint("RIGHT", header, "TOPRIGHT", -6, -TITLE_LINE / 2)
@@ -420,6 +458,15 @@ function TrackerUI:BuildFade(frame, side)
     return fade
 end
 
+--- How lit a tab is under the mouse, 0 to 1: its wash, and its name from
+--- muted toward white. The tab showing keeps its gold name.
+local function TabHover(tab, p)
+    tab.hover:SetAlpha(p)
+    if tab.key ~= TrackerUI:Tab() then
+        tab.label:SetTextColor(ns.Motion.Mix("muted", "text", p))
+    end
+end
+
 --- The Farm and Loot tabs under the title bar: a gold line under the one
 --- showing that slides to the other when you pick it, and a green dot on
 --- the other when something new lands there.
@@ -438,8 +485,16 @@ function TrackerUI:BuildTabs(frame)
         tab.key = spec.key
         tab.index = index
 
+        -- Under the mouse a tab lifts, easing in and out (TabHover). Hidden
+        -- with SetAlpha rather than Hide, so the blend can set it.
         tab.hover = Theme.Fill(tab, "rowHover", 0.5, "BORDER")
-        tab.hover:Hide()
+        tab.hover:SetAlpha(0)
+
+        -- The tab showing sits in a soft gold light rising from its line.
+        tab.lit = tab:CreateTexture(nil, "BORDER", nil, 1)
+        tab.lit:SetAllPoints(tab)
+        Theme.SetGradientAlpha(tab.lit, "VERTICAL", "accent", 0.14, 0)
+        tab.lit:Hide()
 
         tab.label = Theme.CreateLabel(tab, "small", "muted", "CENTER")
         tab.label:SetPoint("CENTER", -6, 0)
@@ -455,20 +510,26 @@ function TrackerUI:BuildTabs(frame)
         tab.dot:SetColorTexture(Theme.Unpack("good"))
         tab.dot:Hide()
 
-        tab:SetScript("OnEnter", function(self) self.hover:Show() end)
-        tab:SetScript("OnLeave", function(self) self.hover:Hide() end)
+        tab:SetScript("OnEnter", function(self)
+            -- The tab showing is lit already.
+            if self.key == TrackerUI:Tab() then return end
+            ns.Motion:Blend(self, "hover", 1, 0.12, function(p) TabHover(self, p) end)
+        end)
+        tab:SetScript("OnLeave", function(self)
+            ns.Motion:Blend(self, "hover", 0, 0.18, function(p) TabHover(self, p) end)
+        end)
         tab:SetScript("OnClick", function(self) TrackerUI:SetTab(self.key) end)
 
         self.tabs[index] = tab
     end
 
-    -- The gold line, and its glow, under the tab showing.
+    -- The gold line under the tab showing, and the soft glow rising off it.
     local line = strip:CreateTexture(nil, "OVERLAY")
     line:SetHeight(2)
     line:SetColorTexture(Theme.Unpack("accent"))
     local glow = strip:CreateTexture(nil, "ARTWORK")
-    glow:SetHeight(6)
-    glow:SetColorTexture(Theme.Unpack("accent", 0.25))
+    glow:SetHeight(7)
+    Theme.SetGradientAlpha(glow, "VERTICAL", "accent", 0.32, 0)
     pcall(glow.SetBlendMode, glow, "ADD")
 
     self.tabStrip = strip
@@ -489,8 +550,19 @@ function TrackerUI:DrawTabs(counts)
         tab:SetWidth(each)
 
         local on = tab.key == showing
-        tab.label:SetTextColor(Theme.Unpack(on and "text" or "muted"))
-        if on then tab.label:SetTextColor(BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3], 1) end
+        tab.lit:SetShown(on)
+        if on then
+            -- The tab showing does not light under the mouse, and its name
+            -- is gold.
+            ns.Motion:Stop(tab, "hover")
+            ns.Motion:SetValue(tab, "hover", 0)
+            tab.hover:SetAlpha(0)
+            tab.label:SetTextColor(BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3], 1)
+        else
+            -- As lit as its hover has got to, so a redraw under the mouse
+            -- leaves it lit.
+            TabHover(tab, ns.Motion:Value(tab, "hover"))
+        end
 
         local count = counts and counts[tab.key]
         tab.count:SetText(count and count > 0 and tostring(count) or "")
@@ -502,21 +574,36 @@ function TrackerUI:DrawTabs(counts)
     local target = (index - 1) * each + inset
     local lineWidth = math.max(10, each - inset * 2)
 
-    local function Place(x)
+    local function Place(x, span)
+        -- Kept, so the next slide starts from where the line is.
+        self.tabLineX, self.tabLineWidth = x, span
         self.tabLine:ClearAllPoints()
         self.tabLine:SetPoint("BOTTOMLEFT", self.tabStrip, "BOTTOMLEFT", x, 0)
-        self.tabLine:SetWidth(lineWidth)
+        self.tabLine:SetWidth(span)
         self.tabGlow:ClearAllPoints()
         self.tabGlow:SetPoint("BOTTOMLEFT", self.tabStrip, "BOTTOMLEFT", x - 2, 0)
-        self.tabGlow:SetWidth(lineWidth + 4)
+        self.tabGlow:SetWidth(span + 4)
     end
 
-    local from = self.tabLineX
-    self.tabLineX = target
-    if ns.Motion and from and from ~= target and not self.sizing then
-        ns.Motion:Run(self, "tabline", 0.25, function(p) Place(from + (target - from) * p) end)
+    -- Already sliding there: a redraw on the way leaves it going.
+    local Motion = ns.Motion
+    if Motion and Motion:Running(self, "tabline")
+        and self.tabLineTo == target and self.tabLineSpan == lineWidth then
+        return
+    end
+    self.tabLineTo, self.tabLineSpan = target, lineWidth
+
+    -- From wherever the line is now, not from where it was last sent: a tab
+    -- picked while the line is still sliding turns it round, where it used
+    -- to jump to the far end first.
+    local fromX, fromWidth = self.tabLineX, self.tabLineWidth
+    if Motion and fromX and fromX ~= target and not self.sizing then
+        Motion:Run(self, "tabline", 0.25, function(p)
+            Place(fromX + (target - fromX) * p, fromWidth + (lineWidth - fromWidth) * p)
+        end)
     else
-        Place(target)
+        if Motion then Motion:Stop(self, "tabline") end
+        Place(target, lineWidth)
     end
 end
 
@@ -608,6 +695,20 @@ function TrackerUI:NoteStart()
     return total
 end
 
+--- How lit a card's band is under the mouse: 0 at rest, 1 under it.
+local function Lit(row, value)
+    row.hover:SetAlpha(value)
+    row.hoverEdge:SetAlpha(value)
+    row.hoverBleed:SetAlpha(value)
+end
+
+--- Whether the mouse is on `row` and the row is on screen. Read in a pcall,
+--- as every client value is; a client that cannot say answers no.
+local function UnderMouse(row)
+    local ok, over = pcall(function() return row:IsVisible() and row:IsMouseOver() end)
+    return ok and over and true or false
+end
+
 --- One row of the column. Every row can be any kind of line; DrawLine
 --- decides which parts to show and Render where it goes.
 function TrackerUI:CreateLine(parent, index)
@@ -682,8 +783,8 @@ function TrackerUI:CreateLine(parent, index)
     row.slots = {}
 
     -- The progress bar, the Goals panel's: a dark track, the fill, a
-    -- brighter tip, the part just gained, a shine, and the quarter marks.
-    -- DrawLine sets where the track runs.
+    -- brighter tip with a spark round it, the part just gained, a shine,
+    -- and the quarter marks. DrawLine sets where the track runs.
     local bar = {}
     row.progress = bar
 
@@ -698,6 +799,13 @@ function TrackerUI:CreateLine(parent, index)
     bar.tip = row:CreateTexture(nil, "OVERLAY")
     bar.tip:SetPoint("TOPRIGHT", bar.fill, "TOPRIGHT")
     bar.tip:SetSize(4, PROGRESS_HEIGHT)
+
+    -- A soft spark round the tip, spilling past the bar's edges, so the bar
+    -- reads as moving: gold, or green with the bar (SetProgress).
+    bar.spark = row:CreateTexture(nil, "OVERLAY", nil, 1)
+    bar.spark:SetPoint("RIGHT", bar.fill, "RIGHT", 4, 0)
+    bar.spark:SetSize(14, 10)
+    pcall(bar.spark.SetBlendMode, bar.spark, "ADD")
 
     bar.fresh = row:CreateTexture(nil, "OVERLAY")
     bar.fresh:SetHeight(PROGRESS_HEIGHT)
@@ -719,37 +827,46 @@ function TrackerUI:CreateLine(parent, index)
         bar.marks[index] = mark
     end
 
-    bar.parts = { bar.track, bar.fill, bar.tip, bar.fresh, bar.shine }
+    bar.parts = { bar.track, bar.fill, bar.tip, bar.spark, bar.fresh, bar.shine }
     for _, mark in ipairs(bar.marks) do bar.parts[#bar.parts + 1] = mark end
 
-    -- A card's band folds and opens it.
+    -- A card's band folds and opens it. Under the mouse it lifts, easing in
+    -- and out, with the thin gold edge and soft light a list row has (Lit).
+    -- The lift sits under the gold wash of the card you are on, so that
+    -- one stays gold under the mouse. Each part is drawn at full strength
+    -- and hidden with SetAlpha, so the blend can set it.
     row.dragged = false
-    row.hover = Theme.Fill(row, "rowHover", 0.7, "BORDER")
-    row.hover:Hide()
+    row.hover = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.hover:SetAllPoints(row)
+    row.hover:SetColorTexture(Theme.Unpack("rowHover", 0.7))
+    row.hover:SetAlpha(0)
+
+    row.hoverEdge = row:CreateTexture(nil, "ARTWORK")
+    row.hoverEdge:SetPoint("TOPLEFT")
+    row.hoverEdge:SetPoint("BOTTOMLEFT")
+    row.hoverEdge:SetWidth(2)
+    row.hoverEdge:SetColorTexture(Theme.Unpack("accent"))
+    row.hoverEdge:SetAlpha(0)
+
+    row.hoverBleed = row:CreateTexture(nil, "BORDER", nil, 1)
+    row.hoverBleed:SetPoint("TOPLEFT", 2, 0)
+    row.hoverBleed:SetPoint("BOTTOMLEFT", 2, 0)
+    row.hoverBleed:SetWidth(18)
+    Theme.SetGradientAlpha(row.hoverBleed, "HORIZONTAL", "accent", 0.22, 0)
+    pcall(row.hoverBleed.SetBlendMode, row.hoverBleed, "ADD")
+    row.hoverBleed:SetAlpha(0)
 
     row:SetScript("OnEnter", function(self)
         local line = self.line
         if not (line and (line.openKey or line.mob)) then return end
-        self.hover:Show()
-
-        if GameTooltip then
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:AddLine(line.left)
-            if line.openKey then
-                GameTooltip:AddLine(line.folded and "Click to show its loot." or "Click to fold it.",
-                    1, 1, 1)
-                if line.mob then
-                    GameTooltip:AddLine("Click an item for everything it has dropped.", 1, 1, 1)
-                end
-            else
-                GameTooltip:AddLine("Click for everything it has dropped.", 1, 1, 1)
-            end
-            GameTooltip:Show()
-        end
+        TrackerUI.hovered = self
+        ns.Motion:Blend(self, "hover", 1, 0.12, function(value) Lit(self, value) end)
+        TrackerUI:CardTooltip(self)
     end)
 
     row:SetScript("OnLeave", function(self)
-        self.hover:Hide()
+        if TrackerUI.hovered == self then TrackerUI.hovered = nil end
+        ns.Motion:Blend(self, "hover", 0, 0.18, function(value) Lit(self, value) end)
         if GameTooltip then GameTooltip:Hide() end
     end)
 
@@ -879,6 +996,36 @@ function TrackerUI:Slot(row, index)
     return slot
 end
 
+--- A card band's tooltip: its name, and what a click does now.
+function TrackerUI:CardTooltip(row)
+    local line = row.line
+    if not (line and GameTooltip) then return end
+
+    GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+    GameTooltip:AddLine(line.left)
+    if line.openKey then
+        GameTooltip:AddLine(line.folded and "Click to show its loot." or "Click to fold it.", 1, 1, 1)
+        if line.mob then
+            GameTooltip:AddLine("Click an item for everything it has dropped.", 1, 1, 1)
+        end
+    else
+        GameTooltip:AddLine("Click for everything it has dropped.", 1, 1, 1)
+    end
+    GameTooltip:Show()
+end
+
+--- A redraw hands a row its line while the mouse sits still, and no OnEnter
+--- comes for that. A band still under the mouse stays lit, at once and at
+--- full, its tooltip saying what a click does now; every other row is dark.
+--- Before, each kill put out the band you were pointing at.
+function TrackerUI:Relight(row, takesMouse)
+    local over = takesMouse and self.hovered == row and UnderMouse(row)
+    ns.Motion:Stop(row, "hover")
+    ns.Motion:SetValue(row, "hover", over and 1 or 0)
+    Lit(row, over and 1 or 0)
+    if over then self:CardTooltip(row) end
+end
+
 --- An icon's name, what its number means, and what one is worth.
 function TrackerUI:SlotTooltip(slot)
     local icon = slot.line
@@ -998,10 +1145,9 @@ function TrackerUI.Final(have, target)
     return left > 0 and left <= math.max(1, math.floor(target * FINAL))
 end
 
---- Under a band still short of rates (Trent, 2026-09-27): a progress bar
---- like a goal's, then how many more. `key` is the band's; `more` is the
---- countdown's text, "%d" for the number.
-function TrackerUI:ProgressLines(Add, key, have, target, more)
+--- A bar toward `target`: the count it shows (held to 0..target), how full
+--- it is, and how many of the MARKS it has passed.
+function TrackerUI.ProgressOf(have, target)
     have = math.max(0, math.min(have, target))
     local fraction = target > 0 and have / target or 0
 
@@ -1009,6 +1155,16 @@ function TrackerUI:ProgressLines(Add, key, have, target, more)
     for index, at in ipairs(MARKS) do
         if fraction >= at then milestone = index end
     end
+
+    return have, fraction, milestone
+end
+
+--- Under a band still short of rates (Trent, 2026-09-27): a progress bar
+--- like a goal's, then how many more. `key` is the band's; `more` is the
+--- countdown's text, "%d" for the number.
+function TrackerUI:ProgressLines(Add, key, have, target, more)
+    local fraction, milestone
+    have, fraction, milestone = TrackerUI.ProgressOf(have, target)
 
     local final = TrackerUI.Final(have, target)
     Add({ style = "progress", key = key .. ":progress", count = have,
@@ -1050,6 +1206,21 @@ function TrackerUI:CardLines(Add, card)
         band.minis = {}
         for index = 1, math.min(#card.items, MINIS) do
             band.minis[index] = card.items[index].name
+        end
+
+        -- What its progress bar and icons would count, open. A kill on this
+        -- mob opens the card in the same redraw, and the effects need the
+        -- counts from before it to slide the bar from where it was, cheer
+        -- the marks it passes and flash the icon that went up.
+        band.hidden = {}
+        if not card.rated then
+            local have, fraction, milestone = TrackerUI.ProgressOf(card.total, card.target)
+            band.hidden[1] = { key = card.key .. ":progress", count = have,
+                progress = fraction, milestone = milestone }
+        end
+        for _, item in ipairs(card.items) do
+            band.hidden[#band.hidden + 1] = { key = ("%s:%s"):format(card.key, item.name),
+                count = item.n }
         end
         return
     end
@@ -1611,8 +1782,9 @@ function TrackerUI:DrawLine(row, line)
 
     -- Only rows that open or fold something take the mouse, so the rest of
     -- the panel still drags from anywhere.
-    row.hover:Hide()
-    row:EnableMouse(line.mob ~= nil or line.openKey ~= nil)
+    local takesMouse = line.mob ~= nil or line.openKey ~= nil
+    row:EnableMouse(takesMouse)
+    self:Relight(row, takesMouse)
 
     row:Show()
 end
@@ -1620,7 +1792,9 @@ end
 --- A Loot tab row's rank and medal, icon and quality wash. Returns where
 --- its name starts.
 function TrackerUI:DrawLootParts(row, line)
-    local medal = MEDALS[line.rank]
+    -- A medal says best earner, so only the Value order hands them out:
+    -- sorted by name, the top three are only first in the alphabet.
+    local medal = self:Sort("loot") == "value" and MEDALS[line.rank] or nil
     row.medal:ClearAllPoints()
     row.medal:SetPoint("LEFT", PADDING - 2, 0)
     row.rank:ClearAllPoints()
@@ -1699,8 +1873,8 @@ function TrackerUI:DrawIcons(row, line)
     for _, part in ipairs(row.progress.parts) do part:Hide() end
 
     row.needs = PADDING * 2 + SLOT + 8
-    row.hover:Hide()
     row:EnableMouse(false)
+    self:Relight(row, false)
 
     for index, icon in ipairs(line.icons) do
         local slot = self:Slot(row, index)
@@ -1772,7 +1946,17 @@ function TrackerUI:SetProgress(row, fraction, green)
 
     local tip = green and GREEN_TIP or BRIGHT_GOLD
     bar.tip:SetColorTexture(tip[1], tip[2], tip[3], 0.9)
-    bar.tip:SetShown(fraction > 0.02 and fraction < 1)
+    local moving = fraction > 0.02 and fraction < 1
+    bar.tip:SetShown(moving)
+
+    -- The spark in the bar's own colour, shaded again only when that changes:
+    -- this runs on every step of a slide.
+    local sparkKey = green and "good" or "accent"
+    if bar.sparkKey ~= sparkKey then
+        Theme.SetGradientAlpha(bar.spark, "HORIZONTAL", sparkKey, 0, 0.55)
+        bar.sparkKey = sparkKey
+    end
+    bar.spark:SetShown(moving)
 
     for index, at in ipairs(MARKS) do
         local mark = bar.marks[index]
@@ -1796,33 +1980,27 @@ function TrackerUI:Card(index)
     card:SetFrameLevel(self.frame:GetFrameLevel() + 1)
     card.fill = Theme.Fill(card, "rowAlt", 0.55)
 
-    card.edges, card.halo = {}, {}
+    card.edges = {}
     for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
         local edge = card:CreateTexture(nil, "BORDER")
-        local halo = card:CreateTexture(nil, "BACKGROUND", nil, -1)
-        pcall(halo.SetBlendMode, halo, "ADD")
 
         if side == "TOP" or side == "BOTTOM" then
             edge:SetPoint(side .. "LEFT")
             edge:SetPoint(side .. "RIGHT")
             edge:SetHeight(1)
-            local out = side == "TOP" and 1 or -1
-            halo:SetPoint(side .. "LEFT", -3, out * 3)
-            halo:SetPoint(side .. "RIGHT", 3, out * 3)
-            halo:SetHeight(4)
         else
             edge:SetPoint("TOP" .. side)
             edge:SetPoint("BOTTOM" .. side)
             edge:SetWidth(1)
-            local out = side == "LEFT" and -1 or 1
-            halo:SetPoint("TOP" .. side, out * 3, 0)
-            halo:SetPoint("BOTTOM" .. side, out * 3, 0)
-            halo:SetWidth(4)
         end
 
         card.edges[#card.edges + 1] = edge
-        card.halo[#card.halo + 1] = halo
     end
+
+    -- The house glow, lit round the card you are on (DrawCard): bright at
+    -- its edge and fading out, as round the windows. It was a flat band set
+    -- off from the edge, which read as a second, blurry frame.
+    Theme.Halo(card, 6, LIVE_HALO)
 
     self.cards[index] = card
     return card
@@ -1842,10 +2020,7 @@ function TrackerUI:DrawCard(index, first, last, live)
             edge:SetColorTexture(Theme.Unpack("border"))
         end
     end
-    for _, halo in ipairs(card.halo) do
-        halo:SetColorTexture(Theme.Unpack("accent", live and 0.22 or 0))
-        halo:SetShown(live == true)
-    end
+    Theme.SetHalo(card, live and LIVE_HALO or 0)
 
     card:Show()
 end
@@ -1945,12 +2120,14 @@ function TrackerUI:Render()
     end
 
     -- Scrolled no further than it takes to bring the last line to the
-    -- bottom edge.
+    -- bottom edge. A last line taller than the whole room (an open card's
+    -- icons on a short panel) is shown on its own, never scrolled past:
+    -- scrolled past, nothing at all was drawn.
     local maxScroll, tail = 0, 0
     for index = #all, 1, -1 do
         tail = tail + heights[index]
         if tail > room then
-            maxScroll = index
+            maxScroll = math.min(index, #all - 1)
             break
         end
     end
@@ -1962,6 +2139,15 @@ function TrackerUI:Render()
         if used + heights[index] > room and #shown > 0 then break end
         shown[#shown + 1] = all[index]
         used = used + heights[index]
+    end
+
+    -- Lines left below take the "more below" strip from the same room, so the
+    -- panel is never taller than the height you set.
+    if self.scroll + #shown < #all then
+        while #shown > 1 and used + MORE_HEIGHT > room do
+            used = used - heights[self.scroll + #shown]
+            shown[#shown] = nil
+        end
     end
     local first = self.scroll + 1
     local below = #all - (self.scroll + #shown)
@@ -2034,7 +2220,7 @@ function TrackerUI:Render()
     end
 
     if not self.sizing then
-        self.frame:SetHeight(TOP + PADDING * 2 + used + (below > 0 and 10 or 0))
+        self.frame:SetHeight(TOP + PADDING * 2 + used + (below > 0 and MORE_HEIGHT or 0))
     end
 
     self:FitTitleBadge()
@@ -2186,6 +2372,18 @@ end
 -- On and off
 --------------------------------------------------------------------------------
 
+--- The goals panel hangs under this one until it is dragged, as wide as it
+--- is: follow it when it comes back, changes width or goes, so it never
+--- hangs under empty space.
+local function FollowGoals()
+    local goals = ns.GoalsUI
+    if goals and goals.frame and goals.frame:IsShown() and not ns.db.goalsX
+        and not goals.dragging then
+        if goals.lastBase ~= goals:Width() then pcall(goals.Render, goals) end
+        pcall(goals.Place, goals)
+    end
+end
+
 --- Redraw, and show or hide to match the saved setting.
 function TrackerUI:Refresh()
     self:Build()
@@ -2204,31 +2402,37 @@ function TrackerUI:Refresh()
             ns.TrackerFX:Forget()
             pcall(ns.TrackerFX.HiddenLoot, ns.TrackerFX)
         end
+        FollowGoals()
         return
     end
 
     if ns.TrackerFX and ns.TrackerFX.Shown then ns.TrackerFX:Shown() end
 
+    -- Refresh shows the panel on every redraw; only coming into view fades
+    -- it up.
+    local opening = not self.frame:IsShown()
+
     self:Render()
     self.frame:Show()
 
-    -- The goals panel hangs under this one, as wide as it is: follow it
-    -- when it comes back or changes width.
-    local goals = ns.GoalsUI
-    if goals and goals.frame and goals.frame:IsShown() and not ns.db.goalsX
-        and not goals.dragging then
-        if goals.lastBase ~= goals:Width() then pcall(goals.Render, goals) end
-        pcall(goals.Place, goals)
-    end
+    -- Up where it is, its glow flaring and settling. It never rises: players
+    -- drag it into place.
+    if opening and ns.Motion then ns.Motion:Open(self.frame, 0) end
+
+    FollowGoals()
 end
 
 --- Forget what the panel remembered about the last session's lines: its
---- widest width on each tab, which cards you opened or folded, the
---- per-hour clock, the Loot tab's ranks and the scroll. For a reset.
+--- widest width on each tab, which cards you opened or folded, the Loot
+--- tab's ranks and the scroll. For a reset.
+--
+-- The per-hour clock is left to NoteStart: a reset clears the kills, but
+-- what you fished and gathered is still in the session's value, and timed
+-- from the reset, an hour of fishing read as earned in minutes. NoteStart
+-- stops the clock itself once nothing is left.
 function TrackerUI:ResetState()
     self.tabNeeds = nil
     self.open = nil
-    self.startedAt = nil
     self.ranks = nil
     self.scroll = 0
     self.dots = nil
