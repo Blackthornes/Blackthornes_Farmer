@@ -144,19 +144,24 @@ collapse it.
 ### Kills and loot panel
 
 A panel down the left side of the screen, under the player and party frames,
-fills in as you farm. At the top: this session's kills and everything you
-looted, with how many of each. Below that, every mob you have killed this
-session, latest first, with its all-time kill count and what it drops. Until
-a mob has 20 kills its items show as counts ("3 of 12"); from 20 on, as drop
-rates, which are corpses that held the item over kills. The tallies are kept
-between sessions.
+fills in as you farm. It has two tabs. **Farm** has a card for every mob you
+have killed this session. The one you are on leads, open: its all-time kill
+count, where you killed it, a bar toward the 20 kills it takes for drop
+rates, what a kill is worth, and everything it has dropped as bag icons.
+Until a mob has 20 kills, each icon shows a count; from 20 on, its drop rate,
+which is corpses that held the item over kills. The other cards fold to one
+line with their loot as small icons. Click a card's name to open or fold it,
+and **Sort** to change their order. **Loot** lists everything you looted,
+fished and gathered this session, best earners first, with where each came
+from. The tallies are kept between sessions.
 
-**Gathered value.** Right under THIS SESSION, a "Gathered value" line adds up
-what the session has brought in: the coin off your kills plus every item
-looted, fished up or gathered, each at the same price "Worth per kill" uses (the
-Tradeskills auction value, or the vendor price when that is higher). Items
-with no price at all are left out, and a note says how many. When you have
-only fished or gathered, the line sits under that heading instead.
+**Gathered value.** The title bar's second line adds up what the session has
+brought in: the coin off your kills plus every item looted, fished up or
+gathered, each at the same price "Worth per kill" uses (the Tradeskills
+auction value, or the vendor price when that is higher). Items with no price
+at all are left out, and a note under the top heading says how many. Once the
+session has run five minutes, the bar under the tabs says what that comes to
+per hour.
 
 `/farm tracker` (or the panel's **X**) turns it off and on, and it stays the
 way you left it. Drag it by the panel if the left edge is busy, and drag the
@@ -193,15 +198,13 @@ Mining cast, so herbs never count as a mob's drop, even with a looted corpse
 still targeted. Skinned leather stays the mob's drop. `/farm gathering check`
 lists any herb or ore an older version credited to a mob, and changes nothing.
 
-**A mob's full loot table.** The panel has room for each mob's three most
-common drops, and says "Show all N items" when there are more. Click a mob's
-name, or that line, and a window opens with everything it has ever dropped
-for you: how many corpses held each item, how many you took in all, and from
-20 kills its drop rate and what it adds to a kill. Coin per kill shows from
-the first kill, averaged over the kills that recorded coin. It updates as you
-loot.
-Click the mob again, press Escape or its **X** to close it. `/farm loot <mob>`
-opens it too.
+**A mob's full loot table.** Click a loot icon on a mob's open card and a
+window opens with everything that mob has ever dropped for you: how many
+corpses held each item, how many you took in all, and from 20 kills its drop
+rate and what it adds to a kill. Coin per kill shows from the first kill,
+averaged over the kills that recorded coin. It updates as you loot. Click an
+icon again, press Escape or its **X** to close it. `/farm loot <mob>` opens it
+too.
 
 **What a kill is worth.** With Blackthornes Tradeskills loaded too, each mob
 in the panel gets a "Worth per kill" line, and hovering a mob in the search
@@ -253,8 +256,14 @@ subtle` keeps the glows and the count-up and drops the floats and pops,
 chime. Both are in Settings too.
 
 A kill is a corpse you open. Skinning a corpse you already looted, or coming
-back for what you left, is still one kill. `/farm report on` also prints a
-line in your own chat window on every kill; nobody else sees it.
+back for what you left, is still one kill. A corpse you only skin (someone
+else's kill) is not a kill, since you never saw what it dropped, but its
+leather still counts in the session's loot. With area loot, only the corpse
+you opened is the kill and gets the drops in its tally; everything else in
+the window still counts in the session's loot and coin. An item being rolled
+for, or left to the master looter, counts toward the mob's drops but not in
+your session's loot, whoever wins it. `/farm report on` also prints a line in
+your own chat window on every kill; nobody else sees it.
 
 ### Gathering goals
 
