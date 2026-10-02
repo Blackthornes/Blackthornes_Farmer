@@ -132,6 +132,12 @@ suite.check("merged with nothing false", mine and mine.yours.got == 3, mine and 
 suite.check("and first", spots[1] == mine, spots[1] and spots[1].name)
 suite.check("its note says so", GUI.SpotNote(mine):find("you gathered 3 here") ~= nil)
 
+-- A rare drop reads "<1%", as the kills panel writes it, not "0%".
+suite.check("a rare rate is not 0%", GUI.SpotNote({ chance = 0.4 }) == "<1% drop", GUI.SpotNote({ chance = 0.4 }))
+local rare = ns.Util.StripColor(GUI.SpotNote({ measured = 0.4, yours = { kills = 250, got = 1 } }))
+suite.check("nor is one you measured", rare == "<1% in your 250 kills", rare)
+suite.check("a common rate reads as before", GUI.SpotNote({ chance = 25 }) == "25% drop", GUI.SpotNote({ chance = 25 }))
+
 --------------------------------------------------------------------------------
 -- The panel and the button
 --------------------------------------------------------------------------------
@@ -176,6 +182,21 @@ suite.check("titled for the item", panel.title:GetText():find("Copper Ore") ~= n
 suite.check("says where from", panel.from:GetText():find("Loch Modan") ~= nil, panel.from:GetText())
 suite.check("rows drawn", panel.rows[1]:IsShown() and panel.rows[1].rank:GetText() == "1")
 suite.check("first row is yours", panel.rows[1].spot == Spots:For("Copper Ore")[1] or panel.rows[1].spot.yours ~= nil)
+
+-- Levels are coloured as the search window colours them: red well above
+-- you. They were yellow there, the colour it gives your own level.
+local levels, sameColour = 0, true
+for _, row in ipairs(panel.rows) do
+    if row:IsShown() and row.spot and row.spot.minLevel then
+        levels = levels + 1
+        local r, g, b = ns.UI.DifficultyColor(row.spot.maxLevel or row.spot.minLevel)
+        local c = row.level._color or {}
+        if c[1] ~= r or c[2] ~= g or c[3] ~= b then sameColour = false end
+    end
+end
+suite.check("levels coloured as the search window does", levels > 0 and sameColour, levels)
+local _, green = ns.UI.DifficultyColor(30)
+suite.check("so a place well above you is red", green < 0.5, green)
 
 for _ = 1, 30 do GUI:Step(0.1) end
 

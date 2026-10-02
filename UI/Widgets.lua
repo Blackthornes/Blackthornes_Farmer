@@ -355,7 +355,13 @@ end
 -- onChange fires on every keystroke so results follow typing; onAccept fires on
 -- Enter. Escape clears focus rather than the text, because losing what you
 -- typed on a mis-key is worse than an extra keystroke.
-function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept)
+--
+-- opts.plain leaves out the magnifier and the clear button, for a small box
+-- that is not a search: the room they keep is most of a narrow box.
+function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept, opts)
+    opts = opts or {}
+    local inset = opts.plain and 6 or 26
+
     local holder = Theme.CreatePanel(parent, "row", "border")
     holder:SetHeight(24)
     Theme.TopSheen(holder, 0.04)
@@ -366,18 +372,19 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept)
     icon:SetPoint("LEFT", 7, 0)
     icon:SetTexture([[Interface\Common\UI-Searchbox-Icon]])
     icon:SetVertexColor(Theme.Unpack("muted"))
+    icon:SetShown(not opts.plain)
     holder.icon = icon
 
     local box = CreateFrame("EditBox", nil, holder)
-    box:SetPoint("TOPLEFT", 26, 0)
-    box:SetPoint("BOTTOMRIGHT", -26, 0)
+    box:SetPoint("TOPLEFT", inset, 0)
+    box:SetPoint("BOTTOMRIGHT", -inset, 0)
     box:SetAutoFocus(false)
     box:SetFont(Theme.FONT, Theme.sizes.normal, "")
     box:SetTextColor(Theme.Unpack("text"))
     box:SetMaxLetters(80)
 
     local hint = Theme.CreateLabel(holder, "normal", "dim")
-    hint:SetPoint("LEFT", 26, 0)
+    hint:SetPoint("LEFT", inset, 0)
     hint:SetText(placeholder or "")
 
     -- Clears what you typed in one click, and only shows when there is
@@ -396,7 +403,7 @@ function Widgets.CreateSearchBox(parent, placeholder, onChange, onAccept)
     local function UpdateHint()
         local empty = box:GetText() == ""
         hint:SetShown(empty)
-        clear:SetShown(not empty)
+        clear:SetShown(not empty and not opts.plain)
     end
 
     --- Gold edge and a brighter magnifier while it has the keyboard.

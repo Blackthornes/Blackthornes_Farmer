@@ -399,6 +399,133 @@ C_Timer.After = realAfter
 Goals.me = nil
 
 --------------------------------------------------------------------------------
+-- Every line fits
+--------------------------------------------------------------------------------
+
+Goals:Remove("Copper Ore")
+
+-- Undocked and at its narrowest, so the panel's width comes from its lines.
+local trackerHidden, trackerWidth = ns.db.trackerHidden, ns.db.trackerWidth
+ns.db.trackerHidden = true
+ns.db.trackerWidth = 180
+ns.TrackerUI:Refresh()
+
+local function CardOf(item)
+    for _, card in ipairs(GUI.cards) do
+        if card:IsShown() and card.goal and card.goal.item == item then return card end
+    end
+end
+
+-- A long name widens the panel and is then drawn whole: the width it was
+-- widened to was 2px short of the room the card gives a name.
+local LONG = "Elemental Earth Fragments Of The Deep"
+Goals:Set(LONG, 40)
+suite.check("a long name widens the panel", GUI.frame:GetWidth() > 180, GUI.frame:GetWidth())
+suite.check("and is drawn whole", CardOf(LONG) and CardOf(LONG).name:GetText() == LONG,
+    CardOf(LONG) and CardOf(LONG).name:GetText())
+Goals:Remove(LONG)
+
+-- The footer's count stays clear of its Set another button.
+bags[COPPER] = 0
+Goals:Set("Copper Ore", 40)
+clock = clock + 30
+Bags(40)
+Settle()
+local countEnd = 1 + 8 + ns.Theme.TextWidth("small", ns.Util.StripColor(GUI.footer.left:GetText()))
+local buttonStart = GUI.frame:GetWidth() - 7 - GUI.footer.next:GetWidth()
+suite.check("the footer's count clears Set another", GUI.footer:IsShown() and countEnd + 8 <= buttonStart,
+    countEnd .. " vs " .. buttonStart)
+
+-- GOAL COMPLETE says how long it took where the banner has room for it,
+-- and leaves that to the chat line where it would be cut off.
+local finished = { item = "Copper Ore", have = 40, target = 40, doneIn = 75, done = true }
+GUI:Banner()._width = 500
+GUI:Complete(finished)
+suite.check("the banner says how long it took",
+    GUI.banner.subject:GetText() == "40 / 40 Copper Ore  |  1 min 15s", GUI.banner.subject:GetText())
+GUI.banner._width = 150
+GUI:Complete(finished)
+suite.check("unless that would run off it", GUI.banner.subject:GetText() == "40 / 40 Copper Ore",
+    GUI.banner.subject:GetText())
+GUI.banner._width = nil
+Settle()
+
+-- The search list's "23/40" buttons keep up with the goals panel closed.
+Goals:ClearDone()
+bags[COPPER] = 6
+Goals:Set("Copper Ore", 40)
+ns.UI:Search("copper ore")
+ns.db.goalsHidden = true
+GUI:Refresh()
+clock = clock + 30
+Bags(20)
+local button
+for _, row in ipairs(ns.UI.list.rows) do
+    if row:IsShown() and row.data and row.data.type == "item" and row.data.item.name == "Copper Ore" then
+        button = row.goal.label:GetText()
+    end
+end
+suite.check("the search list follows the count with the panel closed", button == "20/40", button)
+ns.db.goalsHidden = false
+ns.UI:Hide()
+
+-- The picker's amount box keeps its room for the number: no magnifier or
+-- clear button in it. The search box keeps both.
+GUI:OpenPicker("Tin Ore")
+local amount = GUI.picker.amount
+suite.check("the amount box is plain", not amount.icon:IsShown() and amount.editBox._point[2] == -6,
+    tostring(amount.editBox._point[2]))
+amount:SetText("40")
+suite.check("with no clear button", not amount.clear:IsShown())
+suite.check("the search box keeps its magnifier",
+    ns.UI.searchBox.icon:IsShown() and ns.UI.searchBox.editBox._point[2] == -26)
+
+-- Why a goal was refused goes on a line of its own, under Include bank.
+local note, tick = GUI.picker.note._point, GUI.picker.bank._point
+suite.check("the refusal sits under Include bank",
+    note[1] == "TOPRIGHT" and note[3] < tick[3] - GUI.picker.bank:GetHeight(), note[3])
+GUI.picker:Hide()
+
+-- Docked under a kills panel made bigger in Settings, as wide as it is on
+-- screen: its width is taken into this panel's units.
+ns.db.trackerHidden = trackerHidden
+ns.db.trackerWidth = trackerWidth
+ns.TrackerUI:Refresh()
+GUI:Refresh()
+local tracker = ns.TrackerUI.frame
+local trackerScale = tracker.GetEffectiveScale
+tracker.GetEffectiveScale = function() return 1.2 end
+suite.check("docked, as wide as the kills panel on screen",
+    GUI:Width() == math.min(380, math.floor(tracker:GetWidth() * 1.2 + 0.5)),
+    GUI:Width() .. " for " .. tracker:GetWidth())
+tracker.GetEffectiveScale = trackerScale
+
+-- A tall kills panel low on the screen: the goals panel goes above it, or
+-- beside it, rather than being pushed up over it to stay on screen.
+local saved = { tracker.GetBottom, tracker.GetTop, tracker.GetLeft, tracker.GetRight,
+    UIParent.GetTop, UIParent.GetRight }
+UIParent.GetTop = function() return 768 end
+UIParent.GetRight = function() return 1366 end
+tracker.GetLeft = function() return 8 end
+tracker.GetRight = function() return 268 end
+tracker.GetTop = function() return 578 end
+tracker.GetBottom = function() return 400 end
+GUI:Place()
+local at = GUI.frame._point
+suite.check("under the kills panel with room there", at[1] == "TOPLEFT" and at[3] == "BOTTOMLEFT", at[3])
+tracker.GetBottom = function() return 60 end
+GUI:Place()
+at = GUI.frame._point
+suite.check("above it with none below", at[1] == "BOTTOMLEFT" and at[3] == "TOPLEFT", at[3])
+tracker.GetTop = function() return 740 end
+GUI:Place()
+at = GUI.frame._point
+suite.check("beside it with none above either", at[1] == "TOPLEFT" and at[3] == "TOPRIGHT", at[3])
+tracker.GetBottom, tracker.GetTop, tracker.GetLeft, tracker.GetRight = saved[1], saved[2], saved[3], saved[4]
+UIParent.GetTop, UIParent.GetRight = saved[5], saved[6]
+GUI:Place()
+
+--------------------------------------------------------------------------------
 -- Nothing recorded is touched
 --------------------------------------------------------------------------------
 

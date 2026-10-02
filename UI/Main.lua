@@ -103,6 +103,9 @@ local function DifficultyColor(level)
     return 0.60, 0.62, 0.66
 end
 
+-- The goals panel's Where? list colours its levels the same way.
+UI.DifficultyColor = DifficultyColor
+
 -- Each kind of source has its own colour on its tag, so a column of them
 -- reads at a glance: red for mobs, green for herbs, copper for ore, blue for
 -- fishing.

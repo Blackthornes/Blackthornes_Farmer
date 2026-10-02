@@ -204,10 +204,14 @@ end
 
 function GoalsUI:Width()
     -- Docked under the kills panel, as wide as it is on screen (it widens
-    -- past its saved width to fit its lines), so the two line up.
+    -- past its saved width to fit its lines), so the two line up. Its size
+    -- setting scales it, so its width is taken into this panel's units.
     local tracker = ns.TrackerUI and ns.TrackerUI.frame
     if not ns.db.goalsX and tracker and tracker:IsShown() then
-        local ok, width = pcall(tracker.GetWidth, tracker)
+        local ok, width = pcall(function()
+            local own = (self.frame or UIParent):GetEffectiveScale()
+            return tracker:GetWidth() * tracker:GetEffectiveScale() / own
+        end)
         if ok and type(width) == "number" and width > 0 then
             return math.min(MAX_WIDTH, math.floor(width + 0.5))
         end
@@ -575,7 +579,9 @@ end
 --- any width picked by eye.
 function GoalsUI:CardNeeds(card, goal)
     local text = Util.StripColor
-    local count = Theme.TextWidth("large", text(card.count:GetText())) + 8
+    -- The same gap DrawCard keeps between the name and the count: with any
+    -- less, the panel widened for a name and DrawCard still cut it.
+    local count = Theme.TextWidth("large", text(card.count:GetText())) + 10
 
     local top = PADDING + ICON + 8 + Theme.TextWidth("normal", goal.item) + count + PADDING
     if card.tag:IsShown() then top = top + Theme.TextWidth("tiny", card.tag:GetText()) + 16 end
@@ -599,9 +605,26 @@ function GoalsUI:Render()
     self.lastBase = width
     self.frame:SetWidth(width)
 
+    local done = ns.Goals:DoneToday()
+    local anyDone = false
+    for _, goal in ipairs(list) do
+        if goal.done then anyDone = true end
+    end
+
+    local footer = done > 0 or anyDone
+    if footer then
+        self.footer.left:SetText(("Goals done today: |c%s%d|r"):format(ns.COLORS.accent, done))
+    end
+    self.footer:SetShown(footer)
+
     -- Draw once at the usual width, measure, and widen and draw again when
-    -- a line needs more room.
+    -- a line needs more room. The footer's count and its Set another button
+    -- sit side by side, so they are measured too.
     local needs = 0
+    if footer then
+        needs = PADDING + Theme.TextWidth("small", Util.StripColor(self.footer.left:GetText()))
+            + 8 + self.footer.next:GetWidth() + PADDING
+    end
     for index, goal in ipairs(list) do
         local card = self:Card(index)
         if card.goal ~= nil and card.goal ~= goal then self:StopCard(card) end
@@ -624,18 +647,6 @@ function GoalsUI:Render()
         self.cards[index]:Hide()
         self.cards[index].goal = nil
     end
-
-    local done = ns.Goals:DoneToday()
-    local anyDone = false
-    for _, goal in ipairs(list) do
-        if goal.done then anyDone = true end
-    end
-
-    local footer = done > 0 or anyDone
-    if footer then
-        self.footer.left:SetText(("Goals done today: |c%s%d|r"):format(ns.COLORS.accent, done))
-    end
-    self.footer:SetShown(footer)
 
     self.frame:SetHeight(HEADER + GAP + #list * (CARD + 2) + (footer and FOOTER or 0))
 end
@@ -913,17 +924,20 @@ end
 function GoalsUI:Complete(goal)
     local banner = self:Banner()
     banner.title:SetText("GOAL COMPLETE")
-
-    local subject = ("%d / %d %s"):format(goal.have or 0, goal.target or 0, goal.item)
-    if (tonumber(goal.doneIn) or 0) >= 1 then
-        subject = subject .. "  |  " .. ns.Goals.Duration(goal.doneIn)
-    end
-    banner.subject:SetText(subject)
     banner:SetAlpha(0)
     banner:Show()
 
     local ok, width = pcall(banner.GetWidth, banner)
     width = ok and tonumber(width) or WIDTH
+
+    -- How long it took, where the banner has room for it (the chat line
+    -- says it too): measured, as it ran off a panel at its usual width.
+    local subject = ("%d / %d %s"):format(goal.have or 0, goal.target or 0, goal.item)
+    if (tonumber(goal.doneIn) or 0) >= 1 then
+        local took = subject .. "  |  " .. ns.Goals.Duration(goal.doneIn)
+        if Theme.TextWidth("small", took) <= width - 12 then subject = took end
+    end
+    banner.subject:SetText(subject)
 
     for index, spark in ipairs(banner.sparks) do
         spark:ClearAllPoints()
@@ -971,6 +985,9 @@ end
 --- The goals' counts moved (Goals:Update). Redraw, then animate each card
 --- from where it was.
 function GoalsUI:Changed(changes)
+    -- The search list's buttons follow the count with this panel closed too.
+    self:RedrawSearch()
+
     if not (self.frame and self.frame:IsShown()) then
         -- Closed: a finished goal still opens it, for the moment.
         local finished = false
@@ -982,9 +999,9 @@ function GoalsUI:Changed(changes)
         self:Refresh()
     else
         self:Render()
+        -- Taller with the footer, it may no longer fit under the kills panel.
+        if not self.dragging then self:Place() end
     end
-
-    self:RedrawSearch()
 
     local level = Level()
     if level == "off" then return end
@@ -1040,6 +1057,25 @@ end
 -- Under the kills panel until you drag it; after that, where you put it.
 --------------------------------------------------------------------------------
 
+--- Which side of the kills panel this one docks on: "below" while there is
+--- room under it, else "above", else "right" or "left", whichever has more
+--- room. Below when the client will not say.
+local function DockSide(frame, tracker)
+    local ok, side = pcall(function()
+        local own = frame:GetEffectiveScale()
+        local scale = tracker:GetEffectiveScale() / own
+        local screen = UIParent:GetEffectiveScale() / own
+        local need = frame:GetHeight() + GAP
+        -- Compared here, inside the pcall: a secret value raises on it.
+        if tracker:GetBottom() * scale >= need then return "below" end
+        if UIParent:GetTop() * screen - tracker:GetTop() * scale >= need then return "above" end
+        local left = tracker:GetLeft() * scale
+        local right = UIParent:GetRight() * screen - tracker:GetRight() * scale
+        return right >= left and "right" or "left"
+    end)
+    return ok and side or "below"
+end
+
 function GoalsUI:Place()
     local frame = self.frame
     if not frame or ns.db.goalsX then return end
@@ -1047,7 +1083,18 @@ function GoalsUI:Place()
     local tracker = ns.TrackerUI and ns.TrackerUI.frame
     frame:ClearAllPoints()
     if tracker and tracker:IsShown() then
-        frame:SetPoint("TOPLEFT", tracker, "BOTTOMLEFT", 0, -GAP)
+        -- Under it, unless a tall kills panel leaves too little room there:
+        -- kept on screen, this one was pushed up over it.
+        local side = DockSide(frame, tracker)
+        if side == "above" then
+            frame:SetPoint("BOTTOMLEFT", tracker, "TOPLEFT", 0, GAP)
+        elseif side == "right" then
+            frame:SetPoint("TOPLEFT", tracker, "TOPRIGHT", GAP, 0)
+        elseif side == "left" then
+            frame:SetPoint("TOPRIGHT", tracker, "TOPLEFT", -GAP, 0)
+        else
+            frame:SetPoint("TOPLEFT", tracker, "BOTTOMLEFT", 0, -GAP)
+        end
     else
         frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 8, -190)
     end
@@ -1101,6 +1148,8 @@ local function DistanceColor(hops)
 end
 
 --- The note under a spot: what you measured there, else the rate known.
+--- Rates read as the kills panel writes them, so a rare drop is "<1%",
+--- not "0%".
 function GoalsUI.SpotNote(spot)
     local yours = spot.yours
     if yours and yours.gathers then
@@ -1108,11 +1157,12 @@ function GoalsUI.SpotNote(spot)
     end
     if yours and yours.kills then
         if spot.measured then
-            return Util.Colored("good", ("%d%% in your %d kills"):format(spot.measured, yours.kills))
+            return Util.Colored("good", ("%s in your %d kills"):format(
+                ns.Tracker.FormatChance(spot.measured), yours.kills))
         end
         return Util.Colored("good", ("%d from your %d kills"):format(yours.got or 0, yours.kills))
     end
-    if spot.chance then return ("%d%% drop"):format(spot.chance) end
+    if spot.chance then return ("%s drop"):format(ns.Tracker.FormatChance(spot.chance)) end
     if spot.requires then return spot.requires end
     return ""
 end
@@ -1229,15 +1279,6 @@ function GoalsUI:SpotRow(index)
     return row
 end
 
---- Level band coloured the way the search window colours it: red well
---- above you, gold around you, grey below.
-local function LevelColor(spot, level)
-    if not (level and spot.minLevel) then return "text" end
-    if spot.minLevel > level + 2 then return "warn" end
-    if (spot.maxLevel or spot.minLevel) < level - 8 then return "muted" end
-    return "good"
-end
-
 --- Rank the places for `item` from where you are and show them beside
 --- `anchor` (the goals panel), or on their own.
 function GoalsUI:OpenSpots(item, anchor)
@@ -1267,8 +1308,14 @@ function GoalsUI:OpenSpots(item, anchor)
         row.rank:SetText(tostring(index))
         row.name:SetText(spot.name or "?")
 
+        -- Coloured the way the search window colours a level: red well above
+        -- you, yellow around you, green and then grey below.
         row.level:SetText(spot.minLevel and ns.Search:LevelText(spot) or "")
-        row.level:SetTextColor(Theme.Unpack(LevelColor(spot, player.level)))
+        if ns.UI and ns.UI.DifficultyColor then
+            row.level:SetTextColor(ns.UI.DifficultyColor(spot.maxLevel or spot.minLevel))
+        else
+            row.level:SetTextColor(Theme.Unpack("text"))
+        end
 
         local distance = ns.Spots.DistanceText(spot.hops, spot.zone, spot.travel)
         local where = spot.zone or "?"
@@ -1357,7 +1404,7 @@ function GoalsUI:BuildPicker()
     if self.picker then return self.picker end
 
     local picker = CreateFrame("Frame", "BlackthornesFarmerGoalPicker", UIParent)
-    picker:SetSize(PICK_WIDTH, 128)
+    picker:SetSize(PICK_WIDTH, 144)
     picker:SetFrameStrata("DIALOG")
     picker:SetClampedToScreen(true)
     picker:EnableMouse(true)
@@ -1385,9 +1432,11 @@ function GoalsUI:BuildPicker()
         picker.chips[index] = chip
     end
 
+    -- Plain: the search box's magnifier and clear button took all but 2px
+    -- of a box this narrow, and the number typed could not be seen.
     local amount = Widgets.CreateSearchBox(picker, "other", function(text)
         GoalsUI:PickerSelect(tonumber(text))
-    end, function() GoalsUI:PickerSet() end)
+    end, function() GoalsUI:PickerSet() end, { plain = true })
     amount:SetPoint("TOPLEFT", 10 + #PRESETS * 44, -27)
     amount:SetPoint("TOPRIGHT", -10, -27)
     amount:SetHeight(20)
@@ -1422,9 +1471,11 @@ function GoalsUI:BuildPicker()
     remove:SetPoint("BOTTOMRIGHT", -10, 10)
     picker.remove = remove
 
+    -- Why a goal was refused, on a line of its own under Include bank: kept
+    -- just above the buttons, it was drawn over the tick box's label.
     local note = Theme.CreateLabel(picker, "tiny", "warn")
-    note:SetPoint("BOTTOMLEFT", set, "TOPLEFT", 0, 4)
-    note:SetPoint("RIGHT", -10, 0)
+    note:SetPoint("TOPLEFT", 10, -96)
+    note:SetPoint("TOPRIGHT", -10, -96)
     picker.note = note
 
     -- Escape closes it, like the game's own windows.

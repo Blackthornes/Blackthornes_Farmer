@@ -284,7 +284,8 @@ your main's goals alone. A goal set before goals had owners shows on every
 character until one of them loots toward it or changes it, and then it is
 that character's.
 
-The panel sits under the kills panel until you drag it elsewhere. Each goal
+The panel sits under the kills panel, or above or beside it when there is no
+room below, until you drag it elsewhere. Each goal
 shows its count, the best spot for it, a bar marked at a quarter, half and
 three quarters, how many are left and, once you have gathered a few, how long
 the rest should take at your pace. As you loot, the count ticks
