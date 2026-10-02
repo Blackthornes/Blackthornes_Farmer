@@ -51,6 +51,11 @@ Keep the `_G.BlackthornesFarmer` global, `Goals:Set` (returning the goal with
 `item`, `target` and `have`, or nil and a reason) and `GoalsUI:Show` stable.
 If one has to change, change Tradeskills' `Logic/FarmerGoals.lua` too.
 
+Goals belong to the character that set them (`goal.owner`, "Name-Realm"),
+since a goal counts one character's bags, so `Find` and `Set` act on the
+character playing. A goal saved before owners existed shows on every
+character until one gathers toward it or changes it.
+
 ## Trent's standing rules (both addons)
 
 - **"Always check that it's clear to post."** Anything public is checked for
