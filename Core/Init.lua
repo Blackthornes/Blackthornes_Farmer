@@ -269,6 +269,9 @@ local DEFAULTS = {
     -- minimap. Each can be turned off on its own.
     markersWorld = true,
     markersMinimap = true,
+
+    -- The best place to farm a material, on its tooltip.
+    itemTooltip = true,
 }
 
 local function LoadSavedVariables()

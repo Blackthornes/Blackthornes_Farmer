@@ -92,6 +92,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
 | `/farm goal <item> <amount>` | set a gathering goal, e.g. `/farm goal Copper Ore 40`; on its own, lists your goals (`remove <item>`, `clear` for finished ones, `bank on\|off` to count your bank) |
 | `/farm where <item>` | the best places near you to farm it, nearest first |
+| `/farm tooltip` | turn the "Farm:" line on material tooltips on or off (on by default) |
 | `/farm goals [dock]` | show or hide the goals panel; `dock` puts it back under the kills panel |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
@@ -106,6 +107,18 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm help` | the command list |
 
 `/farmer` is the same command if `/farm` is taken.
+
+Hover a material anywhere (your bags, the auction house, a chat link) and its
+tooltip gets one more line: the best place to farm it from where you stand,
+the same pick the goals' **Where?** button makes.
+
+```
+Farm: Copper Vein (10-20), Westfall, you are here
+```
+
+Only materials get it: everything the addon searches for, plus meat, cloth
+and other trade goods your own loot added. Gear and grey items a mob happened
+to drop are left alone.
 
 Open the window with nothing typed and it suggests a cloth, a leather, an ore
 and a herb that suit your level; click one to search for it.
@@ -122,8 +135,8 @@ the minimap button, the **Settings** button in the search window, or
 Options > AddOns > Blackthornes Farmer in the game menu. It covers the minimap
 button, the size of the search window and of the kill tally, putting windows
 back if one ends up off screen, the kill tally and its chat report, pausing
-loot recording (remembered between sessions) with an Export button, and debug
-output. Changes save as you make them. Nothing on the page deletes data:
+loot recording (remembered between sessions) with an Export button, the
+farming line on material tooltips, and debug output. Changes save as you make them. Nothing on the page deletes data:
 clearing tallies or recorded loot stays a typed `reset confirm` command.
 
 Searching is deliberately loose. It matches, best match first:

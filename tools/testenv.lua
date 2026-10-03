@@ -324,6 +324,7 @@ local UI_FILES = {
     "UI/LootTable.lua",
     "UI/Rankings.lua",
     "UI/MapMarkers.lua",
+    "UI/ItemTooltip.lua",
     "UI/Settings.lua",
 }
 

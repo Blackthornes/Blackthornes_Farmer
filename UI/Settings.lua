@@ -490,6 +490,20 @@ function SettingsUI:BuildTrackingColumn()
     exportHint:SetWordWrap(true)
     exportHint:SetText("Your recorded loot, as a data file.")
     self.exportHint = exportHint
+
+    -- Under the export button, in the room the right column has spare.
+    export.column = COLUMN_TWO_X
+    local tooltips = CreateSection(frame, "TOOLTIPS", { anchor = export })
+
+    local tooltipRow = CreateRow(frame, tooltips, "Where to farm",
+        "Hover a material for the best place to farm it from where you stand. "
+        .. "Same as /farm tooltip.")
+
+    controls.itemTooltip = Widgets.CreateCheckbox(tooltipRow, "Show it", function(checked)
+        ns.db.itemTooltip = checked
+        if ns.ItemTooltip then ns.ItemTooltip.ForgetKept() end
+    end, true)
+    controls.itemTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --------------------------------------------------------------------------------
@@ -513,6 +527,7 @@ function SettingsUI:Refresh()
     controls.debug:SetChecked(db.debug == true)
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
+    controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
 
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)
