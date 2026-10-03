@@ -48,7 +48,42 @@ function Value:HasAuctionPrices()
     return self:Prices() ~= nil
 end
 
---- What a vendor pays for one, from the client's item info.
+-- What item tooltips said a vendor pays, kept for the session.
+local tooltipSellPrice = {}
+
+--- What the item's tooltip says a vendor pays for one, or nil when it shows
+--- no sell price. Forever changed some sell prices from Classic's and only
+--- the tooltip has the new one: Greater Magic Wand's says 1c while the item
+--- info still says Classic's 15s 35c (Trent, 2026-10-03).
+function Value:TooltipSellPrice(itemID)
+    local known = tooltipSellPrice[itemID]
+    if known ~= nil then return known or nil end
+
+    local getTooltip = C_TooltipInfo and C_TooltipInfo.GetItemByID
+    if type(getTooltip) ~= "function" then return nil end
+
+    local ok, price, read = pcall(function()
+        local data = getTooltip(itemID)
+        if type(data) ~= "table" or type(data.lines) ~= "table" or #data.lines == 0 then return nil, false end
+
+        local enum = Enum and Enum.TooltipDataLineType
+        local sellType = (type(enum) == "table" and enum.SellPrice) or 11
+        for _, line in ipairs(data.lines) do
+            if type(line) == "table" and line.type == sellType and type(line.price) == "number" then
+                return line.price, true
+            end
+        end
+        return nil, true
+    end)
+    if not ok then return nil end
+
+    -- Only a tooltip that was there to read is kept.
+    price = ns.Harvest.ReadableNumber(price)
+    if read then tooltipSellPrice[itemID] = price or false end
+    return price
+end
+
+--- What a vendor pays for one: the tooltip's price, else the item info's.
 function Value:VendorPrice(itemID)
     local getInfo = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
     if type(getInfo) ~= "function" then return nil end
@@ -57,6 +92,9 @@ function Value:VendorPrice(itemID)
         return select(11, getInfo(itemID))
     end)
     if not ok then return nil end
+
+    local fromTooltip = self:TooltipSellPrice(itemID)
+    if fromTooltip then sellPrice = fromTooltip end
 
     local copper = ns.Harvest.ReadableNumber(sellPrice)
     if copper and copper > 0 then return copper end
