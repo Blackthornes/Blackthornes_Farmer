@@ -4,6 +4,19 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.15.0
+
+For WoW: Forever (interface 16001). This version adds a file, so fully
+restart the game after updating; `/reload` is not enough.
+
+- Hovering a material anywhere (bags, the auction house, a chat link) adds a
+  Farm: line to its tooltip with the best place to get it from where you
+  stand, such as "Farm: Copper Vein (10-20), Westfall, you are here". It's
+  the same pick the Where? button makes. Turn it off in Settings under
+  Tooltips, or with `/farm tooltip`.
+- More drop data measured on Forever: 2,004 looted corpses across 176 mobs,
+  up from 1,900.
+
 ## 0.14.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
