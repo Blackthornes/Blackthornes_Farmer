@@ -14,6 +14,8 @@ restart the game after updating; `/reload` is not enough.
   stand, such as "Farm: Copper Vein (10-20), Westfall, you are here". It's
   the same pick the Where? button makes. Turn it off in Settings under
   Tooltips, or with `/farm tooltip`.
+- More drop data measured on Forever: 2,004 looted corpses across 176 mobs,
+  up from 1,900.
 
 ## 0.14.0
 
