@@ -254,4 +254,22 @@ suite.check("an exact database name beats a prefix of your own kill",
 suite.check("and the prefix still finds your kill",
     Value:ResolveMob("defias trapper s") == "Defias Trapper Scout", Value:ResolveMob("defias trapper s"))
 
+--------------------------------------------------------------------------------
+-- The tooltip's sell price wins (Trent, 2026-10-03)
+--------------------------------------------------------------------------------
+
+-- Greater Magic Wand: item info says Classic's 15s 35c, the tooltip 1c.
+VENDOR[11288] = 1535
+_G.C_TooltipInfo = {
+    GetItemByID = function(id)
+        local lines = { { type = 0, leftText = "item" } }
+        if id == 11288 then lines[#lines + 1] = { type = 11, price = 1 } end
+        return { id = id, lines = lines }
+    end,
+}
+suite.check("the tooltip's sell price wins over the item info's", Value:VendorPrice(11288) == 1, Value:VendorPrice(11288))
+suite.check("an item whose tooltip shows none keeps the item info's", Value:VendorPrice(3300) == 20, Value:VendorPrice(3300))
+_G.C_TooltipInfo = nil
+VENDOR[11288] = nil
+
 suite.done()
