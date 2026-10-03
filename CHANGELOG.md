@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.15.1
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- Vendor prices now come from the item's tooltip. On Forever the game's item
+  info can still hold Classic's sell price, so an item like Greater Magic
+  Wand was worth 15s 35c to Farmer while a vendor pays 1c.
+
 ## 0.15.0
 
 For WoW: Forever (interface 16001). This version adds a file, so fully
