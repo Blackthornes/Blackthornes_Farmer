@@ -4,6 +4,23 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.16.0
+
+For WoW: Forever (interface 16001). This version adds files, so fully
+restart the game after updating; `/reload` is not enough.
+
+- New look: the search window wears a gold metal frame with corner gems, a
+  round portrait holding a gold pickaxe, a title plate across the top and a
+  red gem to close it. The Search and Rankings tabs hang below the window.
+  Settings, Export, the loot table, the goal picker and Where to farm get the
+  plate and close gem too. Buttons are raised gold-edged metal, the main
+  action is solid gold, and everything glows under the mouse. A light runs
+  round the portrait as the window opens and a glint slides along the rim,
+  both following the Window effects setting. The kills panel, goals panel,
+  toasts and map pins keep their own look.
+- More drop data measured on Forever: 2,197 looted corpses across 193 mobs,
+  up from 2,080, including the first Wailing Caverns kills.
+
 ## 0.15.2
 
 ## 0.15.2
