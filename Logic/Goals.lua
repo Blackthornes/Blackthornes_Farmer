@@ -1,5 +1,5 @@
 -- Blackthornes Farmer -- Logic/Goals.lua
--- Gathering goals (Trent, 2026-09-27): pick a material and a number, and the
+-- Gathering goals (2026-09-27): pick a material and a number, and the
 -- Goals panel counts you toward it.
 --
 -- A goal is "have this many", counted from your bags (and your bank, if you
@@ -541,7 +541,7 @@ function Goals:Finished(goal)
 
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
 
-    -- The drop-rates-unlocked sound: the one Trent picked for big moments.
+    -- The drop-rates-unlocked sound: the one picked for big moments.
     if ns.Tracker and not ns.Tracker.PlayFile(ns.Tracker.SOUNDS.unlock)
         and type(PlaySound) == "function" then
         pcall(PlaySound, 888, "Master")

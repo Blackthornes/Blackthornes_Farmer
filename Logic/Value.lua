@@ -54,7 +54,7 @@ local tooltipSellPrice = {}
 --- What the item's tooltip says a vendor pays for one, or nil when it shows
 --- no sell price. Forever changed some sell prices from Classic's and only
 --- the tooltip has the new one: Greater Magic Wand's says 1c while the item
---- info still says Classic's 15s 35c (Trent, 2026-10-03).
+--- info still says Classic's 15s 35c (2026-10-03).
 function Value:TooltipSellPrice(itemID)
     local known = tooltipSellPrice[itemID]
     if known ~= nil then return known or nil end
@@ -142,7 +142,7 @@ function Value:IsPoor(itemID)
 end
 
 --- One unit's worth and where the number came from ("auction" or "vendor").
--- A grey item is only ever worth what a vendor pays (Trent, 2026-09-25): the
+-- A grey item is only ever worth what a vendor pays (2026-09-25): the
 -- auction house is no price for vendor trash, whatever a scan once saw.
 function Value:UnitPrice(itemID)
     if not itemID then return nil end
@@ -330,7 +330,7 @@ function Value.Money(copper)
     return table.concat(parts, " ")
 end
 
--- The game's own coin colours (Trent, 2026-09-28: "gold for g, silver for
+-- The game's own coin colours (2026-09-28: "gold for g, silver for
 -- s, copper for c").
 local COIN_COLORS = { g = "ffffd700", s = "ffc7c7cf", c = "ffeda55f" }
 Value.COIN_COLORS = COIN_COLORS

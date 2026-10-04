@@ -78,7 +78,7 @@ end
 -- formatting it raises on the spot, and it raises in this addon's own stack
 -- frame, because the execution reading it is tainted by this addon.
 --
--- Trent hit that in Ragefire Chasm on 2026-09-22. UnitName("target") came back
+-- Seen in Ragefire Chasm on 2026-09-22. UnitName("target") came back
 -- clean from its pcall and `name == ""` two lines later was the error. The
 -- pcall around the call never had a chance: nothing was wrong with the call.
 --
@@ -438,7 +438,7 @@ end
 --
 -- A loot window lists coins in a slot like anything else, and GetLootSlotInfo
 -- hands back a name for it -- "23 Copper" -- which went straight into the data
--- as if it were a farmable drop. Trent's first real session produced 25 coin
+-- as if it were a farmable drop. The first real session produced 25 coin
 -- entries out of 53.
 --
 -- Two ways of telling. GetLootSlotType says so outright and is authoritative

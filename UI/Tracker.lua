@@ -2,7 +2,7 @@
 -- The kills and loot panel, down the left side of the screen.
 --
 -- A tall, narrow column under the player and party frames that fills in as
--- you farm, on two tabs (Trent, 2026-09-28: showing only three items a mob
+-- you farm, on two tabs (2026-09-28: showing only three items a mob
 -- was "limiting"):
 --
 --   * Farm: a card for every mob killed this session (and every fishing spot
@@ -57,7 +57,7 @@ local ICON = 14
 local BAR = 40
 TrackerUI.BAR = BAR
 
--- The progress bar toward rates (Trent, 2026-09-27: "a progress bar like
+-- The progress bar toward rates (2026-09-27: "a progress bar like
 -- the goals"): as tall as a goal's, never shorter than MIN_PROGRESS.
 local PROGRESS_HEIGHT = 7
 local MIN_PROGRESS = 60
@@ -322,7 +322,7 @@ function TrackerUI:NextSort()
 end
 
 --- Whether a card is open. The one you are on is open unless you folded it;
---- the rest are folded unless you opened them (Trent, 2026-09-28).
+--- the rest are folded unless you opened them (2026-09-28).
 function TrackerUI:IsOpen(key, default)
     local chosen = self.open and self.open[key]
     if chosen ~= nil then return chosen end
@@ -392,8 +392,8 @@ function TrackerUI:Build()
     end, { width = 18, height = 16, danger = true })
     close:SetPoint("RIGHT", header, "TOPRIGHT", -6, -TITLE_LINE / 2)
 
-    -- The session's gathered value on the title bar's second line (Trent,
-    -- 2026-09-27). Built like a line row so the count-up, glow and "+38s" in
+    -- The session's gathered value on the title bar's second line
+    -- (2026-09-27). Built like a line row so the count-up, glow and "+38s" in
     -- UI/TrackerFX.lua work on it unchanged.
     local total = CreateFrame("Frame", nil, header)
     total:SetPoint("TOPLEFT", header, "TOPLEFT", 3, -TITLE_LINE + 2)
@@ -1086,7 +1086,7 @@ function TrackerUI:Lines()
     local mobs = ns.Tracker:SessionMobs()
 
     -- The Fishing and Gathering sections are there only once you have done
-    -- that this session (Trent, 2026-09-25), and whichever you did last goes
+    -- that this session (2026-09-25), and whichever you did last goes
     -- on top.
     local fished = ns.Fishing and ns.Fishing.sessionCasts > 0
     local gathered = ns.Gathering and ns.Gathering.sessionGathers > 0
@@ -1159,7 +1159,7 @@ function TrackerUI.ProgressOf(have, target)
     return have, fraction, milestone
 end
 
---- Under a band still short of rates (Trent, 2026-09-27): a progress bar
+--- Under a band still short of rates (2026-09-27): a progress bar
 --- like a goal's, then how many more. `key` is the band's; `more` is the
 --- countdown's text, "%d" for the number.
 function TrackerUI:ProgressLines(Add, key, have, target, more)
@@ -1178,7 +1178,7 @@ function TrackerUI:ProgressLines(Add, key, have, target, more)
         leftColor = final and "good" or nil })
 end
 
---- One card: a mob, a fishing spot or a node (Trent, 2026-09-28: every
+--- One card: a mob, a fishing spot or a node (2026-09-28: every
 --- item it has given as bag icons, not just the top three).
 --
 -- Open, it is the band, where, the bar toward rates, what one is worth and
@@ -1317,7 +1317,7 @@ function TrackerUI:KillLines(Add, mobs, first)
 
     self:TotalLines(Add)
 
-    -- A streak shows from its third kill (Trent, 2026-09-26), with the
+    -- A streak shows from its third kill (2026-09-26), with the
     -- session's best beside it once there is a better one to beat.
     local streak = Tracker:Streak()
     if streak >= STREAK_SHOWN then
@@ -1365,11 +1365,11 @@ function TrackerUI:KillLines(Add, mobs, first)
     end
 end
 
---- What everything gathered this session is worth (Trent, 2026-09-25): coin,
+--- What everything gathered this session is worth (2026-09-25): coin,
 --- loot and fishing catches together, priced like worth per kill. Items with
 --- no price are left out, so the total never guesses.
 --
--- The total itself sits in the title bar (Trent, 2026-09-27). Returns its
+-- The total itself sits in the title bar (2026-09-27). Returns its
 -- line, or nil when nothing gathered this session has a price.
 function TrackerUI:TitleTotal()
     if not ns.Value then return nil end
@@ -1457,8 +1457,8 @@ end
 --------------------------------------------------------------------------------
 -- The Loot tab
 --
--- Everything looted, fished and gathered this session in one list (Trent,
--- 2026-09-28), best earners first, with where each came from under its name.
+-- Everything looted, fished and gathered this session in one list
+-- (2026-09-28), best earners first, with where each came from under its name.
 --------------------------------------------------------------------------------
 
 --- "Rabid Gnoll 7, Mangy Wolf 3, +2 more" from { [source] = count }, and
@@ -1660,7 +1660,7 @@ function TrackerUI:DrawLine(row, line)
     end
 
     -- The card you are on glows: a gold wash across its band and a bright
-    -- edge down its left (Trent, 2026-09-28: "i like that neon glow").
+    -- edge down its left (2026-09-28: "i like that neon glow").
     if line.style == "mob" and line.live then
         row.live:SetColorTexture(1, 1, 1, 1)
         local r, g, b = Theme.Unpack("accent")
@@ -2298,7 +2298,7 @@ function TrackerUI:DrawCards(shown)
 end
 
 --- On the Loot tab, an item that climbs past another floats where it got
---- to (Trent, 2026-09-28: dopamine hits wherever they fit).
+--- to (2026-09-28: dopamine hits wherever they fit).
 function TrackerUI:NoteRanks(shown)
     if self:Tab() ~= "loot" or self:Sort("loot") ~= "value" then
         self.ranks = nil

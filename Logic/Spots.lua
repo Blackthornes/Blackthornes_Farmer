@@ -1,5 +1,5 @@
 -- Blackthornes Farmer -- Logic/Spots.lua
--- The best places near you to farm something (Trent, 2026-09-27: "a button
+-- The best places near you to farm something (2026-09-27: "a button
 -- to the goal that allows the player to click and find the best place to farm
 -- each goal near me").
 --
