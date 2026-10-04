@@ -1,11 +1,11 @@
 # Notes for Claude
 
-Read this before working in this repo. Trent runs two Claude projects, one per
+Read this before working in this repo. The owner runs two Claude projects, one per
 addon: this one (**Blackthornes_Farmer**) and **Blackthornes_Tradeskills**
 (`Blackthornes/Blackthornes_Tradeskills`). They cannot read each other's
 memory, so what one needs to know about the other lives in the repos, in this
 file and in Tradeskills' `CLAUDE.md`. Keep both current: when a change here
-leans on something new in Tradeskills, or a standing rule from Trent applies to
+leans on something new in Tradeskills, or a standing rule from the owner applies to
 both addons, add it to both files.
 
 Nothing private goes in this file (no local paths, emails or account names).
@@ -58,7 +58,7 @@ character until one gathers toward it or changes it.
 
 ## The house frame (Titanforged)
 
-Trent picked this look for all four addons on 2026-10-04 (Tradeskills had it
+The owner picked this look for all four addons on 2026-10-04 (Tradeskills had it
 first). It's the game's own window shape with the light turned up: a gold
 metal rim with corner gems, a round portrait with the addon's emblem, the
 name on a plate across the top edge, a red close gem, and tabs hanging below
@@ -79,13 +79,13 @@ kills panel, the goals panel, banners and toasts stay up while playing and
 keep their own look. Anything placed inside a dressed window stays 6 pixels
 in from its edge, or it covers the rim.
 
-## Trent's standing rules (both addons)
+## The owner's standing rules (both addons)
 
 - **"Always check that it's clear to post."** Anything public is checked for
   private or unexpected content first, and nothing is published or uploaded
-  without Trent's go-ahead. He tags releases himself.
-- **Changelogs come from git history,** never from asking Trent. Claude drafts
-  the CHANGELOG section in a PR; Trent merges, pulls `main`, tags and pushes.
+  without the owner's go-ahead. He tags releases himself.
+- **Changelogs come from git history,** never from asking the owner. Claude drafts
+  the CHANGELOG section in a PR; the owner merges, pulls `main`, tags and pushes.
 - **Every reply that ships code ends with the GitHub Desktop steps,** naming
   the branch: merge the PR on github.com, switch **Current branch** to
   **main**, **Pull origin**, then `/reload` or a full restart (a full restart

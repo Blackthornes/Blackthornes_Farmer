@@ -1,7 +1,7 @@
--- What this session's haul is worth (Trent, 2026-09-25).
+-- What this session's haul is worth (2026-09-25).
 --
 -- The panel's title bar shows a "Gathered value" on its second line (moved
--- there from the top of THIS SESSION, Trent 2026-09-27): the coin off
+-- there from the top of THIS SESSION, 2026-09-27): the coin off
 -- this session's kills plus every item looted or fished up, times its unit
 -- price (the same price worth per kill uses). What matters: every stack and
 -- every coin counts once, a second window on a skinned corpse adds only the

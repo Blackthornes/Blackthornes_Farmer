@@ -1,6 +1,6 @@
 -- The kills and loot panel in a party or raid.
 --
--- Trent, 2026-09-27: the panel covered the group frames. In a group it now
+-- Asked 2026-09-27: the panel covered the group frames. In a group it now
 -- steps to the right of whichever group frames are showing, and goes back to
 -- its own spot on leaving. Dragging it while grouped picks a group spot and
 -- leaves the solo spot alone. Nothing here may touch the tallies.

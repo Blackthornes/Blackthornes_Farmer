@@ -252,7 +252,7 @@ suite.check("the spot is left unplaced instead",
 suite.check("and what it exports is still loadable Lua",
     loadstring(Harvest:ExportAll()) ~= nil)
 
--- Through the event the client actually fires, which is where Trent saw it:
+-- Through the event the client actually fires, which is where the owner saw it:
 -- the dispatcher pcalls each handler and hands what it catches to
 -- geterrorhandler, which in this harness re-raises. So a raise anywhere under
 -- LOOT_OPENED comes back out here as a failed pcall.

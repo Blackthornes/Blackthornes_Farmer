@@ -1,4 +1,4 @@
--- The best places near you to farm a goal (Trent, 2026-09-27): the Where?
+-- The best places near you to farm a goal (2026-09-27): the Where?
 -- button on each goal card, and /farm where.
 --
 -- What matters: "near" is zones crossed from where you stand, with the other
@@ -155,7 +155,7 @@ local card = GUI.cards[1]
 suite.check("the card has a Where button", card.where and card.where:IsShown())
 suite.check("the line under the name is the nearest place", card.sub:GetText():find("here") ~= nil, card.sub:GetText())
 
--- Layout (Trent, 2026-09-27: "the where button kind of overlaps the progress
+-- Layout (2026-09-27: "the where button kind of overlaps the progress
 -- bar"): the button sits under the bar, the time left stops before it, and
 -- the panel is wide enough for every line.
 local wp = card.where._point

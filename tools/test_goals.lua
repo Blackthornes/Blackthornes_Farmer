@@ -1,4 +1,4 @@
--- Gathering goals (Trent, 2026-09-27): set a target for a material, and the
+-- Gathering goals (2026-09-27): set a target for a material, and the
 -- Goals panel counts you toward it with count-ups, floats, milestones and a
 -- GOAL COMPLETE banner.
 --

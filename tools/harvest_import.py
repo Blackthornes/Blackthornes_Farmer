@@ -56,7 +56,7 @@ CARRYOVER = os.path.join(ROOT, "Data", "Harvest_Carryover.lua")
 TOC = os.path.join(ROOT, "Blackthornes_Farmer.toc")
 TOC_LINE = "Data\\Data_Harvested.lua"
 
-# Where a Windows install usually lives. Trent's is the first one; the rest are
+# Where a Windows install usually lives. The owner's is the first one; the rest are
 # ordinary defaults, so this works on someone else's machine too.
 CLIENT_GUESSES = [
     r"D:\Blizzard\World of Warcraft",

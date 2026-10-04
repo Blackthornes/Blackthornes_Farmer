@@ -596,7 +596,7 @@ alone; a tag like `v0.3.0-beta1` is uploaded as a beta.
 
 `.pkgmeta` decides what reaches a player. `tools/`, `deploy.ps1`,
 `Import Harvest.bat` and this README are excluded, and so is
-`Data/Harvest_Carryover.lua`: that is Trent's own harvest from before saved
+`Data/Harvest_Carryover.lua`: that is the owner's own harvest from before saved
 variables worked, and in a player's install it would add his kills to theirs.
 Its TOC line is fenced with `#@do-not-package@` to match.
 

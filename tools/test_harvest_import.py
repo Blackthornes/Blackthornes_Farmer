@@ -170,7 +170,7 @@ def build_sandbox(saved_text):
 
     repo = os.path.join(sandbox, "repo")
 
-    # The generated data file is deliberately left behind. It is Trent's real
+    # The generated data file is deliberately left behind. It is the owner's real
     # harvest, and a sandbox that inherited it would be testing against his
     # data instead of its own.
     shutil.copytree(ROOT, repo,

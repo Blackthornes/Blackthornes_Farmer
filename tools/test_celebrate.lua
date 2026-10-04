@@ -1,4 +1,4 @@
--- The fanfare when a mob's drop rates unlock (Trent, 2026-09-25).
+-- The fanfare when a mob's drop rates unlock (2026-09-25).
 --
 -- What matters: it fires once, on the kill that makes 20, and not before,
 -- after, or on a second window on the same corpse; the line starts
@@ -62,7 +62,7 @@ suite.check("with no other addon prefix in front",
     said:find("Farmer|r |c", 1, true) == nil, said)
 suite.check("a sound plays", #played == 1 and played[1].sound == 12891, #played)
 
--- Trent: "others should see it to promote the addon".
+-- The owner: "others should see it to promote the addon".
 suite.check("players nearby see one emote", #sent == 1 and sent[1].chatType == "EMOTE",
     #sent)
 suite.check("naming the mob and the addon",
@@ -163,7 +163,7 @@ suite.check("/farm celebrate on turns it back on", ns.db.trackerCelebrate == tru
 
 --------------------------------------------------------------------------------
 -- Fishing: the same fanfare when a spot's catch rates unlock at 20 casts
--- (Trent, 2026-09-25: "i didn't see/hear a fanfare or emote when i hit 20
+-- (2026-09-25: "i didn't see/hear a fanfare or emote when i hit 20
 -- fishing casts in one location").
 --------------------------------------------------------------------------------
 

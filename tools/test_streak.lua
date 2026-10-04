@@ -1,4 +1,4 @@
--- The second round of panel effects (Trent, 2026-09-26): kill streaks, the
+-- The second round of panel effects (2026-09-26): kill streaks, the
 -- rare-drop pulse, and the banner when a mob's drop rates unlock.
 --
 -- What matters: a streak runs while kills come within a minute of each other,

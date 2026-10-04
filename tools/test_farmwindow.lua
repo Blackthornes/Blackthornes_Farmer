@@ -1,4 +1,4 @@
--- The farm window (Trent, 2026-09-28: three items a mob was "limiting").
+-- The farm window (2026-09-28: three items a mob was "limiting").
 --
 -- What matters: the panel has Farm and Loot tabs and remembers which; the
 -- mob you are on leads, open and glowing, with every item it has dropped

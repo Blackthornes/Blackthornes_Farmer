@@ -31,7 +31,7 @@ suite.check("empty, it says so", Line("Nothing killed yet this session.") ~= nil
 suite.check("and is only as tall as that", ns.TrackerUI.frame:GetHeight() < ns.TrackerUI.TOP + 60,
     ns.TrackerUI.frame:GetHeight())
 
--- Trent's screenshot, 2026-09-25: "Nothing killed yet this se..." -- a line
+-- A screenshot, 2026-09-25: "Nothing killed yet this se..." -- a line
 -- with no value stopped where the value column would have started.
 suite.check("a line with no value runs the full width",
     ns.TrackerUI.lines[1].leftStop == 8, ns.TrackerUI.lines[1].leftStop)
@@ -126,7 +126,7 @@ suite.check("with its all-time kills", boarLine and boarLine.right == "6",
     boarLine and boarLine.right)
 suite.check("and this session's beside them", boarLine and boarLine.badge == "+6",
     boarLine and boarLine.badge)
--- Under it, a progress bar like a goal's (Trent, 2026-09-27).
+-- Under it, a progress bar like a goal's (2026-09-27).
 local _, boarBandAt = Line(BOAR)
 if UI.shown[boarBandAt + 1].style == "place" then boarBandAt = boarBandAt + 1 end
 local boarBar = UI.shown[boarBandAt + 1]
@@ -154,7 +154,7 @@ suite.check("the session heading totals kills",
 
 -- Scraps: once from the first boar, once from the skinned one (the return
 -- visit adds none).
--- This session's loot is on the Loot tab (Trent, 2026-09-28).
+-- This session's loot is on the Loot tab (2026-09-28).
 UI:SetTab("loot")
 local scrapsLoot = Line(SCRAPS.name)
 suite.check("session loot adds up quantities",
@@ -500,7 +500,7 @@ suite.check("a full panel stops growing at its tallest",
 suite.check("and the newest mob is still at the top",
     Line("Kobold 30") ~= nil and Line("Kobold 30").folded == false)
 
--- The wheel scrolls (Trent, 2026-09-28: no more cutting off).
+-- The wheel scrolls (2026-09-28: no more cutting off).
 local top = shown[1]
 ns.TrackerUI:ScrollBy(4)
 suite.check("scrolling moves the column", ns.TrackerUI.scroll == 4 and ns.TrackerUI.shown[1] ~= top,

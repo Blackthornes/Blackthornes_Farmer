@@ -4,7 +4,7 @@
     python tools/make_sounds.py
 
 Both are built from sine waves here rather than taken from a sound library, so
-they belong to this addon and can ship on CurseForge with it. Trent picked
+they belong to this addon and can ship on CurseForge with it. The owner picked
 these two on 2026-09-26: rare-drop (a green-or-better item drops) and
 drop-rates-unlocked (a mob's 20th kill). Run it again only to change them;
 the game needs a full restart to pick up a changed file.

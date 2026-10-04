@@ -61,7 +61,7 @@ local band = Line(WOLF)
 suite.check("the mob's band opens its table", band and band.mob == WOLF)
 
 -- Every item the mob has dropped sits under its band as an icon, most
--- common first (Trent, 2026-09-28: three was "limiting").
+-- common first (2026-09-28: three was "limiting").
 local icons, iconsIndex
 for index = select(2, Line(WOLF)) + 1, #TUI.shown do
     local line = TUI.shown[index]
@@ -175,7 +175,7 @@ Tracker:Reset()
 suite.check("clearing the tally closes it", not LTU:IsShown())
 
 --------------------------------------------------------------------------------
--- A tally from before coin was counted per kill (Trent, 2026-09-25)
+-- A tally from before coin was counted per kill (2026-09-25)
 --
 -- Coin was divided by every kill, including the many from before any coin was
 -- recorded, so coin per kill showed a fraction of the real amount.

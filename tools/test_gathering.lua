@@ -212,7 +212,7 @@ Send(FROSTBOLT, "Mangy Wolf")
 suite.check("casting something else ends it", not Gathering:IsGathering())
 
 --------------------------------------------------------------------------------
--- Skinning stays the mob's (Trent's rule)
+-- Skinning stays the mob's (the house rule)
 --------------------------------------------------------------------------------
 
 Kill("Mangy Wolf", { FANG }, "Creature-0-skin")

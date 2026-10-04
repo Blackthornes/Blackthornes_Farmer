@@ -1,4 +1,4 @@
--- The glowup's animations (Trent, 2026-09-27: "give it an overall glowup,
+-- The glowup's animations (2026-09-27: "give it an overall glowup,
 -- keep the dopamine hits, add animations where you think they're good").
 --
 -- What matters: tweens land where they were headed, a new one in the same slot
