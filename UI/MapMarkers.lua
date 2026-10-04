@@ -1,7 +1,7 @@
 -- Blackthornes Farmer -- UI/MapMarkers.lua
 -- Markers on the world map and the minimap where you gathered herbs and ore.
 --
--- Trent's rules for these: they must never read as a node you can gather, and
+-- The rules for these: they must never read as a node you can gather, and
 -- a live node must always show over them. On the world map a marker is the
 -- node's icon greyed out and faded, in a gold ring, with a green check in the
 -- corner, at the bottom of the map's pins. On the minimap, where the game's

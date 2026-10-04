@@ -13,7 +13,7 @@
 -- window that opens soon after one of those, which nothing interrupted, is
 -- that node's. No such cast, no gathering: nothing is put down to a node on
 -- a guess. Skinning is left alone -- skinned leather is the mob's drop
--- (Trent's rule, PR #16) and the kill tally keeps it. Its cast is only
+-- (the house rule, PR #16) and the kill tally keeps it. Its cast is only
 -- noted (IsSkinning), so a corpse first opened by skinning is not taken for
 -- a fresh kill with nothing in it.
 --
@@ -719,7 +719,7 @@ end
 -- Before this module, a herb picked with a looted corpse still targeted went
 -- down as that corpse's drop. This finds any such entry in the kill tally and
 -- the harvest and lists it. It changes nothing: what to do with them is
--- Trent's call.
+-- the player's call.
 --------------------------------------------------------------------------------
 
 --- Is `name` a herb or an ore that no mob in the seed data drops?

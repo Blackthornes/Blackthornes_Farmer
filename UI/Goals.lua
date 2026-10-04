@@ -1,6 +1,6 @@
 -- Blackthornes Farmer -- UI/Goals.lua
 -- The Goals panel, and the picker that sets a goal from a search result
--- (Trent, 2026-09-27: "an onscreen UI element that shows how many you have
+-- (2026-09-27: "an onscreen UI element that shows how many you have
 -- and how many left to gather with dopamine built in").
 --
 -- The panel hangs under the Kills & Loot panel until you drag it somewhere
@@ -240,7 +240,7 @@ function GoalsUI:Build()
     frame:RegisterForDrag("LeftButton")
 
     -- Solid enough that name plates and chat behind it do not show through
-    -- the text (Trent's screenshot, 2026-09-27).
+    -- the text (a screenshot, 2026-09-27).
     Theme.Fill(frame, "window", 0.96)
     Theme.Border(frame, "border")
     -- The house's neon edge, as the other windows have.
@@ -375,7 +375,7 @@ function GoalsUI:Card(index)
     card.sub = Theme.CreateLabel(card, "tiny", "muted")
     card.sub:SetPoint("TOPLEFT", card.name, "BOTTOMLEFT", 0, -2)
 
-    -- The best places near you to farm it (Trent, 2026-09-27).
+    -- The best places near you to farm it (2026-09-27).
     card.where = Widgets.CreateButton(card, "Where?", function()
         if card.goal then GoalsUI:OpenSpots(card.goal.item, GoalsUI.frame) end
     end, { width = 46, height = 15, labelKey = "accent" })

@@ -1,5 +1,5 @@
 -- Blackthornes Farmer -- UI/TrackerFX.lua
--- What the kills panel does when something lands (Trent, 2026-09-26: "I'd
+-- What the kills panel does when something lands (2026-09-26: "I'd
 -- like it to give dopamine hits as you're killing stuff").
 --
 -- Before this the panel simply redrew, so nothing told your eye what had
@@ -12,8 +12,8 @@
 --   * Any line whose count went up gets a wash that fades out: green, or the
 --     item's own colour for green-and-better drops.
 --   * The mob just killed glows gold and its kill count pops bigger for a
---     beat. Its progress bar toward 20 moves like a goal's (Trent,
---     2026-09-27): it slides up, the part just gained lights, a shine runs
+--     beat. Its progress bar toward 20 moves like a goal's
+--     (2026-09-27): it slides up, the part just gained lights, a shine runs
 --     along it, passing a quarter, half or three quarters pulses it gold and
 --     floats "Halfway there!", and the last few float "2 more!" in green.
 --   * A green-or-better drop plays the rare-drop sound, and its line pulses
@@ -24,7 +24,7 @@
 --     drops a gold banner over the top of the panel, with sparkles, a shine
 --     across the title bar, a long gold pulse on the mob's band, and the
 --     glow round the panel flaring and settling.
---   * On a card's loot icons (Trent, 2026-09-28): the icon whose count went
+--   * On a card's loot icons (2026-09-28): the icon whose count went
 --     up flashes and shows "+2" in its corner, and an item a mob has never
 --     dropped before pops in with a gold NEW tag.
 --

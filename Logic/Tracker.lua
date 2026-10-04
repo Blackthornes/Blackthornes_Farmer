@@ -53,7 +53,7 @@ Tracker.sessionCopper = 0
 Tracker.recent = {}
 Tracker.clock = 0
 
--- Kill streak (Trent, 2026-09-26): kills with no more than STREAK_GAP seconds
+-- Kill streak (2026-09-26): kills with no more than STREAK_GAP seconds
 -- between them. `streak` is the one running, `bestStreak` this session's best.
 local STREAK_GAP = 60
 Tracker.STREAK_GAP = STREAK_GAP
@@ -805,7 +805,7 @@ end
 -- names are not known. Our own fanfare (below) goes ahead of both.
 local FANFARE = { 12891, 888 }
 
--- The addon's own sounds (Trent picked them, 2026-09-26), in Media/Sounds.
+-- The addon's own sounds (picked 2026-09-26), in Media/Sounds.
 -- Made for this addon, so they are ours to ship. The game only finds a file
 -- added since it started after a full restart; until then these fail and the
 -- built-in sounds play instead.
@@ -827,7 +827,7 @@ end
 --- Drop rates just unlocked for `mobName`: a sound, a line in your own chat,
 --- and an /emote the players around you see.
 --
--- Trent asked for it (2026-09-25), and for others to see it too, to spread
+-- Asked for (2026-09-25), and for others to see it too, to spread
 -- the word about the addon. The emote is the one public thing the addon ever
 -- says: once per mob at its 20th kill, and the same for a fishing spot's
 -- 20th cast and a node's 20th gather. `/farm announce off` keeps it to

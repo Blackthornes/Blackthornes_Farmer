@@ -290,7 +290,7 @@ function Fishing:Record(zone, location, school, items, quantities, skill, coords
     if ns.TrackerUI then ns.TrackerUI:Refresh() end
 
     -- The cast that unlocks catch rates gets the same fanfare as a mob's
-    -- 20th kill (Trent, 2026-09-25).
+    -- 20th kill (2026-09-25).
     if spot.casts == MIN_CASTS then
         self:Celebrate(key)
     end
