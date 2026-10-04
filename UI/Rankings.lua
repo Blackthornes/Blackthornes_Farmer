@@ -72,9 +72,16 @@ function RankingsUI:Build(frame)
     view:SetAllPoints(frame)
     self.view = view
 
+    -- Up in the window's top row, where the Search tab has its box: beside
+    -- the portrait and level with the Settings button.
     local filters = CreateFrame("Frame", nil, view)
-    filters:SetPoint("TOPLEFT", PADDING, -48)
-    filters:SetPoint("TOPRIGHT", -PADDING, -48)
+    local left, top = ns.UI.HEAD_LEFT or PADDING, (ns.UI.HEAD_TOP or 45) + 3
+    filters:SetPoint("TOPLEFT", left, -top)
+    if ns.UI.settingsButton then
+        filters:SetPoint("TOPRIGHT", ns.UI.settingsButton, "TOPLEFT", -8, -3)
+    else
+        filters:SetPoint("TOPRIGHT", -PADDING, -top)
+    end
     filters:SetHeight(18)
     self.filters = filters
 
@@ -99,9 +106,12 @@ function RankingsUI:Build(frame)
     summary:SetPoint("RIGHT", filters, "RIGHT", -2, 0)
     self.summary = summary
 
+    -- Below the portrait, as wide as the Search tab's results.
     local panel = Theme.CreatePanel(view, "panel", "border")
-    panel:SetPoint("TOPLEFT", filters, "BOTTOMLEFT", 0, -8)
+    panel:SetPoint("TOPLEFT", view, "TOPLEFT", PADDING, -(top + 18 + 8))
     panel:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", -PADDING, 36)
+    -- Sunk into the window, as the game's inset panels sit (Titanforged).
+    if Theme.Recess then Theme.Recess(panel) end
     self.panel = panel
 
     self.headings = {}
@@ -129,6 +139,8 @@ function RankingsUI:Build(frame)
             if data.entry then ns.UI:ShowMobTooltip(row, data.entry.mob) end
         end,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
+        -- The colour of the well the rows sit in.
+        fadeKey = "well",
     })
     list:SetPoint("TOPLEFT", 8, -24)
     list:SetPoint("BOTTOMRIGHT", -8, 8)

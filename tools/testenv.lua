@@ -316,6 +316,7 @@ local HARVESTED = "Data/Data_Harvested.lua"
 local UI_FILES = {
     "UI/Theme.lua",
     "UI/Widgets.lua",
+    "UI/Titanforged.lua",
     "UI/Main.lua",
     "UI/Export.lua",
     "UI/Tracker.lua",

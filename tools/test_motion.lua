@@ -151,13 +151,15 @@ end
 suite.check("an item heading has its icon", heading and heading.itemIcon:IsShown())
 suite.check("and its band", heading and heading.band:IsShown())
 
--- The gold line under the tabs follows the chosen tab.
+-- The gold line along the hanging tabs follows the chosen tab.
+local strip = UI.tabStrip
 UI:ShowTab("rankings")
 Motion:FinishAll()
-suite.check("the tab line moves to Rankings", UI.underlineAt == UI.tabSpans.rankings)
+suite.check("the tab line moves to Rankings", strip.selected == "rankings"
+    and strip.lineX == UI.tabs.rankings.left, strip.lineX)
 UI:ShowTab("search")
 Motion:FinishAll()
-suite.check("and back to Search", UI.underlineAt == UI.tabSpans.search)
+suite.check("and back to Search", strip.selected == "search" and strip.lineX == UI.tabs.search.left)
 
 -- Buttons ease under the mouse and back.
 local button = UI.settingsButton

@@ -37,7 +37,22 @@ function UI:BuildExport()
     frame:RegisterForDrag("LeftButton")
 
     Theme.Fill(frame, "window")
-    Theme.Border(frame, "borderLit")
+    -- The house frame (UI/Titanforged.lua): the gold rim and corner gems,
+    -- what is being handed over on a plate across the top, and a red close
+    -- gem.
+    local trim
+    if ns.Titanforged then
+        trim = ns.Titanforged:Dress(frame, {
+            title = "Export",
+            close = function() UI:HideExport() end,
+        })
+        local left, right, top, bottom = ns.Titanforged.Reach(trim)
+        if frame.SetClampRectInsets then
+            pcall(frame.SetClampRectInsets, frame, -left, right, top, -bottom)
+        end
+    else
+        Theme.Border(frame, "borderLit")
+    end
     Theme.Halo(frame, 8, 0.10)
 
     frame:SetScript("OnDragStart", function(self)
@@ -54,25 +69,23 @@ function UI:BuildExport()
 
     self.exportFrame = frame
 
-    -- Header.
-    local header = Theme.CreatePanel(frame, "header", false)
-    header:SetPoint("TOPLEFT")
-    header:SetPoint("TOPRIGHT")
-    header:SetHeight(32)
-    Theme.HouseHeader(header)
+    -- The title is on the plate and the close gem on the corner, so the
+    -- header is a gold rule fading from the left, inside the rim.
+    local rule = frame:CreateTexture(nil, "ARTWORK")
+    rule:SetPoint("TOPLEFT", 8, -32)
+    rule:SetPoint("TOPRIGHT", -8, -32)
+    rule:SetHeight(1)
+    Theme.SetGradientAlpha(rule, "HORIZONTAL", "accent", 0.6, 0.05)
 
-    local title = Theme.CreateLabel(header, "large", "accent")
-    title:SetPoint("LEFT", PADDING, 0)
-    title:SetText("Export")
-    self.exportTitle = title
-
-    local close = Widgets.CreateButton(header, "X", function() UI:HideExport() end,
-        { width = 22, height = 20, danger = true })
-    close:SetPoint("RIGHT", -PADDING + 2, 0)
-
-    local divider = Theme.CreateDivider(frame, "borderLit")
-    divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
-    divider:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT")
+    if trim and trim.plate then
+        self.exportPlate = trim.plate
+        self.exportTitle = trim.plate.label
+    else
+        local title = Theme.CreateLabel(frame, "large", "accent")
+        title:SetPoint("TOPLEFT", PADDING, -10)
+        title:SetText("Export")
+        self.exportTitle = title
+    end
 
     local hint = Theme.CreateLabel(frame, "small", "muted")
     hint:SetPoint("TOPLEFT", PADDING, -42)
@@ -206,7 +219,11 @@ function UI:ShowExport(text, title)
     self:BuildExport()
 
     self.exportText = text
-    self.exportTitle:SetText(title or "Export")
+    if self.exportPlate then
+        self.exportPlate:SetTitle(title or "Export")
+    else
+        self.exportTitle:SetText(title or "Export")
+    end
 
     self.exportEdit:SetText(text)
     self.exportEdit:SetCursorPosition(0)

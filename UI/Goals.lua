@@ -1223,6 +1223,8 @@ end
 local SPOTS_WIDTH = 300
 local SPOT_ROW = 36
 local SPOTS_TOP = 44
+-- The gold rim round the panel reaches this far in; its rows stop short.
+local SPOTS_EDGE = 6
 
 --- What a spot's distance looks like: here in green, next door in gold.
 local function DistanceColor(hops)
@@ -1261,19 +1263,23 @@ function GoalsUI:BuildSpots()
     panel:EnableMouse(true)
 
     Theme.Fill(panel, "window", 0.96)
-    Theme.Border(panel, "accent")
+    -- The house frame's rim and corner gems, and its red close gem
+    -- (UI/Titanforged.lua). Its own title stays inside: it names the item
+    -- in two colours and the panel is sized to it.
+    if ns.Titanforged then
+        ns.Titanforged:Dress(panel, { close = function() panel:Hide() end })
+    else
+        Theme.Border(panel, "accent")
+        local close = Widgets.CreateButton(panel, "X", function() panel:Hide() end,
+            { width = 16, height = 14, danger = true })
+        close:SetPoint("TOPRIGHT", -6, -6)
+    end
     -- The house glow round it, flaring as it opens.
     Theme.Halo(panel, 8, 0.10)
 
-    local stripe = panel:CreateTexture(nil, "ARTWORK")
-    stripe:SetPoint("TOPLEFT")
-    stripe:SetPoint("BOTTOMLEFT")
-    stripe:SetWidth(3)
-    stripe:SetColorTexture(Theme.Unpack("accent"))
-
     local title = Theme.CreateLabel(panel, "normal", "accent")
-    title:SetPoint("TOPLEFT", 12, -8)
-    title:SetPoint("TOPRIGHT", -30, -8)
+    title:SetPoint("TOPLEFT", 12, -10)
+    title:SetPoint("TOPRIGHT", -30, -10)
     panel.title = title
 
     local from = Theme.CreateLabel(panel, "tiny", "muted")
@@ -1281,13 +1287,9 @@ function GoalsUI:BuildSpots()
     from:SetPoint("RIGHT", -10, 0)
     panel.from = from
 
-    local close = Widgets.CreateButton(panel, "X", function() panel:Hide() end,
-        { width = 16, height = 14, danger = true })
-    close:SetPoint("TOPRIGHT", -6, -6)
-
     local rule = Theme.CreateDivider(panel, "borderLit")
-    rule:SetPoint("TOPLEFT", 1, -(SPOTS_TOP - 4))
-    rule:SetPoint("TOPRIGHT", -1, -(SPOTS_TOP - 4))
+    rule:SetPoint("TOPLEFT", SPOTS_EDGE, -(SPOTS_TOP - 4))
+    rule:SetPoint("TOPRIGHT", -SPOTS_EDGE, -(SPOTS_TOP - 4))
 
     panel.empty = Theme.CreateLabel(panel, "small", "muted")
     panel.empty:SetPoint("TOPLEFT", 12, -(SPOTS_TOP + 8))
@@ -1318,8 +1320,8 @@ function GoalsUI:SpotRow(index)
 
     row = CreateFrame("Button", nil, panel)
     row:SetHeight(SPOT_ROW)
-    row:SetPoint("TOPLEFT", 1, -(SPOTS_TOP + (index - 1) * SPOT_ROW))
-    row:SetPoint("TOPRIGHT", -1, -(SPOTS_TOP + (index - 1) * SPOT_ROW))
+    row:SetPoint("TOPLEFT", SPOTS_EDGE, -(SPOTS_TOP + (index - 1) * SPOT_ROW))
+    row:SetPoint("TOPRIGHT", -SPOTS_EDGE, -(SPOTS_TOP + (index - 1) * SPOT_ROW))
 
     row.band = Theme.Fill(row, "row", index % 2 == 0 and 0.35 or 0.8)
     -- The light the lists' rows wear under the mouse. The wash here was
@@ -1432,11 +1434,12 @@ function GoalsUI:OpenSpots(item, anchor)
     -- Wide enough for every row's text, measured.
     local needs = Theme.TextWidth("normal", Util.StripColor(panel.title:GetText())) + 42
     needs = math.max(needs, Theme.TextWidth("tiny", panel.from:GetText()) + 22)
+    -- The rows stop short of the rim either side.
     for index = 1, #spots do
         local row = panel.rows[index]
         needs = math.max(needs,
-            30 + Theme.TextWidth("normal", row.name:GetText()) + 70,
-            30 + Theme.TextWidth("tiny", Util.StripColor(row.zone:GetText())) + 8
+            2 * SPOTS_EDGE + 30 + Theme.TextWidth("normal", row.name:GetText()) + 70,
+            2 * SPOTS_EDGE + 30 + Theme.TextWidth("tiny", Util.StripColor(row.zone:GetText())) + 8
                 + Theme.TextWidth("tiny", Util.StripColor(row.note:GetText())) + 12)
     end
     panel:SetWidth(math.min(480, math.max(SPOTS_WIDTH, math.ceil(needs))))
@@ -1506,18 +1509,24 @@ function GoalsUI:BuildPicker()
     picker:EnableMouse(true)
 
     Theme.Fill(picker, "panel", 0.98)
-    Theme.Border(picker, "accent")
+    -- The house frame's rim and corner gems, and its red close gem
+    -- (UI/Titanforged.lua). Its own title stays inside: it names the item
+    -- in two colours and the picker is sized to it.
+    if ns.Titanforged then
+        ns.Titanforged:Dress(picker, { close = function() picker:Hide() end })
+    else
+        Theme.Border(picker, "accent")
+        local close = Widgets.CreateButton(picker, "X", function() picker:Hide() end,
+            { width = 16, height = 14, danger = true })
+        close:SetPoint("TOPRIGHT", -6, -6)
+    end
     -- The house glow round it, flaring as it opens.
     Theme.Halo(picker, 8, 0.10)
 
     local title = Theme.CreateLabel(picker, "small", "accent")
-    title:SetPoint("TOPLEFT", 10, -9)
-    title:SetPoint("TOPRIGHT", -30, -9)
+    title:SetPoint("TOPLEFT", 12, -10)
+    title:SetPoint("TOPRIGHT", -30, -10)
     picker.title = title
-
-    local close = Widgets.CreateButton(picker, "X", function() picker:Hide() end,
-        { width = 16, height = 14, danger = true })
-    close:SetPoint("TOPRIGHT", -6, -6)
 
     picker.chips = {}
     for index = 1, #PRESETS do

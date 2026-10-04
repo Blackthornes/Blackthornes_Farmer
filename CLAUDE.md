@@ -56,6 +56,29 @@ since a goal counts one character's bags, so `Find` and `Set` act on the
 character playing. A goal saved before owners existed shows on every
 character until one gathers toward it or changes it.
 
+## The house frame (Titanforged)
+
+Trent picked this look for all four addons on 2026-10-04 (Tradeskills had it
+first). It's the game's own window shape with the light turned up: a gold
+metal rim with corner gems, a round portrait with the addon's emblem, the
+name on a plate across the top edge, a red close gem, and tabs hanging below
+the window. Buttons are raised metal with gold labels; the main action is
+solid gold with dark "ink" lettering, and only a gold face gets ink (a
+button given its own dark `baseColor` keeps a gold label).
+
+`UI/Titanforged.lua` (`Titanforged:Dress(frame, opts)`, `:Opened(frame)`)
+is Tradeskills' file with the plate measuring by size, since Farmer's
+`Theme.TextWidth(size, text)` differs. The art is `Media/Frame/*.tga`, drawn
+by `tools/make_frame_art.py` with `EMBLEM = "pick"`; rerun it, never edit the
+TGAs. Hanging tabs are `Widgets.CreateTabStrip(..., { hanging = true })`,
+ported from Tradeskills. Glows and glints follow the Window effects setting
+(`Motion.Level()`). The search window wears the whole frame; settings,
+export and the loot table the plate and close gem; the goal picker and
+Where to farm the rim and close gem (their own titles stay inside). The
+kills panel, the goals panel, banners and toasts stay up while playing and
+keep their own look. Anything placed inside a dressed window stays 6 pixels
+in from its edge, or it covers the rim.
+
 ## Trent's standing rules (both addons)
 
 - **"Always check that it's clear to post."** Anything public is checked for
