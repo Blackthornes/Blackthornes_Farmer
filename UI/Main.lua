@@ -19,17 +19,34 @@ local Widgets = ns.Widgets
 local Util = ns.Util
 
 local WIDTH = 660
-local HEIGHT = 480
+-- The tabs hang below the window and the search box sits up beside the
+-- portrait now (Titanforged, 2026-10-04), so the window is shorter by what
+-- that saved: the lists keep the height they had.
+local HEIGHT = 458
 local PADDING = 14
 local ROW_HEIGHT = 20
+
+-- The row of controls along the top, beside the round portrait that reaches
+-- in over the top left corner (UI/Titanforged.lua): where it starts, from
+-- the window's left edge and from its top. The Rankings tab lines up its
+-- chips on it too.
+local HEAD_LEFT = 58
+local HEAD_TOP = 26
+UI.HEAD_LEFT = HEAD_LEFT
+UI.HEAD_TOP = HEAD_TOP
+
+-- The tabs hanging below the window: how far they reach down, and how far
+-- in from each corner gem they start.
+local TAB_HANG = 28
+local TAB_INSET = 34
 
 -- The Rankings tab never draws the window narrower than this either.
 UI.BASE_WIDTH = WIDTH
 
 -- The window's tabs, left to right.
 local TABS = {
-    { key = "search", label = "SEARCH" },
-    { key = "rankings", label = "RANKINGS" },
+    { key = "search", text = "SEARCH" },
+    { key = "rankings", text = "RANKINGS" },
 }
 
 -- Column widths, left to right, at their narrowest. The source, where and
@@ -55,8 +72,9 @@ local ROW_INSET = PADDING * 2 + 16 + 14
 local NOTE_INDENT = "     "
 
 -- How bright the glow round the window sits; it flares brighter as the
--- window opens (Motion:Open).
-local HALO_REST = 0.10
+-- window opens (Motion:Open). A touch brighter than it was, to read round
+-- the gold rim, as Tradeskills' window does.
+local HALO_REST = 0.14
 
 --- Column left edges and widths, measured from the list's left edge, for the
 --- given widths (any not given are at their narrowest).
@@ -149,10 +167,31 @@ function UI:Build()
     frame:RegisterForDrag("LeftButton")
 
     Theme.Fill(frame, "window")
-    Theme.Border(frame, "borderLit")
+
+    -- The house frame: the game's own window shape, a gold rim with corner
+    -- gems, the pick in a round portrait, the name on a plate and a red
+    -- close gem (UI/Titanforged.lua).
+    if ns.Titanforged then
+        local trim = ns.Titanforged:Dress(frame, {
+            title = "Blackthornes Farmer",
+            portrait = true,
+            close = function() UI:Hide() end,
+        })
+        self.trim = trim
+
+        -- Kept on the screen whole: the portrait and plate reach out past
+        -- the top left, and the tabs hang below.
+        local left, right, top = ns.Titanforged.Reach(trim)
+        if frame.SetClampRectInsets then
+            pcall(frame.SetClampRectInsets, frame, -left, right, top, -TAB_HANG)
+        end
+    else
+        Theme.Border(frame, "borderLit")
+    end
+
     -- The house's neon edge: a soft gold glow round the window that flares
     -- as it opens and settles.
-    Theme.Halo(frame, 8, HALO_REST)
+    Theme.Halo(frame, 12, HALO_REST)
 
     frame:SetScript("OnDragStart", function(self)
         -- Land an opening still running, or it would pull the window back.
@@ -184,8 +223,7 @@ function UI:Build()
     end
 
     self.tab = "search"
-    self.tabs.search:SetSelected(true)
-    self:MarkTab("search")
+    self.tabStrip:Select("search")
 
     frame:Hide()
     return frame
@@ -194,111 +232,34 @@ end
 function UI:BuildHeader()
     local frame = self.frame
 
-    -- The house header, as Tradeskills draws it: a gold stripe down the left,
-    -- a faint glow and sheen along the top, and a lit rule underneath.
-    local header = Theme.CreatePanel(frame, "header", false)
-    header:SetPoint("TOPLEFT")
-    header:SetPoint("TOPRIGHT")
-    header:SetHeight(36)
-    Theme.HouseHeader(header, 20)
-
-    local icon = header:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(20, 20)
-    icon:SetPoint("LEFT", PADDING, 0)
-    icon:SetTexture([[Interface\Icons\Trade_Mining]])
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    self.titleIcon = icon
-
-    local title = Theme.CreateLabel(header, "title", "accent")
-    title:SetPoint("LEFT", icon, "RIGHT", 8, 0)
-    title:SetText("Blackthornes Farmer")
-
-    -- Tabs sit after the title, sized to their labels. Their left edges are
-    -- worked out here too, so the gold line under the chosen tab can slide
-    -- from one to the other.
-    self.tabs = {}
-    self.tabSpans = {}
-    local anchor, gap = title, 16
-    local x = 0
-
-    for _, tab in ipairs(TABS) do
-        local chip = Widgets.CreateChip(header, tab.label, function() UI:ShowTab(tab.key) end,
-            { noUnderline = true })
-        local width = Theme.TextWidth("tiny", tab.label) + 22
-        chip:SetHeight(20)
-        chip:SetWidth(width)
-        chip:SetPoint("LEFT", anchor, "RIGHT", gap, 0)
-        self.tabs[tab.key] = chip
-        self.tabSpans[tab.key] = { x = x, w = width }
-        anchor, gap = chip, 4
-        x = x + width + 4
-    end
-
-    -- The line and its glow ride on a layer of their own above the tabs:
-    -- drawn on the header, the glow sat behind the tab showing, and all
-    -- that showed of it was a duller, thicker line. The layer takes no
-    -- clicks, so the tabs under it still do.
-    local layer = CreateFrame("Frame", nil, header)
-    layer:SetAllPoints(header)
-    layer:SetFrameLevel(header:GetFrameLevel() + 5)
-    self.tabLayer = layer
-
-    local underline = layer:CreateTexture(nil, "OVERLAY")
-    underline:SetHeight(2)
-    underline:SetColorTexture(Theme.Unpack("accent"))
-    self.tabUnderline = underline
-
-    -- A soft glow rising off the gold line into the tab showing, brightest
-    -- at the line, as Tradeskills' tabs have.
-    local glow = layer:CreateTexture(nil, "ARTWORK")
-    glow:SetHeight(7)
-    glow:SetPoint("BOTTOMLEFT", underline, "BOTTOMLEFT", -2, 0)
-    glow:SetPoint("BOTTOMRIGHT", underline, "BOTTOMRIGHT", 2, 0)
-    Theme.SetGradientAlpha(glow, "VERTICAL", "accent", 0.32, 0)
-    pcall(glow.SetBlendMode, glow, "ADD")
-    self.tabGlow = glow
-
-    local close = Widgets.CreateButton(header, "X", function() UI:Hide() end,
-        { width = 22, height = 20, danger = true })
-    close:SetPoint("RIGHT", -PADDING + 2, 0)
+    -- The window's name is on the plate across the top edge and the close
+    -- gem sits on the top right corner (UI/Titanforged.lua), so the top row
+    -- holds the search box (or the Rankings chips) and the Settings button,
+    -- clear of the portrait on the left.
+    local header = CreateFrame("Frame", nil, frame)
+    header:SetPoint("TOPLEFT", HEAD_LEFT, -HEAD_TOP)
+    header:SetPoint("TOPRIGHT", -PADDING, -HEAD_TOP)
+    header:SetHeight(24)
 
     local settings = Widgets.CreateButton(header, "Settings", function()
         if ns.SettingsUI then ns.SettingsUI:Toggle() end
-    end, { width = 64, height = 20 })
-    settings:SetPoint("RIGHT", close, "LEFT", -6, 0)
+    end, { width = 64, height = 24 })
+    settings:SetPoint("TOPRIGHT", 0, 0)
     self.settingsButton = settings
 
-    local divider = Theme.CreateDivider(frame, "borderLit")
-    divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
-    divider:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT")
+    -- Hung below the window, as the game's own windows wear their tabs. The
+    -- one showing reaches up over the rim and joins the window, and a gold
+    -- line slides along the tabs' feet to the one picked.
+    local strip = Widgets.CreateTabStrip(frame, TABS, function(key)
+        UI:ShowTab(key)
+    end, { width = WIDTH - 2 * TAB_INSET, hanging = true })
+    strip:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", TAB_INSET, 0)
+    self.tabStrip = strip
+
+    self.tabs = {}
+    for _, tab in ipairs(strip.tabs) do self.tabs[tab.key] = tab end
 
     self.header = header
-end
-
---- Put the gold line under tab `key`, sliding there from wherever it is
---- now: a tab picked mid-slide turns the line round, where sliding from
---- the last tab it was sent to made it jump back there first.
-function UI:MarkTab(key)
-    local span = self.tabSpans and self.tabSpans[key]
-    local line = self.tabUnderline
-    if not (span and line) then return end
-
-    self.underlineAt = span
-    local fromX, fromW = self.lineX or span.x, self.lineW or span.w
-    local still = fromX == span.x and fromW == span.w
-
-    -- Hung from the tab it is heading for, so it lands exactly under it
-    -- whatever the font; only the distance still to go is worked out.
-    local chip = self.tabs[key]
-    ns.Motion:Run(line, "slide", still and 0 or 0.22, function(p)
-        local x = fromX + (span.x - fromX) * p
-        local w = fromW + (span.w - fromW) * p
-        self.lineX, self.lineW = x, w
-
-        line:ClearAllPoints()
-        line:SetPoint("TOPLEFT", chip, "BOTTOMLEFT", x - span.x + 3, -1)
-        line:SetWidth(math.max(1, w - 6))
-    end)
 end
 
 function UI:BuildBody()
@@ -312,15 +273,17 @@ function UI:BuildBody()
         "an item, a zone, a mob, or a place",
         function(text) UI:Search(text, true) end)
 
-    search:SetPoint("TOPLEFT", PADDING, -48)
-    search:SetPoint("TOPRIGHT", -PADDING, -48)
+    -- Up in the top row, beside the portrait and the Settings button.
+    search:SetPoint("TOPLEFT", HEAD_LEFT, -HEAD_TOP)
+    search:SetPoint("TOPRIGHT", self.settingsButton, "TOPLEFT", -8, 0)
     self.searchBox = search
 
     -- Filter chips sit between the box and the results, showing only the kinds
-    -- the current search actually turned up.
+    -- the current search actually turned up. Across the whole window, below
+    -- the portrait.
     local filters = CreateFrame("Frame", nil, frame)
-    filters:SetPoint("TOPLEFT", search, "BOTTOMLEFT", 0, -8)
-    filters:SetPoint("TOPRIGHT", search, "BOTTOMRIGHT", 0, -8)
+    filters:SetPoint("TOPLEFT", PADDING, -(HEAD_TOP + 24 + 8))
+    filters:SetPoint("TOPRIGHT", -PADDING, -(HEAD_TOP + 24 + 8))
     filters:SetHeight(18)
     self.filters = filters
     self.chips = {}
@@ -333,6 +296,8 @@ function UI:BuildBody()
     local panel = Theme.CreatePanel(frame, "panel", "border")
     panel:SetPoint("TOPLEFT", filters, "BOTTOMLEFT", 0, -8)
     panel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -PADDING, 36)
+    -- Sunk into the window, as the game's inset panels sit (Titanforged).
+    if Theme.Recess then Theme.Recess(panel) end
     self.panel = panel
 
     self:BuildColumnHeadings()
@@ -344,6 +309,8 @@ function UI:BuildBody()
         onClick = function(data, button) UI:OnRowClick(data, button) end,
         onEnter = function(row) UI:ShowValueTooltip(row) end,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
+        -- The colour of the well the rows sit in.
+        fadeKey = "well",
     })
 
     list:SetPoint("TOPLEFT", 8, -24)
@@ -783,10 +750,10 @@ function UI:UpdateRow(row, data, index)
         local goal = ns.Goals and ns.Goals:Find(data.item.name)
         if goal and not goal.done then
             row.goal:SetText(("%d/%d"):format(goal.have or 0, goal.target or 0))
-            row.goal.label:SetTextColor(Theme.Unpack("accent"))
+            row.goal:SetLabelColor("accent")
         else
             row.goal:SetText("Goal")
-            row.goal.label:SetTextColor(Theme.Unpack("text"))
+            row.goal:SetLabelColor(nil)
         end
         row.goal:Show()
         return
@@ -1080,10 +1047,7 @@ function UI:ShowTab(key)
     self.tab = key
     if ns.db then ns.db.lastTab = key end
 
-    for tabKey, chip in pairs(self.tabs) do
-        chip:SetSelected(tabKey == key)
-    end
-    self:MarkTab(key)
+    self.tabStrip:Select(key)
 
     self.searchView:SetShown(key == "search")
     if self.rankingsView then self.rankingsView:SetShown(key == "rankings") end
@@ -1149,6 +1113,8 @@ function UI:Show()
     self:RestorePosition()
     self.frame:Show()
     ns.Motion:Open(self.frame)
+    -- A light runs round the portrait as it opens.
+    if ns.Titanforged then ns.Titanforged:Opened(self.frame) end
 
     if self.tab == "search" then self:DrawUnsearched() end
 end

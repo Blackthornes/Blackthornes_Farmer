@@ -260,26 +260,26 @@ local function LabelColor() return Raw(check.label, "_color") end
 
 local unticked = CornerColor()
 check:SetChecked(true)
-suite.check("a ticked box has a gold edge, an unticked one does not",
-    Same(unticked, Color("border")) and Same(CornerColor(), Color("accent")))
+suite.check("a ticked box has a lit gold edge, an unticked one a dim metal one",
+    Same(unticked, Color("metal")) and Same(CornerColor(), Color("accentHi")))
 
 check:SetChecked(false)
 check:GetScript("OnEnter")(check)
 suite.check("under the mouse a box eases in", Motion:Running(check, "hover"))
 Motion:FinishAll()
 suite.check("its label going gold and its edge lifting", Same(LabelColor(), Color("accent"))
-    and Same(CornerColor(), Color("borderLit")))
+    and Same(CornerColor(), Color("accent")))
 check:GetScript("OnLeave")(check)
 easing = Motion:Running(check, "hover")
 Motion:FinishAll()
 suite.check("and both ease back after", easing and Same(LabelColor(), Color("text"))
-    and Same(CornerColor(), Color("border")))
+    and Same(CornerColor(), Color("metal")))
 
 check:SetDisabled(true)
 check:GetScript("OnEnter")(check)
 Motion:FinishAll()
 suite.check("a disabled box does not answer the mouse", Same(LabelColor(), Color("dim"))
-    and Same(CornerColor(), Color("border")))
+    and Same(CornerColor(), Color("metal")))
 
 --------------------------------------------------------------------------------
 -- Search boxes
@@ -333,15 +333,16 @@ UI:Build()
 UI:Show()
 Motion:FinishAll()
 
-local line = UI.tabUnderline
-local spans = UI.tabSpans
+local strip = UI.tabStrip
+local line = strip.line
+local spans = { search = { x = UI.tabs.search.left }, rankings = { x = UI.tabs.rankings.left } }
 
 --- Where the gold line is, from the first tab's left edge: it hangs from
 --- the tab it is heading for.
 local function LineX()
     local p = Raw(line, "_point")
-    for key, chip in pairs(UI.tabs) do
-        if p and p[2] == chip then return p[4] - 3 + spans[key].x end
+    for _, tab in pairs(UI.tabs) do
+        if p and p[2] == tab then return p[4] + tab.left end
     end
 end
 
@@ -353,22 +354,28 @@ suite.check("picked back mid-slide, the line turns round from where it is",
     mid and mid > spans.search.x and mid < spans.rankings.x and Near(LineX(), mid),
     tostring(LineX()) .. " vs " .. tostring(mid))
 Motion:FinishAll()
-suite.check("and lands under Search, knowing where it is", Near(UI.lineX, spans.search.x)
+suite.check("and lands under Search, knowing where it is", Near(strip.lineX, spans.search.x)
     and Near(LineX(), spans.search.x))
 
-local glow = Raw(UI.tabGlow, "_gradient")
+local glow = Raw(strip.lineGlow, "_gradient")
 suite.check("the glow on the line is a gradient, brightest at the line", glow
     and glow[1] == "VERTICAL" and glow[2].a == 0.32 and glow[3].a == 0)
 suite.check("drawn above the tabs, so the tab showing does not hide it",
-    UI.tabLayer and UI.tabLayer:GetFrameLevel() > UI.tabs.search:GetFrameLevel())
+    strip.lineLayer and strip.lineLayer:GetFrameLevel() > UI.tabs.search:GetFrameLevel())
+
+local hang = Raw(strip, "_point")
+suite.check("the tabs hang from the window's bottom edge",
+    hang and hang[1] == "TOPLEFT" and hang[2] == UI.frame and hang[3] == "BOTTOMLEFT")
 
 suite.check("What are you farming? is in gold, as every heading is",
     Same(Raw(UI.emptyLine, "_color"), Color("accent")))
 
 ns.LootTableUI:Build()
-local close = Raw(ns.LootTableUI.closeButton, "_point")
-suite.check("the loot table's X sits where the search window's does",
-    close and close[1] == "RIGHT" and close[2] == -12)
+local closeGem = Raw(ns.LootTableUI.closeButton, "_point")
+local mainGem = Raw(UI.trim.closeButton, "_point")
+suite.check("the loot table closes from the gem where the search window's is",
+    closeGem and mainGem and closeGem[1] == mainGem[1] and closeGem[3] == mainGem[3]
+    and closeGem[4] == mainGem[4] and closeGem[5] == mainGem[5])
 
 do
     local r, g, b = Theme.Unpack("muted")
@@ -376,6 +383,79 @@ do
         math.floor(b * 255 + 0.5))
     suite.check("grey text in chat is the windows' grey", ns.COLORS.muted == hex, ns.COLORS.muted)
 end
+
+--------------------------------------------------------------------------------
+-- Every kind of button is readable
+--
+-- Tradeskills once drew dark lettering on a dark face and its buttons read as
+-- empty boxes. Each kind here keeps its label readable on its own face, at
+-- rest and under the mouse, and so does a label coloured by hand.
+--------------------------------------------------------------------------------
+
+local function Luminance(c)
+    local function lin(v) v = v or 0; return v <= 0.03928 and v / 12.92 or ((v + 0.055) / 1.055) ^ 2.4 end
+    return 0.2126 * lin(c[1]) + 0.7152 * lin(c[2]) + 0.0722 * lin(c[3])
+end
+local function Contrast(a, b)
+    if type(a) ~= "table" or type(b) ~= "table" then return 0 end
+    local la, lb = Luminance(a), Luminance(b)
+    if la < lb then la, lb = lb, la end
+    return (la + 0.05) / (lb + 0.05)
+end
+
+local kinds = {
+    { "a plain button", {}, 4.5 },
+    { "a primary button", { primary = true }, 4.5 },
+    -- Red on dark metal reads as a warning first; it only needs to stand out.
+    { "a danger button", { danger = true }, 3.5 },
+    { "a button with a gold label of its own", { labelKey = "accent" }, 4.5 },
+    { "a primary button with a dark face of its own", { primary = true, baseColor = { 0.06, 0.07, 0.09, 1 } }, 4.5 },
+}
+for _, kind in ipairs(kinds) do
+    local b = Widgets.CreateButton(UIParent, "Set goal", nil, kind[2])
+    b.Light(0)
+    suite.check(kind[1] .. " is readable at rest",
+        Contrast(Raw(b.label, "_color"), Raw(b.background, "_rgba")) >= kind[3],
+        Contrast(Raw(b.label, "_color"), Raw(b.background, "_rgba")))
+    b:GetScript("OnEnter")(b)
+    Motion:FinishAll()
+    suite.check(kind[1] .. " is readable under the mouse",
+        Contrast(Raw(b.label, "_color"), Raw(b.background, "_rgba")) >= kind[3],
+        Contrast(Raw(b.label, "_color"), Raw(b.background, "_rgba")))
+    b:GetScript("OnLeave")(b)
+    Motion:FinishAll()
+end
+
+local primary = Widgets.CreateButton(UIParent, "Set goal", nil, { primary = true })
+primary.Light(0)
+suite.check("a primary button is solid gold with dark lettering",
+    Same(Raw(primary.background, "_rgba"), Color("accent")) and Same(Raw(primary.label, "_color"), Color("ink")))
+suite.check("and glows a little even at rest", Raw(primary, "haloRest") ~= nil
+    and primary.haloTextures[1]:IsShown())
+
+-- The search window's Goal button turns gold for a goal's count, by hand.
+local goal = Widgets.CreateButton(UIParent, "23/40", nil, { width = 44 })
+goal:SetLabelColor("accent")
+goal:GetScript("OnEnter")(goal)
+Motion:FinishAll()
+suite.check("a label coloured by hand stays readable under the mouse",
+    Contrast(Raw(goal.label, "_color"), Raw(goal.background, "_rgba")) >= 4.5)
+goal:GetScript("OnLeave")(goal)
+Motion:FinishAll()
+suite.check("and goes back to the colour it was given",
+    Same(Raw(goal.label, "_color"), Color("accent")))
+goal:SetLabelColor(nil)
+suite.check("nil puts back the button's own gold", Same(Raw(goal.label, "_color"), Color("gilt")))
+
+-- A stepper's end of the range stays dim under the mouse: nothing to press.
+local stepper = Widgets.CreateStepper(UIParent, { min = 1, max = 3, value = 1 })
+stepper.minus:GetScript("OnEnter")(stepper.minus)
+Motion:FinishAll()
+suite.check("a stepper's button at the end of its range stays dim",
+    Same(Raw(stepper.minus.label, "_color"), Color("dim")))
+stepper:SetValue(2, true)
+suite.check("and lights again once there is room",
+    not Same(Raw(stepper.minus.label, "_color"), Color("dim")))
 
 --------------------------------------------------------------------------------
 -- A button held while it hides
@@ -454,7 +534,7 @@ check:SetDisabled(false)
 check:GetScript("OnLeave")(check)
 check:GetScript("OnEnter")(check)
 suite.check("off: a box lights at once", not Motion:Running(check)
-    and Same(CornerColor(), Color("borderLit")) and Same(LabelColor(), Color("accent")))
+    and Same(CornerColor(), Color("accent")) and Same(LabelColor(), Color("accent")))
 
 over = true
 Fire(search, "OnEnter")
@@ -463,7 +543,7 @@ suite.check("off: a search box lights at once", not Motion:Running(search)
 
 UI:ShowTab("rankings")
 suite.check("off: the tab line is under Rankings at once", not Motion:Running(line)
-    and Near(UI.lineX, spans.rankings.x) and Near(LineX(), spans.rankings.x))
+    and Near(strip.lineX, spans.rankings.x) and Near(LineX(), spans.rankings.x))
 UI:ShowTab("search")
 
 ns.db.trackerEffects = nil

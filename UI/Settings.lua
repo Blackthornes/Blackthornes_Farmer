@@ -239,7 +239,20 @@ function SettingsUI:Build()
     frame:RegisterForDrag("LeftButton")
 
     Theme.Fill(frame, "window")
-    Theme.Border(frame, "borderLit")
+    -- The house frame (UI/Titanforged.lua): the gold rim and corner gems,
+    -- the name on a plate across the top and a red close gem.
+    if ns.Titanforged then
+        self.trim = ns.Titanforged:Dress(frame, {
+            title = "Farmer Settings",
+            close = function() SettingsUI:Hide() end,
+        })
+        local left, right, top, bottom = ns.Titanforged.Reach(self.trim)
+        if frame.SetClampRectInsets then
+            pcall(frame.SetClampRectInsets, frame, -left, right, top, -bottom)
+        end
+    else
+        Theme.Border(frame, "borderLit")
+    end
     Theme.Halo(frame, 8, 0.10)
 
     frame:SetScript("OnDragStart", function(self)
@@ -286,32 +299,24 @@ end
 function SettingsUI:BuildHeader()
     local frame = self.frame
 
-    local header = Theme.CreatePanel(frame, "header", false)
-    header:SetPoint("TOPLEFT")
-    header:SetPoint("TOPRIGHT")
-    header:SetHeight(HEADER)
-    Theme.HouseHeader(header, 20)
-
-    local title = Theme.CreateLabel(header, "title", "accent")
-    title:SetPoint("LEFT", PADDING, 0)
-    title:SetText(TITLE)
-
-    local subtitle = Theme.CreateLabel(header, "small", "muted")
-    subtitle:SetPoint("LEFT", title, "RIGHT", 10, -1)
-    subtitle:SetText("Settings")
+    -- The window's name is on the plate across the top edge and the close
+    -- gem on its corner (UI/Titanforged.lua), so the header keeps only the
+    -- version, under the gem, over a gold rule fading from the left. Inside
+    -- the rim, which a header out to the edge would cover.
+    local header = CreateFrame("Frame", nil, frame)
+    header:SetPoint("TOPLEFT", 8, -8)
+    header:SetPoint("TOPRIGHT", -8, -8)
+    header:SetHeight(HEADER - 8)
 
     local version = Theme.CreateLabel(header, "tiny", "dim", "RIGHT")
+    version:SetPoint("BOTTOMRIGHT", -PADDING + 8, 6)
     version:SetText(ns.VersionLabel())
 
-    local close = Widgets.CreateButton(header, "X", function() SettingsUI:Hide() end,
-        { width = 22, height = 20, danger = true })
-    close:SetPoint("RIGHT", -PADDING + 4, 0)
-
-    version:SetPoint("RIGHT", close, "LEFT", -10, 0)
-
-    local divider = Theme.CreateDivider(frame, "borderLit")
-    divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
-    divider:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT")
+    local rule = header:CreateTexture(nil, "ARTWORK")
+    rule:SetPoint("BOTTOMLEFT")
+    rule:SetPoint("BOTTOMRIGHT")
+    rule:SetHeight(1)
+    Theme.SetGradientAlpha(rule, "HORIZONTAL", "accent", 0.6, 0.05)
 end
 
 --- Left column: how the addon looks and where things sit.

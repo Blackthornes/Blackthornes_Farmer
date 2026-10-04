@@ -26,6 +26,9 @@ local MIN_HEIGHT = 240
 local MAX_HEIGHT = 460
 local PADDING = 14
 local HEADER = 32
+-- The gold rim round the window reaches this far in (UI/Titanforged.lua);
+-- the column titles' band stops short of it.
+local EDGE = 6
 local ROW = 20
 local ICON = 16
 
@@ -307,7 +310,22 @@ function LootTableUI:Build()
     frame:RegisterForDrag("LeftButton")
 
     Theme.Fill(frame, "window", 0.96)
-    Theme.Border(frame, "borderLit")
+    -- The house frame (UI/Titanforged.lua): the gold rim and corner gems,
+    -- the mob's name on a plate across the top, and a red close gem.
+    local trim
+    if ns.Titanforged then
+        trim = ns.Titanforged:Dress(frame, {
+            title = " ",
+            close = function() LootTableUI:Hide() end,
+        })
+        self.trim = trim
+        local left, right, top, bottom = ns.Titanforged.Reach(trim)
+        if frame.SetClampRectInsets then
+            pcall(frame.SetClampRectInsets, frame, -left, right, top, -bottom)
+        end
+    else
+        Theme.Border(frame, "borderLit")
+    end
     Theme.Halo(frame, 8, 0.10)
 
     frame:SetScript("OnDragStart", function(self)
@@ -325,27 +343,30 @@ function LootTableUI:Build()
         table.insert(UISpecialFrames, "BlackthornesFarmerLootTable")
     end
 
-    local header = Theme.CreatePanel(frame, "header", false)
-    header:SetPoint("TOPLEFT")
-    header:SetPoint("TOPRIGHT")
-    header:SetHeight(HEADER)
+    -- The mob's name is on the plate and the close gem on the corner, as
+    -- the search window has them, so nothing shifts going from one window
+    -- to the other. The header is a gold rule fading from the left, inside
+    -- the rim.
+    local rule = frame:CreateTexture(nil, "ARTWORK")
+    rule:SetPoint("TOPLEFT", EDGE + 2, -HEADER)
+    rule:SetPoint("TOPRIGHT", -(EDGE + 2), -HEADER)
+    rule:SetHeight(1)
+    Theme.SetGradientAlpha(rule, "HORIZONTAL", "accent", 0.6, 0.05)
 
-    Theme.HouseHeader(header)
-
-    local title = Theme.CreateLabel(header, "large", "accent")
-    title:SetPoint("LEFT", PADDING, 0)
-    title:SetPoint("RIGHT", -40, 0)
-
-    -- Where the search window has its X, so it does not shift going from
-    -- one window to the other.
-    local close = Widgets.CreateButton(header, "X", function() LootTableUI:Hide() end,
-        { width = 22, height = 20, danger = true })
-    close:SetPoint("RIGHT", -PADDING + 2, 0)
-    self.closeButton = close
-
-    local rule = Theme.CreateDivider(frame, "borderLit")
-    rule:SetPoint("TOPLEFT", header, "BOTTOMLEFT")
-    rule:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT")
+    local title
+    if trim and trim.plate then
+        self.plate = trim.plate
+        title = trim.plate.label
+        self.closeButton = trim.closeButton
+    else
+        title = Theme.CreateLabel(frame, "large", "accent")
+        title:SetPoint("TOPLEFT", PADDING, -8)
+        title:SetPoint("TOPRIGHT", -40, -8)
+        local close = Widgets.CreateButton(frame, "X", function() LootTableUI:Hide() end,
+            { width = 22, height = 20, danger = true })
+        close:SetPoint("TOPRIGHT", -PADDING + 2, -6)
+        self.closeButton = close
+    end
 
     -- Three numbers across the top.
     self.kills = Stat(frame, PADDING, "KILLS")
@@ -371,11 +392,11 @@ function LootTableUI:Build()
     columns:SetHeight(ROW)
 
     local itemTitle = Theme.CreateLabel(columns, "tiny", "muted")
-    itemTitle:SetPoint("LEFT", PADDING - 1 + 4, 0)
+    itemTitle:SetPoint("LEFT", PADDING - EDGE + 4, 0)
     itemTitle:SetText("ITEM")
 
     -- The list's rows stop 14 short of its right edge for the scrollbar.
-    local right = PADDING - 1 + 14
+    local right = PADDING - EDGE + 14
     for _, column in ipairs(COLUMNS) do
         local label = Theme.CreateLabel(columns, "tiny", "muted", "RIGHT")
         label:SetPoint("RIGHT", -right, 0)
@@ -423,8 +444,8 @@ end
 function LootTableUI:PlaceBody(extra)
     self.placesExtra = extra
     self.where:SetHeight(PLACES_HEIGHT + extra)
-    self.titles:SetPoint("TOPLEFT", 1, -(COLUMNS_TOP + extra))
-    self.titles:SetPoint("TOPRIGHT", -1, -(COLUMNS_TOP + extra))
+    self.titles:SetPoint("TOPLEFT", EDGE, -(COLUMNS_TOP + extra))
+    self.titles:SetPoint("TOPRIGHT", -EDGE, -(COLUMNS_TOP + extra))
     self.list:SetPoint("TOPLEFT", PADDING, -(TOP + extra))
 end
 
@@ -441,7 +462,7 @@ function LootTableUI:Render()
     end
 
     self.data = data
-    self.title:SetText(data.mob)
+    if self.plate then self.plate:SetTitle(data.mob) else self.title:SetText(data.mob) end
 
     -- Opening on a mob counts its kills up from nothing.
     local function Kills(count)
