@@ -1,4 +1,4 @@
--- The progress bar toward drop rates (Trent, 2026-09-27: "can we make the
+-- The progress bar toward drop rates (2026-09-27: "can we make the
 -- counter for how many more of a mob you have to kill to unlock drop rates
 -- a progress bar like the goals?").
 --

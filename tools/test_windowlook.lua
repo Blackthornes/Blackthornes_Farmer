@@ -1,4 +1,4 @@
--- The windows' look (Trent: neon glow, "dopamine hits", nothing cut off).
+-- The windows' look (asked for: neon glow, "dopamine hits", nothing cut off).
 --
 -- What matters: the goals panel wears the house glow and fades up as it
 -- appears, not on every redraw, and the glow flares on a milestone and

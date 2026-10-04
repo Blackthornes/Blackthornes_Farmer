@@ -1,4 +1,4 @@
--- The kill panel's effects (Trent, 2026-09-26: "dopamine hits as you're
+-- The kill panel's effects (2026-09-26: "dopamine hits as you're
 -- killing stuff"), and the addon's own sounds.
 --
 -- What matters: the first redraw (login, or the panel shown again) only takes

@@ -1,4 +1,4 @@
--- Text is never cut off (Trent, 2026-09-25).
+-- Text is never cut off (2026-09-25).
 --
 -- His screenshots: "Loot a corpse and it shows up he...", "Forest Mushroom
 -- C...", "Coin is from your l...". The game's font runs wider than widths

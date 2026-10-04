@@ -220,7 +220,7 @@ suite.check("a zero rate is dropped", SourceWithChance(0).chance == nil)
 -- slips here it slips everywhere, so every row of theirs has to carry the mob,
 -- where in the zone it stands, and its level band.
 --
--- A drop rate is listed when somebody has one and never required. Trent's
+-- A drop rate is listed when somebody has one and never required. The owner's
 -- rule, 2026-09-23: "a drop rate is only something we list if we do. it
 -- should not preclude a listed drop though." A spot known to drop the item is
 -- worth listing without a number beside it; demanding the number kept real
@@ -321,7 +321,7 @@ suite.check("nothing known reads as nothing", DB:WhereText({}) == nil)
 -- One row per spot: measured beats carried over
 --------------------------------------------------------------------------------
 --
--- Trent farmed Witchwing Slayers on 2026-09-21 and measured them at level
+-- The owner farmed Witchwing Slayers on 2026-09-21 and measured them at level
 -- 16-17. The Classic row shipped for that same camp says 20-21. Both showing
 -- at once is worse than either alone: the Classic one carries a drop rate
 -- nobody checked here, and it sends you to a camp four levels off.

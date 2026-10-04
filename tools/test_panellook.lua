@@ -1,4 +1,4 @@
--- The kill and loot panel's look (Trent: next-gen, neon glow, "dopamine
+-- The kill and loot panel's look (asked for: next-gen, neon glow, "dopamine
 -- hits", nothing cut off).
 --
 -- What matters: the panel wears the house glow, low at rest, fades up only

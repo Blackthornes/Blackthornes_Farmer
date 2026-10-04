@@ -192,7 +192,7 @@ suite.check("and the note says so", Value:PriceNote(details):find("database rate
 suite.check("a mob with no rates has no value", Value:ForMob("Nobody At All") == nil)
 
 --------------------------------------------------------------------------------
--- Grey items: vendor price only (Trent, 2026-09-25)
+-- Grey items: vendor price only (2026-09-25)
 --------------------------------------------------------------------------------
 
 -- Rabbit Foot, say: a grey the auction house somehow shows at 5s.
@@ -255,7 +255,7 @@ suite.check("and the prefix still finds your kill",
     Value:ResolveMob("defias trapper s") == "Defias Trapper Scout", Value:ResolveMob("defias trapper s"))
 
 --------------------------------------------------------------------------------
--- The tooltip's sell price wins (Trent, 2026-10-03)
+-- The tooltip's sell price wins (2026-10-03)
 --------------------------------------------------------------------------------
 
 -- Greater Magic Wand: item info says Classic's 15s 35c, the tooltip 1c.

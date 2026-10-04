@@ -1,4 +1,4 @@
--- Things that used to raise inside a dungeon (Trent asked, 2026-09-26).
+-- Things that used to raise inside a dungeon (asked 2026-09-26).
 --
 -- What matters: hovering a mob whose name is secret never errors and still
 -- counts as "a unit is under the mouse"; a fishing flag the client will not
