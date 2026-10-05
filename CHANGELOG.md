@@ -4,6 +4,14 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.17.1
+
+For WoW: Forever (interface 16001). Nothing in the addon itself changed, so
+`/reload` is enough after updating.
+
+- New versions are now announced in the Blackthornes Discord, in the
+  #announcements channel.
+
 ## 0.17.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
