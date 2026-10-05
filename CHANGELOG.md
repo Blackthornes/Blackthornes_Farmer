@@ -4,6 +4,24 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.17.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- Kills & Loot now counts kills however you loot them: with the interact
+  key, by right-clicking a corpse while another mob is targeted, with auto
+  loot, or with a fast-loot addon. Before, only the corpse you had targeted
+  counted. A corpse Farmer can't match to a mob is still skipped, never
+  guessed.
+- Your own kill that dropped nothing now counts once you skin it, with the
+  leather as its drop. Skinning someone else's kill still isn't a kill.
+- In the search window, click any column heading to sort an item's spots by
+  source, where (closest to you first), level, drop rate, or the new PER
+  KILL column, which shows worth per kill in gold, silver and copper.
+- A BY ZONE switch groups each item's spots under their zones. The sort and
+  the switch are remembered.
+
 ## 0.16.0
 
 For WoW: Forever (interface 16001). This version adds files, so fully
