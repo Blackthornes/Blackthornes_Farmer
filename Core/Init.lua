@@ -185,6 +185,47 @@ function ns.GetUnknownEvents()
     return unknownEvents
 end
 
+--- Run `fn` once for every loot window, whichever event shows it first.
+--
+-- A loot window raises LOOT_READY when its contents can be read and
+-- LOOT_OPENED when it is drawn. With auto loot, and with the fast-loot
+-- addons many players run, everything is taken on LOOT_READY and the window
+-- is often empty or gone by LOOT_OPENED, so a reader that waited for
+-- LOOT_OPENED saw nothing at all (a player's report, 2026-10-05: the kills
+-- panel stayed empty while goals, which count the bags, kept up). So the
+-- readers run on LOOT_READY, and LOOT_OPENED only runs them for a window
+-- LOOT_READY never announced. LOOT_CLOSED ends the window.
+local lootReaders = {}
+local lootReadEarly = false
+
+local function ReadLoot()
+    for i = 1, #lootReaders do
+        local entry = lootReaders[i]
+        local ok, err = pcall(entry.fn, entry.owner)
+        if not ok then geterrorhandler()(err) end
+    end
+end
+
+function ns.OnLootWindow(owner, fn)
+    if type(fn) ~= "function" then return false end
+
+    if #lootReaders == 0 then
+        ns.RegisterEvent(ns, "LOOT_READY", function()
+            if lootReadEarly then return end
+            lootReadEarly = true
+            ReadLoot()
+        end)
+        ns.RegisterEvent(ns, "LOOT_OPENED", function()
+            if lootReadEarly then return end
+            ReadLoot()
+        end)
+        ns.RegisterEvent(ns, "LOOT_CLOSED", function() lootReadEarly = false end)
+    end
+
+    lootReaders[#lootReaders + 1] = { owner = owner, fn = fn }
+    return true
+end
+
 eventFrame:SetScript("OnEvent", function(_, event, ...)
     local list = handlers[event]
     if not list then return end

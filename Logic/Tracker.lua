@@ -891,7 +891,7 @@ end
 function Tracker:OnEnable()
     if not ns.Harvest:Capabilities().usable then return end
 
-    ns.RegisterEvent(self, "LOOT_OPENED", function() Tracker:OnLoot() end)
+    ns.OnLootWindow(self, function() Tracker:OnLoot() end)
 end
 
 --------------------------------------------------------------------------------
