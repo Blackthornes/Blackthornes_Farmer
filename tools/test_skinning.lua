@@ -134,6 +134,41 @@ suite.check("leftovers seen again add nothing", boar.qty["Ruined Leather Scraps"
     boar.qty["Ruined Leather Scraps"])
 
 --------------------------------------------------------------------------------
+-- Your own kill that dropped nothing
+--
+-- 2026-10-05: a Savannah Huntress killed and skinned never showed on the Farm
+-- tab. Her corpse held nothing, so no window opened until the skin.
+--------------------------------------------------------------------------------
+
+local HUNTRESS = "Savannah Huntress"
+local tapDenied = false
+_G.UnitIsTapDenied = function(unit) return unit == "target" and tapDenied end
+
+kills = Tracker:SessionKills()
+suite.check("your empty kill, skinned, is a kill",
+    Open(HUNTRESS, "Creature-0-1-2-3-300-1", { Item("Light Leather") }, true) == true)
+suite.check("one more kill this session", Tracker:SessionKills() == kills + 1, Tracker:SessionKills())
+suite.check("and the leather is her drop", ns.db.tracker.mobs[HUNTRESS].items["Light Leather"] == 1)
+suite.check("skinning it again adds no kill",
+    Open(HUNTRESS, "Creature-0-1-2-3-300-1", { Item("Light Leather") }, true) == false
+    and Tracker:SessionKills() == kills + 1)
+
+tapDenied = true
+suite.check("someone else's kill, skinned, is still no kill",
+    Open(HUNTRESS, "Creature-0-1-2-3-300-2", { Item("Light Leather") }, true) == false)
+tapDenied = false
+
+-- Area loot took this one's drops with another corpse's: skinning it is no kill.
+local A, B = "Creature-0-1-2-3-300-A", "Creature-0-1-2-3-300-B"
+_G.GetLootSourceInfo = function(slot) if slot == 1 then return A, 1, B, 1 end end
+Open(HUNTRESS, A, { Item("Ruined Leather Scraps", 2) })
+_G.GetLootSourceInfo = nil
+kills = Tracker:SessionKills()
+suite.check("a corpse an area loot emptied, skinned, is no kill",
+    Open(HUNTRESS, B, { Item("Light Leather") }, true) == false and Tracker:SessionKills() == kills)
+_G.UnitIsTapDenied = nil
+
+--------------------------------------------------------------------------------
 -- Without the skinning check
 --------------------------------------------------------------------------------
 

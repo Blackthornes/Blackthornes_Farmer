@@ -256,11 +256,12 @@ end
 -- sample attributed to the wrong mob is worse than no sample: it goes into
 -- the data and sends somebody to the wrong place.
 --
--- Returns the name, the level (nil when unknown) and the guid (nil when the
--- client will not give one).
+-- Returns the name, the level (nil when unknown), the guid (nil when the
+-- client will not give one) and the unit token the corpse is ("target",
+-- "mouseover", "softinteract"; nil when it was only known by its guid).
 function Harvest:Corpse()
     local name, level, guid = self:UnitCorpse("target")
-    if name and self:LootIsFrom(guid) then return name, level, guid end
+    if name and self:LootIsFrom(guid) then return name, level, guid, "target" end
 
     local sources = self:LootSources()
     if #sources == 0 then return nil end
@@ -271,7 +272,7 @@ function Harvest:Corpse()
     for _, unit in ipairs(Harvest.CORPSE_UNITS) do
         local unitName, unitLevel, unitGuid = self:UnitCorpse(unit)
         if unitName and unitGuid and listed[unitGuid] then
-            return unitName, unitLevel, unitGuid
+            return unitName, unitLevel, unitGuid, unit
         end
     end
 
