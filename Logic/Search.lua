@@ -124,6 +124,144 @@ function Search:SortedSources(item, sources)
     return sorted
 end
 
+--------------------------------------------------------------------------------
+-- Sorting and grouping a search's spots
+--
+-- A player asked (2026-10-05) to sort by drop rate and by what a kill is
+-- worth, to section by zone, and for the spots closest to them. The window's
+-- column headings sort each item's spots (UI/Main.lua); with no heading
+-- chosen they stay lowest level first, as SortedSources has them.
+--
+-- "Closest" knows no map distances, so it means: your own zone first, then
+-- zones by how near their levels are to yours. A spot with nothing to sort
+-- by (no drop rate, no worth) is never guessed at: it goes last, whichever
+-- way round the sort runs.
+--------------------------------------------------------------------------------
+
+--- The player's level and zone, each nil when the client will not say.
+function Search:Here()
+    local level
+    if UnitLevel then
+        local ok, value = pcall(UnitLevel, "player")
+        level = ok and ns.Harvest.ReadableNumber(value) or nil
+        if level and level <= 0 then level = nil end
+    end
+
+    local zone = ns.Harvest and (ns.Harvest:Where()) or nil
+    return level, zone
+end
+
+--- How far a spot is from you, for "closest": 0 up in your own zone, 1000 up
+--- anywhere else, and within either, how many levels its band is from yours
+--- (0 inside it). Nil when nothing is known: no zone or level of yours, and
+--- no level on the spot.
+function Search.Distance(source, level, zone)
+    local away = (zone and source.zone == zone) and 0 or 1000
+
+    local low = tonumber(source.minLevel)
+    local high = tonumber(source.maxLevel) or low
+    local gap = 50
+    if level and low then
+        if level < low then gap = low - level
+        elseif level > high then gap = level - high
+        else gap = 0 end
+    elseif not zone then
+        return nil
+    end
+
+    return away + gap
+end
+
+--- What a kill of the spot's mob is worth, and how sure: 2 your own tally,
+--- 1 an estimate from the database's rates, nil no worth (not a mob, or
+--- nothing priced). `cache` keeps each mob's answer for one draw.
+function Search:Worth(source, cache)
+    if not (source.name and (source.kind or "mob") == "mob" and ns.Value) then return nil end
+
+    cache = cache or {}
+    local known = cache[source.name]
+    if known == nil then
+        local worth, details = ns.Value:ForMob(source.name)
+        known = worth and { worth = worth, sure = details and details.basis == "tally" and 2 or 1 } or false
+        cache[source.name] = known
+    end
+
+    if not known then return nil end
+    return known.worth, known.sure
+end
+
+-- The headings a search can be sorted by, and which way each starts:
+-- names A to Z, levels and distance lowest first, rates and worth highest.
+Search.SORT_KEYS = { name = true, where = true, level = true, drop = true, value = true }
+Search.SORT_STARTS_LOW = { name = true, where = true, level = true }
+
+--- `sources` (already lowest level first) in the order `sort` asks for:
+--- { key = one of SORT_KEYS, ascending = true or false }, or nil to leave
+--- them as they are. Ties, and spots with nothing to sort by, keep the order
+--- they came in, the second lot after the rest.
+function Search:SortSources(sources, sort, cache)
+    local key = sort and sort.key
+    if not (key and Search.SORT_KEYS[key]) then return sources end
+
+    local level, zone = self:Here()
+    local ascending = sort.ascending and true or false
+
+    local keyed = {}
+    for index, source in ipairs(sources) do
+        local value, rank
+        if key == "name" then
+            value = (source.name or source.requires or ns.DB:KindLabel(source.kind) or ""):lower()
+        elseif key == "where" then
+            value = Search.Distance(source, level, zone)
+        elseif key == "level" then
+            value = tonumber(source.minLevel)
+        elseif key == "drop" then
+            value = tonumber(source.chance)
+        elseif key == "value" then
+            value, rank = self:Worth(source, cache)
+        end
+        keyed[index] = { source = source, value = value, rank = rank or 0, position = index }
+    end
+
+    table.sort(keyed, function(a, b)
+        if (a.value == nil) ~= (b.value == nil) then return b.value == nil end
+        if a.value == nil then return a.position < b.position end
+
+        -- Your own tally's worth is never ranked in with an estimate's:
+        -- estimates leave out coin and run low (Rankings keeps them apart
+        -- the same way). Measured ones come first either way round.
+        if a.rank ~= b.rank then return a.rank > b.rank end
+
+        if a.value ~= b.value then
+            if ascending then return a.value < b.value end
+            return a.value > b.value
+        end
+        return a.position < b.position
+    end)
+
+    local sorted = {}
+    for index, entry in ipairs(keyed) do sorted[index] = entry.source end
+    return sorted
+end
+
+--- `sources` sectioned by zone: { { zone, sources = {...} }, ... }, the zones
+--- in the order their first spot comes in, so whatever the spots are sorted
+--- by, the zone with the best of them leads.
+function Search.ByZone(sources)
+    local groups, index = {}, {}
+    for _, source in ipairs(sources) do
+        local zone = source.zone or "?"
+        local group = index[zone]
+        if not group then
+            group = { zone = zone, sources = {} }
+            index[zone] = group
+            groups[#groups + 1] = group
+        end
+        group.sources[#group.sources + 1] = source
+    end
+    return groups
+end
+
 function Search:LevelText(source)
     if not source.minLevel then return "??" end
 
@@ -255,7 +393,8 @@ end
 -- no columns to draw into.
 --------------------------------------------------------------------------------
 
---- @param opts { max = item cap, kind = only this source kind }
+--- @param opts { max = item cap, kind = only this source kind, sort = { key,
+---   ascending } (SortSources), byZone = a "zone" row over each zone's spots }
 -- @return rows, matching item count, total sources drawn
 function Search:BuildRows(query, opts)
     opts = opts or {}
@@ -263,6 +402,7 @@ function Search:BuildRows(query, opts)
     local maxItems = opts.max or 40
     local rows = {}
     local total, drawn = 0, 0
+    local worth = {}
 
     -- The kind filter comes before the cap. Capped first, a chip could show
     -- nothing but "and 55 more items" while its kind sat further down.
@@ -294,9 +434,22 @@ function Search:BuildRows(query, opts)
                 rows[#rows + 1] = { type = "note", text = item.note }
             end
 
-            for _, source in ipairs(sources) do
-                rows[#rows + 1] = { type = "source", item = item, source = source }
-                drawn = drawn + 1
+            sources = self:SortSources(sources, opts.sort, worth)
+
+            if opts.byZone then
+                for _, group in ipairs(Search.ByZone(sources)) do
+                    rows[#rows + 1] = { type = "zone", item = item, zone = group.zone,
+                        count = #group.sources }
+                    for _, source in ipairs(group.sources) do
+                        rows[#rows + 1] = { type = "source", item = item, source = source }
+                        drawn = drawn + 1
+                    end
+                end
+            else
+                for _, source in ipairs(sources) do
+                    rows[#rows + 1] = { type = "source", item = item, source = source }
+                    drawn = drawn + 1
+                end
             end
         end
     end

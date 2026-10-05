@@ -18,7 +18,8 @@ local Theme = ns.Theme
 local Widgets = ns.Widgets
 local Util = ns.Util
 
-local WIDTH = 660
+-- 660 until the worth column (2026-10-05) added its 58 and a gap.
+local WIDTH = 724
 -- The tabs hang below the window and the search box sits up beside the
 -- portrait now (Titanforged, 2026-10-04), so the window is shorter by what
 -- that saved: the lists keep the height they had.
@@ -54,11 +55,11 @@ local TABS = {
 -- the game's font runs wider than widths picked by eye, and names were being
 -- cut off. The last slot holds the [Forever] badge, as wide as its text when
 -- a row has one, so a long "needs" in the drop column never runs under it.
-local COLUMN_ORDER = { "kind", "name", "where", "level", "drop", "badge" }
-local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110, badge = 8 }
+local COLUMN_ORDER = { "kind", "name", "where", "level", "drop", "value", "badge" }
+local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110, value = 58, badge = 8 }
 -- Where has room for the longest place in the data (a zone, a landmark and
 -- coordinates) in the game's font; at 400 it cut 47 of them off.
-local MAX_WIDTH = { name = 320, where = 520, drop = 220 }
+local MAX_WIDTH = { name = 320, where = 520, drop = 220, value = 140 }
 local COLUMN_GAP = 6
 
 local DROP_BAR_WIDTH = 46
@@ -70,6 +71,13 @@ local ROW_INSET = PADDING * 2 + 16 + 14
 
 -- A note sits indented under its item's heading.
 local NOTE_INDENT = "     "
+
+-- A zone's heading (By zone) sits under its item's, a little further in.
+local ZONE_INDENT = "    "
+
+local function ZoneCount(count)
+    return ("%d %s"):format(count, count == 1 and "spot" or "spots")
+end
 
 -- How bright the glow round the window sits; it flares brighter as the
 -- window opens (Motion:Open). A touch brighter than it was, to read round
@@ -88,7 +96,7 @@ local function Columns(widths)
     end
 
     -- How much wider than the narrowest layout, for the window to grow by.
-    columns.extra = x - COLUMN_GAP - 600
+    columns.extra = x - COLUMN_GAP - (WIDTH - 60)
 
     return columns
 end
@@ -288,9 +296,30 @@ function UI:BuildBody()
     self.filters = filters
     self.chips = {}
 
+    -- Section each item's spots by zone (a player's request, 2026-10-05).
+    -- A toggle on the right of the chip row, kept in `searchByZone`.
+    local byZone = Widgets.CreateChip(filters, "BY ZONE", function(clicked)
+        if ns.db then ns.db.searchByZone = not (ns.db.searchByZone == true) end
+        clicked:SetSelected(ns.db and ns.db.searchByZone == true)
+        UI:Render()
+    end)
+    byZone:SetPoint("RIGHT", filters, "RIGHT", 0, 0)
+    byZone:SetWidth(math.max(64, Theme.TextWidth("tiny", "BY ZONE") + 22))
+    byZone:SetSelected(ns.db and ns.db.searchByZone == true)
+    byZone:HookScript("OnEnter", function(self)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine("Group each item's spots by zone", 1, 1, 1)
+        GameTooltip:AddLine("Zones come in the order of their best spot, by whichever column you sorted on.",
+            Theme.Unpack("muted"))
+        GameTooltip:Show()
+    end)
+    byZone:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    self.byZoneChip = byZone
+
     local summary = Theme.CreateLabel(frame, "small", "muted", "RIGHT")
     summary:SetPoint("LEFT", filters, "LEFT", 8, 0)
-    summary:SetPoint("RIGHT", filters, "RIGHT", -2, 0)
+    summary:SetPoint("RIGHT", byZone, "LEFT", -8, 0)
     self.summary = summary
 
     local panel = Theme.CreatePanel(frame, "panel", "border")
@@ -457,6 +486,7 @@ function UI:PlaceRow(row)
     Place(row.dropTrack, columns.drop)
     Place(row.dropFill, columns.drop)
     Place(row.drop, columns.drop, DROP_BAR_WIDTH + 6, columns.drop.w - DROP_BAR_WIDTH - 6)
+    Place(row.value, columns.value, 0, columns.value.w)
     Place(row.badge, columns.badge, 0, columns.badge.w)
 end
 
@@ -473,7 +503,7 @@ end
 --- than the base layout.
 function UI:FitColumns(rows)
     local widths = { kind = BASE_WIDTH.kind, name = BASE_WIDTH.name, where = BASE_WIDTH.where,
-        drop = BASE_WIDTH.drop, badge = BASE_WIDTH.badge }
+        drop = BASE_WIDTH.drop, value = BASE_WIDTH.value, badge = BASE_WIDTH.badge }
     local note = 0
 
     for _, row in ipairs(rows) do
@@ -488,9 +518,17 @@ function UI:FitColumns(rows)
                 widths.drop = math.max(widths.drop,
                     Theme.TextWidth("small", drop) + DROP_BAR_WIDTH + 12)
             end
+            local worth = self:WorthText(row.source)
+            if worth then
+                widths.value = math.max(widths.value, Theme.TextWidth("small", worth) + 6)
+            end
             if row.source.provenance == "forever" then
                 widths.badge = math.max(widths.badge, Theme.TextWidth("tiny", BADGE_TEXT))
             end
+        elseif row.type == "zone" then
+            -- A zone's heading takes the where column's room and more; it
+            -- only needs not to run past the row.
+            note = math.max(note, Theme.TextWidth("small", ZONE_INDENT .. row.zone .. "  " .. ZoneCount(row.count)) + 4)
         elseif row.type == "note" then
             -- A note is one line across the whole row.
             note = math.max(note, Theme.TextWidth("small", NOTE_INDENT .. row.text) + 4)
@@ -514,7 +552,7 @@ function UI:FitColumns(rows)
     local room = self:ScreenRoom()
     if room then
         local over = (WIDTH + Columns(widths).extra) - room
-        for _, key in ipairs({ "where", "name", "drop" }) do
+        for _, key in ipairs({ "where", "name", "drop", "value" }) do
             if over <= 0 then break end
             local give = math.min(over, widths[key] - BASE_WIDTH[key])
             if give > 0 then
@@ -526,7 +564,8 @@ function UI:FitColumns(rows)
 
     local current = self.columns or COLUMN
     if current.kind.w == widths.kind and current.name.w == widths.name and current.where.w == widths.where
-        and current.drop.w == widths.drop and current.badge.w == widths.badge then
+        and current.drop.w == widths.drop and current.value.w == widths.value
+        and current.badge.w == widths.badge then
         return
     end
 
@@ -566,9 +605,30 @@ function UI:BuildColumnHeadings()
     Heading("where", "WHERE")
     Heading("level", "LEVEL")
     Heading("drop", "DROP")
+    Heading("value", "PER KILL")
 
     self.columns = COLUMN
     self:PlaceHeadings()
+
+    -- Click a heading to sort each item's spots by it (a player's request,
+    -- 2026-10-05), as Tradeskills' lists sort. Kept for the next search and
+    -- the next session in `searchSort`.
+    local saved = ns.db and type(ns.db.searchSort) == "table" and ns.db.searchSort or {}
+    self.sorter = Widgets.SortableHeadings(self.headings, {
+        name = "Sort by source name, A to Z.",
+        where = "Closest to you first: your zone, then zones nearest your level.",
+        level = "Sort by level, lowest first.",
+        drop = "Sort by drop rate, best first. Spots with no known rate go last.",
+        value = "Sort by what a kill is worth, best first. Your own kills' worth comes before estimates; "
+            .. "mobs with no price go last.",
+    }, function(key, ascending)
+        if ns.db then ns.db.searchSort = { key = key, ascending = ascending } end
+        UI:Render()
+    end, {
+        startsLow = ns.Search.SORT_STARTS_LOW,
+        key = ns.Search.SORT_KEYS[saved.key] and saved.key or nil,
+        ascending = saved.ascending,
+    })
 
     local rule = Theme.CreateDivider(panel, "border")
     rule:SetPoint("TOPLEFT", 8, -20)
@@ -578,6 +638,16 @@ end
 --------------------------------------------------------------------------------
 -- Rows
 --------------------------------------------------------------------------------
+
+--- What a kill of a spot's mob is worth, in coin colours: "~" in front for
+--- an estimate from the database's rates. Nil for anything with no worth.
+function UI:WorthText(source)
+    local worth, sure = ns.Search:Worth(source, self.worthCache)
+    if not worth then return nil end
+    local coins = ns.Value.Coins(worth)
+    if sure == 2 then return coins end
+    return Util.Colored("dim", "~") .. coins
+end
 
 --- Hovering a mob's row says what a kill is worth, priced by Tradeskills.
 -- Only a mob's: "open water" has catches with rates too, but nothing to kill.
@@ -690,6 +760,8 @@ function UI:CreateRow(row)
 
     row.drop = Theme.CreateLabel(row, "small", "muted")
 
+    row.value = Theme.CreateLabel(row, "small", "text")
+
     -- Placed in its own slot after the drop column (PlaceRow).
     row.badge = Theme.CreateLabel(row, "tiny", "good", "RIGHT")
 
@@ -706,6 +778,7 @@ local function HideSourceColumns(row)
     row.dropTrack:Hide()
     row.dropFill:Hide()
     row.drop:Hide()
+    row.value:Hide()
     row.badge:Hide()
 end
 
@@ -756,6 +829,15 @@ function UI:UpdateRow(row, data, index)
             row.goal:SetLabelColor(nil)
         end
         row.goal:Show()
+        return
+    end
+
+    if data.type == "zone" then
+        PlaceHeading(row, 2, 2)
+        row.bandStripe:Show()
+        row.heading:SetTextColor(Theme.Unpack("accentHi"))
+        row.heading:SetText(ZONE_INDENT .. data.zone .. "  " .. Util.Colored("dim", ZoneCount(data.count)))
+        row.heading:Show()
         return
     end
 
@@ -831,6 +913,12 @@ function UI:UpdateRow(row, data, index)
         row.drop:SetTextColor(Theme.Unpack("dim"))
         row.drop:SetText(source.requires)
         row.drop:Show()
+    end
+
+    local worth = self:WorthText(source)
+    if worth then
+        row.value:SetText(worth)
+        row.value:Show()
     end
 
     if source.provenance == "forever" then
@@ -917,13 +1005,21 @@ function UI:Render()
 
     if self.empty then self.empty:Hide() end
 
-    local rows, total = ns.Search:BuildRows(query, { kind = self.filterKind })
+    -- Worth is asked once a mob per draw: it walks the whole database.
+    self.worthCache = {}
+
+    local sorter = self.sorter
+    local rows, total = ns.Search:BuildRows(query, {
+        kind = self.filterKind,
+        sort = sorter and sorter.key and { key = sorter.key, ascending = sorter.ascending } or nil,
+        byZone = ns.db and ns.db.searchByZone == true,
+    })
 
     -- Collapsing hides an item's sources but keeps its heading, so the list
     -- stays navigable when a search turns up a lot.
     local visible = {}
     for _, row in ipairs(rows) do
-        local hidden = (row.type == "source" and self.collapsed[row.item.name])
+        local hidden = ((row.type == "source" or row.type == "zone") and self.collapsed[row.item.name])
             or (row.type == "note" and false)
 
         if not hidden then
@@ -941,6 +1037,8 @@ function UI:Render()
         if row.type == "item" then names[#names + 1] = row.item.name end
     end
     local shape = table.concat(names, "\n") .. "|" .. tostring(self.filterKind)
+        .. "|" .. tostring(sorter and sorter.key) .. tostring(sorter and sorter.ascending)
+        .. "|" .. tostring(ns.db and ns.db.searchByZone)
     self.arriving = shape ~= self.lastShape
     self.lastShape = shape
 
@@ -1017,7 +1115,7 @@ end
 function UI:PlaceSummary()
     self.summary:ClearAllPoints()
     self.summary:SetPoint("LEFT", self.filters, "LEFT", (self.chipsWidth or 0) + 8, 0)
-    self.summary:SetPoint("RIGHT", self.filters, "RIGHT", -2, 0)
+    self.summary:SetPoint("RIGHT", self.byZoneChip or self.filters, self.byZoneChip and "LEFT" or "RIGHT", -8, 0)
 end
 
 function UI:RefreshChipStates()

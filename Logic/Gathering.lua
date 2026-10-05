@@ -794,7 +794,7 @@ end
 function Gathering:OnEnable()
     if not ns.Harvest:Capabilities().usable then return end
 
-    ns.RegisterEvent(self, "LOOT_OPENED", function() Gathering:OnLoot() end)
+    ns.OnLootWindow(self, function() Gathering:OnLoot() end)
     ns.RegisterEvent(self, "LOOT_CLOSED", function() Gathering:OnLootClosed() end)
 
     ns.RegisterEvent(self, "UNIT_SPELLCAST_SENT", function(_, _, ...)

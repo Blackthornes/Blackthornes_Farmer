@@ -100,7 +100,7 @@ LTU:Hide()
 --------------------------------------------------------------------------------
 
 UI:Build()
-local baseWidth = 660  -- the window's usual width
+local baseWidth = 724  -- the window's usual width (660 before the worth column)
 UI:Search("wool cloth")
 
 local columns = UI.columns

@@ -241,20 +241,64 @@ end
 
 --- The corpse being looted, as far as the client will admit.
 --
--- The loot window does not name its owner, so this reads the target, which is
--- the corpse in every normal case. When it is not -- looting while targeting
--- something else -- this returns nil and the sample is dropped. A sample
--- attributed to the wrong mob is worse than no sample: it goes into the data
--- and sends somebody to the wrong place.
-function Harvest:LootSource()
+-- The loot window does not name its owner. The target is the corpse in the
+-- usual case, so that is asked first. But plenty of players loot without
+-- targeting the corpse: the interact key, a right-click on a corpse with
+-- another mob targeted, auto loot with the target already cleared. Waiting
+-- for the target counted none of those (a player's report, 2026-10-05: the
+-- kills panel stayed empty), so when the target is not the corpse, the
+-- window's own sources are asked whose loot it is (GetLootSourceInfo), and
+-- the corpse is the one of them the client names under the mouse or the
+-- interact key, or one this addon saw alive by that same guid (NoteUnit).
+--
+-- Every way in matches by guid, so nothing is guessed: a window whose
+-- sources cannot be read, or whose mob was never seen, is still dropped. A
+-- sample attributed to the wrong mob is worse than no sample: it goes into
+-- the data and sends somebody to the wrong place.
+--
+-- Returns the name, the level (nil when unknown) and the guid (nil when the
+-- client will not give one).
+function Harvest:Corpse()
+    local name, level, guid = self:UnitCorpse("target")
+    if name and self:LootIsFrom(guid) then return name, level, guid end
+
+    local sources = self:LootSources()
+    if #sources == 0 then return nil end
+
+    local listed = {}
+    for _, source in ipairs(sources) do listed[source] = true end
+
+    for _, unit in ipairs(Harvest.CORPSE_UNITS) do
+        local unitName, unitLevel, unitGuid = self:UnitCorpse(unit)
+        if unitName and unitGuid and listed[unitGuid] then
+            return unitName, unitLevel, unitGuid
+        end
+    end
+
+    for _, source in ipairs(sources) do
+        local known = self:KnownUnit(source)
+        if known then return known.name, known.level, source end
+    end
+
+    return nil
+end
+
+-- Units that can be the corpse when the target is not: the one under the
+-- mouse (a right-click loot) and the interact key's (soft interact).
+Harvest.CORPSE_UNITS = { "softinteract", "mouseover" }
+
+--- A dead mob in `unit`, as name, level and guid; nil for anything else.
+-- Not `name == ""`: in an instance that comparison is the line that blew
+-- up. Comparisons happen inside Readable, where a raise is an answer.
+function Harvest:UnitCorpse(unit)
     if not UnitName or not UnitIsDead then return nil end
 
-    local ok, dead = pcall(UnitIsDead, "target")
-    if not ok or not dead then return nil end
+    local ok, dead = pcall(UnitIsDead, unit)
+    if not ok then return nil end
+    local plain, isDead = pcall(function() return dead == true or dead == 1 end)
+    if not plain or not isDead then return nil end
 
-    -- Not `name == ""`: in an instance this is the line that blew up. The
-    -- comparison happens inside Readable, where a raise is an answer.
-    local gotName, unitName = pcall(UnitName, "target")
+    local gotName, unitName = pcall(UnitName, unit)
     if not gotName then return nil end
 
     local name = Readable(unitName)
@@ -262,13 +306,16 @@ function Harvest:LootSource()
 
     -- Players and their corpses are not farming spots.
     if UnitIsPlayer then
-        local gotPlayer, isPlayer = pcall(UnitIsPlayer, "target")
-        if gotPlayer and isPlayer then return nil end
+        local gotPlayer, isPlayer = pcall(UnitIsPlayer, unit)
+        if gotPlayer then
+            local readable, player = pcall(function() return isPlayer == true or isPlayer == 1 end)
+            if not readable or player then return nil end
+        end
     end
 
     local level
     if UnitLevel then
-        local gotLevel, unitLevel = pcall(UnitLevel, "target")
+        local gotLevel, unitLevel = pcall(UnitLevel, unit)
         local number = gotLevel and ReadableNumber(unitLevel) or nil
         -- -1 is the client's way of saying "higher than you can tell".
         if number and number > 0 then
@@ -276,7 +323,64 @@ function Harvest:LootSource()
         end
     end
 
+    local guid
+    if UnitGUID then
+        local gotGuid, unitGuid = pcall(UnitGUID, unit)
+        if gotGuid then guid = Readable(unitGuid) end
+    end
+
+    return name, level, guid
+end
+
+function Harvest:LootSource()
+    local name, level = self:Corpse()
     return name, level
+end
+
+--------------------------------------------------------------------------------
+-- Mobs seen alive
+--
+-- A guid names no mob by itself, so the mobs you meet are remembered by guid
+-- as the client shows them: your target, the mob under the mouse, nameplates
+-- coming into view, the interact key's unit. A corpse looted without being
+-- targeted is then recognised by the guid the loot window gives for it.
+-- Memory only, and kept short: two lots of SEEN_LIMIT at most.
+--------------------------------------------------------------------------------
+
+local SEEN_LIMIT = 300
+
+Harvest.seen, Harvest.seenOld, Harvest.seenCount = {}, {}, 0
+
+function Harvest:NoteUnit(unit)
+    if not UnitGUID or not UnitName then return end
+
+    local gotGuid, unitGuid = pcall(UnitGUID, unit)
+    local guid = gotGuid and Readable(unitGuid) or nil
+    if not guid or not guid:match("^Creature%-") and not guid:match("^Vehicle%-") then return end
+
+    local gotName, unitName = pcall(UnitName, unit)
+    local name = gotName and Readable(unitName) or nil
+    if not name then return end
+
+    local level
+    if UnitLevel then
+        local gotLevel, unitLevel = pcall(UnitLevel, unit)
+        local number = gotLevel and ReadableNumber(unitLevel) or nil
+        if number and number > 0 then level = number end
+    end
+
+    if not self.seen[guid] then
+        self.seenCount = self.seenCount + 1
+        if self.seenCount > SEEN_LIMIT then
+            self.seenOld, self.seen, self.seenCount = self.seen, {}, 1
+        end
+    end
+    self.seen[guid] = { name = name, level = level }
+end
+
+function Harvest:KnownUnit(guid)
+    if type(guid) ~= "string" then return nil end
+    return self.seen[guid] or self.seenOld[guid]
 end
 
 --- Where you are standing: the zone, and the subzone if you are in one.
@@ -302,12 +406,13 @@ end
 
 --- The corpse's guid, if the client will say. Read, not compared.
 function Harvest:CorpseID()
+    local name, _, guid = self:Corpse()
+    if name then return guid end
+
     if not UnitGUID then return nil end
-
-    local ok, guid = pcall(UnitGUID, "target")
+    local ok, target = pcall(UnitGUID, "target")
     if not ok then return nil end
-
-    return Readable(guid)
+    return Readable(target)
 end
 
 --- Is the open loot window a fishing catch or a gathered herb or vein?
@@ -339,24 +444,16 @@ local function GuidKind(guid)
     return kind and GUID_KIND[kind] and kind or nil
 end
 
---- Does the open loot window belong to the target?
---
--- Where the client says whose loot each slot is (GetLootSourceInfo), a window
--- none of whose slots is the target's -- a chest, a clam opened from the bags,
--- another corpse -- is not the target's loot. This answers false only on that
--- evidence: guids it cannot read, or a client spelling them some other way,
--- leave it answering true, the way it was before it asked.
-function Harvest:LootIsTargets()
-    if type(GetLootSourceInfo) ~= "function" then return true end
-
-    local target = self:CorpseID()
-    if not GuidKind(target) then return true end
+--- Every guid the open loot window names as a source, each once, in slot
+--- order: the corpses (and chests, and nodes) its loot came off. Empty when
+--- the client will not say.
+function Harvest:LootSources()
+    local list, seen = {}, {}
+    if type(GetLootSourceInfo) ~= "function" then return list end
 
     local gotCount, lootCount = pcall(GetNumLootItems)
     local count = gotCount and ReadableNumber(lootCount) or nil
-    if not count then return true end
-
-    local elsewhere = false
+    if not count then return list end
 
     for slot = 1, count do
         local ok, sources = pcall(function() return { GetLootSourceInfo(slot) } end)
@@ -364,13 +461,39 @@ function Harvest:LootIsTargets()
         -- Guid, quantity, guid, quantity...
         for index = 1, ok and #sources or 0, 2 do
             local guid = Readable(sources[index])
-
-            if guid == target then return true end
-            if GuidKind(guid) then elsewhere = true end
+            if GuidKind(guid) and not seen[guid] then
+                seen[guid] = true
+                list[#list + 1] = guid
+            end
         end
     end
 
-    return not elsewhere
+    return list
+end
+
+--- Does the open loot window belong to `guid`?
+--
+-- Where the client says whose loot each slot is (GetLootSourceInfo), a window
+-- none of whose slots is that unit's -- a chest, a clam opened from the bags,
+-- another corpse -- is not its loot. This answers false only on that
+-- evidence: guids it cannot read, or a client spelling them some other way,
+-- leave it answering true, the way it was before it asked.
+function Harvest:LootIsFrom(guid)
+    if not GuidKind(guid) then return true end
+
+    local sources = self:LootSources()
+    if #sources == 0 then return true end
+
+    for _, source in ipairs(sources) do
+        if source == guid then return true end
+    end
+    return false
+end
+
+--- Does the open loot window belong to the corpse being looted? Corpse()
+--- only names one it does, so this is whether there is one.
+function Harvest:LootIsTargets()
+    return (self:Corpse()) ~= nil
 end
 
 --- Whether loot slot `slot` came off the corpse you target, and if the
@@ -1054,7 +1177,16 @@ function Harvest:OnEnable()
         self.enabled = false
     end
 
-    ns.RegisterEvent(self, "LOOT_OPENED", function() Harvest:RecordCorpse() end)
+    ns.OnLootWindow(self, function() Harvest:RecordCorpse() end)
+
+    -- The mobs you meet, so a corpse looted untargeted is still known.
+    ns.RegisterEvent(self, "PLAYER_TARGET_CHANGED", function() Harvest:NoteUnit("target") end)
+    ns.RegisterEvent(self, "UPDATE_MOUSEOVER_UNIT", function() Harvest:NoteUnit("mouseover") end)
+    ns.RegisterEvent(self, "PLAYER_SOFT_ENEMY_CHANGED", function() Harvest:NoteUnit("softenemy") end)
+    ns.RegisterEvent(self, "PLAYER_SOFT_INTERACT_CHANGED", function() Harvest:NoteUnit("softinteract") end)
+    ns.RegisterEvent(self, "NAME_PLATE_UNIT_ADDED", function(_, _, unit)
+        if type(unit) == "string" then Harvest:NoteUnit(unit) end
+    end)
 
     -- ns.db.harvest already is the live table, so this only matters if
     -- something replaced one or the other. Cheap insurance at the one moment

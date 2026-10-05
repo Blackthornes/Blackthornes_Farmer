@@ -626,7 +626,7 @@ end
 function Fishing:OnEnable()
     if not ns.Harvest:Capabilities().usable then return end
 
-    ns.RegisterEvent(self, "LOOT_OPENED", function() Fishing:OnLoot() end)
+    ns.OnLootWindow(self, function() Fishing:OnLoot() end)
 
     -- Without LOOT_CLOSED a window cannot be told from the next one, so the
     -- one-window-one-cast guard is only armed when the client has it.
