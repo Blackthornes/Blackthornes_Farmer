@@ -79,6 +79,17 @@ kills panel, the goals panel, banners and toasts stay up while playing and
 keep their own look. Anything placed inside a dressed window stays 6 pixels
 in from its edge, or it covers the rim.
 
+## Discord
+
+The addons share a Discord server, Blackthornes AddOns (public invite
+https://discord.gg/f2geDecrw2, set up 2026-10-05). After a release uploads,
+`release.yml` runs `tools/announce_discord.py`, which posts the version's
+CHANGELOG section to the server's #announcements through a channel webhook
+kept in the `DISCORD_WEBHOOK_URL` repository secret. The owner sets that secret
+himself; never ask him to paste the webhook address anywhere. Without it the
+step does nothing, and a failed post never undoes the upload. The tool is the
+same in all four repos; a fix to it belongs in all four.
+
 ## The owner's standing rules (both addons)
 
 - **"Always check that it's clear to post."** Anything public is checked for
