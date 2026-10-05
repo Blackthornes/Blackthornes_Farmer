@@ -42,6 +42,10 @@ Tracker.MIN_KILLS = MIN_KILLS
 Tracker.session = {}
 Tracker.corpses = {}
 
+-- Corpses whose drops an area loot took with another's, by guid, this
+-- session: skinning one later is not a kill of its own.
+Tracker.areaLooted = {}
+
 -- Also this session only: how much of each item came off corpses (your kills,
 -- the rest of an area loot, corpses you only skinned), and the order mobs
 -- were last killed in, so the panel can put the latest on top.
@@ -474,6 +478,7 @@ function Tracker:Reset()
     ns.db.tracker = looks and { looks = looks } or nil
     self.session = {}
     self.corpses = {}
+    self.areaLooted = {}
     self.sessionLoot = {}
     self.sessionFrom = {}
     self.sessionCopper = 0
@@ -700,6 +705,20 @@ function Tracker:LootedItems(anySource)
     return names, quantities, copper, haul
 end
 
+--- Is the corpse being skinned, never opened before, your own kill that
+--- dropped nothing? Only when the client plainly says the kill was yours
+--- (UnitIsTapDenied answers false on the corpse) and no earlier area loot
+--- took its drops. Anything unreadable answers no, as it always did.
+function Tracker:EmptyOwnKill(guid, unit)
+    if not (guid and unit) or self.areaLooted[guid] then return false end
+    if type(UnitIsTapDenied) ~= "function" then return false end
+
+    local ok, denied = pcall(UnitIsTapDenied, unit)
+    if not ok then return false end
+    local readable, mine = pcall(function() return denied == false end)
+    return readable and mine == true
+end
+
 function Tracker:OnLoot()
     local caps = ns.Harvest:Capabilities()
     if not caps.usable then return end
@@ -709,22 +728,34 @@ function Tracker:OnLoot()
 
     -- Same rule as the harvester: if the target is not plainly the corpse,
     -- count nothing rather than count it against the wrong mob.
-    local mobName = ns.Harvest:LootSource()
-    if not mobName or not ns.Harvest:LootIsTargets() then return end
+    local mobName, _, guid, unit = ns.Harvest:Corpse()
+    if not mobName then return end
 
     local items, quantities, copper, haul = self:LootedItems()
-    local guid = self:CorpseID()
     local skinning = Tracker.Skinning()
 
+    -- With area loot this window took the other corpses' drops too. Each of
+    -- them is remembered, so skinning one later is not taken for a kill
+    -- whose drops nobody counted (EmptyOwnKill).
+    for _, source in ipairs(ns.Harvest:LootSources()) do
+        if source ~= guid then self.areaLooted[source] = true end
+    end
+
     -- A corpse skinned without being opened first this session (another
-    -- player's kill, or one a party member looted) shows none of what it
-    -- dropped. Counted as a kill, its leather alone would pull every other
-    -- drop's rate down, so it is not one; the leather is yours, so the
-    -- session's loot takes it. Your own kill with nothing on it is no loss:
-    -- an empty corpse opens no window unless you skin it, so it was never
-    -- counted for anyone without Skinning either.
+    -- player's kill, or one an area loot already emptied) shows none of
+    -- what it dropped. Counted as a kill, its leather alone would pull every
+    -- other drop's rate down, so it is not one; the leather is yours, so the
+    -- session's loot takes it.
+    --
+    -- Your own kill that dropped nothing is the exception (2026-10-05: a
+    -- Savannah Huntress killed, skinned and never on the Farm tab). An empty
+    -- corpse opens no loot window, so skinning is the first the addon hears
+    -- of it, and it is a kill like any other: one with no drops, which is
+    -- what a drop rate has to count.
     if skinning and not (guid and self.corpses[guid]) then
-        return self:Skinned(mobName, items, quantities, haul)
+        if not self:EmptyOwnKill(guid, unit) then
+            return self:Skinned(mobName, items, quantities, haul)
+        end
     end
 
     local place = Tracker.PlaceName(ns.Harvest:Where())
