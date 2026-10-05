@@ -1653,3 +1653,133 @@ function Widgets.CreateStepper(parent, opts)
     stepper:SetValue(opts.value or low, true)
     return stepper
 end
+
+--------------------------------------------------------------------------------
+-- Sortable column headings
+--------------------------------------------------------------------------------
+
+-- Blizzard's own list sort arrow, pointing down; flipped for smallest first.
+local SORT_ARROW = [[Interface\Buttons\UI-SortArrow]]
+
+--- Make a list's column headings sort it when clicked, as Tradeskills' do.
+--
+-- The first click on a heading sorts by it, the way that heading starts
+-- (`startsLow[key]`: lowest first, else highest first); a second click turns
+-- it round; a third gives the list back its own order. The heading sorting
+-- the list is lit gold with an arrow beside it. Under the mouse a heading
+-- lights up, glows along its foot and says in a tooltip what clicking does.
+--
+-- @param labels    { [key] = fontString } the headings, as the window made them
+-- @param tips      { [key] = "what sorting by this does" }; a heading with no
+--   entry here is not made clickable
+-- @param onChange  function(key, ascending) after a click; key nil = own order
+-- @param opts      { startsLow = { [key] = true }, key, ascending } (the last
+--   two: the sort to start with)
+-- @return sorter with :Set(key, ascending) and :Paint()
+function Widgets.SortableHeadings(labels, tips, onChange, opts)
+    opts = opts or {}
+    local startsLow = opts.startsLow or {}
+    local sorter = { key = opts.key, ascending = opts.ascending and true or false, buttons = {} }
+
+    local function Paint()
+        for key, button in pairs(sorter.buttons) do
+            local active = sorter.key == key
+            local label = button.label
+
+            if active then
+                label:SetTextColor(Theme.Unpack("accent"))
+            elseif button.hover then
+                label:SetTextColor(Theme.Unpack("text"))
+            else
+                label:SetTextColor(Theme.Unpack("dim"))
+            end
+            button.glow:SetAlpha(button.hover and 1 or (active and 0.55 or 0))
+
+            local arrow = button.arrow
+            arrow:SetShown(active)
+            if active then
+                if sorter.ascending then
+                    arrow:SetTexCoord(0, 0.5625, 1, 0)
+                else
+                    arrow:SetTexCoord(0, 0.5625, 0, 1)
+                end
+                local width = Theme.TextWidth("tiny", label:GetText())
+                if type(width) ~= "number" then width = 0 end
+                arrow:ClearAllPoints()
+                arrow:SetPoint("LEFT", label, "LEFT", math.ceil(width) + 3, 0)
+            end
+        end
+    end
+    sorter.Paint = Paint
+
+    for key, label in pairs(labels) do
+        if tips[key] then
+            local button = CreateFrame("Button", nil, label:GetParent())
+            button:SetPoint("TOPLEFT", label, "TOPLEFT", -2, 3)
+            button:SetPoint("BOTTOMRIGHT", label, "BOTTOMRIGHT", 2, -3)
+            button.label = label
+
+            -- A soft gold wash up from the heading's foot, lit on hover.
+            local glow = button:CreateTexture(nil, "BACKGROUND")
+            glow:SetPoint("BOTTOMLEFT")
+            glow:SetPoint("BOTTOMRIGHT")
+            glow:SetHeight(8)
+            glow:SetColorTexture(1, 1, 1, 1)
+            pcall(glow.SetBlendMode, glow, "ADD")
+            local r, g, b = Theme.Unpack("accent")
+            local ok = type(CreateColor) == "function" and pcall(glow.SetGradient, glow, "VERTICAL",
+                CreateColor(r, g, b, 0.28), CreateColor(r, g, b, 0))
+            if not ok then glow:SetColorTexture(r, g, b, 0.1) end
+            glow:SetAlpha(0)
+            button.glow = glow
+
+            local arrow = button:CreateTexture(nil, "OVERLAY")
+            arrow:SetSize(9, 8)
+            pcall(arrow.SetTexture, arrow, SORT_ARROW)
+            arrow:Hide()
+            button.arrow = arrow
+
+            button:SetScript("OnClick", function()
+                local low = startsLow[key] and true or false
+                if sorter.key ~= key then
+                    sorter.key, sorter.ascending = key, low
+                elseif sorter.ascending == low then
+                    sorter.ascending = not low
+                else
+                    sorter.key = nil
+                end
+
+                Paint()
+                if onChange then onChange(sorter.key, sorter.ascending) end
+            end)
+            button:SetScript("OnEnter", function(self)
+                self.hover = true
+                Paint()
+                if GameTooltip then
+                    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                    GameTooltip:AddLine(tips[key], 1, 1, 1, true)
+                    GameTooltip:AddLine("Click again to turn it round, a third time for the usual order.",
+                        Theme.Unpack("muted"))
+                    GameTooltip:Show()
+                end
+            end)
+            button:SetScript("OnLeave", function(self)
+                self.hover = false
+                Paint()
+                if GameTooltip then GameTooltip:Hide() end
+            end)
+
+            sorter.buttons[key] = button
+        end
+    end
+
+    --- Sort by `key` (nil: the list's own order) without a click.
+    function sorter:Set(key, ascending)
+        self.key = key
+        self.ascending = ascending and true or false
+        Paint()
+    end
+
+    Paint()
+    return sorter
+end
