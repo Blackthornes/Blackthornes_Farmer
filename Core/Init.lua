@@ -293,7 +293,7 @@ local DEFAULTS = {
     -- Minimap button: where it sits on the ring, how far off the edge, and
     -- whether it is there at all.
     minimapAngle = math.rad(200),
-    minimapGap = 16,
+    minimapGap = 16, -- kept for old saves; the button now sits on the ring
     minimapHidden = false,
 
     -- Kill tracker: whether its panel is kept out of the way, whether each
