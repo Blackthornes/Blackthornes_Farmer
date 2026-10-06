@@ -272,4 +272,22 @@ suite.check("an item whose tooltip shows none keeps the item info's", Value:Vend
 _G.C_TooltipInfo = nil
 VENDOR[11288] = nil
 
+-- A tooltip read before the item loaded shows no price; that must not stick
+-- for the session once the item has loaded and its tooltip does.
+VENDOR[11289] = 900
+local loaded = false
+local baseItem = _G.C_Item
+_G.C_Item = setmetatable({ IsItemDataCachedByID = function() return loaded end }, { __index = baseItem })
+_G.C_TooltipInfo = {
+    GetItemByID = function(id)
+        if not loaded then return { id = id, lines = { { type = 0, leftText = "Retrieving item information" } } } end
+        return { id = id, lines = { { type = 0, leftText = "item" }, { type = 11, price = 5 } } }
+    end,
+}
+suite.check("before it loads, the item info's price stands in", Value:VendorPrice(11289) == 900, Value:VendorPrice(11289))
+loaded = true
+suite.check("once loaded, the tooltip's price is read after all", Value:VendorPrice(11289) == 5, Value:VendorPrice(11289))
+_G.C_TooltipInfo, _G.C_Item = nil, baseItem
+VENDOR[11289] = nil
+
 suite.done()

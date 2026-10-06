@@ -1284,7 +1284,9 @@ function GoalsUI:BuildSpots()
 
     local from = Theme.CreateLabel(panel, "tiny", "muted")
     from:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    from:SetPoint("RIGHT", -10, 0)
+    -- TOPRIGHT, not RIGHT: a RIGHT point pins the label's middle to the
+    -- panel's, which stretched it down and drew the line mid-panel.
+    from:SetPoint("TOPRIGHT", title, "BOTTOMRIGHT", 20, -4)
     panel.from = from
 
     local rule = Theme.CreateDivider(panel, "borderLit")
@@ -1341,7 +1343,7 @@ function GoalsUI:SpotRow(index)
 
     row.name = Theme.CreateLabel(row, "normal", "text")
     row.name:SetPoint("TOPLEFT", 30, -4)
-    row.name:SetPoint("RIGHT", -60, 0)
+    row.name:SetPoint("TOPRIGHT", -60, -4)
 
     row.level = Theme.CreateLabel(row, "small", "text", "RIGHT")
     row.level:SetPoint("TOPRIGHT", -10, -5)

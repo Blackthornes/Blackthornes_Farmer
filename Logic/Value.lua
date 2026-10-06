@@ -77,8 +77,19 @@ function Value:TooltipSellPrice(itemID)
     end)
     if not ok then return nil end
 
-    -- Only a tooltip that was there to read is kept.
+    -- Only a tooltip that was there to read is kept. One for an item the
+    -- client has not loaded yet says "Retrieving item information" and no
+    -- price, so "no sell price" is only kept once the item is loaded;
+    -- kept sooner, the stale item info price would win for the session.
     price = ns.Harvest.ReadableNumber(price)
+    if read and not price then
+        local cached = C_Item and C_Item.IsItemDataCachedByID
+        if type(cached) == "function" then
+            local gotCached, isCached = pcall(cached, itemID)
+            local plain, loaded = pcall(function() return isCached == true end)
+            if not (gotCached and plain and loaded) then read = false end
+        end
+    end
     if read then tooltipSellPrice[itemID] = price or false end
     return price
 end
