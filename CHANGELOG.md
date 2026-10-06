@@ -4,6 +4,19 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.17.2
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- Kills, gathering and fishing keep counting after the first loot window,
+  even when the game doesn't say the loot window closed.
+- An item looked at before the game had loaded it now picks up its real
+  sell price once it loads, instead of keeping the old Classic vendor price
+  all session.
+- In Where to farm, the "Nearest first, from ..." line sits at the top of
+  the panel again, and place names line up in their rows.
+
 ## 0.17.1
 
 For WoW: Forever (interface 16001). Nothing in the addon itself changed, so
