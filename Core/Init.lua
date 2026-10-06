@@ -195,8 +195,13 @@ end
 -- panel stayed empty while goals, which count the bags, kept up). So the
 -- readers run on LOOT_READY, and LOOT_OPENED only runs them for a window
 -- LOOT_READY never announced. LOOT_CLOSED ends the window.
+--
+-- That guard needs LOOT_CLOSED. On a client without it nothing would end a
+-- window, and every loot after the first would go unread, so there each
+-- window is read on LOOT_READY alone (or LOOT_OPENED, without LOOT_READY).
 local lootReaders = {}
 local lootReadEarly = false
+local lootHasReady, lootHasClosed = false, false
 
 local function ReadLoot()
     for i = 1, #lootReaders do
@@ -210,16 +215,16 @@ function ns.OnLootWindow(owner, fn)
     if type(fn) ~= "function" then return false end
 
     if #lootReaders == 0 then
-        ns.RegisterEvent(ns, "LOOT_READY", function()
+        lootHasClosed = ns.RegisterEvent(ns, "LOOT_CLOSED", function() lootReadEarly = false end)
+        lootHasReady = ns.RegisterEvent(ns, "LOOT_READY", function()
             if lootReadEarly then return end
-            lootReadEarly = true
+            lootReadEarly = lootHasClosed
             ReadLoot()
         end)
         ns.RegisterEvent(ns, "LOOT_OPENED", function()
-            if lootReadEarly then return end
+            if lootReadEarly or (lootHasReady and not lootHasClosed) then return end
             ReadLoot()
         end)
-        ns.RegisterEvent(ns, "LOOT_CLOSED", function() lootReadEarly = false end)
     end
 
     lootReaders[#lootReaders + 1] = { owner = owner, fn = fn }
