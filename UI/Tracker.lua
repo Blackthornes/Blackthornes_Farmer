@@ -2384,6 +2384,11 @@ local function FollowGoals()
     end
 end
 
+--- For a change made elsewhere, such as the panel's size in Settings.
+function TrackerUI:FollowGoals()
+    FollowGoals()
+end
+
 --- Redraw, and show or hide to match the saved setting.
 function TrackerUI:Refresh()
     self:Build()
@@ -2515,9 +2520,15 @@ function TrackerUI:RestorePosition()
         db.trackerX or 8, db.trackerY or -190)
 
     -- A panel saved by an earlier version may hang from its bottom or centre.
+    -- Written straight to the solo spot: SavePosition would put it in the
+    -- spot for groups while the panel last stood grouped.
     if point ~= "TOPLEFT" then
         self:AnchorTop()
-        self:SavePosition()
+        local newPoint, _, relativePoint, x, y = self.frame:GetPoint()
+        db.trackerPoint = newPoint
+        db.trackerRelativePoint = relativePoint
+        db.trackerX = x
+        db.trackerY = y
     end
 end
 

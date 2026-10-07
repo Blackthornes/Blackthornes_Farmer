@@ -144,7 +144,42 @@ local HUNTRESS = "Savannah Huntress"
 local tapDenied = false
 _G.UnitIsTapDenied = function(unit) return unit == "target" and tapDenied end
 
+--- Targeted alive first, as a fight does.
+local function Fought(guid)
+    env.world.target = { name = HUNTRESS, level = 8, dead = false, guid = guid }
+    ns.Harvest:NoteUnit("target")
+end
+
+-- One looted before a /reload looks unopened to this session, and the
+-- client still calls it yours; never seen alive, skinning it is no kill.
 kills = Tracker:SessionKills()
+suite.check("your corpse from before a /reload, skinned, is no kill",
+    Open(HUNTRESS, "Creature-0-1-2-3-300-0", { Item("Light Leather") }, true) == false
+    and Tracker:SessionKills() == kills)
+
+-- The harvest reads the same window first (its loot reader is earlier in
+-- the TOC) and counts the same corpses.
+local Harvest = ns.Harvest
+local wasEnabled = Harvest.enabled
+Harvest.enabled = true
+local function Harvested(guid)
+    skinningNow = true
+    env.world.target = { name = HUNTRESS, level = 8, dead = true, guid = guid }
+    env.world.loot = { Item("Light Leather") }
+    Harvest:RecordCorpse()
+    skinningNow = false
+end
+
+local corpsesBefore = Harvest:CountCorpses()
+Harvested("Creature-0-1-2-3-300-0")
+suite.check("nor a corpse the harvest records", Harvest:CountCorpses() == corpsesBefore)
+
+Fought("Creature-0-1-2-3-300-1")
+Harvested("Creature-0-1-2-3-300-1")
+suite.check("your empty kill, skinned, is a corpse the harvest records, so its rates count it",
+    Harvest:CountCorpses() == corpsesBefore + 1, Harvest:CountCorpses() .. " from " .. corpsesBefore)
+Harvest.enabled = wasEnabled
+
 suite.check("your empty kill, skinned, is a kill",
     Open(HUNTRESS, "Creature-0-1-2-3-300-1", { Item("Light Leather") }, true) == true)
 suite.check("one more kill this session", Tracker:SessionKills() == kills + 1, Tracker:SessionKills())
@@ -154,6 +189,7 @@ suite.check("skinning it again adds no kill",
     and Tracker:SessionKills() == kills + 1)
 
 tapDenied = true
+Fought("Creature-0-1-2-3-300-2")
 suite.check("someone else's kill, skinned, is still no kill",
     Open(HUNTRESS, "Creature-0-1-2-3-300-2", { Item("Light Leather") }, true) == false)
 tapDenied = false
@@ -164,6 +200,7 @@ _G.GetLootSourceInfo = function(slot) if slot == 1 then return A, 1, B, 1 end en
 Open(HUNTRESS, A, { Item("Ruined Leather Scraps", 2) })
 _G.GetLootSourceInfo = nil
 kills = Tracker:SessionKills()
+Fought(B)
 suite.check("a corpse an area loot emptied, skinned, is no kill",
     Open(HUNTRESS, B, { Item("Light Leather") }, true) == false and Tracker:SessionKills() == kills)
 _G.UnitIsTapDenied = nil

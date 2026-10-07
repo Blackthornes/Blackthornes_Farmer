@@ -467,6 +467,30 @@ for _, row in ipairs(ns.UI.list.rows) do
 end
 suite.check("the search list follows the count with the panel closed", button == "20/40", button)
 ns.db.goalsHidden = false
+
+-- The picker opened from a result closes once that row shows something
+-- else (rows are reused as the list scrolls), and with the window.
+local function CopperRow()
+    for _, row in ipairs(ns.UI.list.rows) do
+        if row:IsShown() and row.data and row.data.type == "item" and row.data.item.name == "Copper Ore" then
+            return row
+        end
+    end
+end
+local copperRow = CopperRow()
+copperRow.goal:GetScript("OnClick")(copperRow.goal, "LeftButton")
+suite.check("the Goal button opens the picker", GUI.picker:IsShown() and GUI.pickItem == "Copper Ore")
+ns.UI.list:SetData(ns.UI.list.data, true)
+suite.check("a redraw of the same rows keeps it open", GUI.picker:IsShown())
+local kept = copperRow.data
+copperRow.data = { type = "item", item = { name = "Tin Ore" } }
+GUI:CheckPicker()
+suite.check("it closes once its row shows another item", not GUI.picker:IsShown())
+copperRow.data = kept
+copperRow.goal:GetScript("OnClick")(copperRow.goal, "LeftButton")
+ns.UI.frame:Hide()
+GUI:CheckPicker()
+suite.check("and when the search window closes", not GUI.picker:IsShown())
 ns.UI:Hide()
 
 -- The picker's amount box keeps its room for the number: no magnifier or

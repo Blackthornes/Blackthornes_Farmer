@@ -707,10 +707,13 @@ end
 
 --- Is the corpse being skinned, never opened before, your own kill that
 --- dropped nothing? Only when the client plainly says the kill was yours
---- (UnitIsTapDenied answers false on the corpse) and no earlier area loot
---- took its drops. Anything unreadable answers no, as it always did.
+--- (UnitIsTapDenied answers false on the corpse), no earlier area loot
+--- took its drops, and this session saw it alive: a corpse looted before a
+--- /reload looks unopened, and its skin would be a second kill.
+--- Anything unreadable answers no, as it always did.
 function Tracker:EmptyOwnKill(guid, unit)
     if not (guid and unit) or self.areaLooted[guid] then return false end
+    if not ns.Harvest:SeenAlive(guid) then return false end
     if type(UnitIsTapDenied) ~= "function" then return false end
 
     local ok, denied = pcall(UnitIsTapDenied, unit)

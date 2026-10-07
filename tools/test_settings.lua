@@ -152,6 +152,63 @@ suite.check("the tally has its own size", ns.db.trackerScale == 90 and ns.db.win
 suite.check("which resizes the tally", trackerScaled and math.abs(trackerScaled - 0.9) < 1e-9,
     trackerScaled)
 
+-- Its saved spot is in its own, scaled units: a new size converts it, so the
+-- panel stays where it is on screen rather than jumping.
+local function Near(a, b) return type(a) == "number" and math.abs(a - b) < 1e-9 end
+ns.db.trackerX, ns.db.trackerY = 9, -180
+ns.db.trackerGroupX, ns.db.trackerGroupY = 270, 540
+controls.trackerScale.plus:GetScript("OnClick")(controls.trackerScale.plus)
+suite.check("a bigger tally keeps its spot on screen",
+    ns.db.trackerScale == 100 and Near(ns.db.trackerX, 8.1) and Near(ns.db.trackerY, -162),
+    tostring(ns.db.trackerX) .. ", " .. tostring(ns.db.trackerY))
+suite.check("its spot for groups too",
+    Near(ns.db.trackerGroupX, 243) and Near(ns.db.trackerGroupY, 486),
+    tostring(ns.db.trackerGroupX) .. ", " .. tostring(ns.db.trackerGroupY))
+ns.db.trackerGroupX, ns.db.trackerGroupY = nil, nil
+
+-- At login the saved spot is already in the saved size's units.
+ns.db.trackerX = 8
+SettingsUI:ApplyTrackerScale()
+suite.check("putting the size back at login leaves the spot alone", ns.db.trackerX == 8)
+
+-- The search window the same way.
+ns.db.x, ns.db.y = 110, 44
+stepper.plus:GetScript("OnClick")(stepper.plus)
+suite.check("a bigger search window keeps its spot on screen",
+    ns.db.windowScale == 110 and Near(ns.db.x, 100) and Near(ns.db.y, 40),
+    tostring(ns.db.x) .. ", " .. tostring(ns.db.y))
+stepper.minus:GetScript("OnClick")(stepper.minus)
+suite.check("and back", ns.db.windowScale == 100 and Near(ns.db.x, 110), tostring(ns.db.x))
+
+-- Open, it is drawn again, so its columns fit the screen at the new size.
+local render = UI.Render
+local drawn = 0
+UI.Render = function() drawn = drawn + 1 end
+UI:Build()
+UI.frame:Show()
+UI.tab = "search"
+stepper.plus:GetScript("OnClick")(stepper.plus)
+suite.check("an open search window is drawn again at its new size", drawn == 1, drawn)
+UI.frame:Hide()
+stepper.minus:GetScript("OnClick")(stepper.minus)
+suite.check("a closed one waits until it opens", drawn == 1, drawn)
+UI.Render = render
+
+-- The docked goals panel is as wide as the tally on screen: a new size
+-- redraws it straight away, not on the next kill.
+local GoalsUI = ns.GoalsUI
+local goalsFrame, goalsRender = GoalsUI.frame, GoalsUI.Render
+local redrawn = false
+GoalsUI.frame = env.Stub({ _shown = true })
+GoalsUI.lastBase = -1
+GoalsUI.Render = function(self) redrawn = true; self.lastBase = self:Width() end
+local goalsX = ns.db.goalsX
+ns.db.goalsX = nil
+controls.trackerScale.minus:GetScript("OnClick")(controls.trackerScale.minus)
+suite.check("a new tally size redraws the docked goals panel", redrawn)
+controls.trackerScale.plus:GetScript("OnClick")(controls.trackerScale.plus)
+GoalsUI.frame, GoalsUI.Render, ns.db.goalsX = goalsFrame, goalsRender, goalsX
+
 --------------------------------------------------------------------------------
 -- The page follows the saved values
 --------------------------------------------------------------------------------

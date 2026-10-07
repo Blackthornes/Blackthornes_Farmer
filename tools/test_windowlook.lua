@@ -499,6 +499,14 @@ pressed:GetScript("OnMouseUp")(pressed, "LeftButton")
 suite.check("so the next press dips it from its resting place, and lets go again",
     dipped and Ys() == "0,0", Ys())
 
+-- Hidden under the mouse (a panel's X clicked), no leave comes: the light
+-- goes out, or the X is still lit when the panel opens again.
+Fire(pressed, "OnEnter")
+Motion:FinishAll()
+local litButton = Motion:Value(pressed, "hover") == 1
+suite.check("hidden under the mouse, a button lets go", litButton and Fire(pressed, "OnHide")
+    and Motion:Value(pressed, "hover") == 0 and not Motion:Running(pressed, "hover"))
+
 --------------------------------------------------------------------------------
 -- Effects off: everything lands at its end at once
 --------------------------------------------------------------------------------
