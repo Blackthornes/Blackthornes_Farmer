@@ -1640,8 +1640,12 @@ function GoalsUI:FillPicker()
 end
 
 --- Open the picker for `item`, beside `anchor` (the Goal button pressed).
-function GoalsUI:OpenPicker(item, anchor)
+--- `stillThere`, when given, says whether that button still stands for the
+--- item: list rows are reused as the list scrolls, so the picker closes
+--- (CheckPicker) rather than sit beside a row showing something else.
+function GoalsUI:OpenPicker(item, anchor, stillThere)
     local picker = self:BuildPicker()
+    picker.stillThere = stillThere
 
     if picker:IsShown() and GoalsUI.pickItem == item then
         picker:Hide()
@@ -1660,6 +1664,16 @@ function GoalsUI:OpenPicker(item, anchor)
     end
     picker:Show()
     ns.Motion:Open(picker, 4)
+end
+
+--- Close the picker once the button it opened beside shows another item
+--- or has gone (the results scrolled, a new search, the window closed).
+function GoalsUI:CheckPicker()
+    local picker = self.picker
+    if not (picker and picker:IsShown() and picker.stillThere) then return end
+
+    local ok, here = pcall(picker.stillThere)
+    if not (ok and here) then picker:Hide() end
 end
 
 function GoalsUI:PickerSet()

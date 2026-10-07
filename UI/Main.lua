@@ -220,6 +220,12 @@ function UI:Build()
         table.insert(UISpecialFrames, "BlackthornesFarmerFrame")
     end
 
+    -- A goal picker opened from a result closes with the window, however it
+    -- was closed (Escape, the close gem, the minimap button).
+    frame:HookScript("OnHide", function()
+        if ns.GoalsUI then ns.GoalsUI:CheckPicker() end
+    end)
+
     self.frame = frame
     self:ApplyScale()
 
@@ -340,6 +346,9 @@ function UI:BuildBody()
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
         -- The colour of the well the rows sit in.
         fadeKey = "well",
+        -- Scrolled or redrawn: a goal picker open beside a row that now
+        -- shows something else closes.
+        onRefresh = function() if ns.GoalsUI then ns.GoalsUI:CheckPicker() end end,
     })
 
     list:SetPoint("TOPLEFT", 8, -24)
@@ -728,7 +737,12 @@ function UI:CreateRow(row)
     row.goal = Widgets.CreateButton(row, "Goal", function(self)
         local data = row.data
         if data and data.type == "item" and ns.GoalsUI then
-            ns.GoalsUI:OpenPicker(data.item.name, self)
+            local name = data.item.name
+            ns.GoalsUI:OpenPicker(name, self, function()
+                local now = row.data
+                return row:IsShown() and UI.frame and UI.frame:IsShown()
+                    and now and now.type == "item" and now.item.name == name
+            end)
         end
     end, { width = 44, height = 15 })
     row.goal:SetPoint("RIGHT", -2, 0)
