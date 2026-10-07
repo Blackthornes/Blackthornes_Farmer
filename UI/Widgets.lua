@@ -397,7 +397,14 @@ function Widgets.CreateButton(parent, text, onClick, opts)
     button:SetScript("OnMouseUp", Release)
     -- Hidden while held (the click closed its window), the mouse-up never
     -- comes: let go, or the label would stay a pixel low from then on.
-    button:SetScript("OnHide", Release)
+    -- Hidden under the mouse, no leave comes either: put the light out, or
+    -- a close button is still lit when its panel opens again.
+    button:SetScript("OnHide", function(self)
+        Release(self)
+        Motion:Stop(self, "hover")
+        Motion:SetValue(self, "hover", 0)
+        Light(0)
+    end)
 
     if onClick then
         button:SetScript("OnClick", function(self, mouseButton)
