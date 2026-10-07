@@ -4,6 +4,28 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.18.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- The kills and loot panel can now be resized as a whole, text and all,
+  from 50% to 150%. Drag the gold grip just outside its bottom right corner
+  (right-click it for Normal), use the Small, Normal and Large buttons
+  under **Kill tally size** in Settings, or type
+  `/farm tracker size small|normal|large|<percent>`. It never grows past
+  the screen.
+- Changing Kill tally size or Search window size no longer makes the panel
+  jump across the screen. The docked goals panel and the search columns
+  follow the new size at once, and a bigger search window stays on screen.
+- The goal picker now closes when its row scrolls to a different item or
+  the search window closes.
+- A close button no longer stays lit when its panel comes back.
+- A kill of yours that dropped nothing and was then skinned now counts in
+  the recorded drops too, so drop rates for skinnable mobs are no longer
+  too high. A corpse looted before a `/reload` and skinned after it is no
+  longer counted as a second kill.
+
 ## 0.17.3
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
