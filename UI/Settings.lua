@@ -131,14 +131,40 @@ end
 -- tests can drive them and so a chat command could share them later.
 --------------------------------------------------------------------------------
 
-function SettingsUI:ApplyWindowScale()
-    local UI = ns.UI
-    if UI and UI.frame then
-        UI.frame:SetScale((ns.db.windowScale or 100) / 100)
+--- Saved spots are offsets in the window's own, scaled units, so a new size
+--- would move it on screen. Changed from `from` percent to `to`, the keys
+--- named are converted so the window's anchor stays where it is.
+function SettingsUI.KeepSpot(keys, from, to)
+    local db = ns.db
+    if not (type(from) == "number" and type(to) == "number" and from > 0 and to > 0)
+        or from == to then
+        return
+    end
+
+    local ratio = from / to
+    for _, key in ipairs(keys) do
+        if type(db[key]) == "number" then db[key] = db[key] * ratio end
     end
 end
 
-function SettingsUI:ApplyTrackerScale()
+--- `previous` is the size it had, when a player has just changed it; the
+--- window then stays where it is on screen. Without it (at login) the saved
+--- spot is already in the saved size's units.
+function SettingsUI:ApplyWindowScale(previous)
+    -- Converted even while the window is not built yet: it opens at the new size.
+    if previous then SettingsUI.KeepSpot({ "x", "y" }, previous, ns.db.windowScale or 100) end
+
+    local UI = ns.UI
+    if UI and UI.frame then
+        UI.frame:SetScale((ns.db.windowScale or 100) / 100)
+        if previous and UI.RestorePosition then UI:RestorePosition() end
+    end
+end
+
+--- `previous` is the size it had, when a player has just changed it; the
+--- panel then stays where it is on screen. Without it (at login) the saved
+--- spot is already in the saved size's units.
+function SettingsUI:ApplyTrackerScale(previous)
     local TrackerUI = ns.TrackerUI
     if not TrackerUI then return end
 
@@ -147,9 +173,15 @@ function SettingsUI:ApplyTrackerScale()
     -- first time it appears.
     local frame = TrackerUI.frame or (TrackerUI.Build and TrackerUI:Build())
     if frame then
+        if previous then
+            SettingsUI.KeepSpot({ "trackerX", "trackerY", "trackerGroupX", "trackerGroupY" },
+                previous, ns.db.trackerScale or 100)
+        end
         frame:SetScale((ns.db.trackerScale or 100) / 100)
         -- A new size can change whether it overlaps the group frames.
         if TrackerUI.Place then TrackerUI:Place() end
+        -- The docked goals panel is as wide as this one is on screen.
+        if TrackerUI.FollowGoals then TrackerUI:FollowGoals() end
     end
 end
 
@@ -342,8 +374,9 @@ function SettingsUI:BuildWindowsColumn()
         min = SCALE_MIN, max = SCALE_MAX, step = SCALE_STEP, value = 100,
         format = Percent,
         onChange = function(value)
+            local previous = ns.db.windowScale or 100
             ns.db.windowScale = value
-            SettingsUI:ApplyWindowScale()
+            SettingsUI:ApplyWindowScale(previous)
         end,
     })
     controls.windowScale:SetPoint("TOPLEFT", CONTROL_X, 0)
@@ -355,8 +388,9 @@ function SettingsUI:BuildWindowsColumn()
         min = SCALE_MIN, max = SCALE_MAX, step = SCALE_STEP, value = 100,
         format = Percent,
         onChange = function(value)
+            local previous = ns.db.trackerScale or 100
             ns.db.trackerScale = value
-            SettingsUI:ApplyTrackerScale()
+            SettingsUI:ApplyTrackerScale(previous)
         end,
     })
     controls.trackerScale:SetPoint("TOPLEFT", CONTROL_X, 0)

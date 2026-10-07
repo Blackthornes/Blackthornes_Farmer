@@ -2384,6 +2384,11 @@ local function FollowGoals()
     end
 end
 
+--- For a change made elsewhere, such as the panel's size in Settings.
+function TrackerUI:FollowGoals()
+    FollowGoals()
+end
+
 --- Redraw, and show or hide to match the saved setting.
 function TrackerUI:Refresh()
     self:Build()
