@@ -180,6 +180,20 @@ suite.check("a bigger search window keeps its spot on screen",
 stepper.minus:GetScript("OnClick")(stepper.minus)
 suite.check("and back", ns.db.windowScale == 100 and Near(ns.db.x, 110), tostring(ns.db.x))
 
+-- Open, it is drawn again, so its columns fit the screen at the new size.
+local render = UI.Render
+local drawn = 0
+UI.Render = function() drawn = drawn + 1 end
+UI:Build()
+UI.frame:Show()
+UI.tab = "search"
+stepper.plus:GetScript("OnClick")(stepper.plus)
+suite.check("an open search window is drawn again at its new size", drawn == 1, drawn)
+UI.frame:Hide()
+stepper.minus:GetScript("OnClick")(stepper.minus)
+suite.check("a closed one waits until it opens", drawn == 1, drawn)
+UI.Render = render
+
 -- The docked goals panel is as wide as the tally on screen: a new size
 -- redraws it straight away, not on the next kill.
 local GoalsUI = ns.GoalsUI

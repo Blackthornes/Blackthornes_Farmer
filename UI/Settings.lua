@@ -158,6 +158,16 @@ function SettingsUI:ApplyWindowScale(previous)
     if UI and UI.frame then
         UI.frame:SetScale((ns.db.windowScale or 100) / 100)
         if previous and UI.RestorePosition then UI:RestorePosition() end
+
+        -- Its columns are capped to what fits on screen at its size: drawn
+        -- again, or a bigger window runs off the edge until the next search.
+        if previous and UI.frame:IsShown() then
+            if UI.tab == "rankings" and ns.RankingsUI then
+                pcall(ns.RankingsUI.Render, ns.RankingsUI)
+            elseif UI.Render then
+                pcall(UI.Render, UI)
+            end
+        end
     end
 end
 

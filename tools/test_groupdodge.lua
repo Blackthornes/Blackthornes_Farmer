@@ -157,6 +157,19 @@ suite.check("the switch turns it off", ns.db.trackerDodgeGroup == false and Corn
     Corner())
 TrackerUI:SetDodgeGroup(true)
 
+-- A spot saved by an earlier version, hanging from its bottom, read while
+-- grouped: moved onto its top-left, it stays the solo spot and never
+-- becomes the spot for groups.
+TrackerUI.grouped = true
+ns.db.trackerGroupX, ns.db.trackerGroupY = nil, nil
+ns.db.trackerPoint, ns.db.trackerRelativePoint = "BOTTOMLEFT", "BOTTOMLEFT"
+ns.db.trackerX, ns.db.trackerY = 30, 300
+TrackerUI:Place()
+suite.check("an old bottom-anchored spot read in a group stays the solo spot",
+    ns.db.trackerPoint == "TOPLEFT" and ns.db.trackerX == 30 and ns.db.trackerGroupX == nil,
+    tostring(ns.db.trackerPoint) .. " " .. tostring(ns.db.trackerX) .. " " .. tostring(ns.db.trackerGroupX))
+ns.SettingsUI:ResetPositions()
+
 suite.check("the tally is untouched",
     ns.db.tracker.mobs["Defias Bandit"] and ns.db.tracker.mobs["Defias Bandit"].kills == 25)
 
