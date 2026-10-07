@@ -1634,8 +1634,16 @@ function Widgets.CreateStepper(parent, opts)
         return math.max(low, math.min(high, value))
     end
 
+    -- With opts.exact a value set from outside is shown as it is (a size
+    -- dragged to 87%), only kept in range; the buttons still step to the
+    -- next value on the list.
+    local function Bound(value)
+        return math.max(low, math.min(high, math.floor(value + 0.5)))
+    end
+
     function stepper:SetValue(value, silent)
-        self.value = Clamp(tonumber(value) or low)
+        value = tonumber(value) or low
+        self.value = opts.exact and Bound(value) or Clamp(value)
         text:SetText(opts.format and opts.format(self.value) or tostring(self.value))
 
         -- Dim at the end of the range; otherwise the buttons' own gold.

@@ -82,6 +82,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm minimap` | show or hide the minimap button |
 | `/farm tracker [on\|off]` | show or hide the kills and loot panel (`reset confirm` clears the tallies) |
 | `/farm tracker group [on\|off]` | move the panel aside from the party and raid frames when grouped (on by default) |
+| `/farm tracker size [small\|normal\|large\|50-150%]` | how big the kills and loot panel is drawn |
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
 | `/farm fishing [all]` | what you have caught in this zone, or everywhere (`reset confirm` clears it) |
 | `/farm gathering [all\|check]` | herbs and ore you have gathered in this zone, or everywhere; `check` lists herbs or ore credited to a mob (`reset confirm` clears it) |
@@ -182,6 +183,12 @@ grip in its bottom-right corner to resize it. The width is what you drag it
 to, or wider when a line needs it, so no text is cut off; the height is the
 tallest it grows, so a short session still gets a
 short panel. Settings > Window positions puts both back.
+
+To make the whole panel bigger or smaller, text and all, drag the gold grip
+just outside its bottom-right corner, anywhere from 50% to 150%; right-click
+it for the normal size. Settings > Kill tally size does the same, with
+Small, Normal and Large buttons, and so does `/farm tracker size` with
+`small`, `normal`, `large` or a percent. It never grows past the screen.
 
 In a party or raid the panel moves to the right of the party and raid frames,
 and back when you leave the group. Drag it while grouped and it goes to that

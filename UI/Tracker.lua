@@ -262,6 +262,239 @@ function TrackerUI:BuildGrip(frame)
 end
 
 --------------------------------------------------------------------------------
+-- Size
+--
+-- How big the whole panel is drawn, text and all, apart from how much of it
+-- shows (the corner grip above): the gold grip beside its bottom right
+-- corner, the Kill tally size row in Settings, or /farm tracker size (the
+-- owner asked 2026-10-07, after Tradeskills' window got the same). Saved in
+-- percent as `trackerScale`, the key the Settings row has always used.
+--------------------------------------------------------------------------------
+
+local SCALE_MIN, SCALE_MAX = 50, 150
+TrackerUI.SCALE_MIN, TrackerUI.SCALE_MAX = SCALE_MIN, SCALE_MAX
+TrackerUI.SIZES = {
+    { key = "small", text = "Small", percent = 80 },
+    { key = "normal", text = "Normal", percent = 100 },
+    { key = "large", text = "Large", percent = 120 },
+}
+local SIZE_GRIP = 20
+
+--- A frame's own scale, or 1 when it cannot say.
+local function ScaleOf(frame)
+    local ok, scale = pcall(function() return frame:GetScale() end)
+    if ok and type(scale) == "number" and scale > 0 then return scale end
+    return 1
+end
+
+--- A size in percent, kept within bounds and whole.
+function TrackerUI.ClampPercent(value)
+    value = tonumber(value)
+    if not value or value ~= value then return 100 end
+    return math.floor(math.max(SCALE_MIN, math.min(SCALE_MAX, value)) + 0.5)
+end
+
+--- "small", "normal", "large", "80", "80%" or "0.8" as a percent, or nil.
+function TrackerUI.ParseSize(text)
+    text = (text or ""):lower():gsub("%s", ""):gsub("%%$", "")
+    if text == "" then return nil end
+    for _, size in ipairs(TrackerUI.SIZES) do
+        if size.key == text then return size.percent end
+    end
+    local number = tonumber(text)
+    if not number or number <= 0 then return nil end
+    -- 0.8 means 80%, as 80 does.
+    if number <= 5 then number = number * 100 end
+    return number
+end
+
+--- The name of a size, "Small (80%)", or "87%" for one dragged to.
+function TrackerUI.ScaleText(percent)
+    percent = math.floor((tonumber(percent) or 100) + 0.5)
+    for _, size in ipairs(TrackerUI.SIZES) do
+        if size.percent == percent then return ("%s (%d%%)"):format(size.text, percent) end
+    end
+    return ("%d%%"):format(percent)
+end
+
+--- The largest size, in percent, at which the panel as it is now fits on
+--- the screen. Never under 100: a panel taller than the screen at its normal
+--- size was drawn that way before there were sizes, and still is.
+function TrackerUI:FitPercent()
+    local ok, width, height = pcall(function() return UIParent:GetWidth(), UIParent:GetHeight() end)
+    if not (ok and type(width) == "number" and type(height) == "number"
+        and width > 0 and height > 0) then
+        return SCALE_MAX
+    end
+
+    local wide, tall = self:Width(), MIN_HEIGHT
+    if self.frame then
+        local okSize, w, h = pcall(function() return self.frame:GetWidth(), self.frame:GetHeight() end)
+        if okSize and type(w) == "number" and w > 0 then wide = w end
+        if okSize and type(h) == "number" and h > tall then tall = h end
+    end
+
+    -- Room for the glow round it and the grip beside it.
+    local fit = math.min(width / (wide + SIZE_GRIP + 16), height / (tall + 16))
+    return math.max(100, math.min(SCALE_MAX, math.floor(fit * 100)))
+end
+
+--- The size the panel is drawn at, in percent: the saved one, kept on the
+--- screen.
+function TrackerUI:DrawnPercent()
+    return math.min(TrackerUI.ClampPercent(ns.db and ns.db.trackerScale or 100), self:FitPercent())
+end
+
+--- Save a size and draw the panel at it, staying where it is on screen.
+--- Returns the percent it is drawn at.
+function TrackerUI:SetScalePercent(value)
+    if not ns.db then return 100 end
+    local previous = self:DrawnPercent()
+    ns.db.trackerScale = TrackerUI.ClampPercent(value)
+
+    if ns.SettingsUI and ns.SettingsUI.ApplyTrackerScale then
+        ns.SettingsUI:ApplyTrackerScale(previous)
+        if ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
+    elseif self.frame then
+        self.frame:SetScale(self:DrawnPercent() / 100)
+    end
+    return self:DrawnPercent()
+end
+
+--- The gold grip beside the bottom right corner: drag it and the whole panel
+--- grows or shrinks from its top left corner; right-click it for Normal. It
+--- hangs outside, to the right, as the goals panel docks underneath.
+function TrackerUI:BuildSizeGrip(frame)
+    local grip = Theme.CreatePanel(frame, "panel", "borderLit")
+    grip:SetSize(SIZE_GRIP, SIZE_GRIP)
+    grip:SetPoint("BOTTOMLEFT", frame, "BOTTOMRIGHT", 3, 0)
+    grip:SetFrameLevel((frame:GetFrameLevel() or 0) + 20)
+    grip:EnableMouse(true)
+    Theme.TopSheen(grip)
+    self.sizeGrip = grip
+
+    -- Six gold dots in a stair down to the bottom right corner, the shape
+    -- every resizable window in the game wears, drawn from plain colour.
+    local dots = {}
+    for row = 0, 2 do
+        for column = 2 - row, 2 do
+            local dot = grip:CreateTexture(nil, "ARTWORK")
+            dot:SetSize(3, 3)
+            dot:SetPoint("BOTTOMRIGHT", grip, "BOTTOMRIGHT", -3 - (2 - column) * 5, 3 + (2 - row) * 5)
+            dot:SetColorTexture(Theme.Unpack("accent"))
+            dots[#dots + 1] = dot
+        end
+    end
+
+    local function Light(on)
+        Theme.SetBorderColor(grip, on and "accent" or "borderLit")
+        for _, dot in ipairs(dots) do
+            dot:SetColorTexture(Theme.Unpack(on and "accentHi" or "accent"))
+        end
+    end
+
+    local function Track(self)
+        local cx, cy = GetCursorPosition()
+        local uiScale = UIParent:GetEffectiveScale()
+        if not (cx and cy and type(uiScale) == "number" and uiScale > 0) then return end
+        cx, cy = cx / uiScale, cy / uiScale
+
+        -- Where the corner would be for the cursor to sit on the grip as it
+        -- did when the drag began, then the size that puts it there: the
+        -- width's and the height's answers averaged, so a drag off the
+        -- diagonal still feels right.
+        local width = cx - self.grabX - self.anchorLeft
+        local height = self.anchorTop - (cy + self.grabY)
+        local percent = TrackerUI.ClampPercent((width / self.wide + height / self.tall) / 2 * 100)
+        percent = math.min(percent, self.fit)
+        local scale = percent / 100
+        if math.abs(scale - ScaleOf(frame)) < 0.005 then return end
+
+        frame:SetScale(scale)
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.anchorLeft / scale, self.anchorTop / scale)
+
+        if GameTooltip:IsOwned(self) then
+            GameTooltip:SetText(TrackerUI.ScaleText(percent), Theme.Unpack("accentHi"))
+            GameTooltip:Show()
+        end
+    end
+
+    local function StopSizing(self)
+        if not self.sizing then return end
+        self.sizing = false
+        TrackerUI.sizing = false
+        self:SetScript("OnUpdate", nil)
+
+        -- The saved spots were taken at the size the drag began at; Settings'
+        -- path converts them, so the panel lands where the drag left it.
+        local now = math.floor(ScaleOf(frame) * 100 + 0.5)
+        frame:SetScale(self.from / 100)
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.anchorLeft * 100 / self.from,
+            self.anchorTop * 100 / self.from)
+        TrackerUI:SetScalePercent(now)
+        TrackerUI:Render()
+    end
+
+    grip:SetScript("OnMouseDown", function(self, button)
+        if button == "RightButton" then
+            TrackerUI:SetScalePercent(100)
+            return
+        end
+        if button ~= "LeftButton" then return end
+
+        if ns.Motion and ns.Motion.Stop then pcall(ns.Motion.Stop, ns.Motion, frame, "open", true) end
+
+        local scale = ScaleOf(frame)
+        local ok, left, top, wide, tall = pcall(function()
+            return frame:GetLeft(), frame:GetTop(), frame:GetWidth(), frame:GetHeight()
+        end)
+        local cx, cy = GetCursorPosition()
+        local uiScale = UIParent:GetEffectiveScale()
+        if not (ok and type(left) == "number" and type(top) == "number"
+            and type(wide) == "number" and wide > 0 and type(tall) == "number" and tall > 0
+            and cx and cy and type(uiScale) == "number" and uiScale > 0) then
+            return
+        end
+
+        -- All in the screen's units, which do not change with the panel's.
+        self.wide, self.tall = wide, tall
+        self.anchorLeft, self.anchorTop = left * scale, top * scale
+        self.grabX = cx / uiScale - (self.anchorLeft + wide * scale)
+        self.grabY = (self.anchorTop - tall * scale) - cy / uiScale
+        self.fit = TrackerUI:FitPercent()
+        self.from = math.floor(scale * 100 + 0.5)
+
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+
+        -- Not pulled back beside the group frames mid-drag.
+        TrackerUI.sizing = true
+        self.sizing = true
+        self:SetScript("OnUpdate", Track)
+    end)
+    grip:SetScript("OnMouseUp", StopSizing)
+    grip:SetScript("OnHide", StopSizing)
+
+    grip:SetScript("OnEnter", function(self)
+        Light(true)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(TrackerUI.ScaleText(ScaleOf(frame) * 100), Theme.Unpack("accentHi"))
+        GameTooltip:AddLine("Drag to make the whole panel bigger or smaller, text and all.", 1, 1, 1, true)
+        GameTooltip:AddLine("Right-click: back to the normal size.", 1, 1, 1, true)
+        GameTooltip:AddLine("The small grip inside the corner changes how much it shows instead.", 1, 1, 1, true)
+        GameTooltip:AddLine("Also Kill tally size in Settings, and /farm tracker size.", Theme.Unpack("accent"))
+        GameTooltip:Show()
+    end)
+    grip:SetScript("OnLeave", function()
+        Light(false)
+        GameTooltip:Hide()
+    end)
+
+    return grip
+end
+
+--------------------------------------------------------------------------------
 -- Construction
 --------------------------------------------------------------------------------
 
@@ -437,6 +670,7 @@ function TrackerUI:Build()
     self.fadeBottom = self:BuildFade(frame, "BOTTOM")
 
     self:BuildGrip(frame)
+    self:BuildSizeGrip(frame)
 
     self:RestorePosition()
     frame:Hide()

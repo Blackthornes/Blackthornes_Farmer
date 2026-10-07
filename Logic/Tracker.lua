@@ -932,7 +932,7 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("tracker", "show or hide the kill and loot panel (group on/off: move it aside in a party or raid)", function(rest)
+ns.RegisterCommand("tracker", "show or hide the kill and loot panel (group on/off: move it aside in a party or raid; size: small, normal, large or a percent)", function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "reset" then
@@ -944,6 +944,23 @@ ns.RegisterCommand("tracker", "show or hide the kill and loot panel (group on/of
     if argument == "reset confirm" then
         Tracker:Reset()
         ns.Print("kill tallies cleared.")
+        return
+    end
+
+    -- How big the panel is drawn, as its gold corner grip and Settings'
+    -- Kill tally size do (UI/Tracker.lua).
+    local size = argument:match("^size%s*(.-)$")
+    if size then
+        local TrackerUI = ns.TrackerUI
+        if not TrackerUI then return end
+        local percent = TrackerUI.ParseSize(size)
+        if not percent then
+            ns.Print(("the kill and loot panel is at %s. /farm tracker size small, normal, large or a percent from %d%% to %d%% changes it, or drag the gold corner beside its bottom right."):format(
+                TrackerUI.ScaleText(TrackerUI:DrawnPercent()), TrackerUI.SCALE_MIN, TrackerUI.SCALE_MAX))
+            return
+        end
+        TrackerUI:Build()
+        ns.Print(("kill and loot panel size: %s."):format(TrackerUI.ScaleText(TrackerUI:SetScalePercent(percent))))
         return
     end
 
