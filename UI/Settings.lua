@@ -120,6 +120,30 @@ local function CreateRow(parent, anchor, labelText, description)
     return row
 end
 
+--- Make room in a row for a second line of controls under its first, the
+--- description moving down by `by`.
+local function GrowRow(row, by)
+    row.hint:ClearAllPoints()
+    row.hint:SetPoint("TOPLEFT", 0, -25 - by)
+    row.extra = (row.extra or 0) + by
+    row:SetHeight(ROW_HEIGHT + row.extra)
+    local columns = SettingsUI.columnExtra or {}
+    SettingsUI.columnExtra = columns
+    columns[row.column] = (columns[row.column] or 0) + by
+    SettingsUI.rowsExtra = math.max(SettingsUI.rowsExtra or 0, columns[row.column])
+end
+
+--- A button's tooltip: what it does, in clear white on the dark tooltip.
+local function Explain(button, title, text)
+    button:HookScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine(title, Theme.Unpack("accent"))
+        GameTooltip:AddLine(text, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    button:HookScript("OnLeave", function() GameTooltip:Hide() end)
+end
+
 local function Percent(value)
     return ("%d%%"):format(value)
 end
@@ -183,11 +207,13 @@ function SettingsUI:ApplyTrackerScale(previous)
     -- first time it appears.
     local frame = TrackerUI.frame or (TrackerUI.Build and TrackerUI:Build())
     if frame then
+        -- The saved size, kept on the screen (TrackerUI:DrawnPercent).
+        local percent = TrackerUI.DrawnPercent and TrackerUI:DrawnPercent() or (ns.db.trackerScale or 100)
         if previous then
             SettingsUI.KeepSpot({ "trackerX", "trackerY", "trackerGroupX", "trackerGroupY" },
-                previous, ns.db.trackerScale or 100)
+                previous, percent)
         end
-        frame:SetScale((ns.db.trackerScale or 100) / 100)
+        frame:SetScale(percent / 100)
         -- A new size can change whether it overlaps the group frames.
         if TrackerUI.Place then TrackerUI:Place() end
         -- The docked goals panel is as wide as this one is on screen.
@@ -391,19 +417,54 @@ function SettingsUI:BuildWindowsColumn()
     })
     controls.windowScale:SetPoint("TOPLEFT", CONTROL_X, 0)
 
+    -- The kills and loot panel's size, which its gold corner grip and
+    -- /farm tracker size set too (the owner asked 2026-10-07): any percent
+    -- from 50 to 150 on the stepper, one dragged to shown as it is, and
+    -- Small, Normal and Large under it, the one in use lit green.
+    local TrackerUI = ns.TrackerUI
     local trackerScaleRow = CreateRow(frame, windowScaleRow, "Kill tally size",
-        "The panel that follows your farming. Sized on its own, since it stays on screen.")
+        "The kills and loot panel, sized on its own. Or drag the gold corner "
+        .. "beside its bottom right; right-click it for Normal.")
 
     controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
-        min = SCALE_MIN, max = SCALE_MAX, step = SCALE_STEP, value = 100,
+        min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
+        max = TrackerUI and TrackerUI.SCALE_MAX or SCALE_MAX,
+        step = SCALE_STEP, value = 100, exact = true,
         format = Percent,
         onChange = function(value)
-            local previous = ns.db.trackerScale or 100
-            ns.db.trackerScale = value
-            SettingsUI:ApplyTrackerScale(previous)
+            if TrackerUI and TrackerUI.SetScalePercent then
+                TrackerUI:SetScalePercent(value)
+            else
+                local previous = ns.db.trackerScale or 100
+                ns.db.trackerScale = value
+                SettingsUI:ApplyTrackerScale(previous)
+            end
         end,
     })
     controls.trackerScale:SetPoint("TOPLEFT", CONTROL_X, 0)
+
+    -- The three named sizes, in a line under the stepper, ending where it
+    -- ends. The row grows to fit them over its description.
+    controls.trackerSizes = {}
+    local after
+    for index = #(TrackerUI and TrackerUI.SIZES or {}), 1, -1 do
+        local size = TrackerUI.SIZES[index]
+        local button = Widgets.CreateButton(trackerScaleRow, size.text, function()
+            ns.HandleSlash("tracker size " .. size.key)
+        end, { width = 44, height = 18 })
+        if after then
+            button:SetPoint("RIGHT", after, "LEFT", -4, 0)
+        else
+            button:SetPoint("TOPRIGHT", controls.trackerScale, "BOTTOMRIGHT", 0, -4)
+        end
+        Explain(button, ("%s kill tally"):format(size.text),
+            ("Draws the kills and loot panel at %d%%, text and all. Same as /farm tracker size %s."):format(
+                size.percent, size.key))
+        button.percent = size.percent
+        controls.trackerSizes[index] = button
+        after = button
+    end
+    if after then GrowRow(trackerScaleRow, 24) end
 
     local positionRow = CreateRow(frame, trackerScaleRow, "Window positions",
         "Moves every Farmer window back to where it started, if one ends up off screen.")
@@ -572,7 +633,12 @@ function SettingsUI:Refresh()
 
     controls.minimap:SetChecked(not db.minimapHidden)
     controls.windowScale:SetValue(db.windowScale or 100, true)
-    controls.trackerScale:SetValue(db.trackerScale or 100, true)
+    local tallyPercent = ns.TrackerUI and ns.TrackerUI.DrawnPercent and ns.TrackerUI:DrawnPercent()
+        or db.trackerScale or 100
+    controls.trackerScale:SetValue(tallyPercent, true)
+    for _, button in ipairs(controls.trackerSizes or {}) do
+        button:SetLabelColor(button.percent == tallyPercent and "good" or nil)
+    end
     controls.debug:SetChecked(db.debug == true)
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
