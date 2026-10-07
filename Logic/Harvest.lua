@@ -370,18 +370,34 @@ function Harvest:NoteUnit(unit)
         if number and number > 0 then level = number end
     end
 
+    -- Seen alive this session: once it is, it stays so after it dies.
+    local known = self:KnownUnit(guid)
+    local alive = known and known.alive or false
+    if not alive and UnitIsDead then
+        local gotDead, dead = pcall(UnitIsDead, unit)
+        local readable, living = pcall(function() return gotDead and dead == false end)
+        alive = readable and living == true
+    end
+
     if not self.seen[guid] then
         self.seenCount = self.seenCount + 1
         if self.seenCount > SEEN_LIMIT then
             self.seenOld, self.seen, self.seenCount = self.seen, {}, 1
         end
     end
-    self.seen[guid] = { name = name, level = level }
+    self.seen[guid] = { name = name, level = level, alive = alive or nil }
 end
 
 function Harvest:KnownUnit(guid)
     if type(guid) ~= "string" then return nil end
     return self.seen[guid] or self.seenOld[guid]
+end
+
+--- Did this session see the mob alive? A corpse it never saw alive may be
+--- one looted before a /reload, which the addon cannot tell from new.
+function Harvest:SeenAlive(guid)
+    local known = self:KnownUnit(guid)
+    return known ~= nil and known.alive == true
 end
 
 --- Where you are standing: the zone, and the subzone if you are in one.
@@ -631,6 +647,7 @@ function Harvest:RecordCorpse()
     if self:IsNodeLoot() then return end
 
     local mob, level = self:LootSource()
+    local _, _, sourceGuid, unit = self:Corpse()
     if not mob or not self:LootIsTargets() then
         self.skipped = (self.skipped or 0) + 1
         return
@@ -650,13 +667,19 @@ function Harvest:RecordCorpse()
     -- player's kill, one whose drops an area loot already took with another
     -- corpse's, or one looted before a /reload. Its drops are not in this
     -- window, so counting it would add a corpse that held nothing.
+    --
+    -- Your own kill that dropped nothing is the exception, as in the kill
+    -- tally (Tracker:EmptyOwnKill): it opens no window until the skin, and a
+    -- rate has to count the corpses that held nothing.
     local guid = self:CorpseID()
     local corpse = guid and self.opened[guid]
     local record
 
     if corpse then
         record = corpse.record
-    elseif ns.Gathering ~= nil and ns.Gathering:IsSkinning() then
+    elseif ns.Gathering ~= nil and ns.Gathering:IsSkinning()
+        and not (guid and guid == sourceGuid and ns.Tracker
+            and ns.Tracker:EmptyOwnKill(guid, unit)) then
         self.skipped = (self.skipped or 0) + 1
         return
     else
