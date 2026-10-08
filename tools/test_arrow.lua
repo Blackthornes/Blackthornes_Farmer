@@ -287,6 +287,9 @@ suite.check("and comes back with one", frame:IsShown())
 
 -- The red gem turns it off.
 suite.check("it has a close gem", ArrowUI.close ~= nil)
+local gemPoint = ArrowUI.close._point or {}
+suite.check("beside the plate, not over its words",
+    gemPoint[1] == "LEFT" and gemPoint[2] == ArrowUI.plate and gemPoint[3] == "RIGHT", tostring(gemPoint[1]))
 ArrowUI.close:GetScript("OnClick")(ArrowUI.close)
 suite.check("the close gem turns it off", not Arrow.IsOn() and not frame:IsShown())
 ns.HandleSlash("arrow on")

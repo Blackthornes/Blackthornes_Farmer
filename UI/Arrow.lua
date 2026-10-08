@@ -107,16 +107,6 @@ function ArrowUI:Build()
     mark:Hide()
     self.mark = mark
 
-    -- The house close gem, out past the ring's top right: turns it off.
-    if ns.Titanforged and ns.Titanforged.CloseGem then
-        local close = ns.Titanforged.CloseGem(dial, function() ArrowUI:Close() end)
-        close:SetSize(20, 20)
-        close:ClearAllPoints()
-        close:SetPoint("CENTER", dial, "TOPRIGHT", -2, -2)
-        close:SetFrameLevel(dial:GetFrameLevel() + 6)
-        self.close = close
-    end
-
     -- The plate across the ring's top: the goal and its count.
     local plate = CreateFrame("Frame", nil, frame)
     plate:SetHeight(PLATE_HEIGHT)
@@ -126,6 +116,17 @@ function ArrowUI:Build()
     Theme.Border(plate, "accentHi")
     Theme.Halo(plate, 5, 0.18)
     self.plate = plate
+
+    -- The house close gem, just past the plate's right end, clear of the
+    -- goal's name: turns it off.
+    if ns.Titanforged and ns.Titanforged.CloseGem then
+        local close = ns.Titanforged.CloseGem(frame, function() ArrowUI:Close() end)
+        close:SetSize(20, 20)
+        close:ClearAllPoints()
+        close:SetPoint("LEFT", plate, "RIGHT", 4, 0)
+        close:SetFrameLevel(plate:GetFrameLevel() + 1)
+        self.close = close
+    end
 
     local title = Theme.CreateLabel(plate, "normal", "gilt", "CENTER")
     title:SetPoint("CENTER", 0, 0)
