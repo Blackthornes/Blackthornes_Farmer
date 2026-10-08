@@ -225,6 +225,10 @@ function UI:Build()
     frame:HookScript("OnHide", function()
         if ns.GoalsUI then ns.GoalsUI:CheckPicker() end
     end)
+    -- It also stays outside the window's edge as the window widens or narrows.
+    frame:HookScript("OnSizeChanged", function()
+        if ns.GoalsUI then ns.GoalsUI:CheckPicker() end
+    end)
 
     self.frame = frame
     self:ApplyScale()
@@ -742,7 +746,7 @@ function UI:CreateRow(row)
                 local now = row.data
                 return row:IsShown() and UI.frame and UI.frame:IsShown()
                     and now and now.type == "item" and now.item.name == name
-            end)
+            end, UI.frame)
         end
     end, { width = 44, height = 15 })
     row.goal:SetPoint("RIGHT", -2, 0)

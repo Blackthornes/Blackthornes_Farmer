@@ -1639,11 +1639,83 @@ function GoalsUI:FillPicker()
     self:PickerSelect(GoalsUI.choice)
 end
 
---- Open the picker for `item`, beside `anchor` (the Goal button pressed).
+-- Room between the picker and the window it opens beside: both rims, the
+-- corner gems and the window's close gem reach a few pixels past their
+-- frames' edges.
+local PICK_GAP = 12
+
+--- Where the picker goes: level with the button that opened it, but outside
+--- the window holding that button (`GoalsUI.pickBeside`), to its right, or to its
+--- left when the right has too little screen left. Opened against the
+--- button itself, it covered the window's right edge and close gem.
+--- Called again when that window changes size or its list redraws, so it
+--- follows a resize and flips side if the right runs out of room.
+function GoalsUI:PlacePicker()
+    local picker = self.picker
+    if not picker then return end
+    local anchor, beside = GoalsUI.pickAnchor, GoalsUI.pickBeside
+
+    -- An opening still sliding in puts its own point back when it lands, so
+    -- land it first, or it would carry the picker back to where it was.
+    if ns.Motion then ns.Motion:Stop(picker, "open", true) end
+    picker:ClearAllPoints()
+    if not anchor then
+        picker:SetPoint("CENTER", UIParent, "CENTER", 0, 80)
+        return
+    end
+
+    -- Edges in screen pixels, read in a pcall: a frame not yet laid out
+    -- answers nil.
+    local function Edges(frame)
+        if not frame then return end
+        local ok, left, right, top, scale = pcall(function()
+            return frame:GetLeft(), frame:GetRight(), frame:GetTop(), frame:GetEffectiveScale()
+        end)
+        left, right, top, scale = tonumber(left), tonumber(right), tonumber(top), tonumber(scale)
+        if not (ok and left and right and top and scale and scale > 0) then return end
+        return left * scale, right * scale, top * scale
+    end
+
+    local winLeft, winRight, winTop = Edges(beside)
+    local _, _, buttonTop = Edges(anchor)
+    if not (winLeft and buttonTop) then
+        picker:SetPoint("TOPLEFT", anchor, "TOPRIGHT", PICK_GAP, 0)
+        return
+    end
+
+    local scale = tonumber(picker:GetEffectiveScale()) or 1
+    if scale <= 0 then scale = 1 end
+    local _, screenRight = Edges(UIParent)
+    if not screenRight then
+        local ok, width = pcall(GetScreenWidth)
+        screenRight = ok and tonumber(width) or nil
+    end
+
+    local width = (tonumber(picker:GetWidth()) or PICK_WIDTH) * scale
+    local needs = PICK_GAP * scale + width
+    local right = true
+    if screenRight and winRight + needs > screenRight then
+        -- No room on the right: the left if it fits there, else whichever
+        -- side has more room (the screen clamp keeps it on screen).
+        right = winLeft < needs and (screenRight - winRight) >= winLeft
+    end
+
+    -- Its top a little above the button's, as when it hung off the button.
+    local y = (buttonTop - winTop) / scale + 8
+    if right then
+        picker:SetPoint("TOPLEFT", beside, "TOPRIGHT", PICK_GAP, y)
+    else
+        picker:SetPoint("TOPRIGHT", beside, "TOPLEFT", -PICK_GAP, y)
+    end
+    picker.side = right and "right" or "left"
+end
+
+--- Open the picker for `item`, beside `anchor` (the Goal button pressed),
+--- outside `beside`, the window that button sits in, when given.
 --- `stillThere`, when given, says whether that button still stands for the
 --- item: list rows are reused as the list scrolls, so the picker closes
 --- (CheckPicker) rather than sit beside a row showing something else.
-function GoalsUI:OpenPicker(item, anchor, stillThere)
+function GoalsUI:OpenPicker(item, anchor, stillThere, beside)
     local picker = self:BuildPicker()
     picker.stillThere = stillThere
 
@@ -1656,12 +1728,8 @@ function GoalsUI:OpenPicker(item, anchor, stillThere)
     GoalsUI.choice = nil
     self:FillPicker()
 
-    picker:ClearAllPoints()
-    if anchor then
-        picker:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 6, 0)
-    else
-        picker:SetPoint("CENTER", UIParent, "CENTER", 0, 80)
-    end
+    GoalsUI.pickAnchor, GoalsUI.pickBeside = anchor, beside
+    self:PlacePicker()
     picker:Show()
     ns.Motion:Open(picker, 4)
 end
@@ -1673,7 +1741,11 @@ function GoalsUI:CheckPicker()
     if not (picker and picker:IsShown() and picker.stillThere) then return end
 
     local ok, here = pcall(picker.stillThere)
-    if not (ok and here) then picker:Hide() end
+    if not (ok and here) then
+        picker:Hide()
+    elseif GoalsUI.pickBeside then
+        self:PlacePicker()
+    end
 end
 
 function GoalsUI:PickerSet()

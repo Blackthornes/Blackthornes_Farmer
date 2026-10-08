@@ -493,6 +493,44 @@ GUI:CheckPicker()
 suite.check("and when the search window closes", not GUI.picker:IsShown())
 ns.UI:Hide()
 
+-- The picker opens outside the search window, level with the Goal button,
+-- never over the window's right edge and close gem; on the left when the
+-- right has no room, and it follows the window when it is resized.
+ns.UI:Show()
+local win, button = ns.UI.frame, copperRow.goal
+win._left, win._right, win._top = 300, 900, 800
+button._left, button._right, button._top = 850, 894, 640
+UIParent._left, UIParent._right, UIParent._top = 0, 1920, 1080
+GUI.picker:Hide()
+button:GetScript("OnClick")(button, "LeftButton")
+ns.Motion:FinishAll()
+local at = GUI.picker._point
+suite.check("the picker opens beside the window, not over it",
+    at[1] == "TOPLEFT" and at[2] == win and at[3] == "TOPRIGHT" and at[4] >= 10, table.concat({ tostring(at[1]), tostring(at[3]), tostring(at[4]) }, " "))
+suite.check("level with the Goal button", at[5] == -160 + 8, at[5])
+suite.check("on the right", GUI.picker.side == "right")
+
+win._left, win._right = 1200, 1800
+GUI:CheckPicker()
+at = GUI.picker._point
+suite.check("on the left when the window is near the screen's right edge",
+    at[1] == "TOPRIGHT" and at[2] == win and at[3] == "TOPLEFT" and at[4] <= -10, table.concat({ tostring(at[1]), tostring(at[3]), tostring(at[4]) }, " "))
+
+win._left, win._right = 100, 1850
+GUI:CheckPicker()
+suite.check("a window wider than both sides allow picks the roomier side",
+    GUI.picker.side == "left")
+
+win._left, win._right = 300, 700
+GUI:CheckPicker()
+suite.check("back on the right once the window narrows", GUI.picker.side == "right")
+suite.check("still open after the moves", GUI.picker:IsShown())
+GUI.picker:Hide()
+win._left, win._right, win._top = nil, nil, nil
+button._left, button._right, button._top = nil, nil, nil
+UIParent._left, UIParent._right, UIParent._top = nil, nil, nil
+ns.UI:Hide()
+
 -- The picker's amount box keeps its room for the number: no magnifier or
 -- clear button in it. The search box keeps both.
 GUI:OpenPicker("Tin Ore")
