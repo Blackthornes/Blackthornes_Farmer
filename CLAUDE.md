@@ -79,6 +79,14 @@ kills panel, the goals panel, banners and toasts stay up while playing and
 keep their own look. Anything placed inside a dressed window stays 6 pixels
 in from its edge, or it covers the rim.
 
+## The goal arrow, copied to Equipment
+
+Equipment's upgrade quest has the same dial (asked 2026-10-08):
+its `Logic/QuestArrow.lua` and `UI/QuestArrow.lua` copy `Logic/Arrow.lua`
+and `UI/Arrow.lua` here, and its `tools/make_arrow_art.py` is this repo's,
+drawing the same `Media/Arrow/*.tga`. Neither addon calls the other for it.
+A fix to the dial or its art in one belongs in the other.
+
 ## Discord
 
 The addons share a Discord server, Blackthornes AddOns (public invite
