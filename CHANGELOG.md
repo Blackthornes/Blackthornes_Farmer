@@ -4,6 +4,17 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.19.1
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- Only one Blackthornes arrow is on screen at a time. With Equipment's
+  quest arrow or Pets' beast arrow also installed, whichever arrow was
+  turned on or aimed most recently is drawn and the others wait hidden,
+  coming back once it is closed or has nothing to point at. With Farmer
+  alone, nothing changes.
+
 ## 0.19.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game
