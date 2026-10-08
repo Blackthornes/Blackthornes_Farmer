@@ -272,8 +272,9 @@ function ArrowUI:Draw(force)
     end
 
     local goal = state.goal
-    local title = goal and ("%s  %d / %d"):format(goal.item, goal.have or 0, goal.target or 0)
-        or "Goal arrow"
+    -- The plate carries a goal or nothing: never a name for the dial.
+    local title = goal and ("%s  %d / %d"):format(goal.item, goal.have or 0, goal.target or 0) or ""
+    self.plate:SetShown(title ~= "")
     local distance, place, note, noteColor = ArrowUI.Words(state)
 
     local key = table.concat({ title, distance, place, note, noteColor }, "\n")

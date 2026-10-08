@@ -254,6 +254,7 @@ ArrowUI:Refresh()
 local frame = ArrowUI.frame
 suite.check("the dial shows", frame and frame:IsShown())
 suite.check("the goal on its plate", ArrowUI.title:GetText() == "Copper Ore  12 / 40", ArrowUI.title:GetText())
+suite.check("and never the words Goal arrow", ArrowUI.title:GetText() ~= "Goal arrow")
 suite.check("the distance under it", ArrowUI.distance:GetText() == "150 yd", ArrowUI.distance:GetText())
 
 local turned
