@@ -4,6 +4,27 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.19.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- New **goal arrow** (`/farm arrow`, or the Goal arrow switch in Settings,
+  off by default). A gold dial with a glowing arrow turns as you turn and
+  points to the nearest place to gather the goal it follows, with the
+  goal and its count on a plate and the distance, place and why it was
+  picked underneath. Click the dial for the next goal, right-click for the
+  next place, and Shift-click a goal card or a Where? place to point the
+  arrow there. It hides inside dungeons and when you have no open goal,
+  and its red close gem turns it off.
+- The arrow points first to spots where you gathered the item yourself
+  (a spot picked in the last 3 minutes waits until it has grown back),
+  then to places the data has coordinates for, then to the middle of a
+  zone. On the other continent it tells you to take the boat or zeppelin.
+- The gathering goal picker now opens beside the search window instead of
+  over its gold rim and close gem, flipping to the other side near the
+  screen edge and following the window when it is resized.
+
 ## 0.18.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
