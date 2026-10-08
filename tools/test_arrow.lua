@@ -254,6 +254,7 @@ ArrowUI:Refresh()
 local frame = ArrowUI.frame
 suite.check("the dial shows", frame and frame:IsShown())
 suite.check("the goal on its plate", ArrowUI.title:GetText() == "Copper Ore  12 / 40", ArrowUI.title:GetText())
+suite.check("and never the words Goal arrow", ArrowUI.title:GetText() ~= "Goal arrow")
 suite.check("the distance under it", ArrowUI.distance:GetText() == "150 yd", ArrowUI.distance:GetText())
 
 local turned
@@ -274,6 +275,21 @@ frame:GetScript("OnDragStop")(frame)
 local before = Arrow:Goal()
 frame:GetScript("OnMouseUp")(frame, "LeftButton")
 suite.check("letting go after a drag changes nothing", Arrow:Goal() == before)
+
+-- No open goal left: it steps out of the way, still on for the next one.
+local savedList = ns.db.goals.list
+ns.db.goals.list = { { item = "Copper Ore", target = 40, have = 40, done = true } }
+ArrowUI:Draw()
+suite.check("with no open goal it hides", Arrow.IsOn() and not frame:IsShown())
+ns.db.goals.list = savedList
+ArrowUI:Draw()
+suite.check("and comes back with one", frame:IsShown())
+
+-- The red gem turns it off.
+suite.check("it has a close gem", ArrowUI.close ~= nil)
+ArrowUI.close:GetScript("OnClick")(ArrowUI.close)
+suite.check("the close gem turns it off", not Arrow.IsOn() and not frame:IsShown())
+ns.HandleSlash("arrow on")
 
 ns.HandleSlash("arrow off")
 ArrowUI:Draw()

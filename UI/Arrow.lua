@@ -11,7 +11,8 @@
 -- setting: it pulses on Full, holds still on Subtle and Off.
 --
 -- Off until turned on (/farm arrow, the settings page, or Shift-click on a
--- goal or a Where? place), and hidden inside dungeons.
+-- goal or a Where? place), closed with its red gem, and hidden inside
+-- dungeons and while no goal is open.
 
 local ADDON, ns = ...
 
@@ -106,6 +107,16 @@ function ArrowUI:Build()
     mark:Hide()
     self.mark = mark
 
+    -- The house close gem, out past the ring's top right: turns it off.
+    if ns.Titanforged and ns.Titanforged.CloseGem then
+        local close = ns.Titanforged.CloseGem(dial, function() ArrowUI:Close() end)
+        close:SetSize(20, 20)
+        close:ClearAllPoints()
+        close:SetPoint("CENTER", dial, "TOPRIGHT", -2, -2)
+        close:SetFrameLevel(dial:GetFrameLevel() + 6)
+        self.close = close
+    end
+
     -- The plate across the ring's top: the goal and its count.
     local plate = CreateFrame("Frame", nil, frame)
     plate:SetHeight(PLATE_HEIGHT)
@@ -181,6 +192,13 @@ function ArrowUI:OnClick(button)
     self:Draw(true)
 end
 
+--- The close gem: the arrow off until turned on again.
+function ArrowUI:Close()
+    ns.Arrow:SetOn(false)
+    ns.Print("goal arrow off. /farm arrow, or the settings page, brings it back.")
+    if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
+end
+
 function ArrowUI:ShowTooltip(owner)
     if not GameTooltip then return end
     GameTooltip:SetOwner(owner, "ANCHOR_BOTTOM")
@@ -191,7 +209,7 @@ function ArrowUI:ShowTooltip(owner)
     end
     GameTooltip:AddLine("Click for the next goal.", 0.9, 0.9, 0.9)
     GameTooltip:AddLine("Right-click for the next place.", 0.9, 0.9, 0.9)
-    GameTooltip:AddLine("Drag to move it.", 0.9, 0.9, 0.9)
+    GameTooltip:AddLine("Drag to move it. The red gem closes it.", 0.9, 0.9, 0.9)
     GameTooltip:Show()
 end
 
@@ -247,14 +265,16 @@ function ArrowUI:Draw(force)
     local state = ns.Arrow:State(Clock())
     self.state = state
 
-    if state.mode == "off" or state.mode == "inside" then
+    -- No open goal: nothing to follow, so out of the way until one is set.
+    if state.mode == "off" or state.mode == "inside" or state.mode == "none" then
         frame:Hide()
         return
     end
 
     local goal = state.goal
-    local title = goal and ("%s  %d / %d"):format(goal.item, goal.have or 0, goal.target or 0)
-        or "Goal arrow"
+    -- The plate carries a goal or nothing: never a name for the dial.
+    local title = goal and ("%s  %d / %d"):format(goal.item, goal.have or 0, goal.target or 0) or ""
+    self.plate:SetShown(title ~= "")
     local distance, place, note, noteColor = ArrowUI.Words(state)
 
     local key = table.concat({ title, distance, place, note, noteColor }, "\n")

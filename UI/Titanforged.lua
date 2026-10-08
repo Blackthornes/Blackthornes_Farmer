@@ -286,6 +286,9 @@ local function CloseGem(trim, onClick)
     return close
 end
 
+-- Farmer's goal arrow wears the gem on its own (UI/Arrow.lua).
+Titanforged.CloseGem = CloseGem
+
 --------------------------------------------------------------------------------
 -- Dressing a frame
 --------------------------------------------------------------------------------
