@@ -341,7 +341,9 @@ only the place and a reminder to take the boat or zeppelin. Click the dial
 for the next goal, right-click it for the next place, drag it to move it, and
 click its red gem to close it. With no goal left open it steps out of the way
 until you set one. Shift-click a goal card, or a place in the Where? list, to point the arrow
-there. It hides inside dungeons, where the game keeps your position to
+there. Equipment's quest arrow and Pets' beast arrow are the same dial, and
+only one of them is on screen at a time: the one turned on or aimed last
+shows, and the others wait until it is put away. It hides inside dungeons, where the game keeps your position to
 itself, and `/farm arrow check` lists what the game lets it read where you
 stand. It reads the same map position the markers do, which way you face and
 the game's world coordinates; it does not need TomTom.

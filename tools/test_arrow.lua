@@ -309,4 +309,27 @@ ns.db.arrowX, ns.db.arrowY = 300, 400
 ns.HandleSlash("arrow reset")
 suite.check("reset puts it back", ns.db.arrowX == nil and ns.db.arrowY == nil)
 
+--------------------------------------------------------------------------------
+-- One Blackthornes arrow at a time (the same lines are in all three addons)
+--------------------------------------------------------------------------------
+
+do
+    _G.BlackthornesArrows = nil
+    local ui = ArrowUI
+    suite.check("alone, it always shows", ui.Wins(true))
+    local shared = _G.BlackthornesArrows
+    shared.wants.Pets = true
+    shared.claims.Pets = 1e9
+    suite.check("another addon's arrow aimed later wins", not ui.Wins(true))
+    shared.claims.Pets = -1
+    ui:Claim()
+    suite.check("aiming this one again wins it back", ui.Wins(true))
+    shared.claims.Pets = 1e9
+    shared.wants.Pets = nil
+    suite.check("the other put away, this one shows", ui.Wins(true))
+    ui.Wins(false)
+    suite.check("off, it stops wanting", next(shared.wants) == nil)
+    _G.BlackthornesArrows = nil
+end
+
 suite.done()
