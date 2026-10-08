@@ -338,8 +338,9 @@ the last three minutes waits at the back until it has grown back. Then come
 places the data has a spot for, then zones with no spot, where the arrow
 points at the middle of the zone. On the other continent there is no arrow,
 only the place and a reminder to take the boat or zeppelin. Click the dial
-for the next goal, right-click it for the next place, and drag it to move it.
-Shift-click a goal card, or a place in the Where? list, to point the arrow
+for the next goal, right-click it for the next place, drag it to move it, and
+click its red gem to close it. With no goal left open it steps out of the way
+until you set one. Shift-click a goal card, or a place in the Where? list, to point the arrow
 there. It hides inside dungeons, where the game keeps your position to
 itself, and `/farm arrow check` lists what the game lets it read where you
 stand. It reads the same map position the markers do, which way you face and

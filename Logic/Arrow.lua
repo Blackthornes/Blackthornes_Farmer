@@ -680,8 +680,12 @@ end
 local function Status()
     if Arrow.IsOn() then
         local goal = Arrow:Goal()
-        ns.Print(("goal arrow on%s. Click it for the next goal, right-click for the next place."):format(
-            goal and (", following " .. Util.Colored("accent", goal.item)) or ""))
+        if goal then
+            ns.Print(("goal arrow on, following %s. Click it for the next goal, right-click for "
+                .. "the next place."):format(Util.Colored("accent", goal.item)))
+        else
+            ns.Print("goal arrow on. It shows once you set a goal: /farm goal Copper Ore 40.")
+        end
     else
         ns.Print("goal arrow off. /farm arrow on shows it.")
     end

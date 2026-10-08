@@ -275,6 +275,21 @@ local before = Arrow:Goal()
 frame:GetScript("OnMouseUp")(frame, "LeftButton")
 suite.check("letting go after a drag changes nothing", Arrow:Goal() == before)
 
+-- No open goal left: it steps out of the way, still on for the next one.
+local savedList = ns.db.goals.list
+ns.db.goals.list = { { item = "Copper Ore", target = 40, have = 40, done = true } }
+ArrowUI:Draw()
+suite.check("with no open goal it hides", Arrow.IsOn() and not frame:IsShown())
+ns.db.goals.list = savedList
+ArrowUI:Draw()
+suite.check("and comes back with one", frame:IsShown())
+
+-- The red gem turns it off.
+suite.check("it has a close gem", ArrowUI.close ~= nil)
+ArrowUI.close:GetScript("OnClick")(ArrowUI.close)
+suite.check("the close gem turns it off", not Arrow.IsOn() and not frame:IsShown())
+ns.HandleSlash("arrow on")
+
 ns.HandleSlash("arrow off")
 ArrowUI:Draw()
 suite.check("off hides it", not Arrow.IsOn() and not frame:IsShown())
