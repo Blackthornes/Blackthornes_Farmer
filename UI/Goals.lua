@@ -760,6 +760,7 @@ function GoalsUI:ShowCardTooltip(card)
         GameTooltip:AddLine("Click to clear it.", 0.6, 0.6, 0.6)
     else
         GameTooltip:AddLine("Click to find where to farm it.", 0.6, 0.6, 0.6)
+        GameTooltip:AddLine("Shift-click to point the goal arrow at it.", 0.6, 0.6, 0.6)
         GameTooltip:AddLine("Right-click to remove the goal.", 0.6, 0.6, 0.6)
     end
     GameTooltip:Show()
@@ -771,6 +772,11 @@ function GoalsUI:OnCardClick(card, button)
 
     if goal.done then
         ns.Goals:Remove(goal.item)
+        return
+    end
+
+    if button ~= "RightButton" and type(IsShiftKeyDown) == "function" and IsShiftKeyDown() and ns.Arrow then
+        ns.Arrow:Aim(goal.item)
         return
     end
 
@@ -1302,7 +1308,8 @@ function GoalsUI:BuildSpots()
     local hint = Theme.CreateLabel(panel, "tiny", "dim")
     hint:SetPoint("BOTTOMLEFT", 12, 6)
     hint:SetPoint("BOTTOMRIGHT", -10, 6)
-    hint:SetText("Click a place to print it to chat, pinned on your map when it is in this zone.")
+    hint:SetText("Click a place to print it to chat, pinned on your map when it is in this zone. "
+        .. "Shift-click points the goal arrow there.")
     hint:SetWordWrap(true)
     panel.hint = hint
 
@@ -1369,7 +1376,11 @@ function GoalsUI:SpotRow(index)
     end)
     row:SetScript("OnClick", function(self)
         if not self.spot then return end
-        ns.Spots:Share(GoalsUI.spotsItem, self.spot)
+        if type(IsShiftKeyDown) == "function" and IsShiftKeyDown() and ns.Arrow then
+            ns.Arrow:Aim(GoalsUI.spotsItem, self.spot)
+        else
+            ns.Spots:Share(GoalsUI.spotsItem, self.spot)
+        end
         GoalsUI:Animate({ slot = self.flash, duration = GLOW_TIME,
             apply = function(p) self.flash:SetAlpha(0.35 * (1 - p) ^ 2) end,
             stop = function() self.flash:SetAlpha(0) end })
@@ -1447,7 +1458,7 @@ function GoalsUI:OpenSpots(item, anchor)
     panel:SetWidth(math.min(480, math.max(SPOTS_WIDTH, math.ceil(needs))))
 
     panel.empty:SetShown(#spots == 0)
-    panel:SetHeight(SPOTS_TOP + math.max(1, #spots) * SPOT_ROW + 30)
+    panel:SetHeight(SPOTS_TOP + math.max(1, #spots) * SPOT_ROW + 44)
 
     panel:ClearAllPoints()
     if anchor and anchor.IsShown and anchor:IsShown() then
