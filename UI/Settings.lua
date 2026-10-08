@@ -34,9 +34,10 @@ local COLUMN_TWO_X = PADDING * 2 + COLUMN_WIDTH
 local CONTROL_X = 170
 
 local WIDTH = COLUMN_WIDTH * 2 + PADDING * 3
--- Tall enough for the left column, the taller: five window rows, the two
--- marker rows and debug output, over the footer.
-local HEIGHT = 668
+-- Tall enough for the right column, the taller since the goal arrow joined
+-- it: five tally rows, loot recording and its export, the tooltip and the
+-- arrow, over the footer.
+local HEIGHT = 748
 
 local ROW_HEIGHT = 50
 local ROW_GAP = -6
@@ -286,6 +287,9 @@ function SettingsUI:ResetPositions()
 
     -- The goals panel goes back under the kills panel.
     if ns.GoalsUI and ns.GoalsUI.frame then ns.GoalsUI:Dock() end
+
+    -- The goal arrow goes back to the top middle.
+    if ns.ArrowUI then ns.ArrowUI:ResetPosition() end
 
     self:RestorePosition()
 end
@@ -614,6 +618,23 @@ function SettingsUI:BuildTrackingColumn()
         if ns.ItemTooltip then ns.ItemTooltip.ForgetKept() end
     end, true)
     controls.itemTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local arrow = CreateSection(frame, "GOAL ARROW", { anchor = tooltipRow })
+
+    local arrowRow = CreateRow(frame, arrow, "Goal arrow",
+        "Points to the nearest place to gather a goal. Same as /farm arrow. "
+        .. "Check lists what the game lets it read here (/farm arrow check).")
+
+    controls.arrow = Widgets.CreateCheckbox(arrowRow, "Show it", function(checked)
+        ns.Arrow:SetOn(checked)
+    end, false)
+    controls.arrow:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local check = Widgets.CreateButton(arrowRow, "Check", function()
+        ns.Arrow:Check()
+    end, { width = 60, height = 20 })
+    check:SetPoint("TOPRIGHT", arrowRow, "TOPRIGHT", 0, 0)
+    controls.arrowCheck = check
 end
 
 --------------------------------------------------------------------------------
@@ -643,6 +664,7 @@ function SettingsUI:Refresh()
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
+    controls.arrow:SetChecked(db.arrowShown == true)
 
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)

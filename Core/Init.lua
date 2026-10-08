@@ -318,6 +318,9 @@ local DEFAULTS = {
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,
+
+    -- The goal arrow (UI/Arrow.lua): off until turned on.
+    arrowShown = false,
 }
 
 local function LoadSavedVariables()
