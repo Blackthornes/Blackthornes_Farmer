@@ -91,6 +91,9 @@ function env.InstallClient()
     env.chat = {}
 
     _G.UIParent = Stub()
+    -- The arrows' shared table (one Blackthornes arrow at a time) would
+    -- carry one suite's arrow into the next.
+    _G.BlackthornesArrows = nil
 
     -- Gradients: the glows, halos and fades are drawn with these.
     _G.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end

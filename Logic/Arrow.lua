@@ -82,6 +82,8 @@ end
 
 function Arrow:SetOn(on)
     ns.db.arrowShown = on and true or false
+    -- Turned on, it goes over any other Blackthornes arrow (UI/Arrow.lua).
+    if on and ns.ArrowUI and ns.ArrowUI.Claim then ns.ArrowUI:Claim() end
     self:Changed(true)
 end
 
@@ -122,6 +124,7 @@ function Arrow:Follow(item)
     if not goal or goal.done then return false end
 
     self:FollowStore()[ns.Goals:Owner() or "?"] = goal.item
+    if ns.ArrowUI and ns.ArrowUI.Claim then ns.ArrowUI:Claim() end
     self.pinned = nil
     self.choice = nil
     self.index = 1

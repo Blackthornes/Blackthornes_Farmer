@@ -224,6 +224,53 @@ local function Clock()
     return ok and tonumber(now) or 0
 end
 
+--------------------------------------------------------------------------------
+-- One arrow at a time
+--
+-- Farmer, Equipment and Pets each have an arrow, and the owner asked
+-- (2026-10-08) that only one be up at a time. They agree through one
+-- global table, BlackthornesArrows, made by whichever loads first:
+--   wants[addon]   true while that addon's arrow has something to show
+--   claims[addon]  when the player last turned it on or aimed it (GetTime)
+-- Of those wanting to show, the one with the latest claim is drawn; the
+-- others wait hidden and come back once it is turned off or has nothing to
+-- show. An addon on its own always wins. The same lines are in all three
+-- addons; a change to them belongs in all three.
+--------------------------------------------------------------------------------
+
+local ME = "Farmer"
+
+local function Shared()
+    local shared = rawget(_G, "BlackthornesArrows")
+    if type(shared) ~= "table" then
+        shared = {}
+        _G.BlackthornesArrows = shared
+    end
+    if type(shared.wants) ~= "table" then shared.wants = {} end
+    if type(shared.claims) ~= "table" then shared.claims = {} end
+    return shared
+end
+
+--- This arrow was turned on or aimed: it goes on top.
+function ArrowUI:Claim()
+    Shared().claims[ME] = Clock()
+end
+
+--- Say whether this arrow wants to show; true when it is the one shown.
+function ArrowUI.Wins(wants)
+    local shared = Shared()
+    shared.wants[ME] = wants and true or nil
+    if not wants then return false end
+    local best, bestAt
+    for name, wanting in pairs(shared.wants) do
+        local at = tonumber(shared.claims[name]) or 0
+        if wanting and (not best or at > bestAt or (at == bestAt and tostring(name) < best)) then
+            best, bestAt = tostring(name), at
+        end
+    end
+    return best == ME
+end
+
 --- The words for a state with nothing to point at.
 function ArrowUI.Words(state)
     local mode = state.mode
@@ -268,6 +315,13 @@ function ArrowUI:Draw(force)
 
     -- No open goal: nothing to follow, so out of the way until one is set.
     if state.mode == "off" or state.mode == "inside" or state.mode == "none" then
+        ArrowUI.Wins(false)
+        frame:Hide()
+        return
+    end
+
+    -- Another Blackthornes arrow was aimed more lately: wait, hidden.
+    if not ArrowUI.Wins(true) then
         frame:Hide()
         return
     end
@@ -356,6 +410,7 @@ end
 function ArrowUI:Refresh()
     if not ns.db then return end
     if not ns.Arrow.IsOn() then
+        ArrowUI.Wins(false)
         if self.frame then self.frame:Hide() end
         return
     end

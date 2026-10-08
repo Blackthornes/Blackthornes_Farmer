@@ -79,13 +79,24 @@ kills panel, the goals panel, banners and toasts stay up while playing and
 keep their own look. Anything placed inside a dressed window stays 6 pixels
 in from its edge, or it covers the rim.
 
-## The goal arrow, copied to Equipment
+## The goal arrow, copied to Equipment and Pets
 
-Equipment's upgrade quest has the same dial (asked 2026-10-08):
-its `Logic/QuestArrow.lua` and `UI/QuestArrow.lua` copy `Logic/Arrow.lua`
-and `UI/Arrow.lua` here, and its `tools/make_arrow_art.py` is this repo's,
-drawing the same `Media/Arrow/*.tga`. Neither addon calls the other for it.
-A fix to the dial or its art in one belongs in the other.
+Equipment's upgrade quest and Pets' compendium have the same dial (asked
+2026-10-08): Equipment's `Logic/QuestArrow.lua` and `UI/QuestArrow.lua`
+and Pets' `Logic/BeastArrow.lua` and `UI/BeastArrow.lua` copy
+`Logic/Arrow.lua` and `UI/Arrow.lua` here, and their
+`tools/make_arrow_art.py` is this repo's, drawing the same
+`Media/Arrow/*.tga`. None of them calls another for it. A fix to the dial
+or its art in one belongs in all three.
+
+Only one Blackthornes arrow is on screen at a time (the owner asked
+2026-10-08): Farmer's goal arrow, Equipment's quest arrow and Pets' beast
+arrow agree through one global table, `_G.BlackthornesArrows`
+(`wants[addon]` while that arrow has something to show, `claims[addon]` the
+`GetTime()` it was last turned on or aimed). The one wanting to show with
+the latest claim is drawn; the others wait hidden. The lines are the same
+in each dial's file (`ArrowUI:Claim`, `ArrowUI.Wins`); a change to them
+belongs in all three.
 
 ## Discord
 
