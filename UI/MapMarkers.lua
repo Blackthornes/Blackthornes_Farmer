@@ -449,10 +449,13 @@ function MapMarkers.MinimapOffset(spot, player, width, height, radius, facing, s
 end
 
 --- What the minimap markers depend on, as one string: where you stand and
---- face, the minimap's zoom, shape and size, the spots, and the second (the
---- age fade moves once a second). Standing still, nothing in it changes, so
---- the markers are left as they are rather than placed again ten times a
---- second.
+--- face, the minimap's zoom, shape and size, and the spots. Standing still,
+--- nothing in it changes, so the markers are left where they are rather than
+--- placed again ten times a second. The age fade, which moves once a second,
+--- is not in it: it used to be, and every saved spot on the map was gathered
+--- up, sorted and placed again once a second even standing still, a hitch a
+--- player saw as a jerky craft bar (2026-10-09). FadeMinimap moves the fade
+--- on the markers already placed instead.
 function MapMarkers:MinimapKey()
     if not MapMarkers.MinimapOn() then return "off" end
 
@@ -462,9 +465,9 @@ function MapMarkers:MinimapKey()
     local okWidth, size = pcall(Minimap.GetWidth, Minimap)
     size = okWidth and ns.Harvest.ReadableNumber(size) or nil
 
-    return ("%d|%s|%s|%s|%s|%s|%s|%s|%s"):format(mapID, tostring(px), tostring(py),
+    return ("%d|%s|%s|%s|%s|%s|%s|%s"):format(mapID, tostring(px), tostring(py),
         tostring(Facing()), tostring(IsSquare()), tostring(MapMarkers.MinimapRadius()),
-        tostring(size), tostring(ns.Gathering.spotsVersion or 0), tostring(ns.Gathering.Clock()))
+        tostring(size), tostring(ns.Gathering.spotsVersion or 0))
 end
 
 --- The spots on `mapID`, kept until the spots change.
@@ -484,7 +487,10 @@ function MapMarkers:DrawMinimap()
     if not Minimap then return end
 
     local key = self:MinimapKey()
-    if key == self.minimapKey then return end
+    if key == self.minimapKey then
+        self:FadeMinimap()
+        return
+    end
 
     self.minimapPool = self.minimapPool or Pool(Minimap, MINIMAP_SIZE, MapMarkers.CreateFramePin)
     local pool = self.minimapPool
@@ -496,6 +502,21 @@ function MapMarkers:DrawMinimap()
     -- Kept only after a clean draw, so a failed one is tried again.
     self.minimapKey = ok and key or nil
     if not ok then error(err, 0) end
+end
+
+--- Move the age fade on the minimap markers already placed, once a second.
+function MapMarkers:FadeMinimap()
+    local pool = self.minimapPool
+    if not pool or pool.used == 0 then return end
+
+    local now = ns.Gathering.Clock()
+    if now == self.fadedAt then return end
+    self.fadedAt = now
+
+    for index = 1, pool.used do
+        local pin = pool.pins[index]
+        if pin.spot then pin:SetAlpha(MapMarkers.AlphaFor(pin.spot.last, now)) end
+    end
 end
 
 function MapMarkers:PlaceMinimap(pool)

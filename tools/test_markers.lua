@@ -182,6 +182,25 @@ local first = PinFor(MapMarkers.minimapPool, "Copper Vein")
 MapMarkers:DrawMinimap()
 suite.check("a redraw reuses the same marker", PinFor(MapMarkers.minimapPool, "Copper Vein") == first)
 
+-- Standing still, a second passing only moves the age fade: the markers are
+-- not gathered up and placed again (that was a once-a-second hitch).
+do
+    local placed = 0
+    local real = MapMarkers.PlaceMinimap
+    MapMarkers.PlaceMinimap = function(...) placed = placed + 1; return real(...) end
+    local alpha
+    first.SetAlpha = function(_, value) alpha = value end
+    wall = wall + 3600
+    MapMarkers:DrawMinimap()
+    MapMarkers.PlaceMinimap = real
+    suite.check("a second passing standing still places nothing again", placed == 0, placed)
+    suite.check("but the age fade still moves",
+        alpha ~= nil and alpha == MapMarkers.AlphaFor(first.spot.last, wall), alpha)
+    first.SetAlpha = nil
+    wall = wall - 3600
+    MapMarkers:Refresh()
+end
+
 -- Somewhere with no readable position: nothing on the minimap.
 env.world.position = nil
 MapMarkers:DrawMinimap()
