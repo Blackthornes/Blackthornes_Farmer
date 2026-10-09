@@ -170,11 +170,12 @@ end
 -- showing.
 --------------------------------------------------------------------------------
 
-function Respawn:OnTooltipShown(tooltip)
+function Respawn:OnTooltipShown(tooltip, unitOrItem)
     tooltip = tooltip or GameTooltip
     if type(tooltip) ~= "table" or self.adding or self.added == tooltip then return end
 
-    if ns.Harvest.TooltipShowsUnitOrItem(tooltip) then return end
+    if unitOrItem == nil then unitOrItem = ns.Harvest.TooltipShowsUnitOrItem(tooltip) end
+    if unitOrItem then return end
 
     local first = _G.GameTooltipTextLeft1
     if not first or type(first.GetText) ~= "function" then return end
@@ -205,8 +206,8 @@ end
 function Respawn:OnEnable()
     if not (GameTooltip and type(GameTooltip.HookScript) == "function") then return end
 
-    pcall(GameTooltip.HookScript, GameTooltip, "OnShow", function(tooltip)
-        Respawn:OnTooltipShown(tooltip)
+    ns.Harvest.WatchTooltip("Respawn", function(tooltip, unitOrItem)
+        Respawn:OnTooltipShown(tooltip, unitOrItem)
     end)
 
     for _, script in ipairs({ "OnHide", "OnTooltipCleared" }) do

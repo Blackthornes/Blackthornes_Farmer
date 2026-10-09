@@ -190,6 +190,27 @@ function Harvest.TooltipShowsUnitOrItem(tooltip)
     return false
 end
 
+--- One OnShow hook on the game tooltip for everything that reads a world
+--- object's name off it (gathering, fishing, respawn times), so the "is it
+--- a unit or an item" check runs once per showing, not once per module.
+--- `fn(tooltip, unitOrItem)`; one watcher per key.
+local tooltipWatchers, tooltipOrder = {}, {}
+
+function Harvest.WatchTooltip(key, fn)
+    if not tooltipWatchers[key] then tooltipOrder[#tooltipOrder + 1] = key end
+    tooltipWatchers[key] = fn
+    if Harvest.tooltipHooked then return end
+
+    local tooltip = _G.GameTooltip
+    if not (tooltip and type(tooltip.HookScript) == "function") then return end
+    Harvest.tooltipHooked = pcall(tooltip.HookScript, tooltip, "OnShow", function(shown)
+        local unitOrItem = Harvest.TooltipShowsUnitOrItem(shown or _G.GameTooltip)
+        for _, each in ipairs(tooltipOrder) do
+            pcall(tooltipWatchers[each], shown, unitOrItem)
+        end
+    end)
+end
+
 --------------------------------------------------------------------------------
 -- Where and what
 --------------------------------------------------------------------------------

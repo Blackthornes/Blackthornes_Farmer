@@ -94,11 +94,12 @@ end
 --
 -- A unit or an item tooltip is never a school, whatever it is called: a mob
 -- named "... Swarm" must not pass for one.
-function Fishing:OnTooltipShown()
+function Fishing:OnTooltipShown(unitOrItem)
     local tooltip = GameTooltip
     if not tooltip then return end
 
-    if ns.Harvest.TooltipShowsUnitOrItem(tooltip) then return end
+    if unitOrItem == nil then unitOrItem = ns.Harvest.TooltipShowsUnitOrItem(tooltip) end
+    if unitOrItem then return end
 
     local line = _G.GameTooltipTextLeft1
     if not line or type(line.GetText) ~= "function" then return end
@@ -638,11 +639,9 @@ function Fishing:OnEnable()
         Fishing:OnChannelStart(unit)
     end)
 
-    if GameTooltip and type(GameTooltip.HookScript) == "function" then
-        pcall(GameTooltip.HookScript, GameTooltip, "OnShow", function()
-            Fishing:OnTooltipShown()
-        end)
-    end
+    ns.Harvest.WatchTooltip("Fishing", function(_, unitOrItem)
+        Fishing:OnTooltipShown(unitOrItem)
+    end)
 end
 
 --------------------------------------------------------------------------------

@@ -138,11 +138,12 @@ end
 --
 -- Units and items are never nodes, and one under the mouse means the node
 -- before it is not what you are about to click.
-function Gathering:OnTooltipShown()
+function Gathering:OnTooltipShown(unitOrItem)
     local tooltip = GameTooltip
     if not tooltip then return end
 
-    if ns.Harvest.TooltipShowsUnitOrItem(tooltip) then
+    if unitOrItem == nil then unitOrItem = ns.Harvest.TooltipShowsUnitOrItem(tooltip) end
+    if unitOrItem then
         self.hovered = nil
         return
     end
@@ -816,11 +817,9 @@ function Gathering:OnEnable()
         end)
     end
 
-    if GameTooltip and type(GameTooltip.HookScript) == "function" then
-        pcall(GameTooltip.HookScript, GameTooltip, "OnShow", function()
-            Gathering:OnTooltipShown()
-        end)
-    end
+    ns.Harvest.WatchTooltip("Gathering", function(_, unitOrItem)
+        Gathering:OnTooltipShown(unitOrItem)
+    end)
 end
 
 --------------------------------------------------------------------------------
