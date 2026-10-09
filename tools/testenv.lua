@@ -311,6 +311,7 @@ local FILES = {
     "Logic/Goals.lua",
     "Logic/Spots.lua",
     "Logic/Arrow.lua",
+    "Logic/TomTom.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on

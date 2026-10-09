@@ -665,6 +665,7 @@ function Arrow:Check()
 
     local inside = ns.Tracker and ns.Tracker.InInstance and ns.Tracker.InInstance()
     ns.PrintRaw(("  in an instance: %s"):format(inside and "yes, so the arrow hides" or "no"))
+    if ns.TomTom then ns.PrintRaw(ns.TomTom.CheckLine()) end
 
     local state = self:State(GetTime and GetTime() or 0)
     if state.goal then
@@ -694,7 +695,7 @@ local function Status()
     end
 end
 
-ns.RegisterCommand("arrow", "an arrow to the nearest place to gather a goal (on, off, next, check, <goal>)", function(rest)
+ns.RegisterCommand("arrow", "an arrow to the nearest place to gather a goal (on, off, next, check, tomtom, <goal>)", function(rest)
     local argument = Util.Trim(rest)
     local word = argument:lower()
 
@@ -713,6 +714,17 @@ ns.RegisterCommand("arrow", "an arrow to the nearest place to gather a goal (on,
         end
     elseif word == "check" then
         Arrow:Check()
+    elseif word == "tomtom" or word == "tomtom on" or word == "tomtom off" then
+        local TomTom = ns.TomTom
+        if word == "tomtom" then TomTom:SetOn(not TomTom.IsOn()) else TomTom:SetOn(word == "tomtom on") end
+        if not TomTom.IsOn() then
+            ns.Print("TomTom not used: the goal arrow shows its own dial.")
+        elseif TomTom.Installed() then
+            ns.Print("TomTom used: its arrow shows the goal arrow's place.")
+        else
+            ns.Print("TomTom will be used once it is installed.")
+        end
+        if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
     elseif word == "reset" then
         if ns.ArrowUI and ns.ArrowUI.ResetPosition then ns.ArrowUI:ResetPosition() end
         ns.Print("goal arrow put back where it started.")

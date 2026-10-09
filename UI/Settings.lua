@@ -35,9 +35,9 @@ local CONTROL_X = 170
 
 local WIDTH = COLUMN_WIDTH * 2 + PADDING * 3
 -- Tall enough for the right column, the taller since the goal arrow joined
--- it: five tally rows, loot recording and its export, the tooltip and the
--- arrow, over the footer.
-local HEIGHT = 748
+-- it: five tally rows, loot recording and its export, the tooltip, the
+-- arrow and TomTom, over the footer.
+local HEIGHT = 804
 
 local ROW_HEIGHT = 50
 local ROW_GAP = -6
@@ -635,6 +635,15 @@ function SettingsUI:BuildTrackingColumn()
     end, { width = 60, height = 20 })
     check:SetPoint("TOPRIGHT", arrowRow, "TOPRIGHT", 0, 0)
     controls.arrowCheck = check
+
+    local tomtomRow = CreateRow(frame, arrowRow, "Use TomTom",
+        "With TomTom installed, its arrow points the way instead of this one. "
+        .. "Same as /farm arrow tomtom.")
+
+    controls.tomtom = Widgets.CreateCheckbox(tomtomRow, "When installed", function(checked)
+        ns.TomTom:SetOn(checked)
+    end, true)
+    controls.tomtom:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --------------------------------------------------------------------------------
@@ -665,6 +674,7 @@ function SettingsUI:Refresh()
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
+    controls.tomtom:SetChecked(db.useTomTom ~= false)
 
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)

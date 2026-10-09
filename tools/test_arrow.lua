@@ -310,6 +310,108 @@ ns.HandleSlash("arrow reset")
 suite.check("reset puts it back", ns.db.arrowX == nil and ns.db.arrowY == nil)
 
 --------------------------------------------------------------------------------
+-- TomTom: its arrow instead of the dial, when it is installed
+--------------------------------------------------------------------------------
+
+do
+    local TomTom = ns.TomTom
+    Arrow:Follow("Copper Ore")
+    ArrowUI:Draw(true)
+    suite.check("without TomTom the dial shows", frame:IsShown() and TomTom.uid == nil)
+    suite.check("the switch is on unless unticked", TomTom.IsOn())
+
+    -- A TomTom keeping its waypoints, as the real one's calls take them.
+    local points, nextUid = {}, 0
+    _G.TomTom = {
+        AddWaypoint = function(self, map, x, y, opts)
+            nextUid = nextUid + 1
+            local uid = { map, x, y, title = opts and opts.title }
+            points[uid] = opts
+            return uid
+        end,
+        RemoveWaypoint = function(self, uid) points[uid] = nil end,
+    }
+    local function Count()
+        local count = 0
+        for _ in pairs(points) do count = count + 1 end
+        return count
+    end
+
+    ArrowUI:Draw(true)
+    suite.check("with TomTom the dial hides", not frame:IsShown())
+    suite.check("and TomTom gets one waypoint", Count() == 1, Count())
+    local uid = TomTom.uid
+    suite.check("at the dial's place", uid and uid[1] == 37 and near(uid[2], 0.50) and near(uid[3], 0.50))
+    suite.check("named for the goal", uid and uid.title == "Copper Ore: Copper Vein", uid and uid.title)
+    suite.check("on TomTom's arrow, not saved in its list",
+        points[uid].crazy == true and points[uid].persistent == false)
+    suite.check("this arrow still holds the screen over the others", _G.BlackthornesArrows.wants.Farmer)
+
+    ArrowUI:Draw(true)
+    suite.check("drawn again, the same waypoint stays", TomTom.uid == uid and Count() == 1)
+
+    Arrow:NextSpot()
+    ArrowUI:Draw(true)
+    suite.check("the next place swaps it", TomTom.uid ~= uid and Count() == 1, Count())
+
+    -- The other continent: TomTom cannot point, so the dial says so.
+    Arrow:Aim("Copper Ore", { name = "Copper Vein", zone = "Durotar" })
+    ArrowUI:Draw(true)
+    suite.check("a place TomTom cannot point at goes back to the dial",
+        ArrowUI.state.mode == "far" and frame:IsShown() and Count() == 0, ArrowUI.state.mode)
+    Arrow:Follow("Copper Ore")
+    ArrowUI:Draw(true)
+    suite.check("and back to TomTom after", not frame:IsShown() and Count() == 1)
+
+    -- The goal finished: the waypoint goes.
+    local savedGoals = ns.db.goals.list
+    ns.db.goals.list = { { item = "Copper Ore", target = 40, have = 40, done = true } }
+    ArrowUI:Draw(true)
+    suite.check("a finished goal takes its waypoint away", Count() == 0 and TomTom.uid == nil)
+    ns.db.goals.list = savedGoals
+    ArrowUI:Draw(true)
+
+    -- Another Blackthornes arrow aimed later: TomTom's goes too.
+    local shared = _G.BlackthornesArrows
+    shared.wants.Pets, shared.claims.Pets = true, 1e12
+    ArrowUI:Draw(true)
+    suite.check("another addon's arrow aimed later takes it away", Count() == 0)
+    shared.wants.Pets, shared.claims.Pets = nil, nil
+    ArrowUI:Draw(true)
+    suite.check("and it comes back once that one is put away", Count() == 1)
+
+    -- Unticked: the dial, and no waypoint.
+    ns.HandleSlash("arrow tomtom off")
+    ArrowUI:Draw(true)
+    suite.check("/farm arrow tomtom off: the dial again", ns.db.useTomTom == false
+        and frame:IsShown() and Count() == 0)
+    ns.HandleSlash("arrow tomtom on")
+    ArrowUI:Draw(true)
+    suite.check("and on: TomTom again", not frame:IsShown() and Count() == 1)
+
+    ns.HandleSlash("arrow off")
+    suite.check("the arrow off takes the waypoint away", Count() == 0)
+    ns.HandleSlash("arrow on")
+    ArrowUI:Draw(true)
+
+    -- A TomTom that will not take it, or raises: the dial, and no error.
+    _G.TomTom.AddWaypoint = function() error("different version") end
+    TomTom:Clear()
+    Arrow:NextSpot()
+    local okDraw = pcall(ArrowUI.Draw, ArrowUI, true)
+    suite.check("a TomTom that raises falls back to the dial", okDraw and frame:IsShown())
+    _G.TomTom = { AddWaypoint = "no" }
+    Arrow:NextSpot()
+    ArrowUI:Draw(true)
+    suite.check("so does one without the calls", frame:IsShown() and not TomTom.Installed())
+
+    local okCheckTT, errTT = pcall(ns.HandleSlash, "arrow check")
+    suite.check("/farm arrow check says what TomTom does", okCheckTT, errTT)
+    _G.TomTom = nil
+    TomTom.refused = nil
+end
+
+--------------------------------------------------------------------------------
 -- One Blackthornes arrow at a time (the same lines are in all three addons)
 --------------------------------------------------------------------------------
 
