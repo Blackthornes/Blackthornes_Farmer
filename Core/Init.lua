@@ -136,11 +136,13 @@ ns.eventFrame = eventFrame
 
 local handlers = {}
 local unknownEvents = {}
+-- Events asked for with the player as the only unit (RegisterPlayerEvent).
+local playerOnly = {}
 
 --- Register an event handler.
 -- On Forever, registering an event the client does not know raises a Lua error
 -- rather than failing quietly, so every registration goes through pcall.
-function ns.RegisterEvent(owner, event, fn)
+local function Register(owner, event, fn, playerOnlyWanted)
     if type(fn) ~= "function" then
         ns.Debug("RegisterEvent: no handler for", event)
         return false
@@ -160,7 +162,34 @@ function ns.RegisterEvent(owner, event, fn)
         handlers[event] = list
     end
 
+    -- Someone wants this event for every unit: lift the player-only filter.
+    if playerOnly[event] and not playerOnlyWanted then
+        playerOnly[event] = nil
+        pcall(eventFrame.RegisterEvent, eventFrame, event)
+    end
+
     list[#list + 1] = { owner = owner, fn = fn }
+    return true
+end
+
+function ns.RegisterEvent(owner, event, fn)
+    return Register(owner, event, fn, false)
+end
+
+--- Register a UNIT_ event handler that only cares about the player.
+-- The game sends these for every unit near you (party, raid, nameplates), and
+-- each one used to go through the dispatch only to be thrown away. While every
+-- handler of the event is player-only, the client is asked to send the
+-- player's alone. Handlers still check the unit themselves, so a client
+-- without unit filtering, or a later handler that wants every unit, behaves
+-- exactly as before.
+function ns.RegisterPlayerEvent(owner, event, fn)
+    local fresh = handlers[event] == nil
+    if not Register(owner, event, fn, true) then return false end
+    if fresh and type(eventFrame.RegisterUnitEvent) == "function"
+        and pcall(eventFrame.RegisterUnitEvent, eventFrame, event, "player") then
+        playerOnly[event] = true
+    end
     return true
 end
 
@@ -176,6 +205,7 @@ function ns.UnregisterEvent(owner, event)
 
     if #list == 0 then
         handlers[event] = nil
+        playerOnly[event] = nil
         pcall(eventFrame.UnregisterEvent, eventFrame, event)
     end
     return true
@@ -204,11 +234,15 @@ local lootReadEarly = false
 local lootHasReady, lootHasClosed = false, false
 
 local function ReadLoot()
+    -- One window's sources, read once for all the readers (Harvest:LootSources).
+    local harvest = ns.Harvest
+    if harvest then harvest.lootReading = {} end
     for i = 1, #lootReaders do
         local entry = lootReaders[i]
         local ok, err = pcall(entry.fn, entry.owner)
         if not ok then geterrorhandler()(err) end
     end
+    if harvest then harvest.lootReading = nil end
 end
 
 function ns.OnLootWindow(owner, fn)

@@ -612,8 +612,9 @@ function Arrow:State(clock)
     local yards, bearing = Arrow.Measure(north, west)
     state.yards = yards
     state.bearing = bearing
-    state.turn = Arrow.Turn(bearing, Arrow.Facing())
-    state.facing = Arrow.Facing() ~= nil
+    local facing = Arrow.Facing()
+    state.turn = Arrow.Turn(bearing, facing)
+    state.facing = facing ~= nil
 
     local reach = NODE_KINDS[target.kind or ""] and ARRIVED_NODE or ARRIVED_MOB
     if not target.area and yards <= reach then

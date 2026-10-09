@@ -25,10 +25,12 @@ local CREATURE_KINDS = { mob = true, skinning = true }
 
 --- Every mob name the database gives a drop rate for.
 local function RatedMobs(names)
-    for item in ns.DB:Iterate() do
-        for _, source in ipairs(item.sources or {}) do
-            if source.name and source.chance and CREATURE_KINDS[source.kind or "mob"] then
-                names[source.name] = true
+    for name, entries in pairs(ns.DB:ByName()) do
+        for _, entry in ipairs(entries) do
+            local source = entry.source
+            if source.chance and CREATURE_KINDS[source.kind or "mob"] then
+                names[name] = true
+                break
             end
         end
     end
@@ -39,12 +41,11 @@ end
 function Rankings:Spot(mobName)
     local best
 
-    for item in ns.DB:Iterate() do
-        for _, source in ipairs(item.sources or {}) do
-            if source.name == mobName and CREATURE_KINDS[source.kind or "mob"]
-                and (not best or (source.minLevel or 0) < (best.minLevel or 0)) then
-                best = source
-            end
+    for _, entry in ipairs(ns.DB:ByName()[mobName] or {}) do
+        local source = entry.source
+        if CREATURE_KINDS[source.kind or "mob"]
+            and (not best or (source.minLevel or 0) < (best.minLevel or 0)) then
+            best = source
         end
     end
 

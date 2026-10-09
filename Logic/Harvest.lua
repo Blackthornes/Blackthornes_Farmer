@@ -90,6 +90,25 @@ end
 -- than no sample.
 --------------------------------------------------------------------------------
 
+-- The reads themselves, kept out here so each call passes them to pcall
+-- rather than making a new function every time: these run on every event.
+local function CopyText(value)
+    -- The read is the test. Concatenating and comparing are both refused
+    -- on a secret value, and refusing means raising, so doing them in here
+    -- is how we find out. Whatever comes back out has survived both.
+    local text = value .. ""
+    if text == "" then return nil end
+    return text
+end
+
+local function CopyNumber(value)
+    -- Arithmetic and comparison, for the same reason as above. The
+    -- comparison doubles as the not-a-number check.
+    local number = value + 0
+    if number ~= number then return nil end
+    return number
+end
+
 --- A plain string copy of `value`, or nil if this client will not let us read it.
 local function Readable(value)
     local kind = type(value)
@@ -99,14 +118,7 @@ local function Readable(value)
     -- ruled out by failing the read.
     if kind == "number" or kind == "boolean" then return nil end
 
-    local ok, copy = pcall(function()
-        -- The read is the test. Concatenating and comparing are both refused
-        -- on a secret value, and refusing means raising, so doing them in here
-        -- is how we find out. Whatever comes back out has survived both.
-        local text = value .. ""
-        if text == "" then return nil end
-        return text
-    end)
+    local ok, copy = pcall(CopyText, value)
 
     -- type() answers safely for a secret value and for nil alike, which is why
     -- the check out here is a type check and not a comparison.
@@ -123,13 +135,7 @@ local function ReadableNumber(value)
     -- arrived as text is not one this module should be believing.
     if kind == "string" or kind == "boolean" then return nil end
 
-    local ok, copy = pcall(function()
-        -- Arithmetic and comparison, for the same reason as above. The
-        -- comparison doubles as the not-a-number check.
-        local number = value + 0
-        if number ~= number then return nil end
-        return number
-    end)
+    local ok, copy = pcall(CopyNumber, value)
 
     if not ok or type(copy) ~= "number" then return nil end
 
@@ -465,7 +471,14 @@ end
 --- order: the corpses (and chests, and nodes) its loot came off. Empty when
 --- the client will not say.
 function Harvest:LootSources()
+    -- While one loot window is being read every reader asks this many times
+    -- over (once per slot, and again per corpse check), and nothing in the
+    -- window can change in between, so the first answer serves the rest.
+    local reading = self.lootReading
+    if reading and reading.sources then return reading.sources end
+
     local list, seen = {}, {}
+    if reading then reading.sources = list end
     if type(GetLootSourceInfo) ~= "function" then return list end
 
     local gotCount, lootCount = pcall(GetNumLootItems)

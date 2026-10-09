@@ -16,6 +16,10 @@ local Util = ns.Util
 DB.items = {}
 DB.order = {}
 
+-- Counts every item or source added, so the index by name below knows when
+-- it is out of date. The data only changes while the files load.
+DB.changes = 0
+
 -- Where a row's facts came from. Everything seeded from Classic is "classic"
 -- until somebody actually confirms it on Forever, because Forever is classic
 -- content on a retail engine and its drop tables are nobody's to assume. A
@@ -76,6 +80,7 @@ function DB:RegisterItem(def)
 
     local key = def.name:lower()
     local item = self.items[key]
+    self.changes = (self.changes or 0) + 1
 
     if not item then
         item = {
@@ -137,6 +142,7 @@ function DB:AddSource(item, source)
     end
 
     if not item or type(source) ~= "table" then return nil end
+    self.changes = (self.changes or 0) + 1
 
     -- A source with nowhere to go is not a lead, it is noise.
     if type(source.zone) ~= "string" or source.zone == "" then
@@ -214,6 +220,33 @@ function DB:CountSources()
         total = total + #self.items[key].sources
     end
     return total
+end
+
+--- Every source by the name of its mob or node: [name] = { { item, source },
+--- ... }, items in registration order and each item's sources in order, as
+--- walking Iterate would find them. Built on first use and again only after
+--- a source is added, so valuing a mob no longer walks the whole database.
+function DB:ByName()
+    if self.byName and self.byNameAt == self.changes then return self.byName end
+
+    local byName = {}
+    for _, key in ipairs(self.order) do
+        local item = self.items[key]
+        for _, source in ipairs(item.sources or {}) do
+            local name = source.name
+            if type(name) == "string" then
+                local list = byName[name]
+                if not list then
+                    list = {}
+                    byName[name] = list
+                end
+                list[#list + 1] = { item = item, source = source }
+            end
+        end
+    end
+
+    self.byName, self.byNameAt = byName, self.changes
+    return byName
 end
 
 --- Every item, in registration order.

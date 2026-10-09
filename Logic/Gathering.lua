@@ -802,16 +802,16 @@ function Gathering:OnEnable()
     ns.OnLootWindow(self, function() Gathering:OnLoot() end)
     ns.RegisterEvent(self, "LOOT_CLOSED", function() Gathering:OnLootClosed() end)
 
-    ns.RegisterEvent(self, "UNIT_SPELLCAST_SENT", function(_, _, ...)
+    ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_SENT", function(_, _, ...)
         Gathering:OnCastSent(...)
     end)
 
-    ns.RegisterEvent(self, "UNIT_SPELLCAST_SUCCEEDED", function(_, _, ...)
+    ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_SUCCEEDED", function(_, _, ...)
         Gathering:OnCastSucceeded(...)
     end)
 
     for _, event in ipairs({ "UNIT_SPELLCAST_FAILED", "UNIT_SPELLCAST_INTERRUPTED" }) do
-        ns.RegisterEvent(self, event, function(_, _, ...)
+        ns.RegisterPlayerEvent(self, event, function(_, _, ...)
             Gathering:OnCastStopped(...)
         end)
     end

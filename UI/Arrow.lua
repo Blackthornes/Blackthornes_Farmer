@@ -342,7 +342,9 @@ function ArrowUI:Draw(force)
     self.plate:SetShown(title ~= "")
     local distance, place, note, noteColor = ArrowUI.Words(state)
 
-    local key = table.concat({ title, distance, place, note, noteColor }, "\n")
+    -- Joined by hand: a table here was one more for the collector 33 times
+    -- a second.
+    local key = title .. "\n" .. distance .. "\n" .. place .. "\n" .. note .. "\n" .. noteColor
     if force or key ~= self.drawnKey then
         self.drawnKey = key
         self.title:SetText(title)
@@ -420,11 +422,14 @@ end
 function ArrowUI:Refresh()
     if not ns.db then return end
     if not ns.Arrow.IsOn() then
+        -- Nothing to wake while it is off: the driver rests until it is on.
+        if self.driver then self.driver:Hide() end
         ArrowUI.Wins(false)
         ns.TomTom:Clear()
         if self.frame then self.frame:Hide() end
         return
     end
+    if self.driver then self.driver:Show() end
     self:Build()
     local ok, err = pcall(self.Draw, self, true)
     if not ok then ns.Debug("goal arrow:", tostring(err)) end

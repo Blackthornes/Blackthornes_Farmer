@@ -448,8 +448,43 @@ function MapMarkers.MinimapOffset(spot, player, width, height, radius, facing, s
     return east / radius * half, north / radius * half, east * east + north * north
 end
 
+--- What the minimap markers depend on, as one string: where you stand and
+--- face, the minimap's zoom, shape and size, the spots, and the second (the
+--- age fade moves once a second). Standing still, nothing in it changes, so
+--- the markers are left as they are rather than placed again ten times a
+--- second.
+function MapMarkers:MinimapKey()
+    if not MapMarkers.MinimapOn() then return "off" end
+
+    local mapID, px, py = ns.Harvest:PlayerMapPosition()
+    if not mapID then return "nowhere" end
+
+    local okWidth, size = pcall(Minimap.GetWidth, Minimap)
+    size = okWidth and ns.Harvest.ReadableNumber(size) or nil
+
+    return ("%d|%s|%s|%s|%s|%s|%s|%s|%s"):format(mapID, tostring(px), tostring(py),
+        tostring(Facing()), tostring(IsSquare()), tostring(MapMarkers.MinimapRadius()),
+        tostring(size), tostring(ns.Gathering.spotsVersion or 0), tostring(ns.Gathering.Clock()))
+end
+
+--- The spots on `mapID`, kept until the spots change.
+function MapMarkers:SpotsOn(mapID)
+    local all = ns.Gathering:Spots()
+    local version = ns.Gathering.spotsVersion or 0
+    local kept = self.spotsKept
+    if kept and kept.map == mapID and kept.version == version and kept.all == all then
+        return kept.spots
+    end
+    local spots = ns.Gathering:SpotsOn(mapID)
+    self.spotsKept = { map = mapID, version = version, all = all, spots = spots }
+    return spots
+end
+
 function MapMarkers:DrawMinimap()
     if not Minimap then return end
+
+    local key = self:MinimapKey()
+    if key == self.minimapKey then return end
 
     self.minimapPool = self.minimapPool or Pool(Minimap, MINIMAP_SIZE, MapMarkers.CreateFramePin)
     local pool = self.minimapPool
@@ -458,6 +493,8 @@ function MapMarkers:DrawMinimap()
     -- Whatever happens below, nothing left over from the last redraw stays.
     local ok, err = pcall(self.PlaceMinimap, self, pool)
     Finish(pool)
+    -- Kept only after a clean draw, so a failed one is tried again.
+    self.minimapKey = ok and key or nil
     if not ok then error(err, 0) end
 end
 
@@ -467,7 +504,7 @@ function MapMarkers:PlaceMinimap(pool)
     local mapID, px, py = ns.Harvest:PlayerMapPosition()
     if not mapID then return end
 
-    local spots = ns.Gathering:SpotsOn(mapID)
+    local spots = self:SpotsOn(mapID)
     if #spots == 0 then return end
 
     local width, height = ns.Gathering.MapSize(mapID)
@@ -514,6 +551,7 @@ end
 function MapMarkers:Refresh()
     if not ns.db then return end
     self.worldKey = nil
+    self.minimapKey = nil
 
     local ok, err = pcall(self.DrawWorld, self)
     if not ok then ns.Debug("world map markers:", tostring(err)) end
