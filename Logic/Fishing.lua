@@ -634,7 +634,7 @@ function Fishing:OnEnable()
         Fishing.lootOpen = false
     end)
 
-    ns.RegisterEvent(self, "UNIT_SPELLCAST_CHANNEL_START", function(_, _, unit)
+    ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_CHANNEL_START", function(_, _, unit)
         Fishing:OnChannelStart(unit)
     end)
 

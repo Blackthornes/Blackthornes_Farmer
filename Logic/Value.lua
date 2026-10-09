@@ -94,23 +94,45 @@ function Value:TooltipSellPrice(itemID)
     return price
 end
 
+-- What a vendor pays and whether an item is grey never change in a session,
+-- so each is kept once the client has answered. A render prices the same
+-- items many times over; without these it asked the client every time.
+local vendorPrice = {}
+local poor = {}
+
+local function SellPriceOf(getInfo, itemID)
+    return select(11, getInfo(itemID))
+end
+
+local function QualityOf(getInfo, itemID)
+    return select(3, getInfo(itemID))
+end
+
 --- What a vendor pays for one: the tooltip's price, else the item info's.
 function Value:VendorPrice(itemID)
+    local known = vendorPrice[itemID]
+    if known ~= nil then return known or nil end
+
     local getInfo = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
     if type(getInfo) ~= "function" then return nil end
 
-    local ok, sellPrice = pcall(function()
-        return select(11, getInfo(itemID))
-    end)
+    local ok, sellPrice = pcall(SellPriceOf, getInfo, itemID)
     if not ok then return nil end
 
     local fromTooltip = self:TooltipSellPrice(itemID)
     if fromTooltip then sellPrice = fromTooltip end
 
     local copper = ns.Harvest.ReadableNumber(sellPrice)
-    if copper and copper > 0 then return copper end
+    if not (copper and copper > 0) then copper = nil end
 
-    return nil
+    -- Kept only once both sides have answered: the tooltip read settled and
+    -- the item info loaded (a sell price, even 0), so a price still on its
+    -- way is asked for again next time.
+    if itemID and tooltipSellPrice[itemID] ~= nil and (fromTooltip or ns.Harvest.ReadableNumber(sellPrice)) then
+        vendorPrice[itemID] = copper or false
+    end
+
+    return copper
 end
 
 --- Tradeskills' market value for one, in copper.
@@ -130,13 +152,17 @@ end
 --- True for a grey (poor quality) item: from the client's item info, else
 --- from the colour of a loot link we have seen for it.
 function Value:IsPoor(itemID)
+    local known = poor[itemID]
+    if known ~= nil then return known end
+
     local getInfo = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
     if type(getInfo) == "function" then
-        local ok, quality = pcall(function()
-            return select(3, getInfo(itemID))
-        end)
+        local ok, quality = pcall(QualityOf, getInfo, itemID)
         quality = ok and ns.Harvest.ReadableNumber(quality) or nil
-        if quality then return quality == 0 end
+        if quality then
+            if itemID then poor[itemID] = quality == 0 end
+            return quality == 0
+        end
     end
 
     -- Item info not cached yet: a grey loot link says the same thing.
@@ -239,21 +265,20 @@ function Value:FromDatabase(mobName)
     local details = { basis = "database", priced = {}, unpriced = {}, coin = 0 }
     local total, seen = 0, {}
 
-    for item in ns.DB:Iterate() do
-        for _, source in ipairs(item.sources or {}) do
-            if source.name == mobName and source.chance and not seen[item.name] then
-                seen[item.name] = true
+    for _, entry in ipairs(ns.DB:ByName()[mobName] or {}) do
+        local item, source = entry.item, entry.source
+        if source.chance and not seen[item.name] then
+            seen[item.name] = true
 
-                local unit, from = self:UnitPrice(item.id or self:ItemID(item.name))
+            local unit, from = self:UnitPrice(item.id or self:ItemID(item.name))
 
-                if unit then
-                    local perKill = source.chance / 100 * unit
-                    total = total + perKill
-                    details.priced[#details.priced + 1] =
-                        { name = item.name, perKill = perKill, unit = unit, from = from }
-                else
-                    details.unpriced[#details.unpriced + 1] = item.name
-                end
+            if unit then
+                local perKill = source.chance / 100 * unit
+                total = total + perKill
+                details.priced[#details.priced + 1] =
+                    { name = item.name, perKill = perKill, unit = unit, from = from }
+            else
+                details.unpriced[#details.unpriced + 1] = item.name
             end
         end
     end
