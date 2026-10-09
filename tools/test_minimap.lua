@@ -47,6 +47,7 @@ enter(button)
 
 suite.check("the tooltip names the addon",
     GameTooltip._lines[1] == "Blackthornes Farmer", GameTooltip._lines[1])
+suite.check("then its version", GameTooltip._lines[2] == ns.VersionLabel(), GameTooltip._lines[2])
 suite.check("the tooltip says what a click does", #GameTooltip._lines > 1)
 
 --------------------------------------------------------------------------------
