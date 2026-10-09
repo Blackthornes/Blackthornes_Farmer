@@ -39,4 +39,24 @@ suite.check("and says so", ns.VersionLabel() == "dev build", ns.VersionLabel())
 ns = LoadWith(nil)
 suite.check("no version at all", ns.VERSION == "0.0.0", ns.VERSION)
 
+-- Shown in the window's corner and at the top of Settings (2026-10-09: a
+-- player asked to see at a glance which version he runs).
+_G.C_AddOns = {
+    GetAddOnMetadata = function(_, field)
+        if field == "Version" then return "v0.20.0" end
+    end,
+}
+ns = env.Load({ ui = true })
+_G.C_AddOns = nil
+ns.UI:Build()
+suite.check("the main window shows the version",
+    ns.UI.versionLabel and ns.UI.versionLabel:GetText() == "v0.20.0",
+    ns.UI.versionLabel and ns.UI.versionLabel:GetText())
+
+-- The client refusing the call is no version, never an error.
+_G.C_AddOns = { GetAddOnMetadata = function() error("no") end }
+ns = env.Load()
+_G.C_AddOns = nil
+suite.check("a failing client read is no version", ns.VERSION == "0.0.0", ns.VERSION)
+
 suite.done()

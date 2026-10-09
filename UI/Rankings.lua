@@ -146,9 +146,10 @@ function RankingsUI:Build(frame)
     list:SetPoint("BOTTOMRIGHT", -8, 8)
     self.list = list
 
+    -- Clear of the version in the window's corner (UI/Main.lua).
     local footer = Theme.CreateLabel(view, "tiny", "dim")
     footer:SetPoint("BOTTOMLEFT", PADDING, 6)
-    footer:SetPoint("BOTTOMRIGHT", -PADDING, 6)
+    footer:SetPoint("BOTTOMRIGHT", -(PADDING + (ns.UI.VERSION_ROOM or 0)), 6)
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
