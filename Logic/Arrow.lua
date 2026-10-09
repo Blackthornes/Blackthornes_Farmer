@@ -124,6 +124,7 @@ function Arrow:Follow(item)
     if not goal or goal.done then return false end
 
     self:FollowStore()[ns.Goals:Owner() or "?"] = goal.item
+    self.grind = nil
     if ns.ArrowUI and ns.ArrowUI.Claim then ns.ArrowUI:Claim() end
     self.pinned = nil
     self.choice = nil
@@ -147,8 +148,83 @@ function Arrow:Aim(item, spot)
     return true
 end
 
+--------------------------------------------------------------------------------
+-- A grinding camp (the Grind tab, Logic/Grinding.lua)
+--
+-- The arrow can follow a camp instead of a goal: its mobs' spots are the
+-- places, nearest first, right-click for the next. Kept for the session only;
+-- a click on the dial goes back to your goals.
+--------------------------------------------------------------------------------
+
+--- Point at a grinding camp. `camp` is one of Grinding:Camps().
+function Arrow:Grind(camp)
+    if type(camp) ~= "table" or type(camp.zone) ~= "string" then return false end
+    self.grind = camp
+    self.pinned, self.choice, self.index = nil, nil, 1
+    if ns.ArrowUI and ns.ArrowUI.Claim then ns.ArrowUI:Claim() end
+    if not Arrow.IsOn() then
+        self:SetOn(true)
+        ns.Print("arrow on. /farm arrow off, or the settings page, hides it.")
+    end
+    self:Changed(true)
+    return true
+end
+
+--- Stop following a camp; back to your goals.
+function Arrow:StopGrind()
+    if not self.grind then return false end
+    self.grind = nil
+    self:Changed(true)
+    return true
+end
+
+--- What the arrow follows now: a camp, as a goal-shaped table
+--- { item, grind = camp }, or your goal.
+function Arrow:Following()
+    local camp = self.grind
+    if camp then
+        return { item = ("%s, %s"):format(camp.zone, camp.label or camp.zone), grind = camp }
+    end
+    return self:Goal()
+end
+
+--- The places for a camp: each of its mobs, nearest first.
+function Arrow:GrindTargets(camp, here)
+    local exact, areas, far = {}, {}, {}
+    local seen = {}
+
+    for rank, mob in ipairs(camp.mobs or {}) do
+        local target, group = self:SpotTarget({
+            name = mob.name, zone = mob.zone, location = mob.location, kind = "mob",
+            coords = mob.coords, minLevel = mob.minLevel, maxLevel = mob.maxLevel,
+            forever = mob.forever,
+        }, here, rank)
+        -- Mobs with no spot of their own all point at the same zone: once.
+        local key = group == "exact" and Arrow.Key(target) or (group .. "|" .. tostring(target.zone))
+        if not seen[key] then
+            seen[key] = true
+            if group ~= "exact" then target.name = camp.label or target.name end
+            local into = group == "exact" and exact or group == "area" and areas or far
+            into[#into + 1] = target
+        end
+    end
+
+    table.sort(exact, function(a, b) return a.yards < b.yards end)
+
+    local list = {}
+    for _, group in ipairs({ exact, areas, far }) do
+        for _, target in ipairs(group) do
+            if #list < MAX_TARGETS then list[#list + 1] = target end
+        end
+    end
+    return list
+end
+
 --- The next open goal along.
 function Arrow:NextGoal()
+    -- Following a camp: back to the goals.
+    if self:StopGrind() then return self:Goal() end
+
     local open = self:OpenGoals()
     if #open == 0 then return nil end
 
@@ -369,6 +445,49 @@ local function NodesFor(item)
     return names
 end
 
+--- One place from a ranking (the Where? panel's, or a grinding camp's mob)
+--- as a target, and which group it goes in: "exact" (a spot to point at),
+--- "area" (a zone's middle, or the zone you are in) or "far".
+function Arrow:SpotTarget(spot, here, rank)
+    local zone = ns.Spots.ZoneOf(spot.zone)
+    local target = {
+        name = spot.name, zone = spot.zone, location = spot.location, kind = spot.kind,
+        chance = spot.chance, measured = spot.measured, yours = spot.yours and true or nil,
+        minLevel = spot.minLevel, maxLevel = spot.maxLevel, hops = spot.hops,
+        travel = spot.travel, rank = rank, forever = spot.forever,
+    }
+
+    local mapID = zone and self:ZoneMap(zone, here)
+    -- Coordinates in a dungeon or capital are on a map of its own, so
+    -- only a spot out in its zone is a point.
+    local coords = type(spot.coords) == "table" and spot.zone == zone
+        and tonumber(spot.coords[1]) and tonumber(spot.coords[2])
+
+    if mapID and coords then
+        target.map, target.x, target.y = mapID, spot.coords[1] / 100, spot.coords[2] / 100
+        local north, west = Arrow.Offset(here, mapID, target.x, target.y)
+        if north then
+            target.exact = true
+            target.yards, target.bearing = Arrow.Measure(north, west)
+            return target, "exact"
+        end
+        target.far = true
+        return target, "far"
+    elseif mapID and here and zone == ns.Spots.ZoneOf(here.zone) then
+        -- About the zone you are in: nothing to point at.
+        target.map, target.here = mapID, true
+        return target, "area"
+    elseif mapID then
+        -- Somewhere in a zone on this continent: its middle.
+        target.map, target.x, target.y, target.area = mapID, 0.5, 0.5, true
+        local north, west = Arrow.Offset(here, mapID, 0.5, 0.5)
+        if north then target.yards, target.bearing = Arrow.Measure(north, west) end
+        return target, "area"
+    end
+    target.far = true
+    return target, "far"
+end
+
 --- Every place to point at for `item`, from `here`, best first.
 --
 -- Each is { name, zone, map, x, y, kind, yours, exact, area, here, far,
@@ -405,45 +524,9 @@ function Arrow:Targets(item, here)
     local ok, ranked = pcall(ns.Spots.For, ns.Spots, item, player)
 
     for rank, spot in ipairs(ok and ranked or {}) do
-        local zone = ns.Spots.ZoneOf(spot.zone)
-        local target = {
-            name = spot.name, zone = spot.zone, location = spot.location, kind = spot.kind,
-            chance = spot.chance, measured = spot.measured, yours = spot.yours and true or nil,
-            minLevel = spot.minLevel, maxLevel = spot.maxLevel, hops = spot.hops,
-            travel = spot.travel, rank = rank, forever = spot.forever,
-        }
-
-        local mapID = zone and self:ZoneMap(zone, here)
-        -- Coordinates in a dungeon or capital are on a map of its own, so
-        -- only a spot out in its zone is a point.
-        local coords = type(spot.coords) == "table" and spot.zone == zone
-            and tonumber(spot.coords[1]) and tonumber(spot.coords[2])
-
-        if mapID and coords then
-            target.map, target.x, target.y = mapID, spot.coords[1] / 100, spot.coords[2] / 100
-            local north, west = Arrow.Offset(here, mapID, target.x, target.y)
-            if north then
-                target.exact = true
-                target.yards, target.bearing = Arrow.Measure(north, west)
-                exact[#exact + 1] = target
-            else
-                target.far = true
-                far[#far + 1] = target
-            end
-        elseif mapID and here and zone == ns.Spots.ZoneOf(here.zone) then
-            -- About the zone you are in: nothing to point at.
-            target.map, target.here = mapID, true
-            areas[#areas + 1] = target
-        elseif mapID then
-            -- Somewhere in a zone on this continent: its middle.
-            target.map, target.x, target.y, target.area = mapID, 0.5, 0.5, true
-            local north, west = Arrow.Offset(here, mapID, 0.5, 0.5)
-            if north then target.yards, target.bearing = Arrow.Measure(north, west) end
-            areas[#areas + 1] = target
-        else
-            target.far = true
-            far[#far + 1] = target
-        end
+        local target, group = self:SpotTarget(spot, here, rank)
+        local into = group == "exact" and exact or group == "area" and areas or far
+        into[#into + 1] = target
     end
 
     -- Nearest first, with a spot that has not grown back after the rest.
@@ -540,7 +623,7 @@ function Arrow:State(clock)
         return { mode = "inside" }
     end
 
-    local goal = self:Goal()
+    local goal = self:Following()
     if not goal then return { mode = "none" } end
 
     local here = self:Here()
@@ -550,12 +633,17 @@ function Arrow:State(clock)
     -- at once for a new goal. A place picked with a right-click stays
     -- picked while it is still listed; otherwise the nearest is shown.
     clock = clock or 0
-    if self.stamp ~= goal.item or not self.listedAt or clock - self.listedAt >= Arrow.REFRESH
+    local stamp = goal.grind and ("grind:" .. goal.item) or goal.item
+    if self.stamp ~= stamp or not self.listedAt or clock - self.listedAt >= Arrow.REFRESH
         or clock < self.listedAt then
-        if self.stamp ~= goal.item then self.choice = nil end
-        self.targets = self:Targets(goal.item, here)
+        if self.stamp ~= stamp then self.choice = nil end
+        if goal.grind then
+            self.targets = self:GrindTargets(goal.grind, here)
+        else
+            self.targets = self:Targets(goal.item, here)
+        end
         self.listedAt = clock
-        self.stamp = goal.item
+        self.stamp = stamp
 
         self.index = 1
         if self.choice then

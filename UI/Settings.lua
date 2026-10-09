@@ -513,7 +513,25 @@ function SettingsUI:BuildWindowsColumn()
     end, true)
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local advanced = CreateSection(frame, "ADVANCED", { anchor = minimapMarkersRow })
+    -- The Grind tab (a player asked, the owner agreed 2026-10-09).
+    local grind = CreateSection(frame, "GRINDING", { anchor = minimapMarkersRow })
+
+    local grindRow = CreateRow(frame, grind, "Grinding camps",
+        "Where mobs of a level and type gather, on the window's Grind tab and "
+        .. "the world map. Same as /farm grind and /farm grind pins.")
+
+    controls.grindPins = Widgets.CreateCheckbox(grindRow, "On map", function(checked)
+        ns.GrindPins:SetOn(checked)
+    end, true)
+    controls.grindPins:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local openGrind = Widgets.CreateButton(grindRow, "Open", function()
+        ns.Grinding:Command("")
+    end, { width = 50, height = 20 })
+    openGrind:SetPoint("TOPRIGHT", grindRow, "TOPRIGHT", 0, 0)
+    controls.grindOpen = openGrind
+
+    local advanced = CreateSection(frame, "ADVANCED", { anchor = grindRow })
 
     local debugRow = CreateRow(frame, advanced, "Debug output",
         "Extra messages in chat, to help track down a problem.")
@@ -675,6 +693,7 @@ function SettingsUI:Refresh()
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
+    controls.grindPins:SetChecked(db.grindPins ~= false)
 
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)

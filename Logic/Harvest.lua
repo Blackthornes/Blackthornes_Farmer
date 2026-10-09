@@ -386,6 +386,9 @@ function Harvest:NoteUnit(unit)
         end
     end
     self.seen[guid] = { name = name, level = level, alive = alive or nil }
+
+    -- Its creature type, for the Grind tab (Logic/Grinding.lua).
+    if ns.Grinding then ns.Grinding:Learn(unit, name) end
 end
 
 function Harvest:KnownUnit(guid)
@@ -1016,6 +1019,15 @@ function Harvest:ExportAll(opts)
         out[#out + 1] = "-- Fishing"
         out[#out + 1] = ""
         out[#out + 1] = fishing
+    end
+
+    -- The creature types read off these mobs in game, for the Grind tab.
+    local types = ns.Grinding and ns.Grinding:ExportBlock()
+    if types then
+        out[#out + 1] = ""
+        out[#out + 1] = "-- Creature types, as the game named them"
+        out[#out + 1] = ""
+        out[#out + 1] = types
     end
 
     return table.concat(out, "\n")

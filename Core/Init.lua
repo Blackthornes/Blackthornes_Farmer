@@ -278,7 +278,8 @@ local DEFAULTS = {
     x = 0,
     y = 40,
     lastSearch = "",
-    -- The main window's tab when it was last closed: "search" or "rankings".
+    -- The main window's tab when it was last closed: "search", "rankings"
+    -- or "grind".
     lastTab = "search",
     debug = false,
 
@@ -324,6 +325,12 @@ local DEFAULTS = {
     -- With TomTom installed, its arrow shows the goal arrow's place
     -- (Logic/TomTom.lua).
     useTomTom = true,
+
+    -- The Grind tab's camps on the world map (UI/GrindPins.lua). Its level
+    -- band (grindMin, grindMax), type, what the mobs give and order are
+    -- unset until picked; the creature types learned in game are kept in
+    -- creatureTypes (Logic/Grinding.lua).
+    grindPins = true,
 }
 
 local function LoadSavedVariables()

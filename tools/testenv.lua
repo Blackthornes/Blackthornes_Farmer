@@ -312,6 +312,7 @@ local FILES = {
     "Logic/Spots.lua",
     "Logic/Arrow.lua",
     "Logic/TomTom.lua",
+    "Logic/Grinding.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
@@ -331,7 +332,9 @@ local UI_FILES = {
     "UI/Goals.lua",
     "UI/LootTable.lua",
     "UI/Rankings.lua",
+    "UI/Grinding.lua",
     "UI/MapMarkers.lua",
+    "UI/GrindPins.lua",
     "UI/Arrow.lua",
     "UI/ItemTooltip.lua",
     "UI/Settings.lua",

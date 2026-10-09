@@ -277,3 +277,26 @@ function DB:CountByProvenance()
 
     return counts
 end
+
+--[[----------------------------------------------------------------------------
+  Creature types, as the Forever client names them ("Humanoid", "Beast"),
+  by mob name. Only ever filled from what the game itself said: the harvest
+  export writes the types the addon read off mobs in game
+  (Logic/Grinding.lua), and the generated data file hands them back here:
+
+    DB:CreatureTypes({ ["Witchwing Slayer"] = "Humanoid" })
+
+  Nothing is typed in by hand or guessed from a mob's name or drops. A mob
+  with no entry is a mob whose type nobody has seen yet.
+------------------------------------------------------------------------------]]
+
+DB.creatureTypes = {}
+
+function DB:CreatureTypes(map)
+    if type(map) ~= "table" then return end
+    for name, kind in pairs(map) do
+        if type(name) == "string" and name ~= "" and type(kind) == "string" and kind ~= "" then
+            self.creatureTypes[name] = kind
+        end
+    end
+end

@@ -39,6 +39,7 @@ Logic\Goals.lua
 Logic\Spots.lua
 Logic\Arrow.lua
 Logic\TomTom.lua
+Logic\Grinding.lua
 
 UI\Theme.lua
 UI\Widgets.lua
@@ -50,7 +51,9 @@ UI\TrackerFX.lua
 UI\Goals.lua
 UI\LootTable.lua
 UI\Rankings.lua
+UI\Grinding.lua
 UI\MapMarkers.lua
+UI\GrindPins.lua
 UI\Arrow.lua
 UI\ItemTooltip.lua
 UI\Settings.lua

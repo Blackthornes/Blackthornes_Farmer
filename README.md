@@ -99,6 +99,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
 | `/farm rankings` | open the Rankings tab: mobs by what a kill is worth (`rank` works too) |
+| `/farm grind [levels] [type] [cloth\|skinning]` | open the Grind tab: where mobs of a level band and type gather, e.g. `/farm grind 15-20 humanoid cloth` (`me` follows your level, `any` clears the filters, `pins on\|off` for its world map pins) |
 | `/farm report` | report every kill's tally in chat, on or off (off to start) |
 | `/farm chat <text>` | print the results to chat instead |
 | `/farm data` | where the loaded data came from |
@@ -138,7 +139,8 @@ Options > AddOns > Blackthornes Farmer in the game menu. It covers the minimap
 button, the size of the search window and of the kill tally, putting windows
 back if one ends up off screen, the kill tally and its chat report, pausing
 loot recording (remembered between sessions) with an Export button, the
-farming line on material tooltips, and debug output. Changes save as you make them. Nothing on the page deletes data:
+farming line on material tooltips, the Grind tab's camps on the world map (with an
+Open button for the tab), and debug output. Changes save as you make them. Nothing on the page deletes data:
 clearing tallies or recorded loot stays a typed `reset confirm` command.
 
 Searching is deliberately loose. It matches, best match first:
@@ -247,7 +249,8 @@ value comes from your own kills. Before that, it is an estimate from the
 database's drop rates, which leaves out coin, and it says "(est.)". Without
 Tradeskills, vendor prices are used. `/farm value <mob>` breaks it down.
 
-**Rankings.** The main window has two tabs, **Search** and **Rankings**.
+**Rankings.** The main window has three tabs, **Search**, **Rankings** and
+**Grind**.
 Rankings lists every mob it can value, best per kill first, on two separate
 boards: **Your kills** (20 kills or more, measured from your own loot, coin
 included) and **Estimates** (the database's drop rates, one of each drop and
@@ -257,6 +260,20 @@ still needs, or that nothing they drop has a price yet. Hover a mob for what
 makes up its worth, click it for its loot
 table. `/farm rankings` (or `/farm rank`) opens it, and the window reopens on
 whichever tab you left it on.
+
+**Grind.** Where to level, or farm cloth, coin or leather: pick a level band
+(it follows your own level until you change it, up to 30), a creature type
+(Humanoid, Beast, Undead, Demon, Elemental or Other) and, if you like, what
+the mobs give (Cloth or Skinning). The list shows each camp where such mobs
+gather, busiest first (or **Nearest first**), with its mobs under it: type,
+level, what they give and what a kill is worth. Click a camp to point the
+goal arrow there (right-click the arrow for the camp's next mob, click it to
+go back to your goals); the camps listed also show on the world map with a
+gold ring and a sword. Only mobs Farmer's data or your own loot knows are
+listed. A mob's type comes from the game: it is learned when you target a mob,
+hover it or see its nameplate, and `tools/harvest_import.py` ships what you
+have seen in the data file. Mobs nobody has seen yet are left out of a type
+filter, and the list says how many.
 
 The kill that unlocks a mob's drop rates, its 20th, plays a fanfare and
 prints "Blackthornes Farmer: Drop rates unlocked for ..." with its best drop

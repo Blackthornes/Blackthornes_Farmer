@@ -434,4 +434,36 @@ do
     _G.BlackthornesArrows = nil
 end
 
+--------------------------------------------------------------------------------
+-- A grinding camp (the Grind tab)
+--------------------------------------------------------------------------------
+
+do
+    env.world.zone = "Elwynn Forest"
+    env.world.mapID = 37
+    env.world.position = { 0.45, 0.50 }
+    Arrow:SetOn(true)
+    local camp = { zone = "Elwynn Forest", label = "Test Camp", count = 3, mobs = {
+        { name = "Far Bandit", zone = "Elwynn Forest", coords = { 85, 50 }, minLevel = 5, maxLevel = 6 },
+        { name = "Near Bandit", zone = "Elwynn Forest", coords = { 50, 50 }, minLevel = 5, maxLevel = 6 },
+        { name = "Lost Bandit", zone = "Elwynn Forest", minLevel = 5, maxLevel = 6 },
+    } }
+    suite.check("a camp can be followed", Arrow:Grind(camp))
+    local grind = Arrow:State(clock + 50)
+    suite.check("it points", grind.mode == "point", grind.mode)
+    suite.check("at the nearest of the camp's mobs", grind.target and grind.target.name == "Near Bandit",
+        grind.target and grind.target.name)
+    suite.check("the plate names the camp", grind.goal and grind.goal.grind == camp
+        and grind.goal.item == "Elwynn Forest, Test Camp")
+    suite.check("a mob with no spot of its own is the zone, named for the camp",
+        Arrow.targets[3] and Arrow.targets[3].here and Arrow.targets[3].name == "Test Camp")
+    suite.check("right-click steps to the next mob", Arrow:NextSpot().name == "Far Bandit")
+    local okDraw, errDraw = pcall(ArrowUI.Draw, ArrowUI, true)
+    suite.check("the dial draws it", okDraw, errDraw)
+    suite.check("with the camp on its plate", ArrowUI.title:GetText() == "Grind: Elwynn Forest, Test Camp",
+        ArrowUI.title:GetText())
+    ArrowUI:OnClick("LeftButton")
+    suite.check("a click goes back to the goals", Arrow.grind == nil)
+end
+
 suite.done()

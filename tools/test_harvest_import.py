@@ -346,6 +346,36 @@ def main():
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)
 
+    # -- Creature types ---------------------------------------------------------
+    #
+    # Types read off mobs in game go into the same file for the Grind tab:
+    # only for mobs the data knows, never a guard you moused over in town.
+    typed = SAVED.replace(
+        "BlackthornesFarmerDB = {",
+        """BlackthornesFarmerDB = {
+\t["creatureTypes"] = {
+\t\t["Dalaran Apprentice"] = "Humanoid",
+\t\t["Town Guard"] = "Humanoid",
+\t},""", 1)
+    sandbox, repo, client = build_sandbox(stamped(typed))
+    try:
+        generated = os.path.join(repo, "Data", "Data_Harvested.lua")
+        result = run_import(repo, client)
+        check("an import with creature types succeeds", result.returncode == 0, result.stderr)
+
+        text = open(generated, encoding="utf-8").read() if os.path.isfile(generated) else ""
+        check("the types are written", 'DB:CreatureTypes({' in text
+              and '["Dalaran Apprentice"] = "Humanoid"' in text, text[-400:])
+        check("not for a mob outside the data", "Town Guard" not in text, text[-400:])
+
+        tests = subprocess.run(
+            [sys.executable, os.path.join(repo, "tools", "runtests.py")],
+            capture_output=True, text=True, cwd=repo)
+        check("the addon's tests pass with types in the data",
+              tests.returncode == 0, tests.stderr[-800:])
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
+
     # -- A herb credited to a mob -----------------------------------------------
     #
     # Herbs and ore count per node. One an older version recorded on a mob is

@@ -308,7 +308,7 @@ check("and the close gem closes it", UI.frame:IsShown(), false)
 
 local hang = Raw(UI.tabStrip, "_point")
 check("its tabs hang from its bottom edge", hang and hang[2] == UI.frame and hang[3] == "BOTTOMLEFT", true)
-check("one for each tab", #UI.tabStrip.tabs, 2)
+check("one for each tab", #UI.tabStrip.tabs, 3)
 
 local function Plated(trim, title)
     return Raw(trim, "plate") ~= nil and trim.plate.label:GetText() == title
