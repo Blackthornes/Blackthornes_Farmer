@@ -4,6 +4,30 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.21.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- **Grind tab:** pick a level band (it follows your level), a creature type
+  and, if you like, Cloth or Skinning, and it lists the camps where those mobs
+  gather, busiest or nearest first, with what a kill is worth. Click a camp
+  and the goal arrow points at its mobs; the camps show on the world map too.
+  `/farm grind` opens it.
+- **New Settings window** like Tradeskills': pages along the top, a tooltip on
+  every row (or **Show descriptions**), **Find a setting**, and **Text size**.
+  Every `/farm` command now has a button, plus **Milestone fanfare** and
+  **Count the bank** tick boxes. Reset and clear stay typed commands.
+- **The version number** shows in the main window's corner and in the minimap
+  button's tooltip.
+- **Smoother play:** minimap herb and ore markers are no longer re-placed every
+  second while you stand still, and mob values, Rankings, loot and casts take
+  much less CPU.
+- **One tooltip hook** now serves gathering, fishing and respawn times, so
+  hovering costs less.
+- **Fresher Forever drop data:** 2,461 looted corpses across 217 mobs, up
+  from 2,197 across 193, with each mob's creature type for the Grind tab.
+
 ## 0.20.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game
