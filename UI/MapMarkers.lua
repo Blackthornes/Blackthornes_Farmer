@@ -9,7 +9,7 @@
 -- marker is an empty gold frame with the check outside a corner, so a node
 -- that has grown back shows through its middle. The longer ago the gather,
 -- the fainter the marker. Hover one and it says what it was, how many times
--- you took it and when last.
+-- you took it, when last, and when it should be back (Logic/Respawn.lua).
 --
 -- The spots themselves are Logic/Gathering.lua's. This file only draws them,
 -- and only the ones on the map you are looking at (world map) or standing on
@@ -130,6 +130,13 @@ local function ShowTooltip(pin)
     if ago then line = ("%s, last %s"):format(line, ago) end
 
     GameTooltip:AddLine(line, Theme.Unpack("text"))
+
+    -- When it grows back, from your own returns to spots like it.
+    if ns.Respawn then
+        local back, known = ns.Respawn:SpotLine(spot, ns.Gathering.Clock())
+        if back then GameTooltip:AddLine(back, Theme.Unpack(known and "accent" or "muted")) end
+    end
+
     GameTooltip:Show()
 end
 
