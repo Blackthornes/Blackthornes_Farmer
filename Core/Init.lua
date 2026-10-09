@@ -365,6 +365,12 @@ local DEFAULTS = {
     -- unset until picked; the creature types learned in game are kept in
     -- creatureTypes (Logic/Grinding.lua).
     grindPins = true,
+
+    -- The settings window (UI/SettingsPages.lua): its words under every row
+    -- rather than in tooltips, and Tradeskills' Text size. The page it was
+    -- left on is settingsPage, which has no default.
+    settingsDescriptions = false,
+    textSize = "normal",
 }
 
 local function LoadSavedVariables()

@@ -1,20 +1,18 @@
 -- Blackthornes Farmer -- UI/Settings.lua
 -- The settings window: every switch the addon has, in one place.
 --
--- Until now each option lived behind its own chat command, which is fine once
--- you know it exists and useless until then. This gathers them onto one page
--- with a line under each saying what it actually does, the same way the
--- tradeskills addon's Settings tab does, so the two read as one set.
+-- Built the way Tradeskills' Settings tab is (UI/SettingsPages.lua): pages
+-- picked along the top, two columns of rows a page, a row being [label ..
+-- control] on one line, and what it does in the row's tooltip or, with Show
+-- descriptions ticked, underneath it. "Find a setting" searches every page.
 --
 -- Open it with /farm settings, right-click on the minimap button, the Settings
 -- button in the search window, or from the game's own AddOns options list.
+-- Every /farm command has a button or control here (a house rule).
 --
--- Nothing here deletes anything. Wiping kill tallies or recorded loot stays a
--- typed two-word command, so a stray click on this page can never cost data.
---
--- Layout rule, borrowed from the tradeskills addon: a row is [label .. control]
--- on one line with its description underneath across the whole column. Rows
--- are a fixed height, so nothing can slide under the control beside it.
+-- Nothing here deletes anything. Wiping kill tallies, recorded loot, fishing,
+-- gathering or map markers stays a typed two-word command, so a stray click
+-- on this page can never cost data.
 
 local _, ns = ...
 
@@ -28,20 +26,10 @@ local PADDING = 18
 local HEADER = 36
 
 local COLUMN_WIDTH = 310
-local COLUMN_TWO_X = PADDING * 2 + COLUMN_WIDTH
+local COLUMN_GAP = 18
 -- Where the controls start: room for a label like "Search window size" in the
 -- game's font, which runs wider than it looks.
 local CONTROL_X = 170
-
-local WIDTH = COLUMN_WIDTH * 2 + PADDING * 3
--- Tall enough for the right column, the taller since the goal arrow joined
--- it: five tally rows, loot recording and its export, the tooltip, the
--- arrow and TomTom, over the footer.
-local HEIGHT = 804
-
-local ROW_HEIGHT = 50
-local ROW_GAP = -6
-local SECTION_GAP = -16
 
 -- Window sizes, in percent. Wide enough to matter on a 4K screen or a laptop,
 -- narrow enough that neither end breaks the layout.
@@ -51,87 +39,37 @@ local SCALE_STEP = 10
 
 local TITLE = "Blackthornes Farmer"
 
+-- The pages along the top (UI/SettingsPages.lua), as Tradeskills' Settings
+-- tab has them. Every setting kept its saved name; only its place moved.
+local PAGES = {
+    { key = "windows", text = "WINDOWS",
+      tip = "The minimap button, window sizes and places, effects and text size" },
+    { key = "tally", text = "KILL TALLY",
+      tip = "The kills and loot panel, what it says in chat, and your kills" },
+    { key = "loot", text = "LOOT",
+      tip = "Recording what drops and its export, and your fishing and gathering" },
+    { key = "map", text = "MAP & GOALS",
+      tip = "Node markers, grinding camps, goals and the goal arrow" },
+    { key = "advanced", text = "ADVANCED",
+      tip = "Debug output, the data loaded and the list of commands" },
+}
+
 --------------------------------------------------------------------------------
 -- Layout helpers
 --------------------------------------------------------------------------------
 
---- Section heading with a rule underneath. Returns a frame to anchor rows to.
-local function CreateSection(parent, text, opts)
-    local section = CreateFrame("Frame", nil, parent)
-    section:SetSize(COLUMN_WIDTH, 18)
-    -- Which column it sits in, so each column's extra height is counted
-    -- apart: they stand side by side, and the taller one sets the window.
-    section.column = opts.x or (opts.anchor and opts.anchor.column) or 0
-
-    if opts.anchor then
-        section:SetPoint("TOPLEFT", opts.anchor, "BOTTOMLEFT", 0, SECTION_GAP)
-    else
-        section:SetPoint("TOPLEFT", opts.x, opts.y)
-    end
-
-    local heading = Theme.CreateLabel(section, "tiny", "accent")
-    heading:SetPoint("TOPLEFT", 0, 0)
-    heading:SetText(text)
-
-    local divider = Theme.CreateDivider(section, "border")
-    divider:SetPoint("TOPLEFT", 0, -14)
-    divider:SetWidth(COLUMN_WIDTH)
-
-    return section
-end
-
---- One setting: label and control on a line, what it does underneath.
--- The description may wrap to a second line; the row is sized for two.
-local function CreateRow(parent, anchor, labelText, description)
-    local row = CreateFrame("Frame", nil, parent)
-    row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, ROW_GAP)
-    row:SetSize(COLUMN_WIDTH, ROW_HEIGHT)
-
-    local label = Theme.CreateLabel(row, "small", "text")
-    label:SetPoint("TOPLEFT", 0, -4)
-    label:SetWidth(CONTROL_X - 8)
-    label:SetText(labelText)
-
-    local hint = Theme.CreateLabel(row, "tiny", "dim")
-    hint:SetPoint("TOPLEFT", 0, -25)
-    hint:SetWidth(COLUMN_WIDTH)
-    hint:SetWordWrap(true)
-    hint:SetText(description or "")
-
-    -- Sized for two lines of description; a longer one gets the room it
-    -- needs rather than running into the row below. The height the game
-    -- wrapped it to where it says, else a guess that allows for words
-    -- breaking early.
-    local height
-    local ok, value = pcall(hint.GetStringHeight, hint)
-    if ok and type(value) == "number" and value > 0 then height = value end
-    local lines = height and math.ceil(height / 12 - 0.1)
-        or math.ceil(Theme.TextWidth("tiny", description or "") / (COLUMN_WIDTH * 0.9))
-    row.extra = math.max(0, lines - 2) * 12
-    row:SetHeight(ROW_HEIGHT + row.extra)
-    row.hintLines = lines
-    row.column = anchor.column or 0
-    local columns = SettingsUI.columnExtra or {}
-    SettingsUI.columnExtra = columns
-    columns[row.column] = (columns[row.column] or 0) + row.extra
-    SettingsUI.rowsExtra = math.max(SettingsUI.rowsExtra or 0, columns[row.column])
-
-    row.label = label
-    row.hint = hint
-    return row
-end
-
 --- Make room in a row for a second line of controls under its first, the
---- description moving down by `by`.
+--- description moving down by `by`. Call it before anything changes the
+--- row's description.
 local function GrowRow(row, by)
+    local top = row.compactHeight
     row.hint:ClearAllPoints()
-    row.hint:SetPoint("TOPLEFT", 0, -25 - by)
-    row.extra = (row.extra or 0) + by
-    row:SetHeight(ROW_HEIGHT + row.extra)
-    local columns = SettingsUI.columnExtra or {}
-    SettingsUI.columnExtra = columns
-    columns[row.column] = (columns[row.column] or 0) + by
-    SettingsUI.rowsExtra = math.max(SettingsUI.rowsExtra or 0, columns[row.column])
+    row.hint:SetPoint("TOPLEFT", 0, -(top + by))
+    row.compactHeight = top + by
+    row.fullHeight = row.fullHeight + by
+    local described = ns.db and ns.db.settingsDescriptions == true
+    row.shownHeight = described and row.fullHeight or row.compactHeight
+    row:SetHeight(row.shownHeight)
 end
 
 --- A button's tooltip: what it does, in clear white on the dark tooltip.
@@ -143,6 +81,23 @@ local function Explain(button, title, text)
         GameTooltip:Show()
     end)
     button:HookScript("OnLeave", function() GameTooltip:Hide() end)
+end
+
+--- A button on `row` that runs a /farm command, at `x` (CONTROL_X unless
+--- given).
+local function CommandButton(row, text, command, width, x)
+    local button = Widgets.CreateButton(row, text, function()
+        ns.HandleSlash(command)
+    end, { width = width or 100, height = 20 })
+    button:SetPoint("TOPLEFT", x or CONTROL_X, 0)
+    return button
+end
+
+--- A row whose button runs a /farm command, so every command has a button
+--- here (a house rule).
+local function CommandRow(pages, page, column, label, description, buttonText, command)
+    local row = pages:Row(page, column, label, description)
+    return row, CommandButton(row, buttonText, command)
 end
 
 local function Percent(value)
@@ -302,7 +257,7 @@ function SettingsUI:Build()
     if self.frame then return self.frame end
 
     local frame = CreateFrame("Frame", "BlackthornesFarmerSettings", UIParent)
-    frame:SetSize(WIDTH, HEIGHT)
+    frame:SetSize(COLUMN_WIDTH * 2 + COLUMN_GAP + PADDING * 2, 600)
     frame:SetFrameStrata("DIALOG")
     frame:SetToplevel(true)
     frame:SetClampedToScreen(true)
@@ -347,11 +302,23 @@ function SettingsUI:Build()
     self.controls = {}
 
     self:BuildHeader()
-    self:BuildWindowsColumn()
-    self:BuildTrackingColumn()
 
-    -- Room for any description that wrapped past two lines.
-    frame:SetHeight(HEIGHT + (SettingsUI.rowsExtra or 0))
+    self.pages = ns.SettingsPages.New(frame, {
+        pages = PAGES,
+        top = HEADER + 4,
+        bottom = 48,
+        padding = PADDING,
+        columnWidth = COLUMN_WIDTH,
+        columnGap = COLUMN_GAP,
+        controlX = CONTROL_X,
+        db = function() return ns.db end,
+    })
+    self:BuildWindowsPage()
+    self:BuildTallyPage()
+    self:BuildLootPage()
+    self:BuildMapPage()
+    self:BuildAdvancedPage()
+    self.pages:Fit()
 
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
     footer:SetPoint("BOTTOMLEFT", PADDING, 10)
@@ -391,15 +358,16 @@ function SettingsUI:BuildHeader()
     Theme.SetGradientAlpha(rule, "HORIZONTAL", "accent", 0.6, 0.05)
 end
 
---- Left column: how the addon looks and where things sit.
-function SettingsUI:BuildWindowsColumn()
-    local frame = self.frame
+--- Windows: how the addon looks and where things sit.
+function SettingsUI:BuildWindowsPage()
     local controls = self.controls
+    local pages = self.pages
 
-    local windows = CreateSection(frame, "WINDOWS", { x = PADDING, y = -(HEADER + 16) })
+    pages:Section("windows", 1, "WINDOWS")
 
-    local minimapRow = CreateRow(frame, windows, "Minimap button",
-        "Left-click it to search, right-click for this page. Drag it round the edge to move it.")
+    local minimapRow = pages:Row("windows", 1, "Minimap button",
+        "Left-click it to search, right-click for this page. Drag it round the edge "
+        .. "to move it. Same as /farm minimap.")
 
     controls.minimap = Widgets.CreateCheckbox(minimapRow, "Show it", function(checked)
         ns.db.minimapHidden = not checked
@@ -407,7 +375,7 @@ function SettingsUI:BuildWindowsColumn()
     end, true)
     controls.minimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local windowScaleRow = CreateRow(frame, minimapRow, "Search window size",
+    local windowScaleRow = pages:Row("windows", 1, "Search window size",
         "Bigger for a high-resolution screen, smaller for a laptop.")
 
     controls.windowScale = Widgets.CreateStepper(windowScaleRow, {
@@ -426,9 +394,9 @@ function SettingsUI:BuildWindowsColumn()
     -- from 50 to 150 on the stepper, one dragged to shown as it is, and
     -- Small, Normal and Large under it, the one in use lit green.
     local TrackerUI = ns.TrackerUI
-    local trackerScaleRow = CreateRow(frame, windowScaleRow, "Kill tally size",
+    local trackerScaleRow = pages:Row("windows", 1, "Kill tally size",
         "The kills and loot panel, sized on its own. Or drag the gold corner "
-        .. "beside its bottom right; right-click it for Normal.")
+        .. "beside its bottom right; right-click it for Normal. Same as /farm tracker size.")
 
     controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
         min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
@@ -470,7 +438,7 @@ function SettingsUI:BuildWindowsColumn()
     end
     if after then GrowRow(trackerScaleRow, 24) end
 
-    local positionRow = CreateRow(frame, trackerScaleRow, "Window positions",
+    local positionRow = pages:Row("windows", 1, "Window positions",
         "Moves every Farmer window back to where it started, if one ends up off screen.")
 
     local reset = Widgets.CreateButton(positionRow, "Put them back", function()
@@ -478,10 +446,13 @@ function SettingsUI:BuildWindowsColumn()
         ns.Print("windows moved back to where they started.")
     end, { width = 110, height = 20 })
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
+    controls.resetPositions = reset
+
+    pages:Section("windows", 2, "LOOK")
 
     -- Every window and both panels follow it, so it sits with the windows
     -- rather than under the kill tally. The saved key keeps its old name.
-    local effectsRow = CreateRow(frame, positionRow, "Window effects",
+    local effectsRow = pages:Row("windows", 2, "Window effects",
         "Full: windows fade up and glow, and loot floats off the kill panel. "
         .. "Subtle: shorter fades, and nothing floats. Off: no movement at all. "
         .. "Same as /farm effects.")
@@ -494,9 +465,186 @@ function SettingsUI:BuildWindowsColumn()
     })
     controls.effects:SetPoint("TOPLEFT", CONTROL_X, 0)
 
-    local markers = CreateSection(frame, "GATHERED NODE MARKERS", { anchor = effectsRow })
+    -- Bigger letters in the same windows, as Tradeskills has. Every size
+    -- is read as text is drawn, so it waits for /reload.
+    local textRow = pages:Row("windows", 2, "Text size",
+        "Large and Larger add a point or two to all of this addon's text. "
+        .. "Takes effect after /reload.")
+    controls.textSize = ns.SettingsPages.TextSizeControl(textRow, CONTROL_X, function() return ns.db end)
+    -- Reload now sits between the label and the stepper: beside the stepper
+    -- it would run past the window's right edge.
+    controls.textSize.reload:ClearAllPoints()
+    controls.textSize.reload:SetPoint("RIGHT", controls.textSize, "LEFT", -8, 0)
 
-    local worldRow = CreateRow(frame, markers, "World map",
+    pages:Section("windows", 2, "OPEN")
+
+    local _, searchButton = CommandRow(pages, "windows", 2, "Search window",
+        "Search for something to farm and see where it drops. Same as /farm on its own, "
+        .. "or /farm and what you are after.", "Open it", "")
+    controls.openSearch = searchButton
+
+    local _, rankingsButton = CommandRow(pages, "windows", 2, "Rankings",
+        "Mobs ranked by what a kill is worth. Same as /farm rankings.", "Open it", "rankings")
+    controls.rankings = rankingsButton
+end
+
+--- Kill tally: the kills and loot panel and what it says.
+function SettingsUI:BuildTallyPage()
+    local controls = self.controls
+    local pages = self.pages
+
+    pages:Section("tally", 1, "KILL TALLY")
+
+    local trackerRow = pages:Row("tally", 1, "Tally panel",
+        "Shows what you have killed and what dropped. Same as /farm tracker.")
+
+    controls.tracker = Widgets.CreateCheckbox(trackerRow, "Show it", function(checked)
+        SettingsUI:SetTrackerShown(checked)
+    end, true)
+    controls.tracker:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local groupRow = pages:Row("tally", 1, "In a group",
+        "Moves the panel beside the party and raid frames. Drag it in a "
+        .. "group to pick a spot. Same as /farm tracker group.")
+
+    controls.dodgeGroup = Widgets.CreateCheckbox(groupRow, "Move aside", function(checked)
+        ns.TrackerUI:SetDodgeGroup(checked)
+    end, true)
+    controls.dodgeGroup:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local reportRow = pages:Row("tally", 1, "Chat report",
+        "One line per kill in your own chat window. Nobody else can see it. "
+        .. "Same as /farm report.")
+
+    controls.report = Widgets.CreateCheckbox(reportRow, "Report kills", function(checked)
+        ns.db.trackerReport = checked
+    end, false)
+    controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local announceRow = pages:Row("tally", 1, "Share milestones",
+        "A mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather: "
+        .. "an /emote players near you see. Your chat always gets it. Same as /farm announce.")
+
+    controls.announce = Widgets.CreateCheckbox(announceRow, "Emote it", function(checked)
+        ns.db.trackerAnnounce = checked
+    end, true)
+    controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local celebrateRow = pages:Row("tally", 1, "Milestone fanfare",
+        "A sound and a cheer when a mob's 20th kill, a fishing spot's 20th cast or "
+        .. "a node's 20th gather unlocks its rates. Same as /farm celebrate.")
+
+    controls.celebrate = Widgets.CreateCheckbox(celebrateRow, "Play it", function(checked)
+        ns.db.trackerCelebrate = checked
+    end, true)
+    controls.celebrate:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local rareRow = pages:Row("tally", 1, "Rare drop sound",
+        "A chime when something green or better drops. Only you hear it. "
+        .. "Same as /farm raresound.")
+
+    controls.rareSound = Widgets.CreateCheckbox(rareRow, "Play it", function(checked)
+        ns.db.trackerRareSound = checked
+    end, true)
+    controls.rareSound:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The mob you last looted, as the commands read it with no name.
+    pages:Section("tally", 2, "YOUR LAST MOB")
+
+    local _, killsButton = CommandRow(pages, "tally", 2, "Kills and drops",
+        "Lists in chat how often you have killed the mob you last looted, and its drop "
+        .. "rates. Same as /farm kills, or /farm kills and a mob's name.", "List them", "kills")
+    controls.kills = killsButton
+
+    local _, lootButton = CommandRow(pages, "tally", 2, "Loot table",
+        "Opens the full loot table of the mob you last looted. Same as /farm loot, "
+        .. "or /farm loot and a mob's name.", "Open it", "loot")
+    controls.lootTable = lootButton
+
+    local _, valueButton = CommandRow(pages, "tally", 2, "Worth per kill",
+        "What a kill of the mob you last looted is worth, from Tradeskills' prices. "
+        .. "Same as /farm value, or /farm value and a mob's name.", "Work it out", "value")
+    controls.value = valueButton
+end
+
+--- Loot: recording what drops, its export, fishing and gathering.
+function SettingsUI:BuildLootPage()
+    local controls = self.controls
+    local pages = self.pages
+
+    pages:Section("loot", 1, "LOOT RECORDING")
+
+    local recordRow = pages:Row("loot", 1, "Record what drops",
+        "Counts what every corpse held, so drop rates are measured on Forever. "
+        .. "Kept on this computer only. Same as /farm harvest on and off.")
+
+    controls.record = Widgets.CreateCheckbox(recordRow, "Recording", function(checked)
+        SettingsUI:SetRecording(checked)
+    end, true)
+    controls.record:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    self.recordRow = recordRow
+
+    -- How much is recorded, and the button that hands it back.
+    local block = CreateFrame("Frame", nil, pages.pages.loot.content)
+    block:SetSize(COLUMN_WIDTH, 44)
+    block.fixedHeight = 44
+    pages:Place("loot", 1, block, -4)
+
+    local summary = Theme.CreateLabel(block, "small", "text")
+    summary:SetPoint("TOPLEFT", 0, 0)
+    summary:SetWidth(COLUMN_WIDTH)
+    self.harvestSummary = summary
+
+    local export = Widgets.CreateButton(block, "Export", function()
+        ns.UI:ShowExport(ns.Harvest:ExportAll(), "Export: everything harvested")
+    end, { width = 80, height = 20 })
+    export:SetPoint("TOPLEFT", 0, -22)
+    controls.export = export
+
+    -- Kept to the column beside the button, on two lines if the font needs
+    -- them: on one it ran past the window's right edge.
+    local exportHint = Theme.CreateLabel(block, "tiny", "dim")
+    exportHint:SetPoint("LEFT", export, "RIGHT", 8, 0)
+    exportHint:SetWidth(COLUMN_WIDTH - export:GetWidth() - 8)
+    exportHint:SetWordWrap(true)
+    exportHint:SetText("Your recorded loot, as a data file. Same as /farm export.")
+    self.exportHint = exportHint
+    pages:Searchable("loot", block, "export recorded loot data file")
+
+    local _, harvestButton = CommandRow(pages, "loot", 1, "What you recorded",
+        "Lists in chat the items you have looted most, and from how many corpses. "
+        .. "Same as /farm harvest.", "List it", "harvest")
+    controls.harvest = harvestButton
+
+    pages:Section("loot", 2, "FISHING AND GATHERING")
+
+    local fishingRow = pages:Row("loot", 2, "Fishing",
+        "Lists in chat what you have caught in this zone, or everywhere. "
+        .. "Same as /farm fishing and /farm fishing all.")
+    controls.fishing = CommandButton(fishingRow, "Here", "fishing", 50)
+    controls.fishingAll = CommandButton(fishingRow, "Everywhere", "fishing all", 82, CONTROL_X + 56)
+
+    local gatheringRow = pages:Row("loot", 2, "Gathering",
+        "Lists in chat the herbs and ore you have gathered in this zone, or everywhere. "
+        .. "Same as /farm gathering and /farm gathering all.")
+    controls.gathering = CommandButton(gatheringRow, "Here", "gathering", 50)
+    controls.gatheringAll = CommandButton(gatheringRow, "Everywhere", "gathering all", 82, CONTROL_X + 56)
+
+    local _, checkButton = CommandRow(pages, "loot", 2, "Odd gathers",
+        "Lists in chat gathers that look recorded wrong, to help track down a problem. "
+        .. "It only reads. Same as /farm gathering check.", "Check", "gathering check")
+    controls.gatheringCheck = checkButton
+end
+
+--- Map and goals: what is drawn on the maps, and the goals and their arrow.
+function SettingsUI:BuildMapPage()
+    local controls = self.controls
+    local pages = self.pages
+
+    pages:Section("map", 1, "GATHERED NODE MARKERS")
+
+    local worldRow = pages:Row("map", 1, "World map",
         "Greyed icons with a gold ring and a check where you gathered. "
         .. "Same as /farm markers.")
 
@@ -505,7 +653,7 @@ function SettingsUI:BuildWindowsColumn()
     end, true)
     controls.markersWorld:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local minimapMarkersRow = CreateRow(frame, worldRow, "Minimap",
+    local minimapMarkersRow = pages:Row("map", 1, "Minimap",
         "The same markers around you. Hover one to see when you gathered it.")
 
     controls.markersMinimap = Widgets.CreateCheckbox(minimapMarkersRow, "Show them", function(checked)
@@ -514,9 +662,9 @@ function SettingsUI:BuildWindowsColumn()
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The Grind tab (a player asked, the owner agreed 2026-10-09).
-    local grind = CreateSection(frame, "GRINDING", { anchor = minimapMarkersRow })
+    pages:Section("map", 1, "GRINDING")
 
-    local grindRow = CreateRow(frame, grind, "Grinding camps",
+    local grindRow = pages:Row("map", 1, "Grinding camps",
         "Where mobs of a level and type gather, on the window's Grind tab and "
         .. "the world map. Same as /farm grind and /farm grind pins.")
 
@@ -531,103 +679,9 @@ function SettingsUI:BuildWindowsColumn()
     openGrind:SetPoint("TOPRIGHT", grindRow, "TOPRIGHT", 0, 0)
     controls.grindOpen = openGrind
 
-    local advanced = CreateSection(frame, "ADVANCED", { anchor = grindRow })
+    pages:Section("map", 1, "TOOLTIPS")
 
-    local debugRow = CreateRow(frame, advanced, "Debug output",
-        "Extra messages in chat, to help track down a problem.")
-
-    controls.debug = Widgets.CreateCheckbox(debugRow, "Enabled", function(checked)
-        ns.db.debug = checked
-    end, false)
-    controls.debug:SetPoint("TOPLEFT", CONTROL_X, -2)
-end
-
---- Right column: what the addon keeps track of while you play.
-function SettingsUI:BuildTrackingColumn()
-    local frame = self.frame
-    local controls = self.controls
-
-    local tally = CreateSection(frame, "KILL TALLY", { x = COLUMN_TWO_X, y = -(HEADER + 16) })
-
-    local trackerRow = CreateRow(frame, tally, "Tally panel",
-        "Shows what you have killed and what dropped. Same as /farm tracker.")
-
-    controls.tracker = Widgets.CreateCheckbox(trackerRow, "Show it", function(checked)
-        SettingsUI:SetTrackerShown(checked)
-    end, true)
-    controls.tracker:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local groupRow = CreateRow(frame, trackerRow, "In a group",
-        "Moves the panel beside the party and raid frames. Drag it in a "
-        .. "group to pick a spot.")
-
-    controls.dodgeGroup = Widgets.CreateCheckbox(groupRow, "Move aside", function(checked)
-        ns.TrackerUI:SetDodgeGroup(checked)
-    end, true)
-    controls.dodgeGroup:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local reportRow = CreateRow(frame, groupRow, "Chat report",
-        "One line per kill in your own chat window. Nobody else can see it.")
-
-    controls.report = Widgets.CreateCheckbox(reportRow, "Report kills", function(checked)
-        ns.db.trackerReport = checked
-    end, false)
-    controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local announceRow = CreateRow(frame, reportRow, "Share milestones",
-        "A mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather: "
-        .. "an /emote players near you see. Your chat always gets it.")
-
-    controls.announce = Widgets.CreateCheckbox(announceRow, "Emote it", function(checked)
-        ns.db.trackerAnnounce = checked
-    end, true)
-    controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local rareRow = CreateRow(frame, announceRow, "Rare drop sound",
-        "A chime when something green or better drops. Only you hear it.")
-
-    controls.rareSound = Widgets.CreateCheckbox(rareRow, "Play it", function(checked)
-        ns.db.trackerRareSound = checked
-    end, true)
-    controls.rareSound:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local recording = CreateSection(frame, "LOOT RECORDING", { anchor = rareRow })
-
-    local recordRow = CreateRow(frame, recording, "Record what drops",
-        "Counts what every corpse held, so drop rates are measured on Forever. "
-        .. "Kept on this computer only.")
-
-    controls.record = Widgets.CreateCheckbox(recordRow, "Recording", function(checked)
-        SettingsUI:SetRecording(checked)
-    end, true)
-    controls.record:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    self.recordRow = recordRow
-
-    local summary = Theme.CreateLabel(frame, "small", "text")
-    summary:SetPoint("TOPLEFT", recordRow, "BOTTOMLEFT", 0, -4)
-    summary:SetWidth(COLUMN_WIDTH)
-    self.harvestSummary = summary
-
-    local export = Widgets.CreateButton(frame, "Export", function()
-        ns.UI:ShowExport(ns.Harvest:ExportAll(), "Export: everything harvested")
-    end, { width = 80, height = 20 })
-    export:SetPoint("TOPLEFT", summary, "BOTTOMLEFT", 0, -8)
-
-    -- Kept to the column beside the button, on two lines if the font needs
-    -- them: on one it ran past the window's right edge.
-    local exportHint = Theme.CreateLabel(frame, "tiny", "dim")
-    exportHint:SetPoint("LEFT", export, "RIGHT", 8, 0)
-    exportHint:SetWidth(COLUMN_WIDTH - export:GetWidth() - 8)
-    exportHint:SetWordWrap(true)
-    exportHint:SetText("Your recorded loot, as a data file.")
-    self.exportHint = exportHint
-
-    -- Under the export button, in the room the right column has spare.
-    export.column = COLUMN_TWO_X
-    local tooltips = CreateSection(frame, "TOOLTIPS", { anchor = export })
-
-    local tooltipRow = CreateRow(frame, tooltips, "Where to farm",
+    local tooltipRow = pages:Row("map", 1, "Where to farm",
         "Hover a material for the best place to farm it from where you stand. "
         .. "Same as /farm tooltip.")
 
@@ -637,9 +691,36 @@ function SettingsUI:BuildTrackingColumn()
     end, true)
     controls.itemTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local arrow = CreateSection(frame, "GOAL ARROW", { anchor = tooltipRow })
+    -- It needs an item's name, so the button says how to type it.
+    local _, whereButton = CommandRow(pages, "map", 1, "Places for an item",
+        "The best places near you to farm an item, typed with its name: "
+        .. "/farm where copper ore. The button says how.", "How to", "where")
+    controls.where = whereButton
 
-    local arrowRow = CreateRow(frame, arrow, "Goal arrow",
+    pages:Section("map", 2, "GOALS")
+
+    local goalsRow = pages:Row("map", 2, "Goals panel",
+        "Shows or hides the goals panel; Dock puts it back under the kills panel. "
+        .. "Same as /farm goals and /farm goals dock.")
+    controls.goals = CommandButton(goalsRow, "Show", "goals", 64)
+    controls.goalsDock = CommandButton(goalsRow, "Dock", "goals dock", 64, CONTROL_X + 70)
+
+    local _, goalButton = CommandRow(pages, "map", 2, "Your goals",
+        "Lists your goals in chat and opens the panel. Set one with /farm goal Copper Ore 40, "
+        .. "or the Goal button on a search result. Same as /farm goal.", "List them", "goal")
+    controls.goalList = goalButton
+
+    local bankRow = pages:Row("map", 2, "Count the bank",
+        "Goals count what is in your bank as well as your bags. Same as /farm goal bank.")
+
+    controls.goalsBank = Widgets.CreateCheckbox(bankRow, "Count it", function(checked)
+        if ns.Goals then ns.Goals:SetCountsBank(checked) end
+    end, false)
+    controls.goalsBank:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    pages:Section("map", 2, "GOAL ARROW")
+
+    local arrowRow = pages:Row("map", 2, "Goal arrow",
         "Points to the nearest place to gather a goal. Same as /farm arrow. "
         .. "Check lists what the game lets it read here (/farm arrow check).")
 
@@ -654,7 +735,12 @@ function SettingsUI:BuildTrackingColumn()
     check:SetPoint("TOPRIGHT", arrowRow, "TOPRIGHT", 0, 0)
     controls.arrowCheck = check
 
-    local tomtomRow = CreateRow(frame, arrowRow, "Use TomTom",
+    local _, nextButton = CommandRow(pages, "map", 2, "Next place",
+        "Points the arrow at the next place known for its goal. Same as /farm arrow next.",
+        "Next", "arrow next")
+    controls.arrowNext = nextButton
+
+    local tomtomRow = pages:Row("map", 2, "Use TomTom",
         "With TomTom installed, its arrow points the way instead of this one. "
         .. "Same as /farm arrow tomtom.")
 
@@ -662,6 +748,49 @@ function SettingsUI:BuildTrackingColumn()
         ns.TomTom:SetOn(checked)
     end, true)
     controls.tomtom:SetPoint("TOPLEFT", CONTROL_X, -2)
+end
+
+--- Advanced: debug output, the data the addon carries, and the commands.
+function SettingsUI:BuildAdvancedPage()
+    local controls = self.controls
+    local pages = self.pages
+
+    pages:Section("advanced", 1, "ADVANCED")
+
+    local debugRow = pages:Row("advanced", 1, "Debug output",
+        "Extra messages in chat, to help track down a problem.")
+
+    controls.debug = Widgets.CreateCheckbox(debugRow, "Enabled", function(checked)
+        ns.db.debug = checked
+    end, false)
+    controls.debug:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local _, helpButton = CommandRow(pages, "advanced", 1, "Commands",
+        "Lists every /farm command in chat. Same as /farm help.", "List them", "help")
+    controls.help = helpButton
+
+    -- It needs what to search for, so the button says how to type it.
+    local _, chatButton = CommandRow(pages, "advanced", 1, "Search to chat",
+        "Prints a search's results in chat instead of the window: /farm chat copper ore. "
+        .. "The button says how.", "How to", "chat")
+    controls.chat = chatButton
+
+    pages:Section("advanced", 2, "DATA")
+
+    local _, statsButton = CommandRow(pages, "advanced", 2, "Data loaded",
+        "Says in chat how many items and farming spots are loaded. Same as /farm stats.",
+        "Count it", "stats")
+    controls.stats = statsButton
+
+    local _, dataButton = CommandRow(pages, "advanced", 2, "Where it came from",
+        "Lists in chat where the farming spots came from: Forever or Classic. "
+        .. "Same as /farm data.", "List it", "data")
+    controls.data = dataButton
+
+    local _, listButton = CommandRow(pages, "advanced", 2, "Every item",
+        "Lists in chat every item the addon knows. A long list. Same as /farm list.",
+        "List them", "list")
+    controls.list = listButton
 end
 
 --------------------------------------------------------------------------------
@@ -699,21 +828,28 @@ function SettingsUI:Refresh()
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)
     controls.report:SetChecked(db.trackerReport == true)
     controls.announce:SetChecked(db.trackerAnnounce ~= false)
+    controls.celebrate:SetChecked(db.trackerCelebrate ~= false)
+
+    local ok, bank = pcall(function() return ns.Goals:CountsBank() end)
+    controls.goalsBank:SetChecked(ok and bank == true)
 
     local level = ns.TrackerFX.Level()
     for index, name in ipairs(ns.TrackerFX.LEVELS) do
         if name == level then controls.effects:SetValue(index, true) end
     end
     controls.rareSound:SetChecked(ns.TrackerFX.RareSoundOn())
+    controls.textSize:Sync()
 
     local usable = ns.Harvest:Capabilities().usable
 
     controls.record:SetChecked(usable and not db.harvestPaused)
     controls.record:SetDisabled(not usable)
 
-    if not usable then
-        self.recordRow.hint:SetText("This client does not let addons read the loot window, "
+    if not usable and not self.recordUnusable then
+        self.recordUnusable = true
+        self.recordRow:SetDescription("This client does not let addons read the loot window, "
             .. "so nothing can be recorded.")
+        self.pages:Fit()
     end
 
     local corpses = ns.Harvest:CountCorpses()
@@ -724,6 +860,8 @@ function SettingsUI:Refresh()
         self.harvestSummary:SetText(("%s recorded from %s."):format(
             Util.Plural(corpses, "corpse"), Util.Plural(ns.Harvest:CountMobs(), "mob")))
     end
+
+    self.pages:Refresh()
 end
 
 --------------------------------------------------------------------------------

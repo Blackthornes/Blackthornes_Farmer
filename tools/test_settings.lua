@@ -121,6 +121,121 @@ suite.check("a paused recorder records nothing", ns.Harvest:CountCorpses() == 0,
 Toggle(controls.record)
 suite.check("ticking it resumes", ns.Harvest.enabled and ns.db.harvestPaused == false)
 
+Toggle(controls.celebrate)
+suite.check("the fanfare box writes the /farm celebrate setting", ns.db.trackerCelebrate == false)
+Toggle(controls.celebrate)
+suite.check("and back", ns.db.trackerCelebrate == true)
+
+Toggle(controls.goalsBank)
+suite.check("the bank box writes the /farm goal bank setting", ns.Goals:CountsBank() == true)
+Toggle(controls.goalsBank)
+suite.check("and back", ns.Goals:CountsBank() == false)
+
+--------------------------------------------------------------------------------
+-- The pages along the top, as Tradeskills' Settings tab has them
+--------------------------------------------------------------------------------
+
+local pages = SettingsUI.pages
+suite.check("it opens on the first page", pages.shown == "windows", pages.shown)
+suite.check("with the window rows showing", pages.pages.windows.content:IsShown()
+    and not pages.pages.tally.content:IsShown())
+local tallyPart
+for _, part in ipairs(pages.switch) do
+    if part.key == "tally" then tallyPart = part end
+end
+tallyPart.button:GetScript("OnClick")(tallyPart.button)
+suite.check("a click on the switch shows that page", pages.pages.tally.content:IsShown()
+    and not pages.pages.windows.content:IsShown())
+suite.check("and the page is remembered", ns.db.settingsPage == "tally")
+suite.check("the page picked is gold", tallyPart.label._color[1] == ns.Theme.colors.accent[1])
+SettingsUI:Hide()
+SettingsUI:Show()
+suite.check("it opens again on the page left", pages.shown == "tally", pages.shown)
+
+-- What a setting does is a tooltip until Show descriptions is ticked.
+local reportRow = controls.report._parent
+suite.check("descriptions start hidden", ns.db.settingsDescriptions == false
+    and not reportRow.hint:IsShown())
+GameTooltip._lines = {}
+reportRow:GetScript("OnEnter")(reportRow)
+suite.check("a row lights under the mouse", reportRow.hover:IsShown())
+suite.check("and says what it does in a tooltip", GameTooltip._lines[1] ~= nil
+    and GameTooltip._lines[1]:find("Nobody else can see it", 1, true) ~= nil, GameTooltip._lines[1])
+local before = SettingsUI.frame:GetHeight()
+pages.describe:GetScript("OnClick")(pages.describe)
+suite.check("Show descriptions is saved", ns.db.settingsDescriptions == true)
+suite.check("and puts the words under the rows", reportRow.hint:IsShown())
+suite.check("and the window grows to fit them", SettingsUI.frame:GetHeight() > before)
+pages.describe:GetScript("OnClick")(pages.describe)
+suite.check("unticked, the window goes back", SettingsUI.frame:GetHeight() == before)
+
+-- The kill tally's size buttons sit under its stepper, over its words.
+local sizeRow = controls.trackerScale._parent
+suite.check("the tally size row makes room for its buttons", sizeRow.compactHeight == 48
+    and sizeRow.hint._point[3] == -48, sizeRow.compactHeight)
+
+-- Find a setting.
+pages.find:SetText("tomtom")
+pages:Search("tomtom")
+suite.check("the search shows the page that has it", pages.shown == "map", pages.shown)
+local lit = 0
+for _, entry in ipairs(pages.searchables) do
+    if entry.glow:IsShown() then lit = lit + 1 end
+end
+suite.check("and lights only what matches", lit == 1, lit)
+pages:Search("export")
+suite.check("the export button can be found too", pages.shown == "loot", pages.shown)
+pages:Search("")
+lit = 0
+for _, entry in ipairs(pages.searchables) do
+    if entry.glow:IsShown() then lit = lit + 1 end
+end
+suite.check("an empty search lights nothing", lit == 0)
+
+-- Text size, saved as a word, waits for a reload.
+controls.textSize.plus:GetScript("OnClick")(controls.textSize.plus)
+suite.check("Text size saves Large", ns.db.textSize == "large")
+suite.check("and offers Reload now", controls.textSize.reload:IsShown())
+suite.check("beside the stepper, inside the window", controls.textSize.reload._point[2] == controls.textSize
+    and controls.textSize.reload._point[3] == "LEFT")
+controls.textSize.minus:GetScript("OnClick")(controls.textSize.minus)
+suite.check("back to Normal needs no reload", ns.db.textSize == "normal"
+    and not controls.textSize.reload:IsShown())
+
+-- Every /farm command has a button or control here.
+local ran = {}
+local realSlash = ns.HandleSlash
+ns.HandleSlash = function(text) ran[#ran + 1] = text end
+local buttons = {
+    openSearch = "", rankings = "rankings", kills = "kills", lootTable = "loot", value = "value",
+    harvest = "harvest", fishing = "fishing", fishingAll = "fishing all", gathering = "gathering",
+    gatheringAll = "gathering all", gatheringCheck = "gathering check", where = "where",
+    goals = "goals", goalsDock = "goals dock", goalList = "goal", arrowNext = "arrow next",
+    help = "help", chat = "chat", stats = "stats", data = "data", list = "list",
+}
+local wrong = {}
+for key, command in pairs(buttons) do
+    ran = {}
+    controls[key]:GetScript("OnClick")(controls[key])
+    if ran[1] ~= command then wrong[#wrong + 1] = key end
+end
+ns.HandleSlash = realSlash
+suite.check("the command buttons run their commands", #wrong == 0, table.concat(wrong, ", "))
+
+-- Each command a player can type is reached from the page: by a button
+-- above, a control that writes the same setting, or the window itself.
+local covered = {
+    settings = true, minimap = true, tracker = true, report = true, celebrate = true,
+    announce = true, raresound = true, effects = true, markers = true, tooltip = true,
+    arrow = true, grind = true, export = true,
+}
+for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
+local missing = {}
+for _, name in ipairs(ns.commandOrder) do
+    if not covered[name] then missing[#missing + 1] = name end
+end
+suite.check("every /farm command has a button or control", #missing == 0, table.concat(missing, ", "))
+
 --------------------------------------------------------------------------------
 -- Sizes
 --------------------------------------------------------------------------------
