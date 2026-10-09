@@ -133,15 +133,23 @@ brings it back.
 
 ### Settings
 
-Every switch the addon has is on one page: `/farm settings`, **right-click**
+Every switch the addon has is in one window: `/farm settings`, **right-click**
 the minimap button, the **Settings** button in the search window, or
-Options > AddOns > Blackthornes Farmer in the game menu. It covers the minimap
-button, the size of the search window and of the kill tally, putting windows
-back if one ends up off screen, the kill tally and its chat report, pausing
-loot recording (remembered between sessions) with an Export button, the
-farming line on material tooltips, the Grind tab's camps on the world map (with an
-Open button for the tab), and debug output. Changes save as you make them. Nothing on the page deletes data:
-clearing tallies or recorded loot stays a typed `reset confirm` command.
+Options > AddOns > Blackthornes Farmer in the game menu. Its pages are picked
+along the top: **Windows** (the minimap button, the size of the search window
+and of the kill tally, putting windows back if one ends up off screen,
+window effects and text size), **Kill tally** (the panel, its chat report,
+milestones and sounds, and your last mob's kills, loot table and worth),
+**Loot** (pausing loot recording, remembered between sessions, with an Export
+button, and your fishing and gathering), **Map & goals** (node markers, the
+Grind tab's camps, the farming line on material tooltips, goals and the goal
+arrow) and **Advanced** (debug output and the data loaded). Hover a setting to
+see what it does, or tick **Show descriptions** to see it under every row;
+**Find a setting** searches every page. **Text size** makes all of the
+addon's text a point or two bigger after a `/reload`. Every `/farm` command
+has a button or control there too. Changes save as you make them. Nothing in
+the window deletes data: clearing tallies or recorded loot stays a typed
+`reset confirm` command.
 
 Searching is deliberately loose. It matches, best match first:
 

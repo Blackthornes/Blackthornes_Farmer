@@ -325,6 +325,7 @@ local UI_FILES = {
     "UI/Theme.lua",
     "UI/Widgets.lua",
     "UI/Titanforged.lua",
+    "UI/SettingsPages.lua",
     "UI/Main.lua",
     "UI/Export.lua",
     "UI/Tracker.lua",

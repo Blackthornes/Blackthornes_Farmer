@@ -322,8 +322,8 @@ controls.effects.minus:GetScript("OnClick")(controls.effects.minus)
 local saved = ns.db.trackerEffects
 controls.effects.plus:GetScript("OnClick")(controls.effects.plus)
 suite.check("Effects sits with the windows, not under the kill tally, and saves where it always has",
-    effectsRow.column == controls.minimap._parent.column
-    and effectsRow.column ~= controls.tracker._parent.column and saved == "subtle", saved)
+    effectsRow._parent == controls.minimap._parent._parent
+    and effectsRow._parent ~= controls.tracker._parent._parent and saved == "subtle", saved)
 suite.check("named for what it moves", effectsRow.label:GetText() == "Window effects",
     effectsRow.label:GetText())
 suite.check("and says the windows fade up and glow",
