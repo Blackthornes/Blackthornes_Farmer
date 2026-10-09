@@ -4,6 +4,21 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.20.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- **Herbs and veins grow back:** Farmer learns respawn times from your own
+  gathering. Once you've come back to a marked node three times on a map, its
+  map markers say "Back in about 5 min" (or "Should be back by now"), and
+  hovering that herb or vein in the world says how long it takes there. Until
+  then they show "?" with how many returns it has seen.
+- **TomTom:** with TomTom installed, the goal arrow's place goes to TomTom as a
+  waypoint and Farmer's own dial stays hidden, so only one arrow is on screen.
+  Places TomTom can't point at still show on the dial. Turn it off with the
+  **Use TomTom** tick box in Settings.
+
 ## 0.19.1
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
