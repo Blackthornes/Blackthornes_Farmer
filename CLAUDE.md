@@ -89,6 +89,15 @@ and Pets' `Logic/BeastArrow.lua` and `UI/BeastArrow.lua` copy
 `Media/Arrow/*.tga`. None of them calls another for it. A fix to the dial
 or its art in one belongs in all three.
 
+TomTom (a player asked, the owner agreed 2026-10-09): Farmer alone hands
+the goal arrow's place to TomTom when it is installed (`Logic/TomTom.lua`,
+read through `_G.TomTom:AddWaypoint`/`RemoveWaypoint` inside a pcall,
+waypoints never persistent). "Use TomTom" (`useTomTom`, on unless
+unticked; `/farm arrow tomtom`) hides the dial while TomTom shows the way,
+and the waypoint goes whenever the dial would hide, so the one-arrow rule
+holds. It sits outside the copied dial lines; Equipment and Pets have no
+TomTom hand-off.
+
 Only one Blackthornes arrow is on screen at a time (the owner asked
 2026-10-08): Farmer's goal arrow, Equipment's quest arrow and Pets' beast
 arrow agree through one global table, `_G.BlackthornesArrows`

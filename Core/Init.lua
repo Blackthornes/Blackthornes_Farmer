@@ -321,6 +321,9 @@ local DEFAULTS = {
 
     -- The goal arrow (UI/Arrow.lua): off until turned on.
     arrowShown = false,
+    -- With TomTom installed, its arrow shows the goal arrow's place
+    -- (Logic/TomTom.lua).
+    useTomTom = true,
 }
 
 local function LoadSavedVariables()

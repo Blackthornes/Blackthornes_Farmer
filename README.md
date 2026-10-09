@@ -93,7 +93,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
 | `/farm goal <item> <amount>` | set a gathering goal, e.g. `/farm goal Copper Ore 40`; on its own, lists your goals (`remove <item>`, `clear` for finished ones, `bank on\|off` to count your bank) |
 | `/farm where <item>` | the best places near you to farm it, nearest first |
-| `/farm arrow [on\|off]` | an arrow on screen that points to the nearest place to gather a goal (off by default; `next` for the next place, `<goal>` to follow that goal, `check` for what the game lets it read, `reset` puts it back) |
+| `/farm arrow [on\|off]` | an arrow on screen that points to the nearest place to gather a goal (off by default; `next` for the next place, `<goal>` to follow that goal, `check` for what the game lets it read, `tomtom` to use TomTom's arrow or not, `reset` puts it back) |
 | `/farm tooltip` | turn the "Farm:" line on material tooltips on or off (on by default) |
 | `/farm goals [dock]` | show or hide the goals panel; `dock` puts it back under the kills panel |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
@@ -347,6 +347,14 @@ shows, and the others wait until it is put away. It hides inside dungeons, where
 itself, and `/farm arrow check` lists what the game lets it read where you
 stand. It reads the same map position the markers do, which way you face and
 the game's world coordinates; it does not need TomTom.
+
+**TomTom.** With TomTom installed, the goal arrow hands its place to TomTom as
+a waypoint and its own dial stays hidden, so only TomTom's arrow is on screen.
+The waypoint follows the goal arrow: a nearer place, the next place or the
+next goal swaps it, and a finished goal, the arrow turned off, a dungeon or
+another Blackthornes arrow takes it away. Places TomTom cannot point at, like
+the other continent, show on the dial as before. Untick **Use TomTom** on the
+settings page, or type `/farm arrow tomtom off`, to keep the dial.
 
 ## The data
 

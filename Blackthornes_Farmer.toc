@@ -37,6 +37,7 @@ Logic\Rankings.lua
 Logic\Goals.lua
 Logic\Spots.lua
 Logic\Arrow.lua
+Logic\TomTom.lua
 
 UI\Theme.lua
 UI\Widgets.lua

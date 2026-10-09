@@ -12,7 +12,8 @@
 --
 -- Off until turned on (/farm arrow, the settings page, or Shift-click on a
 -- goal or a Where? place), closed with its red gem, and hidden inside
--- dungeons and while no goal is open.
+-- dungeons and while no goal is open. With TomTom installed and used, the
+-- place goes to TomTom instead and the dial stays hidden (Logic/TomTom.lua).
 
 local ADDON, ns = ...
 
@@ -316,12 +317,21 @@ function ArrowUI:Draw(force)
     -- No open goal: nothing to follow, so out of the way until one is set.
     if state.mode == "off" or state.mode == "inside" or state.mode == "none" then
         ArrowUI.Wins(false)
+        ns.TomTom:Clear()
         frame:Hide()
         return
     end
 
     -- Another Blackthornes arrow was aimed more lately: wait, hidden.
     if not ArrowUI.Wins(true) then
+        ns.TomTom:Clear()
+        frame:Hide()
+        return
+    end
+
+    -- TomTom installed and used: its arrow shows the way, so the dial hides
+    -- and only one arrow is on screen. The driver below keeps it current.
+    if ns.TomTom:Take(state) then
         frame:Hide()
         return
     end
@@ -411,6 +421,7 @@ function ArrowUI:Refresh()
     if not ns.db then return end
     if not ns.Arrow.IsOn() then
         ArrowUI.Wins(false)
+        ns.TomTom:Clear()
         if self.frame then self.frame:Hide() end
         return
     end
