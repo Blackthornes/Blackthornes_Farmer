@@ -25,6 +25,8 @@ fully after updating (`/reload` is not enough).
   much less CPU.
 - **One tooltip hook** now serves gathering, fishing and respawn times, so
   hovering costs less.
+- **Fresher Forever drop data:** 2,461 looted corpses across 217 mobs, up
+  from 2,197 across 193, with each mob's creature type for the Grind tab.
 
 ## 0.20.0
 
