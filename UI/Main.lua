@@ -359,9 +359,20 @@ function UI:BuildBody()
     list:SetPoint("BOTTOMRIGHT", -8, 8)
     self.list = list
 
+    -- The installed version, small and faint in the bottom right corner, so
+    -- a player can see at a glance which one they run. The footers on both
+    -- tabs stop short of it.
+    local version = Theme.CreateLabel(frame, "tiny", "dim", "RIGHT")
+    version:SetPoint("BOTTOMRIGHT", -PADDING, 6)
+    version:SetHeight(26)
+    version:SetJustifyV("MIDDLE")
+    version:SetText(ns.VersionLabel())
+    self.versionLabel = version
+    UI.VERSION_ROOM = Theme.TextWidth("tiny", ns.VersionLabel()) + 10
+
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
     footer:SetPoint("BOTTOMLEFT", PADDING, 6)
-    footer:SetPoint("BOTTOMRIGHT", -PADDING, 6)
+    footer:SetPoint("BOTTOMRIGHT", -(PADDING + UI.VERSION_ROOM), 6)
     -- Two lines if it needs them, rather than cut off.
     footer:SetHeight(26)
     footer:SetWordWrap(true)
