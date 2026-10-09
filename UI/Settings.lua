@@ -471,10 +471,6 @@ function SettingsUI:BuildWindowsPage()
         "Large and Larger add a point or two to all of this addon's text. "
         .. "Takes effect after /reload.")
     controls.textSize = ns.SettingsPages.TextSizeControl(textRow, CONTROL_X, function() return ns.db end)
-    -- Reload now sits between the label and the stepper: beside the stepper
-    -- it would run past the window's right edge.
-    controls.textSize.reload:ClearAllPoints()
-    controls.textSize.reload:SetPoint("RIGHT", controls.textSize, "LEFT", -8, 0)
 
     pages:Section("windows", 2, "OPEN")
 

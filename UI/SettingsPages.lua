@@ -257,7 +257,11 @@ function Page:Row(pageKey, column, labelText, description)
         local lines = TextHeight(hint, 13 * math.max(1, math.ceil(
             Theme.TextWidth("tiny", self.description) / opts.columnWidth)))
         self.fullHeight = self.description == "" and top or math.ceil(top + lines + 6)
-        FitRow(self, self.pages:DB().settingsDescriptions == true)
+        local shown = self.pages:DB().settingsDescriptions == true
+        FitRow(self, shown)
+        -- Words that change once the window is up (the spec a gear judge
+        -- picked, say) may need more room under the row.
+        if shown and self.pages.fitted then self.pages:Fit() end
     end
 
     row:SetDescription(type(description) == "function" and description() or description)
@@ -479,6 +483,7 @@ function Page:Fit()
     local opts = self.opts
     local height = opts.top + BAR_HEIGHT + 14 + self:TallestColumn() + opts.bottom
     local width = math.max(opts.padding * 2 + opts.columnWidth * 2 + opts.columnGap, self:BarWidth())
+    self.fitted = true
     self.frame:SetWidth(math.ceil(width))
     self.frame:SetHeight(math.ceil(height))
     for _, page in pairs(self.pages) do
@@ -501,7 +506,7 @@ end
 SettingsPages.TEXT_SIZES = { "normal", "large", "larger" }
 SettingsPages.TEXT_LABELS = { normal = "Normal", large = "Large", larger = "Larger" }
 
---- A "Text size" stepper and its "Reload now" button on `row`, at `x`.
+--- A "Text size" stepper and its "Reload" button on `row`, at `x`.
 -- Returns the stepper; stepper:Sync() puts it back in step with the save.
 function SettingsPages.TextSizeControl(row, x, db)
     local sizes = SettingsPages.TEXT_SIZES
@@ -515,13 +520,25 @@ function SettingsPages.TextSizeControl(row, x, db)
             reload:SetShown((Theme.TEXT_STEPS[sizes[value]] or 0) ~= Theme.TextStep())
         end,
     })
+    -- Narrower than a stepper's usual 118, so Reload fits beside it.
+    stepper:SetWidth(100)
     stepper:SetPoint("TOPLEFT", x, -2)
 
     -- ReloadUI is allowed from a click, and saves everything first.
-    reload = Widgets.CreateButton(row, "Reload now", function()
+    reload = Widgets.CreateButton(row, "Reload", function()
         if ReloadUI then ReloadUI() end
-    end, { width = 90, height = 20 })
-    reload:SetPoint("LEFT", stepper, "RIGHT", 8, 0)
+    end, { width = 60, height = 20 })
+
+    -- To the stepper's right when the column has room for it, else between
+    -- the setting's name and the stepper, so it never runs into the other
+    -- column or off the window.
+    local room = Number(row.pages and row.pages.opts.columnWidth) or 0
+    local width = Number(reload:GetWidth()) or 60
+    if x + 100 + 6 + width <= room then
+        reload:SetPoint("LEFT", stepper, "RIGHT", 6, 0)
+    else
+        reload:SetPoint("RIGHT", stepper, "LEFT", -6, 0)
+    end
     reload:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Reload the interface so the new text size shows (/reload)", 1, 1, 1, true)
