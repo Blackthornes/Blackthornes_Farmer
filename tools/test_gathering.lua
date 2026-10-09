@@ -122,7 +122,17 @@ end
 env.world.zone = "Elwynn Forest"
 env.world.subZone = "Goldshire"
 
-suite.check("both tooltip hooks are installed", #tooltipShown >= 2, #tooltipShown)
+suite.check("fishing and gathering share one tooltip hook", #tooltipShown == 1, #tooltipShown)
+do
+    local asks, realGetUnit = 0, _G.GameTooltip.GetUnit
+    _G.GameTooltip.GetUnit = function(...) asks = asks + 1 return realGetUnit(...) end
+    tooltip.text = "Peacebloom"
+    tooltipShown[1](_G.GameTooltip)
+    suite.check("which asks whether it shows a unit once per showing", asks == 1, asks)
+    suite.check("and still tells gathering the name", Gathering.hovered and Gathering.hovered.name == "Peacebloom")
+    _G.GameTooltip.GetUnit = realGetUnit
+    tooltip.text, Gathering.hovered = nil, nil
+end
 suite.check("no Gathering section before you gather", Line("GATHERING") == nil)
 
 --------------------------------------------------------------------------------
