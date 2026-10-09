@@ -14,6 +14,7 @@
 -- inside a pcall, so a missing or different version breaks nothing: a
 -- waypoint TomTom will not take falls back to Farmer's own dial. Waypoints
 -- are never saved in TomTom's list; Farmer adds them again after a reload.
+-- Equipment's quest arrow and Pets' beast arrow have the same file.
 
 local _, ns = ...
 
