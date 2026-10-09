@@ -219,6 +219,15 @@ Mining cast, so herbs never count as a mob's drop, even with a looted corpse
 still targeted. Skinned leather stays the mob's drop. `/farm gathering check`
 lists any herb or ore an older version credited to a mob, and changes nothing.
 
+**When a node grows back.** Forever's respawn times are not published, so
+Farmer learns them from you. Each time you gather a marked spot again, the
+time since you last took it is one return (a few seconds apart is the same
+visit, and over two hours apart only says you were away). After three
+returns for a herb or vein on a map, its map markers say when it should be
+back ("Back in about 5 min") and hovering the node in the world says how
+long it takes there. Until then they show "?". The estimate is the middle of
+your three quickest returns, so it gets better the more you farm.
+
 **A mob's full loot table.** Click a loot icon on a mob's open card and a
 window opens with everything that mob has ever dropped for you: how many
 corpses held each item, how many you took in all, and from 20 kills its drop

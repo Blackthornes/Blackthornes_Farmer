@@ -258,7 +258,9 @@ GameTooltip._lines = {}
 Hover(silver)
 suite.check("the hover names the node", GameTooltip._lines[1] == "Silverleaf", GameTooltip._lines[1])
 suite.check("and when", GameTooltip._lines[2] == "Gathered, last 12 min ago", GameTooltip._lines[2])
-suite.check("and nothing more", GameTooltip._lines[3] == nil, GameTooltip._lines[3])
+suite.check("and that its grow-back time is still being learned",
+    GameTooltip._lines[3] == "Grows back: ?  (learning, 0 of 3 returns)", GameTooltip._lines[3])
+suite.check("and nothing more", GameTooltip._lines[4] == nil, GameTooltip._lines[4])
 
 Gathering:AddSpot(37, 0.45, 0.68 - 50 / 2000, "Silverleaf", "herb")
 GameTooltip._lines = {}

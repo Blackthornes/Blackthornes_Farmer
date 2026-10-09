@@ -617,6 +617,11 @@ function Gathering:AddSpot(mapID, x, y, node, kind)
 
     for _, spot in ipairs(spots) do
         if spot.map == mapID and spot.node == node and SameSpot(mapID, spot.x, spot.y, x, y) then
+            -- Back at a spot already taken: how long it took is what
+            -- Logic/Respawn.lua learns grow-back times from.
+            local last = tonumber(spot.last)
+            if now and last and ns.Respawn then ns.Respawn:Learn(mapID, node, now - last) end
+
             spot.gathers = (tonumber(spot.gathers) or 1) + 1
             spot.last = now or spot.last
             self:SpotsChanged()
