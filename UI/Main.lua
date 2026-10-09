@@ -48,6 +48,7 @@ UI.BASE_WIDTH = WIDTH
 local TABS = {
     { key = "search", text = "SEARCH" },
     { key = "rankings", text = "RANKINGS" },
+    { key = "grind", text = "GRIND" },
 }
 
 -- Column widths, left to right, at their narrowest. The source, where and
@@ -238,6 +239,9 @@ function UI:Build()
 
     if ns.RankingsUI then
         self.rankingsView = ns.RankingsUI:Build(frame)
+    end
+    if ns.GrindingUI then
+        self.grindView = ns.GrindingUI:Build(frame)
     end
 
     self.tab = "search"
@@ -585,7 +589,8 @@ function UI:FitColumns(rows)
     self.columns = Columns(widths)
     self:PlaceHeadings()
 
-    if self.tab ~= "rankings" then
+    -- Only the search tab's own width: the others size the window themselves.
+    if self.tab ~= "rankings" and self.tab ~= "grind" then
         self.frame:SetWidth(WIDTH + self.columns.extra)
     end
 end
@@ -1154,11 +1159,12 @@ end
 -- Tabs
 --------------------------------------------------------------------------------
 
---- Switch the window to a tab: "search" or "rankings". Remembered for the
---- next time the window opens.
+--- Switch the window to a tab: "search", "rankings" or "grind". Remembered
+--- for the next time the window opens.
 function UI:ShowTab(key)
     self:Build()
-    if key ~= "rankings" or not self.rankingsView then key = "search" end
+    local views = { rankings = self.rankingsView, grind = self.grindView }
+    if not views[key] then key = "search" end
 
     self.tab = key
     if ns.db then ns.db.lastTab = key end
@@ -1167,11 +1173,15 @@ function UI:ShowTab(key)
 
     self.searchView:SetShown(key == "search")
     if self.rankingsView then self.rankingsView:SetShown(key == "rankings") end
+    if self.grindView then self.grindView:SetShown(key == "grind") end
 
     if key == "rankings" then
         -- A hidden search box keeping the keyboard would eat your keys.
         self.searchBox:ClearFocus()
         ns.RankingsUI:Render(true)
+    elseif key == "grind" then
+        self.searchBox:ClearFocus()
+        ns.GrindingUI:Render(true)
     else
         self.frame:SetWidth(WIDTH + (self.columns or COLUMN).extra)
         self:DrawUnsearched()
@@ -1251,8 +1261,8 @@ function UI:Toggle()
 
     self:Show()
 
-    if ns.db and ns.db.lastTab == "rankings" then
-        self:ShowTab("rankings")
+    if ns.db and (ns.db.lastTab == "rankings" or ns.db.lastTab == "grind") then
+        self:ShowTab(ns.db.lastTab)
         return
     end
 

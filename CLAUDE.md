@@ -100,6 +100,13 @@ so the one-arrow rule holds. The files are the same apart from names
 (Farmer's reads the goal arrow's `x`/`y`, the others `mx`/`my`); a fix to
 one belongs in all three.
 
+Farmer's arrow can also follow a camp from the Grind tab (a player asked,
+the owner agreed 2026-10-09; `Arrow:Grind`, `Logic/Grinding.lua`). That is
+Farmer's own feature, not part of the shared dial. The harvest file now ends
+with the creature types seen in game, as `if DB.CreatureTypes then ... end`
+so Equipment's and Pets' readers of `Data/Data_Harvested.lua`, whose `DB`
+has only `RegisterItem`, keep working.
+
 Only one Blackthornes arrow is on screen at a time (the owner asked
 2026-10-08): Farmer's goal arrow, Equipment's quest arrow and Pets' beast
 arrow agree through one global table, `_G.BlackthornesArrows`
