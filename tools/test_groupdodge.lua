@@ -174,6 +174,24 @@ suite.check("the tally is untouched",
     ns.db.tracker.mobs["Defias Bandit"] and ns.db.tracker.mobs["Defias Bandit"].kills == 25)
 
 _G.PartyFrame = nil
+-- A raid forming raises the roster event dozens of times: one placing
+-- waits for the burst, and the next burst gets its own.
+local pending = {}
+local realAfter = C_Timer.After
+C_Timer.After = function(_, fn) pending[#pending + 1] = fn end
+local placed = 0
+local realPlace = TrackerUI.Place
+TrackerUI.Place = function(self) placed = placed + 1 end
+for _ = 1, 12 do ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "GROUP_ROSTER_UPDATE") end
+suite.check("a burst of roster events waits as one", #pending == 1 and placed == 0, #pending)
+pending[1]()
+suite.check("and places once when it settles", placed == 1, placed)
+ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "GROUP_ROSTER_UPDATE")
+suite.check("the next burst waits again", #pending == 2, #pending)
+TrackerUI.Place = realPlace
+C_Timer.After = realAfter
+TrackerUI.placing = nil
+
 _G.IsInGroup = nil
 _G.IsInRaid = nil
 grouped = false
