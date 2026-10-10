@@ -476,6 +476,11 @@ under:GetScript("OnEnter")(under)
 ns.Motion:FinishAll()
 suite.check("the mouse coming onto a row tells the list's owner", entered[1] == hoverRows[3])
 suite.check("and lights it", ns.Motion:Value(under, "hover") == 1)
+-- Its gold wash shows; the rows beside it stay dark glass (2026-10-10: faded
+-- with SetAlpha alone, the wash showed on every row in game).
+suite.check("with its gold wash", under.lightWash:IsShown() and under.bleed:IsShown())
+suite.check("but not on the row beside it", not hover.rows[2].lightWash:IsShown())
+suite.check("rows have a fine line under them", rawget(under, "line") ~= nil)
 
 hover:Scroll(-1)
 suite.check("a scroll leaves the row and enters it again", left == 1 and #entered == 2, left)
@@ -488,6 +493,7 @@ mouseOn = false
 hover:Scroll(-1)
 suite.check("a row the mouse has left is not entered again", #entered == 2 and left == 1)
 suite.check("and goes dark", ns.Motion:Value(under, "hover") == 0)
+suite.check("its gold wash hidden again", not under.lightWash:IsShown() and not under.bleed:IsShown())
 
 mouseOn = true
 under:GetScript("OnEnter")(under)
