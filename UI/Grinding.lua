@@ -92,6 +92,7 @@ function GrindingUI:Build(frame)
     local levelLabel = Theme.CreateLabel(band, "small", "muted")
     levelLabel:SetPoint("LEFT", 0, 0)
     levelLabel:SetText("Levels")
+    self.levelLabel = levelLabel
 
     local function Changed()
         local low, high = self.low:GetValue(), self.high:GetValue()
@@ -113,6 +114,7 @@ function GrindingUI:Build(frame)
     local to = Theme.CreateLabel(band, "small", "muted")
     to:SetPoint("LEFT", self.low, "RIGHT", 6, 0)
     to:SetText("to")
+    self.toLabel = to
 
     self.high = Widgets.CreateStepper(band, {
         min = Grinding.MIN_LEVEL, max = Grinding.MAX_LEVEL, step = 1, value = Grinding.MAX_LEVEL,
@@ -143,19 +145,14 @@ function GrindingUI:Build(frame)
     filters:SetHeight(18)
     self.filters = filters
 
+    -- Placed by LayoutChips, sized from their words as the game draws them.
     self.typeChips = {}
-    local offset = 0
-    local function Place(chip, gap)
-        chip:SetPoint("LEFT", filters, "LEFT", offset + (gap or 0), 0)
-        offset = offset + (gap or 0) + chip:GetWidth() + 4
-    end
 
     local any = Chip(filters, "ANY TYPE", function()
         Grinding:SetType(nil)
         GrindingUI:Render(true)
     end)
     any.filterKind = false
-    Place(any)
     self.typeChips[1] = any
 
     local kinds = {}
@@ -169,12 +166,11 @@ function GrindingUI:Build(frame)
         end, kind == Grinding.OTHER
             and { "Other types", "Giants, dragonkin, mechanical and the rest." } or nil)
         chip.filterKind = kind
-        Place(chip)
         self.typeChips[#self.typeChips + 1] = chip
     end
 
     self.givesChips = {}
-    for index, entry in ipairs(Grinding.GIVES) do
+    for _, entry in ipairs(Grinding.GIVES) do
         local chip = Chip(filters, entry.label:upper(), function()
             -- A second click lets it go.
             Grinding:SetGives(Grinding:Gives() ~= entry.key and entry.key or nil)
@@ -183,16 +179,18 @@ function GrindingUI:Build(frame)
             and { "Drops cloth", "Mobs the data has dropping cloth. Click again for any." }
             or { "Skinning", "Mobs the data lists for skinning. Click again for any." })
         chip.givesKey = entry.key
-        Place(chip, index == 1 and 12 or 0)
         self.givesChips[#self.givesChips + 1] = chip
     end
 
-    local near = Chip(filters, "NEAREST FIRST", function()
+    -- Up in the top row beside My level, where there is room: on the chip
+    -- row it ran into Skinning (2026-10-10).
+    local near = Chip(band, "NEAREST FIRST", function()
         Grinding:SetNearFirst(not Grinding.NearFirst())
         GrindingUI:Render(true)
     end, { "Nearest first", "Camps near you first, rather than the busiest." })
-    near:SetPoint("RIGHT", filters, "RIGHT", 0, 0)
     self.nearChip = near
+
+    self:LayoutChips()
 
     local panel = Theme.CreatePanel(view, "panel", "border")
     panel:SetPoint("TOPLEFT", filters, "BOTTOMLEFT", 0, -8)
@@ -240,6 +238,89 @@ function GrindingUI:Build(frame)
 
     view:Hide()
     return view
+end
+
+-- Gaps between chips, and the wider one before what the mobs give.
+local CHIP_GAP = 4
+local GROUP_GAP = 12
+local CHIP_LINE = 22
+
+--- A chip's width from its words as the game draws them: the font runs
+--- wider than Theme.TextWidth's guess, which let chips overlap.
+local function ChipWidth(chip)
+    local text = chip.label:GetText() or ""
+    local width = Theme.TextWidth("tiny", text)
+    local ok, drawn = pcall(chip.label.GetStringWidth, chip.label)
+    if ok and type(drawn) == "number" and drawn > width then width = drawn end
+    return math.max(34, math.ceil(width) + 16)
+end
+
+--- Size the chips to their words and lay them along the row, wrapping onto
+--- another line rather than overlapping when the row is too narrow. The
+--- list's panel hangs below the row, so it moves down with it. Only on a
+--- build or a redraw, never on a timer.
+function GrindingUI:LayoutChips()
+    local filters = self.filters
+    local room = filters:GetWidth()
+    if type(room) ~= "number" or room <= 0 then
+        room = (ns.UI.BASE_WIDTH or 724) - 2 * PADDING
+    end
+
+    local chips = {}
+    for _, chip in ipairs(self.typeChips) do chips[#chips + 1] = { chip, 0 } end
+    for index, chip in ipairs(self.givesChips) do
+        chips[#chips + 1] = { chip, index == 1 and GROUP_GAP or 0 }
+    end
+
+    -- Nearest first sits in the top row beside My level while it clears the
+    -- Settings button there (larger text can push it); otherwise it joins
+    -- the end of the chip row.
+    local near = self.nearChip
+    local nearWidth = ChipWidth(near)
+    near:SetWidth(nearWidth)
+    near:ClearAllPoints()
+    if self:TopRowRoom() >= nearWidth + 10 then
+        near:SetParent(self.band)
+        near:SetPoint("LEFT", self.mineButton, "RIGHT", 10, 0)
+    else
+        near:SetParent(filters)
+        chips[#chips + 1] = { near, GROUP_GAP }
+    end
+
+    local x, line = 0, 0
+    for _, entry in ipairs(chips) do
+        local chip, gap = entry[1], entry[2]
+        local width = ChipWidth(chip)
+        chip:SetWidth(width)
+        if x > 0 and x + gap + width > room then
+            x, line, gap = 0, line + 1, 0
+        elseif x == 0 then
+            gap = 0
+        end
+        chip:ClearAllPoints()
+        chip:SetPoint("TOPLEFT", filters, "TOPLEFT", x + gap, -line * CHIP_LINE)
+        x = x + gap + width + CHIP_GAP
+    end
+    filters:SetHeight(18 + line * CHIP_LINE)
+    self.chipLines = line + 1
+end
+
+--- How much of the top row is left after My level, before Settings.
+function GrindingUI:TopRowRoom()
+    local function Width(label)
+        local text = label:GetText() or ""
+        local width = Theme.TextWidth("small", text)
+        local ok, drawn = pcall(label.GetStringWidth, label)
+        if ok and type(drawn) == "number" and drawn > width then width = drawn end
+        return width
+    end
+
+    local used = Width(self.levelLabel) + 8 + self.low:GetWidth() + 6 + Width(self.toLabel)
+        + 6 + self.high:GetWidth() + 10 + self.mineButton:GetWidth()
+    local frameWidth = ns.UI.frame and ns.UI.frame:GetWidth()
+    if type(frameWidth) ~= "number" or frameWidth <= 0 then frameWidth = ns.UI.BASE_WIDTH or 724 end
+    local settings = ns.UI.settingsButton and ns.UI.settingsButton:GetWidth() or 64
+    return frameWidth - PADDING - settings - 8 - (ns.UI.HEAD_LEFT or PADDING) - used
 end
 
 function GrindingUI:PlaceHeadings()
@@ -502,6 +583,8 @@ end
 --- Put the controls in step with what is saved.
 function GrindingUI:PaintControls(low, high)
     local Grinding = ns.Grinding
+    -- The game's font is loaded by the first draw: measure again.
+    self:LayoutChips()
     self.low:SetValue(low, true)
     self.high:SetValue(high, true)
     self.mineButton:SetLabelColor(Grinding:FollowsLevel() and "good" or nil)

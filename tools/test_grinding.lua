@@ -351,4 +351,61 @@ controls.grindOpen:GetScript("OnClick")(controls.grindOpen, "LeftButton")
 check("its Open button opens the tab", UI.frame:IsShown() and UI.tab == "grind")
 SettingsUI:Hide()
 
+--------------------------------------------------------------------------------
+-- The filter chips never overlap (2026-10-10: Skinning ran into Nearest
+-- first, the game's font being wider than the guess)
+--------------------------------------------------------------------------------
+
+do
+    local chips = {}
+    for _, chip in ipairs(GrindingUI.typeChips) do chips[#chips + 1] = chip end
+    for _, chip in ipairs(GrindingUI.givesChips) do chips[#chips + 1] = chip end
+    chips[#chips + 1] = GrindingUI.nearChip
+
+    local function Overlaps(room)
+        local spans = {}
+        for _, chip in ipairs(chips) do
+            local point = chip._point
+            if point and point[2] == GrindingUI.filters then
+                local x, y = point[4], point[5]
+                local w = chip:GetWidth()
+                if x + w > room + 0.5 then return "past the edge: " .. chip.label:GetText() end
+                for _, other in ipairs(spans) do
+                    if other.y == y and x < other.x + other.w and other.x < x + w then
+                        return chip.label:GetText() .. " on " .. other.text
+                    end
+                end
+                spans[#spans + 1] = { x = x, y = y, w = w, text = chip.label:GetText() }
+            end
+        end
+        return nil
+    end
+
+    -- Words drawn twice as wide as the guess, as a large text size might.
+    for _, chip in ipairs(chips) do
+        chip.label.GetStringWidth = function(label) return #(label._text or "") * 13 end
+    end
+
+    GrindingUI.filters._width = 682
+    GrindingUI:LayoutChips()
+    check("each chip is as wide as its words", GrindingUI.nearChip:GetWidth() >= 13 * 13 + 16,
+        GrindingUI.nearChip:GetWidth())
+    check("no chip runs into another", Overlaps(682) == nil, Overlaps(682))
+    check("they wrap onto another line rather than overlap", GrindingUI.chipLines >= 2, GrindingUI.chipLines)
+    check("and the list moves down with them",
+        GrindingUI.filters:GetHeight() >= 18 + 22 * (GrindingUI.chipLines - 1))
+
+    GrindingUI.filters._width = 300
+    GrindingUI:LayoutChips()
+    check("however narrow the row", Overlaps(300) == nil, Overlaps(300))
+
+    for _, chip in ipairs(chips) do chip.label.GetStringWidth = nil end
+    GrindingUI.filters._width = 682
+    UI.frame._width = 724
+    GrindingUI:LayoutChips()
+    check("at normal size the chips fit one line", GrindingUI.chipLines == 1, GrindingUI.chipLines)
+    check("and Nearest first sits up beside My level",
+        GrindingUI.nearChip._point and GrindingUI.nearChip._point[2] == GrindingUI.mineButton)
+end
+
 suite.done()
