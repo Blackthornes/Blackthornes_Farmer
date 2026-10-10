@@ -36,6 +36,12 @@ local MAX_WIDTH = 320
 -- Redrawn this often, seconds: smooth to the eye, cheap to run.
 local STEP = 0.03
 
+local function Clock()
+    if type(GetTime) ~= "function" then return 0 end
+    local ok, now = pcall(GetTime)
+    return ok and tonumber(now) or 0
+end
+
 -- Gold while it points the way, green once you are there, pale blue when it
 -- cannot point (the other continent, no position).
 local TINTS = {
@@ -150,18 +156,22 @@ function ArrowUI:Build()
     self.note = note
 
     frame:SetScript("OnDragStart", function(self)
-        self.dragging = true
+        ArrowUI.dragging = true
         self:StartMoving()
     end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         ArrowUI:SavePosition()
-        -- The button coming up after a drag is not a click.
-        self.dragged = true
+        -- The button coming up after a drag is not a click. The client may
+        -- send OnMouseUp before this, after it, or not at all, so the drop
+        -- is remembered by the moment it happened, never as a flag that
+        -- could swallow the next real click.
+        ArrowUI.dragging = nil
+        ArrowUI.droppedAt = Clock()
     end)
-    frame:SetScript("OnMouseUp", function(self, button)
-        if self.dragged then
-            self.dragged, self.dragging = nil, nil
+    frame:SetScript("OnMouseUp", function(_, button)
+        if ArrowUI.dragging or (ArrowUI.droppedAt and ArrowUI.droppedAt == Clock()) then
+            ArrowUI.dragging, ArrowUI.droppedAt = nil, nil
             return
         end
         ArrowUI:OnClick(button)
@@ -226,12 +236,6 @@ end
 --------------------------------------------------------------------------------
 -- Drawing
 --------------------------------------------------------------------------------
-
-local function Clock()
-    if type(GetTime) ~= "function" then return 0 end
-    local ok, now = pcall(GetTime)
-    return ok and tonumber(now) or 0
-end
 
 --------------------------------------------------------------------------------
 -- One arrow at a time
