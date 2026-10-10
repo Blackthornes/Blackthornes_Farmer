@@ -99,7 +99,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
 | `/farm rankings` | open the Rankings tab: mobs by what a kill is worth (`rank` works too) |
-| `/farm grind [levels] [type] [cloth\|skinning]` | open the Grind tab: where mobs of a level band and type gather, e.g. `/farm grind 15-20 humanoid cloth` (`me` follows your level, `any` clears the filters, `pins on\|off` for its world map pins) |
+| `/farm grind [levels] [type] [cloth\|skinning]` | open the Grind tab: where mobs of a level band and type gather, e.g. `/farm grind 15-20 humanoid cloth` (`me` follows your level, `any` clears the filters, `sort busiest\|nearest\|level\|level nearest` orders the camps, `pins on\|off` for its world map pins) |
 | `/farm report` | report every kill's tally in chat, on or off (off to start) |
 | `/farm chat <text>` | print the results to chat instead |
 | `/farm data` | where the loaded data came from |
@@ -273,8 +273,10 @@ whichever tab you left it on.
 (it follows your own level until you change it, up to 30), a creature type
 (Humanoid, Beast, Undead, Demon, Elemental or Other) and, if you like, what
 the mobs give (Cloth or Skinning). The list shows each camp where such mobs
-gather, busiest first (or **Nearest first**), with its mobs under it: type,
-level, what they give and what a kill is worth. Click a camp to point the
+gather, with its mobs under it: type, level, what they give and what a kill
+is worth. The **Sort** menu orders the camps (Busiest, Nearest, Level, or
+Level then nearest), and the column headings sort the mobs in each camp;
+both are remembered. Click a camp to point the
 goal arrow there (right-click the arrow for the camp's next mob, click it to
 go back to your goals); the camps listed also show on the world map with a
 gold ring and a sword. Only mobs Farmer's data or your own loot knows are

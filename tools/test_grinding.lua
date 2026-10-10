@@ -216,13 +216,52 @@ check("and the addon reads it back", shipped["Vale Thug"] == "Humanoid")
 check("counted", count == 4, count)
 
 --------------------------------------------------------------------------------
--- Nearest first
+-- The order of the camps (2026-10-10: by distance, by level, or both)
 --------------------------------------------------------------------------------
 
+local ALL = { low = 1, high = 30, type = false, gives = false }
+
+check("busiest first until another order is picked", Grinding.Sort() == "busiest")
+
+-- Before the menu there was only Nearest first; a save that has it on
+-- keeps it, and the old key is never renamed or cleared.
+ns.db.grindNearFirst = true
+check("an old Nearest first is still read", Grinding.Sort() == "nearest" and Grinding.NearFirst())
+ns.db.grindNearFirst = nil
+
 Grinding:SetNearFirst(true)
-camps = Grinding:Camps({ low = 1, high = 30, type = false, gives = false })
+camps = Grinding:Camps(ALL)
 check("nearest first: your own zone leads", camps[1].hops == 0, camps[1].zone)
+check("saved under its own key", ns.db.grindSort == "nearest")
 Grinding:SetNearFirst(false)
+check("and back to busiest", Grinding.Sort() == "busiest")
+
+Grinding:SetSort("nonsense")
+check("an unknown order is ignored", Grinding.Sort() == "busiest")
+
+camps = Grinding:Camps({ low = 22, high = 26, type = false, gives = false })
+check("busiest: most mobs first", CampsIn(camps, ZONE)[1].count == 2)
+
+Grinding:SetSort("level")
+camps = Grinding:Camps({ low = 22, high = 26, type = false, gives = false })
+local levels = {}
+for _, camp in ipairs(CampsIn(camps, ZONE)) do levels[#levels + 1] = camp.minLevel end
+check("level: the lowest camps first", table.concat(levels, ",") == "22,23,24,25", table.concat(levels, ","))
+
+local function InOrder(list, nearToo)
+    for index = 2, #list do
+        local a, b = list[index - 1], list[index]
+        if a.minLevel > b.minLevel then return false end
+        if nearToo and a.minLevel == b.minLevel and (a.hops or 99) > (b.hops or 99) then return false end
+    end
+    return true
+end
+check("level: across every zone", InOrder(Grinding:Camps(ALL), false))
+
+Grinding:SetSort("levelnear")
+check("level, then nearest: same level, the nearer first", InOrder(Grinding:Camps(ALL), true))
+check("its menu words", Grinding.SortLabel() == "Level, then nearest")
+Grinding:SetSort("busiest")
 
 --------------------------------------------------------------------------------
 -- The command
@@ -337,6 +376,58 @@ check("/farm grind pins off", not GrindPins.IsOn() and ns.db.grindPins == false)
 check("draws nothing then", GrindPins:Draw() == 0)
 
 --------------------------------------------------------------------------------
+-- Sorting from the tab: the menu, the headings, the command
+--------------------------------------------------------------------------------
+
+UI:ShowTab("grind")
+check("the sort chip names the order", GrindingUI.sortChip.label:GetText() == "SORT: BUSIEST",
+    GrindingUI.sortChip.label:GetText())
+GrindingUI.sortChip:GetScript("OnClick")(GrindingUI.sortChip, "LeftButton")
+check("a click opens the menu", GrindingUI.sortMenu:IsShown())
+check("with every order", #GrindingUI.sortMenu.items == #Grinding.SORTS)
+check("the one in use lit", GrindingUI.sortMenu.items[1].selected == true)
+local levelItem = GrindingUI.sortMenu.items[3]
+levelItem:GetScript("OnClick")(levelItem, "LeftButton")
+check("picking one sorts by it", Grinding.Sort() == "level")
+check("and closes the menu", not GrindingUI.sortMenu:IsShown())
+check("the chip says so", GrindingUI.sortChip.label:GetText() == "SORT: LEVEL")
+GrindingUI.sortChip:GetScript("OnClick")(GrindingUI.sortChip, "LeftButton")
+GrindingUI.sortChip:GetScript("OnClick")(GrindingUI.sortChip, "LeftButton")
+check("a second click closes it", not GrindingUI.sortMenu:IsShown())
+
+local function MobsUnder(label)
+    local names, inside = {}, false
+    for _, row in ipairs(GrindingUI.list.data) do
+        if row.type == "camp" then inside = row.camp.zone == ZONE and row.camp.label == label end
+        if inside and row.type == "mob" then names[#names + 1] = row.mob.name end
+    end
+    return table.concat(names, ",")
+end
+
+check("a camp's mobs lowest first", MobsUnder("Bandit Camp") == "Vale Bandit,Vale Thug")
+local mobHeading = GrindingUI.sorter.buttons.mob
+mobHeading:GetScript("OnClick")(mobHeading)
+check("a heading sorts each camp's mobs", ns.db.grindColumns.key == "mob" and ns.db.grindColumns.ascending)
+mobHeading:GetScript("OnClick")(mobHeading)
+check("and turns them round", MobsUnder("Bandit Camp") == "Vale Thug,Vale Bandit", MobsUnder("Bandit Camp"))
+check("which is remembered", ns.db.grindColumns.ascending == false)
+mobHeading:GetScript("OnClick")(mobHeading)
+check("a third click is the usual order again", ns.db.grindColumns == nil
+    and MobsUnder("Bandit Camp") == "Vale Bandit,Vale Thug")
+local worthHeading = GrindingUI.sorter.buttons.worth
+worthHeading:GetScript("OnClick")(worthHeading)
+check("worth starts high", ns.db.grindColumns.key == "worth" and not ns.db.grindColumns.ascending)
+worthHeading:GetScript("OnClick")(worthHeading)
+worthHeading:GetScript("OnClick")(worthHeading)
+
+ns.HandleSlash("grind sort level then nearest")
+check("/farm grind sort level then nearest", Grinding.Sort() == "levelnear")
+ns.HandleSlash("grind sort nearest")
+check("/farm grind sort nearest", Grinding.Sort() == "nearest")
+ns.HandleSlash("grind sort busiest")
+check("/farm grind sort busiest", Grinding.Sort() == "busiest")
+
+--------------------------------------------------------------------------------
 -- Settings
 --------------------------------------------------------------------------------
 
@@ -350,5 +441,63 @@ UI:Hide()
 controls.grindOpen:GetScript("OnClick")(controls.grindOpen, "LeftButton")
 check("its Open button opens the tab", UI.frame:IsShown() and UI.tab == "grind")
 SettingsUI:Hide()
+
+--------------------------------------------------------------------------------
+-- The filter chips never overlap (2026-10-10: Skinning ran into Nearest
+-- first, the game's font being wider than the guess; Sort took its place)
+--------------------------------------------------------------------------------
+
+do
+    local chips = {}
+    for _, chip in ipairs(GrindingUI.typeChips) do chips[#chips + 1] = chip end
+    for _, chip in ipairs(GrindingUI.givesChips) do chips[#chips + 1] = chip end
+    chips[#chips + 1] = GrindingUI.sortChip
+
+    local function Overlaps(room)
+        local spans = {}
+        for _, chip in ipairs(chips) do
+            local point = chip._point
+            if point and point[2] == GrindingUI.filters then
+                local x, y = point[4], point[5]
+                local w = chip:GetWidth()
+                if x + w > room + 0.5 then return "past the edge: " .. chip.label:GetText() end
+                for _, other in ipairs(spans) do
+                    if other.y == y and x < other.x + other.w and other.x < x + w then
+                        return chip.label:GetText() .. " on " .. other.text
+                    end
+                end
+                spans[#spans + 1] = { x = x, y = y, w = w, text = chip.label:GetText() }
+            end
+        end
+        return nil
+    end
+
+    -- Words drawn twice as wide as the guess, as a large text size might.
+    for _, chip in ipairs(chips) do
+        chip.label.GetStringWidth = function(label) return #(label._text or "") * 13 end
+    end
+
+    GrindingUI.filters._width = 682
+    GrindingUI:LayoutChips()
+    check("each chip is as wide as its words",
+        GrindingUI.sortChip:GetWidth() >= #GrindingUI.sortChip.label:GetText() * 13 + 16,
+        GrindingUI.sortChip:GetWidth())
+    check("no chip runs into another", Overlaps(682) == nil, Overlaps(682))
+    check("they wrap onto another line rather than overlap", GrindingUI.chipLines >= 2, GrindingUI.chipLines)
+    check("and the list moves down with them",
+        GrindingUI.filters:GetHeight() >= 18 + 22 * (GrindingUI.chipLines - 1))
+
+    GrindingUI.filters._width = 300
+    GrindingUI:LayoutChips()
+    check("however narrow the row", Overlaps(300) == nil, Overlaps(300))
+
+    for _, chip in ipairs(chips) do chip.label.GetStringWidth = nil end
+    GrindingUI.filters._width = 682
+    UI.frame._width = 724
+    GrindingUI:LayoutChips()
+    check("at normal size the chips fit one line", GrindingUI.chipLines == 1, GrindingUI.chipLines)
+    check("and Sort sits up beside My level",
+        GrindingUI.sortChip._point and GrindingUI.sortChip._point[2] == GrindingUI.mineButton)
+end
 
 suite.done()
