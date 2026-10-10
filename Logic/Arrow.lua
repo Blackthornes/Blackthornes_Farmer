@@ -802,7 +802,7 @@ ns.RegisterCommand("arrow", "an arrow to the nearest place to gather a goal (on,
             ns.Print("no other place known for that goal.")
         end
     elseif word == "check" then
-        Arrow:Check()
+        ns.KeepCheck("arrow check", Arrow.Check, Arrow)
     elseif word == "tomtom" or word == "tomtom on" or word == "tomtom off" then
         local TomTom = ns.TomTom
         if word == "tomtom" then TomTom:SetOn(not TomTom.IsOn()) else TomTom:SetOn(word == "tomtom on") end
