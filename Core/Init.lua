@@ -371,6 +371,11 @@ local DEFAULTS = {
     -- left on is settingsPage, which has no default.
     settingsDescriptions = false,
     textSize = "normal",
+
+    -- Window style: "titanforged" (the house look) or "blizzard" (the
+    -- game's own frames, buttons and tabs, asked 2026-10-10). Read at
+    -- login, so a change waits for /reload. See UI/BlizzardLook.lua.
+    windowStyle = "titanforged",
 }
 
 local function LoadSavedVariables()

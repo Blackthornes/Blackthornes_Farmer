@@ -323,6 +323,7 @@ local HARVESTED = "Data/Data_Harvested.lua"
 
 local UI_FILES = {
     "UI/Theme.lua",
+    "UI/BlizzardLook.lua",
     "UI/Widgets.lua",
     "UI/Titanforged.lua",
     "UI/SettingsPages.lua",
