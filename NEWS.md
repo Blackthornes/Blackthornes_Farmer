@@ -12,6 +12,13 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.23.0
+
+- You can pick a new window look that matches the game's own windows. The gold look is still the default.
+- Lists are calmer now. The gold glow only shows on the row under your mouse.
+- The arrow moves on after you pick a herb or vein, and it comes back if TomTom drops your waypoint.
+- Walking around with the arrow on is lighter on your game.
+
 ## 0.22.0
 
 Hey everyone! A small Farmer update just went up.
