@@ -172,8 +172,9 @@ secret value kept as "(secret)") and saves them in the account save as
 adds "Saved for Claude, /reload to write it." It wraps `/bts probe`
 (Tradeskills, saved under `BlackthornesTSDB.global`), `/beq probe` and
 `/beq arrow check` (Equipment), `/bpet probe` and `/bpet arrow check`
-(Pets), and `/farm arrow check` and `/farm gathering check` (Farmer, which
-has no probe). Each has a Settings button. Never rename `lastProbe`; a new
+(Pets), and `/farm arrow check`, `/farm gathering check` and `/farm harvest
+check` (Farmer, which has no probe; the harvest check readies itself and
+runs on the next loot window, to see what a dungeon lets it read). Each has a Settings button. Never rename `lastProbe`; a new
 check that players run for a report goes through `ns.KeepCheck` too, and a
 fix to it belongs in all four.
 

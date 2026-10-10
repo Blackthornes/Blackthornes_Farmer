@@ -1237,6 +1237,9 @@ function Harvest:OnInitialize()
 end
 
 function Harvest:OnEnable()
+    -- The loot check reads any loot window, even where harvesting cannot.
+    ns.OnLootWindow(self, function() Harvest:RunArmedCheck() end)
+
     local caps = self:Capabilities()
 
     if not caps.usable then
@@ -1268,10 +1271,135 @@ function Harvest:OnEnable()
 end
 
 --------------------------------------------------------------------------------
+-- Loot check
+--
+-- Inside a dungeon (first noticed in the Ruins of Lordaeron, 2026-10-10;
+-- any dungeon or raid can do it) nothing gets recorded: the client hides the mob's name, and a corpse with no readable
+-- name is dropped. Which of the other values it still lets an addon read is
+-- not known, and that decides what a fix can use. So `/farm harvest check`
+-- arms a check, and the next loot window opened prints, for each value the
+-- harvest reads, whether it came back readable, secret, or not at all. The
+-- lines are kept through ns.KeepCheck as lastProbe, for Claude to read.
+--
+-- It only reads, and every value goes through Describe, inside a pcall.
+-- A player's name is never printed: a unit that is a player says so instead.
+--------------------------------------------------------------------------------
+
+-- How many loot slots it describes, so area loot cannot flood chat.
+Harvest.CHECK_SLOTS = 8
+
+--- What a value off the client looks like to this addon: its text, or
+--- "secret", "unreadable" or "nil". Never raises.
+function Harvest.Describe(value)
+    local kind = type(value)
+    if kind == "nil" then return "nil" end
+
+    local isSecret = _G.issecretvalue
+    if type(isSecret) == "function" then
+        local ok, secret = pcall(isSecret, value)
+        if ok and secret == true then return "secret" end
+    end
+
+    local ok, text = pcall(function()
+        local copy = tostring(value) .. ""
+        if copy == "" then return "(empty)" end
+        return copy
+    end)
+    if not ok or type(text) ~= "string" then return "unreadable (" .. kind .. ")" end
+    return text
+end
+
+-- Every value a client call hands back, described, or why the call failed.
+local function Call(name, ...)
+    local fn = _G[name]
+    if type(fn) ~= "function" then return "no such call" end
+
+    local results = { pcall(fn, ...) }
+    if not results[1] then return "raised" end
+
+    local parts = {}
+    for i = 2, math.max(#results, 2) do
+        parts[#parts + 1] = Harvest.Describe(results[i])
+    end
+    return table.concat(parts, ", ")
+end
+
+local function Line(label, text)
+    ns.PrintRaw(("  %s: %s"):format(label, text))
+end
+
+local function DescribeUnit(unit)
+    local gotPlayer, isPlayer = pcall(UnitIsPlayer or function() return false end, unit)
+    local readable, player = pcall(function() return isPlayer == true or isPlayer == 1 end)
+    if gotPlayer and readable and player then
+        Line(unit, "a player (left out)")
+        return
+    end
+
+    Line(unit .. " name", Call("UnitName", unit))
+    Line(unit .. " guid", Call("UnitGUID", unit))
+    Line(unit .. " level", Call("UnitLevel", unit))
+    Line(unit .. " dead", Call("UnitIsDead", unit))
+    Line(unit .. " type", Call("UnitCreatureType", unit))
+end
+
+function Harvest:LootCheck()
+    -- Which dungeon, first, so results from different ones can be told apart.
+    -- Nothing here is about one dungeon: the same reads run in any of them.
+    local gotInfo, instanceName, instanceType = pcall(GetInstanceInfo or error)
+    local place = gotInfo and Readable(instanceName) or nil
+    ns.Print(("loot check in %s (%s), for the loot window just opened:"):format(
+        place or "an unnamed place", gotInfo and Harvest.Describe(instanceType) or "type unknown"))
+
+    Line("secret test", type(_G.issecretvalue) == "function" and "yes" or "no")
+    Line("in instance", Call("IsInInstance"))
+    Line("instance info", Call("GetInstanceInfo"))
+    Line("zone", Call("GetRealZoneText"))
+    Line("subzone", Call("GetSubZoneText"))
+    local mapID = C_Map and C_Map.GetBestMapForUnit
+    local gotMap, map = pcall(mapID or error, "player")
+    Line("map", gotMap and Harvest.Describe(map) or "raised")
+    local x, y = self:PlayerPosition()
+    Line("position", x and ("%.1f, %.1f"):format(x, y) or "none")
+    Line("fishing loot", Call("IsFishingLoot"))
+
+    for _, unit in ipairs({ "target", "mouseover", "softinteract" }) do
+        DescribeUnit(unit)
+    end
+
+    local gotCount, lootCount = pcall(GetNumLootItems or error)
+    local count = gotCount and ReadableNumber(lootCount) or nil
+    Line("loot slots", gotCount and Harvest.Describe(lootCount) or "raised")
+
+    for slot = 1, math.min(count or 0, Harvest.CHECK_SLOTS) do
+        Line(("slot %d info"):format(slot), Call("GetLootSlotInfo", slot))
+        Line(("slot %d link"):format(slot), Call("GetLootSlotLink", slot))
+        Line(("slot %d type"):format(slot), Call("GetLootSlotType", slot))
+        Line(("slot %d sources"):format(slot), Call("GetLootSourceInfo", slot))
+    end
+
+    -- What the harvest itself makes of it, which is the answer that matters.
+    local name, level, guid, unit = self:Corpse()
+    Line("harvest corpse", name and ("%s, level %s, %s, via %s"):format(
+        name, tostring(level or "?"), guid and "guid read" or "no guid",
+        unit or "a mob seen alive") or "none: this corpse would be skipped")
+    local zone, location = self:Where()
+    Line("harvest place", ("%s / %s"):format(zone or "none", location or "none"))
+    Line("mobs seen alive", tostring(self.seenCount or 0))
+end
+
+--- Runs the check on this loot window if one was asked for.
+function Harvest:RunArmedCheck()
+    if not self.checkArmed then return end
+    self.checkArmed = nil
+    ns.KeepCheck("harvest check", Harvest.LootCheck, Harvest)
+end
+
+--------------------------------------------------------------------------------
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("harvest", "what you have recorded as you played", function(rest)
+ns.RegisterCommand("harvest", "what you have recorded as you played (check: what the next loot window lets it read)", function(rest)
     local argument = Util.Trim(rest):lower()
 
     -- The harvest is the whole history now, not one session, and a reset is
@@ -1286,6 +1414,12 @@ ns.RegisterCommand("harvest", "what you have recorded as you played", function(r
     if argument == "reset confirm" then
         ns.Harvest:Reset()
         ns.Print("harvest cleared.")
+        return
+    end
+
+    if argument == "check" then
+        ns.Harvest.checkArmed = true
+        ns.Print("loot check ready: loot a corpse and it runs on that loot window.")
         return
     end
 

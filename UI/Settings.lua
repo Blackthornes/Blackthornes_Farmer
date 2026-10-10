@@ -675,6 +675,13 @@ function SettingsUI:BuildLootPage()
         .. "Same as /farm harvest.", "List it", "harvest")
     controls.harvest = harvestButton
 
+    local _, lootCheckButton = CommandRow(pages, "loot", 1, "Loot check",
+        "Readies a check that runs on the next corpse you loot and lists in chat "
+        .. "what the game lets the addon read there, to help with a dungeon "
+        .. "that records nothing. It only reads. Same as /farm harvest check.",
+        "Ready", "harvest check")
+    controls.harvestCheck = lootCheckButton
+
     pages:Section("loot", 2, "FISHING AND GATHERING")
 
     local fishingRow = pages:Row("loot", 2, "Fishing",
