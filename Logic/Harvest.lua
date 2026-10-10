@@ -1273,8 +1273,8 @@ end
 --------------------------------------------------------------------------------
 -- Loot check
 --
--- Inside a dungeon (the Ruins of Lordaeron, 2026-10-10) nothing gets
--- recorded: the client hides the mob's name, and a corpse with no readable
+-- Inside a dungeon (first noticed in the Ruins of Lordaeron, 2026-10-10;
+-- any dungeon or raid can do it) nothing gets recorded: the client hides the mob's name, and a corpse with no readable
 -- name is dropped. Which of the other values it still lets an addon read is
 -- not known, and that decides what a fix can use. So `/farm harvest check`
 -- arms a check, and the next loot window opened prints, for each value the
@@ -1344,7 +1344,12 @@ local function DescribeUnit(unit)
 end
 
 function Harvest:LootCheck()
-    ns.Print("loot check, for the loot window just opened:")
+    -- Which dungeon, first, so results from different ones can be told apart.
+    -- Nothing here is about one dungeon: the same reads run in any of them.
+    local gotInfo, instanceName, instanceType = pcall(GetInstanceInfo or error)
+    local place = gotInfo and Readable(instanceName) or nil
+    ns.Print(("loot check in %s (%s), for the loot window just opened:"):format(
+        place or "an unnamed place", gotInfo and Harvest.Describe(instanceType) or "type unknown"))
 
     Line("secret test", type(_G.issecretvalue) == "function" and "yes" or "no")
     Line("in instance", Call("IsInInstance"))

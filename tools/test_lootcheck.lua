@@ -37,9 +37,13 @@ _G.UnitName = function() return env.Secret("string") end
 _G.UnitGUID = function() return env.Secret("string") end
 env.world.loot = { { name = "Linen Cloth", count = 2 } }
 
+_G.GetInstanceInfo = function() return "Ragefire Chasm", "party" end
 local ok, err = pcall(Harvest.RunArmedCheck, Harvest)
 suite.check("a dungeon corpse does not raise", ok, err)
 suite.check("it ran once and is kept", ns.db.lastProbe and ns.db.lastProbe.check == "harvest check")
+suite.check("it names the dungeon it ran in",
+    Lines():find("loot check in Ragefire Chasm (party)", 1, true), Lines())
+_G.GetInstanceInfo = nil
 suite.check("and is no longer ready", not Harvest.checkArmed)
 suite.check("the name is reported unreadable", Lines():find("target name: unreadable", 1, true), Lines())
 suite.check("the loot slot is described", Lines():find("slot 1 info", 1, true), Lines())
