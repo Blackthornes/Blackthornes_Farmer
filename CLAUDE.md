@@ -56,6 +56,35 @@ since a goal counts one character's bags, so `Find` and `Set` act on the
 character playing. A goal saved before owners existed shows on every
 character until one gathers toward it or changes it.
 
+## What Butler calls here
+
+Blackthornes Butler (`Blackthornes/Blackthornes_Butler`, 2026-10-10) tells
+the player what to do with each bag item, and asks whether a goal here
+needs it. It calls, inside a pcall, read only, with no TOC dependency:
+
+```lua
+_G.BlackthornesFarmer.Butler:Advise(itemID)   -- a table, or nil; never raises
+```
+
+`Logic/Butler.lua` answers for the goals of the character playing (a goal
+saved before owners counts, as `Goals:Find` has it), or nil when none is
+for that item:
+
+- `goal`: the goal's item name.
+- `have`: how many the character has toward it (`Goals:Have`, bank
+  included when goals count it; the saved `have` if the client will not say).
+- `target`: the goal's number.
+- `need`: `target - have`, never below 0 (0 once the goal is reached).
+
+Goals are kept by name, so an item ID is matched by the ID the database
+gives the goal's name, else by the name the client gives the ID (kept per
+ID once given). Butler asks once per bag item in a burst, so the goals are
+laid out as a lookup once and built again only when `Goals.version` moves
+(`Set`, `Remove`, `ClearDone`) or the character's name comes in; only an
+item with a goal reads its count. Keep the global, `Butler:Advise(itemID)`
+and these four fields stable; if one has to change, change Butler's
+`Logic/Sisters.lua` too.
+
 ## The settings pages (from Tradeskills)
 
 The owner asked (2026-10-09) for Tradeskills' Settings upgrade in Pets,

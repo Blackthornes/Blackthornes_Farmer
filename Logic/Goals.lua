@@ -67,6 +67,11 @@ local AWAY = {
 
 Goals.away = {}
 
+-- Goes up whenever a goal is set, changed or taken off, so a reader that
+-- keeps its own lookup of the goals (Logic/Butler.lua) knows to build it
+-- again. Counts are not in it: they are read fresh.
+Goals.version = 0
+
 -- What one of those windows moved can reach the bags just after it closes
 -- (the last of a trade, the last craft): for this long after, a rise is
 -- still not loot.
@@ -204,11 +209,12 @@ end
 --------------------------------------------------------------------------------
 
 --- How many of `name` you have, or nil when the client will not say.
+--- `itemID`, when the caller knows it, is asked by over the name.
 --
 -- Read inside a pcall and made into a plain number there: in an instance
 -- the client can hand back a value that raises when it is compared.
-function Goals:Have(name)
-    local id = ns.Value and ns.Value:ItemID(name)
+function Goals:Have(name, itemID)
+    local id = itemID or (ns.Value and ns.Value:ItemID(name))
     local bank = self:CountsBank()
 
     local fn
@@ -314,6 +320,7 @@ function Goals:Set(name, target)
     goal.active = 0
     goal.lastGain = nil
     goal.milestone = Goals.MilestoneFor(have / target)
+    Goals.version = Goals.version + 1
 
     if ns.GoalsUI then ns.GoalsUI:Refresh() end
     return goal
@@ -324,6 +331,7 @@ function Goals:Remove(name)
     if not goal then return false end
 
     table.remove(self:Store().list, index)
+    Goals.version = Goals.version + 1
     if ns.GoalsUI then ns.GoalsUI:Refresh() end
     return true
 end
@@ -339,6 +347,7 @@ function Goals:ClearDone()
             removed = removed + 1
         end
     end
+    if removed > 0 then Goals.version = Goals.version + 1 end
     if removed > 0 and ns.GoalsUI then ns.GoalsUI:Refresh() end
     return removed
 end
