@@ -161,7 +161,45 @@ for _, target in ipairs(Arrow.targets) do
     if target.resting then resting = target end
 end
 suite.check("and says why", resting and Arrow.Note(resting, wall):find("may not be back", 1, true) ~= nil)
+
+-- The Where? ranking lists the vein too, at the spot you first took it:
+-- that copy is your spot again, not a second place that never rests.
+local vein = ns.db.gathering.nodes["Elwynn Forest||Copper Vein"]
+vein.coords = { 50, 50 }
+Arrow:Changed()
+clock = clock + Arrow.REFRESH
+state = Arrow:State(clock)
+suite.check("your vein ranked again is not a second place", near(state.target.x, 0.80), state.target.x)
+local copies = 0
+for _, target in ipairs(Arrow.targets) do
+    if target.exact and near(target.x, 0.50) and near(target.y, 0.50) then copies = copies + 1 end
+end
+suite.check("so it is listed once", copies == 1, copies)
+vein.coords = nil
+Arrow:Changed()
 ns.db.gathering.spots[2].last = wall - 3600
+
+-- Walking about only measures again: the places themselves are worked out
+-- once until a gather, the loot recorded, or your zone changes them.
+do
+    local realFor, asked = ns.Spots.For, 0
+    ns.Spots.For = function(...) asked = asked + 1 return realFor(...) end
+    Arrow:Changed()
+    for _ = 1, 3 do
+        clock = clock + Arrow.REFRESH
+        Arrow:State(clock)
+    end
+    suite.check("the ranking is not redone on every refresh", asked == 1, asked)
+    ns.Gathering:SpotsChanged()
+    clock = clock + Arrow.REFRESH
+    Arrow:State(clock)
+    suite.check("but is after a gather", asked == 2, asked)
+    ns.Harvest.changes = (ns.Harvest.changes or 0) + 1
+    clock = clock + Arrow.REFRESH
+    Arrow:State(clock)
+    suite.check("and after loot is recorded", asked == 3, asked)
+    ns.Spots.For = realFor
+end
 
 -- Standing on it.
 env.world.position = { 0.502, 0.50 }
@@ -349,6 +387,20 @@ do
 
     ArrowUI:Draw(true)
     suite.check("drawn again, the same waypoint stays", TomTom.uid == uid and Count() == 1)
+
+    -- TomTom clears a waypoint on arrival (or the player removes it): the
+    -- dial comes back rather than leaving nothing pointing the way.
+    _G.TomTom.IsValidWaypoint = function(self, id) return points[id] ~= nil end
+    points[uid] = nil
+    ArrowUI:Draw(true)
+    suite.check("a waypoint TomTom dropped brings the dial back", frame:IsShown() and Count() == 0)
+    ArrowUI:Draw(true)
+    suite.check("and it is not put back on TomTom for the same place", frame:IsShown() and Count() == 0)
+    _G.TomTom.IsValidWaypoint = nil
+    TomTom.refused = nil
+    ArrowUI:Draw(true)
+    uid = TomTom.uid
+    suite.check("a fresh waypoint once that is forgotten", not frame:IsShown() and Count() == 1)
 
     Arrow:NextSpot()
     ArrowUI:Draw(true)

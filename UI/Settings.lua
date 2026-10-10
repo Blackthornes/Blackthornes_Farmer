@@ -87,7 +87,7 @@ end
 --- given).
 local function CommandButton(row, text, command, width, x)
     local button = Widgets.CreateButton(row, text, function()
-        ns.HandleSlash(command)
+        if type(command) == "function" then command() else ns.HandleSlash(command) end
     end, { width = width or 100, height = 20 })
     button:SetPoint("TOPLEFT", x or CONTROL_X, 0)
     return button
@@ -485,7 +485,12 @@ function SettingsUI:BuildWindowsPage()
 
     local _, searchButton = CommandRow(pages, "windows", 2, "Search window",
         "Search for something to farm and see where it drops. Same as /farm on its own, "
-        .. "or /farm and what you are after.", "Open it", "")
+        .. "or /farm and what you are after.", "Open it", function()
+            -- /farm on its own toggles the window, so with it already open
+            -- this closed it. It opens it, on the Search tab.
+            ns.UI:Show()
+            ns.UI:ShowTab("search")
+        end)
     controls.openSearch = searchButton
 
     local _, rankingsButton = CommandRow(pages, "windows", 2, "Rankings",

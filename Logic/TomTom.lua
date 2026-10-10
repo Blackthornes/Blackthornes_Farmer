@@ -67,6 +67,15 @@ function TomTomLink.Title(state)
     return item and (item .. ": " .. place) or place
 end
 
+--- Is our waypoint still on TomTom? True when TomTom cannot say.
+function TomTomLink.StillThere(uid)
+    local tomtom = TomTomLink.Addon()
+    if not (tomtom and type(tomtom.IsValidWaypoint) == "function") then return true end
+    local ok, valid = pcall(tomtom.IsValidWaypoint, tomtom, uid)
+    if not ok then return true end
+    return valid and true or false
+end
+
 --- Give TomTom the place for `state`. True when TomTom shows it, so the
 --- dial can stay hidden; false (and no waypoint of ours left) otherwise.
 function TomTomLink:Take(state)
@@ -77,7 +86,14 @@ function TomTomLink:Take(state)
 
     local target = state.target
     local key = (state.goal and state.goal.item or "?") .. "|" .. ns.Arrow.Key(target)
-    if self.uid and self.key == key then return true end
+    if self.uid and self.key == key then
+        if TomTomLink.StillThere(self.uid) then return true end
+        -- TomTom took it off itself (it clears a waypoint on arrival, or
+        -- the player removed it): the dial shows the way again, with its
+        -- arrival check, until the place changes.
+        self.uid, self.key, self.refused = nil, nil, key
+        return false
+    end
     -- TomTom turned this one down already: the dial shows it.
     if self.refused == key then return false end
 

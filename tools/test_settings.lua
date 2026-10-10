@@ -207,7 +207,7 @@ local ran = {}
 local realSlash = ns.HandleSlash
 ns.HandleSlash = function(text) ran[#ran + 1] = text end
 local buttons = {
-    openSearch = "", rankings = "rankings", kills = "kills", lootTable = "loot", value = "value",
+    rankings = "rankings", kills = "kills", lootTable = "loot", value = "value",
     harvest = "harvest", fishing = "fishing", fishingAll = "fishing all", gathering = "gathering",
     gatheringAll = "gathering all", gatheringCheck = "gathering check", where = "where",
     goals = "goals", goalsDock = "goals dock", goalList = "goal", arrowNext = "arrow next",
@@ -221,6 +221,19 @@ for key, command in pairs(buttons) do
 end
 ns.HandleSlash = realSlash
 suite.check("the command buttons run their commands", #wrong == 0, table.concat(wrong, ", "))
+
+-- Open it opens the search window and leaves it open: /farm on its own
+-- toggles, which closed a window already open.
+do
+    local shown, tab = 0, nil
+    local realShow, realShowTab = ns.UI.Show, ns.UI.ShowTab
+    ns.UI.Show = function() shown = shown + 1 end
+    ns.UI.ShowTab = function(_, key) tab = key end
+    controls.openSearch:GetScript("OnClick")(controls.openSearch)
+    controls.openSearch:GetScript("OnClick")(controls.openSearch)
+    ns.UI.Show, ns.UI.ShowTab = realShow, realShowTab
+    suite.check("Open it opens the search window, never closes it", shown == 2 and tab == "search")
+end
 
 -- Each command a player can type is reached from the page: by a button
 -- above, a control that writes the same setting, or the window itself.
