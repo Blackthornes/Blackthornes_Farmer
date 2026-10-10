@@ -472,6 +472,15 @@ function SettingsUI:BuildWindowsPage()
         .. "Takes effect after /reload.")
     controls.textSize = ns.SettingsPages.TextSizeControl(textRow, CONTROL_X, function() return ns.db end)
 
+    -- Asked 2026-10-10: the game's own look for players who would rather
+    -- the windows matched the rest of their screen. Read at login, so it
+    -- waits for /reload as Text size does. See UI/BlizzardLook.lua.
+    local styleRow = pages:Row("windows", 2, "Window style",
+        "Titanforged is the house look, with a gold rim and glowing edges. "
+        .. "Blizzard uses the game's own frames, red buttons, tabs and tick boxes. "
+        .. "Takes effect after /reload.")
+    controls.windowStyle = SettingsUI:WindowStyleControl(styleRow)
+
     pages:Section("windows", 2, "OPEN")
 
     local _, searchButton = CommandRow(pages, "windows", 2, "Search window",
@@ -482,6 +491,54 @@ function SettingsUI:BuildWindowsPage()
     local _, rankingsButton = CommandRow(pages, "windows", 2, "Rankings",
         "Mobs ranked by what a kill is worth. Same as /farm rankings.", "Open it", "rankings")
     controls.rankings = rankingsButton
+end
+
+-- The window styles in the order the stepper steps through them.
+local WINDOW_STYLES = { "titanforged", "blizzard" }
+local WINDOW_STYLE_NAMES = { titanforged = "Titanforged", blizzard = "Blizzard" }
+
+--- The Window style row's control: a stepper between Titanforged and
+--- Blizzard (Farmer has no dropdown, and Text size beside it is a stepper
+--- too), with Reload now beside it while the pick differs from what is
+--- drawn. :Sync() reads the saved pick back.
+function SettingsUI:WindowStyleControl(row)
+    local Look = ns.BlizzardLook
+    local function Drawn() return Look and Look.Style() or "titanforged" end
+
+    local reload
+    local stepper = Widgets.CreateStepper(row, {
+        min = 1, max = #WINDOW_STYLES, step = 1,
+        format = function(value) return WINDOW_STYLE_NAMES[WINDOW_STYLES[value]] end,
+        onChange = function(value)
+            ns.db.windowStyle = WINDOW_STYLES[value]
+            reload:SetShown(WINDOW_STYLES[value] ~= Drawn())
+        end,
+    })
+    stepper:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- ReloadUI is allowed from a click, and saves everything first.
+    reload = Widgets.CreateButton(row, "Reload now", function()
+        if ReloadUI then ReloadUI() end
+    end, { width = 80, height = 20 })
+    -- Under the stepper, ending where it ends, so it never runs into the
+    -- other column or off the window; the row grows to fit it.
+    reload:SetPoint("TOPRIGHT", stepper, "BOTTOMRIGHT", 0, -4)
+    Explain(reload, "Reload now", "Reload the interface so the new window style shows (/reload).")
+    reload:Hide()
+    GrowRow(row, 24)
+    stepper.reload = reload
+
+    function stepper:Sync()
+        local wanted = Look and Look.Wanted() or "titanforged"
+        local index = 1
+        for i, key in ipairs(WINDOW_STYLES) do
+            if key == wanted then index = i end
+        end
+        self:SetValue(index, true)
+        reload:SetShown(wanted ~= Drawn())
+    end
+
+    return stepper
 end
 
 --- Kill tally: the kills and loot panel and what it says.
@@ -835,6 +892,7 @@ function SettingsUI:Refresh()
     end
     controls.rareSound:SetChecked(ns.TrackerFX.RareSoundOn())
     controls.textSize:Sync()
+    controls.windowStyle:Sync()
 
     local usable = ns.Harvest:Capabilities().usable
 

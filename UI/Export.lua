@@ -141,7 +141,13 @@ function UI:BuildExport()
     thumb:SetSize(8, 40)
     slider:SetThumbTexture(thumb)
 
+    -- The Blizzard window style draws it as the game's knob, lit by tint
+    -- (UI/BlizzardLook.lua).
+    local Look = ns.BlizzardLook
+    if Look then Look.Thumb(thumb) end
+
     local function Light(p)
+        if Look and Look.LightThumb(thumb, p >= 0.5) then return end
         thumb:SetColorTexture(ns.Motion.Mix("borderLit", "accent", p, 1, 0.9))
     end
     slider:SetScript("OnEnter", function(self) ns.Motion:Blend(self, "hover", 1, 0.12, Light) end)

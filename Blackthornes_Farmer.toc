@@ -42,6 +42,7 @@ Logic\TomTom.lua
 Logic\Grinding.lua
 
 UI\Theme.lua
+UI\BlizzardLook.lua
 UI\Widgets.lua
 UI\Titanforged.lua
 UI\SettingsPages.lua
