@@ -259,6 +259,7 @@ end
 --- Something the arrow shows changed: work it out again on the next draw.
 function Arrow:Changed(reset)
     self.listedAt = nil
+    self.sources = nil
     if reset then self.stamp, self.choice = nil, nil end
     if ns.ArrowUI and ns.ArrowUI.Refresh then ns.ArrowUI:Refresh() end
 end
@@ -488,6 +489,37 @@ function Arrow:SpotTarget(spot, here, rank)
     return target, "far"
 end
 
+--- Your own spots for `item`, and the Where? ranking, kept until what they
+--- are made from changes: the spots you gathered (Gathering.spotsVersion),
+--- the loot recorded (Harvest.changes), and your zone and level. The list
+--- of places is measured again every Arrow.REFRESH seconds as you move;
+--- only the distances change with that, so walking the saved spots and
+--- every loot record each time was work for nothing.
+function Arrow:Sources(item, player)
+    local Gathering, Harvest = ns.Gathering, ns.Harvest
+    local key = table.concat({ tostring(item), tostring(player.zone), tostring(player.level),
+        tostring(Gathering.spotsVersion or 0), tostring(Harvest and Harvest.changes or 0) }, "|")
+    local kept = self.sources
+    if kept and kept.key == key then return kept.mine, kept.ranked end
+
+    local mine = {}
+    local nodes = NodesFor(item)
+    if next(nodes) then
+        for _, spot in ipairs(Gathering:Spots()) do
+            if type(spot) == "table" and nodes[spot.node] and tonumber(spot.x) and tonumber(spot.y)
+                and spot.map then
+                mine[#mine + 1] = spot
+            end
+        end
+    end
+
+    local ok, ranked = pcall(ns.Spots.For, ns.Spots, item, player)
+    ranked = ok and ranked or {}
+
+    self.sources = { key = key, mine = mine, ranked = ranked }
+    return mine, ranked
+end
+
 --- Every place to point at for `item`, from `here`, best first.
 --
 -- Each is { name, zone, map, x, y, kind, yours, exact, area, here, far,
@@ -496,37 +528,49 @@ function Arrow:Targets(item, here)
     local now = ns.Gathering.Clock() or 0
     local exact, areas, far = {}, {}, {}
 
+    local player = ns.Spots:Player()
+    if here and here.zone then player.zone = here.zone end
+    local mine, ranked = self:Sources(item, player)
+
     -- Your own spots.
-    local nodes = NodesFor(item)
-    if next(nodes) then
-        for _, spot in ipairs(ns.Gathering:Spots()) do
-            local x, y = tonumber(spot.x), tonumber(spot.y)
-            if type(spot) == "table" and nodes[spot.node] and x and y and spot.map then
-                local target = {
-                    name = spot.node, kind = spot.kind or "node", map = spot.map, x = x, y = y,
-                    yours = true, exact = true, gathers = tonumber(spot.gathers) or 1,
-                    last = tonumber(spot.last),
-                }
-                local last = target.last
-                target.resting = last and now - last < RESTING and now - last >= 0 or nil
-                local north, west = Arrow.Offset(here, spot.map, x, y)
-                if north then
-                    target.yards, target.bearing = Arrow.Measure(north, west)
-                    exact[#exact + 1] = target
-                end
+    local own = {}
+    for _, spot in ipairs(mine) do
+        local x, y = tonumber(spot.x), tonumber(spot.y)
+        local target = {
+            name = spot.node, kind = spot.kind or "node", map = spot.map, x = x, y = y,
+            yours = true, exact = true, gathers = tonumber(spot.gathers) or 1,
+            last = tonumber(spot.last),
+        }
+        local last = target.last
+        target.resting = last and now - last < RESTING and now - last >= 0 or nil
+        local north, west = Arrow.Offset(here, spot.map, x, y)
+        if north then
+            target.yards, target.bearing = Arrow.Measure(north, west)
+            exact[#exact + 1] = target
+        end
+        own[#own + 1] = target
+    end
+
+    -- Is a ranked place one of your own spots again? A node you gathered
+    -- is ranked at the spot you first took it, so without this the copy,
+    -- never resting, sent the dial back to the node just picked.
+    local function Mine(target)
+        for _, spot in ipairs(own) do
+            if spot.map == target.map and spot.name == target.name
+                and ns.Gathering.SameSpot(spot.map, spot.x, spot.y, target.x, target.y) then
+                return true
             end
         end
+        return false
     end
 
     -- The places the Where? ranking gives.
-    local player = ns.Spots:Player()
-    if here and here.zone then player.zone = here.zone end
-    local ok, ranked = pcall(ns.Spots.For, ns.Spots, item, player)
-
-    for rank, spot in ipairs(ok and ranked or {}) do
+    for rank, spot in ipairs(ranked) do
         local target, group = self:SpotTarget(spot, here, rank)
-        local into = group == "exact" and exact or group == "area" and areas or far
-        into[#into + 1] = target
+        if not (group == "exact" and Mine(target)) then
+            local into = group == "exact" and exact or group == "area" and areas or far
+            into[#into + 1] = target
+        end
     end
 
     -- Nearest first, with a spot that has not grown back after the rest.

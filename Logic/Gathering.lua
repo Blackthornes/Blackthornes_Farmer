@@ -608,6 +608,8 @@ local function SameSpot(mapID, ax, ay, bx, by)
     return dx * dx + dy * dy <= SAME_SPOT_SHARE * SAME_SPOT_SHARE
 end
 
+Gathering.SameSpot = SameSpot
+
 --- Mark a gather on the map. `x` and `y` are fractions of map `mapID`.
 -- Returns the spot.
 function Gathering:AddSpot(mapID, x, y, node, kind)

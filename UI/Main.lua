@@ -1203,7 +1203,12 @@ end
 --- blank panel. It is only drawn by a search, and two ways reach it without
 --- one: the window opened on Rankings, and a goal's "Set another".
 function UI:DrawUnsearched()
-    if self.lastQuery == nil then self:Render() end
+    -- Also redrawn when a goal's count moved while it was out of sight
+    -- (GoalsUI:RedrawSearch), so its Goal buttons read right.
+    if self.lastQuery == nil or self.searchStale then
+        self.searchStale = nil
+        self:Render()
+    end
 end
 
 --------------------------------------------------------------------------------

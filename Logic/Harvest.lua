@@ -788,6 +788,8 @@ function Harvest:RecordCorpse()
     end
 
     self.dirty = true
+    -- What the goal arrow's ranking was made from moved (Arrow:Sources).
+    self.changes = (self.changes or 0) + 1
 end
 
 --------------------------------------------------------------------------------
@@ -914,6 +916,7 @@ function Harvest:Reset()
     self.opened = {}
     self.skipped = 0
     self.dirty = true
+    self.changes = (self.changes or 0) + 1
     self:Persist()
 end
 

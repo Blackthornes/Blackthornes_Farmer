@@ -1040,11 +1040,17 @@ function GoalsUI:Complete(goal)
 end
 
 --- The search list's Goal buttons read "23/40"; keep them current while
---- the window is open.
+--- the Search tab shows. Behind Rankings or Grind, or with the window shut,
+--- it is only marked stale and redrawn when the tab shows again: each
+--- gather of a goal item ran the whole search for a list nobody saw.
 function GoalsUI:RedrawSearch()
     local UI = ns.UI
-    if UI and UI.list and UI.frame and UI.frame:IsShown() then
+    if not (UI and UI.list and UI.frame) then return end
+    if UI.frame:IsShown() and UI.tab == "search" then
+        UI.searchStale = nil
         pcall(UI.Render, UI)
+    else
+        UI.searchStale = true
     end
 end
 
