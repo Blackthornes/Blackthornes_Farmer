@@ -274,7 +274,10 @@ end
 --- A small list under the sort chip, one line per order, the one in use lit.
 function GrindingUI:BuildSortMenu(view)
     local menu = Theme.CreatePanel(view, "panel", "metal")
-    pcall(menu.SetFrameStrata, menu, "DIALOG")
+    -- A layer above the window it opens from (DIALOG): in the same layer it
+    -- drew under the chips and headings, which showed through (2026-10-10).
+    pcall(menu.SetFrameStrata, menu, "FULLSCREEN_DIALOG")
+    pcall(menu.SetToplevel, menu, true)
     pcall(menu.SetClampedToScreen, menu, true)
     menu:EnableMouse(true)
     menu:Hide()
@@ -317,6 +320,9 @@ function GrindingUI:ToggleSortMenu()
         item:SetSelected(item.sortKey == ns.Grinding.Sort())
     end
     menu:SetWidth(math.max(width, self.sortChip:GetWidth()))
+    -- And over the window's own rim and trim, whatever their level.
+    local ok, level = pcall(ns.UI.frame.GetFrameLevel, ns.UI.frame)
+    if ok and type(level) == "number" then menu:SetFrameLevel(level + 40) end
     menu:ClearAllPoints()
     menu:SetPoint("TOPLEFT", self.sortChip, "BOTTOMLEFT", 0, -2)
     menu:Show()

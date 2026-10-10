@@ -384,6 +384,11 @@ check("the sort chip names the order", GrindingUI.sortChip.label:GetText() == "S
     GrindingUI.sortChip.label:GetText())
 GrindingUI.sortChip:GetScript("OnClick")(GrindingUI.sortChip, "LeftButton")
 check("a click opens the menu", GrindingUI.sortMenu:IsShown())
+-- 2026-10-10: in the window's own layer the chips behind showed through it.
+check("drawn above the window, not in its layer", GrindingUI.sortMenu._strata == "FULLSCREEN_DIALOG",
+    GrindingUI.sortMenu._strata)
+check("and over its rim and trim",
+    GrindingUI.sortMenu:GetFrameLevel() > UI.frame:GetFrameLevel() + 20)
 check("with every order", #GrindingUI.sortMenu.items == #Grinding.SORTS)
 check("the one in use lit", GrindingUI.sortMenu.items[1].selected == true)
 local levelItem = GrindingUI.sortMenu.items[3]

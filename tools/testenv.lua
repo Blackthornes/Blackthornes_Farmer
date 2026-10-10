@@ -55,6 +55,8 @@ local function Stub(fields)
     function frame:GetRight() return self._right end
     function frame:GetFrameLevel() return rawget(self, "_frameLevel") or 1 end
     function frame:SetFrameLevel(value) self._frameLevel = value end
+    function frame:SetFrameStrata(value) self._strata = value end
+    function frame:GetFrameStrata() return rawget(self, "_strata") or "MEDIUM" end
 
     -- Recorded so a test can check where something was anchored.
     function frame:SetPoint(...) self._point = { ... } end
