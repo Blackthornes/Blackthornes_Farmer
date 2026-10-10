@@ -4,6 +4,29 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.23.0
+
+For WoW: Forever (interface 16001). A file was added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- **Window style:** Settings > Windows has a new Window style switch.
+  Titanforged stays the default. Blizzard gives the windows the game's own
+  look: grey colours, a silver rim, the game's close button, buttons, tick
+  boxes, tabs and scroll knobs, and no glows. A change takes effect after a
+  reload, and a Reload now button appears when it's needed.
+- **Calmer list rows:** Search, Rankings, Grind and the goal lists look like
+  dark glass, every other row a shade lighter with a fine line under each.
+  The gold light shows only on the row under the mouse.
+- **Goal arrow:** it moves on from a herb or vein you just picked instead of
+  saying "You're there". If TomTom drops the waypoint, Farmer's dial comes
+  back. It also works out its places only after a gather, new loot or a
+  change of zone or level, not every couple of seconds while you walk.
+- **More Forever loot:** drops from two more mobs and nine more corpses you
+  looted on Forever.
+- **Fixes:** the search list catches up when its tab shows instead of
+  redrawing behind other tabs on every gather; Settings' Search window "Open
+  it" always opens the window; and fixes to the Blizzard window style.
+
 ## 0.22.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
