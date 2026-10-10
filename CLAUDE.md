@@ -97,6 +97,13 @@ kills panel, the goals panel, banners and toasts stay up while playing and
 keep their own look. Anything placed inside a dressed window stays 6 pixels
 in from its edge, or it covers the rim.
 
+List rows are dark glass (the owner picked it 2026-10-10 over a gold glow
+that lit every row; Tradeskills and Equipment have the same):
+`Widgets.CreateRowList` rows alternate `glass`/`glassAlt` with a fine line
+under each, and the gold wash lights only the row under the mouse. A
+gradient that fades goes through `Theme.LightGradient`, which hides it at
+0; faded with SetAlpha alone it stayed lit on Forever.
+
 ## The goal arrow, copied to Equipment and Pets
 
 Equipment's upgrade quest and Pets' compendium have the same dial (asked

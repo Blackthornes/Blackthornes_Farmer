@@ -821,7 +821,7 @@ function Widgets.RowLight(row)
     -- Filled at full strength and hidden with SetAlpha: a texture whose
     -- colour is clear stays clear whatever alpha it is given later, which
     -- is how the hover went missing.
-    row.highlight = Theme.Fill(row, "rowHover", nil, "BORDER")
+    row.highlight = Theme.Fill(row, "glassHover", nil, "BORDER")
     row.highlight:SetAlpha(0)
 
     row.edge = row:CreateTexture(nil, "OVERLAY")
@@ -831,28 +831,28 @@ function Widgets.RowLight(row)
     row.edge:SetColorTexture(Theme.Unpack("accentHi"))
     row.edge:SetAlpha(0)
 
-    -- Titanforged: a gold wash fading across the row from its left, as
-    -- Tradeskills' rows light.
+    -- Titanforged: a soft gold wash fading across the row from its left, as
+    -- Tradeskills' rows light. Both gold lights hide at rest and are lit by
+    -- Theme.LightGradient: faded with SetAlpha alone they stayed on every
+    -- row in game.
     row.lightWash = row:CreateTexture(nil, "BORDER", nil, 1)
     row.lightWash:SetAllPoints(row)
-    Theme.SetGradientAlpha(row.lightWash, "HORIZONTAL", "accent", 0.20, 0)
-    row.lightWash:SetAlpha(0)
+    row.lightWash:Hide()
 
     row.bleed = row:CreateTexture(nil, "BORDER", nil, 1)
     row.bleed:SetPoint("TOPLEFT", 2, 0)
     row.bleed:SetPoint("BOTTOMLEFT", 2, 0)
     row.bleed:SetWidth(18)
-    Theme.SetGradientAlpha(row.bleed, "HORIZONTAL", "accent", 0.22, 0)
     pcall(row.bleed.SetBlendMode, row.bleed, "ADD")
-    row.bleed:SetAlpha(0)
+    row.bleed:Hide()
 end
 
 --- How lit a row from Widgets.RowLight is: 0 at rest, 1 under the mouse.
 function Widgets.SetRowLight(row, value)
-    row.highlight:SetAlpha(0.6 * value)
+    row.highlight:SetAlpha(value)
     row.edge:SetAlpha(value)
-    row.bleed:SetAlpha(value)
-    row.lightWash:SetAlpha(value)
+    Theme.LightGradient(row.bleed, "HORIZONTAL", "accent", 0.18, 0, value)
+    Theme.LightGradient(row.lightWash, "HORIZONTAL", "accent", 0.10, 0, value)
 end
 
 --- A scrolling list that recycles row frames.
@@ -937,11 +937,14 @@ function Widgets.CreateRowList(parent, opts)
         row:SetPoint("RIGHT", scrollbar, "LEFT", -6, 0)
         row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
-        -- Filled at full strength and hidden with SetAlpha: a texture whose
-        -- colour is clear stays clear whatever alpha it is given later, which
-        -- is how the hover and the banding went missing.
-        row.stripe = Theme.Fill(row, "rowAlt")
-        row.stripe:SetAlpha(0)
+        -- Dark glass: every other row a shade apart, with a fine line under
+        -- each, so the rows read as separate.
+        row.stripe = Theme.Fill(row, "glass")
+        row.line = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+        row.line:SetPoint("BOTTOMLEFT")
+        row.line:SetPoint("BOTTOMRIGHT")
+        row.line:SetHeight(1)
+        row.line:SetColorTexture(Theme.Unpack("border", 0.6))
 
         -- The wash, the gold edge and the gold light that come up under the
         -- mouse.
@@ -1000,7 +1003,7 @@ function Widgets.CreateRowList(parent, opts)
             if data then
                 -- Banding follows the row's place on screen rather than its
                 -- index in the data, so the stripes do not crawl as you scroll.
-                row.stripe:SetAlpha(index % 2 == 0 and 0.5 or 0)
+                row.stripe:SetColorTexture(Theme.Unpack(index % 2 == 0 and "glassAlt" or "glass"))
 
                 if opts.updateRow then
                     opts.updateRow(row, data, index + self.offset)

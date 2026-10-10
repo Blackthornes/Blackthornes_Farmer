@@ -19,6 +19,14 @@ Theme.colors = {
     rowAlt    = { 0.106, 0.118, 0.141 },
     rowHover  = { 0.180, 0.200, 0.239 },
     rowActive = { 0.220, 0.190, 0.110 },   -- a gold-tinted row, as in Tradeskills
+    -- Dark glass (2026-10-10, asked to calm the gold glare behind list
+    -- rows; Tradeskills' and Equipment's palettes have the same): rows sit
+    -- in the dark, a faint band apart, with a fine line under each. Hover
+    -- lifts a little and keeps the gold to the row's edge.
+    glass       = { 0.067, 0.075, 0.094 },   -- #111318
+    glassAlt    = { 0.039, 0.047, 0.063 },   -- #0A0C10
+    glassHover  = { 0.094, 0.106, 0.129 },   -- #181B21
+    glassActive = { 0.141, 0.122, 0.078 },   -- #241F14, gold in the dark
 
     border    = { 0.204, 0.224, 0.263 },
     borderLit = { 0.302, 0.333, 0.388 },
@@ -314,6 +322,18 @@ function Theme.HouseHeader(header, glowHeight)
     Theme.HeaderGlow(header, glowHeight or 16, 0.10)
     Theme.TopSheen(header)
     return stripe
+end
+
+--- Light a gradient made by Theme.SetGradientAlpha to `p` of its full
+--- strength, hiding it at 0. The alpha goes into the gradient itself and the
+--- texture hides when dark: faded with SetAlpha alone, the rows' hover wash
+--- showed lit on every row of a list on Forever (seen 2026-10-10).
+function Theme.LightGradient(texture, orientation, key, fromAlpha, toAlpha, p)
+    p = math.max(0, math.min(1, tonumber(p) or 0))
+    texture:SetShown(p > 0)
+    if p > 0 then
+        Theme.SetGradientAlpha(texture, orientation, key, fromAlpha * p, toAlpha * p)
+    end
 end
 
 --- A soft gold glow fading down from the top of a header, drawn as a
