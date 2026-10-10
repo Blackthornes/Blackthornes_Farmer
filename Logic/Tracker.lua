@@ -604,6 +604,9 @@ function Tracker:NoteLook(slot, name, icon)
         if not look.id and text then
             look.id = tonumber(text:match("item:(%d+)"))
         end
+        -- Counted so a reader that indexes the looks (Value.GreyLinks)
+        -- knows to walk them again.
+        self.looksVersion = (self.looksVersion or 0) + 1
     end
 end
 

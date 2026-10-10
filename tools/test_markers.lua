@@ -255,6 +255,15 @@ suite.check("another map shows only its own", #Shown(world) == 1
 WorldMapFrame._shown = false
 MapMarkers:Step(1)
 suite.check("a closed map shows nothing", #Shown(world) == 0)
+-- Put away once: the driver asks ten times a second while the map is closed.
+local hides = 0
+for _, pin in ipairs(world.pins) do
+    local realHide = pin.Hide
+    pin.Hide = function(self) hides = hides + 1; return realHide(self) end
+end
+MapMarkers:Step(1)
+MapMarkers:Step(1)
+suite.check("and pins already put away are left alone", hides == 0, hides)
 WorldMapFrame._shown = true
 shownMap = 37
 MapMarkers:Step(1)

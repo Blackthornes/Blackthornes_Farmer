@@ -557,7 +557,14 @@ end
 function Goals:Settle()
     self.quietUntil = Now() + SETTLE
     if C_Timer and type(C_Timer.After) == "function" then
-        pcall(C_Timer.After, SETTLE + 1, function() Goals:Update() end)
+        pcall(C_Timer.After, SETTLE + 1, function()
+            Goals:Update()
+            -- Shown again here too: at login the client can keep the
+            -- character's name to itself for a moment, and with no owner
+            -- the panel hid with nothing to show. A count change is not
+            -- the only way back.
+            if ns.GoalsUI then ns.GoalsUI:Refresh() end
+        end)
     end
 end
 

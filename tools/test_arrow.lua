@@ -307,12 +307,28 @@ suite.check("wide enough for its words",
 -- Right-click on the dial: the next place.
 ArrowUI:OnClick("RightButton")
 suite.check("right-click on the dial steps on", Arrow.index == 2, Arrow.index)
--- A drag is not a click.
+-- A drag is not a click, whichever order the client sends the drop and the
+-- button coming up in, and a drag never swallows the click after it.
+local before = Arrow:Goal()
 frame:GetScript("OnDragStart")(frame)
 frame:GetScript("OnDragStop")(frame)
-local before = Arrow:Goal()
 frame:GetScript("OnMouseUp")(frame, "LeftButton")
 suite.check("letting go after a drag changes nothing", Arrow:Goal() == before)
+
+local wasIndex = Arrow.index
+frame:GetScript("OnDragStart")(frame)
+frame:GetScript("OnMouseUp")(frame, "RightButton")
+frame:GetScript("OnDragStop")(frame)
+suite.check("the button up before the drop is not a click either", Arrow.index == wasIndex, Arrow.index)
+
+local clock = 100
+_G.GetTime = function() return clock end
+frame:GetScript("OnDragStart")(frame)
+frame:GetScript("OnDragStop")(frame)
+clock = 101
+frame:GetScript("OnMouseUp")(frame, "RightButton")
+suite.check("a drop with no button up never costs the next click", Arrow.index ~= wasIndex, Arrow.index)
+_G.GetTime = nil
 
 -- No open goal left: it steps out of the way, still on for the next one.
 local savedList = ns.db.goals.list
@@ -397,10 +413,12 @@ do
     ArrowUI:Draw(true)
     suite.check("and it is not put back on TomTom for the same place", frame:IsShown() and Count() == 0)
     _G.TomTom.IsValidWaypoint = nil
-    TomTom.refused = nil
+    -- The arrow turned off and on again means try TomTom again.
+    Arrow:SetOn(false)
+    Arrow:SetOn(true)
     ArrowUI:Draw(true)
     uid = TomTom.uid
-    suite.check("a fresh waypoint once that is forgotten", not frame:IsShown() and Count() == 1)
+    suite.check("a fresh waypoint once the arrow is turned off and on", not frame:IsShown() and Count() == 1)
 
     Arrow:NextSpot()
     ArrowUI:Draw(true)

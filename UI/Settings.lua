@@ -943,6 +943,7 @@ function SettingsUI:RestorePosition()
 
     local db = ns.db or {}
 
+    if ns.Motion then ns.Motion:Stop(self.frame, "open", true) end
     self.frame:ClearAllPoints()
     self.frame:SetPoint(db.settingsPoint or "CENTER", UIParent,
         db.settingsRelativePoint or "CENTER", db.settingsX or 0, db.settingsY or 0)
@@ -1003,11 +1004,10 @@ function SettingsUI:RegisterGameOptions()
     blurb:SetText("Farmer's settings have a window of their own.")
 
     local open = Widgets.CreateButton(panel, "Open Farmer settings", function()
-        -- Close the game's panel first, or the two windows sit on top of one
-        -- another fighting for the keyboard.
-        if SettingsPanel and HideUIPanel then
-            pcall(HideUIPanel, SettingsPanel)
-        end
+        -- The game's panel is left as it is: hiding a stock frame runs the
+        -- game's own code as this addon and taints it (Equipment's Edit
+        -- Mode error, 2026-10-10). Farmer's window is top level in the
+        -- dialog layer, so it comes up over the panel.
         SettingsUI:Show()
     end, { width = 170, height = 24 })
     open:SetPoint("TOPLEFT", blurb, "BOTTOMLEFT", 0, -14)

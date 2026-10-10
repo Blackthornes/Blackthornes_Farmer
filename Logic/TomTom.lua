@@ -117,7 +117,10 @@ end
 --- Take our waypoint off TomTom, if there is one.
 function TomTomLink:Clear()
     local uid = self.uid
-    self.uid, self.key = nil, nil
+    -- A place TomTom turned down is offered again after a clearing: the
+    -- arrow turned off and on, or Use TomTom re-ticked, means try again,
+    -- not keep the dial until the place changes.
+    self.uid, self.key, self.refused = nil, nil, nil
     if uid == nil then return end
     local tomtom = TomTomLink.Addon()
     if tomtom then pcall(tomtom.RemoveWaypoint, tomtom, uid) end

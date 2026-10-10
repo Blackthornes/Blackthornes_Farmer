@@ -116,10 +116,16 @@ function GrindPins:Draw()
     self.pins = pins
 
     if not view or not GrindPins.IsOn() then
-        for _, pin in ipairs(pins) do pin:Hide() end
-        self.drawnKey = nil
+        -- Hidden once; the driver asks again five times a second while the
+        -- map is closed, and there is nothing to redo.
+        if self.drawnKey ~= nil or not self.hiddenAll then
+            for _, pin in ipairs(pins) do pin:Hide() end
+            self.drawnKey = nil
+            self.hiddenAll = true
+        end
         return 0
     end
+    self.hiddenAll = nil
 
     local key = ("%d:%s:%s:%s:%d"):format(view.mapID, view.scale, view.width, view.height, self.version)
     if key == self.drawnKey then return nil end

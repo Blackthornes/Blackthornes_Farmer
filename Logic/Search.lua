@@ -45,6 +45,12 @@ function Search:Run(query)
     query = Util.Trim(query):lower()
     if query == "" then return results end
 
+    -- A keystroke asks twice, once for the chips and once for the rows, so
+    -- the last answer is kept while the data it came from stands. Callers
+    -- never change what comes back.
+    local last = self.lastRun
+    if last and last.query == query and last.changes == ns.DB.changes then return last.results end
+
     for item in ns.DB:Iterate() do
         local score, why = MatchScore(item.name:lower(), query), "name"
         local matched
@@ -99,6 +105,7 @@ function Search:Run(query)
         return a.item.name < b.item.name
     end)
 
+    self.lastRun = { query = query, changes = ns.DB.changes, results = results }
     return results
 end
 
@@ -402,7 +409,9 @@ function Search:BuildRows(query, opts)
     local maxItems = opts.max or 40
     local rows = {}
     local total, drawn = 0, 0
-    local worth = {}
+    -- The caller's per-draw worth cache, when it has one, so a mob priced
+    -- for the sort is not priced again for the row.
+    local worth = opts.worth or {}
 
     -- The kind filter comes before the cap. Capped first, a chip could show
     -- nothing but "and 55 more items" while its kind sat further down.

@@ -202,16 +202,21 @@ suite.check("a grey item never takes the auction price", unit == 20 and from == 
 unit = Value:UnitPrice(3301)
 suite.check("a grey item a vendor will not buy has no price", unit == nil, unit)
 
--- Not cached yet, but its loot link was grey.
+-- Not cached yet, but its loot link was grey. The looks are indexed once
+-- per change, so a look noted later is counted (NoteLook counts them).
 UNCACHED[3302] = true
 Tracker:Looks()["Grey Thing"] = { id = 3302, color = Tracker.QUALITY[0] }
+Tracker.looksVersion = (Tracker.looksVersion or 0) + 1
 unit = Value:UnitPrice(3302)
 suite.check("an uncached item with a grey link is not priced at auction", unit == nil, unit)
 
-Tracker:Looks()["Grey Thing"].color = Tracker.QUALITY[1]
-unit = Value:UnitPrice(3302)
+UNCACHED[3303] = true
+AUCTION[3303] = 500
+Tracker:Looks()["White Thing"] = { id = 3303, color = Tracker.QUALITY[1] }
+Tracker.looksVersion = Tracker.looksVersion + 1
+unit = Value:UnitPrice(3303)
 suite.check("an uncached white item still takes the auction price", unit == 500, unit)
-UNCACHED[3302] = nil
+UNCACHED[3302], UNCACHED[3303] = nil, nil
 
 -- A quality this client will not let us read costs nothing but the check.
 local realInfo = C_Item.GetItemInfo
@@ -286,6 +291,9 @@ _G.C_TooltipInfo = {
 }
 suite.check("before it loads, the item info's price stands in", Value:VendorPrice(11289) == 900, Value:VendorPrice(11289))
 loaded = true
+-- The client says when the item has arrived; until then the tooltip is
+-- not asked for again (a board prices hundreds of items a draw).
+Value:ItemArrived(11289)  -- what GET_ITEM_INFO_RECEIVED calls
 suite.check("once loaded, the tooltip's price is read after all", Value:VendorPrice(11289) == 5, Value:VendorPrice(11289))
 _G.C_TooltipInfo, _G.C_Item = nil, baseItem
 VENDOR[11289] = nil

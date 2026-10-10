@@ -2884,13 +2884,21 @@ function TrackerUI:Place()
     self.frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", box.right + GROUP_GAP, top)
 end
 
---- Place it again once the group frames have settled.
+--- Place it again once the group frames have settled. A raid forming
+--- raises the roster event dozens of times in a row: one placing waits for
+--- the burst, not one per event.
 function TrackerUI:PlaceSoon()
+    if self.placing then return end
     if C_Timer and type(C_Timer.After) == "function" then
-        pcall(C_Timer.After, SETTLE, function() TrackerUI:Place() end)
-    else
-        self:Place()
+        self.placing = true
+        local ok = pcall(C_Timer.After, SETTLE, function()
+            TrackerUI.placing = nil
+            TrackerUI:Place()
+        end)
+        if ok then return end
+        self.placing = nil
     end
+    self:Place()
 end
 
 function TrackerUI:SetDodgeGroup(on)

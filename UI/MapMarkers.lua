@@ -324,16 +324,19 @@ function MapMarkers:DrawWorld()
     local view = self:WorldView()
 
     if not view then
-        if self.worldPool then Release(self.worldPool) end
+        -- Put away once: the driver asks ten times a second while the map
+        -- is closed, and pins already hidden have nothing to redo.
+        local pool = self.worldPool
+        if pool and pool.used > 0 then Release(pool) end
         self.worldKey = nil
         return
     end
 
     local key = ("%d:%s:%s:%s:%d"):format(view.mapID, view.scale, view.width,
         view.height, ns.Gathering.spotsVersion or 0)
+    local on = MapMarkers.WorldOn()
 
-    if key == self.worldKey and self.worldOn == MapMarkers.WorldOn() then return end
-    self.worldKey, self.worldOn = key, MapMarkers.WorldOn()
+    if key == self.worldKey and self.worldOn == on then return end
 
     if not self.worldPool or self.worldPool.parent ~= view.canvas then
         if self.worldPool then Release(self.worldPool) end
@@ -343,8 +346,16 @@ function MapMarkers:DrawWorld()
     local pool = self.worldPool
     Begin(pool)
 
-    if not MapMarkers.WorldOn() then return Finish(pool) end
+    -- Whatever happens below, nothing left over from the last redraw stays.
+    local ok, err = true, nil
+    if on then ok, err = pcall(self.PlaceWorld, self, pool, view) end
+    Finish(pool)
+    -- Kept only after a clean draw, so a failed one is tried again.
+    self.worldKey, self.worldOn = ok and key or nil, on
+    if not ok then error(err, 0) end
+end
 
+function MapMarkers:PlaceWorld(pool, view)
     local now = ns.Gathering.Clock()
     -- The bottom of the canvas's own pins: whatever else the map shows, the
     -- game's or another addon's, draws over a spot you have already taken.
@@ -365,8 +376,6 @@ function MapMarkers:DrawWorld()
             spot.x * view.width / scale, -spot.y * view.height / scale)
         pin:Show()
     end
-
-    Finish(pool)
 end
 
 --------------------------------------------------------------------------------

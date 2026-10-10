@@ -517,17 +517,34 @@ function GoalsUI:SetBar(card, fraction, green)
 end
 
 --- The small grey line under the name: the best place near you, from the
---- same ranking the Where button opens.
-local function SpotText(goal)
-    local ok, spots = pcall(ns.Spots.For, ns.Spots, goal.item)
-    local spot = ok and spots and spots[1]
-    if not spot then return "" end
+--- same ranking the Where button opens. Ranking walks every loot record
+--- and saved spot, so the line is kept per goal until what it is made
+--- from changes (the same key the goal arrow keeps its places on): every
+--- loot redraws the cards, and the ranking cannot have changed between.
+local spotTexts = {}
 
-    local distance = ns.Spots.DistanceText(spot.hops, spot.zone, spot.travel)
-    if distance == "you are here" then
-        return ("%s, %s"):format(spot.name or "?", Util.Colored("good", "here"))
+local function SpotText(goal)
+    local item = goal.item
+    local Gathering, Harvest = ns.Gathering, ns.Harvest
+    local player = ns.Spots:Player()
+    local key = table.concat({ tostring(player.zone), tostring(player.level),
+        tostring(Gathering and Gathering.spotsVersion or 0), tostring(Harvest and Harvest.changes or 0) }, "|")
+    local kept = spotTexts[item]
+    if kept and kept.key == key then return kept.text end
+
+    local text = ""
+    local ok, spots = pcall(ns.Spots.For, ns.Spots, item)
+    local spot = ok and spots and spots[1]
+    if spot then
+        local distance = ns.Spots.DistanceText(spot.hops, spot.zone, spot.travel)
+        if distance == "you are here" then
+            text = ("%s, %s"):format(spot.name or "?", Util.Colored("good", "here"))
+        else
+            text = ("%s, %s"):format(spot.name or "?", spot.zone or "?")
+        end
     end
-    return ("%s, %s"):format(spot.name or "?", spot.zone or "?")
+    spotTexts[item] = { key = key, text = text }
+    return text
 end
 
 function GoalsUI:DrawCard(card, goal)
@@ -686,14 +703,16 @@ function GoalsUI:Render()
         needs = math.max(needs, self:CardNeeds(card, goal))
     end
     local fit = math.min(MAX_WIDTH, math.max(width, math.ceil(needs)))
-    if fit ~= width then self.frame:SetWidth(fit) end
+    local widened = fit ~= width
+    if widened then self.frame:SetWidth(fit) end
 
     for index, goal in ipairs(list) do
         local card = self:Card(index)
         card:ClearAllPoints()
         card:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 1, -(HEADER + GAP / 2 + (index - 1) * (CARD + 2)))
         card:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -1, -(HEADER + GAP / 2 + (index - 1) * (CARD + 2)))
-        self:DrawCard(card, goal)
+        -- Drawn again only when the width moved under it.
+        if widened then self:DrawCard(card, goal) end
     end
 
     for index = #list + 1, #self.cards do
