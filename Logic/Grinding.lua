@@ -200,13 +200,48 @@ function Grinding:SetGives(gives)
     ns.db.grindGives = known and gives or nil
 end
 
+--- The orders the camps can be listed in (the Sort menu).
+Grinding.SORTS = {
+    { key = "busiest", label = "Busiest", tip = "Camps with the most mobs first." },
+    { key = "nearest", label = "Nearest", tip = "Camps closest to you first." },
+    { key = "level", label = "Level", tip = "The lowest level camps first." },
+    { key = "levelnear", label = "Level, then nearest",
+      tip = "The lowest level camps first; camps of the same level, the nearest first." },
+}
+
+local function KnownSort(key)
+    for _, entry in ipairs(Grinding.SORTS) do
+        if entry.key == key then return entry end
+    end
+    return nil
+end
+
+--- The order the camps are listed in. Saved as grindSort; before the menu
+--- there was only Nearest first (grindNearFirst), which is still read.
+function Grinding.Sort()
+    local db = ns.db
+    if db == nil then return "busiest" end
+    if KnownSort(db.grindSort) then return db.grindSort end
+    return db.grindNearFirst == true and "nearest" or "busiest"
+end
+
+function Grinding:SetSort(key)
+    if KnownSort(key) then ns.db.grindSort = key end
+end
+
+--- The menu's words for an order: "Level, then nearest".
+function Grinding.SortLabel(key)
+    local entry = KnownSort(key or Grinding.Sort())
+    return entry and entry.label or ""
+end
+
 --- Nearest camps first, rather than the busiest.
 function Grinding.NearFirst()
-    return ns.db ~= nil and ns.db.grindNearFirst == true
+    return Grinding.Sort() == "nearest"
 end
 
 function Grinding:SetNearFirst(on)
-    ns.db.grindNearFirst = on and true or false
+    self:SetSort(on and "nearest" or "busiest")
 end
 
 --------------------------------------------------------------------------------
@@ -474,12 +509,17 @@ function Grinding:Camps(filter)
         end
     end
 
-    local nearFirst = Grinding.NearFirst()
+    local order = Grinding.Sort()
     local FAR = 99
 
     table.sort(shown, function(a, b)
         local hopsA, hopsB = a.hops or FAR, b.hops or FAR
-        if nearFirst and hopsA ~= hopsB then return hopsA < hopsB end
+        if order == "nearest" and hopsA ~= hopsB then return hopsA < hopsB end
+        if order == "level" or order == "levelnear" then
+            if a.minLevel ~= b.minLevel then return a.minLevel < b.minLevel end
+            if order == "levelnear" and hopsA ~= hopsB then return hopsA < hopsB end
+            if a.maxLevel ~= b.maxLevel then return a.maxLevel < b.maxLevel end
+        end
         if a.count ~= b.count then return a.count > b.count end
         if (a.forever and true or false) ~= (b.forever and true or false) then return a.forever == true end
         if hopsA ~= hopsB then return hopsA < hopsB end
@@ -510,10 +550,26 @@ local function Open()
     end
 end
 
---- /farm grind [low high] [type] [cloth|skinning|any], or "pins on|off".
+--- /farm grind [low high] [type] [cloth|skinning|any], "sort <order>", or "pins on|off".
 function Grinding:Command(rest)
     local words = {}
     for word in Util.Trim(rest or ""):lower():gmatch("%S+") do words[#words + 1] = word end
+
+    if words[1] == "sort" then
+        local wanted = { busiest = "busiest", busy = "busiest", nearest = "nearest", near = "nearest",
+            level = "level", levelnear = "levelnear", both = "levelnear" }
+        local key = wanted[words[2] or ""]
+        -- "level then nearest", "level nearest"
+        if key == "level" and (words[#words] == "nearest" or words[#words] == "near") then key = "levelnear" end
+        if key then
+            self:SetSort(key)
+            ns.Print(("grinding camps sorted by: %s."):format(Util.Colored("accent", Grinding.SortLabel(key))))
+            Open()
+        else
+            ns.Print("sort by busiest, nearest, level, or level nearest.")
+        end
+        return
+    end
 
     if words[1] == "pins" or words[1] == "map" then
         if ns.GrindPins then

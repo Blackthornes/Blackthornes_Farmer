@@ -4,10 +4,12 @@
 --
 -- Across the top: the level band on two steppers, with My level to follow
 -- yours. Under it: the creature type (Any, Humanoid, Beast, ...), what they
--- give (Cloth, Skinning), and Nearest first. The list is one band per camp,
--- busiest first, with its mobs under it: type, level, what they give and
--- what a kill is worth. A click on a camp points the arrow there; the camps
--- listed also show on the world map (UI/GrindPins.lua).
+-- give (Cloth, Skinning), and the Sort menu (Busiest, Nearest, Level, Level
+-- then nearest). The list is one band per camp with its mobs under it:
+-- type, level, what they give and what a kill is worth; the column
+-- headings sort the mobs within each camp. A click on a camp points the
+-- arrow there; the camps listed also show on the world map
+-- (UI/GrindPins.lua).
 
 local _, ns = ...
 
@@ -182,13 +184,13 @@ function GrindingUI:Build(frame)
         self.givesChips[#self.givesChips + 1] = chip
     end
 
-    -- Up in the top row beside My level, where there is room: on the chip
-    -- row it ran into Skinning (2026-10-10).
-    local near = Chip(band, "NEAREST FIRST", function()
-        Grinding:SetNearFirst(not Grinding.NearFirst())
-        GrindingUI:Render(true)
-    end, { "Nearest first", "Camps near you first, rather than the busiest." })
-    self.nearChip = near
+    -- The order of the camps. Up in the top row beside My level, where
+    -- there is room: on the chip row it ran into Skinning (2026-10-10).
+    local sort = Chip(band, GrindingUI.SortText(), function()
+        GrindingUI:ToggleSortMenu()
+    end, { "Sort the camps", "Busiest, nearest, by level, or by level and then the nearest." })
+    self.sortChip = sort
+    self:BuildSortMenu(view)
 
     self:LayoutChips()
 
@@ -201,13 +203,31 @@ function GrindingUI:Build(frame)
     self.headings = {}
     for key, text in pairs({ type = "TYPE", mob = "MOB", level = "LEVEL", gives = "GIVES",
         worth = "PER KILL" }) do
-        local label = Theme.CreateLabel(panel, "tiny", "dim", key == "level" and "CENTER" or nil)
+        local label = Theme.CreateLabel(panel, "tiny", "dim")
         label:SetText(text)
         self.headings[key] = label
     end
 
     self.columns = Columns()
     self:PlaceHeadings()
+
+    -- The headings sort the mobs within each camp; the Sort menu orders the
+    -- camps. Saved as grindColumns.
+    local saved = type(ns.db.grindColumns) == "table" and ns.db.grindColumns or {}
+    self.sorter = Widgets.SortableHeadings(self.headings, {
+        type = "Sort each camp's mobs by type.",
+        mob = "Sort each camp's mobs by name.",
+        level = "Sort each camp's mobs by level.",
+        gives = "Sort each camp's mobs by what they give.",
+        worth = "Sort each camp's mobs by what a kill is worth.",
+    }, function(key, ascending)
+        ns.db.grindColumns = key and { key = key, ascending = ascending } or nil
+        GrindingUI:Render()
+    end, {
+        startsLow = { type = true, mob = true, level = true, gives = true },
+        key = GrindingUI.MOB_KEYS[saved.key] and saved.key or nil,
+        ascending = saved.ascending,
+    })
 
     local rule = Theme.CreateDivider(panel, "border")
     rule:SetPoint("TOPLEFT", 8, -20)
@@ -238,6 +258,68 @@ function GrindingUI:Build(frame)
 
     view:Hide()
     return view
+end
+
+--------------------------------------------------------------------------------
+-- The Sort menu
+--------------------------------------------------------------------------------
+
+local MENU_ROW = 20
+
+--- The sort chip's words: "SORT: NEAREST".
+function GrindingUI.SortText()
+    return ("SORT: %s"):format(ns.Grinding.SortLabel():upper())
+end
+
+--- A small list under the sort chip, one line per order, the one in use lit.
+function GrindingUI:BuildSortMenu(view)
+    local menu = Theme.CreatePanel(view, "panel", "metal")
+    pcall(menu.SetFrameStrata, menu, "DIALOG")
+    pcall(menu.SetClampedToScreen, menu, true)
+    menu:EnableMouse(true)
+    menu:Hide()
+    self.sortMenu = menu
+
+    menu.items = {}
+    for index, entry in ipairs(ns.Grinding.SORTS) do
+        local item = Widgets.CreateChip(menu, entry.label, function()
+            ns.Grinding:SetSort(entry.key)
+            menu:Hide()
+            GrindingUI:Render(true)
+        end, { noUnderline = true })
+        item.sortKey = entry.key
+        item:SetPoint("TOPLEFT", 4, -4 - (index - 1) * MENU_ROW)
+        item:SetPoint("TOPRIGHT", -4, -4 - (index - 1) * MENU_ROW)
+        item:HookScript("OnEnter", function(self) Tip(self, entry.label, entry.tip) end)
+        item:HookScript("OnLeave", HideTip)
+        menu.items[index] = item
+    end
+    menu:SetHeight(8 + #menu.items * MENU_ROW - 2)
+
+    -- Gone with the tab, so it never waits over another one.
+    view:HookScript("OnHide", function() menu:Hide() end)
+end
+
+function GrindingUI:ToggleSortMenu()
+    local menu = self.sortMenu
+    if menu:IsShown() then
+        menu:Hide()
+        return
+    end
+
+    local width = 0
+    for _, item in ipairs(menu.items) do
+        local text = item.label:GetText() or ""
+        local w = Theme.TextWidth("tiny", text)
+        local ok, drawn = pcall(item.label.GetStringWidth, item.label)
+        if ok and type(drawn) == "number" and drawn > w then w = drawn end
+        width = math.max(width, math.ceil(w) + 24)
+        item:SetSelected(item.sortKey == ns.Grinding.Sort())
+    end
+    menu:SetWidth(math.max(width, self.sortChip:GetWidth()))
+    menu:ClearAllPoints()
+    menu:SetPoint("TOPLEFT", self.sortChip, "BOTTOMLEFT", 0, -2)
+    menu:Show()
 end
 
 -- Gaps between chips, and the wider one before what the mobs give.
@@ -272,19 +354,19 @@ function GrindingUI:LayoutChips()
         chips[#chips + 1] = { chip, index == 1 and GROUP_GAP or 0 }
     end
 
-    -- Nearest first sits in the top row beside My level while it clears the
-    -- Settings button there (larger text can push it); otherwise it joins
-    -- the end of the chip row.
-    local near = self.nearChip
-    local nearWidth = ChipWidth(near)
-    near:SetWidth(nearWidth)
-    near:ClearAllPoints()
-    if self:TopRowRoom() >= nearWidth + 10 then
-        near:SetParent(self.band)
-        near:SetPoint("LEFT", self.mineButton, "RIGHT", 10, 0)
+    -- Sort sits in the top row beside My level while it clears the Settings
+    -- button there (larger text or a longer order can push it); otherwise it
+    -- joins the end of the chip row.
+    local sort = self.sortChip
+    local sortWidth = ChipWidth(sort)
+    sort:SetWidth(sortWidth)
+    sort:ClearAllPoints()
+    if self:TopRowRoom() >= sortWidth + 10 then
+        sort:SetParent(self.band)
+        sort:SetPoint("LEFT", self.mineButton, "RIGHT", 10, 0)
     else
-        near:SetParent(filters)
-        chips[#chips + 1] = { near, GROUP_GAP }
+        sort:SetParent(filters)
+        chips[#chips + 1] = { sort, GROUP_GAP }
     end
 
     local x, line = 0, 0
@@ -326,9 +408,16 @@ end
 function GrindingUI:PlaceHeadings()
     for key, label in pairs(self.headings) do
         local column = self.columns[key]
+        local x, w = column.x, column.w
+        if key == "level" then
+            -- Centred over its column by width, so the sort arrow, placed
+            -- after the words, stays clear of them.
+            local text = math.ceil(Theme.TextWidth("tiny", label:GetText() or "")) + 2
+            x, w = x + math.max(0, math.floor((w - text) / 2)), math.min(w, text)
+        end
         label:ClearAllPoints()
-        label:SetPoint("TOPLEFT", 8 + column.x, -8)
-        label:SetWidth(column.w)
+        label:SetPoint("TOPLEFT", 8 + x, -8)
+        label:SetWidth(w)
     end
 end
 
@@ -398,16 +487,19 @@ end
 --- plainly, the database's estimate with a "~". Empty when nothing is priced.
 function GrindingUI:WorthText(mob)
     self.worthKept = self.worthKept or {}
+    self.worthCopper = self.worthCopper or {}
     local kept = self.worthKept[mob.name]
     if kept == nil then
         local ok, value, details = pcall(ns.Value.ForMob, ns.Value, mob.name)
         kept = ""
-        if ok and value then
+        self.worthCopper[mob.name] = -1
+        if ok and type(value) == "number" then
             kept = (details and details.basis == "tally" and "" or "~") .. ns.Value.Coins(value)
+            self.worthCopper[mob.name] = value
         end
         self.worthKept[mob.name] = kept
     end
-    return kept
+    return kept, self.worthCopper[mob.name]
 end
 
 --- The texts a mob's row shows, by column; shared by drawing and fitting.
@@ -510,6 +602,43 @@ end
 -- Drawing
 --------------------------------------------------------------------------------
 
+-- The headings that sort a camp's mobs.
+GrindingUI.MOB_KEYS = { type = true, mob = true, level = true, gives = true, worth = true }
+
+--- What a mob sorts by under heading `key`; mobs with nothing go last.
+function GrindingUI:SortValue(mob, key)
+    if key == "type" then return mob.type and mob.type:lower() or "~" end
+    if key == "mob" then return mob.name:lower() end
+    if key == "level" then return (mob.minLevel or 0) * 100 + (mob.maxLevel or mob.minLevel or 0) end
+    if key == "gives" then
+        local text = GivesText(mob)
+        return text ~= "" and text:lower() or "~"
+    end
+    local _, copper = self:WorthText(mob)
+    return copper or -1
+end
+
+--- A camp's mobs in the order the headings ask for (a copy; the camp keeps
+--- its own order).
+function GrindingUI:SortedMobs(mobs)
+    local saved = ns.db.grindColumns
+    local key = type(saved) == "table" and saved.key
+    if not GrindingUI.MOB_KEYS[key or ""] then return mobs end
+
+    local up = saved.ascending and true or false
+    local sorted = {}
+    for index, mob in ipairs(mobs) do sorted[index] = mob end
+    table.sort(sorted, function(a, b)
+        local va, vb = self:SortValue(a, key), self:SortValue(b, key)
+        if va ~= vb then
+            if up then return va < vb end
+            return va > vb
+        end
+        return a.name < b.name
+    end)
+    return sorted
+end
+
 --- The camps as list rows: a band per camp, its mobs under it.
 function GrindingUI:Rows(camps, unknown, low, high)
     local rows = {}
@@ -517,7 +646,7 @@ function GrindingUI:Rows(camps, unknown, low, high)
 
     for _, camp in ipairs(camps) do
         rows[#rows + 1] = { type = "camp", camp = camp }
-        for _, mob in ipairs(camp.mobs) do
+        for _, mob in ipairs(self:SortedMobs(camp.mobs)) do
             rows[#rows + 1] = { type = "mob", mob = mob, camp = camp }
         end
     end
@@ -583,6 +712,7 @@ end
 --- Put the controls in step with what is saved.
 function GrindingUI:PaintControls(low, high)
     local Grinding = ns.Grinding
+    self.sortChip.label:SetText(GrindingUI.SortText())
     -- The game's font is loaded by the first draw: measure again.
     self:LayoutChips()
     self.low:SetValue(low, true)
@@ -597,7 +727,12 @@ function GrindingUI:PaintControls(low, high)
     for _, chip in ipairs(self.givesChips) do
         chip:SetSelected(chip.givesKey == gives)
     end
-    self.nearChip:SetSelected(Grinding.NearFirst())
+    self.sortChip:SetSelected(Grinding.Sort() ~= "busiest")
+    if self.sorter then
+        local saved = ns.db.grindColumns
+        local key = type(saved) == "table" and GrindingUI.MOB_KEYS[saved.key or ""] and saved.key or nil
+        self.sorter:Set(key, key and saved.ascending)
+    end
 end
 
 --- Work the camps out again and draw them. Returns the window width it wants.
@@ -606,6 +741,7 @@ function GrindingUI:Render(arrive)
 
     -- Prices and tallies can move between renders; worth is kept per render.
     self.worthKept = {}
+    self.worthCopper = {}
 
     local camps, unknown, low, high = ns.Grinding:Camps()
     self.camps = camps
