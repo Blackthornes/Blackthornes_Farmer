@@ -870,7 +870,7 @@ ns.RegisterCommand("gathering", "herbs and ore gathered in this zone (all: every
     local argument = Util.Trim(rest):lower()
 
     if argument == "check" then
-        PrintSuspects()
+        ns.KeepCheck("gathering check", PrintSuspects)
         return
     end
 
