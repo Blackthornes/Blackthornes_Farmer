@@ -10,6 +10,14 @@ name, after their group; changes nobody asked for go in a group of their
 own with no thanks. This is the only report that names players. A version with no section here posts nothing in #general.
 This file does not ship in the addon.
 
+## 0.22.0
+
+Hey everyone! A small Farmer update just went up.
+
+The buttons on the Grind tab don't pile on top of each other anymore. There's also a new Sort menu, so you can sort camps by how busy they are, how close they are or their level, and you can click the column names to sort the mobs too. Thanks Ezmode for both!
+
+A quick /reload after you update is all you need. Have fun!
+
 ## 0.21.0
 
 Hey everyone! A new Farmer update just went up.

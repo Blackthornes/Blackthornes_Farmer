@@ -4,6 +4,17 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.22.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Grind tab:** the filter buttons no longer overlap; they wrap onto a new
+  line when they don't fit.
+- **Sort menu on the Grind tab:** Busiest, Nearest, Level, or Level then
+  nearest, and the column headings (Type, Mob, Level, Gives, Per kill) sort
+  the mobs inside each camp. Click once to sort, twice to flip it, three
+  times to go back. Both are remembered.
+
 ## 0.21.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game
