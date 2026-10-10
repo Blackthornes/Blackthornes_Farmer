@@ -303,9 +303,10 @@ function Widgets.CreateButton(parent, text, onClick, opts)
     -- buttons a dark face of their own (baseColor) and their dark labels
     -- read as empty boxes; a face that is not gold keeps a gold label.
     -- The Blizzard window style has no gold face: every button wears the
-    -- game's red with a gold label (UI/BlizzardLook.lua).
+    -- game's red with a gold label (UI/BlizzardLook.lua). A client missing
+    -- that art keeps the house face, so the label is picked to suit it.
     local Look = ns.BlizzardLook
-    local blizzard = Look and Look.On()
+    local blizzard = Look and Look.DressesButtons()
     local goldFace = opts.primary and not opts.baseColor and not blizzard
     local restLabel = goldFace and "ink" or opts.danger and "loss" or "gilt"
     local labelHot = goldFace and "ink" or opts.danger and "loss" or { 1, 0.953, 0.784 }
