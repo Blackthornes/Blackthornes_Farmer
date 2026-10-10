@@ -500,4 +500,18 @@ do
         GrindingUI.sortChip._point and GrindingUI.sortChip._point[2] == GrindingUI.mineButton)
 end
 
+--------------------------------------------------------------------------------
+-- A seed-file group ("spiders") is not a mob anyone can target to learn its
+-- type, so it is never counted as one waiting to be learned. Last, since
+-- the row would otherwise sit in the lists above.
+--------------------------------------------------------------------------------
+
+local _, unknownBefore = Grinding:Camps({ low = 22, high = 26, type = "Humanoid", gives = false })
+DB:RegisterItem({ name = "Test Silk", category = "Cloth", sources = {
+    { name = "vale spiders", zone = ZONE, minLevel = 23, maxLevel = 25 },
+} })
+local _, unknownWithGroup = Grinding:Camps({ low = 22, high = 26, type = "Humanoid", gives = false })
+check("a group row is known for one", Grinding.IsGroup("vale spiders") and not Grinding.IsGroup("Vale Thug"))
+check("and never counted as a mob of unknown type", unknownWithGroup == unknownBefore, unknownWithGroup)
+
 suite.done()

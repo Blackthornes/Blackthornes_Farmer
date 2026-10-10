@@ -63,10 +63,18 @@ _G.C_Item = {
     end,
     IsItemDataCachedByID = function() return sell ~= nil end,
 }
-_G.C_TooltipInfo = { GetItemByID = function() return { lines = { { type = 0 } } } end }
+local tooltipAsks = 0
+_G.C_TooltipInfo = { GetItemByID = function() tooltipAsks = tooltipAsks + 1; return { lines = { { type = 0 } } } end }
 suite.check("not loaded yet: no price", Value:VendorPrice(990002) == nil)
+-- The tooltip is not asked again until the client says the item arrived: a
+-- board that prices hundreds of items a draw asked for every unloaded one
+-- on every kill.
+Value:VendorPrice(990002)
+suite.check("still waiting, the tooltip is not asked again", tooltipAsks == 1, tooltipAsks)
 sell = 7
+Value:ItemArrived(990002)  -- what GET_ITEM_INFO_RECEIVED calls
 suite.check("loaded later: the price is read", Value:VendorPrice(990002) == 7, Value:VendorPrice(990002))
+suite.check("and the tooltip was asked once more", tooltipAsks == 2, tooltipAsks)
 sell = 9
 suite.check("and kept for the session", Value:VendorPrice(990002) == 7)
 _G.C_TooltipInfo = nil

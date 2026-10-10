@@ -413,10 +413,12 @@ do
     ArrowUI:Draw(true)
     suite.check("and it is not put back on TomTom for the same place", frame:IsShown() and Count() == 0)
     _G.TomTom.IsValidWaypoint = nil
-    TomTom.refused = nil
+    -- The arrow turned off and on again means try TomTom again.
+    Arrow:SetOn(false)
+    Arrow:SetOn(true)
     ArrowUI:Draw(true)
     uid = TomTom.uid
-    suite.check("a fresh waypoint once that is forgotten", not frame:IsShown() and Count() == 1)
+    suite.check("a fresh waypoint once the arrow is turned off and on", not frame:IsShown() and Count() == 1)
 
     Arrow:NextSpot()
     ArrowUI:Draw(true)

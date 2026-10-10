@@ -1047,6 +1047,7 @@ function UI:Render()
         kind = self.filterKind,
         sort = sorter and sorter.key and { key = sorter.key, ascending = sorter.ascending } or nil,
         byZone = ns.db and ns.db.searchByZone == true,
+        worth = self.worthCache,
     })
 
     -- Collapsing hides an item's sources but keeps its heading, so the list
@@ -1231,6 +1232,9 @@ function UI:RestorePosition()
 
     local db = ns.db or {}
 
+    -- The open tween re-places the window each step; stopped, or its last
+    -- step would put the window back where it was.
+    if ns.Motion then ns.Motion:Stop(self.frame, "open", true) end
     self.frame:ClearAllPoints()
     self.frame:SetPoint(db.point or "CENTER", UIParent,
         db.relativePoint or "CENTER", db.x or 0, db.y or 40)

@@ -99,6 +99,12 @@ function Grinding.TypeOf(name)
     return ns.DB.creatureTypes[name]
 end
 
+--- A seed-file group ("spiders", "wolves and bears") rather than a mob the
+--- client could ever name, so its type can never be learned.
+function Grinding.IsGroup(name)
+    return type(name) == "string" and name:sub(1, 1) == name:sub(1, 1):lower()
+end
+
 --- The chip a type falls under: itself when it has one, else "Other".
 function Grinding.Chip(kind)
     if not kind then return nil end
@@ -465,7 +471,9 @@ function Grinding:Camps(filter)
                 local camp = Place(mob)
                 camp.mobs[#camp.mobs + 1] = mob
                 mob.type = mobType
-            elseif not mobType then
+            elseif not mobType and not Grinding.IsGroup(mob.name) then
+                -- A group row ("spiders") is not a mob anyone can target
+                -- to learn its type, so it is never asked for.
                 unknownTotal = unknownTotal + 1
                 -- Only counted on a camp that shows; see below.
                 local camp = Place(mob)

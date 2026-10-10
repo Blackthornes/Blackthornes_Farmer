@@ -554,9 +554,21 @@ function RankingsUI:Render(arrive)
     return width
 end
 
---- Redraw if the tab is on screen: a kill can change the board.
+--- Redraw if the tab is on screen: a kill can change the board. The board
+--- prices every rated mob, so a burst of loot gets one redraw, not one each.
 function RankingsUI:Refresh()
-    if self.view and self.view:IsShown() and ns.UI.frame:IsShown() then
-        self:Render()
+    if not (self.view and self.view:IsShown() and ns.UI.frame:IsShown()) then return end
+    if self.pending then return end
+    if C_Timer and type(C_Timer.After) == "function" then
+        self.pending = true
+        local ok = pcall(C_Timer.After, 0.2, function()
+            RankingsUI.pending = nil
+            if RankingsUI.view and RankingsUI.view:IsShown() and ns.UI.frame:IsShown() then
+                RankingsUI:Render()
+            end
+        end)
+        if ok then return end
+        self.pending = nil
     end
+    self:Render()
 end

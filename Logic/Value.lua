@@ -51,6 +51,30 @@ end
 -- What item tooltips said a vendor pays, kept for the session.
 local tooltipSellPrice = {}
 
+-- Items whose tooltip could not be read yet (the client is still fetching
+-- the item): when each was asked. The Rankings board prices hundreds of
+-- items a draw, and asking the client for every unloaded one again on every
+-- kill was a hitch, so one is asked again once the item arrives
+-- (GET_ITEM_INFO_RECEIVED), or after a short wait if that never comes.
+local waiting = {}
+local WAIT = 5
+
+local function Now()
+    if type(GetTime) ~= "function" then return 0 end
+    local ok, now = pcall(GetTime)
+    return ok and tonumber(now) or 0
+end
+
+--- The item arrived: its tooltip can be read now.
+function Value:ItemArrived(itemID)
+    local id = ns.Harvest.ReadableNumber(itemID)
+    if id then waiting[id] = nil end
+end
+
+function Value:OnEnable()
+    ns.RegisterEvent(self, "GET_ITEM_INFO_RECEIVED", function(_, _, itemID) Value:ItemArrived(itemID) end)
+end
+
 --- What the item's tooltip says a vendor pays for one, or nil when it shows
 --- no sell price. Forever changed some sell prices from Classic's and only
 --- the tooltip has the new one: Greater Magic Wand's says 1c while the item
@@ -61,6 +85,10 @@ function Value:TooltipSellPrice(itemID)
 
     local getTooltip = C_TooltipInfo and C_TooltipInfo.GetItemByID
     if type(getTooltip) ~= "function" then return nil end
+
+    local asked = itemID and waiting[itemID]
+    local now = Now()
+    if asked and now - asked < WAIT and now >= asked then return nil end
 
     local ok, price, read = pcall(function()
         local data = getTooltip(itemID)
@@ -90,7 +118,12 @@ function Value:TooltipSellPrice(itemID)
             if not (gotCached and plain and loaded) then read = false end
         end
     end
-    if read then tooltipSellPrice[itemID] = price or false end
+    if read then
+        tooltipSellPrice[itemID] = price or false
+        waiting[itemID] = nil
+    elseif itemID then
+        waiting[itemID] = now
+    end
     return price
 end
 
@@ -166,16 +199,31 @@ function Value:IsPoor(itemID)
     end
 
     -- Item info not cached yet: a grey loot link says the same thing.
-    local grey = ns.Tracker and ns.Tracker.QUALITY and ns.Tracker.QUALITY[0]
-    if grey and ns.Tracker.Looks then
-        for _, look in pairs(ns.Tracker:Looks()) do
-            if type(look) == "table" and look.id == itemID and look.color == grey then
-                return true
-            end
-        end
+    if itemID and self:GreyLinks()[itemID] then
+        poor[itemID] = true
+        return true
     end
 
     return false
+end
+
+--- Item ids a grey loot link has been seen for, from the kept looks. Walked
+--- once per change to the looks, not once per item priced.
+function Value:GreyLinks()
+    local Tracker = ns.Tracker
+    local version = Tracker and Tracker.looksVersion or 0
+    local kept = self.greyLinks
+    if kept and kept.version == version then return kept.ids end
+
+    local ids = {}
+    local grey = Tracker and Tracker.QUALITY and Tracker.QUALITY[0]
+    if grey and Tracker.Looks then
+        for _, look in pairs(Tracker:Looks()) do
+            if type(look) == "table" and look.id and look.color == grey then ids[look.id] = true end
+        end
+    end
+    self.greyLinks = { version = version, ids = ids }
+    return ids
 end
 
 --- One unit's worth and where the number came from ("auction" or "vendor").
