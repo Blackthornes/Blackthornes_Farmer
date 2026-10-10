@@ -12,6 +12,12 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.23.1
+
+- Dragging the goal arrow won't count as a click anymore.
+- The Grind tab stops counting mob groups like "spiders" as unknown mobs.
+- Farmer does less work while you kill, loot and search, so play feels smoother.
+
 ## 0.23.0
 
 - You can pick a new window look that matches the game's own windows. The gold look is still the default.

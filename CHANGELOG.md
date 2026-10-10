@@ -4,6 +4,22 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.23.1
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- **Fixes:** letting go of the goal arrow after dragging it never counts as
+  a click or eats the next one. The Grind tab no longer counts groups like
+  "spiders" as unknown mobs. The Rankings tab redraws once per burst of
+  kills, the goals panel stops re-ranking farming places on every loot, a
+  search runs once per keystroke, and the world map's pins stop being
+  hidden over and over. "Open Farmer settings" in the game's options
+  leaves the game's panel alone. TomTom gets the place again after the
+  arrow or Use TomTom is turned off and on. The kills panel moves once per
+  burst of group changes, and the Blizzard window style's portrait ring
+  stays silver on every client.
+
 ## 0.23.0
 
 For WoW: Forever (interface 16001). A file was added, so restart the game
