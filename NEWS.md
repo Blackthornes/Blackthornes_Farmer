@@ -12,6 +12,11 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.27.1
+
+- Right-click to hide something and the menu now pops up right where your mouse is.
+- With skinning hidden, skins no longer count in your loot or gold per hour.
+
 ## 0.27.0
 
 - Skinning is now hidden by default, so you see just the drops. You can turn it back on in Settings.

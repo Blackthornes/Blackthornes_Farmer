@@ -4,6 +4,17 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.27.1
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- **Fixes:** right-clicking a row now opens the Hide menu at the mouse, at
+  any UI scale. With Hide skinning ticked, skinned loot is left out of the
+  kills panel's Loot tab, the looted total, a mob's loot worth, the
+  session's worth and gold per hour too. Anything this account has ever
+  skinned counts as skinning, even when the data didn't know it.
+
 ## 0.27.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game
