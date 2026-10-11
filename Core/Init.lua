@@ -406,7 +406,9 @@ local DEFAULTS = {
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,
 
-    -- The goal arrow (UI/Arrow.lua): off until turned on.
+    -- The goal arrow (UI/Arrow.lua): off until turned on, or until the
+    -- first new goal turns it on (Arrow:TurnOnForGoal) while the player has
+    -- never turned it off (arrowTurnedOff, set by Arrow:SetOn(false)).
     arrowShown = false,
     -- With TomTom installed, its arrow shows the goal arrow's place
     -- (Logic/TomTom.lua).

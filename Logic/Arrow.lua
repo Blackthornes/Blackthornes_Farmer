@@ -82,9 +82,22 @@ end
 
 function Arrow:SetOn(on)
     ns.db.arrowShown = on and true or false
+    -- The player put it away: a new goal never turns it on again.
+    if not on then ns.db.arrowTurnedOff = true end
     -- Turned on, it goes over any other Blackthornes arrow (UI/Arrow.lua).
     if on and ns.ArrowUI and ns.ArrowUI.Claim then ns.ArrowUI:Claim() end
     self:Changed(true)
+end
+
+--- A new goal was set: the arrow comes on by itself (the owner, 2026-10-11:
+--- the addons should do the work), unless the player has ever turned it
+--- off (`arrowTurnedOff`, account wide, never rename it). True when it did.
+function Arrow:TurnOnForGoal()
+    if not ns.db or self.IsOn() or ns.db.arrowTurnedOff then return false end
+    self:SetOn(true)
+    ns.Print("goal arrow on: it points to the nearest place to gather. Its close button puts it away.")
+    if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
+    return true
 end
 
 --- Which goal each character's arrow follows, by item name.

@@ -588,6 +588,29 @@ UIParent.GetTop, UIParent.GetRight = saved[5], saved[6]
 GUI:Place()
 
 --------------------------------------------------------------------------------
+-- The goal arrow comes on with a new goal, unless it was ever turned off
+--------------------------------------------------------------------------------
+
+do
+    local Arrow = ns.Arrow
+    local function Fresh(name, amount)
+        Goals:Remove(name)
+        return Goals:Set(name, amount)
+    end
+    ns.db.arrowShown, ns.db.arrowTurnedOff = false, nil
+    for _, goal in ipairs(Goals:List()) do Goals:Remove(goal.item) end
+    Fresh("Tin Ore", 90)
+    suite.check("a new goal turns the arrow on", Arrow.IsOn())
+    Goals:Set("Tin Ore", 95)
+    suite.check("changing a goal leaves it as it is", Arrow.IsOn())
+    Arrow:SetOn(false)
+    suite.check("turned off, that is remembered", ns.db.arrowTurnedOff == true)
+    Fresh("Tin Ore", 90)
+    suite.check("so a new goal leaves it off", not Arrow.IsOn())
+    Goals:Remove("Tin Ore")
+end
+
+--------------------------------------------------------------------------------
 -- Nothing recorded is touched
 --------------------------------------------------------------------------------
 
