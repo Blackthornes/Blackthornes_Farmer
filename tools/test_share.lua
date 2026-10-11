@@ -283,6 +283,35 @@ Switch(ana)
 Check("without coming back round", ana.db.tracker.mobs.Wolf.kills == 70 and ana.records[WOLF_KEY].corpses == 55,
     ana.db.tracker.mobs.Wolf.kills)
 
+-- Two characters of one account named: the account is counted once.
+do
+    local anaTwo = { name = "Ana Jones", db = ana.db, records = ana.records }
+    accounts["Ana Jones"] = anaTwo
+    Switch(bob) Share:SetEnabled(true) Share:SetNames("Ana Smith, Ana Jones")
+    Switch(ana)
+    ana.db.tracker.mobs.Wolf.kills = ana.db.tracker.mobs.Wolf.kills + 5
+    ana.db.tracker.mobs.Wolf.coinKills = ana.db.tracker.mobs.Wolf.coinKills + 5
+    for _ = 1, 3 do
+        Switch(bob) Share:Check()
+        Switch(anaTwo) Share:Check()
+        Switch(ana) Share:Check()
+        Settle()
+    end
+    Switch(bob)
+    Check("a second character of the same account adds nothing", bob.db.tracker.mobs.Wolf.kills == 75,
+        bob.db.tracker.mobs.Wolf.kills)
+    Check("and is said to be the same account", Share:Describe():find("same account", 1, true) ~= nil, Share:Describe())
+    local one, two = Share.partners["ana smith"], Share.partners["ana jones"]
+    Check("exactly one of the two is the duplicate", (one.duplicate and not two.duplicate) or (two.duplicate and not one.duplicate))
+    Check("naming a character of your own account takes nothing",
+        (function()
+            local state = { key = "me", name = "Me" }
+            return Share:Identify(state, ns.Transfer:SourceId()) == false and state.duplicate == true
+        end)())
+    accounts["Ana Jones"] = nil
+    Switch(bob) Share:SetNames("Ana Smith")
+end
+
 -- Only a named partner is heard.
 Switch(bob)
 local before = bob.records[WOLF_KEY].corpses

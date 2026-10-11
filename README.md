@@ -635,6 +635,10 @@ To add a file, drop it in `Data/` and add a line for it in
 `Blackthornes_Farmer.toc`. A file that is not in the `.toc` does not load, and
 WoW says nothing about it.
 
+You can name as many characters as you like, and from as many accounts. Each
+account is counted once: naming two characters of the same account, or one
+of this account, takes nothing twice.
+
 ### Giving your data to another player
 
 The same page has **Give my data** and **Take someone's data** (`/farm give`,
