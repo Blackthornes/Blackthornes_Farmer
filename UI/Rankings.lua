@@ -632,7 +632,7 @@ function RankingsUI:Render(arrive)
     return width
 end
 
--- "Show skinning" moved: leather counts toward a kill's worth or not.
+-- "Hide skinning" moved: leather counts toward a kill's worth or not.
 ns.DB.skinningWatchers.rankings = function() RankingsUI:Refresh() end
 
 --- Redraw if the tab is on screen: a kill can change the board. The board

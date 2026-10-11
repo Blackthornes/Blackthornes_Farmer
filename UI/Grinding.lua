@@ -777,7 +777,7 @@ function GrindingUI:Render(arrive)
     return width
 end
 
---- "Show skinning" moved: the chips are laid out again (the Skinning
+--- "Hide skinning" moved: the chips are laid out again (the Skinning
 --- chip comes or goes) and the camps redrawn if the tab is on screen; out
 --- of sight, the list's stamp moved, so its next draw builds it again.
 function GrindingUI:SkinningChanged()

@@ -407,13 +407,13 @@ end
 -- Skinning, shown or left out
 --
 -- A player asked for Farmer to show drops only, without skinning (the owner
--- agreed 2026-10-11). "Show skinning" in Settings (`showSkinning`, account
--- wide, on unless unticked; never rename it) and /farm skinning. Unticked,
--- what Farmer lists as where to farm and what a kill is worth leaves out
+-- agreed 2026-10-11, and asked for it on by default). "Hide skinning" in
+-- Settings (`hideSkinning`, account wide, on unless unticked; never rename
+-- it) and /farm skinning. Ticked, what Farmer lists as where to farm and what a kill is worth leaves out
 -- every skinning spot, and every item that comes from skinning: a skin
 -- opens a loot window like a corpse does, so recorded loot has the leather
 -- as one of the mob's drops, and only the item tells them apart. Nothing
--- recorded is changed or deleted; ticking it again puts it all back. A goal
+-- recorded is changed or deleted; unticking it puts it all back. A goal
 -- is the player's own ask, so goals and their arrow still follow one.
 --------------------------------------------------------------------------------
 
@@ -421,9 +421,9 @@ end
 -- setting is worked out again on its next draw.
 DB.skinningVersion = 0
 
---- Is skinning shown? (On unless unticked.)
+--- Is skinning shown? (Only once "Hide skinning" is unticked.)
 function DB:ShowsSkinning()
-    return not (ns.db and ns.db.showSkinning == false)
+    return ns.db ~= nil and ns.db.hideSkinning == false
 end
 
 --- Does the item named `name` come from skinning? (The data names a
@@ -453,7 +453,7 @@ DB.skinningWatchers = {}
 --- Show skinning or leave it out, and redraw what lists it.
 function DB:SetShowSkinning(on)
     on = on and true or false
-    if ns.db then ns.db.showSkinning = on end
+    if ns.db then ns.db.hideSkinning = not on end
     self.skinningVersion = self.skinningVersion + 1
     for _, redraw in pairs(self.skinningWatchers) do pcall(redraw) end
 end

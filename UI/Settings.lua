@@ -732,15 +732,16 @@ function SettingsUI:BuildLootPage()
     -- Drops only (a player asked, the owner agreed 2026-10-11).
     pages:Section("loot", 2, "SKINNING")
 
-    local skinningRow = pages:Row("loot", 2, "Show skinning",
-        "Unticked, Farmer shows only drops: no skinning spots in search, Rankings "
+    local skinningRow = pages:Row("loot", 2, "Hide skinning",
+        "Ticked, Farmer shows only drops: no skinning spots in search, Rankings "
         .. "or Grind, and no leather, hides or scales among a mob's drops or in what "
-        .. "a kill is worth. Nothing you recorded is lost. Same as /farm skinning.")
+        .. "a kill is worth. Untick it to see skinning. Nothing you recorded is lost. "
+        .. "Same as /farm skinning.")
 
-    controls.showSkinning = Widgets.CreateCheckbox(skinningRow, "Show it", function(checked)
-        ns.DB:SetShowSkinning(checked)
+    controls.hideSkinning = Widgets.CreateCheckbox(skinningRow, "Hide it", function(checked)
+        ns.DB:SetShowSkinning(not checked)
     end, true)
-    controls.showSkinning:SetPoint("TOPLEFT", CONTROL_X, -2)
+    controls.hideSkinning:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1019,7 +1020,7 @@ function SettingsUI:Refresh()
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
-    controls.showSkinning:SetChecked(db.showSkinning ~= false)
+    controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
     controls.grindPins:SetChecked(db.grindPins ~= false)

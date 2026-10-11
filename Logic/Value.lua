@@ -282,7 +282,7 @@ function Value:FromTally(mobName)
 
     details.coin = coin
 
-    -- Skinning left out ("Show skinning") leaves its leather out of the worth.
+    -- Skinning left out ("Hide skinning") leaves its leather out of the worth.
     local hides = not (ns.DB and ns.DB:ShowsSkinning())
     for name, corpses in pairs(type(mob.items) == "table" and mob.items or {}) do
         if hides and ns.DB:HidesItem(name) then corpses = nil end

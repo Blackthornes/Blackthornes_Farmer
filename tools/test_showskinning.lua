@@ -1,15 +1,16 @@
--- Show skinning, or drops only.
+-- Hide skinning: drops only.
 --
--- What matters: on by default, so nothing changes for anyone who leaves it;
--- unticked, the search, Rankings' worth, the Grind tab, a mob's drops and
+-- What matters: on by default (the owner asked), so a new player sees drops
+-- only; while it is on, the search, Rankings' worth, the Grind tab, a mob's drops and
 -- the tooltip line leave out every skinning spot and every item that comes
 -- from skinning; nothing recorded is touched, so ticking it again puts it
--- all back; and the command and the Settings box write the same setting.
+-- all back when it is turned off; and the command and the Settings box
+-- write the same setting.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("showskinning")
 
-local ns = env.Load({ ui = true })
+local ns = env.Load({ ui = true, hideSkinning = true })
 local DB, Search, Tracker, Value = ns.DB, ns.Search, ns.Tracker, ns.Value
 
 for _, module in ipairs(ns.moduleOrder) do
@@ -35,11 +36,15 @@ local function AnySkinning(results)
 end
 
 --------------------------------------------------------------------------------
--- As it was
+-- Left out from the start, then shown
 --------------------------------------------------------------------------------
 
-suite.check("skinning is shown by default", DB:ShowsSkinning())
-suite.check("saved as on", ns.db.showSkinning == true)
+suite.check("skinning is left out by default", not DB:ShowsSkinning())
+suite.check("saved as Hide skinning on", ns.db.hideSkinning == true and ns.DEFAULTS.hideSkinning == true)
+suite.check("a fresh leather search finds nothing", not Names(Search:Run("light leather"))["Light Leather"])
+
+ns.HandleSlash("skinning on")
+suite.check("/farm skinning on shows it", DB:ShowsSkinning() and ns.db.hideSkinning == false)
 suite.check("leather comes from skinning", DB:FromSkinning("Light Leather"))
 suite.check("so do scraps", DB:FromSkinning("Ruined Leather Scraps"))
 suite.check("cloth does not", not DB:FromSkinning("Linen Cloth"))
@@ -79,7 +84,7 @@ DB.skinningWatchers.test = function() redrawn = redrawn + 1 end
 
 ns.HandleSlash("skinning")
 suite.check("/farm skinning leaves it out", not DB:ShowsSkinning())
-suite.check("saved as off", ns.db.showSkinning == false)
+suite.check("saved as Hide skinning on", ns.db.hideSkinning == true)
 suite.check("what lists it is redrawn", redrawn == 1, redrawn)
 
 suite.check("a leather search finds nothing", not Names(Search:Run("light leather"))["Light Leather"])
@@ -141,10 +146,10 @@ suite.check("leather's tooltip says nothing", ns.ItemTooltip:LineFor(leather, ns
 --------------------------------------------------------------------------------
 
 ns.SettingsUI:Show()
-local box = ns.SettingsUI.controls.showSkinning
-suite.check("the Settings box shows it is off", box:GetChecked() == false)
+local box = ns.SettingsUI.controls.hideSkinning
+suite.check("the Hide skinning box is ticked", box:GetChecked() == true)
 box:GetScript("OnClick")(box)
-suite.check("ticking it shows skinning again", DB:ShowsSkinning() and ns.db.showSkinning == true)
+suite.check("unticking it shows skinning again", DB:ShowsSkinning() and ns.db.hideSkinning == false)
 suite.check("Grind's Skinning comes back", ns.Grinding:Gives() == "skinning")
 ns.SettingsUI:Hide()
 

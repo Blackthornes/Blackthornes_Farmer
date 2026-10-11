@@ -358,7 +358,7 @@ function Grinding:Mobs()
         if forever then mob.forever = true end
     end
 
-    -- With skinning left out ("Show skinning", DB:HidesItem), a skinning
+    -- With skinning left out ("Hide skinning", DB:HidesItem), a skinning
     -- spot is no camp and leather is no mob's drop; the mob a looted hide
     -- was recorded on is still a spot.
     local skinning = ns.DB:ShowsSkinning()

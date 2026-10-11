@@ -96,7 +96,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm where <item>` | the best places near you to farm it, nearest first |
 | `/farm arrow [on\|off]` | an arrow on screen that points to the nearest place to gather a goal (on with your first new goal, unless you have turned it off; `next` for the next place, `<goal>` to follow that goal, `check` for what the game lets it read, `tomtom` to use TomTom's arrow or not, `reset` puts it back) |
 | `/farm tooltip` | turn the "Farm:" line on material tooltips on or off (on by default) |
-| `/farm skinning [on\|off]` | show skinning, or leave it out and show only drops: no skinning spots, leather or hides in search, Rankings, Grind, a mob's drops or its worth (shown by default; nothing recorded is lost) |
+| `/farm skinning [on\|off]` | show skinning, or leave it out and show only drops: no skinning spots, leather or hides in search, Rankings, Grind, a mob's drops or its worth (left out by default; nothing recorded is lost) |
 | `/farm goals [dock]` | show or hide the goals panel; `dock` puts it back under the kills panel |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |

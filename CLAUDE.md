@@ -181,9 +181,10 @@ Tested in `tools/test_panelkeep.lua`. Not yet seen in game.
 ## Drops only
 
 A player asked (2026-10-11, the owner agreed) for Farmer to leave skinning
-out and show only drops. "Show skinning" on the Loot page of Settings
-(`showSkinning`, account wide, on unless unticked; never rename it) and
-`/farm skinning [on|off]`. Unticked, `DB:HidesItem` and `DB:HidesSource`
+out and show only drops, on by default (the owner, 2026-10-11). "Hide
+skinning" on the Loot page of Settings (`hideSkinning`, account wide, on
+unless unticked; never rename it) and `/farm skinning [on|off]` (on shows
+skinning). Ticked, `DB:HidesItem` and `DB:HidesSource`
 leave out every `kind = "skinning"` source and every item the data names a
 skinning spot for (`item.fromSkinning`: leather, hides, scales), since a
 skin opens a loot window and recorded loot has the leather as a drop. The

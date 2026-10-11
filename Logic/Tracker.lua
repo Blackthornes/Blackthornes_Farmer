@@ -283,7 +283,7 @@ function Tracker:Summary(mobName)
     local kills = tonumber(mob.kills) or 0
     local items = {}
 
-    -- Skinning left out ("Show skinning", DB:HidesItem): its leather is not
+    -- Skinning left out ("Hide skinning", DB:HidesItem): its leather is not
     -- among the drops shown. It stays in the tally.
     local DB = ns.DB
     local hides = DB and not DB:ShowsSkinning()

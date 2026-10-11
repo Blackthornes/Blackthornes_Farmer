@@ -60,7 +60,7 @@ function Search:Run(query)
     end
 
     -- With skinning left out, an item that comes from skinning is no
-    -- result at all ("Show skinning", DB:HidesItem).
+    -- result at all ("Hide skinning", DB:HidesItem).
     self.skinningHid = false
 
     for item in ns.DB:Iterate() do
@@ -375,7 +375,7 @@ end
 --- emptied it, it says so, rather than that nothing is known.
 function Search:NothingFoundText(query)
     if self.skinningHid then
-        return ('Only skinning has "%s", and skinning is left out. Tick Show skinning '
+        return ('Only skinning has "%s", and skinning is left out. Untick Hide skinning '
             .. "in Settings (Loot), or type /farm skinning."):format(query)
     end
     return ('Nothing found for "%s". Try part of a name, a zone, or a category.'):format(query)

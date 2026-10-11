@@ -1114,7 +1114,7 @@ function UI:Render()
     end
 end
 
---- "Show skinning" moved (DB:SetShowSkinning): the chips and the rows are
+--- "Hide skinning" moved (DB:SetShowSkinning): the chips and the rows are
 --- the search's again, drawn now while the Search tab shows, else marked
 --- stale for when it does. A Skinning chip picked goes, since nothing is
 --- left under it.
