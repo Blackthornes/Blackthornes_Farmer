@@ -417,6 +417,27 @@ Equipment. The rule, in every addon:
   `tools/test_alts.lua`. This rule is in every addon's notes; keep them the
   same.
 
+## German and other language clients
+
+The data names items, zones, skills and creature types in English; a
+German client names them in German. Nothing is translated: each check
+also knows the client's own word, by ID, and only when
+`Util.EnglishClient()` (`GetLocale`) says the client is not English, so
+an English client runs exactly as before. Items: `DB:GetItem` falls back
+to the name the client gives each ID (`DB:ByClientName`, read a few items
+a frame and on `GET_ITEM_INFO_RECEIVED`), the search matches it too, and a
+goal set by the client's name keeps that name (`Goals:ResolveItem`;
+`Goals:Find` matches either name). Skills: `Gathering.ClientNames` and
+`SkillOf` (spell names by ID, skill line names through
+`C_TradeSkillUI.GetProfessionInfoBySkillLineID`). Zones: Classic's map IDs
+in `Spots.ZONE_MAPS` (Forever's numbers not confirmed), `Spots:Player`
+names the zone by the map, `Spots.English` maps a client name seen this
+session. Creature types are kept in English (`Grinding.EnglishType`,
+`C_CreatureInfo.GetCreatureTypeInfo`), and coin words come from
+`COPPER_AMOUNT` and the like (`Harvest.CoinValue`). Loot records stay keyed
+by the client's mob name, and fishing schools are still told by English
+name endings. Tested in `tools/test_german.lua`. Not yet seen in game.
+
 ## The owner's standing rules (both addons)
 
 - **"Always check that it's clear to post."** Anything public is checked for

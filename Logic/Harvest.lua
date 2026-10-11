@@ -855,7 +855,26 @@ end
 -- link. That is true of coins, but it is equally true of any item the link
 -- call happens to fail for, and it deleted Silver Bar the first time it was
 -- tried. Dropping a real drop is worse than keeping a coin.
-local COIN = { Copper = true, Silver = true, Gold = true }
+local COIN = { Copper = 1, Silver = 100, Gold = 10000 }
+
+-- A client in another language names its coins in its own ("23 Kupfer"):
+-- its words are read from the game's own COPPER_AMOUNT, SILVER_AMOUNT and
+-- GOLD_AMOUNT ("%d Kupfer"), once, beside the English ones.
+local coinWords
+
+--- Copper in one `word` coin ("Silver" is 100), or nil for no coin word.
+function Harvest.CoinValue(word)
+    if not coinWords then
+        coinWords = {}
+        for english, value in pairs(COIN) do coinWords[english] = value end
+        for name, value in pairs({ COPPER_AMOUNT = 1, SILVER_AMOUNT = 100, GOLD_AMOUNT = 10000 }) do
+            local format = rawget(_G, name)
+            local word = type(format) == "string" and format:match("^%%d%s+(%a+)$")
+            if word then coinWords[word] = coinWords[word] or value end
+        end
+    end
+    return coinWords[word]
+end
 
 function Harvest:IsMoney(slot, name)
     local caps = self:Capabilities()
@@ -893,7 +912,7 @@ function Harvest:NameLooksLikeMoney(name)
 
     for _, unit in name:gmatch("(%d+)%s+(%a+)") do
         words = words + 1
-        if COIN[unit] then coins = coins + 1 end
+        if Harvest.CoinValue(unit) then coins = coins + 1 end
     end
 
     if words == 0 or words ~= coins then return false end

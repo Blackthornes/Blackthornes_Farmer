@@ -196,7 +196,8 @@ function Fishing:Skill()
             local gotLine, lineName, isHeader, _, rank = pcall(GetSkillLineInfo, index)
             local name = gotLine and not isHeader and ns.Harvest.Readable(lineName) or nil
 
-            if name == "Fishing" then
+            -- "Angeln" on a German client: the client's own name for it.
+            if name and ns.Gathering.SkillOf(name, { "Fishing" }) then
                 local skill = ns.Harvest.ReadableNumber(rank)
                 if skill and skill > 0 then return skill end
                 return nil
@@ -497,10 +498,12 @@ function Fishing:ZoneBand(zone)
     if not (ns.DB and zone) then return nil end
 
     local low, high
+    -- Your spot keeps the client's name for the zone; the data's is English.
+    local english = ns.Spots and ns.Spots.English(zone) or zone
 
     for item in ns.DB:Iterate() do
         for _, source in ipairs(item.sources or {}) do
-            if source.zone == zone and (source.kind == "fishing" or source.kind == "node")
+            if (source.zone == zone or source.zone == english) and (source.kind == "fishing" or source.kind == "node")
                 and source.minLevel then
                 low = math.min(low or source.minLevel, source.minLevel)
                 high = math.max(high or source.maxLevel or source.minLevel,

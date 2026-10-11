@@ -43,12 +43,19 @@ function GrindPins:Show(camps)
     self.version = self.version + 1
 end
 
---- The camps on the map called `mapName`, with a spot.
-function GrindPins:CampsOn(mapName)
+--- The camps on the map called `mapName` (map `mapID`), with a spot.
+--
+-- The camps' zones are the data's English names; a client in another
+-- language names its maps in its own, so there the map's ID is matched too
+-- (Spots.ZONE_MAPS).
+function GrindPins:CampsOn(mapName, mapID)
     local on = {}
     if type(mapName) ~= "string" then return on end
+    local byID = mapID and not ns.Util.EnglishClient()
     for _, camp in ipairs(self.camps) do
-        if camp.zone == mapName and type(camp.coords) == "table" then on[#on + 1] = camp end
+        local here = camp.zone == mapName
+            or (byID and ns.Spots.ZONE_MAPS[ns.Spots.English(camp.zone)] == mapID)
+        if here and type(camp.coords) == "table" then on[#on + 1] = camp end
     end
     return on
 end
@@ -144,7 +151,7 @@ function GrindPins:Draw()
     local scale = 1 / view.scale
 
     local used = 0
-    for _, camp in ipairs(self:CampsOn(MapName(view.mapID))) do
+    for _, camp in ipairs(self:CampsOn(MapName(view.mapID), view.mapID)) do
         used = used + 1
         local pin = pins[used]
         if not pin then

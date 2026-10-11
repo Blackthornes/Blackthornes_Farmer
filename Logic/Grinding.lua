@@ -62,6 +62,46 @@ local NO_TYPE = { ["Not specified"] = true }
 local LISTED_TYPE = {}
 for _, kind in ipairs(Grinding.TYPES) do LISTED_TYPE[kind] = true end
 
+-- Every creature type by the game's ID, in English. A client in another
+-- language names them in its own ("Wildtier"), and the client's name for
+-- each ID (C_CreatureInfo.GetCreatureTypeInfo) says which one it is, so
+-- the types are kept and shipped in English whatever the client.
+Grinding.TYPE_IDS = {
+    [1] = "Beast", [2] = "Dragonkin", [3] = "Demon", [4] = "Elemental", [5] = "Giant",
+    [6] = "Undead", [7] = "Humanoid", [8] = "Critter", [9] = "Mechanical", [10] = "Not specified",
+}
+local ENGLISH_TYPE = {}
+for _, kind in pairs(Grinding.TYPE_IDS) do ENGLISH_TYPE[kind] = true end
+
+-- [the client's name] = English, read once the client names every ID.
+local clientTypes
+
+local function ClientTypes()
+    if clientTypes then return clientTypes end
+    local info = type(C_CreatureInfo) == "table" and C_CreatureInfo.GetCreatureTypeInfo
+    if type(info) ~= "function" then return {} end
+
+    local found, complete = {}, true
+    for id, english in pairs(Grinding.TYPE_IDS) do
+        local ok, name = pcall(function()
+            local data = info(id)
+            return type(data) == "table" and data.name or nil
+        end)
+        name = ok and ns.Harvest.Readable(name) or nil
+        if name and name ~= "" then found[name] = english else complete = false end
+    end
+    if complete then clientTypes = found end
+    return found
+end
+
+--- A type the client named, in English: itself on an English client, else
+--- the type with that name on this client. Nil when it is no type known.
+function Grinding.EnglishType(kind)
+    if type(kind) ~= "string" then return nil end
+    if ENGLISH_TYPE[kind] or Util.EnglishClient() then return kind end
+    return ClientTypes()[kind]
+end
+
 --------------------------------------------------------------------------------
 -- Creature types
 --------------------------------------------------------------------------------
@@ -82,6 +122,9 @@ function Grinding:Learn(unit, name)
 
     local ok, value = pcall(UnitCreatureType, unit)
     local kind = ok and ns.Harvest.Readable(value) or nil
+    -- Kept in English; a name this client cannot put in English is left out
+    -- rather than shipped in another language.
+    kind = Grinding.EnglishType(kind)
     if not kind or kind == "" or NO_TYPE[kind] then return end
 
     local store = self:Store()
@@ -95,7 +138,8 @@ end
 --- Nil when nobody has seen it.
 function Grinding.TypeOf(name)
     local learned = ns.db and type(ns.db.creatureTypes) == "table" and ns.db.creatureTypes[name]
-    if type(learned) == "string" then return learned end
+    -- One saved in the client's language before types were kept in English.
+    if type(learned) == "string" then return Grinding.EnglishType(learned) or learned end
     return ns.DB.creatureTypes[name]
 end
 
@@ -120,7 +164,10 @@ function Grinding:ExportBlock()
 
     local rows = {}
     for name, kind in pairs(self:Store()) do
-        if names[name] and type(kind) == "string" then rows[#rows + 1] = { name, kind } end
+        -- In English: an old one saved in another language is put in English
+        -- or left out.
+        kind = names[name] and Grinding.EnglishType(kind)
+        if kind then rows[#rows + 1] = { name, kind } end
     end
     if #rows == 0 then return nil end
     table.sort(rows, function(a, b) return a[1] < b[1] end)

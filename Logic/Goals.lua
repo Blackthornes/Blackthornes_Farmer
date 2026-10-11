@@ -174,6 +174,19 @@ function Goals:Find(name)
         end
     end
 
+    -- The same item by its other name: a goal saved as "Linen Cloth" asked
+    -- for as the client's "Leinenstoff", or the other way round. Only on a
+    -- client whose names differ from the data's.
+    if ns.Util.EnglishClient() then return nil end
+    local item = ns.DB:GetItem(name)
+    if not item then return nil end
+    for index, goal in ipairs(self:Store().list) do
+        if type(goal) == "table" and type(goal.item) == "string"
+            and self:IsMine(goal) and ns.DB:GetItem(goal.item) == item then
+            return goal, index
+        end
+    end
+
     return nil
 end
 
@@ -273,8 +286,11 @@ function Goals:ResolveItem(text)
 
     if text == "" then return nil end
 
-    local item = ns.DB:GetItem(text)
-    if item then return item.name end
+    local item, byClientName = ns.DB:GetItem(text)
+    -- A name the client gives the item (a German client's "Leinenstoff")
+    -- stays as typed: it is what the player reads, and what the bags and
+    -- Tradeskills call it. The database still finds the item by it.
+    if item then return byClientName and text or item.name end
 
     -- Close enough: an alias, or the one item whose name starts with it.
     local wanted = text:lower()
