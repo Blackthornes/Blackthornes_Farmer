@@ -46,6 +46,7 @@ Logic\Arrow.lua
 Logic\TomTom.lua
 Logic\Grinding.lua
 Logic\Share.lua
+Logic\Transfer.lua
 
 UI\Theme.lua
 UI\BlizzardLook.lua
@@ -54,6 +55,7 @@ UI\Titanforged.lua
 UI\SettingsPages.lua
 UI\Main.lua
 UI\Export.lua
+UI\Import.lua
 UI\Tracker.lua
 UI\TrackerFX.lua
 UI\Goals.lua

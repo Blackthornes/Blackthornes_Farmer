@@ -872,6 +872,21 @@ function SettingsUI:BuildSharingPage()
         .. "itself every ten minutes. Same as /farm share sync.", "Sync", "share sync")
     controls.shareSync = syncButton
 
+    pages:Section("sharing", 1, "WITH ANOTHER PLAYER")
+
+    local _, giveButton = CommandRow(pages, "sharing", 1, "Give my data",
+        "Makes your kills, drop rates, gathering and fishing into text you can select and "
+        .. "copy, to send to another player any way you like (a big collection comes in "
+        .. "parts). It holds counts only, no names, goals or settings. Same as /farm give.",
+        "Make text", "give")
+    controls.shareGive = giveButton
+
+    local _, takeButton = CommandRow(pages, "sharing", 1, "Take someone's data",
+        "Paste what another player gave you to add their counts to yours. You see what it "
+        .. "would add first, the same text twice adds nothing, and what you took in can be "
+        .. "taken back out. Same as /farm take.", "Paste", "take")
+    controls.shareTake = takeButton
+
     pages:Section("sharing", 2, "HOW IT WORKS")
 
     local block = CreateFrame("Frame", nil, pages.pages.sharing.content)

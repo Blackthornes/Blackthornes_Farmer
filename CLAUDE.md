@@ -130,6 +130,30 @@ accounts over a pretend chat. Not yet seen in game; the owner has one account,
 so only Tradeskills' one-account whisper test (full names, 2026-10-07) backs
 the wire.
 
+## Giving data to another player
+
+A player asked (2026-10-11, the owner agreed) to export Farmer's data and
+have someone else merge it into theirs. `Logic/Transfer.lua`, `UI/Import.lua`
+(`/farm give`, `/farm take`, both with Settings buttons on the Sharing page).
+It is account sharing by text: `Transfer:Make` builds
+`BFR1:<id>:<part>/<parts>:<checksum>:<base 64 of Serialize.Encode>`, one line,
+in parts of about 200,000 characters (`PART_RAW`), each complete in itself, and
+the Export window hands it out with a Next part button. Nothing in it but
+counts (the same sections and `Share.Export` as sharing, so it leaves out
+everything taken from anyone: nothing is relayed). `id` is this Farmer's
+`exportId`, made once and kept (never rename it). `Transfer:Parse` checks the
+line, checksum and `Serialize.Decode` (data only, never run), then every
+record through `Share.CleanRecord` and the key check, and refuses a count
+over `MAX_COUNT`, a drop record with far more items than corpses
+(`MAX_PER_CORPSE`) and more than `MAX_RECORDS` records a section. Nothing
+changes before Apply. `Transfer:Apply` merges with `Share.Merge` into the
+ledger `shareIn["import:<id>"]` (`kind = "import"`; never rename it), so the
+same text twice adds nothing and a newer one adds the rise; `Transfer:Remove`
+subtracts exactly the ledger from the records (dropping one that is left
+empty) and deletes it. Everything is worked a few records a frame. Tested in
+`tools/test_transfer.lua` and `tools/test_importwindow.lua`. Not yet seen in
+game. A fix to `Core/Serialize.lua` still belongs in Tradeskills' too.
+
 ## The settings pages (from Tradeskills)
 
 The owner asked (2026-10-09) for Tradeskills' Settings upgrade in Pets,
