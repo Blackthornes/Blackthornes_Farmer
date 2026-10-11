@@ -12,6 +12,12 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.24.1
+
+- Pick Pocket doesn't count as a kill anymore, so your drop rates stay right.
+- The arrow points right at the spot where you found a mob.
+- Goals keep counting after you leave the mailbox or bank.
+
 ## 0.24.0
 
 - Farmer now keeps track of loot in dungeons and raids, so you'll see drop rates for dungeon mobs too.
