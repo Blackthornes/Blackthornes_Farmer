@@ -673,6 +673,14 @@ function Share:Changed()
     end)
 end
 
+--- The pieces Logic/Transfer.lua (a string handed to someone else) shares
+--- with this file, so a record is checked and merged the same way both ways.
+Share.Parts = {
+    SECTIONS = SECTIONS, BY_KEY = BY_KEY, KEYS = KEYS, MAX_STRING = MAX_STRING,
+    CreditsFor = CreditsFor, OwnRecord = OwnRecord, InCombat = InCombat,
+    CleanRecord = CleanRecord,
+}
+
 function Share:OnOffline(key)
     local state = self.partners[key]
     if state then state.online = false end

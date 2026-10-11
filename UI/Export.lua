@@ -207,6 +207,19 @@ function UI:BuildExport()
     count:SetWidth(240)
     self.exportCount = count
 
+    -- Previous and Next, only for a handout in parts (Logic/Transfer.lua).
+    local prev = Widgets.CreateButton(frame, "Previous", function()
+        if UI.exportNav then UI.exportNav.step(-1) end
+    end, { width = 80, height = 22 })
+    prev:SetPoint("LEFT", selectAll, "RIGHT", 8, 0)
+    prev:Hide()
+    local nextPart = Widgets.CreateButton(frame, "Next part", function()
+        if UI.exportNav then UI.exportNav.step(1) end
+    end, { width = 90, height = 22 })
+    nextPart:SetPoint("LEFT", prev, "RIGHT", 8, 0)
+    nextPart:Hide()
+    self.exportPrev, self.exportNext = prev, nextPart
+
     frame:Hide()
     return frame
 end
@@ -228,12 +241,16 @@ end
 --
 -- `title` is optional and names what is being handed over, so a single-item
 -- export and a whole-session export do not look identical.
-function UI:ShowExport(text, title)
+-- `nav` is optional, { index, count, step(delta) }, for a handout in parts.
+function UI:ShowExport(text, title, nav)
     text = tostring(text or "")
 
     self:BuildExport()
 
     self.exportText = text
+    self.exportNav = nav
+    self.exportPrev:SetShown(nav ~= nil and nav.index > 1)
+    self.exportNext:SetShown(nav ~= nil and nav.index < nav.count)
     if self.exportPlate then
         self.exportPlate:SetTitle(title or "Export")
     else

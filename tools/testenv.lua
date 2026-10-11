@@ -328,6 +328,7 @@ local FILES = {
     "Logic/TomTom.lua",
     "Logic/Grinding.lua",
     "Logic/Share.lua",
+    "Logic/Transfer.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
@@ -344,6 +345,7 @@ local UI_FILES = {
     "UI/SettingsPages.lua",
     "UI/Main.lua",
     "UI/Export.lua",
+    "UI/Import.lua",
     "UI/Tracker.lua",
     "UI/TrackerFX.lua",
     "UI/Goals.lua",

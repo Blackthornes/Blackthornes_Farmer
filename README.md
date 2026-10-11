@@ -105,6 +105,8 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm data` | where the loaded data came from |
 | `/farm stats` | how many items and spots are loaded |
 | `/farm list` | list every item in the database |
+| `/farm give` | make your counts into text to copy and send to another player |
+| `/farm take` | paste another player's counts to add them to yours, with a preview and a way back |
 | `/farm share [on\|off\|with <names>\|sync]` | share kills, drop rates, gathering and fishing with your other account (off to start; `with` names its characters, `sync` asks for anything new) |
 | `/farm harvest` | everything the addon has recorded from your loot, across sessions |
 | `/farm export [item]` | hand that back as a data file, ready to paste |
@@ -632,6 +634,24 @@ extra elemental spots to items first registered in `Data/Data_Misc.lua`.
 To add a file, drop it in `Data/` and add a line for it in
 `Blackthornes_Farmer.toc`. A file that is not in the `.toc` does not load, and
 WoW says nothing about it.
+
+### Giving your data to another player
+
+The same page has **Give my data** and **Take someone's data** (`/farm give`,
+`/farm take`) for sharing with someone who is not you. Give makes your kill
+tallies, drop rates, gathering and fishing into one line of text, selected and
+ready to copy (a big collection comes as parts, with a **Next part** button).
+Send it any way you like. They paste it into Take, read what it would add, and
+press **Apply**.
+
+Only counts are in it: no names, goals or settings. Taking the same text twice
+adds nothing, and a newer text from the same player adds only what grew. What
+you took from someone is never handed on in your own text. Every record is
+checked field by field, text is only ever read as data and never run, and
+records that no real play makes (absurd counts, far more drops than corpses,
+a record under the wrong name) are left out and counted in the preview.
+Taken data is listed under **Taken in before** and **Remove** takes back
+exactly what it added; counts you gathered yourself are never touched.
 
 ## Layout
 

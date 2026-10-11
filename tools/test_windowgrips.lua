@@ -38,6 +38,7 @@ GameTooltip.SetText = function(self, text) self._lines = { text } end
 ns.db.windowScale = 100
 ns.db.lootTableScale = 90
 ns.db.exportScale = 120
+ns.db.importScale = 110
 
 -- A window that works out its edges from its one point, as the game does.
 local function Geometry(frame, width, height)
@@ -75,6 +76,8 @@ local windows = {
       build = function() return ns.LootTableUI:Build() end, grip = function() return ns.LootTableUI.sizeGrip end },
     { name = "export", key = "exportScale", saved = 120,
       build = function() return ns.UI:BuildExport() end, grip = function() return ns.UI.exportGrip end },
+    { name = "take data", key = "importScale", saved = 110,
+      build = function() return ns.UI:BuildImport() end, grip = function() return ns.UI.importGrip end },
     { name = "goals panel", key = "goalsScale",
       build = function() return ns.GoalsUI:Build() end, grip = function() return ns.GoalsUI.sizeGrip end },
     { name = "where to farm", key = "goalSpotsScale",
