@@ -275,22 +275,21 @@ end
 --------------------------------------------------------------------------------
 
 --- Every item gathered this session, by source: kills, fishing, gathering.
+-- Skinning while it is hidden, and items on the hide list, are left out
+-- (Tracker.Counts), as the panel leaves them out.
 local function SessionItems()
     local items = {}
+    local function Take(prefix, counts)
+        for name, count in pairs(counts or {}) do
+            if ns.Tracker.Counts(name) then
+                items[prefix .. name] = { name = name, count = count }
+            end
+        end
+    end
 
-    for name, count in pairs(ns.Tracker.sessionLoot or {}) do
-        items["kill:" .. name] = { name = name, count = count }
-    end
-    if ns.Fishing then
-        for name, count in pairs(ns.Fishing.sessionCatch or {}) do
-            items["fish:" .. name] = { name = name, count = count }
-        end
-    end
-    if ns.Gathering then
-        for name, count in pairs(ns.Gathering.sessionItems or {}) do
-            items["gather:" .. name] = { name = name, count = count }
-        end
-    end
+    Take("kill:", ns.Tracker.sessionLoot)
+    if ns.Fishing then Take("fish:", ns.Fishing.sessionCatch) end
+    if ns.Gathering then Take("gather:", ns.Gathering.sessionItems) end
 
     return items
 end

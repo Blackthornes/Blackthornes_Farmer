@@ -430,11 +430,14 @@ function DB:ShowsSkinning()
     return ns.db ~= nil and ns.db.hideSkinning == false
 end
 
---- Does the item named `name` come from skinning? (The data names a
---- skinning spot for it: leather, hides, scales.)
+--- Does the item named `name` come from skinning? The data names a
+--- skinning spot for it (leather, hides, scales), or this account has seen
+--- it in a skinning window (DB:WasSkinned), which catches what the data
+--- misses: Forever's own skins, and ones it only lists as a drop.
 function DB:FromSkinning(name)
     local item = type(name) == "table" and name or self:GetItem(name)
-    return item ~= nil and item.fromSkinning == true
+    if item ~= nil and item.fromSkinning == true then return true end
+    return self:WasSkinned(item or name)
 end
 
 --------------------------------------------------------------------------------
@@ -468,6 +471,42 @@ local function ItemKey(name)
     local trimmed = Util.Trim(name)
     if trimmed == "" then return nil end
     return trimmed:lower(), trimmed
+end
+
+--------------------------------------------------------------------------------
+-- Skinned on this account
+--
+-- Every item a skinning window gave is noted, account wide, in
+-- `skinnedItems` ([lower case name] = the name; never rename it), keyed like
+-- the hide list. "Hide skinning" then leaves it out wherever it counts,
+-- though the data never named a skinning spot for it. Only a note: nothing
+-- recorded changes, and unticking shows it again.
+--------------------------------------------------------------------------------
+
+--- Has this account skinned the item (or item named `name`)?
+function DB:WasSkinned(name)
+    local db = ns.db
+    local list = db and db.skinnedItems
+    if type(list) ~= "table" or next(list) == nil then return false end
+    local key = ItemKey(name)
+    return key ~= nil and list[key] ~= nil
+end
+
+--- A skinning window gave `names`: note the ones not noted yet. While
+--- skinning is hidden, what shows them redraws once.
+function DB:NoteSkinned(names)
+    local db = ns.db
+    if not db or type(names) ~= "table" then return end
+    if type(db.skinnedItems) ~= "table" then db.skinnedItems = {} end
+    local list, added = db.skinnedItems, false
+    for _, name in ipairs(names) do
+        local key, shown = ItemKey(name)
+        if key and list[key] == nil then
+            list[key] = shown
+            added = true
+        end
+    end
+    if added and not self:ShowsSkinning() then self:HiddenChanged() end
 end
 
 local function SourceKey(name)
@@ -510,7 +549,7 @@ end
 function DB:HidesSource(source, item)
     if type(source) ~= "table" then return false end
     if not self:ShowsSkinning() and (source.kind == "skinning"
-        or (item ~= nil and item.fromSkinning == true)) then
+        or (item ~= nil and self:FromSkinning(item))) then
         return true
     end
     if item ~= nil and self:IsHiddenItem(item) then return true end

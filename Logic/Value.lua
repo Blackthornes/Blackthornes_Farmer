@@ -366,16 +366,19 @@ end
 function Value:Session()
     local Tracker, Fishing, Gathering = ns.Tracker, ns.Fishing, ns.Gathering
 
+    -- Skinning while it is hidden, and items on the hide list
+    -- (DB:HidesItem), are left out of the worth and the gold per hour.
     local counts = {}
-    for name, count in pairs(Tracker and Tracker.sessionLoot or {}) do
-        counts[name] = (counts[name] or 0) + count
+    local function Take(list)
+        for name, count in pairs(list or {}) do
+            if not (ns.DB and ns.DB:HidesItem(name)) then
+                counts[name] = (counts[name] or 0) + count
+            end
+        end
     end
-    for name, count in pairs(Fishing and Fishing.sessionCatch or {}) do
-        counts[name] = (counts[name] or 0) + count
-    end
-    for name, count in pairs(Gathering and Gathering.sessionItems or {}) do
-        counts[name] = (counts[name] or 0) + count
-    end
+    Take(Tracker and Tracker.sessionLoot)
+    Take(Fishing and Fishing.sessionCatch)
+    Take(Gathering and Gathering.sessionItems)
 
     local coin = Tracker and tonumber(Tracker.sessionCopper) or 0
     local details = { coin = coin, priced = 0, unpriced = {} }

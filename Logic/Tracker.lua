@@ -426,12 +426,20 @@ function Tracker:SessionMobs()
     return mobs
 end
 
+--- Is the item named `name` counted in what the panel shows? Not while
+--- it is left out: skinning hidden, or on the hide list (DB:HidesItem).
+--- The session's counts keep it either way.
+function Tracker.Counts(name)
+    local DB = ns.DB
+    return not (DB and DB.HidesItem and DB:HidesItem(name))
+end
+
 --- This session's loot, most first: { name, count }.
 function Tracker:SessionLoot()
     local loot = {}
 
     for name, count in pairs(self.sessionLoot) do
-        loot[#loot + 1] = { name = name, count = count }
+        if Tracker.Counts(name) then loot[#loot + 1] = { name = name, count = count } end
     end
 
     table.sort(loot, function(a, b)
@@ -751,6 +759,9 @@ function Tracker:OnLoot()
 
     local items, quantities, copper, haul = self:LootedItems()
     local skinning = Tracker.Skinning()
+    -- What a skin gives is noted as skinned, so "Hide skinning" leaves it
+    -- out even where the data lists it only as a drop.
+    if skinning and ns.DB and ns.DB.NoteSkinned then ns.DB:NoteSkinned(items) end
 
     -- With area loot this window took the other corpses' drops too. Each of
     -- them is remembered, so skinning one later is not taken for a kill
