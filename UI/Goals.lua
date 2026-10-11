@@ -305,6 +305,26 @@ function GoalsUI:Build()
     self.closeButton = close
     self.footer = footer
 
+    -- The house size grip beside the bottom right corner, as the kills
+    -- panel wears it (Widgets.CreateSizeGrip), saved as `goalsScale`.
+    -- Docked, it grows from the kills panel's corner and docks again on
+    -- release; its width still matches the kills panel's on screen.
+    Widgets.ApplySize(frame, ns.db and ns.db.goalsScale)
+    self.sizeGrip = Widgets.CreateSizeGrip(frame, {
+        beside = true,
+        name = "panel",
+        get = function() return ns.db and ns.db.goalsScale end,
+        save = function(percent) if ns.db then ns.db.goalsScale = percent end end,
+        -- Held where the drag has it: a goal changing mid-drag docks it
+        -- only once the drag is done.
+        onStart = function() GoalsUI.dragging = true end,
+        done = function()
+            GoalsUI.dragging = nil
+            if ns.db.goalsX then GoalsUI:SavePosition() end
+            GoalsUI:Refresh()
+        end,
+    })
+
     self:RestorePosition()
     frame:Hide()
     return frame
@@ -1311,8 +1331,9 @@ function GoalsUI:BuildSpots()
     -- The house frame's rim and corner gems, and its red close gem
     -- (UI/Titanforged.lua). Its own title stays inside: it names the item
     -- in two colours and the panel is sized to it.
+    local spotsTrim
     if ns.Titanforged then
-        ns.Titanforged:Dress(panel, { close = function() panel:Hide() end })
+        spotsTrim = ns.Titanforged:Dress(panel, { close = function() panel:Hide() end })
     else
         Theme.Border(panel, "accent")
         local close = Widgets.CreateButton(panel, "X", function() panel:Hide() end,
@@ -1321,6 +1342,16 @@ function GoalsUI:BuildSpots()
     end
     -- The house glow round it, flaring as it opens.
     Theme.Halo(panel, 8, 0.10)
+
+    -- The house size grip under the bottom right corner
+    -- (Widgets.CreateSizeGrip), saved as `goalSpotsScale`.
+    Widgets.ApplySize(panel, ns.db and ns.db.goalSpotsScale)
+    panel.sizeGrip = Widgets.CreateSizeGrip(panel, {
+        name = "panel",
+        below = spotsTrim and select(4, ns.Titanforged.Reach(spotsTrim)) or 0,
+        get = function() return ns.db and ns.db.goalSpotsScale end,
+        save = function(percent) if ns.db then ns.db.goalSpotsScale = percent end end,
+    })
 
     local title = Theme.CreateLabel(panel, "normal", "accent")
     title:SetPoint("TOPLEFT", 12, -10)
@@ -1564,8 +1595,9 @@ function GoalsUI:BuildPicker()
     -- The house frame's rim and corner gems, and its red close gem
     -- (UI/Titanforged.lua). Its own title stays inside: it names the item
     -- in two colours and the picker is sized to it.
+    local pickerTrim
     if ns.Titanforged then
-        ns.Titanforged:Dress(picker, { close = function() picker:Hide() end })
+        pickerTrim = ns.Titanforged:Dress(picker, { close = function() picker:Hide() end })
     else
         Theme.Border(picker, "accent")
         local close = Widgets.CreateButton(picker, "X", function() picker:Hide() end,
@@ -1574,6 +1606,18 @@ function GoalsUI:BuildPicker()
     end
     -- The house glow round it, flaring as it opens.
     Theme.Halo(picker, 8, 0.10)
+
+    -- The house size grip under the bottom right corner
+    -- (Widgets.CreateSizeGrip), saved as `goalPickerScale`. Let go, it
+    -- goes back beside the button it opened from, at its new size.
+    Widgets.ApplySize(picker, ns.db and ns.db.goalPickerScale)
+    picker.sizeGrip = Widgets.CreateSizeGrip(picker, {
+        name = "picker",
+        below = pickerTrim and select(4, ns.Titanforged.Reach(pickerTrim)) or 0,
+        get = function() return ns.db and ns.db.goalPickerScale end,
+        save = function(percent) if ns.db then ns.db.goalPickerScale = percent end end,
+        done = function() if picker:IsShown() then GoalsUI:PlacePicker() end end,
+    })
 
     local title = Theme.CreateLabel(picker, "small", "accent")
     title:SetPoint("TOPLEFT", 12, -10)
