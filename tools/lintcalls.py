@@ -66,6 +66,7 @@ KNOWN_GLOBALS = {
     # this client may not define them.
     "LOOT_SLOT_ITEM", "LOOT_SLOT_MONEY",
     # Localised UI strings.
+    "ERR_CHAT_PLAYER_NOT_FOUND_S",
     "YES", "NO", "ACCEPT", "CANCEL", "OKAY", "CLOSE", "NONE", "UNKNOWN",
 }
 

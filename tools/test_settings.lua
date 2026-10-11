@@ -216,6 +216,7 @@ local buttons = {
     gatheringAll = "gathering all", gatheringCheck = "gathering check", where = "where",
     goals = "goals", goalsDock = "goals dock", goalList = "goal", arrowNext = "arrow next",
     help = "help", chat = "chat", stats = "stats", data = "data", list = "list",
+    shareSync = "share sync",
 }
 local wrong = {}
 for key, command in pairs(buttons) do

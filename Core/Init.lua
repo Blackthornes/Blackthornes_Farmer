@@ -430,6 +430,13 @@ local DEFAULTS = {
     -- game's own frames, buttons and tabs, asked 2026-10-10). Read at
     -- login, so a change waits for /reload. See UI/BlizzardLook.lua.
     windowStyle = "titanforged",
+
+    -- Sharing kills, drop rates and gathering with the player's other
+    -- account (Logic/Share.lua, asked 2026-10-11): off until ticked, and
+    -- only with the characters named here, full names, comma apart. What was
+    -- heard and taken is kept in shareIn, made when first needed.
+    shareData = false,
+    shareNames = "",
 }
 
 local function LoadSavedVariables()

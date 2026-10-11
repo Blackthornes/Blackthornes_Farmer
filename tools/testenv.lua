@@ -300,6 +300,8 @@ end
 local FILES = {
     "Core/Init.lua",
     "Core/Util.lua",
+    "Core/Serialize.lua",
+    "Core/Comm.lua",
     "Data/Database.lua",
     "Data/NpcNames.lua",
     "Data/Data_Mining.lua",
@@ -323,6 +325,7 @@ local FILES = {
     "Logic/Arrow.lua",
     "Logic/TomTom.lua",
     "Logic/Grinding.lua",
+    "Logic/Share.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
