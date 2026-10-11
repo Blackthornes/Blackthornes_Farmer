@@ -248,7 +248,8 @@ function GrindingUI:Build(frame)
 
     local footer = Theme.CreateLabel(view, "tiny", "dim")
     footer:SetPoint("BOTTOMLEFT", PADDING, 6)
-    footer:SetPoint("BOTTOMRIGHT", -PADDING, 6)
+    -- Short of the version in the corner, as the other tabs' footers are.
+    footer:SetPoint("BOTTOMRIGHT", -(PADDING + (ns.UI.VERSION_ROOM or 0)), 6)
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
@@ -771,7 +772,20 @@ end
 
 --- Redraw if the tab is on screen.
 function GrindingUI:Refresh()
-    if self.view and self.view:IsShown() and ns.UI.frame:IsShown() then
+    local frame = ns.UI and ns.UI.frame
+    if self.view and self.view:IsShown() and frame and frame:IsShown() then
         self:Render()
     end
+end
+
+-- "My level" follows the character's level, and the order by nearest the
+-- zone they are in, so a level or a new zone redraws the tab (and its map
+-- pins) while it is on screen; it is left alone when it is not.
+function GrindingUI:OnEnable()
+    local function Changed() GrindingUI:Refresh() end
+    -- The new level can reach UnitLevel a moment after the event.
+    ns.RegisterEvent(self, "PLAYER_LEVEL_UP", function()
+        if C_Timer and C_Timer.After then C_Timer.After(1, Changed) else Changed() end
+    end)
+    ns.RegisterEvent(self, "ZONE_CHANGED_NEW_AREA", Changed)
 end

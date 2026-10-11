@@ -597,6 +597,7 @@ function Tracker:NoteLook(slot, name, icon)
     if (not look.color or not look.id) and GetLootSlotLink then
         local ok, link = pcall(GetLootSlotLink, slot)
         local text = ok and ns.Harvest.Readable(link) or nil
+        local color, id = look.color, look.id
 
         look.color = look.color or Tracker.LinkColor(text)
 
@@ -605,8 +606,12 @@ function Tracker:NoteLook(slot, name, icon)
             look.id = tonumber(text:match("item:(%d+)"))
         end
         -- Counted so a reader that indexes the looks (Value.GreyLinks)
-        -- knows to walk them again.
-        self.looksVersion = (self.looksVersion or 0) + 1
+        -- knows to walk them again; only when something was learned, since
+        -- a link the client keeps hidden (in a dungeon) teaches nothing and
+        -- walking every look again on each such loot is a hitch.
+        if look.color ~= color or look.id ~= id then
+            self.looksVersion = (self.looksVersion or 0) + 1
+        end
     end
 end
 
