@@ -12,6 +12,10 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.25.1
+
+- Fixed characters with the same first name sharing goals.
+
 ## 0.25.0
 
 - Farmer won't send you to ore or herbs your skill can't gather yet.

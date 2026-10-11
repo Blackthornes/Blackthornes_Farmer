@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.25.1
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- **Fixes:** two of your characters with the same first name no longer
+  share each other's goals. Goals you already have keep showing for the
+  character that set them.
+
 ## 0.25.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
