@@ -234,6 +234,21 @@ function UI:Build()
     self.frame = frame
     self:ApplyScale()
 
+    -- The house size grip under the bottom right corner, right of the tabs
+    -- (Widgets.CreateSizeGrip): the same size Settings' Search window size
+    -- sets, `windowScale`.
+    local below = 0
+    if self.trim and ns.Titanforged and ns.Titanforged.Reach then
+        local _, _, _, bottom = ns.Titanforged.Reach(self.trim)
+        if type(bottom) == "number" then below = bottom end
+    end
+    self.sizeGrip = Widgets.CreateSizeGrip(frame, {
+        below = below,
+        get = function() return ns.db and ns.db.windowScale end,
+        save = function(percent) if ns.db then ns.db.windowScale = percent end end,
+        done = function() UI:Resized() end,
+    })
+
     self:BuildHeader()
     self:BuildBody()
 
@@ -1248,10 +1263,25 @@ function UI:RestorePosition()
         db.relativePoint or "CENTER", db.x or 0, db.y or 40)
 end
 
---- The window's size, as chosen on the settings page.
+--- The window's size, as chosen on the settings page or with its grip.
 function UI:ApplyScale()
     if self.frame then
         self.frame:SetScale(((ns.db and ns.db.windowScale) or 100) / 100)
+    end
+end
+
+--- After the grip let go: keep the spot the window is at now, and draw the
+--- list once at the new size (its columns are capped to what fits on the
+--- screen), never while dragging.
+function UI:Resized()
+    self:SavePosition()
+    if ns.GoalsUI then ns.GoalsUI:CheckPicker() end
+    if ns.SettingsUI and ns.SettingsUI.Refresh then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
+    if not (self.frame and self.frame:IsShown()) then return end
+    if self.tab == "rankings" and ns.RankingsUI then
+        pcall(ns.RankingsUI.Render, ns.RankingsUI)
+    elseif self.tab == "search" and self.Render then
+        pcall(self.Render, self)
     end
 end
 

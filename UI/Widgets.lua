@@ -1844,3 +1844,217 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
     Paint()
     return sorter
 end
+
+--------------------------------------------------------------------------------
+-- Size grip
+--
+-- The house size grip, as Tradeskills' window, Butler's window and the kills
+-- panel wear it (the owner, 2026-10-11: every window gets it): a small square
+-- with a gold edge and six gold dots in a stair, hung outside a window's
+-- bottom right corner. Drag it and the whole window grows or shrinks from its
+-- top left corner, text and all; right-click it for the normal size. Only the
+-- window's scale moves while dragging, so nothing is filled or laid out
+-- again and no line is cut that was whole before. The size is saved, in
+-- percent, when the drag ends.
+--------------------------------------------------------------------------------
+
+Widgets.SIZE_MIN, Widgets.SIZE_MAX = 50, 150
+Widgets.SIZE_GRIP = 20
+
+--- A size in percent, kept within bounds and whole; 100 for nothing.
+function Widgets.ClampSize(value, low, high)
+    value = tonumber(value)
+    if not value or value ~= value then return 100 end
+    low, high = low or Widgets.SIZE_MIN, high or Widgets.SIZE_MAX
+    return math.floor(math.max(low, math.min(high, value)) + 0.5)
+end
+
+function Widgets.SizeText(percent)
+    return ("%d%%"):format(math.floor((tonumber(percent) or 100) + 0.5))
+end
+
+--- A frame's own scale, or 1 when it cannot say.
+local function ScaleOf(frame)
+    local ok, scale = pcall(function() return frame:GetScale() end)
+    if ok and type(scale) == "number" and scale > 0 then return scale end
+    return 1
+end
+
+--- The largest size, in percent, at which `frame` (its trim and the grip
+--- included) fits on the screen. Never under 100: a window that was taller
+--- than the screen at its normal size is still drawn that way.
+function Widgets.FitSize(frame, high)
+    high = high or Widgets.SIZE_MAX
+    local ok, width, height, wide, tall = pcall(function()
+        return UIParent:GetWidth(), UIParent:GetHeight(), frame:GetWidth(), frame:GetHeight()
+    end)
+    if not (ok and type(width) == "number" and type(height) == "number" and width > 0 and height > 0
+        and type(wide) == "number" and wide > 0 and type(tall) == "number" and tall > 0) then
+        return high
+    end
+    local fit = math.min(width / (wide + 40), height / (tall + 60))
+    return math.max(100, math.min(high, math.floor(fit * 100)))
+end
+
+--- Draw `frame` at a saved size, kept on the screen.
+function Widgets.ApplySize(frame, percent, low, high)
+    if not frame then return end
+    local size = math.min(Widgets.ClampSize(percent, low, high), Widgets.FitSize(frame, high))
+    pcall(frame.SetScale, frame, size / 100)
+end
+
+--- The grip. `opts`:
+---   get()            the saved size in percent (nil means 100)
+---   save(percent)    keep a new size, account wide
+---   min, max         bounds in percent (50 and 150 unless given)
+---   below            how far the window's trim hangs under its bottom edge
+---   beside           hang to the right of the corner instead of under it
+---   onStart()        before a drag (hide what sits outside the window)
+---   done(percent)    after a drag or a right-click: save the window's spot,
+---                    put back what was hidden, dock it again
+---   name             "window" or "panel", for the tooltip
+function Widgets.CreateSizeGrip(frame, opts)
+    opts = opts or {}
+    local low, high = opts.min or Widgets.SIZE_MIN, opts.max or Widgets.SIZE_MAX
+    local name = opts.name or "window"
+
+    local grip = Theme.CreatePanel(frame, "panel", "borderLit")
+    grip:SetSize(Widgets.SIZE_GRIP, Widgets.SIZE_GRIP)
+    if opts.beside then
+        grip:SetPoint("BOTTOMLEFT", frame, "BOTTOMRIGHT", 3, 0)
+    else
+        grip:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT", -6, -((opts.below or 0) + 3))
+    end
+    grip:SetFrameLevel((frame:GetFrameLevel() or 0) + 20)
+    grip:EnableMouse(true)
+    if Theme.TopSheen then Theme.TopSheen(grip) end
+
+    -- Six gold dots in a stair down to the bottom right corner, the shape
+    -- every resizable window in the game wears, drawn from plain colour.
+    local dots = {}
+    for row = 0, 2 do
+        for column = 2 - row, 2 do
+            local dot = grip:CreateTexture(nil, "ARTWORK")
+            dot:SetSize(3, 3)
+            dot:SetPoint("BOTTOMRIGHT", grip, "BOTTOMRIGHT", -3 - (2 - column) * 5, 3 + (2 - row) * 5)
+            dot:SetColorTexture(Theme.Unpack("accent"))
+            dots[#dots + 1] = dot
+        end
+    end
+    grip.dots = dots
+
+    local function Light(on)
+        Theme.SetBorderColor(grip, on and "accent" or "borderLit")
+        for _, dot in ipairs(dots) do
+            dot:SetColorTexture(Theme.Unpack(on and "accentHi" or "accent"))
+        end
+    end
+
+    local function Saved()
+        return Widgets.ClampSize(opts.get and opts.get() or 100, low, high)
+    end
+
+    --- Put the window at `percent` with its top left corner where it is.
+    local function Resize(percent)
+        local old = ScaleOf(frame)
+        local scale = percent / 100
+        local ok, left, top = pcall(function() return frame:GetLeft(), frame:GetTop() end)
+        frame:SetScale(scale)
+        if ok and type(left) == "number" and type(top) == "number" then
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left * old / scale, top * old / scale)
+        end
+    end
+
+    local function Track(self)
+        local cx, cy = GetCursorPosition()
+        local uiScale = UIParent:GetEffectiveScale()
+        if not (cx and cy and type(uiScale) == "number" and uiScale > 0) then return end
+        cx, cy = cx / uiScale, cy / uiScale
+
+        -- The size that keeps the cursor where it took hold of the grip:
+        -- the width's and the height's answers averaged, so a drag off the
+        -- diagonal still feels right. Only the scale moves, and only when
+        -- it moved a whole percent.
+        local width = cx - self.grabX - self.anchorLeft
+        local height = self.anchorTop - (cy + self.grabY)
+        local percent = Widgets.ClampSize((width / self.wide + height / self.tall) / 2 * 100, low, high)
+        percent = math.min(percent, self.fit)
+        local scale = percent / 100
+        if math.abs(scale - ScaleOf(frame)) < 0.005 then return end
+
+        frame:SetScale(scale)
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", self.anchorLeft / scale, self.anchorTop / scale)
+
+        if GameTooltip:IsOwned(self) then
+            GameTooltip:SetText(Widgets.SizeText(percent), Theme.Unpack("accentHi"))
+            GameTooltip:Show()
+        end
+    end
+
+    local function StopSizing(self)
+        if not self.sizing then return end
+        self.sizing = false
+        self:SetScript("OnUpdate", nil)
+        local percent = Widgets.ClampSize(ScaleOf(frame) * 100, low, high)
+        if opts.save then opts.save(percent) end
+        if opts.done then opts.done(percent) end
+    end
+
+    grip:SetScript("OnMouseDown", function(self, button)
+        if button == "RightButton" then
+            Resize(100)
+            if opts.save then opts.save(100) end
+            if opts.done then opts.done(100) end
+            return
+        end
+        if button ~= "LeftButton" then return end
+
+        if ns.Motion and ns.Motion.Stop then pcall(ns.Motion.Stop, ns.Motion, frame, "open", true) end
+
+        local scale = ScaleOf(frame)
+        local ok, left, top, wide, tall = pcall(function()
+            return frame:GetLeft(), frame:GetTop(), frame:GetWidth(), frame:GetHeight()
+        end)
+        local cx, cy = GetCursorPosition()
+        local uiScale = UIParent:GetEffectiveScale()
+        if not (ok and type(left) == "number" and type(top) == "number"
+            and type(wide) == "number" and wide > 0 and type(tall) == "number" and tall > 0
+            and cx and cy and type(uiScale) == "number" and uiScale > 0) then
+            return
+        end
+
+        -- All in the screen's units, which do not change with the window's.
+        self.wide, self.tall = wide, tall
+        self.anchorLeft, self.anchorTop = left * scale, top * scale
+        self.grabX = cx / uiScale - (self.anchorLeft + wide * scale)
+        self.grabY = (self.anchorTop - tall * scale) - cy / uiScale
+        self.fit = Widgets.FitSize(frame, high)
+
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+
+        if opts.onStart then opts.onStart() end
+        self.sizing = true
+        self:SetScript("OnUpdate", Track)
+    end)
+    grip:SetScript("OnMouseUp", StopSizing)
+    grip:SetScript("OnHide", StopSizing)
+
+    grip:SetScript("OnEnter", function(self)
+        Light(true)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(Widgets.SizeText(ScaleOf(frame) * 100), Theme.Unpack("accentHi"))
+        GameTooltip:AddLine(("Drag to make the %s bigger or smaller, text and all."):format(name), 1, 1, 1, true)
+        GameTooltip:AddLine("Right-click: back to the normal size.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    grip:SetScript("OnLeave", function()
+        Light(false)
+        GameTooltip:Hide()
+    end)
+
+    grip.Saved = Saved
+    return grip
+end

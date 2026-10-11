@@ -171,6 +171,18 @@ kills panel, the goals panel, banners and toasts stay up while playing and
 keep their own look. Anything placed inside a dressed window stays 6 pixels
 in from its edge, or it covers the rim.
 
+Every window wears the house size grip (the owner, 2026-10-11, as in
+Tradeskills, Equipment's quest panel and Butler): `Widgets.CreateSizeGrip`,
+a gold-edged square with six dots outside the bottom right corner. Dragging
+changes only the window's scale, from its top left corner, 50% to 150%, so
+nothing is laid out again mid-drag and no text is cut; right-click is
+normal size. Saved in percent, account wide, never renamed: `windowScale`
+(search window, Rankings and Grind), `trackerScale` (kills panel, its own
+grip), `settingsScale`, `lootTableScale`, `exportScale`, `goalsScale`,
+`goalSpotsScale`, `goalPickerScale`. A new window gets one too
+(`tools/test_windowgrips.lua`). The goal arrow is the shared dial, left
+as it is.
+
 List rows are dark glass (the owner picked it 2026-10-10 over a gold glow
 that lit every row; Tradeskills and Equipment have the same):
 `Widgets.CreateRowList` rows alternate `glass`/`glassAlt` with a fine line

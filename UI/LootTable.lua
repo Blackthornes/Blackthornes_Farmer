@@ -373,6 +373,17 @@ function LootTableUI:Build()
         LootTableUI:AnchorTop()
     end)
 
+    -- The house size grip under the bottom right corner
+    -- (Widgets.CreateSizeGrip), saved as `lootTableScale`. Its height
+    -- follows the rows, so the grip rides the bottom edge as it moves.
+    Widgets.ApplySize(frame, ns.db and ns.db.lootTableScale)
+    self.sizeGrip = Widgets.CreateSizeGrip(frame, {
+        below = trim and select(4, ns.Titanforged.Reach(trim)) or 0,
+        get = function() return ns.db and ns.db.lootTableScale end,
+        save = function(percent) if ns.db then ns.db.lootTableScale = percent end end,
+        done = function() LootTableUI:AnchorTop() end,
+    })
+
     -- Escape closes it, like the game's own windows.
     if type(UISpecialFrames) == "table" then
         table.insert(UISpecialFrames, "BlackthornesFarmerLootTable")

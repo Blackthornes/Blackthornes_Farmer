@@ -279,10 +279,11 @@ for _ = 1, 20 do stepper.plus:GetScript("OnClick")(stepper.plus) end
 suite.check("it stops at the top of its range", ns.db.windowScale == 150, ns.db.windowScale)
 
 for _ = 1, 20 do stepper.minus:GetScript("OnClick")(stepper.minus) end
-suite.check("and at the bottom", ns.db.windowScale == 70, ns.db.windowScale)
+suite.check("and at the bottom, where the grip stops", ns.db.windowScale == 50, ns.db.windowScale)
 
 stepper:SetValue(103)
-suite.check("an odd value snaps to a step", ns.db.windowScale == 100, ns.db.windowScale)
+suite.check("a dragged size shows as it is", ns.db.windowScale == 103, ns.db.windowScale)
+stepper:SetValue(100)
 
 local trackerScaled
 ns.TrackerUI:Build().SetScale = function(_, value) trackerScaled = value end

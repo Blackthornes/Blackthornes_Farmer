@@ -69,6 +69,15 @@ function UI:BuildExport()
 
     self.exportFrame = frame
 
+    -- The house size grip under the bottom right corner
+    -- (Widgets.CreateSizeGrip), saved as `exportScale`.
+    Widgets.ApplySize(frame, ns.db and ns.db.exportScale)
+    self.exportGrip = Widgets.CreateSizeGrip(frame, {
+        below = trim and select(4, ns.Titanforged.Reach(trim)) or 0,
+        get = function() return ns.db and ns.db.exportScale end,
+        save = function(percent) if ns.db then ns.db.exportScale = percent end end,
+    })
+
     -- The title is on the plate and the close gem on the corner, so the
     -- header is a gold rule fading from the left, inside the rim.
     local rule = frame:CreateTexture(nil, "ARTWORK")

@@ -323,6 +323,21 @@ function SettingsUI:Build()
     self:BuildAdvancedPage()
     self.pages:Fit()
 
+    -- The house size grip under the bottom right corner
+    -- (Widgets.CreateSizeGrip), saved as `settingsScale`.
+    local below = 0
+    if self.trim and ns.Titanforged and ns.Titanforged.Reach then
+        local _, _, _, bottom = ns.Titanforged.Reach(self.trim)
+        if type(bottom) == "number" then below = bottom end
+    end
+    Widgets.ApplySize(frame, ns.db and ns.db.settingsScale)
+    self.sizeGrip = Widgets.CreateSizeGrip(frame, {
+        below = below,
+        get = function() return ns.db and ns.db.settingsScale end,
+        save = function(percent) if ns.db then ns.db.settingsScale = percent end end,
+        done = function() SettingsUI:SavePosition() end,
+    })
+
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
     footer:SetPoint("BOTTOMLEFT", PADDING, 10)
     footer:SetPoint("BOTTOMRIGHT", -PADDING, 10)
@@ -379,10 +394,13 @@ function SettingsUI:BuildWindowsPage()
     controls.minimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local windowScaleRow = pages:Row("windows", 1, "Search window size",
-        "Bigger for a high-resolution screen, smaller for a laptop.")
+        "Bigger for a high-resolution screen, smaller for a laptop. Or drag the "
+        .. "gold corner under its bottom right; right-click it for the normal size.")
 
+    -- Any percent the window's grip can drag to, one dragged to shown as it is.
     controls.windowScale = Widgets.CreateStepper(windowScaleRow, {
-        min = SCALE_MIN, max = SCALE_MAX, step = SCALE_STEP, value = 100,
+        min = Widgets.SIZE_MIN or SCALE_MIN, max = Widgets.SIZE_MAX or SCALE_MAX,
+        step = SCALE_STEP, value = 100, exact = true,
         format = Percent,
         onChange = function(value)
             local previous = ns.db.windowScale or 100
