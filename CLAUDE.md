@@ -161,6 +161,23 @@ empty) and deletes it. Everything is worked a few records a frame. Tested in
 `tools/test_transfer.lua` and `tools/test_importwindow.lua`. Not yet seen in
 game. A fix to `Core/Serialize.lua` still belongs in Tradeskills' too.
 
+## The panel kept between sessions
+
+The owner asked (2026-10-11) for the kills and loot panel to stop starting
+empty after every /reload or relog, per character, with a way to clear it.
+`Logic/Session.lua`: at `PLAYER_LOGOUT` (a reload too) Tracker's, Fishing's
+and Gathering's session counts, the order last done, coin, best streak,
+`ns.lastLoot` and the per-hour clock's play time go in the account save as
+`panelSessions[guid]` (never rename it; the GUID from `Goals:Owner`), and
+are added back at login, or on the first `PLAYER_ENTERING_WORLD` that reads
+the GUID. Nothing is written while playing. A character whose GUID is never
+read keeps and gets nothing. Corpses opened (by guid) and the running streak
+are not kept. **Clear panel** (`Session:Clear`; the panel's Clear button
+beside Sort and Settings > Kill tally, both `TrackerUI.ClearButton`, a
+second click within `CLEAR_ARMED` seconds; `/farm tracker clear`) empties
+the view only: every tally stays, so it is allowed on the Settings page.
+Tested in `tools/test_panelkeep.lua`. Not yet seen in game.
+
 ## The settings pages (from Tradeskills)
 
 The owner asked (2026-10-09) for Tradeskills' Settings upgrade in Pets,

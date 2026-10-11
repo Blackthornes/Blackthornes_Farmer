@@ -81,6 +81,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm settings` | open the settings window (`options` and `config` work too) |
 | `/farm minimap` | show or hide the minimap button |
 | `/farm tracker [on\|off]` | show or hide the kills and loot panel (`reset confirm` clears the tallies) |
+| `/farm tracker clear` | empty what the kills and loot panel shows and start a new run (the tallies are kept) |
 | `/farm tracker group [on\|off]` | move the panel aside from the party and raid frames when grouped (on by default) |
 | `/farm tracker size [small\|normal\|large\|50-150%]` | how big the kills and loot panel is drawn |
 | `/farm kills [mob]` | a mob's kill tally and drop rates in chat |
@@ -191,6 +192,13 @@ auction value, or the vendor price when that is higher). Items with no price
 at all are left out, and a note under the top heading says how many. Once the
 session has run five minutes, the bar under the tabs says what that comes to
 per hour.
+
+**Kept between sessions.** The panel keeps each character's run through a
+`/reload` or a relog, so the kills, loot, gathered value and per hour carry
+on where you left them (per hour counts only the time you are logged in).
+The **Clear** button beside Sort starts a new run: click it twice. It only
+empties the panel; your tallies, drop rates and Rankings are kept. Settings
+> Kill tally > Clear panel and `/farm tracker clear` do the same.
 
 `/farm tracker` (or the panel's **X**) turns it off and on, and it stays the
 way you left it. Drag it by the panel if the left edge is busy, and drag the
