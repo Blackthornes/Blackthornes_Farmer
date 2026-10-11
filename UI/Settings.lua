@@ -504,7 +504,7 @@ local WINDOW_STYLE_NAMES = { titanforged = "Titanforged", blizzard = "Blizzard" 
 
 --- The Window style row's control: a stepper between Titanforged and
 --- Blizzard (Farmer has no dropdown, and Text size beside it is a stepper
---- too), with Reload now beside it while the pick differs from what is
+--- too), with Reload under it while the pick differs from what is
 --- drawn. :Sync() reads the saved pick back.
 function SettingsUI:WindowStyleControl(row)
     local Look = ns.BlizzardLook
@@ -519,18 +519,16 @@ function SettingsUI:WindowStyleControl(row)
             reload:SetShown(WINDOW_STYLES[value] ~= Drawn())
         end,
     })
+    ns.SettingsPages.FitStepper(stepper, WINDOW_STYLE_NAMES)
     stepper:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- ReloadUI is allowed from a click, and saves everything first.
-    reload = Widgets.CreateButton(row, "Reload now", function()
+    reload = Widgets.CreateButton(row, "Reload", function()
         if ReloadUI then ReloadUI() end
-    end, { width = 80, height = 20 })
-    -- Under the stepper, ending where it ends, so it never runs into the
-    -- other column or off the window; the row grows to fit it.
-    reload:SetPoint("TOPRIGHT", stepper, "BOTTOMRIGHT", 0, -4)
-    Explain(reload, "Reload now", "Reload the interface so the new window style shows (/reload).")
+    end, { width = 60, height = 20 })
+    ns.SettingsPages.ReloadUnder(row, stepper, reload)
+    Explain(reload, "Reload", "Reload the interface so the new window style shows (/reload).")
     reload:Hide()
-    GrowRow(row, 24)
     stepper.reload = reload
 
     function stepper:Sync()
