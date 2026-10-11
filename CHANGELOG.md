@@ -4,6 +4,21 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.25.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- **Nodes you can gather first:** Where to farm, the goal arrow and the
+  item tooltip now read your Mining, Herbalism and Skinning. A vein or herb
+  your skill can't take yet, or one for a profession you don't have, moves
+  to the bottom and says why ("needs 125, you have 80", "needs
+  Herbalism"). The empty search window only suggests ore and herbs you can
+  gather.
+- **The goal arrow turns on with a new goal:** setting a new goal turns
+  the arrow on and says so once in chat. Once you turn the arrow off, it
+  stays off.
+
 ## 0.24.1
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is

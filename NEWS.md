@@ -12,6 +12,11 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.25.0
+
+- Farmer won't send you to ore or herbs your skill can't gather yet.
+- Set a new goal and the arrow pops up to lead you there.
+
 ## 0.24.1
 
 - Pick Pocket doesn't count as a kill anymore, so your drop rates stay right.
