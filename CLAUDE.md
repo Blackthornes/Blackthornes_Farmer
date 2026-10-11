@@ -45,10 +45,16 @@ calls, inside a pcall:
 _G.BlackthornesFarmer.Goals:Find(name)            -- optional
 _G.BlackthornesFarmer.Goals:Set(name, amount)     -- goal table, or nil and why
 _G.BlackthornesFarmer.GoalsUI:Show()
+_G.BlackthornesFarmer.Goals:Remove(name)          -- true when there was one
 ```
 
-Keep the `_G.BlackthornesFarmer` global, `Goals:Set` (returning the goal with
-`item`, `target` and `have`, or nil and a reason) and `GoalsUI:Show` stable.
+Since 2026-10-11 a goal Set goal made follows Tradeskills' queue: when the
+queue changes, Tradeskills calls `Goals:Set` again with the new amount, or
+`Goals:Remove` when nothing queued needs it, but only while the goal's
+`target` is still the one it set (a goal the player changed here is left
+alone). Keep the `_G.BlackthornesFarmer` global, `Goals:Find`, `Goals:Set`
+(returning the goal with `item`, `target`, `have` and `done`, or nil and a
+reason), `Goals:Remove` and `GoalsUI:Show` stable.
 If one has to change, change Tradeskills' `Logic/FarmerGoals.lua` too.
 
 Goals belong to the character that set them (`goal.owner`, "Name-Realm"),
