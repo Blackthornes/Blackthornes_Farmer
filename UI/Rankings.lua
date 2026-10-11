@@ -117,14 +117,33 @@ function RankingsUI:Build(frame)
     self.headings = {}
     for key, text in pairs({ rank = "#", mob = "MOB", worth = "PER KILL", basis = "FROM",
         best = "BEST DROP", where = "WHERE", level = "LEVEL" }) do
-        local justify = (key == "rank" and "RIGHT") or (key == "level" and "CENTER") or nil
-        local label = Theme.CreateLabel(panel, "tiny", "dim", justify)
+        -- "#" sits over the ranks' right edge; the sort arrow goes before it.
+        local label = Theme.CreateLabel(panel, "tiny", "dim", key == "rank" and "RIGHT" or nil)
         label:SetText(text)
         self.headings[key] = label
     end
 
     self.columns = Columns()
     self:PlaceHeadings()
+
+    -- Click a heading to sort each board by it (a player's request,
+    -- 2026-10-11), as the search's headings do. The boards stay apart and
+    -- each mob keeps its rank and medal. Kept in `rankingsSort`.
+    local key, ascending = self:SortChoice()
+    self.sorter = Widgets.SortableHeadings(self.headings, {
+        rank = "Sort by rank, best first: the usual order.",
+        mob = "Sort by mob name, A to Z.",
+        worth = "Sort by what a kill is worth, best first.",
+        basis = "Sort by how many you have killed, most first.",
+        best = "Sort by the best drop's name, A to Z.",
+        where = "Sort by where it is, A to Z.",
+        level = "Sort by level, lowest first.",
+    }, function(newKey, newAscending)
+        if ns.db then
+            ns.db.rankingsSort = newKey and { key = newKey, ascending = newAscending } or nil
+        end
+        RankingsUI:Resort()
+    end, { startsLow = RankingsUI.SORT_STARTS_LOW, key = key, ascending = ascending })
 
     local rule = Theme.CreateDivider(panel, "border")
     rule:SetPoint("TOPLEFT", 8, -20)
@@ -165,10 +184,52 @@ end
 function RankingsUI:PlaceHeadings()
     for key, label in pairs(self.headings) do
         local column = self.columns[key]
+        local x, w = column.x, column.w
+        if key == "level" then
+            -- Centred over its column by width, so the sort arrow, placed
+            -- after the words, stays clear of them (as the Grind tab's).
+            local text = math.ceil(Theme.TextWidth("tiny", label:GetText() or "")) + 2
+            x, w = x + math.max(0, math.floor((w - text) / 2)), math.min(w, text)
+        end
         label:ClearAllPoints()
-        label:SetPoint("TOPLEFT", 8 + column.x, -8)
-        label:SetWidth(column.w)
+        label:SetPoint("TOPLEFT", 8 + x, -8)
+        label:SetWidth(w)
     end
+end
+
+--------------------------------------------------------------------------------
+-- Sorting by the headings
+--------------------------------------------------------------------------------
+
+-- What each heading sorts by, and the ones that start lowest first: rank,
+-- names and level; worth and kills start with the biggest.
+RankingsUI.SORT_KEYS = { rank = true, mob = true, worth = true, basis = true, best = true,
+    where = true, level = true }
+RankingsUI.SORT_STARTS_LOW = { rank = true, mob = true, best = true, where = true, level = true }
+
+local SORT_VALUE = {
+    rank = function(entry) return entry.rank end,
+    mob = function(entry) return entry.mob end,
+    worth = function(entry) return entry.value end,
+    basis = function(entry) return entry.kills end,
+    best = function(entry) return entry.best and entry.best.name end,
+    where = function(entry) return entry.where end,
+    level = function(entry) return entry.spot and tonumber(entry.spot.minLevel) end,
+}
+
+--- The sort the headings were left on: key (nil for the usual order) and
+--- ascending. Kept in `rankingsSort`.
+function RankingsUI:SortChoice()
+    local saved = ns.db and type(ns.db.rankingsSort) == "table" and ns.db.rankingsSort or {}
+    if not RankingsUI.SORT_KEYS[saved.key or ""] then return nil, false end
+    return saved.key, saved.ascending and true or false
+end
+
+--- One board's entries in the order the headings ask for, as a new list.
+function RankingsUI:SortEntries(entries)
+    local key, ascending = self:SortChoice()
+    if not key then return entries end
+    return Util.SortBy(entries, ascending, SORT_VALUE[key])
 end
 
 --------------------------------------------------------------------------------
@@ -436,8 +497,13 @@ function RankingsUI:Rows(board)
             return
         end
 
-        local top = entries[1].value or 0
+        -- The bars are measured against the board's best, wherever the
+        -- sort has put it.
+        local top = 0
         for _, entry in ipairs(entries) do
+            if (entry.value or 0) > top then top = entry.value end
+        end
+        for _, entry in ipairs(self:SortEntries(entries)) do
             rows[#rows + 1] = { type = "mob", entry = entry, top = top }
         end
     end
@@ -519,6 +585,18 @@ function RankingsUI:PriceText()
         return "Tradeskills auction prices"
     end
     return "vendor prices, Tradeskills not loaded"
+end
+
+--- A click on a heading: the board already built, in the new order, from
+--- the top. Nothing is priced or counted again.
+function RankingsUI:Resort()
+    if not (self.view and self.view:IsShown() and self.board) then return end
+    local rows = self:Rows(self.board)
+    local width = self:FitColumns(rows)
+    self.list:SetData(rows)
+    if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then
+        ns.UI.frame:SetWidth(math.max(ns.UI.BASE_WIDTH or 0, width))
+    end
 end
 
 --- Rebuild the board and draw it. Returns the window width it wants.

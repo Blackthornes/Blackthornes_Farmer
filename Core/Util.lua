@@ -26,3 +26,31 @@ function Util.Plural(count, singular, plural)
     if count == 1 then return "1 " .. singular end
     return ("%d %s"):format(count, plural or (singular .. "s"))
 end
+
+--- A copy of `items` in the order a sortable heading asks for: by
+--- `valueOf(item)` (a number or a string), lowest first when `ascending`,
+--- else highest first. Items with nothing to sort by (nil) go last either
+--- way, and ties keep the order they came in, so a heading never shuffles
+--- rows it cannot tell apart.
+function Util.SortBy(items, ascending, valueOf)
+    local keyed = {}
+    for index, item in ipairs(items or {}) do
+        local value = valueOf(item)
+        if type(value) == "string" then value = value:lower() end
+        if value ~= nil and type(value) ~= "number" and type(value) ~= "string" then value = nil end
+        keyed[index] = { item = item, value = value, position = index }
+    end
+
+    table.sort(keyed, function(a, b)
+        if (a.value == nil) ~= (b.value == nil) then return b.value == nil end
+        if a.value ~= nil and type(a.value) == type(b.value) and a.value ~= b.value then
+            if ascending then return a.value < b.value end
+            return a.value > b.value
+        end
+        return a.position < b.position
+    end)
+
+    local sorted = {}
+    for index, entry in ipairs(keyed) do sorted[index] = entry.item end
+    return sorted
+end

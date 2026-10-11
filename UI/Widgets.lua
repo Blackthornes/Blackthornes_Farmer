@@ -1758,7 +1758,16 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
                 local width = Theme.TextWidth("tiny", label:GetText())
                 if type(width) ~= "number" then width = 0 end
                 arrow:ClearAllPoints()
-                arrow:SetPoint("LEFT", label, "LEFT", math.ceil(width) + 3, 0)
+                -- Beside the words, wherever the heading puts them: after
+                -- them for a heading read from the left, before them for
+                -- one set to the right (number columns), so it never sits
+                -- on the words or runs into the next heading.
+                local ok, justify = pcall(label.GetJustifyH, label)
+                if ok and justify == "RIGHT" then
+                    arrow:SetPoint("RIGHT", label, "RIGHT", -(math.ceil(width) + 3), 0)
+                else
+                    arrow:SetPoint("LEFT", label, "LEFT", math.ceil(width) + 3, 0)
+                end
             end
         end
     end

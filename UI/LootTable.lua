@@ -138,6 +138,8 @@ function LootTableUI:Table(mobName)
             id = id,
             dropped = ("%d of %d"):format(item.corpses, loot.kills),
             total = ("x%d"):format(item.amount),
+            corpses = item.corpses,
+            amount = item.amount,
         }
 
         if loot.rated then
@@ -152,6 +154,39 @@ function LootTableUI:Table(mobName)
     end
 
     return out
+end
+
+--------------------------------------------------------------------------------
+-- Sorting by the column titles
+--------------------------------------------------------------------------------
+
+-- What each title sorts by, and the ones that start lowest first (names
+-- A to Z); the numbers start with the biggest.
+LootTableUI.SORT_KEYS = { name = true, dropped = true, total = true, rate = true, perKill = true }
+LootTableUI.SORT_STARTS_LOW = { name = true }
+
+local SORT_VALUE = {
+    name = function(row) return row.name end,
+    dropped = function(row) return row.corpses end,
+    total = function(row) return row.amount end,
+    rate = function(row) return row.chance end,
+    perKill = function(row) return row.perKill end,
+}
+
+--- The sort the loot table's titles were left on: key (nil for the usual
+--- order, most common first) and ascending. Kept in `lootTableSort`.
+function LootTableUI:SortChoice()
+    local saved = ns.db and type(ns.db.lootTableSort) == "table" and ns.db.lootTableSort or {}
+    if not LootTableUI.SORT_KEYS[saved.key or ""] then return nil, false end
+    return saved.key, saved.ascending and true or false
+end
+
+--- `rows` in the order the titles ask for, as a new list; the rows
+--- themselves are not touched, so nothing is worked out again.
+function LootTableUI:SortRows(rows)
+    local key, ascending = self:SortChoice()
+    if not key then return rows end
+    return Util.SortBy(rows, ascending, SORT_VALUE[key])
 end
 
 --------------------------------------------------------------------------------
@@ -391,9 +426,11 @@ function LootTableUI:Build()
     local columns = Theme.CreatePanel(frame, "header", false)
     columns:SetHeight(ROW)
 
+    local headings = {}
     local itemTitle = Theme.CreateLabel(columns, "tiny", "muted")
     itemTitle:SetPoint("LEFT", PADDING - EDGE + 4, 0)
     itemTitle:SetText("ITEM")
+    headings.name = itemTitle
 
     -- The list's rows stop 14 short of its right edge for the scrollbar.
     local right = PADDING - EDGE + 14
@@ -402,8 +439,25 @@ function LootTableUI:Build()
         label:SetPoint("RIGHT", -right, 0)
         label:SetWidth(column.width)
         label:SetText(column.title)
+        headings[column.key] = label
         right = right + column.width + GAP
     end
+
+    -- Click a title to sort the items by it (a player's request,
+    -- 2026-10-11), as the search's headings do. Kept in `lootTableSort`.
+    local key, ascending = self:SortChoice()
+    self.sorter = Widgets.SortableHeadings(headings, {
+        name = "Sort by item name, A to Z.",
+        dropped = "Sort by how many corpses held it, most first.",
+        total = "Sort by how many you took in all, most first.",
+        rate = "Sort by drop rate, best first. Items with no rate yet go last.",
+        perKill = "Sort by what the item adds to a kill, most first. Items with no price go last.",
+    }, function(newKey, newAscending)
+        if ns.db then
+            ns.db.lootTableSort = newKey and { key = newKey, ascending = newAscending } or nil
+        end
+        LootTableUI:Resort()
+    end, { startsLow = LootTableUI.SORT_STARTS_LOW, key = key, ascending = ascending })
 
     local list = Widgets.CreateRowList(frame, {
         rowHeight = ROW,
@@ -461,6 +515,9 @@ function LootTableUI:Render()
         return
     end
 
+    -- The rows as the tally gives them, kept for a re-sort, then sorted.
+    data.byTally = data.rows
+    data.rows = self:SortRows(data.rows)
     self.data = data
     if self.plate then self.plate:SetTitle(data.mob) else self.title:SetText(data.mob) end
 
@@ -558,6 +615,15 @@ function LootTableUI:Render()
         self.list:Arrive()
     end
     self.shownMob = data.mob
+end
+
+--- A click on a column title: the same rows in the new order, from the
+--- top. Nothing is read from the tally again.
+function LootTableUI:Resort()
+    local data = self.data
+    if not (data and self.frame and self.frame:IsShown()) then return end
+    data.rows = self:SortRows(data.byTally or data.rows)
+    self.list:SetData(data.rows)
 end
 
 --- Wide enough for the longest item name on one line, the status in two and
