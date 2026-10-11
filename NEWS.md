@@ -12,6 +12,11 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.26.0
+
+- You can now click any column title in the loot table and on Rankings to sort it. Click again to flip it.
+- Farmer remembers how you like each list sorted.
+
 ## 0.25.1
 
 - Fixed characters with the same first name sharing goals.

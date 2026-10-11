@@ -4,6 +4,18 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.26.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- **Sort by any column:** the loot table window and the Rankings tab now
+  sort when you click a column title, like the search results and the
+  Grind tab already did. Click once to sort, again to flip the order, and
+  a third time for the usual order. The title in use lights gold with an
+  arrow. Each mob on Rankings keeps its rank and medal whatever the sort,
+  and each list remembers its sort between sessions.
+
 ## 0.25.1
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
