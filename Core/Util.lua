@@ -11,6 +11,16 @@ function Util.Trim(text)
     return (text:gsub("^%s+", ""):gsub("%s+$", ""))
 end
 
+--- Is the client in English? The data names items, zones and skills in
+--- English, so only another language needs the client's own names looked
+--- up. A client that will not say counts as English, as before.
+function Util.EnglishClient()
+    if type(GetLocale) ~= "function" then return true end
+    local ok, locale = pcall(GetLocale)
+    if not ok or type(locale) ~= "string" then return true end
+    return locale == "enUS" or locale == "enGB"
+end
+
 --- Strip the |cffffffff ... |r escapes, so text can be measured or compared.
 function Util.StripColor(text)
     if type(text) ~= "string" then return "" end

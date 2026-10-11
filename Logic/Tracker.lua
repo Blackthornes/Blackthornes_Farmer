@@ -622,15 +622,15 @@ function Tracker:LookOf(name)
 end
 
 --- Copper in a coin slot's name: "1 Gold 2 Silver 3 Copper" is 10203.
--- Nil for anything that is not plainly coin.
-local COIN_VALUE = { Gold = 10000, Silver = 100, Copper = 1 }
+-- Nil for anything that is not plainly coin. The coin words are the
+-- client's too (Harvest.CoinValue: "1 Gold 2 Silber 3 Kupfer").
 
 function Tracker.CoinCopper(name)
     if not ns.Harvest:NameLooksLikeMoney(name) then return nil end
 
     local copper = 0
     for amount, unit in name:gmatch("(%d+)%s+(%a+)") do
-        copper = copper + tonumber(amount) * (COIN_VALUE[unit] or 0)
+        copper = copper + tonumber(amount) * (ns.Harvest.CoinValue(unit) or 0)
     end
 
     return copper

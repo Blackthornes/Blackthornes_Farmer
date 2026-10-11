@@ -48,8 +48,15 @@ function Search:Run(query)
     -- A keystroke asks twice, once for the chips and once for the rows, so
     -- the last answer is kept while the data it came from stands. Callers
     -- never change what comes back.
+    -- On a client in another language the names it gives the items are
+    -- searched too ("leinen" finds Linen Cloth), read as they come in.
+    ns.DB:LearnClientNames()
+
     local last = self.lastRun
-    if last and last.query == query and last.changes == ns.DB.changes then return last.results end
+    if last and last.query == query and last.changes == ns.DB.changes
+        and last.names == ns.DB.namesVersion then
+        return last.results
+    end
 
     for item in ns.DB:Iterate() do
         local score, why = MatchScore(item.name:lower(), query), "name"
@@ -60,6 +67,12 @@ function Search:Run(query)
             if aliasScore > score then
                 score, why = aliasScore, "name"
             end
+        end
+
+        local clientName = ns.DB:ClientName(item)
+        if clientName then
+            local clientScore = MatchScore(clientName:lower(), query)
+            if clientScore > score then score, why = clientScore, "name" end
         end
 
         if score == 0 and MatchScore(item.category:lower(), query) > 0 then
@@ -105,7 +118,7 @@ function Search:Run(query)
         return a.item.name < b.item.name
     end)
 
-    self.lastRun = { query = query, changes = ns.DB.changes, results = results }
+    self.lastRun = { query = query, changes = ns.DB.changes, names = ns.DB.namesVersion, results = results }
     return results
 end
 
@@ -163,7 +176,12 @@ end
 --- (0 inside it). Nil when nothing is known: no zone or level of yours, and
 --- no level on the spot.
 function Search.Distance(source, level, zone)
-    local away = (zone and source.zone == zone) and 0 or 1000
+    -- Your zone as the client names it, the data's in English (Spots.English
+    -- knows the client's name once the map has told it).
+    local Spots = ns.Spots
+    local here = zone and (source.zone == zone
+        or (Spots and Spots.English(source.zone) == Spots.English(zone)))
+    local away = here and 0 or 1000
 
     local low = tonumber(source.minLevel)
     local high = tonumber(source.maxLevel) or low

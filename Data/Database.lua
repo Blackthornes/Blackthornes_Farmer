@@ -205,9 +205,159 @@ function DB:AddSource(item, source)
     return source
 end
 
+--- The item named `name`: by the database's own (English) name, else by the
+--- name the client gives its ID, so a German "Leinenstoff" is Linen Cloth.
+--- A second answer, true, says it was found by the client's name.
 function DB:GetItem(name)
     if type(name) ~= "string" then return nil end
-    return self.items[Util.Trim(name):lower()]
+    local trimmed = Util.Trim(name)
+    local key = trimmed:lower()
+    local item = self.items[key]
+    if item then return item end
+
+    item = self:ByClientName(key, trimmed)
+    if item then return item, true end
+    return nil
+end
+
+--------------------------------------------------------------------------------
+-- The client's own item names
+--
+-- The data names items in English. A German client names them in German,
+-- and that is what a player types, links or has Tradeskills pass to a goal.
+-- So the name the client gives each item's ID is kept beside it, as names
+-- arrive: a few items a frame, started the first time a name is not found
+-- (or a search runs), and one item more on each GET_ITEM_INFO_RECEIVED. On
+-- an English client every name is the database's own, so none of this
+-- runs there.
+--------------------------------------------------------------------------------
+
+-- [lower case client name] = item, only where it differs from the data's.
+DB.clientNames = {}
+-- [item] = the client's name for it, where it differs.
+DB.clientNameOf = {}
+-- [item ID] = true once the client has named it.
+DB.clientNamed = {}
+-- Moves whenever a client name is learned (Search keeps its last answer by it).
+DB.namesVersion = 0
+-- How many items a frame the names are read for.
+DB.NAMES_PER_FRAME = 25
+-- [lower case name] = namesVersion when the client last knew no item by it,
+-- so a name asked for again and again (the rankings value every drop) asks
+-- the client once until a new name comes in.
+DB.clientMisses = {}
+
+--- Every item with an ID, by ID. Built again only after the data changed.
+function DB:ByID()
+    if self.byID and self.byIDAt == self.changes then return self.byID end
+    local byID = {}
+    for _, key in ipairs(self.order) do
+        local item = self.items[key]
+        if item.id and not byID[item.id] then byID[item.id] = item end
+    end
+    self.byID, self.byIDAt = byID, self.changes
+    return byID
+end
+
+local function Plain(value)
+    local readable = ns.Harvest and ns.Harvest.Readable
+    if readable then return readable(value) end
+    return type(value) == "string" and value or nil
+end
+
+--- The name the client gives item `id`, or nil while it will not say.
+function DB.ClientItemName(id)
+    local item = type(C_Item) == "table" and C_Item or nil
+    if item and type(item.GetItemNameByID) == "function" then
+        local ok, name = pcall(item.GetItemNameByID, id)
+        name = ok and Plain(name) or nil
+        if name and name ~= "" then return name end
+    end
+    local getInfo = (item and item.GetItemInfo) or _G.GetItemInfo
+    if type(getInfo) == "function" then
+        local ok, name = pcall(getInfo, id)
+        name = ok and Plain(name) or nil
+        if name and name ~= "" then return name end
+    end
+    return nil
+end
+
+--- Keep the client's name for `item`, when it gives one. True once named.
+function DB:NoteClientName(item)
+    if not (item and item.id) then return false end
+    if self.clientNamed[item.id] then return true end
+
+    local name = DB.ClientItemName(item.id)
+    if not name then return false end
+    self.clientNamed[item.id] = true
+
+    local key = name:lower()
+    if key ~= item.name:lower() then
+        self.clientNames[key] = self.clientNames[key] or item
+        self.clientNameOf[item] = name
+        self.namesVersion = self.namesVersion + 1
+    end
+    return true
+end
+
+--- Start reading the client's names, once, a few items a frame.
+function DB:LearnClientNames()
+    if self.learning then return end
+    if Util.EnglishClient() then return end
+    self.learning = true
+
+    ns.RegisterEvent(self, "GET_ITEM_INFO_RECEIVED", function(_, _, itemID)
+        local id = ns.Harvest and ns.Harvest.ReadableNumber(itemID)
+        local item = id and DB:ByID()[id]
+        if item then DB:NoteClientName(item) end
+    end)
+
+    local index = 0
+    local function Step()
+        local stop = math.min(#self.order, index + DB.NAMES_PER_FRAME)
+        for i = index + 1, stop do
+            local item = self.items[self.order[i]]
+            if item.id then self:NoteClientName(item) end
+        end
+        index = stop
+        if index < #self.order and type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+            C_Timer.After(0, Step)
+        end
+    end
+    Step()
+end
+
+--- The item whose client name is `key` (lower case), or nil.
+--
+-- Until the names are all in, the client is asked about this one name too
+-- (`name` as typed): one it has loaded (a link, an item in the bags)
+-- answers with its ID.
+function DB:ByClientName(key, name)
+    self:LearnClientNames()
+    if not self.learning then return nil end
+    local item = self.clientNames[key]
+    if item then return item end
+    if self.clientMisses[key] == self.namesVersion then return nil end
+
+    local getInfo = (type(C_Item) == "table" and C_Item.GetItemInfo) or _G.GetItemInfo
+    if type(getInfo) == "function" then
+        local ok, link = pcall(function() return select(2, getInfo(name or key)) end)
+        link = ok and Plain(link) or nil
+        local id = link and tonumber(link:match("item:(%d+)"))
+        item = id and self:ByID()[id]
+        if item then self:NoteClientName(item) end
+        -- Only the item the client named that way.
+        if item and self.clientNames[key] == item then return item end
+    end
+
+    self.clientMisses[key] = self.namesVersion
+    return nil
+end
+
+--- The client's name for `item`, where it differs from the data's; nil
+--- otherwise. Read from what is kept, never from the client.
+function DB:ClientName(item)
+    return item and self.clientNameOf[item] or nil
 end
 
 function DB:CountItems()

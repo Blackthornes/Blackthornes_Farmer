@@ -155,6 +155,11 @@ function env.InstallClient()
     _G.geterrorhandler = function() return function(err) error(err, 0) end end
     _G.BlackthornesFarmerDB = nil
     _G.BlackthornesSisterNote = nil
+    -- An English client unless a suite says otherwise (test_german.lua).
+    _G.GetLocale = nil
+    _G.C_TradeSkillUI = nil
+    _G.C_CreatureInfo = nil
+    _G.COPPER_AMOUNT, _G.SILVER_AMOUNT, _G.GOLD_AMOUNT = nil, nil, nil
 
     -- Theme asks for the default font through pcall and falls back on its own,
     -- so leaving GameFontNormal absent exercises that path.

@@ -104,6 +104,72 @@ local function SpellName(spellID)
     return nil
 end
 
+--------------------------------------------------------------------------------
+-- The client's own names for the gathering skills
+--
+-- The names above are English. A German client calls Mining "Bergbau", so a
+-- name is also checked against what the client calls the same spell (by its
+-- ID) and the same skill line (by its ID, through
+-- C_TradeSkillUI.GetProfessionInfoBySkillLineID, which Forever has: see
+-- Tradeskills' findings, both of Forever's skill line IDs). Fishing and
+-- Spots read their skills by the same names.
+--------------------------------------------------------------------------------
+
+-- The skill lines, Forever's classic ID and its modern one.
+Gathering.SKILL_LINES = {
+    Mining = { 186, 2946 }, Herbalism = { 182, 2944 }, Skinning = { 393, 2947 }, Fishing = { 356 },
+}
+-- A spell of the same name.
+Gathering.SKILL_SPELLS = {
+    Mining = { 2575 }, ["Herb Gathering"] = { 2366 }, Skinning = { 8613 }, Fishing = { 7620 },
+}
+
+local clientNames = {}
+
+--- Every name the client may give `english` (a skill, or Herb Gathering):
+--- { [name] = true }, the English one always among them. Kept once the
+--- client has named all of it.
+function Gathering.ClientNames(english)
+    local kept = clientNames[english]
+    if kept and kept.complete then return kept.names end
+
+    local names, complete = { [english] = true }, true
+    for _, spellID in ipairs(Gathering.SKILL_SPELLS[english] or {}) do
+        local name = SpellName(spellID)
+        if name then names[name] = true else complete = false end
+    end
+
+    local trade = type(C_TradeSkillUI) == "table" and C_TradeSkillUI or nil
+    local get = trade and trade.GetProfessionInfoBySkillLineID
+    for _, line in ipairs(Gathering.SKILL_LINES[english] or {}) do
+        local name
+        if type(get) == "function" then
+            local ok, info = pcall(get, line)
+            if ok and type(info) == "table" then
+                local got, value = pcall(function() return info.professionName end)
+                name = got and ns.Harvest.Readable(value) or nil
+            end
+        end
+        if name and name ~= "" then names[name] = true else complete = false end
+    end
+
+    clientNames[english] = { names = names, complete = complete }
+    return names
+end
+
+--- The English skill `name` is, of `list` (English names), or nil.
+function Gathering.SkillOf(name, list)
+    if type(name) ~= "string" then return nil end
+    for _, english in ipairs(list) do
+        if name == english then return english end
+    end
+    if ns.Util.EnglishClient() then return nil end
+    for _, english in ipairs(list) do
+        if Gathering.ClientNames(english)[name] then return english end
+    end
+    return nil
+end
+
 --- "herb", "ore", or nil for any other spell.
 function Gathering.KindOf(spellID)
     local id = ns.Harvest.ReadableNumber(spellID)
@@ -112,7 +178,12 @@ function Gathering.KindOf(spellID)
     if SPELL_KIND[id] then return SPELL_KIND[id] end
 
     local name = SpellName(id)
-    return name and NAME_KIND[name] or nil
+    if not name then return nil end
+    if NAME_KIND[name] then return NAME_KIND[name] end
+
+    -- The client's own word for the same skill.
+    local skill = Gathering.SkillOf(name, { "Herb Gathering", "Herbalism", "Mining" })
+    return skill and NAME_KIND[skill] or nil
 end
 
 -- Skinning, by every rank's id and by name for a client whose ids differ. It
@@ -126,7 +197,8 @@ function Gathering.IsSkinningSpell(spellID)
 
     if SKINNING_ID[id] then return true end
 
-    return SpellName(id) == "Skinning"
+    local name = SpellName(id)
+    return name ~= nil and Gathering.SkillOf(name, { "Skinning" }) == "Skinning"
 end
 
 --------------------------------------------------------------------------------

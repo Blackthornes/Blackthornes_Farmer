@@ -362,9 +362,13 @@ end
 function Arrow:ZoneMap(zone, here)
     if type(zone) ~= "string" or not (here and here.map) then return nil end
 
+    -- A client in another language names its maps in that language: there
+    -- the zone's map is also known by its ID (Spots.ZONE_MAPS).
+    local byID = not ns.Util.EnglishClient() and ns.Spots.ZONE_MAPS[zone] or nil
+
     -- The map you are on, when it is that zone.
     local info = MapInfo(here.map)
-    if info and info.name == zone then return here.map end
+    if info and (info.name == zone or (byID and here.map == byID)) then return here.map end
 
     local continent = Arrow.ContinentOf(here.map)
     if not continent then return nil end
@@ -381,7 +385,7 @@ function Arrow:ZoneMap(zone, here)
             local ok, name, kind, id = pcall(function()
                 return child.name, child.mapType, child.mapID
             end)
-            if ok and Readable(name) == zone then
+            if ok and (Readable(name) == zone or (byID and Number(id) == byID)) then
                 id, kind = Number(id), Number(kind)
                 -- A zone beats a cave or a district that shares its name.
                 if id and (kind == ZONE or not found) then found = id end
@@ -476,7 +480,7 @@ function Arrow:SpotTarget(spot, here, rank)
     local mapID = zone and self:ZoneMap(zone, here)
     -- Coordinates in a dungeon or capital are on a map of its own, so
     -- only a spot out in its zone is a point.
-    local coords = type(spot.coords) == "table" and spot.zone == zone
+    local coords = type(spot.coords) == "table" and ns.Spots.English(spot.zone) == zone
         and tonumber(spot.coords[1]) and tonumber(spot.coords[2])
 
     if mapID and coords then

@@ -103,6 +103,36 @@ local INSIDE = {
     ["Stratholme"] = "Eastern Plaguelands",
 }
 
+-- Each zone's map ID, as Classic numbers its maps (Elwynn Forest 1429), for
+-- a client that names its zones in another language: there GetRealZoneText
+-- says "Wald von Elwynn", and the zone is told by the map you are on (or
+-- one it sits inside) instead. On an English client the names match and
+-- these are never read. Forever's own numbers are not confirmed, so a map
+-- whose ID is not here leaves the client's name as it was.
+Spots.ZONE_MAPS = {
+    ["Durotar"] = 1411, ["Mulgore"] = 1412, ["The Barrens"] = 1413,
+    ["Alterac Mountains"] = 1416, ["Arathi Highlands"] = 1417, ["Badlands"] = 1418,
+    ["Blasted Lands"] = 1419, ["Tirisfal Glades"] = 1420, ["Silverpine Forest"] = 1421,
+    ["Western Plaguelands"] = 1422, ["Eastern Plaguelands"] = 1423, ["Hillsbrad Foothills"] = 1424,
+    ["The Hinterlands"] = 1425, ["Dun Morogh"] = 1426, ["Searing Gorge"] = 1427,
+    ["Burning Steppes"] = 1428, ["Elwynn Forest"] = 1429, ["Deadwind Pass"] = 1430,
+    ["Duskwood"] = 1431, ["Loch Modan"] = 1432, ["Redridge Mountains"] = 1433,
+    ["Stranglethorn Vale"] = 1434, ["Swamp of Sorrows"] = 1435, ["Westfall"] = 1436,
+    ["Wetlands"] = 1437, ["Teldrassil"] = 1438, ["Darkshore"] = 1439, ["Ashenvale"] = 1440,
+    ["Thousand Needles"] = 1441, ["Stonetalon Mountains"] = 1442, ["Desolace"] = 1443,
+    ["Feralas"] = 1444, ["Dustwallow Marsh"] = 1445, ["Tanaris"] = 1446, ["Azshara"] = 1447,
+    ["Felwood"] = 1448, ["Un'Goro Crater"] = 1449, ["Moonglade"] = 1450, ["Silithus"] = 1451,
+    ["Winterspring"] = 1452, ["Stormwind City"] = 1453, ["Orgrimmar"] = 1454,
+    ["Ironforge"] = 1455, ["Thunder Bluff"] = 1456, ["Darnassus"] = 1457, ["Undercity"] = 1458,
+}
+Spots.MAP_ZONES = {}
+for zone, mapID in pairs(Spots.ZONE_MAPS) do Spots.MAP_ZONES[mapID] = zone end
+
+-- What the client called a zone the map then named, this session:
+-- ["Wald von Elwynn"] = "Elwynn Forest". Your own records keep the client's
+-- name, so this lets them count where they are too.
+Spots.clientZones = {}
+
 -- Any zone at all ("any coastline"): near, but never "you are here".
 local ANYWHERE_HOPS = 1
 
@@ -137,7 +167,19 @@ Spots.MAX = 6
 function Spots.ZoneOf(place)
     if type(place) ~= "string" then return nil end
     if place:lower():find("^any ") then return nil end
+    place = Spots.English(place)
     return INSIDE[place] or place
+end
+
+--- `zone` by the English name the data uses, where this session has seen
+--- the client call it something else; else as it is.
+function Spots.English(zone)
+    return Spots.clientZones[zone] or zone
+end
+
+--- Is `zone` a place the map knows by its English name?
+function Spots.Known(zone)
+    return BORDERS[zone] ~= nil or INSIDE[zone] ~= nil
 end
 
 function Spots.Continent(zone)
@@ -193,10 +235,37 @@ local function Read(fn, ...)
     return value
 end
 
+--- The English name of the zone the map you are on is in, by map ID: that
+--- map or one it sits inside. Nil when none is in Spots.ZONE_MAPS.
+function Spots.ZoneFromMap()
+    if not (type(C_Map) == "table" and type(C_Map.GetBestMapForUnit) == "function") then return nil end
+    local mapID = ns.Harvest.ReadableNumber(Read(C_Map.GetBestMapForUnit, "player"))
+    for _ = 1, 8 do
+        if not mapID or mapID <= 0 then return nil end
+        if Spots.MAP_ZONES[mapID] then return Spots.MAP_ZONES[mapID] end
+        if type(C_Map.GetMapInfo) ~= "function" then return nil end
+        local info = Read(C_Map.GetMapInfo, mapID)
+        if type(info) ~= "table" then return nil end
+        local ok, parent = pcall(function() return info.parentMapID end)
+        mapID = ok and ns.Harvest.ReadableNumber(parent) or nil
+    end
+    return nil
+end
+
 --- Where you are and your level, either nil when the client will not say.
+--
+-- The zone is the English name the data uses. A client in another language
+-- names it in its own, and then the map ID says which zone it is.
 function Spots:Player()
     local zone = ns.Harvest.Readable(Read(GetRealZoneText))
     if zone == "" then zone = nil end
+    if zone and not Spots.Known(zone) and not Util.EnglishClient() then
+        local english = Spots.clientZones[zone] or Spots.ZoneFromMap()
+        if english then
+            Spots.clientZones[zone] = english
+            zone = english
+        end
+    end
 
     local level = ns.Harvest.ReadableNumber(Read(UnitLevel, "player"))
     if level and level <= 0 then level = nil end
@@ -259,8 +328,12 @@ function Spots.ReadSkills()
     end
 
     if not read then return nil end
+    -- Kept by the English name, whatever the client calls the skill.
     local gathering = {}
-    for _, name in ipairs(Spots.GATHERING) do gathering[name] = skills[name] end
+    for name, rank in pairs(skills) do
+        local english = ns.Gathering.SkillOf(name, Spots.GATHERING)
+        if english and (name == english or gathering[english] == nil) then gathering[english] = rank end
+    end
     return gathering
 end
 
@@ -502,6 +575,8 @@ local function ZoneMapID(zone)
         local ok, name, parent = pcall(function() return info.name, info.parentMapID end)
         if not ok then return here end
         if ns.Harvest.Readable(name) == zone then return mapID end
+        -- A client in another language: the zone's map by its ID.
+        if Spots.ZONE_MAPS[zone] == mapID and not Util.EnglishClient() then return mapID end
 
         mapID = ns.Harvest.ReadableNumber(parent)
         if not mapID or mapID <= 0 then return here end
@@ -524,9 +599,12 @@ function Spots:Mark(spot)
         return false
     end
 
-    if type(spot.zone) ~= "string" or self:Player().zone ~= spot.zone then return false end
+    if type(spot.zone) ~= "string" then return false end
+    -- Your own records keep the client's name for the zone.
+    local zone = Spots.English(spot.zone)
+    if self:Player().zone ~= zone then return false end
 
-    local mapID = ZoneMapID(spot.zone)
+    local mapID = ZoneMapID(zone)
     if not mapID then return false end
 
     local ok = pcall(function()
