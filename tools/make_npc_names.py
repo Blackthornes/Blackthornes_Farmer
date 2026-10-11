@@ -13,12 +13,19 @@ inside dungeons and raids (and a few that are never spawned at all). A name
 the game itself gives wins over this file, and a mob Forever added is not in
 it; those are kept as "Creature #ID" until a name is known.
 
+A name the clear-to-post scan would refuse (tools/check_package.py's
+PRIVATE list) is left out, so the package always passes it; such a mob is
+kept as "Creature #ID" like any other unnamed one.
+
 Never edit the output by hand; rerun this.
 """
 
 import re
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from check_package import PRIVATE  # noqa: E402
 
 OUT = Path("Data/NpcNames.lua")
 
@@ -41,7 +48,8 @@ def main():
 
     # "[UNUSED] ..." and the like are test and cut mobs, never met.
     rows = [(npc, names[npc]) for npc in sorted(unspawned)
-            if names.get(npc) and not names[npc].startswith("[")]
+            if names.get(npc) and not names[npc].startswith("[")
+            and not any(pattern.search(names[npc]) for _, pattern in PRIVATE)]
 
     out = [
         "-- Blackthornes Farmer -- Data/NpcNames.lua",

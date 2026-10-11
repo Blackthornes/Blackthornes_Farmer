@@ -135,8 +135,12 @@ if env.HasHarvested() then
                 -- A fishing row borrows its zone's level band from the other
                 -- data (Fishing:ZoneBand), and a city like Undercity has none,
                 -- so there it rightly has no level.
-                local needsLevel = source.kind ~= "fishing"
-                    or harvested.Fishing:ZoneBand(source.zone) ~= nil
+                -- A drop looted inside a dungeon or raid is filed from the
+                -- loot window, which names the mob's ID but not its level, and
+                -- has no map spot (Harvest:Corpse); the window shows "??".
+                local inDungeon = source.kind ~= "fishing" and source.coords == nil
+                local needsLevel = (source.kind ~= "fishing" and not inDungeon)
+                    or (source.kind == "fishing" and harvested.Fishing:ZoneBand(source.zone) ~= nil)
                 suite.check(("measured %s in %s carries a level"):format(
                     item.name, source.zone), not needsLevel or source.minLevel ~= nil)
             end

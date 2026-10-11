@@ -115,7 +115,6 @@ ns.NPC_NAMES = {
     [645] = "Cookie",
     [646] = "Mr. Smite",
     [647] = "Captain Greenskin",
-    [648] = "Bridge Worker Trent",
     [649] = "Bridge Worker Dmitri",
     [650] = "Bridge Worker Jess",
     [651] = "Bridge Worker Daniel",
