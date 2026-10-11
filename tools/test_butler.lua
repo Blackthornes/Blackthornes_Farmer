@@ -38,7 +38,7 @@ suite.check("no goals, no answer", Butler:Advise(COPPER) == nil)
 
 bags[COPPER] = 6
 local goal = Goals:Set("Copper Ore", 40)
-suite.check("goal set", goal and goal.owner == "Blackthornes", goal and goal.owner)
+suite.check("goal set", goal and goal.owner == "Player-1-Blackthornes", goal and goal.owner)
 
 local answer = Butler:Advise(COPPER)
 suite.check("found by item ID", answer ~= nil)
@@ -113,11 +113,11 @@ _G.UnitName = function(unit)
     if unit == "player" then return "Bankalt" end
     return realUnitName(unit)
 end
-Goals.me = nil
+Goals.me, Goals.oldMe = nil, nil
 suite.check("the main's goal is not the alt's", Butler:Advise(COPPER) == nil)
 suite.check("the old goal still counts on the alt", Butler:Advise(ODD) ~= nil)
 _G.UnitName = realUnitName
-Goals.me = nil
+Goals.me, Goals.oldMe = nil, nil
 suite.check("back on the main", Butler:Advise(COPPER) ~= nil)
 
 --------------------------------------------------------------------------------

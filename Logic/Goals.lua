@@ -97,10 +97,27 @@ function Goals:Store()
     return store
 end
 
---- The character playing, as goals are tagged with it: "Name-Realm", or
---- nil while the client will not say.
+--- The character playing, as goals are tagged with it: its GUID, or nil
+--- while the client will not say (asked again later rather than tagged
+--- without it, so one character is never two). The GUID is the one way a
+--- character is named in saved data, in every Blackthornes addon (see "One
+--- key per character" in CLAUDE.md): Forever lets characters share a first
+--- name, and "Name-Realm" filed them all as one.
 function Goals:Owner()
     if self.me then return self.me end
+    if type(UnitGUID) ~= "function" then return nil end
+    local ok, value = pcall(UnitGUID, "player")
+    local guid = ok and ns.Harvest.Readable(value) or nil
+    if not guid then return nil end
+    self.me = guid
+    return guid
+end
+
+--- How goals were tagged before 0.26.0: "Name-Realm", or nil while the
+--- client will not say. A goal tagged so is read as this character's, and
+--- tagged with the GUID the next time it gathers toward it or changes it.
+function Goals:OldOwner()
+    if self.oldMe then return self.oldMe end
 
     local name, realm
     if type(UnitName) == "function" then
@@ -112,21 +129,28 @@ function Goals:Owner()
     if type(GetRealmName) == "function" then
         local ok, value = pcall(GetRealmName)
         realm = ok and ns.Harvest.Readable(value) or nil
-        -- Asked again later rather than tagged without it, so one
-        -- character is never two.
         if not realm then return nil end
         name = name .. "-" .. realm
     end
 
-    self.me = name
+    self.oldMe = name
     return name
+end
+
+--- Is `owner`, as a goal or the arrow saved it, the character playing?
+function Goals:IsOwner(owner)
+    if owner == nil then return false end
+    local me = self:Owner()
+    if me ~= nil and owner == me then return true end
+    local old = self:OldOwner()
+    return old ~= nil and owner == old
 end
 
 --- Whether `goal` shows on this character: one it set, or one saved before
 --- goals had owners.
 function Goals:IsMine(goal)
     if goal.owner == nil then return true end
-    return goal.owner == self:Owner()
+    return self:IsOwner(goal.owner)
 end
 
 --- This character's goals, in the order they were set.
@@ -477,8 +501,8 @@ function Goals:Update(quiet)
                     goal.gained = (tonumber(goal.gained) or 0) + change.gathered
                     goal.loots = (tonumber(goal.loots) or 0) + 1
                     -- Gathering toward a goal saved before goals had owners
-                    -- makes it yours.
-                    goal.owner = goal.owner or self:Owner()
+                    -- makes it yours; one tagged the old way gets the GUID.
+                    goal.owner = self:Owner() or goal.owner
 
                     if goal.lastGain then
                         goal.active = (tonumber(goal.active) or 0)

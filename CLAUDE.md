@@ -57,9 +57,11 @@ alone). Keep the `_G.BlackthornesFarmer` global, `Goals:Find`, `Goals:Set`
 reason), `Goals:Remove` and `GoalsUI:Show` stable.
 If one has to change, change Tradeskills' `Logic/FarmerGoals.lua` too.
 
-Goals belong to the character that set them (`goal.owner`, "Name-Realm"),
-since a goal counts one character's bags, so `Find` and `Set` act on the
-character playing. A goal saved before owners existed shows on every
+Goals belong to the character that set them (`goal.owner`, its GUID since
+2026-10-11; "Name-Realm" before, still read as that character's by
+`Goals:IsOwner` and given the GUID when it gathers toward it or changes
+it), since a goal counts one character's bags, so `Find` and `Set` act on
+the character playing. A goal saved before owners existed shows on every
 character until one gathers toward it or changes it.
 
 ## What Butler calls here
@@ -276,6 +278,46 @@ is kept as "Creature #ID" with `record.npc`, never exported
 (`Harvest.Unnamed`), and renamed on load once a name is known
 (`Harvest:NameUnnamed`, harvest and kill tally both). This works the same in every dungeon and raid.
 `/farm harvest check` reports what a dungeon lets the addon read.
+
+## One key per character
+
+The owner asked (2026-10-11) that a character can never be mistaken for
+another again. Old records had sent errands to the character playing:
+Butler filled a mail to itself and told a player to mail Medium Leather to,
+and log out for, the character they were on (an old "Name-Realm" record of
+Tradeskills' beside the GUID one), and a reload wiped alts' saved gear in
+Equipment. The rule, in every addon:
+
+- **A character is its GUID** (`UnitGUID("player")`) in saved data and in
+  every call between the addons. Never a first name, "Name-Realm" or a
+  short name: Forever lets characters share a first name. Names are for
+  showing and for a mail's To line only, always first and last.
+- **A GUID the client won't read (a dungeon) means "not sure who's
+  playing":** write nothing under another key, and offer nothing for an
+  alt. Tradeskills remembers each character's GUID in its own file
+  (`BlackthornesTSCharDB.guid`) for that case.
+- **Old records stay readable and count as the same character; nothing is
+  deleted.** Tradeskills folds an old "Name-Realm" record into the GUID one
+  at login, once (`Config:AdoptLegacyCharacter`): it is kept whole in
+  `formerCharacters[old key]` with `retiredInto` (never rename either), what
+  the GUID record lacks is filled from it when it carries that GUID, and
+  the queue's references to the old key follow. Farmer reads a goal tagged
+  "Name-Realm" as the character's and tags it with the GUID once the
+  character gathers toward it or changes it.
+- **One test per addon answers "the same character?" and "the one
+  playing?"; never compare keys or names by hand.** Tradeskills:
+  `Characters:Same`, `:IsPlaying` and `:Canonical` (`Core/Characters.lua`),
+  and `playing` on each `Butler:Holdings()` entry. Butler:
+  `Errands:IsMe(name)` (full name, first name alone, any old record's name,
+  any case, with or without a realm). Farmer: `Goals:IsOwner`. Equipment:
+  `Alts.PlayerGUID()`.
+- **Every errand that targets a character asks that test right before it
+  acts and refuses the character playing:** a mail, a gold top-up, a Log
+  out, an alt's upgrade, a learned habit, the disenchanter.
+- Tested in Tradeskills' `tools/test_onecharacter.lua`, Butler's
+  `tools/test_notme.lua`, Farmer's `tools/test_goals.lua` and Equipment's
+  `tools/test_alts.lua`. This rule is in every addon's notes; keep them the
+  same.
 
 ## The owner's standing rules (both addons)
 
