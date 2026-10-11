@@ -1256,7 +1256,10 @@ function Harvest:OnEnable()
     ns.OnLootWindow(self, function() Harvest:RecordCorpse() end)
 
     -- The mobs you meet, so a corpse looted untargeted is still known.
-    ns.RegisterEvent(self, "PLAYER_TARGET_CHANGED", function() Harvest:NoteUnit("target") end)
+    ns.RegisterEvent(self, "PLAYER_TARGET_CHANGED", function()
+        Harvest:NoteUnit("target")
+        Harvest:NotePicked()
+    end)
     ns.RegisterEvent(self, "UPDATE_MOUSEOVER_UNIT", function() Harvest:NoteUnit("mouseover") end)
     ns.RegisterEvent(self, "PLAYER_SOFT_ENEMY_CHANGED", function() Harvest:NoteUnit("softenemy") end)
     ns.RegisterEvent(self, "PLAYER_SOFT_INTERACT_CHANGED", function() Harvest:NoteUnit("softinteract") end)
@@ -1370,6 +1373,9 @@ function Harvest:LootCheck()
     local gotCount, lootCount = pcall(GetNumLootItems or error)
     local count = gotCount and ReadableNumber(lootCount) or nil
     Line("loot slots", gotCount and Harvest.Describe(lootCount) or "raised")
+    if count == 0 then
+        Line("note", "this window was empty: loot one that drops something")
+    end
 
     for slot = 1, math.min(count or 0, Harvest.CHECK_SLOTS) do
         Line(("slot %d info"):format(slot), Call("GetLootSlotInfo", slot))
@@ -1386,6 +1392,26 @@ function Harvest:LootCheck()
     local zone, location = self:Where()
     Line("harvest place", ("%s / %s"):format(zone or "none", location or "none"))
     Line("mobs seen alive", tostring(self.seenCount or 0))
+    -- Picked is when the target last changed; the same unit since then.
+    local picked = self.picked
+    Line("target name when picked", picked and picked
+        or picked == false and "hidden then too" or "no target picked")
+end
+
+--- The target's name as it read the moment it was picked, for the loot
+--- check. A dungeon hides the name of a dead target (Ragefire Chasm,
+--- 2026-10-10); whether it hid it while the mob was alive and just
+--- targeted decides whether a fix can carry the name over to the corpse.
+function Harvest:NotePicked()
+    local gotName, unitName = pcall(UnitName or error, "target")
+    local name = gotName and Readable(unitName) or nil
+    if name then
+        self.picked = name
+    elseif gotName and type(unitName) ~= "nil" then
+        self.picked = false
+    else
+        self.picked = nil
+    end
 end
 
 --- Runs the check on this loot window if one was asked for.

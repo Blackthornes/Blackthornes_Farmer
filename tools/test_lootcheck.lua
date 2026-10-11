@@ -37,6 +37,7 @@ _G.UnitName = function() return env.Secret("string") end
 _G.UnitGUID = function() return env.Secret("string") end
 env.world.loot = { { name = "Linen Cloth", count = 2 } }
 
+Harvest:NotePicked()
 _G.GetInstanceInfo = function() return "Ragefire Chasm", "party" end
 local ok, err = pcall(Harvest.RunArmedCheck, Harvest)
 suite.check("a dungeon corpse does not raise", ok, err)
@@ -47,11 +48,24 @@ _G.GetInstanceInfo = nil
 suite.check("and is no longer ready", not Harvest.checkArmed)
 suite.check("the name is reported unreadable", Lines():find("target name: unreadable", 1, true), Lines())
 suite.check("the loot slot is described", Lines():find("slot 1 info", 1, true), Lines())
+suite.check("a hidden name when picked says so",
+    Lines():find("target name when picked: hidden then too", 1, true), Lines())
 suite.check("and the harvest's verdict", Lines():find("would be skipped", 1, true), Lines())
 
 ns.db.lastProbe = nil
 Harvest:RunArmedCheck()
 suite.check("the next loot window does not run it again", ns.db.lastProbe == nil)
+
+-- A name that read when the target was picked is reported.
+_G.UnitName = function() return "Ragefire Trogg" end
+Harvest:NotePicked()
+_G.UnitName = function() return env.Secret("string") end
+Harvest.checkArmed = true
+Harvest:RunArmedCheck()
+suite.check("the name as picked is reported",
+    Lines():find("target name when picked: Ragefire Trogg", 1, true), Lines())
+suite.check("an empty loot window says so", Lines():find("this window was empty", 1, true)
+    or #env.world.loot > 0, Lines())
 
 -- A player under the target is left out.
 _G.UnitName, _G.UnitGUID = realName, realGuid
