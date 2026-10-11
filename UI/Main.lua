@@ -1106,11 +1106,32 @@ function UI:Render()
     self.arriving = false
 
     if total == 0 then
-        self.summary:SetText(Util.Colored("muted", "nothing found"))
+        -- Said when it was skinning being left out that emptied it.
+        self.summary:SetText(Util.Colored("muted", ns.Search.skinningHid
+            and "nothing found, skinning is left out" or "nothing found"))
     else
         self.summary:SetText(("%s matching"):format(Util.Plural(total, "item")))
     end
 end
+
+--- "Show skinning" moved (DB:SetShowSkinning): the chips and the rows are
+--- the search's again, drawn now while the Search tab shows, else marked
+--- stale for when it does. A Skinning chip picked goes, since nothing is
+--- left under it.
+function UI:SkinningChanged()
+    if not (self.frame and self.list) then return end
+    if self.filterKind == "skinning" then self.filterKind = nil end
+    if self.lastQuery == nil then return end
+    if self.frame:IsShown() and self.tab == "search" then
+        self:BuildChips(self.lastQuery)
+        self:Render()
+    else
+        self:BuildChips(self.lastQuery)
+        self.searchStale = true
+    end
+end
+
+ns.DB.skinningWatchers.search = function() UI:SkinningChanged() end
 
 --- Chips for the source kinds this search turned up, plus All.
 function UI:BuildChips(query)

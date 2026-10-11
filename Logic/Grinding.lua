@@ -239,6 +239,8 @@ end
 --- What the mobs must give, "cloth", "skinning", or nil for anything.
 function Grinding:Gives()
     local gives = ns.db and ns.db.grindGives
+    -- Skinning left out (DB:ShowsSkinning) lets a picked Skinning go too.
+    if gives == "skinning" and not ns.DB:ShowsSkinning() then return nil end
     for _, entry in ipairs(Grinding.GIVES) do
         if entry.key == gives then return gives end
     end
@@ -311,8 +313,9 @@ end
 
 --- What the list is built from changed: the data, the harvest, the types.
 local function Stamp()
-    return ("%d:%d:%d"):format(ns.DB:CountSources(),
-        ns.Harvest and ns.Harvest:CountCorpses() or 0, Grinding.typesVersion or 0)
+    return ("%d:%d:%d:%d"):format(ns.DB:CountSources(),
+        ns.Harvest and ns.Harvest:CountCorpses() or 0, Grinding.typesVersion or 0,
+        ns.DB.skinningVersion or 0)
 end
 
 --- Every mob spot known, one per mob, zone and place in the zone:
@@ -355,16 +358,21 @@ function Grinding:Mobs()
         if forever then mob.forever = true end
     end
 
+    -- With skinning left out ("Show skinning", DB:HidesItem), a skinning
+    -- spot is no camp and leather is no mob's drop; the mob a looted hide
+    -- was recorded on is still a spot.
+    local skinning = ns.DB:ShowsSkinning()
     for item in ns.DB:Iterate() do
         local cloth = item.category == "Cloth"
+        local itemHidden = ns.DB:HidesItem(item)
         for _, source in ipairs(item.sources or {}) do
             if CREATURE_KINDS[source.kind or "mob"] and type(source.name) == "string"
-                and type(source.zone) == "string" then
+                and type(source.zone) == "string" and (skinning or source.kind ~= "skinning") then
                 local mob = Spot(source.name, source.zone, source.location)
                 Note(mob, source.provenance == "forever", source.minLevel, source.maxLevel, source.coords)
                 if source.kind == "skinning" then mob.skinning = true end
                 if cloth then mob.cloth = true end
-                if source.kind ~= "skinning" then
+                if source.kind ~= "skinning" and not itemHidden then
                     mob.drops[item.name] = math.max(mob.drops[item.name] or 0, source.chance or 0)
                 end
             end

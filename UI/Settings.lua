@@ -47,7 +47,7 @@ local PAGES = {
     { key = "tally", text = "KILL TALLY",
       tip = "The kills and loot panel, what it says in chat, and your kills" },
     { key = "loot", text = "LOOT",
-      tip = "Recording what drops and its export, and your fishing and gathering" },
+      tip = "Recording what drops and its export, fishing and gathering, and skinning" },
     { key = "map", text = "MAP & GOALS",
       tip = "Node markers, grinding camps, goals and the goal arrow" },
     { key = "sharing", text = "SHARING",
@@ -728,6 +728,19 @@ function SettingsUI:BuildLootPage()
         "Lists in chat gathers that look recorded wrong, to help track down a problem. "
         .. "It only reads. Same as /farm gathering check.", "Check", "gathering check")
     controls.gatheringCheck = checkButton
+
+    -- Drops only (a player asked, the owner agreed 2026-10-11).
+    pages:Section("loot", 2, "SKINNING")
+
+    local skinningRow = pages:Row("loot", 2, "Show skinning",
+        "Unticked, Farmer shows only drops: no skinning spots in search, Rankings "
+        .. "or Grind, and no leather, hides or scales among a mob's drops or in what "
+        .. "a kill is worth. Nothing you recorded is lost. Same as /farm skinning.")
+
+    controls.showSkinning = Widgets.CreateCheckbox(skinningRow, "Show it", function(checked)
+        ns.DB:SetShowSkinning(checked)
+    end, true)
+    controls.showSkinning:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1006,6 +1019,7 @@ function SettingsUI:Refresh()
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
+    controls.showSkinning:SetChecked(db.showSkinning ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
     controls.grindPins:SetChecked(db.grindPins ~= false)

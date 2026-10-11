@@ -178,6 +178,22 @@ second click within `CLEAR_ARMED` seconds; `/farm tracker clear`) empties
 the view only: every tally stays, so it is allowed on the Settings page.
 Tested in `tools/test_panelkeep.lua`. Not yet seen in game.
 
+## Drops only
+
+A player asked (2026-10-11, the owner agreed) for Farmer to leave skinning
+out and show only drops. "Show skinning" on the Loot page of Settings
+(`showSkinning`, account wide, on unless unticked; never rename it) and
+`/farm skinning [on|off]`. Unticked, `DB:HidesItem` and `DB:HidesSource`
+leave out every `kind = "skinning"` source and every item the data names a
+skinning spot for (`item.fromSkinning`: leather, hides, scales), since a
+skin opens a loot window and recorded loot has the leather as a drop. The
+search, `DB:ByName` (Rankings, worth estimates), `Value:FromTally`,
+`Tracker:Summary` (panel, loot table), the Grind tab and the tooltip line
+follow it; recorded data is never changed, and goals and their arrow still
+follow a goal for leather. `DB:SetShowSkinning` moves `DB.skinningVersion`
+and calls `DB.skinningWatchers`, so only the lists that show it redraw.
+Tested in `tools/test_showskinning.lua`.
+
 ## The settings pages (from Tradeskills)
 
 The owner asked (2026-10-09) for Tradeskills' Settings upgrade in Pets,

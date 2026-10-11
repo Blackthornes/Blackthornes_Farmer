@@ -2692,6 +2692,12 @@ function TrackerUI:FollowGoals()
     FollowGoals()
 end
 
+-- "Show skinning" moved: the panel's drops (Tracker:Summary) and an open
+-- loot table follow it. Nothing is built for it.
+ns.DB.skinningWatchers.tally = function()
+    if TrackerUI.frame then TrackerUI:Refresh() end
+end
+
 --- Redraw, and show or hide to match the saved setting.
 function TrackerUI:Refresh()
     self:Build()

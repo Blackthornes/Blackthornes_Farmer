@@ -283,13 +283,20 @@ function Tracker:Summary(mobName)
     local kills = tonumber(mob.kills) or 0
     local items = {}
 
+    -- Skinning left out ("Show skinning", DB:HidesItem): its leather is not
+    -- among the drops shown. It stays in the tally.
+    local DB = ns.DB
+    local hides = DB and not DB:ShowsSkinning()
+
     for name, corpses in pairs(type(mob.items) == "table" and mob.items or {}) do
         corpses = tonumber(corpses) or 0
-        items[#items + 1] = {
-            name = name,
-            corpses = corpses,
-            chance = kills > 0 and math.min(100, corpses / kills * 100) or 0,
-        }
+        if not (hides and DB:HidesItem(name)) then
+            items[#items + 1] = {
+                name = name,
+                corpses = corpses,
+                chance = kills > 0 and math.min(100, corpses / kills * 100) or 0,
+            }
+        end
     end
 
     table.sort(items, function(a, b)

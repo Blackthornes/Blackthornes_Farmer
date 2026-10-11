@@ -357,8 +357,15 @@ function GrindingUI:LayoutChips()
 
     local chips = {}
     for _, chip in ipairs(self.typeChips) do chips[#chips + 1] = { chip, 0 } end
+    -- The Skinning chip goes while skinning is left out (DB:ShowsSkinning).
+    local skinning = ns.DB:ShowsSkinning()
     for index, chip in ipairs(self.givesChips) do
-        chips[#chips + 1] = { chip, index == 1 and GROUP_GAP or 0 }
+        if chip.givesKey == "skinning" and not skinning then
+            chip:Hide()
+        else
+            chip:Show()
+            chips[#chips + 1] = { chip, index == 1 and GROUP_GAP or 0 }
+        end
     end
 
     -- Sort sits in the top row beside My level while it clears the Settings
@@ -769,6 +776,17 @@ function GrindingUI:Render(arrive)
 
     return width
 end
+
+--- "Show skinning" moved: the chips are laid out again (the Skinning
+--- chip comes or goes) and the camps redrawn if the tab is on screen; out
+--- of sight, the list's stamp moved, so its next draw builds it again.
+function GrindingUI:SkinningChanged()
+    if not self.view then return end
+    self:LayoutChips()
+    self:Refresh()
+end
+
+ns.DB.skinningWatchers.grind = function() GrindingUI:SkinningChanged() end
 
 --- Redraw if the tab is on screen.
 function GrindingUI:Refresh()
