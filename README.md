@@ -361,7 +361,10 @@ item, best first, from where you are standing. Near means how many zones
 you would cross: your own zone, then the zones next to it, with the other
 continent last. A place well above your level drops down the list, a better
 drop rate moves one up, and places you have killed or gathered it yourself
-come first and say what you got there. Click a place to print it to chat;
+come first and say what you got there. A vein or herb your Mining or
+Herbalism can't take yet (or a profession you don't have) goes to the bottom
+and says so, "needs 125, you have 80", and the empty search window only
+suggests ore and herbs you can gather. Click a place to print it to chat;
 when it is in the zone you are in and has coordinates, it is also pinned on
 your map. `/farm where copper ore` opens the same list without a goal.
 
