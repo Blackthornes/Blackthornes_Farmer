@@ -308,7 +308,61 @@ function Harvest:Corpse()
         if known then return known.name, known.level, source end
     end
 
+    -- Inside a dungeon the corpse's own name and guid are hidden, but the
+    -- loot window still names its source by guid, and the guid carries the
+    -- mob's ID (Ragefire Chasm, 2026-10-10). The ID is a fact, not a guess,
+    -- so the corpse is the first mob the window names, under the name that
+    -- ID has. Other corpses' slots in the same window are left out by
+    -- SlotIsTargets, as with a target.
+    for _, source in ipairs(sources) do
+        local npcID = Harvest.NpcID(source)
+        if npcID then return self:NpcName(npcID, source), nil, source end
+    end
+
     return nil
+end
+
+--- The mob ID in a creature's guid ("Creature-0-4621-389-76516-11320-..."
+--- is 11320), or nil for anything else.
+function Harvest.NpcID(guid)
+    if type(guid) ~= "string" then return nil end
+    local kind, id = guid:match("^(%a+)%-%d+%-%d+%-%d+%-%d+%-(%d+)%-")
+    if kind ~= "Creature" and kind ~= "Vehicle" then return nil end
+    return tonumber(id)
+end
+
+--- What a mob ID is called. Asked of the game once, through the unit link
+--- the guid makes, and kept account wide in npcNames; when the game will not
+--- say, "Creature #11320", with the ID kept on the record so the name can be
+--- put back later.
+function Harvest:NpcName(npcID, guid)
+    local db = ns.db
+    local names = type(db) == "table" and db.npcNames or nil
+    if type(names) == "table" and type(names[npcID]) == "string" then
+        return names[npcID]
+    end
+
+    local name = Harvest.NameFromLink(guid)
+    if name and type(db) == "table" then
+        if type(db.npcNames) ~= "table" then db.npcNames = {} end
+        db.npcNames[npcID] = name
+    end
+    return name or ("Creature #%d"):format(npcID)
+end
+
+--- The name the game's tooltip gives for a creature guid's unit link, or nil.
+function Harvest.NameFromLink(guid)
+    local info = C_TooltipInfo
+    if type(guid) ~= "string" or type(info) ~= "table"
+        or type(info.GetHyperlink) ~= "function" then
+        return nil
+    end
+
+    local ok, data = pcall(info.GetHyperlink, "unit:" .. guid)
+    if not ok or type(data) ~= "table" then return nil end
+
+    local gotLine, line = pcall(function() return data.lines[1].leftText end)
+    return gotLine and Readable(line) or nil
 end
 
 -- Units that can be the corpse when the target is not: the one under the
@@ -724,6 +778,7 @@ function Harvest:RecordCorpse()
 
         record = self:GetRecord(mob, level, zone, location)
         record.corpses = record.corpses + 1
+        record.npc = record.npc or Harvest.NpcID(sourceGuid)
 
         if not record.coords then
             local x, y = self:PlayerPosition()
@@ -932,8 +987,18 @@ end
 --
 -- Rows come out marked provenance = "forever": they were measured on this
 -- client, which is exactly what that marker is for.
+--- A record kept under "Creature #11320" because the game would not name
+--- the mob. It stays in the save, ID and all, but is no use as data until
+--- the name is known, so it is not exported.
+function Harvest.Unnamed(record)
+    return type(record.mob) == "string" and record.mob:match("^Creature #%d+$") ~= nil
+end
+
 function Harvest:ExportItem(itemName)
-    local rows = self:ForItem(itemName)
+    local rows = {}
+    for _, row in ipairs(self:ForItem(itemName)) do
+        if not Harvest.Unnamed(row.record) then rows[#rows + 1] = row end
+    end
     if #rows == 0 then return nil end
 
     local out = {}
@@ -1382,6 +1447,13 @@ function Harvest:LootCheck()
         Line(("slot %d link"):format(slot), Call("GetLootSlotLink", slot))
         Line(("slot %d type"):format(slot), Call("GetLootSlotType", slot))
         Line(("slot %d sources"):format(slot), Call("GetLootSourceInfo", slot))
+    end
+
+    for _, source in ipairs(self:LootSources()) do
+        local npcID = Harvest.NpcID(source)
+        if npcID then
+            Line(("mob %d by link"):format(npcID), Harvest.NameFromLink(source) or "not given")
+        end
     end
 
     -- What the harvest itself makes of it, which is the answer that matters.
