@@ -950,10 +950,7 @@ function TrackerUI:DrawToolbar()
 
     local text
     if tab == "loot" then
-        local looted = 0
-        for _, count in pairs(ns.Tracker.sessionLoot or {}) do looted = looted + count end
-        for _, count in pairs(ns.Fishing and ns.Fishing.sessionCatch or {}) do looted = looted + count end
-        for _, count in pairs(ns.Gathering and ns.Gathering.sessionItems or {}) do looted = looted + count end
+        local _, looted = self:TabCounts()
         text = ("%d looted"):format(looted)
     else
         local hour = self:PerHour()
@@ -1612,7 +1609,7 @@ function TrackerUI:MobLootValue(mob)
 
     for name, from in pairs(ns.Tracker.sessionFrom or {}) do
         local count = from[mob]
-        if count then
+        if count and ns.Tracker.Counts(name) then
             local unit = ns.Value:UnitPrice(ns.Value:ItemID(name))
             if unit then total = total + count * unit end
         end
@@ -1823,9 +1820,10 @@ function TrackerUI:SessionItems()
     if ns.Fishing then Take(ns.Fishing.sessionCatch, nil, "Fishing") end
     if ns.Gathering then Take(ns.Gathering.sessionItems, ns.Gathering.sessionFrom, "Gathering") end
 
-    -- An item on the hide list is not shown (DB:IsHiddenItem).
+    -- Skinning while it is hidden, and items on the hide list, are not
+    -- shown (DB:HidesItem).
     for name in pairs(byName) do
-        if ns.DB:IsHiddenItem(name) then byName[name] = nil end
+        if not ns.Tracker.Counts(name) then byName[name] = nil end
     end
 
     local items = {}
@@ -2366,8 +2364,10 @@ function TrackerUI:TabCounts()
     local items, looted = {}, 0
     local function Take(counts)
         for name, count in pairs(counts or {}) do
-            items[name] = true
-            looted = looted + count
+            if ns.Tracker.Counts(name) then
+                items[name] = true
+                looted = looted + count
+            end
         end
     end
     Take(ns.Tracker.sessionLoot)

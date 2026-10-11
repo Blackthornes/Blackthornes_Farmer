@@ -177,6 +177,86 @@ suite.check("a picked Skinning chip in the search lets go", ns.UI.filterKind == 
 DB:SetShowSkinning(true)
 ns.UI:Hide()
 
+--------------------------------------------------------------------------------
+-- The session, and skins the data does not know
+--------------------------------------------------------------------------------
+
+-- A wolf looted, then skinned for a hide the data has never heard of.
+local realSkinning = ns.Gathering.IsSkinning
+local skinningNow = false
+ns.Gathering.IsSkinning = function() return skinningNow end
+serial = serial + 1
+local guid = "Creature-0-1-2-3-99-" .. serial
+env.world.target = { name = "Mangy Wolf", level = 8, dead = true, guid = guid }
+env.world.loot = { { name = "Large Fang" } }
+Tracker:OnLoot()
+skinningNow = true
+env.world.loot = { { name = "Forever Wolf Hide" } }
+Tracker:OnLoot()
+skinningNow = false
+ns.Gathering.IsSkinning = realSkinning
+
+suite.check("the data does not know the hide", DB:GetItem("Forever Wolf Hide") == nil)
+suite.check("a skin notes what it gave", DB:WasSkinned("Forever Wolf Hide")
+    and DB:FromSkinning("Forever Wolf Hide"))
+suite.check("a looted fang is not noted", not DB:WasSkinned("Large Fang"))
+
+local function OnLootTab(name)
+    for _, entry in ipairs(ns.TrackerUI:SessionItems()) do
+        if entry.name == name then return true end
+    end
+    return false
+end
+local function SessionNames()
+    local names = {}
+    for _, entry in ipairs(Tracker:SessionLoot()) do names[entry.name] = true end
+    return names
+end
+
+local shownWorth = Value:Session()
+local _, shownLooted = ns.TrackerUI:TabCounts()
+suite.check("shown, the Loot tab has the leather and the hide",
+    OnLootTab("Light Leather") and OnLootTab("Forever Wolf Hide"))
+
+redrawn = 0
+DB:SetShowSkinning(false)
+suite.check("hidden, the Loot tab leaves out the leather", not OnLootTab("Light Leather"))
+suite.check("and the hide the data did not know", not OnLootTab("Forever Wolf Hide"))
+suite.check("but keeps the fang", OnLootTab("Large Fang"))
+suite.check("the session's loot leaves them out",
+    not SessionNames()["Light Leather"] and not SessionNames()["Forever Wolf Hide"]
+    and SessionNames()["Large Fang"])
+local hiddenWorth, hiddenDetails = Value:Session()
+suite.check("the session's worth leaves the leather out", hiddenWorth < shownWorth,
+    tostring(hiddenWorth) .. " < " .. tostring(shownWorth))
+local unpricedHide = false
+for _, name in ipairs(hiddenDetails.unpriced) do
+    if name == "Forever Wolf Hide" then unpricedHide = true end
+end
+suite.check("and does not list the hide as unpriced", not unpricedHide)
+local _, hiddenLooted = ns.TrackerUI:TabCounts()
+suite.check("the looted count leaves them out", hiddenLooted == shownLooted - 21,
+    hiddenLooted .. " of " .. shownLooted)
+suite.check("a mob's loot worth leaves the leather out",
+    ns.TrackerUI:MobLootValue("Mangy Wolf") < shownWorth)
+suite.check("the session's counts are untouched", Tracker.sessionLoot["Light Leather"] == 20
+    and Tracker.sessionLoot["Forever Wolf Hide"] == 1)
+suite.check("the hide's tally is untouched", Tracker:Store()["Mangy Wolf"].items["Forever Wolf Hide"] == 1)
+suite.check("nor among the wolf's drops", not DropNames("Mangy Wolf")["Forever Wolf Hide"])
+
+DB:SetShowSkinning(true)
+suite.check("shown again, it all comes back", OnLootTab("Forever Wolf Hide")
+    and Value:Session() == shownWorth)
+
+-- A new skin while hidden redraws what shows it, once.
+DB:SetShowSkinning(false)
+redrawn = 0
+DB:NoteSkinned({ "Forever Bear Hide" })
+suite.check("a new skin while hidden redraws", redrawn == 1, redrawn)
+DB:NoteSkinned({ "Forever Bear Hide" })
+suite.check("one already noted does not", redrawn == 1, redrawn)
+DB:SetShowSkinning(true)
+
 DB.hideWatchers.test = nil
 ns.db.grindGives = nil
 

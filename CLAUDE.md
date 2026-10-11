@@ -190,8 +190,13 @@ skinning spot for (`item.fromSkinning`: leather, hides, scales), since a
 skin opens a loot window and recorded loot has the leather as a drop. The
 search, `DB:ByName` (Rankings, worth estimates), `Value:FromTally`,
 `Tracker:Summary` (panel, loot table), the Grind tab and the tooltip line
-follow it; recorded data is never changed, and goals and their arrow still
-follow a goal for leather. `DB:SetShowSkinning` moves `DB.hiddenVersion`
+follow it, and so does the session (the Loot tab, its looted count, a
+mob's loot worth, the session's worth and gold per hour, `Value:Session`,
+`Tracker.Counts`); recorded data is never changed, and goals and their
+arrow still follow a goal for leather. Every item a skinning window gives
+is noted account wide in `skinnedItems` (`DB:NoteSkinned`,
+`DB:WasSkinned`; never rename it), so a skin the data lists only as a drop,
+or one Forever added, counts as skinning too. `DB:SetShowSkinning` moves `DB.hiddenVersion`
 and calls `DB.hideWatchers`, so only the lists that show it redraw.
 Tested in `tools/test_showskinning.lua`.
 
