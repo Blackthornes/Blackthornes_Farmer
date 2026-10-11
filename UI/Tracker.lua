@@ -50,6 +50,8 @@ TrackerUI.HEADER = HEADER
 -- The Farm and Loot tabs under it, then the toolbar with the Sort button.
 local TAB_HEIGHT = 22
 local TOOLBAR = 22
+-- The toolbar's Clear button, beside Sort.
+local CLEAR_WIDTH = 44
 local TOP = HEADER + TAB_HEIGHT + TOOLBAR
 TrackerUI.TOP = TOP
 local LINE = 18
@@ -870,7 +872,73 @@ function TrackerUI:BuildToolbar(frame)
         if GameTooltip then GameTooltip:Hide() end
     end)
 
+    -- Clear panel (2026-10-11): the panel keeps its counts between sessions
+    -- now (Logic/Session.lua), so this is how a new run starts.
+    bar.clear = TrackerUI.ClearButton(bar, CLEAR_WIDTH, 16)
+    bar.clear:SetPoint("RIGHT", bar.sort, "LEFT", -4, 0)
+
     self.toolbar = bar
+end
+
+--- How long a first click on Clear waits for the second, in seconds.
+TrackerUI.CLEAR_ARMED = 4
+
+--- A Clear panel button: the first click asks "Sure?", a second within
+--- CLEAR_ARMED seconds empties what the panel shows (Session:Clear). Only
+--- the view goes; every tally, rate and ranking stays. Used on the panel and
+--- in Settings.
+function TrackerUI.ClearButton(parent, width, height)
+    local function Now()
+        if type(GetTime) ~= "function" then return nil end
+        local ok, now = pcall(GetTime)
+        return ok and type(now) == "number" and now or nil
+    end
+
+    -- When the first click came, kept here rather than on the button.
+    -- `button.armed` says whether a second click clears (its tooltip reads it).
+    local button, armedAt
+    local function Arm(on, at)
+        button.armed, armedAt = on, at
+        if button.label then button.label:SetText(on and "Sure?" or "Clear") end
+    end
+
+    button = Widgets.CreateButton(parent, "Clear", function()
+        local now = Now()
+        if button.armed == true and (not armedAt or not now
+            or now - armedAt <= TrackerUI.CLEAR_ARMED) then
+            Arm(false, nil)
+            if ns.Session then ns.Session:Clear() end
+            return
+        end
+
+        Arm(true, now)
+        -- Back to Clear if the second click never comes. Without a clock
+        -- (the tests) it waits for the second click.
+        if now and C_Timer and type(C_Timer.After) == "function" then
+            pcall(C_Timer.After, TrackerUI.CLEAR_ARMED, function()
+                local later = Now()
+                if button.armed == true and armedAt and later
+                    and later - armedAt >= TrackerUI.CLEAR_ARMED then
+                    Arm(false, nil)
+                end
+            end)
+        end
+    end, { width = width, height = height })
+    button.armed = false
+
+    button:HookScript("OnEnter", function(self)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Clear panel")
+        GameTooltip:AddLine("Empties what this panel shows and starts a new run. "
+            .. "Your kill tallies, drop rates and Rankings are kept.", 1, 1, 1, true)
+        GameTooltip:AddLine(self.armed == true and "Click again to clear." or "Click twice to clear.",
+            0.6, 0.6, 0.6)
+        GameTooltip:Show()
+    end)
+    button:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+
+    return button
 end
 
 --- The toolbar's words. Returns how wide the panel must be for them.
@@ -895,7 +963,8 @@ function TrackerUI:DrawToolbar()
     bar.left:SetText(text)
 
     local sortWidth = tonumber(bar.sort:GetWidth()) or 60
-    return PADDING + Theme.TextWidth("small", Util.StripColor(text)) + 12 + sortWidth + PADDING
+    local clearWidth = bar.clear and (tonumber(bar.clear:GetWidth()) or CLEAR_WIDTH) + 4 or 0
+    return PADDING + Theme.TextWidth("small", Util.StripColor(text)) + 12 + clearWidth + sortWidth + PADDING
 end
 
 --- What the session is earning an hour, in copper, once it has run long

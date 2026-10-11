@@ -940,8 +940,16 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("tracker", "show or hide the kill and loot panel (group on/off: move it aside in a party or raid; size: small, normal, large or a percent)", function(rest)
+ns.RegisterCommand("tracker", "show or hide the kill and loot panel (clear: empty what it shows, tallies kept; group on/off: move it aside in a party or raid; size: small, normal, large or a percent)", function(rest)
     local argument = Util.Trim(rest):lower()
+
+    -- What the panel shows, kept between sessions (Logic/Session.lua). Only
+    -- the view goes; every tally stays.
+    if argument == "clear" then
+        if ns.Session then ns.Session:Clear() end
+        ns.Print("kill and loot panel cleared. Your kill tallies and drop rates are kept.")
+        return
+    end
 
     if argument == "reset" then
         ns.Print("this clears every kill tally, for good. "
