@@ -4,6 +4,20 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.24.1
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- **Fixes:** a rogue's Pick Pocket no longer counts as a kill, so pocket
+  loot stays out of the drop rates and the real kill's coin is kept.
+  Where? and the goal arrow point at the spot where you found a mob you
+  tallied yourself, not the middle of the zone. Goals keep counting after
+  you walk away from a mailbox, bank, vendor, auction house or trade. A
+  long goal name shrinks and wraps instead of ending in "...". The Grind
+  tab follows a level up or a new zone, the version label shows on every
+  tab, and dungeon loot windows are read once.
+
 ## 0.24.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game
