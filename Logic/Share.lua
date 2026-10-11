@@ -487,6 +487,9 @@ end
 function Share:SendManifest(state)
     state.manifestAt = time()
     self:Build(state, function(manifest)
+        -- Which Farmer this is, so a partner naming two characters of this
+        -- account counts it once (Share:Identify).
+        if ns.Transfer then manifest.i = ns.Transfer:SourceId() end
         if self:Enabled() then Comm:SendTable("M", manifest, "WHISPER", state.name) end
     end)
 end
@@ -511,6 +514,32 @@ function Share:Check()
     end
 end
 
+--- Two characters of one account send the same saved data, so a partner is
+--- the account, not the name: the first character heard from holds the
+--- ledger, and a second one with the same Farmer id adds nothing. Naming a
+--- character of this very account takes nothing either.
+-- @return true when this partner's counts are to be taken
+function Share:Identify(state, id)
+    if type(id) ~= "string" or #id < 6 or #id > 16 or not id:match("^%x+$") then
+        state.duplicate = nil
+        return true
+    end
+    state.duplicate, state.sameAs = nil, nil
+    if ns.Transfer and id == ns.Transfer:SourceId() then
+        state.duplicate, state.sameAs = true, "this account"
+        return false
+    end
+    for key, held in pairs(ns.db.shareIn or {}) do
+        if key ~= state.key and type(held) == "table" and held.kind ~= "import" and held.account == id then
+            state.duplicate, state.sameAs = true, held.name or key
+            return false
+        end
+    end
+    local held = self:Held(state)
+    held.account = id
+    return true
+end
+
 function Share:OnHello(sender, _, channel, isReply)
     if channel ~= "WHISPER" then return end
     local state = self:PartnerFor(sender)
@@ -532,6 +561,7 @@ function Share:OnManifest(sender, manifest, channel)
     -- answering each other for ever).
     if not state.manifestAt or time() - state.manifestAt > 60 then self:SendManifest(state) end
 
+    if not self:Identify(state, manifest.i) then return end
     local held = self:Held(state)
     local want, total = {}, 0
     for _, section in ipairs(SECTIONS) do
@@ -647,7 +677,7 @@ end
 function Share:OnRecords(sender, batch, channel)
     if channel ~= "WHISPER" then return end
     local state = self:PartnerFor(sender)
-    if not state then return end
+    if not state or state.duplicate then return end
 
     local taken = 0
     for index, entry in ipairs(batch) do
@@ -715,9 +745,14 @@ function Share:Describe()
     for _, partner in ipairs(partners) do
         local state = self.partners[partner.key] or {}
         local total = self:CountTaken(partner.key)
-        parts[#parts + 1] = ("%s: %s, %d record%s taken"):format(
-            partner.name, state.online and "online" or "not heard from this session",
-            total, total == 1 and "" or "s")
+        if state.duplicate then
+            parts[#parts + 1] = ("%s: the same account as %s, so nothing is taken from it twice"):format(
+                partner.name, tostring(state.sameAs))
+        else
+            parts[#parts + 1] = ("%s: %s, %d record%s taken"):format(
+                partner.name, state.online and "online" or "not heard from this session",
+                total, total == 1 and "" or "s")
+        end
     end
     local pending = Comm:Pending()
     if pending > 0 then

@@ -130,6 +130,13 @@ accounts over a pretend chat. Not yet seen in game; the owner has one account,
 so only Tradeskills' one-account whisper test (full names, 2026-10-07) backs
 the wire.
 
+Naming several characters (2026-10-11): a partner is the account, not the
+name. The manifest carries `i`, the sender's Farmer id (`Transfer:SourceId`,
+`exportId`), and `Share:Identify` keeps it in `shareIn[partner].account`; a
+second character with an id already held, or this account's own, is a
+duplicate (`state.duplicate`) and nothing is taken from it. First heard
+holds the ledger. Tested in `tools/test_share.lua`.
+
 ## Giving data to another player
 
 A player asked (2026-10-11, the owner agreed) to export Farmer's data and
