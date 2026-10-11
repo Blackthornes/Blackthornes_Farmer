@@ -118,6 +118,12 @@ local PER_LEVEL_ABOVE = 6
 local RATE_WEIGHT = 0.25
 local YOURS_BONUS = 8
 local FOREVER_BONUS = 3
+-- A node or herb your gathering skill cannot take yet, or a profession you
+-- do not have: as far down as six zones away, so it still shows, last
+-- (the owner, 2026-10-11: send the player only where they can gather).
+local SKILL_SHORT = 60
+-- The gathering skills read for that (Spots:Player).
+Spots.GATHERING = { "Mining", "Herbalism", "Skinning" }
 
 -- The most places shown.
 Spots.MAX = 6
@@ -195,7 +201,91 @@ function Spots:Player()
     local level = ns.Harvest.ReadableNumber(Read(UnitLevel, "player"))
     if level and level <= 0 then level = nil end
 
-    return { zone = zone, level = level }
+    return { zone = zone, level = level, skills = Spots.Skills() }
+end
+
+--- Your skill in each gathering profession, as { Mining = 80, ... } with a
+--- profession you lack left out, or nil when the client will not say.
+--
+-- Read the way Fishing:Skill reads fishing: a retail engine through
+-- GetProfessions, a classic one through the skill lines. Forever is the
+-- first with the content of the second, so both are tried. Kept for
+-- SKILLS_KEEP seconds, since a tooltip asks each time it shows.
+Spots.SKILLS_KEEP = 10
+
+function Spots.ForgetSkills()
+    Spots.skillsAt, Spots.skillsKept = nil, nil
+end
+
+function Spots.Skills()
+    local now = type(GetTime) == "function" and GetTime() or nil
+    if now and Spots.skillsAt and now - Spots.skillsAt < Spots.SKILLS_KEEP then
+        return Spots.skillsKept or nil
+    end
+    local gathering = Spots.ReadSkills()
+    Spots.skillsAt, Spots.skillsKept = now, gathering or false
+    return gathering
+end
+
+function Spots.ReadSkills()
+    local skills, read = {}, false
+
+    if type(GetProfessions) == "function" and type(GetProfessionInfo) == "function" then
+        local ok, first, second = pcall(GetProfessions)
+        if ok then
+            read = true
+            for _, index in ipairs({ ns.Harvest.ReadableNumber(first) or false,
+                ns.Harvest.ReadableNumber(second) or false }) do
+                if index then
+                    local got, name, _, rank = pcall(GetProfessionInfo, index)
+                    name = got and ns.Harvest.Readable(name) or nil
+                    rank = got and ns.Harvest.ReadableNumber(rank) or nil
+                    if name and rank then skills[name] = rank end
+                end
+            end
+        end
+    end
+
+    if not next(skills) and type(GetNumSkillLines) == "function" and type(GetSkillLineInfo) == "function" then
+        local ok, lines = pcall(GetNumSkillLines)
+        local count = ok and ns.Harvest.ReadableNumber(lines) or nil
+        if count and count > 0 then read = true end
+        for index = 1, count or 0 do
+            local gotLine, lineName, isHeader, _, rank = pcall(GetSkillLineInfo, index)
+            local name = gotLine and not isHeader and ns.Harvest.Readable(lineName) or nil
+            local value = gotLine and ns.Harvest.ReadableNumber(rank) or nil
+            if name and value then skills[name] = value end
+        end
+    end
+
+    if not read then return nil end
+    local gathering = {}
+    for _, name in ipairs(Spots.GATHERING) do gathering[name] = skills[name] end
+    return gathering
+end
+
+--- What a spot's "Mining 65" asks of you: the profession, the skill it
+--- needs, and what you have (nil when you lack the profession). Nil when
+--- the spot needs no gathering skill, or your skills could not be read.
+function Spots.SkillNeed(spot, player)
+    if type(spot.requires) ~= "string" or not (player and player.skills) then return nil end
+    local profession, needed = spot.requires:match("^(%a+) (%d+)$")
+    needed = tonumber(needed)
+    if not (profession and needed) then return nil end
+    local known = false
+    for _, name in ipairs(Spots.GATHERING) do
+        if name == profession then known = true break end
+    end
+    if not known then return nil end
+    return profession, needed, player.skills[profession]
+end
+
+--- "needs 125, you have 80" or "needs Mining", or nil when you can gather it.
+function Spots.SkillShortText(spot)
+    local short = spot.skillShort
+    if not short then return nil end
+    if short.have then return ("needs %d, you have %d"):format(short.needed, short.have) end
+    return ("needs %s"):format(short.profession)
 end
 
 --------------------------------------------------------------------------------
@@ -335,6 +425,15 @@ function Spots:Score(spot, player)
     if spot.yours then score = score - YOURS_BONUS end
     if spot.forever then score = score - FOREVER_BONUS end
 
+    -- A node your skill cannot take yet still shows, last, saying why.
+    local profession, needed, have = Spots.SkillNeed(spot, player)
+    if profession and (not have or have < needed) then
+        spot.skillShort = { profession = profession, needed = needed, have = have }
+        score = score + SKILL_SHORT
+    else
+        spot.skillShort = nil
+    end
+
     spot.score = score
     return score
 end
@@ -373,6 +472,8 @@ function Spots:Line(spot)
 
     local distance = Spots.DistanceText(spot.hops, spot.zone, spot.travel)
     if distance ~= "" then text = text .. ", " .. distance end
+    local short = Spots.SkillShortText(spot)
+    if short then text = text .. ", " .. Util.Colored("warn", short) end
     return text
 end
 

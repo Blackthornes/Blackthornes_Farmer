@@ -513,10 +513,18 @@ Search.SUGGEST_CATEGORIES = { "Cloth", "Leatherworking", "Mining", "Herbalism" }
 
 --- One item per suggested category that suits a character of `level`: the
 --- one with the most places whose level band takes it in. Nothing for a
---- category where no band does. For the empty search window.
-function Search:ForLevel(level)
+--- category where no band does. For the empty search window. With your
+--- gathering skills (`skills`, Spots.Skills; read here when not given), a
+--- node or herb a profession you have cannot take yet is not counted, so a 20-Mining
+--- miner is never offered Mithril.
+function Search:ForLevel(level, skills)
     level = tonumber(level) or 0
     if level <= 0 then return {} end
+    if skills == nil and ns.Spots and ns.Spots.Skills then
+        local ok, read = pcall(ns.Spots.Skills)
+        skills = ok and read or nil
+    end
+    local player = skills and { skills = skills } or nil
 
     local best = {}
 
@@ -525,7 +533,10 @@ function Search:ForLevel(level)
         for _, source in ipairs(item.sources) do
             local low = tonumber(source.minLevel)
             local high = tonumber(source.maxLevel) or (low and low + 10)
-            if low and low <= level and level <= high then fits = fits + 1 end
+            local profession, needed, have
+            if player then profession, needed, have = ns.Spots.SkillNeed(source, player) end
+            local canGather = not profession or have == nil or have >= needed
+            if canGather and low and low <= level and level <= high then fits = fits + 1 end
         end
 
         local pick = best[item.category]

@@ -154,6 +154,8 @@ function ItemTooltip:LineFor(item, player)
 
     local distance = ns.Spots.DistanceText(spot.hops, spot.zone, spot.travel)
     if distance ~= "" then parts[#parts + 1] = distance end
+    local short = ns.Spots.SkillShortText and ns.Spots.SkillShortText(spot)
+    if short then parts[#parts + 1] = short end
 
     return Util.Colored("accent", "Farm: ") .. Util.Colored("text", table.concat(parts, ", "))
 end

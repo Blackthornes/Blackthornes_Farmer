@@ -268,4 +268,70 @@ local ok = pcall(GUI.OpenSpots, GUI, "Copper Ore")
 suite.check("a secret zone does not raise", ok)
 suite.check("and says why it is not by distance", panel.from:GetText():find("could not be read") ~= nil)
 
+--------------------------------------------------------------------------------
+-- Gathering skill (2026-10-11): send the player only where they can gather
+--------------------------------------------------------------------------------
+
+local function Vein(name, zone, requires)
+    return { name = name, kind = "node", zone = zone, minLevel = 10, maxLevel = 20, requires = requires }
+end
+local miner = { zone = "Westfall", level = 20, skills = { Mining = 80 } }
+local tin = Vein("Tin Vein", "Westfall", "Mining 65")
+local iron = Vein("Iron Deposit", "Westfall", "Mining 125")
+local farTin = Vein("Tin Vein", "Redridge Mountains", "Mining 65")
+Spots:Score(tin, miner)
+Spots:Score(iron, miner)
+Spots:Score(farTin, miner)
+suite.check("a node your skill takes is not marked", tin.skillShort == nil)
+suite.check("one above your skill is", iron.skillShort and iron.skillShort.needed == 125
+    and iron.skillShort.have == 80)
+suite.check("and ranks below one two zones away", farTin.score < iron.score, farTin.score .. " vs " .. iron.score)
+suite.check("saying why", Spots.SkillShortText(iron) == "needs 125, you have 80", Spots.SkillShortText(iron))
+suite.check("the chat line says it too", Spots:Line(iron):find("needs 125, you have 80", 1, true) ~= nil)
+suite.check("and the goal picker's note", GUI.SpotNote(iron):find("needs 125, you have 80", 1, true) ~= nil)
+
+local herb = { name = "Peacebloom", kind = "herb", zone = "Westfall", requires = "Herbalism 1" }
+Spots:Score(herb, miner)
+suite.check("a profession you lack says so", Spots.SkillShortText(herb) == "needs Herbalism")
+Spots:Score(herb, { zone = "Westfall", level = 20 })
+suite.check("skills the client won't give leave it alone", herb.skillShort == nil)
+local fished = { name = "School", kind = "fish", zone = "Westfall", requires = "Fishing 100" }
+Spots:Score(fished, miner)
+suite.check("only gathering skills are judged", fished.skillShort == nil)
+
+-- Reading the skills: retail's professions first, then classic's skill lines.
+_G.GetProfessions = function() return 1, 2, nil, 4, 5 end
+_G.GetProfessionInfo = function(index)
+    if index == 1 then return "Mining", "icon", 80 end
+    if index == 2 then return "Skinning", "icon", 30 end
+end
+Spots.ForgetSkills()
+local skills = Spots.Skills()
+suite.check("professions are read", skills and skills.Mining == 80 and skills.Skinning == 30
+    and skills.Herbalism == nil)
+_G.GetProfessions, _G.GetProfessionInfo = nil, nil
+_G.GetNumSkillLines = function() return 3 end
+_G.GetSkillLineInfo = function(index)
+    if index == 1 then return "Professions", true end
+    if index == 2 then return "Herbalism", false, nil, 55 end
+    return "Defense", false, nil, 100
+end
+Spots.ForgetSkills()
+skills = Spots.Skills()
+suite.check("or the skill lines", skills and skills.Herbalism == 55 and skills.Mining == nil)
+_G.GetNumSkillLines, _G.GetSkillLineInfo = nil, nil
+Spots.ForgetSkills()
+suite.check("nothing to read, nil", Spots.Skills() == nil)
+
+-- The empty search window never suggests ore a miner can't mine yet.
+local picks = ns.Search:ForLevel(25, { Mining = 20 })
+local ore
+for _, item in ipairs(picks) do if item.category == "Mining" then ore = item end end
+local mineable = true
+for _, source in ipairs(ore and ore.sources or {}) do
+    local _, needed = ns.Spots.SkillNeed(source, { skills = { Mining = 20 } })
+    if needed and needed > 20 then mineable = false end
+end
+suite.check("a 20-Mining miner is offered ore they can mine", ore and mineable, ore and ore.name)
+
 suite.done()

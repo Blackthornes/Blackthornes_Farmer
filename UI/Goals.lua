@@ -1279,6 +1279,9 @@ end
 --- Rates read as the kills panel writes them, so a rare drop is "<1%",
 --- not "0%".
 function GoalsUI.SpotNote(spot)
+    -- A node your gathering skill cannot take yet says so first.
+    local short = ns.Spots.SkillShortText and ns.Spots.SkillShortText(spot)
+    if short then return Util.Colored("warn", short) end
     local yours = spot.yours
     if yours and yours.gathers then
         return Util.Colored("good", ("you gathered %d here"):format(yours.got or 0))
