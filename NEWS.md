@@ -12,6 +12,11 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.24.0
+
+- Farmer now keeps track of loot in dungeons and raids, so you'll see drop rates for dungeon mobs too.
+- The Grind tab's Sort menu doesn't get covered up anymore.
+
 ## 0.23.1
 
 - Dragging the goal arrow won't count as a click anymore.

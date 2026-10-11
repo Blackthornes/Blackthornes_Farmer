@@ -4,6 +4,25 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.24.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- **Dungeon and raid loot is recorded:** Farmer used to skip every corpse
+  inside a dungeon or raid, because the game hides the mob's name there.
+  Now each drop is filed under the mob it came from, named from a new list
+  of Classic's dungeon and raid mobs, so the kills panel and drop rates
+  cover dungeon mobs too. A mob the list doesn't know yet shows as
+  "Creature #ID" until its name is learned, and drops already saved that
+  way are renamed on the next load.
+- **More Forever loot:** drops from 20 more mobs and 208 more corpses,
+  Ragefire Chasm and Wailing Caverns included.
+- **Fixes:** the Grind tab's Sort menu opens on top instead of under the
+  chips and headings. In the Blizzard window style, the picked tab stays
+  lit, the Window style box fits its words, and the Reload buttons sit
+  under their setting.
+
 ## 0.23.1
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
