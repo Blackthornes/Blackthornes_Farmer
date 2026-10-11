@@ -199,6 +199,12 @@ function env.InstallWorld()
     -- Every corpse is its own creature; a test that loots one twice (skinning
     -- it, or coming back for what was left) gives the target a fixed guid.
     _G.UnitGUID = function(unit)
+        -- The character playing: one GUID per name, so a test that logs in
+        -- as another character (a new UnitName) is another GUID.
+        if unit == "player" then
+            local name = _G.UnitName("player")
+            return type(name) == "string" and ("Player-1-" .. name) or nil
+        end
         if unit ~= "target" or not world.target then return nil end
         return world.target.guid
     end

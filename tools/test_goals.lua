@@ -287,7 +287,7 @@ local function LogIn(name, copper)
         if unit == "player" then return name end
         return realUnitName(unit)
     end
-    Goals.me = nil
+    Goals.me, Goals.oldMe = nil, nil
     bags[COPPER] = copper
     clock = clock + 600
     Goals:Settle()
@@ -308,7 +308,7 @@ LogIn("Blackthornes", 6)
 BagsSettled()
 ns.HandleSlash("goal Copper Ore 40")
 local main = Goals:Find("Copper Ore")
-suite.check("a new goal is its character's", main and main.owner == "Blackthornes", main and main.owner)
+suite.check("a new goal is its character's", main and main.owner == "Player-1-Blackthornes", main and main.owner)
 clock = clock + 30
 Bags(30)
 
@@ -371,7 +371,7 @@ BagsSettled()
 suite.check("its own character sees it too", Goals:Find("Copper Ore") == old and old.have == 30)
 clock = clock + 30
 Bags(33)
-suite.check("gathering toward it makes it yours", old.owner == "Blackthornes", old.owner)
+suite.check("gathering toward it makes it yours", old.owner == "Player-1-Blackthornes", old.owner)
 suite.check("and it keeps the pace it had", old.paced == nil and Goals.Eta(old) ~= nil)
 
 LogIn("Bankalt", 120)
@@ -380,23 +380,57 @@ suite.check("then the others no longer see it", Goals:Find("Copper Ore") == nil)
 local older = { item = "Tin Ore", target = 80, have = 30, start = 30, gained = 0, loots = 0, active = 0 }
 table.insert(ns.db.goals.list, older)
 Goals:Set("Tin Ore", 90)
-suite.check("changing an old goal makes it yours", older.owner == "Bankalt" and older.target == 90, older.owner)
+suite.check("changing an old goal makes it yours", older.owner == "Player-1-Bankalt" and older.target == 90, older.owner)
 LogIn("Blackthornes", 33)
 suite.check("and only yours", Goals:Find("Tin Ore") == nil)
 
--- With a realm the tag carries it; one the client will not read is asked
--- for again rather than left off, so one character is never two.
+-- Goals are tagged by GUID (2026-10-11): Forever lets characters share a
+-- first name, and the old "Name-Realm" tag filed them all as one. A GUID
+-- the client will not read is asked for again rather than left off.
+local realGUID = _G.UnitGUID
+_G.UnitGUID = function(unit) if unit == "player" then return env.Secret("guid") end return realGUID(unit) end
+Goals.me = nil
+suite.check("an unreadable GUID tags nothing yet", Goals:Owner() == nil and Goals.me == nil)
+_G.UnitGUID = realGUID
+suite.check("the tag is the GUID", Goals:Owner() == "Player-1-Blackthornes", Goals:Owner())
+
+-- Two characters of one first name are two owners.
+local function AsGuid(guid)
+    _G.UnitGUID = function(unit) if unit == "player" then return guid end return realGUID(unit) end
+    Goals.me, Goals.oldMe = nil, nil
+end
+LogIn("Bob", 5)
+AsGuid("Player-1-ASH")
+Goals:Set("Silk Cloth", 40)
+local ash = Goals:Find("Silk Cloth")
+AsGuid("Player-1-STONE")
+suite.check("another Bob does not see the first Bob's goal", Goals:Find("Silk Cloth") == nil)
+AsGuid("Player-1-ASH")
+suite.check("the first Bob does", Goals:Find("Silk Cloth") == ash)
+Goals:Remove("Silk Cloth")
+
+-- A goal tagged the old way is read as the character's, and gets the GUID
+-- once it gathers toward it.
 local realRealm = _G.GetRealmName
 _G.GetRealmName = function() return env.Secret("realm") end
-Goals.me = nil
-suite.check("an unreadable realm tags nothing yet", Goals:Owner() == nil and Goals.me == nil)
+Goals.oldMe = nil
+suite.check("an unreadable realm gives no old tag", Goals:OldOwner() == nil)
 _G.GetRealmName = function() return "Forever" end
-suite.check("name and realm", Goals:Owner() == "Blackthornes-Forever", Goals:Owner())
+suite.check("the old tag is name and realm", Goals:OldOwner() == "Bob-Forever", Goals:OldOwner())
+local tagged = { item = "Copper Ore", owner = "Bob-Forever", target = 900, have = 5, start = 5,
+    gained = 0, loots = 0, active = 0 }
+table.insert(ns.db.goals.list, tagged)
+suite.check("an old-tagged goal is its character's", Goals:Find("Copper Ore") == tagged)
+clock = clock + 30
+Bags(9)
+suite.check("gathering toward it tags it with the GUID", tagged.owner == "Player-1-ASH", tagged.owner)
+Goals:Remove("Copper Ore")
+_G.UnitGUID = realGUID
 
 _G.GetRealmName = realRealm
 _G.UnitName = realUnitName
 C_Timer.After = realAfter
-Goals.me = nil
+Goals.me, Goals.oldMe = nil, nil
 
 --------------------------------------------------------------------------------
 -- Every line fits

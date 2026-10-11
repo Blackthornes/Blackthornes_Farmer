@@ -119,8 +119,10 @@ end
 --- the first open one. Nil with none.
 function Arrow:Goal()
     local open = self:OpenGoals()
-    local owner = ns.Goals:Owner() or "?"
-    local wanted = self:FollowStore()[owner]
+    local store = self:FollowStore()
+    local wanted = store[ns.Goals:Owner() or "?"]
+    -- Picked before characters were named by GUID: kept under "Name-Realm".
+    if wanted == nil and ns.Goals:OldOwner() then wanted = store[ns.Goals:OldOwner()] end
 
     if type(wanted) == "string" then
         for _, goal in ipairs(open) do
