@@ -115,7 +115,13 @@ function HideMenu:Open(choices)
 
     -- At the mouse, its top left corner just under it.
     menu:ClearAllPoints()
-    local x, y = GetCursorPosition and GetCursorPosition()
+    -- Called on its own: "GetCursorPosition and GetCursorPosition()" keeps
+    -- only x, which left y nil and the menu in the middle of the screen.
+    local x, y
+    if GetCursorPosition then
+        local ok, cx, cy = pcall(GetCursorPosition)
+        if ok then x, y = cx, cy end
+    end
     local scale = UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
     if type(x) == "number" and type(y) == "number" and type(scale) == "number" and scale > 0 then
         menu:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x / scale - 6, y / scale + 6)

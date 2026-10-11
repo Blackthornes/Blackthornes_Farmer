@@ -173,6 +173,18 @@ suite.check("a right-click opens the menu", opened and menu:IsShown())
 suite.check("with a line each", menu.lines[1]:IsShown() and menu.lines[2]:IsShown()
     and not menu.lines[3]:IsShown())
 suite.check("named", menu.lines[1].label:GetText() == "Hide Kobold Vermin", menu.lines[1].label:GetText())
+-- At the mouse, not the middle of the screen (a player found it there).
+local point = menu._point
+suite.check("it opens at the mouse", point and point[1] == "TOPLEFT" and point[3] == "BOTTOMLEFT"
+    and point[4] == 600 - 6 and point[5] == 500 + 6, point and table.concat({ tostring(point[1]),
+    tostring(point[4]), tostring(point[5]) }, " "))
+local realScale = UIParent.GetEffectiveScale
+UIParent.GetEffectiveScale = function() return 2 end
+ns.HideMenu:Open({ { kind = "item", name = "Wool Cloth" } })
+suite.check("at the mouse at any UI scale", menu._point[4] == 300 - 6 and menu._point[5] == 250 + 6,
+    menu._point[4])
+UIParent.GetEffectiveScale = realScale
+ns.HideMenu:Open({ { kind = "source", name = "Kobold Vermin" }, { kind = "item", name = "Linen Cloth" } })
 suite.check("nothing is hidden by opening it", #DB:HiddenEntries() == 0)
 menu.lines[1]:GetScript("OnClick")(menu.lines[1])
 suite.check("its line hides that one", DB:IsHiddenSource("Kobold Vermin") and not DB:IsHiddenItem("Linen Cloth"))
