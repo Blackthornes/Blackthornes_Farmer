@@ -286,6 +286,7 @@ function Goals:Set(name, target)
 
     local goal = self:Find(name)
     local list = self:Store().list
+    local isNew = false
 
     if not goal then
         -- A finished goal still on the panel makes room for a new one. Only
@@ -305,6 +306,7 @@ function Goals:Set(name, target)
 
         goal = { item = name }
         list[#list + 1] = goal
+        isNew = true
     end
 
     -- Changing a goal saved before goals had owners makes it yours.
@@ -323,6 +325,7 @@ function Goals:Set(name, target)
     Goals.version = Goals.version + 1
 
     if ns.GoalsUI then ns.GoalsUI:Refresh() end
+    if isNew and ns.Arrow and ns.Arrow.TurnOnForGoal then pcall(ns.Arrow.TurnOnForGoal, ns.Arrow) end
     return goal
 end
 

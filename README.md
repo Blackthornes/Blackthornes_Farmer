@@ -93,7 +93,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
 | `/farm goal <item> <amount>` | set a gathering goal, e.g. `/farm goal Copper Ore 40`; on its own, lists your goals (`remove <item>`, `clear` for finished ones, `bank on\|off` to count your bank) |
 | `/farm where <item>` | the best places near you to farm it, nearest first |
-| `/farm arrow [on\|off]` | an arrow on screen that points to the nearest place to gather a goal (off by default; `next` for the next place, `<goal>` to follow that goal, `check` for what the game lets it read, `tomtom` to use TomTom's arrow or not, `reset` puts it back) |
+| `/farm arrow [on\|off]` | an arrow on screen that points to the nearest place to gather a goal (on with your first new goal, unless you have turned it off; `next` for the next place, `<goal>` to follow that goal, `check` for what the game lets it read, `tomtom` to use TomTom's arrow or not, `reset` puts it back) |
 | `/farm tooltip` | turn the "Farm:" line on material tooltips on or off (on by default) |
 | `/farm goals [dock]` | show or hide the goals panel; `dock` puts it back under the kills panel |
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
@@ -368,8 +368,9 @@ suggests ore and herbs you can gather. Click a place to print it to chat;
 when it is in the zone you are in and has coordinates, it is also pinned on
 your map. `/farm where copper ore` opens the same list without a goal.
 
-**Goal arrow.** `/farm arrow`, or the Goal arrow switch on the settings page,
-puts a gold dial on screen with an arrow that turns as you turn and points to
+**Goal arrow.** It comes on by itself when you set a new goal, unless you
+have ever turned it off. `/farm arrow`, or the Goal arrow switch on the
+settings page, also puts a gold dial on screen with an arrow that turns as you turn and points to
 the nearest place to gather the goal it follows. The goal and its count sit on
 the plate across the top, the distance in yards under it. Spots where you
 gathered the item yourself come first, nearest first, and one you picked in
