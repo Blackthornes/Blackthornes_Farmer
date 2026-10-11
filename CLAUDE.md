@@ -391,6 +391,14 @@ Changes to the Discord bots, the digest or the release posting tools
 (like this one) never go in a CHANGELOG, #announcements or #general
 section (the owner, 2026-10-10): they are not changes to the addon.
 
+The language is "Deutsch" in every post (the owner, 2026-10-11): a
+CHANGELOG.md or NEWS.md section about the German translation or German
+clients says "Deutsch", or "Deutsch (German)" where English readers need
+the hint, never "German" alone. `tools/check_release.py` warns (it does
+not refuse) when this version's CHANGELOG.md or NEWS.md section says
+German without Deutsch. This rule is in every addon's notes; keep them
+the same.
+
 ## Loot inside dungeons
 
 Inside a dungeon the client hides the corpse's name and guid from addons,
