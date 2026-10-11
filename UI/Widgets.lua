@@ -4,6 +4,10 @@
 -- them.
 
 local _, ns = ...
+-- The words through the addon's translation table (ns.L, Locale/Locale.lua),
+-- else in English, for a test that loads this file on its own.
+local L = ns.L or setmetatable({ Format = function(key, ...) return key:format(...) end },
+    { __index = function(_, key) return key end })
 
 local Widgets = {}
 ns.Widgets = Widgets
@@ -1819,7 +1823,7 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
                 if GameTooltip then
                     GameTooltip:SetOwner(self, "ANCHOR_TOP")
                     GameTooltip:AddLine(tips[key], 1, 1, 1, true)
-                    GameTooltip:AddLine("Click again to turn it round, a third time for the usual order.",
+                    GameTooltip:AddLine(L["Click again to turn it round, a third time for the usual order."],
                         Theme.Unpack("muted"))
                     GameTooltip:Show()
                 end
@@ -1913,6 +1917,14 @@ end
 ---   done(percent)    after a drag or a right-click: save the window's spot,
 ---                    put back what was hidden, dock it again
 ---   name             "window" or "panel", for the tooltip
+-- The grip's tooltip, whole for each window kind so a translation can put
+-- its own article and word order round the noun.
+local GRIP_TIPS = {
+    window = L["Drag to make the window bigger or smaller, text and all."],
+    panel = L["Drag to make the panel bigger or smaller, text and all."],
+    picker = L["Drag to make the picker bigger or smaller, text and all."],
+}
+
 function Widgets.CreateSizeGrip(frame, opts)
     opts = opts or {}
     local low, high = opts.min or Widgets.SIZE_MIN, opts.max or Widgets.SIZE_MAX
@@ -2046,8 +2058,9 @@ function Widgets.CreateSizeGrip(frame, opts)
         Light(true)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(Widgets.SizeText(ScaleOf(frame) * 100), Theme.Unpack("accentHi"))
-        GameTooltip:AddLine(("Drag to make the %s bigger or smaller, text and all."):format(name), 1, 1, 1, true)
-        GameTooltip:AddLine("Right-click: back to the normal size.", 1, 1, 1, true)
+        GameTooltip:AddLine(GRIP_TIPS[name] or L.Format("Drag to make the %s bigger or smaller, text and all.", name),
+            1, 1, 1, true)
+        GameTooltip:AddLine(L["Right-click: back to the normal size."], 1, 1, 1, true)
         GameTooltip:Show()
     end)
     grip:SetScript("OnLeave", function()

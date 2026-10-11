@@ -21,6 +21,7 @@
 -- gathering record and the map spots are only read. Nothing is sent anywhere.
 
 local _, ns = ...
+local L = ns.L
 
 local Respawn = ns.NewModule("Respawn")
 
@@ -98,22 +99,23 @@ end
 --- "under a minute", "7 min", "1 h 20 min".
 function Respawn.Duration(seconds)
     seconds = math.max(0, tonumber(seconds) or 0)
-    if seconds < 60 then return "under a minute" end
+    if seconds < 60 then return L["under a minute"] end
 
     local minutes = math.floor(seconds / 60 + 0.5)
-    if minutes < 60 then return ("%d min"):format(minutes) end
+    if minutes < 60 then return L.Format("%d min", minutes) end
 
     local hours, rest = math.floor(minutes / 60), minutes % 60
-    if rest == 0 then return ("%d h"):format(hours) end
-    return ("%d h %d min"):format(hours, rest)
+    if rest == 0 then return L.Format("%d h", hours) end
+    return L.Format("%d h %d min", hours, rest)
 end
 
 local function Learning(estimate)
-    return ("Grows back: ?  (learning, %d of %d returns)"):format(estimate.returns, MIN_RETURNS)
+    return L.Format("Grows back: ?  (learning, %d of %d returns)", estimate.returns, MIN_RETURNS)
 end
 
 local function From(estimate)
-    return ns.Util.Plural(estimate.returns, "return")
+    if estimate.returns == 1 then return L["1 return"] end
+    return L.Format("%d returns", estimate.returns)
 end
 
 --- The line for a map marker: how long until this spot's node is back.
@@ -125,16 +127,16 @@ function Respawn:SpotLine(spot, now)
 
     local last, clock = tonumber(spot.last), tonumber(now)
     if not (last and clock) then
-        return ("Grows back in about %s  (from %s)"):format(
+        return L.Format("Grows back in about %s  (from %s)",
             Respawn.Duration(estimate.seconds), From(estimate)), true
     end
 
     local left = last + estimate.seconds - clock
     if left <= 0 then
-        return ("Should be back by now  (from %s)"):format(From(estimate)), true
+        return L.Format("Should be back by now  (from %s)", From(estimate)), true
     end
 
-    return ("Back in about %s  (from %s)"):format(Respawn.Duration(left), From(estimate)), true
+    return L.Format("Back in about %s  (from %s)", Respawn.Duration(left), From(estimate)), true
 end
 
 --- The line for a node under the mouse in the world: how long it takes to
@@ -149,7 +151,7 @@ function Respawn:NodeLine(mapID, node)
         return Learning(estimate), false
     end
 
-    return ("Grows back in about %s here  (from %s)"):format(
+    return L.Format("Grows back in about %s here  (from %s)",
         Respawn.Duration(estimate.seconds), From(estimate)), true
 end
 

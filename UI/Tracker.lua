@@ -25,6 +25,7 @@
 -- steps aside from the group frames (see "In a group" at the bottom).
 
 local _, ns = ...
+local L = ns.L
 
 local TrackerUI = ns.NewModule("TrackerUI")
 
@@ -276,9 +277,9 @@ end
 local SCALE_MIN, SCALE_MAX = 50, 150
 TrackerUI.SCALE_MIN, TrackerUI.SCALE_MAX = SCALE_MIN, SCALE_MAX
 TrackerUI.SIZES = {
-    { key = "small", text = "Small", percent = 80 },
-    { key = "normal", text = "Normal", percent = 100 },
-    { key = "large", text = "Large", percent = 120 },
+    { key = "small", text = L["Small"], percent = 80 },
+    { key = "normal", text = L["Normal"], percent = 100 },
+    { key = "large", text = L["Large"], percent = 120 },
 }
 local SIZE_GRIP = 20
 
@@ -482,10 +483,10 @@ function TrackerUI:BuildSizeGrip(frame)
         Light(true)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(TrackerUI.ScaleText(ScaleOf(frame) * 100), Theme.Unpack("accentHi"))
-        GameTooltip:AddLine("Drag to make the whole panel bigger or smaller, text and all.", 1, 1, 1, true)
-        GameTooltip:AddLine("Right-click: back to the normal size.", 1, 1, 1, true)
-        GameTooltip:AddLine("The small grip inside the corner changes how much it shows instead.", 1, 1, 1, true)
-        GameTooltip:AddLine("Also Kill tally size in Settings, and /farm tracker size.", Theme.Unpack("accent"))
+        GameTooltip:AddLine(L["Drag to make the whole panel bigger or smaller, text and all."], 1, 1, 1, true)
+        GameTooltip:AddLine(L["Right-click: back to the normal size."], 1, 1, 1, true)
+        GameTooltip:AddLine(L["The small grip inside the corner changes how much it shows instead."], 1, 1, 1, true)
+        GameTooltip:AddLine(L["Also Kill tally size in Settings, and /farm tracker size."], Theme.Unpack("accent"))
         GameTooltip:Show()
     end)
     grip:SetScript("OnLeave", function()
@@ -501,16 +502,16 @@ end
 --------------------------------------------------------------------------------
 
 local TABS = {
-    { key = "farm", label = "Farm" },
-    { key = "loot", label = "Loot" },
+    { key = "farm", label = L["Farm"] },
+    { key = "loot", label = L["Loot"] },
 }
 
 -- What each tab's Sort button steps through, first the default.
 local SORTS = {
-    farm = { { key = "recent", label = "Recent" }, { key = "worth", label = "Worth per kill" },
-        { key = "kills", label = "Kills" }, { key = "value", label = "Loot value" } },
-    loot = { { key = "value", label = "Value" }, { key = "count", label = "Count" },
-        { key = "name", label = "Name" } },
+    farm = { { key = "recent", label = L["Recent"] }, { key = "worth", label = L["Worth per kill"] },
+        { key = "kills", label = L["Kills"] }, { key = "value", label = L["Loot value"] } },
+    loot = { { key = "value", label = L["Value"] }, { key = "count", label = L["Count"] },
+        { key = "name", label = L["Name"] } },
 }
 TrackerUI.SORTS = SORTS
 
@@ -615,7 +616,7 @@ function TrackerUI:Build()
 
     local title = Theme.CreateLabel(header, "normal", "accent")
     title:SetPoint("LEFT", header, "TOPLEFT", PADDING + 4, -TITLE_LINE / 2)
-    title:SetText("Kills & Loot")
+    title:SetText(L["Kills & Loot"])
 
     local close = Widgets.CreateButton(header, "X", function()
         ns.db.trackerHidden = true
@@ -623,7 +624,7 @@ function TrackerUI:Build()
         -- An open Settings page shows the panel's switch: keep it in step,
         -- as /farm tracker off does.
         if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
-        ns.Print("kill and loot panel hidden. /farm tracker brings it back.")
+        ns.Print(L["kill and loot panel hidden. /farm tracker brings it back."])
     end, { width = 18, height = 16, danger = true })
     close:SetPoint("RIGHT", header, "TOPRIGHT", -6, -TITLE_LINE / 2)
 
@@ -636,7 +637,7 @@ function TrackerUI:Build()
 
     total.left = Theme.CreateLabel(total, "small", "muted")
     total.left:SetPoint("LEFT", PADDING + 1, 0)
-    total.left:SetText("Gathered value")
+    total.left:SetText(L["Gathered value"])
 
     total.right = Theme.CreateLabel(total, "normal", "good", "RIGHT")
     total.right:SetPoint("RIGHT", -PADDING, 0)
@@ -855,15 +856,15 @@ function TrackerUI:BuildToolbar(frame)
     bar.left = Theme.CreateLabel(bar, "small", "muted")
     bar.left:SetPoint("LEFT", PADDING, 0)
 
-    bar.sort = Widgets.CreateButton(bar, "Sort: Recent", function() TrackerUI:NextSort() end,
+    bar.sort = Widgets.CreateButton(bar, L.Format("Sort: %s", L["Recent"]), function() TrackerUI:NextSort() end,
         { width = 60, height = 16 })
     bar.sort:SetPoint("RIGHT", -PADDING + 2, 0)
     bar.sort:SetScript("OnEnter", function(self)
         if self.Light then ns.Motion:Blend(self, "hover", 1, 0.12, self.Light) end
         if GameTooltip then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("Sort")
-            GameTooltip:AddLine("Click for the next order.", 1, 1, 1)
+            GameTooltip:AddLine(L["Sort"])
+            GameTooltip:AddLine(L["Click for the next order."], 1, 1, 1)
             GameTooltip:Show()
         end
     end)
@@ -899,10 +900,14 @@ function TrackerUI.ClearButton(parent, width, height)
     local button, armedAt
     local function Arm(on, at)
         button.armed, armedAt = on, at
-        if button.label then button.label:SetText(on and "Sure?" or "Clear") end
+        if button.SetText then
+            button:SetText(on and L["Sure?"] or L["Clear"])
+        elseif button.label then
+            button.label:SetText(on and L["Sure?"] or L["Clear"])
+        end
     end
 
-    button = Widgets.CreateButton(parent, "Clear", function()
+    button = Widgets.CreateButton(parent, L["Clear"], function()
         local now = Now()
         if button.armed == true and (not armedAt or not now
             or now - armedAt <= TrackerUI.CLEAR_ARMED) then
@@ -929,10 +934,9 @@ function TrackerUI.ClearButton(parent, width, height)
     button:HookScript("OnEnter", function(self)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine("Clear panel")
-        GameTooltip:AddLine("Empties what this panel shows and starts a new run. "
-            .. "Your kill tallies, drop rates and Rankings are kept.", 1, 1, 1, true)
-        GameTooltip:AddLine(self.armed == true and "Click again to clear." or "Click twice to clear.",
+        GameTooltip:AddLine(L["Clear panel"])
+        GameTooltip:AddLine(L["Empties what this panel shows and starts a new run. Your kill tallies, drop rates and Rankings are kept."], 1, 1, 1, true)
+        GameTooltip:AddLine(self.armed == true and L["Click again to clear."] or L["Click twice to clear."],
             0.6, 0.6, 0.6)
         GameTooltip:Show()
     end)
@@ -946,15 +950,15 @@ function TrackerUI:DrawToolbar()
     local bar = self.toolbar
     local tab = self:Tab()
     local _, label = self:Sort(tab)
-    bar.sort:SetText("Sort: " .. label)
+    bar.sort:SetText(L.Format("Sort: %s", label))
 
     local text
     if tab == "loot" then
         local _, looted = self:TabCounts()
-        text = ("%d looted"):format(looted)
+        text = L.Format("%d looted", looted)
     else
         local hour = self:PerHour()
-        text = hour and ("Per hour  " .. ns.Value.Coins(hour)) or "This session"
+        text = hour and L.Format("Per hour  %s", ns.Value.Coins(hour)) or L["This session"]
     end
 
     bar.left:SetText(text)
@@ -1267,7 +1271,7 @@ function TrackerUI:Slot(row, index)
     slot.tagText = Theme.CreateLabel(slot, "tiny", "window", "CENTER")
     pcall(slot.tagText.SetFont, slot.tagText, Theme.FONT, 8, "")
     slot.tagText:SetPoint("CENTER", slot.tag, "CENTER", 0, 0)
-    slot.tagText:SetText("NEW")
+    slot.tagText:SetText(L["NEW"])
     slot.tagText:SetTextColor(0.1, 0.08, 0.03, 1)
     slot.tagText:SetAlpha(0)
 
@@ -1313,12 +1317,12 @@ function TrackerUI:CardTooltip(row)
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
     GameTooltip:AddLine(line.left)
     if line.openKey then
-        GameTooltip:AddLine(line.folded and "Click to show its loot." or "Click to fold it.", 1, 1, 1)
+        GameTooltip:AddLine(line.folded and L["Click to show its loot."] or L["Click to fold it."], 1, 1, 1)
         if line.mob then
-            GameTooltip:AddLine("Click an item for everything it has dropped.", 1, 1, 1)
+            GameTooltip:AddLine(L["Click an item for everything it has dropped."], 1, 1, 1)
         end
     else
-        GameTooltip:AddLine("Click for everything it has dropped.", 1, 1, 1)
+        GameTooltip:AddLine(L["Click for everything it has dropped."], 1, 1, 1)
     end
     GameTooltip:Show()
 end
@@ -1346,10 +1350,10 @@ function TrackerUI:SlotTooltip(slot)
     if icon.about then GameTooltip:AddLine(icon.about, 1, 1, 1) end
 
     local unit = ns.Value and ns.Value:UnitPrice(ns.Value:ItemID(icon.item))
-    if unit then GameTooltip:AddLine("Worth " .. ns.Value.Coins(unit) .. " each", 1, 1, 1) end
+    if unit then GameTooltip:AddLine(L.Format("Worth %s each", ns.Value.Coins(unit)), 1, 1, 1) end
 
     if icon.mob then
-        GameTooltip:AddLine("Click for everything it has dropped.", 0.6, 0.6, 0.6)
+        GameTooltip:AddLine(L["Click for everything it has dropped."], 0.6, 0.6, 0.6)
     end
     GameTooltip:Show()
 end
@@ -1401,8 +1405,8 @@ function TrackerUI:Lines()
     local gathered = ns.Gathering and ns.Gathering.sessionGathers > 0
 
     if #mobs == 0 and not fished and not gathered then
-        Add({ style = "note", left = "Nothing killed yet this session." })
-        Add({ style = "note", left = "Loot a corpse and it shows up here." })
+        Add({ style = "note", left = L["Nothing killed yet this session."] })
+        Add({ style = "note", left = L["Loot a corpse and it shows up here."] })
         return out
     end
 
@@ -1548,7 +1552,7 @@ function TrackerUI:CardLines(Add, card)
     end
 
     if #card.items == 0 then
-        if card.rated then Add({ style = "note", left = "nothing dropped yet" }) end
+        if card.rated then Add({ style = "note", left = L["nothing dropped yet"] }) end
         return
     end
 
@@ -1560,10 +1564,10 @@ function TrackerUI:CardLines(Add, card)
         if card.rated then
             icon.text = ns.Tracker.FormatChance(item.chance)
             icon.textColor = RateColor(item.chance)
-            icon.about = ("In %s of %s"):format(ns.Tracker.FormatChance(item.chance), card.noun)
+            icon.about = L.Format("In %s of %s", ns.Tracker.FormatChance(item.chance), card.noun)
         else
             icon.text = tostring(item.n)
-            icon.about = ("%d of %d %s"):format(item.n, card.total, card.noun)
+            icon.about = L.Format("%d of %d %s", item.n, card.total, card.noun)
         end
 
         icons[#icons + 1] = icon
@@ -1621,8 +1625,8 @@ end
 function TrackerUI:KillLines(Add, mobs, first)
     local Tracker = ns.Tracker
 
-    Add({ style = "heading", left = "THIS SESSION",
-        right = Util.Plural(Tracker:SessionKills(), "kill") })
+    Add({ style = "heading", left = L["THIS SESSION"],
+        right = Util.Plural(Tracker:SessionKills(), L["kill"], L["kills"]) })
 
     self:TotalLines(Add)
 
@@ -1632,7 +1636,7 @@ function TrackerUI:KillLines(Add, mobs, first)
     if streak >= STREAK_SHOWN then
         local best = Tracker.bestStreak
         Add({ style = "value", key = "streak", count = streak,
-            left = best > streak and ("Kill streak  (best %d)"):format(best) or "Kill streak",
+            left = best > streak and L.Format("Kill streak  (best %d)", best) or L["Kill streak"],
             right = ("x%d"):format(streak), rightColor = "accent" })
     end
 
@@ -1663,12 +1667,12 @@ function TrackerUI:KillLines(Add, mobs, first)
             key = "mob:" .. summary.mob, name = summary.mob, mob = summary.mob,
             total = summary.kills, session = summary.session,
             rated = summary.rated, target = Tracker.MIN_KILLS,
-            more = summary.needed == 1 and "%d more kill for drop rates" or "%d more kills for drop rates",
+            more = summary.needed == 1 and L["%d more kill for drop rates"] or L["%d more kills for drop rates"],
             place = top and top.name,
-            placeMore = top and #summary.places > 1 and ("+%d more"):format(#summary.places - 1) or nil,
+            placeMore = top and #summary.places > 1 and L.Format("+%d more", #summary.places - 1) or nil,
             worth = worth,
-            worthLabel = details and details.basis == "tally" and "Worth per kill" or "Worth per kill (est.)",
-            items = items, noun = "kills",
+            worthLabel = details and details.basis == "tally" and L["Worth per kill"] or L["Worth per kill (est.)"],
+            items = items, noun = L["kills"],
             default = isCurrent, live = isCurrent and first,
         })
     end
@@ -1686,7 +1690,7 @@ function TrackerUI:TitleTotal()
     local total = ns.Value:Session()
     if not total then return nil end
 
-    return { style = "value", left = "Gathered value",
+    return { style = "value", left = L["Gathered value"],
         right = ns.Value.Coins(total), rightColor = "good",
         key = "total", count = total }
 end
@@ -1700,8 +1704,8 @@ function TrackerUI:TotalLines(Add)
 
     local missing = #details.unpriced
     if missing > 0 then
-        Add({ style = "note", left = ("%s with no price not counted"):format(
-            Util.Plural(missing, "item")) })
+        Add({ style = "note", left = L.Format("%s with no price not counted",
+            Util.Plural(missing, L["item"], L["items"])) })
     end
 end
 
@@ -1709,8 +1713,8 @@ end
 function TrackerUI:FishingLines(Add, withTotal, first)
     local Fishing = ns.Fishing
 
-    Add({ style = "heading", left = "FISHING",
-        right = Util.Plural(Fishing.sessionCasts, "cast") })
+    Add({ style = "heading", left = L["FISHING"],
+        right = Util.Plural(Fishing.sessionCasts, L["cast"], L["casts"]) })
 
     -- No kills this session and this on top: the haul's total goes here.
     if withTotal then self:TotalLines(Add) end
@@ -1726,10 +1730,10 @@ function TrackerUI:FishingLines(Add, withTotal, first)
             name = (summary.name:gsub("^%l", string.upper)),
             total = summary.casts, session = summary.session,
             rated = summary.rated, target = Fishing.MIN_CASTS,
-            more = summary.needed == 1 and "%d more cast for catch rates" or "%d more casts for catch rates",
+            more = summary.needed == 1 and L["%d more cast for catch rates"] or L["%d more casts for catch rates"],
             place = summary.place,
-            worth = Fishing:WorthPerCast(summary.key), worthLabel = "Worth per cast",
-            items = items, noun = "casts",
+            worth = Fishing:WorthPerCast(summary.key), worthLabel = L["Worth per cast"],
+            items = items, noun = L["casts"],
             default = index == 1, live = index == 1 and first,
         })
     end
@@ -1739,8 +1743,8 @@ end
 function TrackerUI:GatheringLines(Add, withTotal, first)
     local Gathering = ns.Gathering
 
-    Add({ style = "heading", left = "GATHERING",
-        right = Util.Plural(Gathering.sessionGathers, "gather") })
+    Add({ style = "heading", left = L["GATHERING"],
+        right = Util.Plural(Gathering.sessionGathers, L["gather"], L["gathers"]) })
 
     if withTotal then self:TotalLines(Add) end
 
@@ -1754,10 +1758,10 @@ function TrackerUI:GatheringLines(Add, withTotal, first)
             key = "node:" .. tostring(summary.key), name = summary.name,
             total = summary.gathers, session = summary.session,
             rated = summary.rated, target = Gathering.MIN_GATHERS,
-            more = "%d more for gather rates",
+            more = L["%d more for gather rates"],
             place = summary.place,
-            worth = Gathering:WorthPerGather(summary.key), worthLabel = "Worth per node",
-            items = items, noun = "gathers",
+            worth = Gathering:WorthPerGather(summary.key), worthLabel = L["Worth per node"],
+            items = items, noun = L["gathers"],
             default = index == 1, live = index == 1 and first,
         })
     end
@@ -1785,7 +1789,7 @@ local function SourcesText(sources)
         for index = 1, math.min(#list, shown) do
             parts[index] = ("%s %d"):format(list[index].name, list[index].count)
         end
-        if #list > shown then parts[#parts + 1] = ("+%d more"):format(#list - shown) end
+        if #list > shown then parts[#parts + 1] = L.Format("+%d more", #list - shown) end
         return table.concat(parts, ", ")
     end
 
@@ -1817,8 +1821,8 @@ function TrackerUI:SessionItems()
     end
 
     Take(ns.Tracker.sessionLoot, ns.Tracker.sessionFrom, nil)
-    if ns.Fishing then Take(ns.Fishing.sessionCatch, nil, "Fishing") end
-    if ns.Gathering then Take(ns.Gathering.sessionItems, ns.Gathering.sessionFrom, "Gathering") end
+    if ns.Fishing then Take(ns.Fishing.sessionCatch, nil, L["Fishing"]) end
+    if ns.Gathering then Take(ns.Gathering.sessionItems, ns.Gathering.sessionFrom, L["Gathering"]) end
 
     -- Skinning while it is hidden, and items on the hide list, are not
     -- shown (DB:HidesItem).
@@ -1850,8 +1854,8 @@ function TrackerUI:LootLines(Add)
     local items = self:SessionItems()
 
     if #items == 0 then
-        Add({ style = "note", left = "No loot yet this session." })
-        Add({ style = "note", left = "Everything you loot, fish or gather lands here." })
+        Add({ style = "note", left = L["No loot yet this session."] })
+        Add({ style = "note", left = L["Everything you loot, fish or gather lands here."] })
         return
     end
 
@@ -1860,14 +1864,14 @@ function TrackerUI:LootLines(Add)
         Add({ style = "loot", item = entry.name, left = entry.name,
             sub = sub, subShort = short, rank = rank,
             right = ("x%d"):format(entry.count),
-            below = entry.value and ns.Value.Coins(entry.value) or "no price",
+            below = entry.value and ns.Value.Coins(entry.value) or L["no price"],
             belowColor = entry.value and "good" or "muted",
             key = "loot:" .. entry.name, count = entry.count })
     end
 
     local coin = tonumber(ns.Tracker.sessionCopper) or 0
     if coin > 0 then
-        Add({ style = "value", left = "Coin from kills", right = ns.Value.Coins(coin),
+        Add({ style = "value", left = L["Coin from kills"], right = ns.Value.Coins(coin),
             rightColor = "good" })
     end
 
@@ -2526,7 +2530,7 @@ function TrackerUI:Render()
     self:DrawTabs(counts)
 
     if below > 0 then
-        self.moreLabel:SetText(("%d more below, scroll"):format(below))
+        self.moreLabel:SetText(L.Format("%d more below, scroll", below))
         self.moreLabel:Show()
     else
         self.moreLabel:Hide()
@@ -2629,7 +2633,7 @@ function TrackerUI:NoteRanks(shown)
             local was = self.ranks and self.ranks[line.item]
             local FX = ns.TrackerFX
             if was and line.rank < was and FX and FX.Level() == "full" and self.lines[index] then
-                pcall(FX.FloatText, FX, Util.Colored("good", ("Up to #%d!"):format(line.rank)),
+                pcall(FX.FloatText, FX, Util.Colored("good", L.Format("Up to #%d!", line.rank)),
                     self.lines[index], 0.2, 14)
             end
         end

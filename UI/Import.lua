@@ -5,6 +5,7 @@
 -- and an import can be taken back out from the list underneath.
 
 local _, ns = ...
+local L = ns.L
 
 local UI = ns.UI
 
@@ -33,7 +34,7 @@ function UI:BuildImport()
     local trim
     if ns.Titanforged then
         trim = ns.Titanforged:Dress(frame, {
-            title = "Take data",
+            title = L["Take data"],
             close = function() UI:HideImport() end,
         })
         local left, right, top, bottom = ns.Titanforged.Reach(trim)
@@ -72,8 +73,7 @@ function UI:BuildImport()
     hint:SetPoint("TOPLEFT", PADDING, -42)
     hint:SetPoint("TOPRIGHT", -PADDING, -42)
     hint:SetWordWrap(true)
-    hint:SetText("Click the box, press Ctrl+V to paste what another player sent you "
-        .. "(the whole line, starting BFR1). Nothing is added until you press Apply.")
+    hint:SetText(L["Click the box, press Ctrl+V to paste what another player sent you (the whole line, starting BFR1). Nothing is added until you press Apply."])
 
     -- The paste box.
     local panel = Theme.CreatePanel(frame, "panel", "border")
@@ -119,7 +119,7 @@ function UI:BuildImport()
     -- Taken in before.
     local heading = Theme.CreateLabel(frame, "small", "accent")
     heading:SetPoint("TOPLEFT", PADDING, -296)
-    heading:SetText("TAKEN IN BEFORE")
+    heading:SetText(L["TAKEN IN BEFORE"])
     self.importRows = {}
     for i = 1, ROWS do
         local row = CreateFrame("Frame", nil, frame)
@@ -129,7 +129,7 @@ function UI:BuildImport()
         row.label = Theme.CreateLabel(row, "small", "text")
         row.label:SetPoint("LEFT", 0, 0)
         row.label:SetPoint("RIGHT", row, "RIGHT", -100, 0)
-        row.remove = Widgets.CreateButton(row, "Remove", function() UI:ImportRemove(row) end,
+        row.remove = Widgets.CreateButton(row, L["Remove"], function() UI:ImportRemove(row) end,
             { width = 90, height = 22 })
         row.remove:SetPoint("RIGHT", 0, 0)
         row.confirming = false
@@ -138,28 +138,27 @@ function UI:BuildImport()
     end
     local none = Theme.CreateLabel(frame, "small", "dim")
     none:SetPoint("TOPLEFT", PADDING, -316)
-    none:SetText("Nothing yet.")
+    none:SetText(L["Nothing yet."])
     self.importNone = none
 
     local more = Theme.CreateLabel(frame, "tiny", "dim")
     more:SetPoint("TOPLEFT", PADDING, -316 - ROWS * 26)
     more:SetPoint("TOPRIGHT", -PADDING, -316 - ROWS * 26)
     more:SetWordWrap(true)
-    more:SetText("Remove takes back exactly what that string added. "
-        .. "Counts you gathered yourself are never touched.")
+    more:SetText(L["Remove takes back exactly what that string added. Counts you gathered yourself are never touched."])
 
     -- Footer.
-    local apply = Widgets.CreateButton(frame, "Apply", function() UI:ImportApply() end,
+    local apply = Widgets.CreateButton(frame, L["Apply"], function() UI:ImportApply() end,
         { width = 90, height = 22, primary = true })
     apply:SetPoint("BOTTOMLEFT", PADDING, 12)
     apply:Hide()
     self.importApply = apply
 
-    local clear = Widgets.CreateButton(frame, "Clear", function() UI:ImportClear() end,
+    local clear = Widgets.CreateButton(frame, L["Clear"], function() UI:ImportClear() end,
         { width = 70, height = 22 })
     clear:SetPoint("LEFT", apply, "RIGHT", 8, 0)
 
-    local done = Widgets.CreateButton(frame, "Close", function() UI:HideImport() end,
+    local done = Widgets.CreateButton(frame, L["Close"], function() UI:HideImport() end,
         { width = 70, height = 22 })
     done:SetPoint("BOTTOMRIGHT", -PADDING, 12)
 
@@ -177,7 +176,7 @@ function UI:ImportChanged()
     local stamp = self.importStamp
     self.importPlan = nil
     self.importApply:Hide()
-    self.importPreview:SetText("Reading...")
+    self.importPreview:SetText(L["Reading..."])
     C_Timer.After(0.3, function()
         if stamp ~= UI.importStamp then return end
         ns.Transfer:Parse(UI.importEdit:GetText(), function(plan, why)
@@ -199,10 +198,11 @@ function UI:ImportApply()
     if not plan or #plan.list == 0 then return end
     self.importPlan = nil
     self.importApply:Hide()
-    self.importPreview:SetText("Adding...")
+    self.importPreview:SetText(L["Adding..."])
     ns.Transfer:Apply(plan, function(taken)
-        UI.importPreview:SetText(("Done. %d record%s added to your own. "
-            .. "Paste the next part if there is one."):format(taken, taken == 1 and "" or "s"))
+        UI.importPreview:SetText(taken == 1
+            and L.Format("Done. %d record added to your own. Paste the next part if there is one.", taken)
+            or L.Format("Done. %d records added to your own. Paste the next part if there is one.", taken))
         UI.importEdit:SetText("")
         UI:ImportList()
     end)
@@ -222,20 +222,21 @@ function UI:ImportRemove(row)
     if row.confirming then
         local id = row.importId
         row.confirming = false
-        row.remove:SetText("Removing...")
+        row.remove:SetText(L["Removing..."])
         ns.Transfer:Remove(id, function(count)
-            UI.importPreview:SetText(("Took back what that string added (%d record%s)."):format(
-                count, count == 1 and "" or "s"))
+            UI.importPreview:SetText(count == 1
+                and L.Format("Took back what that string added (%d record).", count)
+                or L.Format("Took back what that string added (%d records).", count))
             UI:ImportList()
         end)
         return
     end
     row.confirming = true
-    row.remove:SetText("Sure?")
+    row.remove:SetText(L["Sure?"])
     C_Timer.After(4, function()
         if row.confirming then
             row.confirming = false
-            row.remove:SetText("Remove")
+            row.remove:SetText(L["Remove"])
         end
     end)
 end
@@ -248,10 +249,11 @@ function UI:ImportList()
         row.confirming = false
         if item then
             row.importId = item.id
-            row.remove:SetText("Remove")
-            local when = item.at > 0 and date("%d %b", item.at) or "earlier"
-            row.label:SetText(("Source %s, taken %s, %d record%s"):format(
-                item.id:sub(1, 6), when, item.records, item.records == 1 and "" or "s"))
+            row.remove:SetText(L["Remove"])
+            local when = item.at > 0 and date("%d %b", item.at) or L["earlier"]
+            row.label:SetText(item.records == 1
+                and L.Format("Source %s, taken %s, %d record", item.id:sub(1, 6), when, item.records)
+                or L.Format("Source %s, taken %s, %d records", item.id:sub(1, 6), when, item.records))
             row:Show()
         else
             row.importId = nil

@@ -16,6 +16,7 @@
 -- erroring. A missed sample is a missed sample; a Lua error mid-raid is not.
 
 local _, ns = ...
+local L = ns.L
 
 local Harvest = ns.NewModule("Harvest")
 
@@ -1492,8 +1493,8 @@ function Harvest:OnInitialize()
     end
 
     if (self.carriedOver or 0) > 0 then
-        ns.Print(("added %d corpses harvested before saved data worked. "
-            .. "/farm harvest shows the total."):format(self.carriedOver))
+        ns.Print(L.Format("added %d corpses harvested before saved data worked. /farm harvest shows the total.",
+            self.carriedOver))
     end
 end
 
@@ -1701,41 +1702,40 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("harvest", "what you have recorded as you played (check: what the next loot window lets it read)", function(rest)
+ns.RegisterCommand("harvest", L["what you have recorded as you played (check: what the next loot window lets it read)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     -- The harvest is the whole history now, not one session, and a reset is
     -- saved at the next logout like anything else. So it takes two words.
     if argument == "reset" then
-        ns.Print(("this deletes all %s you have recorded, for good. "
-            .. "Type /farm harvest reset confirm to do it."):format(
-            Util.Plural(ns.Harvest:CountCorpses(), "corpse")))
+        ns.Print(L.Format("this deletes all %s you have recorded, for good. Type /farm harvest reset confirm to do it.",
+            Util.Plural(ns.Harvest:CountCorpses(), L["corpse"], L["corpses"])))
         return
     end
 
     if argument == "reset confirm" then
         ns.Harvest:Reset()
-        ns.Print("harvest cleared.")
+        ns.Print(L["harvest cleared."])
         return
     end
 
     if argument == "check" then
         ns.Harvest.checkArmed = true
-        ns.Print("loot check ready: loot a corpse and it runs on that loot window.")
+        ns.Print(L["loot check ready: loot a corpse and it runs on that loot window."])
         return
     end
 
     if argument == "off" then
         ns.Harvest.enabled = false
         ns.db.harvestPaused = true
-        ns.Print("harvesting paused. /farm harvest on to resume.")
+        ns.Print(L["harvesting paused. /farm harvest on to resume."])
         return
     end
 
     if argument == "on" then
         ns.db.harvestPaused = false
         ns.Harvest.enabled = ns.Harvest:Capabilities().usable and true or false
-        ns.Print("harvesting on.")
+        ns.Print(L["harvesting on."])
         return
     end
 
@@ -1743,15 +1743,15 @@ ns.RegisterCommand("harvest", "what you have recorded as you played (check: what
 
     if corpses == 0 then
         if not ns.Harvest:Capabilities().usable then
-            ns.Print("this client does not expose the loot API, so nothing is being recorded.")
+            ns.Print(L["this client does not expose the loot API, so nothing is being recorded."])
         else
-            ns.Print("nothing recorded yet. Loot some corpses and check back.")
+            ns.Print(L["nothing recorded yet. Loot some corpses and check back."])
         end
         return
     end
 
-    ns.Print(("%s looted across %s:"):format(
-        Util.Plural(corpses, "corpse"), Util.Plural(ns.Harvest:CountMobs(), "mob")))
+    ns.Print(L.Format("%s looted across %s:",
+        Util.Plural(corpses, L["corpse"], L["corpses"]), Util.Plural(ns.Harvest:CountMobs(), L["mob"], L["mobs"])))
 
     local items = ns.Harvest:Items()
 
@@ -1760,21 +1760,21 @@ ns.RegisterCommand("harvest", "what you have recorded as you played (check: what
         ns.PrintRaw(("  %s %s  %s"):format(
             Util.Colored("accent", tostring(item.count)),
             item.name,
-            Util.Colored("muted", ("from %s"):format(Util.Plural(item.corpses, "corpse")))))
+            Util.Colored("muted", L.Format("from %s", Util.Plural(item.corpses, L["corpse"], L["corpses"])))))
     end
 
     if #items > 12 then
-        ns.PrintRaw(Util.Colored("muted", ("  ... and %d more items"):format(#items - 12)))
+        ns.PrintRaw(Util.Colored("muted", L.Format("  ... and %d more items", #items - 12)))
     end
 
-    ns.PrintRaw(Util.Colored("muted", "  /farm export to get it as a data file."))
+    ns.PrintRaw(Util.Colored("muted", L["  /farm export to get it as a data file."]))
 end)
 
-ns.RegisterCommand("export", "hand back what you harvested, ready to paste", function(rest)
+ns.RegisterCommand("export", L["hand back what you harvested, ready to paste"], function(rest)
     local wanted = ns.Util.Trim(rest or "")
 
     if wanted == "" then
-        ns.UI:ShowExport(ns.Harvest:ExportAll(), "Export: everything harvested")
+        ns.UI:ShowExport(ns.Harvest:ExportAll(), L["Export: everything harvested"])
         return
     end
 
@@ -1789,20 +1789,20 @@ ns.RegisterCommand("export", "hand back what you harvested, ready to paste", fun
         local shown, more = {}, #candidates - 8
         for index = 1, math.min(8, #candidates) do shown[index] = candidates[index] end
         local list = table.concat(shown, ", ")
-        if more > 0 then list = ("%s and %d more"):format(list, more) end
-        ns.Print(("%s could be %s. Type more of the name."):format(wanted, list))
+        if more > 0 then list = L.Format("%s and %d more", list, more) end
+        ns.Print(L.Format("%s could be %s. Type more of the name.", wanted, list))
         return
     end
 
     if nodeOnly then
-        ns.Print(("%s comes from nodes, not mobs, so it is never exported."):format(name))
+        ns.Print(L.Format("%s comes from nodes, not mobs, so it is never exported.", name))
         return
     end
 
     if not block then
-        ns.Print(("nothing harvested for %s yet."):format(wanted))
+        ns.Print(L.Format("nothing harvested for %s yet.", wanted))
         return
     end
 
-    ns.UI:ShowExport(block, ("Export: %s"):format(name))
+    ns.UI:ShowExport(block, L.Format("Export: %s", name))
 end)

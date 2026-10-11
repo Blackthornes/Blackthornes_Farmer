@@ -12,12 +12,19 @@
 -- (UI/GrindPins.lua).
 
 local _, ns = ...
+local L = ns.L
 
 local GrindingUI = ns.NewModule("GrindingUI")
 
 local Theme = ns.Theme
 local Widgets = ns.Widgets
 local Util = ns.Util
+
+--- Upper case that keeps German's umlauts upper too (Lua's upper only
+--- knows A to Z).
+local function Upper(text)
+    return (text:upper():gsub("ä", "Ä"):gsub("ö", "Ö"):gsub("ü", "Ü"))
+end
 
 local PADDING = 14
 local ROW_HEIGHT = 20
@@ -93,7 +100,7 @@ function GrindingUI:Build(frame)
 
     local levelLabel = Theme.CreateLabel(band, "small", "muted")
     levelLabel:SetPoint("LEFT", 0, 0)
-    levelLabel:SetText("Levels")
+    levelLabel:SetText(L["Levels"])
     self.levelLabel = levelLabel
 
     local function Changed()
@@ -115,7 +122,7 @@ function GrindingUI:Build(frame)
 
     local to = Theme.CreateLabel(band, "small", "muted")
     to:SetPoint("LEFT", self.low, "RIGHT", 6, 0)
-    to:SetText("to")
+    to:SetText(L["to"])
     self.toLabel = to
 
     self.high = Widgets.CreateStepper(band, {
@@ -128,14 +135,14 @@ function GrindingUI:Build(frame)
     self.high:SetWidth(96)
     self.high:SetPoint("LEFT", to, "RIGHT", 6, 0)
 
-    local mine = Widgets.CreateButton(band, "My level", function()
+    local mine = Widgets.CreateButton(band, L["My level"], function()
         Grinding:FollowLevel()
         GrindingUI:Render(true)
     end, { width = 70, height = 20 })
     mine:SetPoint("LEFT", self.high, "RIGHT", 10, 0)
     mine:HookScript("OnEnter", function(self)
-        Tip(self, "Follow your level", ("From %d below your level to %d above, moving as you level.")
-            :format(Grinding.BELOW, Grinding.ABOVE))
+        Tip(self, L["Follow your level"], L.Format("From %d below your level to %d above, moving as you level.",
+            Grinding.BELOW, Grinding.ABOVE))
     end)
     mine:HookScript("OnLeave", HideTip)
     self.mineButton = mine
@@ -150,7 +157,7 @@ function GrindingUI:Build(frame)
     -- Placed by LayoutChips, sized from their words as the game draws them.
     self.typeChips = {}
 
-    local any = Chip(filters, "ANY TYPE", function()
+    local any = Chip(filters, L["ANY TYPE"], function()
         Grinding:SetType(nil)
         GrindingUI:Render(true)
     end)
@@ -162,24 +169,24 @@ function GrindingUI:Build(frame)
     kinds[#kinds + 1] = Grinding.OTHER
 
     for _, kind in ipairs(kinds) do
-        local chip = Chip(filters, kind:upper(), function()
+        local chip = Chip(filters, Upper(Grinding.TypeLabel(kind)), function()
             Grinding:SetType(kind)
             GrindingUI:Render(true)
         end, kind == Grinding.OTHER
-            and { "Other types", "Giants, dragonkin, mechanical and the rest." } or nil)
+            and { L["Other types"], L["Giants, dragonkin, mechanical and the rest."] } or nil)
         chip.filterKind = kind
         self.typeChips[#self.typeChips + 1] = chip
     end
 
     self.givesChips = {}
     for _, entry in ipairs(Grinding.GIVES) do
-        local chip = Chip(filters, entry.label:upper(), function()
+        local chip = Chip(filters, Upper(entry.label), function()
             -- A second click lets it go.
             Grinding:SetGives(Grinding:Gives() ~= entry.key and entry.key or nil)
             GrindingUI:Render(true)
         end, entry.key == "cloth"
-            and { "Drops cloth", "Mobs the data has dropping cloth. Click again for any." }
-            or { "Skinning", "Mobs the data lists for skinning. Click again for any." })
+            and { L["Drops cloth"], L["Mobs the data has dropping cloth. Click again for any."] }
+            or { L["Skinning"], L["Mobs the data lists for skinning. Click again for any."] })
         chip.givesKey = entry.key
         self.givesChips[#self.givesChips + 1] = chip
     end
@@ -188,7 +195,7 @@ function GrindingUI:Build(frame)
     -- there is room: on the chip row it ran into Skinning (2026-10-10).
     local sort = Chip(band, GrindingUI.SortText(), function()
         GrindingUI:ToggleSortMenu()
-    end, { "Sort the camps", "Busiest, nearest, by level, or by level and then the nearest." })
+    end, { L["Sort the camps"], L["Busiest, nearest, by level, or by level and then the nearest."] })
     self.sortChip = sort
     self:BuildSortMenu(view)
 
@@ -201,8 +208,8 @@ function GrindingUI:Build(frame)
     self.panel = panel
 
     self.headings = {}
-    for key, text in pairs({ type = "TYPE", mob = "MOB", level = "LEVEL", gives = "GIVES",
-        worth = "PER KILL" }) do
+    for key, text in pairs({ type = L["TYPE"], mob = L["MOB"], level = L["LEVEL"], gives = L["GIVES"],
+        worth = L["PER KILL"] }) do
         local label = Theme.CreateLabel(panel, "tiny", "dim")
         label:SetText(text)
         self.headings[key] = label
@@ -215,11 +222,11 @@ function GrindingUI:Build(frame)
     -- camps. Saved as grindColumns.
     local saved = type(ns.db.grindColumns) == "table" and ns.db.grindColumns or {}
     self.sorter = Widgets.SortableHeadings(self.headings, {
-        type = "Sort each camp's mobs by type.",
-        mob = "Sort each camp's mobs by name.",
-        level = "Sort each camp's mobs by level.",
-        gives = "Sort each camp's mobs by what they give.",
-        worth = "Sort each camp's mobs by what a kill is worth.",
+        type = L["Sort each camp's mobs by type."],
+        mob = L["Sort each camp's mobs by name."],
+        level = L["Sort each camp's mobs by level."],
+        gives = L["Sort each camp's mobs by what they give."],
+        worth = L["Sort each camp's mobs by what a kill is worth."],
     }, function(key, ascending)
         ns.db.grindColumns = key and { key = key, ascending = ascending } or nil
         GrindingUI:Render()
@@ -253,8 +260,7 @@ function GrindingUI:Build(frame)
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText("Click a camp to point the arrow there; the camps also show on your world map. "
-        .. "A mob's type is learned when you target or hover one.")
+    footer:SetText(L["Click a camp to point the arrow there; the camps also show on your world map. A mob's type is learned when you target or hover one."])
     self.footer = footer
 
     view:Hide()
@@ -269,7 +275,7 @@ local MENU_ROW = 20
 
 --- The sort chip's words: "SORT: NEAREST".
 function GrindingUI.SortText()
-    return ("SORT: %s"):format(ns.Grinding.SortLabel():upper())
+    return L.Format("SORT: %s", Upper(ns.Grinding.SortLabel()))
 end
 
 --- A small list under the sort chip, one line per order, the one in use lit.
@@ -519,7 +525,7 @@ end
 --- The texts a mob's row shows, by column; shared by drawing and fitting.
 function GrindingUI:MobTexts(mob)
     return {
-        type = mob.type or "?",
+        type = mob.type and ns.Grinding.TypeLabel(mob.type) or "?",
         mob = mob.name,
         level = ns.Search:LevelText(mob),
         gives = GivesText(mob),
@@ -529,7 +535,7 @@ end
 
 --- A camp's band: "The Barrens, The Dry Hills  14-18, 4 mobs, next zone over".
 function GrindingUI.CampText(camp)
-    local parts = { Util.Plural(camp.count, "mob") }
+    local parts = { Util.Plural(camp.count, L["mob"], L["mobs"]) }
     local distance = ns.Spots.DistanceText(camp.hops, camp.zone, camp.travel)
     if distance ~= "" then parts[#parts + 1] = distance end
     return ("%s, %s  %s"):format(camp.zone, camp.label,
@@ -592,7 +598,7 @@ function GrindingUI:ShowRowTooltip(row, data)
     for _, mob in ipairs(camp.mobs) do
         GameTooltip:AddDoubleLine(mob.name, ns.Search:LevelText(mob), 1, 1, 1, Theme.Unpack("muted"))
     end
-    GameTooltip:AddLine("Click to point the arrow here.", Theme.Unpack("good"))
+    GameTooltip:AddLine(L["Click to point the arrow here."], Theme.Unpack("good"))
     GameTooltip:Show()
 end
 
@@ -616,7 +622,7 @@ function GrindingUI:OnRowClick(data, button)
     if data.type ~= "mob" then return end
     local mob = data.mob.name
     if ns.LootTableUI and ns.LootTableUI:Show(mob) then return end
-    ns.Print(("%s: you have not killed one yet, so there is no loot table."):format(
+    ns.Print(L.Format("%s: you have not killed one yet, so there is no loot table.",
         Util.Colored("accent", mob)))
 end
 
@@ -629,7 +635,7 @@ GrindingUI.MOB_KEYS = { type = true, mob = true, level = true, gives = true, wor
 
 --- What a mob sorts by under heading `key`; mobs with nothing go last.
 function GrindingUI:SortValue(mob, key)
-    if key == "type" then return mob.type and mob.type:lower() or "~" end
+    if key == "type" then return mob.type and ns.Grinding.TypeLabel(mob.type):lower() or "~" end
     if key == "mob" then return mob.name:lower() end
     if key == "level" then return (mob.minLevel or 0) * 100 + (mob.maxLevel or mob.minLevel or 0) end
     if key == "gives" then
@@ -674,14 +680,21 @@ function GrindingUI:Rows(camps, unknown, low, high)
     end
 
     if #camps == 0 then
-        local what = Grinding:Type() and (Grinding:Type():lower() .. " ") or ""
-        rows[#rows + 1] = { type = "note", text = ("No %smobs from level %d to %d that Farmer has seen yet.")
-            :format(what, low, high) }
+        local text
+        if Grinding:Type() then
+            local what = Grinding.TypeLabel(Grinding:Type())
+            if Util.EnglishClient() then what = what:lower() end
+            text = L.Format("No %s mobs from level %d to %d that Farmer has seen yet.", what, low, high)
+        else
+            text = L.Format("No mobs from level %d to %d that Farmer has seen yet.", low, high)
+        end
+        rows[#rows + 1] = { type = "note", text = text }
     end
 
     if unknown > 0 then
-        rows[#rows + 1] = { type = "note", text = ("%s in this range not shown: nobody has seen "
-            .. "their type yet. Target or hover one to learn it."):format(Util.Plural(unknown, "more mob")) }
+        rows[#rows + 1] = { type = "note", text = L.Format("%s in this range not shown: nobody has seen their type yet. Target or hover one to learn it.",
+            Util.Plural(unknown, L["more mob"], L["more mobs"])) }
+
     end
 
     return rows

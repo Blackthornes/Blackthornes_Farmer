@@ -26,6 +26,7 @@
 -- Everything is kept in saved variables. Nothing is sent anywhere.
 
 local _, ns = ...
+local L = ns.L
 
 local Gathering = ns.NewModule("Gathering")
 
@@ -455,13 +456,13 @@ function Gathering:Celebrate(key)
     local summary = self:Summary(key)
     if not summary then return end
 
-    local where = summary.place and (" in %s"):format(summary.place) or ""
-    local line = ("Gather rates unlocked for %s%s! %d gathers in."):format(
+    local where = summary.place and L.Format(" in %s", summary.place) or ""
+    local line = L.Format("Gather rates unlocked for %s%s! %d gathers in.",
         Util.Colored("accent", summary.name), where, summary.gathers)
 
-    ns.Tracker:Fanfare(line, ("unlocked gather rates for %s%s after %d gathers! (Blackthornes Farmer)")
-        :format(summary.name, where, summary.gathers),
-        { title = "GATHER RATES UNLOCKED", subject = ("%s  |  %d gathers"):format(summary.name, summary.gathers),
+    ns.Tracker:Fanfare(line, L.Format("unlocked gather rates for %s%s after %d gathers! (Blackthornes Farmer)",
+            summary.name, where, summary.gathers),
+        { title = L["GATHER RATES UNLOCKED"], subject = L.Format("%s  |  %d gathers", summary.name, summary.gathers),
             key = "node:" .. tostring(key) })
 end
 
@@ -904,17 +905,18 @@ local function PrintNode(summary)
     ns.PrintRaw(("%s  %s"):format(
         Util.Colored("accent", summary.name),
         Util.Colored("muted", ("%s, %s"):format(summary.place or "?",
-            Util.Plural(summary.gathers, "gather")))))
+            Util.Plural(summary.gathers, L["gather"], L["gathers"])))))
 
     for _, item in ipairs(summary.items) do
         local right = summary.rated and ns.Tracker.FormatChance(item.chance)
-            or ("%d of %d"):format(item.gathers, summary.gathers)
+            or L.Format("%d of %d", item.gathers, summary.gathers)
         ns.PrintRaw(("  %s %s"):format(item.name, Util.Colored("muted", right)))
     end
 
     if not summary.rated then
-        ns.PrintRaw(Util.Colored("muted", ("  %d more %s for gather rates."):format(
-            summary.needed, summary.needed == 1 and "gather" or "gathers")))
+        ns.PrintRaw(Util.Colored("muted", summary.needed == 1
+            and L["  1 more gather for gather rates."]
+            or L.Format("  %d more gathers for gather rates.", summary.needed)))
     end
 end
 
@@ -940,7 +942,7 @@ local function PrintSuspects()
     end
 end
 
-ns.RegisterCommand("gathering", "herbs and ore gathered in this zone (all: everywhere; check)", function(rest)
+ns.RegisterCommand("gathering", L["herbs and ore gathered in this zone (all: everywhere; check)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "check" then
@@ -949,15 +951,14 @@ ns.RegisterCommand("gathering", "herbs and ore gathered in this zone (all: every
     end
 
     if argument == "reset" then
-        ns.Print(("this deletes all %s you have recorded, for good. Your map "
-            .. "markers stay. Type /farm gathering reset confirm to do it."):format(
-            Util.Plural(Gathering:CountGathers(), "gather")))
+        ns.Print(L.Format("this deletes all %s you have recorded, for good. Your map markers stay. Type /farm gathering reset confirm to do it.",
+            Util.Plural(Gathering:CountGathers(), L["gather"], L["gathers"])))
         return
     end
 
     if argument == "reset confirm" then
         Gathering:Reset()
-        ns.Print("gathering record cleared.")
+        ns.Print(L["gathering record cleared."])
         return
     end
 
@@ -966,14 +967,13 @@ ns.RegisterCommand("gathering", "herbs and ore gathered in this zone (all: every
 
     if #nodes == 0 then
         if zone and Gathering:CountGathers() > 0 then
-            ns.Print(("nothing gathered in %s yet. /farm gathering all shows everywhere.")
-                :format(zone))
+            ns.Print(L.Format("nothing gathered in %s yet. /farm gathering all shows everywhere.", zone))
         else
-            ns.Print("nothing gathered yet. Pick a herb or mine a vein and try again.")
+            ns.Print(L["nothing gathered yet. Pick a herb or mine a vein and try again."])
         end
         return
     end
 
-    ns.Print(zone and ("gathered in %s:"):format(zone) or "gathered everywhere:")
+    ns.Print(zone and L.Format("gathered in %s:", zone) or L["gathered everywhere:"])
     for _, summary in ipairs(nodes) do PrintNode(summary) end
 end)

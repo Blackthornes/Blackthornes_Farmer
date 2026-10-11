@@ -22,43 +22,41 @@ local function SettingsLabels(ns)
 end
 
 -- English first.
-local ns = env.Load()
+local ns = env.Load({ ui = true })
 local L = ns.L
-suite.check("English shows English", L["Feed"] == "Feed")
-suite.check("and formats as before", L.Format("Feed %s", "Bread") == "Feed Bread")
-_G.UnitClass = function() return "Hunter", "HUNTER" end
+suite.check("English shows English", L["Hide skinning"] == "Hide skinning")
+suite.check("and formats as before", L.Format("Hide %s", "Kobold") == "Hide Kobold")
 ns.UI:Show()
-suite.check("the pets window in English", ns.UI.subtitle:GetText() == "Hunter", ns.UI.subtitle:GetText())
-suite.check("with no pet, in English", ns.UI.emptyLabel:GetText() == "No pet out.")
-suite.check("the settings rows in English", SettingsLabels(ns)["Feed warning"] == true)
+suite.check("the search window in English", ns.UI.emptyLine:GetText() == "What are you farming?",
+    ns.UI.emptyLine:GetText())
+local labels = SettingsLabels(ns)
+suite.check("the settings rows in English", labels["Hide skinning"] == true)
+suite.check("a creature type shows in English", ns.Grinding.TypeLabel("Beast") == "Beast")
 
 -- A German client.
-ns = env.Load("deDE")
+ns = env.Load({ ui = true, locale = "deDE" })
 L = ns.L
-_G.UnitClass = function() return "Jäger", "HUNTER" end
 ns.UI:Show()
-suite.check("the pets window speaks Deutsch", ns.UI.subtitle:GetText() == "Jäger", ns.UI.subtitle:GetText())
-suite.check("with no pet out", ns.UI.emptyLabel:GetText() == "Kein Begleiter draußen.",
-    ns.UI.emptyLabel:GetText())
-local labels = SettingsLabels(ns)
-suite.check("the settings rows speak Deutsch", labels["Futterwarnung"] == true)
-suite.check("and none is left in English", labels["Feed warning"] == nil)
-suite.check("the diet words", ns.PetFood.Label("Cheese") == "Käse")
-suite.check("the key binding's name", _G["BINDING_NAME_" .. ns.FeedKey.BINDING]
-    == "Begleiterpflege (rufen, wiederbeleben, füttern oder heilen)")
+suite.check("the search window speaks Deutsch", ns.UI.emptyLine:GetText() == "Was farmst du?",
+    ns.UI.emptyLine:GetText())
+labels = SettingsLabels(ns)
+suite.check("the settings rows speak Deutsch", labels["Kürschnerei ausblenden"] == true)
+suite.check("and none is left in English", labels["Hide skinning"] == nil)
+suite.check("the hide menu's line", L.Format("Hide %s", "Kobold") == "Kobold ausblenden")
+suite.check("a creature type shows in Deutsch, kept in English",
+    ns.Grinding.TypeLabel("Beast") == "Wildtier" and ns.Grinding.EnglishType("Beast") == "Beast",
+    ns.Grinding.TypeLabel("Beast"))
 suite.check("a word with no German line falls back to English",
     L["A string nobody translated"] == "A string nobody translated")
-suite.check("and formats in English", L.Format("%d wolves, %s", 3, "grey") == "3 wolves, grey")
+suite.check("and formats in English", L.Format("%d kobolds, %s", 3, "grey") == "3 kobolds, grey")
 suite.check("values named by place go where German puts them",
-    L.Format("Only %d food left that %s will eat.", 4, "Eber") == "Für Eber ist nur noch 4 Futter übrig.",
-    L.Format("Only %d food left that %s will eat.", 4, "Eber"))
-suite.check("a %% stays a percent sign",
-    L.Format("%s (%d%% damage)", "Glücklich", 25) == "Glücklich (25% Schaden)")
-suite.check("yards are metres", L.Format("%d,%03d yd", 1, 250) == "1.250 m")
+    L.Format("unlocked drop rates for %s after %d kills! (Blackthornes Farmer)", "Kobold", 50)
+        == "hat nach 50 Kills die Dropchancen für Kobold freigeschaltet! (Blackthornes Farmer)")
+suite.check("a %% stays a percent sign", L.Format("%d%%", 25) == "25%")
 
 -- Another language that has no file shows English.
-ns = env.Load("frFR")
-suite.check("a client in a language with no file shows English", ns.L["Feed"] == "Feed")
+ns = env.Load({ locale = "frFR" })
+suite.check("a client in a language with no file shows English", ns.L["Hide skinning"] == "Hide skinning")
 
-_G.UnitClass, _G.GetLocale = nil, nil
+_G.GetLocale = nil
 suite.done()

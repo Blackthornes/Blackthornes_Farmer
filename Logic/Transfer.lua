@@ -20,6 +20,7 @@
 -- numbers and shapes that no real play makes are refused.
 
 local _, ns = ...
+local L = ns.L
 
 local Transfer = ns.NewModule("Transfer")
 
@@ -232,7 +233,7 @@ end
 --- Build the strings to hand over: a list of parts, each a line of text.
 -- `done(parts)` or `done(nil, why)`. Never in combat, a few at a frame.
 function Transfer:Make(done)
-    if self.making then return done(nil, "already making one") end
+    if self.making then return done(nil, L["already making one"]) end
     self.making = true
     local function Finish(parts, why)
         self.making = nil
@@ -261,7 +262,7 @@ function Transfer:Make(done)
                 size = #Serialize.Encode(out) + #job.key + 12 }
         end
     end, function()
-        if #entries == 0 then return Finish(nil, "nothing of yours to give yet") end
+        if #entries == 0 then return Finish(nil, L["nothing of yours to give yet"]) end
 
         -- Split into parts of about PART_RAW bytes.
         local bins, current, bytes = {}, {}, 0
@@ -304,7 +305,7 @@ end
 
 local function ShortDate(at)
     local ok, text = pcall(date, "%d %b %Y", at)
-    return ok and text or "an unknown date"
+    return ok and text or L["an unknown date"]
 end
 
 function Transfer.LedgerKey(id) return "import:" .. id end
@@ -313,19 +314,19 @@ function Transfer.LedgerKey(id) return "import:" .. id end
 -- `done(plan)` or `done(nil, why)`. A plan: { id, part, of, at, list, sections
 -- = { [key] = { records, new, rise } }, skipped }.
 function Transfer:Parse(text, done)
-    if type(text) ~= "string" then return done(nil, "Nothing pasted.") end
+    if type(text) ~= "string" then return done(nil, L["Nothing pasted."]) end
     text = text:gsub("%s+", "")
-    if text == "" then return done(nil, "Nothing pasted.") end
-    if #text > Transfer.MAX_TEXT then return done(nil, "That is too long to be one of ours.") end
+    if text == "" then return done(nil, L["Nothing pasted."]) end
+    if #text > Transfer.MAX_TEXT then return done(nil, L["That is too long to be one of ours."]) end
 
     local id, n, of, sum, body = text:match("^" .. Transfer.PREFIX .. ":(%x+):(%d+)/(%d+):(%w+):([A-Za-z0-9+/=]+)$")
-    if not id then return done(nil, "That does not look like a Farmer data string. Copy the whole line, from BFR1 to the end.") end
+    if not id then return done(nil, L["That does not look like a Farmer data string. Copy the whole line, from BFR1 to the end."]) end
     n, of = tonumber(n), tonumber(of)
     if #id < 6 or #id > 16 or not (n and of and n >= 1 and n <= of and of <= 100) then
-        return done(nil, "That string is damaged.")
+        return done(nil, L["That string is damaged."])
     end
     if id == self:SourceId() then
-        return done(nil, "That is your own data. There is nothing to take.")
+        return done(nil, L["That is your own data. There is nothing to take."])
     end
 
     -- Checksum first: a half-copied string stops here.
@@ -335,14 +336,14 @@ function Transfer:Parse(text, done)
         pos = pos + Transfer.STEP
     end, function()
         if Comm.ToBase36(hash) ~= sum then
-            return done(nil, "Part of the string was lost in copying. Copy it again, the whole line.")
+            return done(nil, L["Part of the string was lost in copying. Copy it again, the whole line."])
         end
         Decode64(body, function(raw)
-            if not raw then return done(nil, "That string is damaged.") end
+            if not raw then return done(nil, L["That string is damaged."]) end
             local ok, payload = Serialize.Decode(raw)
             if not (ok and type(payload) == "table" and payload.v == 1 and payload.id == id
                 and type(payload.s) == "table") then
-                return done(nil, "That string is from a version of Farmer this one cannot read.")
+                return done(nil, L["That string is from a version of Farmer this one cannot read."])
             end
             self:Measure(payload, id, n, of, done)
         end)
@@ -407,18 +408,20 @@ function Transfer.Describe(plan)
         local t = plan.sections[section.key]
         if t and t.records > 0 then
             total = total + t.rise
-            lines[#lines + 1] = ("%s: %d record%s (%d new), %d count%s to add"):format(
-                section.what, t.records, t.records == 1 and "" or "s", t.new, t.rise, t.rise == 1 and "" or "s")
+            local records = t.records == 1 and L.Format("%d record", t.records) or L.Format("%d records", t.records)
+            local counts = t.rise == 1 and L.Format("%d count", t.rise) or L.Format("%d counts", t.rise)
+            lines[#lines + 1] = L.Format("%s: %s (%d new), %s to add", section.label or section.what, records, t.new, counts)
         end
     end
-    local head = ("From %s, %s%s."):format(
-        plan.at and ("data made " .. ShortDate(plan.at)) or "an unknown date",
-        plan.of > 1 and ("part %d of %d"):format(plan.part, plan.of) or "all of it", "")
-    if #lines == 0 then lines[1] = "Nothing in it could be read." end
-    if total == 0 and #plan.list == 0 then lines[#lines + 1] = "You already have all of this. Nothing new to add." end
+    local head = L.Format("From %s, %s.",
+        plan.at and L.Format("data made %s", ShortDate(plan.at)) or L["an unknown date"],
+        plan.of > 1 and L.Format("part %d of %d", plan.part, plan.of) or L["all of it"])
+    if #lines == 0 then lines[1] = L["Nothing in it could be read."] end
+    if total == 0 and #plan.list == 0 then lines[#lines + 1] = L["You already have all of this. Nothing new to add."] end
     if plan.skipped > 0 then
-        lines[#lines + 1] = ("%d record%s did not look right and will be left out."):format(
-            plan.skipped, plan.skipped == 1 and "" or "s")
+        lines[#lines + 1] = plan.skipped == 1
+            and L.Format("%d record did not look right and will be left out.", plan.skipped)
+            or L.Format("%d records did not look right and will be left out.", plan.skipped)
     end
     return head .. "\n" .. table.concat(lines, "\n"), total
 end
@@ -512,12 +515,12 @@ end
 --- Make the strings and show them, selected and ready to copy.
 function Transfer:Give()
     if not ns.UI then return end
-    ns.Print("making your data string...")
+    ns.Print(L["making your data string..."])
     self:Make(function(parts, why)
-        if not parts then ns.Print(why or "could not make one") return end
+        if not parts then ns.Print(why or L["could not make one"]) return end
         local index = 1
         local function Show()
-            local title = #parts > 1 and ("Give my data, part %d of %d"):format(index, #parts) or "Give my data"
+            local title = #parts > 1 and L.Format("Give my data, part %d of %d", index, #parts) or L["Give my data"]
             ns.UI:ShowExport(parts[index], title, #parts > 1 and {
                 index = index, count = #parts,
                 step = function(delta)
@@ -530,9 +533,9 @@ function Transfer:Give()
     end)
 end
 
-ns.RegisterCommand("give", "make your counts into text to copy and send to another player",
+ns.RegisterCommand("give", L["make your counts into text to copy and send to another player"],
     function() Transfer:Give() end)
-ns.RegisterCommand("take", "take another player's counts in: paste what they sent you",
+ns.RegisterCommand("take", L["take another player's counts in: paste what they sent you"],
     function()
         if ns.UI and ns.UI.ShowImport then ns.UI:ShowImport() end
     end)

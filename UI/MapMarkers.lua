@@ -22,6 +22,7 @@
 -- client ships; a map this cannot read simply gets no markers.
 
 local _, ns = ...
+local L = ns.L
 
 local MapMarkers = ns.NewModule("MapMarkers")
 
@@ -91,12 +92,12 @@ function MapMarkers.Ago(when, now)
 
     local seconds = math.max(0, now - when)
 
-    if seconds < 60 then return "just now" end
-    if seconds < 3600 then return ("%d min ago"):format(math.floor(seconds / 60)) end
-    if seconds < 86400 then return ("%d h ago"):format(math.floor(seconds / 3600)) end
+    if seconds < 60 then return L["just now"] end
+    if seconds < 3600 then return L.Format("%d min ago", math.floor(seconds / 60)) end
+    if seconds < 86400 then return L.Format("%d h ago", math.floor(seconds / 3600)) end
 
     local days = math.floor(seconds / 86400)
-    return days == 1 and "yesterday" or ("%d days ago"):format(days)
+    return days == 1 and L["yesterday"] or L.Format("%d days ago", days)
 end
 
 --- How strongly to draw a spot last gathered at `when`.
@@ -122,12 +123,12 @@ local function ShowTooltip(pin)
 
     pcall(GameTooltip.SetOwner, GameTooltip, pin, "ANCHOR_RIGHT")
 
-    GameTooltip:AddLine(spot.node or "Node", Theme.Unpack("accent"))
+    GameTooltip:AddLine(spot.node or L["Node"], Theme.Unpack("accent"))
 
     local gathers = tonumber(spot.gathers) or 1
     local ago = MapMarkers.Ago(spot.last, ns.Gathering.Clock())
-    local line = gathers == 1 and "Gathered" or ("Gathered %d times"):format(gathers)
-    if ago then line = ("%s, last %s"):format(line, ago) end
+    local line = gathers == 1 and L["Gathered"] or L.Format("Gathered %d times", gathers)
+    if ago then line = L.Format("%s, last %s", line, ago) end
 
     GameTooltip:AddLine(line, Theme.Unpack("text"))
 
@@ -615,18 +616,18 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-local function OnOff(on) return on and "on" or "off" end
+local function OnOff(on) return on and L["on"] or L["off"] end
 
 local function Status()
-    ns.Print(("gathered-node markers: world map %s, minimap %s. %s marked."):format(
+    ns.Print(L.Format("gathered-node markers: world map %s, minimap %s. %s marked.",
         Util.Colored("accent", OnOff(MapMarkers.WorldOn())),
         Util.Colored("accent", OnOff(MapMarkers.MinimapOn())),
-        Util.Plural(#ns.Gathering:Spots(), "spot")))
+        Util.Plural(#ns.Gathering:Spots(), L["spot"], L["spots"])))
     ns.PrintRaw(Util.Colored("muted",
         "  /farm markers on|off, /farm markers map on|off, /farm markers minimap on|off"))
 end
 
-ns.RegisterCommand("markers", "gathered herb and ore markers on the maps (on, off, map, minimap)", function(rest)
+ns.RegisterCommand("markers", L["gathered herb and ore markers on the maps (on, off, map, minimap)"], function(rest)
     local argument = Util.Trim(rest):lower()
     local which, state = argument:match("^(%S+)%s*(%S*)$")
 
@@ -636,15 +637,14 @@ ns.RegisterCommand("markers", "gathered herb and ore markers on the maps (on, of
     end
 
     if argument == "clear" then
-        ns.Print(("this removes all %s from your maps, for good. Your gathering "
-            .. "record stays. Type /farm markers clear confirm to do it."):format(
-            Util.Plural(#ns.Gathering:Spots(), "marker")))
+        ns.Print(L.Format("this removes all %s from your maps, for good. Your gathering record stays. Type /farm markers clear confirm to do it.",
+            Util.Plural(#ns.Gathering:Spots(), L["marker"], L["markers"])))
         return
     end
 
     if argument == "clear confirm" then
         local count = ns.Gathering:ClearSpots()
-        ns.Print(("%s cleared from your maps."):format(Util.Plural(count, "marker")))
+        ns.Print(L.Format("%s cleared from your maps.", Util.Plural(count, L["marker"], L["markers"])))
         return
     end
 

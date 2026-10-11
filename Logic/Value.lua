@@ -24,6 +24,7 @@
 -- guess with a gold sign on it.
 
 local _, ns = ...
+local L = ns.L
 
 local Value = ns.NewModule("Value")
 
@@ -443,10 +444,10 @@ function Value:PriceNote(details)
         if entry.from == "auction" then auction = true end
     end
 
-    local note = auction and "auction prices" or "vendor prices"
-    if details.basis == "database" then note = note .. ", database rates" end
-
-    return note
+    if details.basis == "database" then
+        return auction and L["auction prices, database rates"] or L["vendor prices, database rates"]
+    end
+    return auction and L["auction prices"] or L["vendor prices"]
 end
 
 --- A mob named loosely, spelled its own way whatever the case typed: one
@@ -480,12 +481,12 @@ function Value:ResolveMob(text)
     return found or prefix
 end
 
-ns.RegisterCommand("value", "what a mob is worth per kill, from Tradeskills prices", function(rest)
+ns.RegisterCommand("value", L["what a mob is worth per kill, from Tradeskills prices"], function(rest)
     local wanted = Util.Trim(rest or "")
     local mobName = Value:ResolveMob(wanted) or (wanted ~= "" and wanted) or nil
 
     if not mobName then
-        ns.Print("name a mob: /farm value <mob>.")
+        ns.Print(L["name a mob: /farm value <mob>."])
         return
     end
 
@@ -494,21 +495,22 @@ ns.RegisterCommand("value", "what a mob is worth per kill, from Tradeskills pric
     if not value then
         local summary = ns.Tracker:Summary(mobName)
         if summary and not summary.rated then
-            ns.Print(("%s: %d more %s before it has a value."):format(mobName,
-                summary.needed, summary.needed == 1 and "kill" or "kills"))
+            ns.Print(summary.needed == 1
+                and L.Format("%s: 1 more kill before it has a value.", mobName)
+                or L.Format("%s: %d more kills before it has a value.", mobName, summary.needed))
         else
-            ns.Print(("%s: no drop rates with prices to value it by yet."):format(mobName))
+            ns.Print(L.Format("%s: no drop rates with prices to value it by yet.", mobName))
         end
         return
     end
 
-    ns.Print(("%s: about %s a kill %s"):format(
+    ns.Print(L.Format("%s: about %s a kill %s",
         Util.Colored("accent", mobName),
         Value.Coins(value),
         Util.Colored("muted", ("(%s)"):format(Value:PriceNote(details)))))
 
     if details.coin and details.coin > 0 then
-        ns.PrintRaw(("  coin  %s"):format(Value.Coins(details.coin)))
+        ns.PrintRaw(L.Format("  coin  %s", Value.Coins(details.coin)))
     end
 
     for index = 1, math.min(#details.priced, 6) do
@@ -518,12 +520,12 @@ ns.RegisterCommand("value", "what a mob is worth per kill, from Tradeskills pric
     end
 
     if #details.unpriced > 0 then
-        ns.PrintRaw(Util.Colored("muted", ("  no price yet: %s"):format(
+        ns.PrintRaw(Util.Colored("muted", L.Format("  no price yet: %s",
             table.concat(details.unpriced, ", "))))
     end
 
     if not Value:HasAuctionPrices() then
         ns.PrintRaw(Util.Colored("muted",
-            "  Blackthornes Tradeskills is not loaded, so these are vendor prices."))
+            L["  Blackthornes Tradeskills is not loaded, so these are vendor prices."]))
     end
 end)

@@ -8,6 +8,7 @@
 -- that merely happens to drop in a zone you named.
 
 local _, ns = ...
+local L = ns.L
 
 local Search = ns.NewModule("Search")
 
@@ -334,9 +335,9 @@ end
 --- "12 spots", or "3 of 12 spots" when only some of them are shown.
 function Search:SpotsText(shown, total)
     if shown < total then
-        return ("%d of %s"):format(shown, Util.Plural(total, "spot"))
+        return L.Format("%d of %d spots", shown, total)
     end
-    return Util.Plural(total, "spot")
+    return Util.Plural(total, L["spot"], L["spots"])
 end
 
 --- One source as a line, e.g.
@@ -347,7 +348,7 @@ function Search:SourceLine(source)
     local detail = ns.DB:KindLabel(source.kind)
 
     if source.requires then
-        detail = detail .. ", needs " .. source.requires
+        detail = L.Format("%s, needs %s", detail, source.requires)
     end
 
     if source.chance then
@@ -393,11 +394,10 @@ end
 --- what emptied it, it says so, rather than that nothing is known.
 function Search:NothingFoundText(query)
     if self.hidHit then
-        return ('Everything that matches "%s" is hidden: skinning is left out '
-            .. "(Hide skinning, in Settings under Loot) or it is on your hide list "
-            .. "(/farm hidden)."):format(query)
+        return L.Format('Everything that matches "%s" is hidden: skinning is left out (Hide skinning, in Settings under Loot) or it is on your hide list (/farm hidden).',
+            query)
     end
-    return ('Nothing found for "%s". Try part of a name, a zone, or a category.'):format(query)
+    return L.Format('Nothing found for "%s". Try part of a name, a zone, or a category.', query)
 end
 
 --- Flat display lines for a query, shared by the window and `/farm chat`.
@@ -439,7 +439,7 @@ function Search:BuildLines(query, maxItems)
     if total > shown then
         lines[#lines + 1] = " "
         lines[#lines + 1] = Util.Colored("muted",
-            ("... and %d more. Narrow the search to see them."):format(total - shown))
+            L.Format("... and %d more. Narrow the search to see them.", total - shown))
     end
 
     return lines, total
@@ -519,7 +519,7 @@ function Search:BuildRows(query, opts)
     if total > maxItems then
         rows[#rows + 1] = {
             type = "more",
-            text = ("and %d more items. Narrow the search to see them."):format(total - maxItems),
+            text = L.Format("and %d more items. Narrow the search to see them.", total - maxItems),
         }
     end
 
@@ -609,8 +609,8 @@ end
 function Search:PrintResults(query)
     local lines, total = self:BuildLines(query, 5)
 
-    ns.Print(("results for %s (%s):"):format(
-        Util.Colored("accent", query), Util.Plural(total, "item")))
+    ns.Print(L.Format("results for %s (%s):",
+        Util.Colored("accent", query), Util.Plural(total, L["item"], L["items"])))
 
     for _, line in ipairs(lines) do
         if Util.Trim(Util.StripColor(line)) ~= "" then
@@ -619,9 +619,9 @@ function Search:PrintResults(query)
     end
 end
 
-ns.RegisterCommand("chat", "print results to chat instead of the window", function(rest)
+ns.RegisterCommand("chat", L["print results to chat instead of the window"], function(rest)
     if Util.Trim(rest) == "" then
-        ns.Print("usage: /farm chat <text>")
+        ns.Print(L["usage: /farm chat <text>"])
         return
     end
     ns.Search:PrintResults(rest)
@@ -629,7 +629,7 @@ end)
 
 -- Skinning shown or left out (DB:SetShowSkinning, the Settings row "Show
 -- skinning").
-ns.RegisterCommand("skinning", "show skinning, or leave it out and show only drops: on or off", function(rest)
+ns.RegisterCommand("skinning", L["show skinning, or leave it out and show only drops: on or off"], function(rest)
     local word = Util.Trim(rest or ""):lower()
     local on
     if word == "on" or word == "show" then
@@ -640,35 +640,35 @@ ns.RegisterCommand("skinning", "show skinning, or leave it out and show only dro
         on = not ns.DB:ShowsSkinning()
     end
     ns.DB:SetShowSkinning(on)
-    ns.Print(on and "skinning is shown again."
-        or "skinning is left out: only drops are shown. /farm skinning puts it back.")
+    ns.Print(on and L["skinning is shown again."]
+        or L["skinning is left out: only drops are shown. /farm skinning puts it back."])
     if ns.SettingsUI then ns.SettingsUI:Refresh() end
 end)
 
-ns.RegisterCommand("stats", "how much data is loaded", function()
-    ns.Print(("%s, %s loaded"):format(
-        Util.Plural(ns.DB:CountItems(), "item"),
-        Util.Plural(ns.DB:CountSources(), "farming spot")))
+ns.RegisterCommand("stats", L["how much data is loaded"], function()
+    ns.Print(L.Format("%s, %s loaded",
+        Util.Plural(ns.DB:CountItems(), L["item"], L["items"]),
+        Util.Plural(ns.DB:CountSources(), L["farming spot"], L["farming spots"])))
 end)
 
-ns.RegisterCommand("data", "where the data came from", function()
+ns.RegisterCommand("data", L["where the data came from"], function()
     local counts = ns.DB:CountByProvenance()
 
-    ns.Print("data sources:")
+    ns.Print(L["data sources:"])
 
     for key, label in pairs(ns.DB.PROVENANCE) do
         ns.PrintRaw(("  %s  %s"):format(
             Util.Colored(key == "forever" and "good" or "muted",
-                Util.Plural(counts[key] or 0, "spot")),
+                Util.Plural(counts[key] or 0, L["spot"], L["spots"])),
             Util.Colored("muted", label)))
     end
 
     ns.PrintRaw(Util.Colored("muted",
-        "  Classic rows are leads, not gospel: Forever can differ."))
+        L["  Classic rows are leads, not gospel: Forever can differ."]))
 end)
 
-ns.RegisterCommand("list", "list every item in the database", function()
-    ns.Print(("database holds %s:"):format(Util.Plural(ns.DB:CountItems(), "item")))
+ns.RegisterCommand("list", L["list every item in the database"], function()
+    ns.Print(L.Format("database holds %s:", Util.Plural(ns.DB:CountItems(), L["item"], L["items"])))
 
     local row = {}
     for item in ns.DB:Iterate() do

@@ -26,6 +26,7 @@
 -- Everything is kept in saved variables. Nothing is sent anywhere.
 
 local _, ns = ...
+local L = ns.L
 
 local Fishing = ns.NewModule("Fishing")
 
@@ -44,6 +45,13 @@ local OPEN_WATER = "open water"
 
 Fishing.MIN_CASTS = MIN_CASTS
 Fishing.OPEN_WATER = OPEN_WATER
+
+-- A spot's name as shown: open water in the client's words, a school as the
+-- client named it. The kept name stays English (OPEN_WATER).
+local function Shown(name)
+    if name == OPEN_WATER then return L["open water"] end
+    return name
+end
 
 -- This session only: casts per spot, the order spots were last fished in, and
 -- how many casts in all. The panel's Fishing section shows only while
@@ -308,20 +316,20 @@ function Fishing:Celebrate(key)
     local summary = self:Summary(key)
     if not summary then return end
 
-    local where = summary.place and (" in %s"):format(summary.place) or ""
-    local line = ("Catch rates unlocked for %s%s! %d casts in."):format(
-        Util.Colored("accent", summary.name), where, summary.casts)
+    local where = summary.place and L.Format(" in %s", summary.place) or ""
+    local line = L.Format("Catch rates unlocked for %s%s! %d casts in.",
+        Util.Colored("accent", Shown(summary.name)), where, summary.casts)
 
     local best = summary.items[1]
     if best then
-        line = line .. (" Best catch: %s %s."):format(best.name,
+        line = line .. L.Format(" Best catch: %s %s.", best.name,
             Util.Colored("good", ns.Tracker.FormatChance(best.chance)))
     end
 
-    ns.Tracker:Fanfare(line, ("unlocked catch rates for %s%s after %d casts! (Blackthornes Farmer)")
-        :format(summary.name, where, summary.casts),
-        { title = "CATCH RATES UNLOCKED", subject = ("%s  |  %d casts"):format(
-            (summary.name:gsub("^%l", string.upper)), summary.casts), key = "spot:" .. tostring(key) })
+    ns.Tracker:Fanfare(line, L.Format("unlocked catch rates for %s%s after %d casts! (Blackthornes Farmer)",
+            Shown(summary.name), where, summary.casts),
+        { title = L["CATCH RATES UNLOCKED"], subject = L.Format("%s  |  %d casts",
+            (Shown(summary.name):gsub("^%l", string.upper)), summary.casts), key = "spot:" .. tostring(key) })
 end
 
 --- One spot's catch, best-caught first.
@@ -657,40 +665,40 @@ local function PrintSpot(summary)
 
     if spot.minSkill then
         skill = spot.minSkill == spot.maxSkill
-            and (", skill %d"):format(spot.minSkill)
-            or (", skill %d-%d"):format(spot.minSkill, spot.maxSkill)
+            and L.Format(", skill %d", spot.minSkill)
+            or L.Format(", skill %d-%d", spot.minSkill, spot.maxSkill)
     end
 
     ns.PrintRaw(("%s  %s"):format(
-        Util.Colored("accent", summary.name),
+        Util.Colored("accent", Shown(summary.name)),
         Util.Colored("muted", ("%s, %s%s"):format(summary.place or "?",
-            Util.Plural(summary.casts, "cast"), skill))))
+            Util.Plural(summary.casts, L["cast"], L["casts"]), skill))))
 
     for _, item in ipairs(summary.items) do
         local right = summary.rated and ns.Tracker.FormatChance(item.chance)
-            or ("%d of %d"):format(item.casts, summary.casts)
+            or L.Format("%d of %d", item.casts, summary.casts)
         ns.PrintRaw(("  %s %s"):format(item.name, Util.Colored("muted", right)))
     end
 
     if not summary.rated then
-        ns.PrintRaw(Util.Colored("muted", ("  %d more %s for catch rates."):format(
-            summary.needed, summary.needed == 1 and "cast" or "casts")))
+        ns.PrintRaw(Util.Colored("muted", summary.needed == 1
+            and L["  1 more cast for catch rates."]
+            or L.Format("  %d more casts for catch rates.", summary.needed)))
     end
 end
 
-ns.RegisterCommand("fishing", "what you have caught in this zone (all: everywhere)", function(rest)
+ns.RegisterCommand("fishing", L["what you have caught in this zone (all: everywhere)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "reset" then
-        ns.Print(("this deletes all %s you have recorded, for good. "
-            .. "Type /farm fishing reset confirm to do it."):format(
-            Util.Plural(Fishing:CountCasts(), "fishing cast")))
+        ns.Print(L.Format("this deletes all %s you have recorded, for good. Type /farm fishing reset confirm to do it.",
+            Util.Plural(Fishing:CountCasts(), L["fishing cast"], L["fishing casts"])))
         return
     end
 
     if argument == "reset confirm" then
         Fishing:Reset()
-        ns.Print("fishing record cleared.")
+        ns.Print(L["fishing record cleared."])
         return
     end
 
@@ -700,19 +708,18 @@ ns.RegisterCommand("fishing", "what you have caught in this zone (all: everywher
     if #spots == 0 and zone then
         local total = Fishing:CountCasts()
         if total == 0 then
-            ns.Print("nothing caught yet. Fish something and try again.")
+            ns.Print(L["nothing caught yet. Fish something and try again."])
         else
-            ns.Print(("nothing caught in %s yet. /farm fishing all shows everywhere.")
-                :format(zone))
+            ns.Print(L.Format("nothing caught in %s yet. /farm fishing all shows everywhere.", zone))
         end
         return
     end
 
     if #spots == 0 then
-        ns.Print("nothing caught yet. Fish something and try again.")
+        ns.Print(L["nothing caught yet. Fish something and try again."])
         return
     end
 
-    ns.Print(zone and ("caught in %s:"):format(zone) or "caught everywhere:")
+    ns.Print(zone and L.Format("caught in %s:", zone) or L["caught everywhere:"])
     for _, summary in ipairs(spots) do PrintSpot(summary) end
 end)

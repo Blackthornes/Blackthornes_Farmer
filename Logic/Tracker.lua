@@ -24,6 +24,7 @@
 -- window only. Nothing is ever said on a channel anyone else can read.
 
 local _, ns = ...
+local L = ns.L
 
 local Tracker = ns.NewModule("Tracker")
 
@@ -357,7 +358,7 @@ function Tracker.PlacesText(places, limit)
     end
 
     if #places > limit then
-        parts[#parts + 1] = ("+%d more"):format(#places - limit)
+        parts[#parts + 1] = L.Format("+%d more", #places - limit)
     end
 
     -- Semicolons, since a place name has a comma of its own.
@@ -801,16 +802,16 @@ function Tracker:ReportLine(mobName)
     local summary = self:Summary(mobName)
     if not summary then return nil end
 
-    local line = ("%s: kill %d (%d this session)"):format(
+    local line = L.Format("%s: kill %d (%d this session)",
         Util.Colored("accent", summary.mob), summary.kills, summary.session)
 
     if not summary.rated then
         return line .. Util.Colored("muted",
-            (", %d more for drop rates."):format(summary.needed))
+            L.Format(", %d more for drop rates.", summary.needed))
     end
 
     if #summary.items == 0 then
-        return line .. Util.Colored("muted", ", nothing dropped yet.")
+        return line .. Util.Colored("muted", L[", nothing dropped yet."])
     end
 
     local parts = {}
@@ -898,20 +899,20 @@ function Tracker:Celebrate(mobName)
     local summary = self:Summary(mobName)
     if not summary then return end
 
-    local line = ("Drop rates unlocked for %s! %d kills in."):format(
+    local line = L.Format("Drop rates unlocked for %s! %d kills in.",
         Util.Colored("accent", summary.mob), summary.kills)
 
     local best = summary.items[1]
     if best then
-        line = line .. (" Best drop: %s %s."):format(best.name,
+        line = line .. L.Format(" Best drop: %s %s.", best.name,
             Util.Colored("good", Tracker.FormatChance(best.chance)))
     else
-        line = line .. " Nothing has dropped yet."
+        line = line .. L[" Nothing has dropped yet."]
     end
 
-    self:Fanfare(line, ("unlocked drop rates for %s after %d kills! (Blackthornes Farmer)")
-        :format(summary.mob, summary.kills),
-        { title = "DROP RATES UNLOCKED", subject = ("%s  |  %d kills"):format(summary.mob, summary.kills),
+    self:Fanfare(line, L.Format("unlocked drop rates for %s after %d kills! (Blackthornes Farmer)",
+            summary.mob, summary.kills),
+        { title = L["DROP RATES UNLOCKED"], subject = L.Format("%s  |  %d kills", summary.mob, summary.kills),
             key = "mob:" .. summary.mob })
 end
 
@@ -958,26 +959,25 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("tracker", "show or hide the kill and loot panel (clear: empty what it shows, tallies kept; group on/off: move it aside in a party or raid; size: small, normal, large or a percent)", function(rest)
+ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear: empty what it shows, tallies kept; group on/off: move it aside in a party or raid; size: small, normal, large or a percent)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     -- What the panel shows, kept between sessions (Logic/Session.lua). Only
     -- the view goes; every tally stays.
     if argument == "clear" then
         if ns.Session then ns.Session:Clear() end
-        ns.Print("kill and loot panel cleared. Your kill tallies and drop rates are kept.")
+        ns.Print(L["kill and loot panel cleared. Your kill tallies and drop rates are kept."])
         return
     end
 
     if argument == "reset" then
-        ns.Print("this clears every kill tally, for good. "
-            .. "Type /farm tracker reset confirm to do it.")
+        ns.Print(L["this clears every kill tally, for good. Type /farm tracker reset confirm to do it."])
         return
     end
 
     if argument == "reset confirm" then
         Tracker:Reset()
-        ns.Print("kill tallies cleared.")
+        ns.Print(L["kill tallies cleared."])
         return
     end
 
@@ -989,12 +989,12 @@ ns.RegisterCommand("tracker", "show or hide the kill and loot panel (clear: empt
         if not TrackerUI then return end
         local percent = TrackerUI.ParseSize(size)
         if not percent then
-            ns.Print(("the kill and loot panel is at %s. /farm tracker size small, normal, large or a percent from %d%% to %d%% changes it, or drag the gold corner beside its bottom right."):format(
+            ns.Print(L.Format("the kill and loot panel is at %s. /farm tracker size small, normal, large or a percent from %d%% to %d%% changes it, or drag the gold corner beside its bottom right.",
                 TrackerUI.ScaleText(TrackerUI:DrawnPercent()), TrackerUI.SCALE_MIN, TrackerUI.SCALE_MAX))
             return
         end
         TrackerUI:Build()
-        ns.Print(("kill and loot panel size: %s."):format(TrackerUI.ScaleText(TrackerUI:SetScalePercent(percent))))
+        ns.Print(L.Format("kill and loot panel size: %s.", TrackerUI.ScaleText(TrackerUI:SetScalePercent(percent))))
         return
     end
 
@@ -1009,8 +1009,8 @@ ns.RegisterCommand("tracker", "show or hide the kill and loot panel (clear: empt
         else ns.db.trackerDodgeGroup = on end
 
         ns.Print(on
-            and "in a group, the panel moves aside from the party and raid frames."
-            or "the panel stays put in a group. /farm tracker group on to move it aside.")
+            and L["in a group, the panel moves aside from the party and raid frames."]
+            or L["the panel stays put in a group. /farm tracker group on to move it aside."])
         return
     end
 
@@ -1025,13 +1025,13 @@ ns.RegisterCommand("tracker", "show or hide the kill and loot panel (clear: empt
     if ns.TrackerUI then ns.TrackerUI:Refresh() end
 
     if ns.db.trackerHidden then
-        ns.Print("kill and loot panel hidden. /farm tracker brings it back.")
+        ns.Print(L["kill and loot panel hidden. /farm tracker brings it back."])
     else
-        ns.Print("kill and loot panel shown. /farm tracker hides it.")
+        ns.Print(L["kill and loot panel shown. /farm tracker hides it."])
     end
 end)
 
-ns.RegisterCommand("report", "report each kill's tally in chat (on/off)", function(rest)
+ns.RegisterCommand("report", L["report each kill's tally in chat (on/off)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "on" then
@@ -1043,13 +1043,13 @@ ns.RegisterCommand("report", "report each kill's tally in chat (on/off)", functi
     end
 
     if ns.db.trackerReport then
-        ns.Print("reporting each kill in chat. Only you can see it. /farm report off to stop.")
+        ns.Print(L["reporting each kill in chat. Only you can see it. /farm report off to stop."])
     else
-        ns.Print("kill reports off.")
+        ns.Print(L["kill reports off."])
     end
 end)
 
-ns.RegisterCommand("celebrate", "sound and cheer at a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather (on/off)",
+ns.RegisterCommand("celebrate", L["sound and cheer at a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather (on/off)"],
     function(rest)
         local argument = Util.Trim(rest):lower()
 
@@ -1062,11 +1062,11 @@ ns.RegisterCommand("celebrate", "sound and cheer at a mob's 20th kill, a fishing
         end
 
         ns.Print(ns.db.trackerCelebrate
-            and "a fanfare when rates unlock at 20 kills, casts or gathers. /farm celebrate off to stop."
-            or "no fanfare when rates unlock. /farm celebrate on to bring it back.")
+            and L["a fanfare when rates unlock at 20 kills, casts or gathers. /farm celebrate off to stop."]
+            or L["no fanfare when rates unlock. /farm celebrate on to bring it back."])
     end)
 
-ns.RegisterCommand("announce", "emote your 20 kill, cast and gather milestones to players nearby (on/off)",
+ns.RegisterCommand("announce", L["emote your 20 kill, cast and gather milestones to players nearby (on/off)"],
     function(rest)
         local argument = Util.Trim(rest):lower()
 
@@ -1079,22 +1079,22 @@ ns.RegisterCommand("announce", "emote your 20 kill, cast and gather milestones t
         end
 
         ns.Print(ns.db.trackerAnnounce
-            and "players near you see an emote when rates unlock. /farm announce off to stop."
-            or "milestones stay in your own chat. /farm announce on to share them.")
+            and L["players near you see an emote when rates unlock. /farm announce off to stop."]
+            or L["milestones stay in your own chat. /farm announce on to share them."])
 
         if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
     end)
 
-ns.RegisterCommand("kills", "a mob's kill tally and drop rates", function(rest)
+ns.RegisterCommand("kills", L["a mob's kill tally and drop rates"], function(rest)
     local mobName = Tracker:ResolveMob(rest or "")
     local summary = mobName and Tracker:Summary(mobName)
 
     if not summary then
         local wanted = Util.Trim(rest or "")
         if wanted == "" then
-            ns.Print("nothing killed yet. Loot something and try again.")
+            ns.Print(L["nothing killed yet. Loot something and try again."])
         else
-            ns.Print(("no kills of %s yet."):format(wanted))
+            ns.Print(L.Format("no kills of %s yet.", wanted))
         end
         return
     end
@@ -1103,11 +1103,11 @@ ns.RegisterCommand("kills", "a mob's kill tally and drop rates", function(rest)
 
     local where = Tracker.PlacesText(summary.places)
     if where then
-        ns.PrintRaw("  killed at " .. Util.Colored("muted", where))
+        ns.PrintRaw(L.Format("  killed at %s", Util.Colored("muted", where)))
     end
     if summary.unplaced > 0 and #summary.places > 0 then
-        ns.PrintRaw(Util.Colored("muted", ("  %s with no place.")
-            :format(Util.Plural(summary.unplaced, "kill"))))
+        ns.PrintRaw(Util.Colored("muted", L.Format("  %s with no place.",
+            Util.Plural(summary.unplaced, L["kill"], L["kills"]))))
     end
 
     -- The chat line names the top few; this names them all.
@@ -1120,7 +1120,7 @@ ns.RegisterCommand("kills", "a mob's kill tally and drop rates", function(rest)
     elseif not summary.rated then
         for _, item in ipairs(summary.items) do
             ns.PrintRaw(("  %s %s"):format(item.name,
-                Util.Colored("muted", ("%d of %d"):format(item.corpses, summary.kills))))
+                Util.Colored("muted", L.Format("%d of %d", item.corpses, summary.kills))))
         end
     end
 end)

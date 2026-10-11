@@ -6,6 +6,7 @@
 -- and is small enough to read in one sitting.
 
 local ADDON_NAME, ns = ...
+local L = ns.L
 
 _G.BlackthornesFarmer = ns
 
@@ -39,7 +40,7 @@ ns.VERSION = ReadVersion()
 
 --- The version as players see it: "v0.2.0", or "dev build" from a checkout.
 function ns.VersionLabel()
-    if ns.VERSION == "dev" then return "dev build" end
+    if ns.VERSION == "dev" then return L["dev build"] end
     return "v" .. ns.VERSION
 end
 
@@ -145,7 +146,7 @@ function ns.KeepCheck(name, fn, ...)
             version = ns.VERSION,
             lines = lines,
         }
-        ns.Print("Saved for Claude, /reload to write it.")
+        ns.Print(L["Saved for Claude, /reload to write it."])
     end
     if not ok then error(err, 0) end
 end
@@ -347,7 +348,7 @@ local function RunLifecycle(method)
         if type(fn) == "function" then
             local ok, err = pcall(fn, module)
             if not ok then
-                ns.Warn(("module %s:%s failed"):format(module.moduleName, method))
+                ns.Warn(L.Format("module %s:%s failed", module.moduleName, method))
                 geterrorhandler()(err)
             end
         end
@@ -495,8 +496,8 @@ end
 
 local function ShowHelp()
     ns.Print(("|c%sBlackthornes Farmer|r %s"):format(ns.COLORS.accent, ns.VersionLabel()))
-    ns.PrintRaw(("  |c%s/farm <text>|r  |c%ssearch for something to farm|r"):format(
-        ns.COLORS.accent, ns.COLORS.muted))
+    ns.PrintRaw(("  |c%s/farm <text>|r  |c%s%s|r"):format(
+        ns.COLORS.accent, ns.COLORS.muted, L["search for something to farm"]))
 
     for i = 1, #ns.commandOrder do
         local name = ns.commandOrder[i]
@@ -506,7 +507,7 @@ local function ShowHelp()
     end
 end
 
-ns.RegisterCommand("help", "show this list", ShowHelp)
+ns.RegisterCommand("help", L["show this list"], ShowHelp)
 
 SLASH_BLACKTHORNESFARMER1 = "/farm"
 SLASH_BLACKTHORNESFARMER2 = "/farmer"
@@ -543,7 +544,7 @@ function ns.HandleSlash(input)
     -- broken command and one that did nothing look identical from the chat
     -- frame.
     if not ok then
-        ns.Warn(("/farm %s failed: %s"):format(keyword, tostring(err)))
+        ns.Warn(L.Format("/farm %s failed: %s", keyword, tostring(err)))
         geterrorhandler()(err)
     end
 

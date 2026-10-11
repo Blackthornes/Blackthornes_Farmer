@@ -39,6 +39,7 @@
 -- combat, and what is sent goes out a batch at a time as the pacing allows.
 
 local _, ns = ...
+local L = ns.L
 
 local Share = ns.NewModule("Share")
 
@@ -77,18 +78,18 @@ local ITEM_NODE = { add = Set { "gathers", "count" }, fill = Set { "id" } }
 local ITEM_CAST = { add = Set { "casts", "count" }, fill = Set { "id" } }
 
 local SECTIONS = {
-    { key = "h", what = "drop rates",
+    { key = "h", what = "drop rates", label = L["drop rates"],
       spec = { strings = Set { "mob", "zone", "location" }, add = Set { "corpses" },
                min = Set { "minLevel" }, max = Set { "maxLevel" }, fill = Set { "npc" },
                coords = true, maps = { items = ITEM_DROP } } },
-    { key = "g", what = "gathering",
+    { key = "g", what = "gathering", label = L["gathering"],
       spec = { strings = Set { "zone", "location", "node", "kind" }, add = Set { "gathers" },
                coords = true, maps = { items = ITEM_NODE } } },
-    { key = "f", what = "fishing",
+    { key = "f", what = "fishing", label = L["fishing"],
       spec = { strings = Set { "zone", "location", "school" }, add = Set { "casts" },
                min = Set { "minSkill" }, max = Set { "maxSkill" },
                coords = true, maps = { items = ITEM_CAST } } },
-    { key = "k", what = "kills",
+    { key = "k", what = "kills", label = L["kills"],
       spec = { add = Set { "kills", "copper", "coinKills" },
                maps = { items = "count", qty = "count", stacks = "count", places = "count" } } },
 }
@@ -526,7 +527,7 @@ function Share:Identify(state, id)
     end
     state.duplicate, state.sameAs = nil, nil
     if ns.Transfer and id == ns.Transfer:SourceId() then
-        state.duplicate, state.sameAs = true, "this account"
+        state.duplicate, state.sameAs = true, L["this account"]
         return false
     end
     for key, held in pairs(ns.db.shareIn or {}) do
@@ -738,25 +739,32 @@ end
 function Share:Describe()
     if not ns.db then return "" end
     local partners = self:GetPartners()
-    if ns.db.shareData ~= true then return "Sharing is off." end
-    if #partners == 0 then return "Sharing is on, but no character of your other account is named." end
+    if ns.db.shareData ~= true then return L["Sharing is off."] end
+    if #partners == 0 then return L["Sharing is on, but no character of your other account is named."] end
 
     local parts = {}
     for _, partner in ipairs(partners) do
         local state = self.partners[partner.key] or {}
         local total = self:CountTaken(partner.key)
         if state.duplicate then
-            parts[#parts + 1] = ("%s: the same account as %s, so nothing is taken from it twice"):format(
+            parts[#parts + 1] = L.Format("%s: the same account as %s, so nothing is taken from it twice",
                 partner.name, tostring(state.sameAs))
         else
-            parts[#parts + 1] = ("%s: %s, %d record%s taken"):format(
-                partner.name, state.online and "online" or "not heard from this session",
-                total, total == 1 and "" or "s")
+            local heard = state.online and L["online"] or L["not heard from this session"]
+            if total == 1 then
+                parts[#parts + 1] = L.Format("%s: %s, %d record taken", partner.name, heard, total)
+            else
+                parts[#parts + 1] = L.Format("%s: %s, %d records taken", partner.name, heard, total)
+            end
         end
     end
     local pending = Comm:Pending()
     if pending > 0 then
-        parts[#parts + 1] = ("%d message%s waiting to go"):format(pending, pending == 1 and "" or "s")
+        if pending == 1 then
+            parts[#parts + 1] = L.Format("%d message waiting to go", pending)
+        else
+            parts[#parts + 1] = L.Format("%d messages waiting to go", pending)
+        end
     end
     return table.concat(parts, ".  ") .. "."
 end
@@ -805,20 +813,20 @@ function Share:OnEnable()
     self.ticker = C_Timer.NewTicker(self.CHECK_SECONDS, function() Share:Check() end)
 end
 
-ns.RegisterCommand("share", "share kills, drop rates and gathering with your other account: on, off, with <names>, sync",
+ns.RegisterCommand("share", L["share kills, drop rates and gathering with your other account: on, off, with <names>, sync"],
     function(args)
         local word, rest = (args or ""):match("^(%S*)%s*(.-)%s*$")
         word = (word or ""):lower()
 
         if word == "on" or word == "off" then
             Share:SetEnabled(word == "on")
-            ns.Print(word == "on" and "sharing with your other account is on" or "sharing with your other account is off")
+            ns.Print(word == "on" and L["sharing with your other account is on"] or L["sharing with your other account is off"])
         elseif word == "with" then
             Share:SetNames(rest)
-            ns.Print(rest ~= "" and ("sharing with: " .. rest) or "no character named to share with")
+            ns.Print(rest ~= "" and L.Format("sharing with: %s", rest) or L["no character named to share with"])
         elseif word == "sync" then
             Share:Check()
-            ns.Print(Share:Enabled() and "asked your other account for anything new" or "sharing is off, or no character is named")
+            ns.Print(Share:Enabled() and L["asked your other account for anything new"] or L["sharing is off, or no character is named"])
         else
             ns.Print(Share:Describe())
         end
