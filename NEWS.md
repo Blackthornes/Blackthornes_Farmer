@@ -12,6 +12,15 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.27.0
+
+- Skinning is now hidden by default, so you see just the drops. You can turn it back on in Settings.
+- Right-click anything in a list to hide it.
+- Your kills and loot panel stays put after a reload. There's a Clear button when you want a fresh start.
+- Share your counts with your other account, or swap them with a friend.
+- Every window has a size grip now.
+- Works on German game clients too.
+
 ## 0.26.0
 
 - You can now click any column title in the loot table and on Rankings to sort it. Click again to flip it.

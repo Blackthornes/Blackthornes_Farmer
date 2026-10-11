@@ -4,6 +4,47 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.27.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- **Hide skinning:** a new box on the Loot page of Settings, ticked by
+  default, leaves skinning spots and skinned items (leather, hides,
+  scales) out of the search, Rankings, the Grind tab, the kills panel, the
+  loot table, a kill's worth and the tooltip. Untick it to bring them
+  back. Nothing recorded is changed.
+- **A hide list:** right-click a row in the search, Rankings, Grind, the
+  loot table or the kills panel to hide that mob, node or item. A new
+  Hidden window (`/farm hidden`, or Show list on the Loot page) lists
+  them, each with Show again.
+- **The kills and loot panel keeps your run:** a /reload or relog no
+  longer empties it. A new **Clear** button beside Sort (click twice),
+  Settings > Kill tally > Clear panel and `/farm tracker clear` start a
+  new run. Tallies, drop rates and Rankings stay.
+- **Share with your other account:** a new Sharing page in Settings
+  (`/farm share`) passes kill tallies, drop rates, gathering and fishing
+  between two of your own accounts. It is off until ticked, and each
+  account is counted once however many of its characters you name.
+  Goals and settings are not shared.
+- **Give and take data:** Give my data (`/farm give`) turns your counts
+  into a line of text to copy, and Take someone's data (`/farm take`)
+  shows what a pasted line would add before you press Apply. The same
+  text twice adds nothing, and Remove takes an import back out. The text
+  holds counts only, never names, goals or settings.
+- **Size grips on every window:** the search window, Settings, the loot
+  table, Export, the goals panel, Where to farm and the goal picker now
+  have the gold size grip (50% to 150%; right-click for normal size).
+  Each window keeps its own size.
+- **Sister addons:** a few seconds after login, one chat line names the
+  Blackthornes addons you don't have yet and what each one adds. It shows
+  once per account, comes back only for an addon it has never named, and
+  never names one you have installed but turned off. "Sister addons" in
+  Settings turns it off in all of them at once.
+- **Fixes:** searches and goals by the game's item name, Fishing and
+  gathering skills, zones, creature types and coin per kill now work on
+  German and other non-English clients. English clients are unchanged.
+
 ## 0.26.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
