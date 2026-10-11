@@ -500,6 +500,35 @@ session. Creature types are kept in English (`Grinding.EnglishType`,
 by the client's mob name, and fishing schools are still told by English
 name endings. Tested in `tools/test_german.lua`. Not yet seen in game.
 
+The translation (the owner said yes, 2026-10-11, after Pets' pilot):
+Farmer's own words are in German on a German client. Players are told
+the language as "Deutsch"; the code names stay `deDE` and
+`Locale/deDE.lua`.
+
+- **English is the key and the fallback.** `Locale/Locale.lua` (first in
+  the TOC, Pets' file) makes `ns.L`, whose missing keys answer the key
+  itself. `L.Format(key, ...)` is `string.format` on the translation and
+  puts values named by place (`%2$s ... %1$d`) in order.
+- **Adding a string:** write it as `L["English text"]` or
+  `L.Format("English %s", value)`, a literal where it is written, one
+  whole sentence a key (never pieces joined with `..`), both forms for a
+  plural (`Util.Plural(n, L["kill"], L["kills"])`); add its line to
+  `Locale/deDE.lua` (informal "du" and the game's words: Beute, Ziel,
+  Gegner, Vorkommen, Fundort, Kürschnerei, Fischschwarm, Stufe, Gebiet,
+  Meter) and run `python tools/check_locale.py` (warns only; keep it at 0
+  missing). `tools/test_locale.lua` loads the addon as a German client.
+- **Left in English on purpose:** slash command words, saved and internal
+  keys, anything compared against data or the client (zone names, coin
+  words, skill names, creature types: `Grinding.TypeLabel` only shows
+  one), data names (items, mobs, zones), "Creature #ID", the harvest and
+  fishing export text, debug lines, and the checks players run for a
+  report (`/farm arrow check`, `gathering check`, `harvest check`).
+  `Spots.Hops`' `travel` stays English; only `Spots.DistanceText` says it.
+- German runs about 30% longer: buttons grow to fit, settings rows wrap,
+  and a new fixed width must wrap or grow, never end in "...".
+- `Locale/Locale.lua` and `tools/check_locale.py` are the same as Pets';
+  a fix to either belongs in every addon that has them.
+
 ## The owner's standing rules (both addons)
 
 - **"Always check that it's clear to post."** Anything public is checked for

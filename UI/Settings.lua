@@ -15,6 +15,7 @@
 -- on this page can never cost data.
 
 local _, ns = ...
+local L = ns.L
 
 local SettingsUI = ns.NewModule("SettingsUI")
 
@@ -42,18 +43,18 @@ local TITLE = "Blackthornes Farmer"
 -- The pages along the top (UI/SettingsPages.lua), as Tradeskills' Settings
 -- tab has them. Every setting kept its saved name; only its place moved.
 local PAGES = {
-    { key = "windows", text = "WINDOWS",
-      tip = "The minimap button, window sizes and places, effects and text size" },
-    { key = "tally", text = "KILL TALLY",
-      tip = "The kills and loot panel, what it says in chat, and your kills" },
-    { key = "loot", text = "LOOT",
-      tip = "Recording what drops and its export, fishing and gathering, and skinning" },
-    { key = "map", text = "MAP & GOALS",
-      tip = "Node markers, grinding camps, goals and the goal arrow" },
-    { key = "sharing", text = "SHARING",
-      tip = "Share kills, drop rates and gathering with your other account" },
-    { key = "advanced", text = "ADVANCED",
-      tip = "Debug output, the data loaded and the list of commands" },
+    { key = "windows", text = L["WINDOWS"],
+      tip = L["The minimap button, window sizes and places, effects and text size"] },
+    { key = "tally", text = L["KILL TALLY"],
+      tip = L["The kills and loot panel, what it says in chat, and your kills"] },
+    { key = "loot", text = L["LOOT"],
+      tip = L["Recording what drops and its export, fishing and gathering, and skinning"] },
+    { key = "map", text = L["MAP & GOALS"],
+      tip = L["Node markers, grinding camps, goals and the goal arrow"] },
+    { key = "sharing", text = L["SHARING"],
+      tip = L["Share kills, drop rates and gathering with your other account"] },
+    { key = "advanced", text = L["ADVANCED"],
+      tip = L["Debug output, the data loaded and the list of commands"] },
 }
 
 --------------------------------------------------------------------------------
@@ -272,7 +273,7 @@ function SettingsUI:Build()
     -- the name on a plate across the top and a red close gem.
     if ns.Titanforged then
         self.trim = ns.Titanforged:Dress(frame, {
-            title = "Farmer Settings",
+            title = L["Farmer Settings"],
             close = function() SettingsUI:Hide() end,
         })
         local left, right, top, bottom = ns.Titanforged.Reach(self.trim)
@@ -345,8 +346,7 @@ function SettingsUI:Build()
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("BOTTOM")
-    footer:SetText("Changes save as you make them. Clearing tallies or recorded loot "
-        .. "is left to typed commands, so nothing here can delete your data.")
+    footer:SetText(L["Changes save as you make them. Clearing tallies or recorded loot is left to typed commands, so nothing here can delete your data."])
     self.footer = footer
 
     frame:Hide()
@@ -381,21 +381,19 @@ function SettingsUI:BuildWindowsPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("windows", 1, "WINDOWS")
+    pages:Section("windows", 1, L["WINDOWS"])
 
-    local minimapRow = pages:Row("windows", 1, "Minimap button",
-        "Left-click it to search, right-click for this page. Drag it round the edge "
-        .. "to move it. Same as /farm minimap.")
+    local minimapRow = pages:Row("windows", 1, L["Minimap button"],
+        L["Left-click it to search, right-click for this page. Drag it round the edge to move it. Same as /farm minimap."])
 
-    controls.minimap = Widgets.CreateCheckbox(minimapRow, "Show it", function(checked)
+    controls.minimap = Widgets.CreateCheckbox(minimapRow, L["Show it"], function(checked)
         ns.db.minimapHidden = not checked
         if ns.UI then ns.UI:ApplyMinimapVisibility() end
     end, true)
     controls.minimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local windowScaleRow = pages:Row("windows", 1, "Search window size",
-        "Bigger for a high-resolution screen, smaller for a laptop. Or drag the "
-        .. "gold corner under its bottom right; right-click it for the normal size.")
+    local windowScaleRow = pages:Row("windows", 1, L["Search window size"],
+        L["Bigger for a high-resolution screen, smaller for a laptop. Or drag the gold corner under its bottom right; right-click it for the normal size."])
 
     -- Any percent the window's grip can drag to, one dragged to shown as it is.
     controls.windowScale = Widgets.CreateStepper(windowScaleRow, {
@@ -415,9 +413,8 @@ function SettingsUI:BuildWindowsPage()
     -- from 50 to 150 on the stepper, one dragged to shown as it is, and
     -- Small, Normal and Large under it, the one in use lit green.
     local TrackerUI = ns.TrackerUI
-    local trackerScaleRow = pages:Row("windows", 1, "Kill tally size",
-        "The kills and loot panel, sized on its own. Or drag the gold corner "
-        .. "beside its bottom right; right-click it for Normal. Same as /farm tracker size.")
+    local trackerScaleRow = pages:Row("windows", 1, L["Kill tally size"],
+        L["The kills and loot panel, sized on its own. Or drag the gold corner beside its bottom right; right-click it for Normal. Same as /farm tracker size."])
 
     controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
         min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
@@ -450,8 +447,8 @@ function SettingsUI:BuildWindowsPage()
         else
             button:SetPoint("TOPRIGHT", controls.trackerScale, "BOTTOMRIGHT", 0, -4)
         end
-        Explain(button, ("%s kill tally"):format(size.text),
-            ("Draws the kills and loot panel at %d%%, text and all. Same as /farm tracker size %s."):format(
+        Explain(button, L.Format("%s kill tally", size.text),
+            L.Format("Draws the kills and loot panel at %d%%, text and all. Same as /farm tracker size %s.",
                 size.percent, size.key))
         button.percent = size.percent
         controls.trackerSizes[index] = button
@@ -459,24 +456,22 @@ function SettingsUI:BuildWindowsPage()
     end
     if after then GrowRow(trackerScaleRow, 24) end
 
-    local positionRow = pages:Row("windows", 1, "Window positions",
-        "Moves every Farmer window back to where it started, if one ends up off screen.")
+    local positionRow = pages:Row("windows", 1, L["Window positions"],
+        L["Moves every Farmer window back to where it started, if one ends up off screen."])
 
-    local reset = Widgets.CreateButton(positionRow, "Put them back", function()
+    local reset = Widgets.CreateButton(positionRow, L["Put them back"], function()
         SettingsUI:ResetPositions()
-        ns.Print("windows moved back to where they started.")
+        ns.Print(L["windows moved back to where they started."])
     end, { width = 110, height = 20 })
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
     controls.resetPositions = reset
 
-    pages:Section("windows", 2, "LOOK")
+    pages:Section("windows", 2, L["LOOK"])
 
     -- Every window and both panels follow it, so it sits with the windows
     -- rather than under the kill tally. The saved key keeps its old name.
-    local effectsRow = pages:Row("windows", 2, "Window effects",
-        "Full: windows fade up and glow, and loot floats off the kill panel. "
-        .. "Subtle: shorter fades, and nothing floats. Off: no movement at all. "
-        .. "Same as /farm effects.")
+    local effectsRow = pages:Row("windows", 2, L["Window effects"],
+        L["Full: windows fade up and glow, and loot floats off the kill panel. Subtle: shorter fades, and nothing floats. Off: no movement at all. Same as /farm effects."])
 
     local FX = ns.TrackerFX
     controls.effects = Widgets.CreateStepper(effectsRow, {
@@ -488,25 +483,21 @@ function SettingsUI:BuildWindowsPage()
 
     -- Bigger letters in the same windows, as Tradeskills has. Every size
     -- is read as text is drawn, so it waits for /reload.
-    local textRow = pages:Row("windows", 2, "Text size",
-        "Large and Larger add a point or two to all of this addon's text. "
-        .. "Takes effect after /reload.")
+    local textRow = pages:Row("windows", 2, L["Text size"],
+        L["Large and Larger add a point or two to all of this addon's text. Takes effect after /reload."])
     controls.textSize = ns.SettingsPages.TextSizeControl(textRow, CONTROL_X, function() return ns.db end)
 
     -- Asked 2026-10-10: the game's own look for players who would rather
     -- the windows matched the rest of their screen. Read at login, so it
     -- waits for /reload as Text size does. See UI/BlizzardLook.lua.
-    local styleRow = pages:Row("windows", 2, "Window style",
-        "Titanforged is the house look, with a gold rim and glowing edges. "
-        .. "Blizzard uses the game's own frames, red buttons, tabs and tick boxes. "
-        .. "Takes effect after /reload.")
+    local styleRow = pages:Row("windows", 2, L["Window style"],
+        L["Titanforged is the house look, with a gold rim and glowing edges. Blizzard uses the game's own frames, red buttons, tabs and tick boxes. Takes effect after /reload."])
     controls.windowStyle = SettingsUI:WindowStyleControl(styleRow)
 
-    pages:Section("windows", 2, "OPEN")
+    pages:Section("windows", 2, L["OPEN"])
 
-    local _, searchButton = CommandRow(pages, "windows", 2, "Search window",
-        "Search for something to farm and see where it drops. Same as /farm on its own, "
-        .. "or /farm and what you are after.", "Open it", function()
+    local _, searchButton = CommandRow(pages, "windows", 2, L["Search window"],
+        L["Search for something to farm and see where it drops. Same as /farm on its own, or /farm and what you are after."], L["Open it"], function()
             -- /farm on its own toggles the window, so with it already open
             -- this closed it. It opens it, on the Search tab.
             ns.UI:Show()
@@ -514,8 +505,8 @@ function SettingsUI:BuildWindowsPage()
         end)
     controls.openSearch = searchButton
 
-    local _, rankingsButton = CommandRow(pages, "windows", 2, "Rankings",
-        "Mobs ranked by what a kill is worth. Same as /farm rankings.", "Open it", "rankings")
+    local _, rankingsButton = CommandRow(pages, "windows", 2, L["Rankings"],
+        L["Mobs ranked by what a kill is worth. Same as /farm rankings."], L["Open it"], "rankings")
     controls.rankings = rankingsButton
 end
 
@@ -544,11 +535,11 @@ function SettingsUI:WindowStyleControl(row)
     stepper:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- ReloadUI is allowed from a click, and saves everything first.
-    reload = Widgets.CreateButton(row, "Reload", function()
+    reload = Widgets.CreateButton(row, L["Reload"], function()
         if ReloadUI then ReloadUI() end
     end, { width = 60, height = 20 })
     ns.SettingsPages.ReloadUnder(row, stepper, reload)
-    Explain(reload, "Reload", "Reload the interface so the new window style shows (/reload).")
+    Explain(reload, L["Reload"], L["Reload the interface so the new window style shows (/reload)."])
     reload:Hide()
     stepper.reload = reload
 
@@ -570,86 +561,76 @@ function SettingsUI:BuildTallyPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("tally", 1, "KILL TALLY")
+    pages:Section("tally", 1, L["KILL TALLY"])
 
-    local trackerRow = pages:Row("tally", 1, "Tally panel",
-        "Shows what you have killed and what dropped. Same as /farm tracker.")
+    local trackerRow = pages:Row("tally", 1, L["Tally panel"],
+        L["Shows what you have killed and what dropped. Same as /farm tracker."])
 
-    controls.tracker = Widgets.CreateCheckbox(trackerRow, "Show it", function(checked)
+    controls.tracker = Widgets.CreateCheckbox(trackerRow, L["Show it"], function(checked)
         SettingsUI:SetTrackerShown(checked)
     end, true)
     controls.tracker:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Only what the panel shows: every tally stays, so it is no reset.
-    local clearRow = pages:Row("tally", 1, "Clear panel",
-        "The panel keeps each character's kills and loot between sessions. "
-        .. "Click twice to empty it and start a new run. Your kill tallies, drop "
-        .. "rates and Rankings are kept. Same as /farm tracker clear.")
+    local clearRow = pages:Row("tally", 1, L["Clear panel"],
+        L["The panel keeps each character's kills and loot between sessions. Click twice to empty it and start a new run. Your kill tallies, drop rates and Rankings are kept. Same as /farm tracker clear."])
 
     controls.clearPanel = ns.TrackerUI.ClearButton(clearRow, 64, 20)
     controls.clearPanel:SetPoint("TOPLEFT", CONTROL_X, 0)
 
-    local groupRow = pages:Row("tally", 1, "In a group",
-        "Moves the panel beside the party and raid frames. Drag it in a "
-        .. "group to pick a spot. Same as /farm tracker group.")
+    local groupRow = pages:Row("tally", 1, L["In a group"],
+        L["Moves the panel beside the party and raid frames. Drag it in a group to pick a spot. Same as /farm tracker group."])
 
-    controls.dodgeGroup = Widgets.CreateCheckbox(groupRow, "Move aside", function(checked)
+    controls.dodgeGroup = Widgets.CreateCheckbox(groupRow, L["Move aside"], function(checked)
         ns.TrackerUI:SetDodgeGroup(checked)
     end, true)
     controls.dodgeGroup:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local reportRow = pages:Row("tally", 1, "Chat report",
-        "One line per kill in your own chat window. Nobody else can see it. "
-        .. "Same as /farm report.")
+    local reportRow = pages:Row("tally", 1, L["Chat report"],
+        L["One line per kill in your own chat window. Nobody else can see it. Same as /farm report."])
 
-    controls.report = Widgets.CreateCheckbox(reportRow, "Report kills", function(checked)
+    controls.report = Widgets.CreateCheckbox(reportRow, L["Report kills"], function(checked)
         ns.db.trackerReport = checked
     end, false)
     controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local announceRow = pages:Row("tally", 1, "Share milestones",
-        "A mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather: "
-        .. "an /emote players near you see. Your chat always gets it. Same as /farm announce.")
+    local announceRow = pages:Row("tally", 1, L["Share milestones"],
+        L["A mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather: an /emote players near you see. Your chat always gets it. Same as /farm announce."])
 
-    controls.announce = Widgets.CreateCheckbox(announceRow, "Emote it", function(checked)
+    controls.announce = Widgets.CreateCheckbox(announceRow, L["Emote it"], function(checked)
         ns.db.trackerAnnounce = checked
     end, true)
     controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local celebrateRow = pages:Row("tally", 1, "Milestone fanfare",
-        "A sound and a cheer when a mob's 20th kill, a fishing spot's 20th cast or "
-        .. "a node's 20th gather unlocks its rates. Same as /farm celebrate.")
+    local celebrateRow = pages:Row("tally", 1, L["Milestone fanfare"],
+        L["A sound and a cheer when a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather unlocks its rates. Same as /farm celebrate."])
 
-    controls.celebrate = Widgets.CreateCheckbox(celebrateRow, "Play it", function(checked)
+    controls.celebrate = Widgets.CreateCheckbox(celebrateRow, L["Play it"], function(checked)
         ns.db.trackerCelebrate = checked
     end, true)
     controls.celebrate:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local rareRow = pages:Row("tally", 1, "Rare drop sound",
-        "A chime when something green or better drops. Only you hear it. "
-        .. "Same as /farm raresound.")
+    local rareRow = pages:Row("tally", 1, L["Rare drop sound"],
+        L["A chime when something green or better drops. Only you hear it. Same as /farm raresound."])
 
-    controls.rareSound = Widgets.CreateCheckbox(rareRow, "Play it", function(checked)
+    controls.rareSound = Widgets.CreateCheckbox(rareRow, L["Play it"], function(checked)
         ns.db.trackerRareSound = checked
     end, true)
     controls.rareSound:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The mob you last looted, as the commands read it with no name.
-    pages:Section("tally", 2, "YOUR LAST MOB")
+    pages:Section("tally", 2, L["YOUR LAST MOB"])
 
-    local _, killsButton = CommandRow(pages, "tally", 2, "Kills and drops",
-        "Lists in chat how often you have killed the mob you last looted, and its drop "
-        .. "rates. Same as /farm kills, or /farm kills and a mob's name.", "List them", "kills")
+    local _, killsButton = CommandRow(pages, "tally", 2, L["Kills and drops"],
+        L["Lists in chat how often you have killed the mob you last looted, and its drop rates. Same as /farm kills, or /farm kills and a mob's name."], L["List them"], "kills")
     controls.kills = killsButton
 
-    local _, lootButton = CommandRow(pages, "tally", 2, "Loot table",
-        "Opens the full loot table of the mob you last looted. Same as /farm loot, "
-        .. "or /farm loot and a mob's name.", "Open it", "loot")
+    local _, lootButton = CommandRow(pages, "tally", 2, L["Loot table"],
+        L["Opens the full loot table of the mob you last looted. Same as /farm loot, or /farm loot and a mob's name."], L["Open it"], "loot")
     controls.lootTable = lootButton
 
-    local _, valueButton = CommandRow(pages, "tally", 2, "Worth per kill",
-        "What a kill of the mob you last looted is worth, from Tradeskills' prices. "
-        .. "Same as /farm value, or /farm value and a mob's name.", "Work it out", "value")
+    local _, valueButton = CommandRow(pages, "tally", 2, L["Worth per kill"],
+        L["What a kill of the mob you last looted is worth, from Tradeskills' prices. Same as /farm value, or /farm value and a mob's name."], L["Work it out"], "value")
     controls.value = valueButton
 end
 
@@ -658,13 +639,12 @@ function SettingsUI:BuildLootPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("loot", 1, "LOOT RECORDING")
+    pages:Section("loot", 1, L["LOOT RECORDING"])
 
-    local recordRow = pages:Row("loot", 1, "Record what drops",
-        "Counts what every corpse held, so drop rates are measured on Forever. "
-        .. "Kept on this computer only. Same as /farm harvest on and off.")
+    local recordRow = pages:Row("loot", 1, L["Record what drops"],
+        L["Counts what every corpse held, so drop rates are measured on Forever. Kept on this computer only. Same as /farm harvest on and off."])
 
-    controls.record = Widgets.CreateCheckbox(recordRow, "Recording", function(checked)
+    controls.record = Widgets.CreateCheckbox(recordRow, L["Recording"], function(checked)
         SettingsUI:SetRecording(checked)
     end, true)
     controls.record:SetPoint("TOPLEFT", CONTROL_X, -2)
@@ -682,8 +662,8 @@ function SettingsUI:BuildLootPage()
     summary:SetWidth(COLUMN_WIDTH)
     self.harvestSummary = summary
 
-    local export = Widgets.CreateButton(block, "Export", function()
-        ns.UI:ShowExport(ns.Harvest:ExportAll(), "Export: everything harvested")
+    local export = Widgets.CreateButton(block, L["Export"], function()
+        ns.UI:ShowExport(ns.Harvest:ExportAll(), L["Export: everything harvested"])
     end, { width = 80, height = 20 })
     export:SetPoint("TOPLEFT", 0, -22)
     controls.export = export
@@ -694,60 +674,49 @@ function SettingsUI:BuildLootPage()
     exportHint:SetPoint("LEFT", export, "RIGHT", 8, 0)
     exportHint:SetWidth(COLUMN_WIDTH - export:GetWidth() - 8)
     exportHint:SetWordWrap(true)
-    exportHint:SetText("Your recorded loot, as a data file. Same as /farm export.")
+    exportHint:SetText(L["Your recorded loot, as a data file. Same as /farm export."])
     self.exportHint = exportHint
-    pages:Searchable("loot", block, "export recorded loot data file")
+    pages:Searchable("loot", block, L["export recorded loot data file"])
 
-    local _, harvestButton = CommandRow(pages, "loot", 1, "What you recorded",
-        "Lists in chat the items you have looted most, and from how many corpses. "
-        .. "Same as /farm harvest.", "List it", "harvest")
+    local _, harvestButton = CommandRow(pages, "loot", 1, L["What you recorded"],
+        L["Lists in chat the items you have looted most, and from how many corpses. Same as /farm harvest."], L["List it"], "harvest")
     controls.harvest = harvestButton
 
-    local _, lootCheckButton = CommandRow(pages, "loot", 1, "Loot check",
-        "Readies a check that runs on the next corpse you loot and lists in chat "
-        .. "what the game lets the addon read there, to help with a dungeon "
-        .. "that records nothing. It only reads. Same as /farm harvest check.",
-        "Ready", "harvest check")
+    local _, lootCheckButton = CommandRow(pages, "loot", 1, L["Loot check"],
+        L["Readies a check that runs on the next corpse you loot and lists in chat what the game lets the addon read there, to help with a dungeon that records nothing. It only reads. Same as /farm harvest check."],
+        L["Ready"], "harvest check")
     controls.harvestCheck = lootCheckButton
 
-    pages:Section("loot", 2, "FISHING AND GATHERING")
+    pages:Section("loot", 2, L["FISHING AND GATHERING"])
 
-    local fishingRow = pages:Row("loot", 2, "Fishing",
-        "Lists in chat what you have caught in this zone, or everywhere. "
-        .. "Same as /farm fishing and /farm fishing all.")
-    controls.fishing = CommandButton(fishingRow, "Here", "fishing", 50)
-    controls.fishingAll = CommandButton(fishingRow, "Everywhere", "fishing all", 82, CONTROL_X + 56)
+    local fishingRow = pages:Row("loot", 2, L["Fishing"],
+        L["Lists in chat what you have caught in this zone, or everywhere. Same as /farm fishing and /farm fishing all."])
+    controls.fishing = CommandButton(fishingRow, L["Here"], "fishing", 50)
+    controls.fishingAll = CommandButton(fishingRow, L["Everywhere"], "fishing all", 82, CONTROL_X + 56)
 
-    local gatheringRow = pages:Row("loot", 2, "Gathering",
-        "Lists in chat the herbs and ore you have gathered in this zone, or everywhere. "
-        .. "Same as /farm gathering and /farm gathering all.")
-    controls.gathering = CommandButton(gatheringRow, "Here", "gathering", 50)
-    controls.gatheringAll = CommandButton(gatheringRow, "Everywhere", "gathering all", 82, CONTROL_X + 56)
+    local gatheringRow = pages:Row("loot", 2, L["Gathering"],
+        L["Lists in chat the herbs and ore you have gathered in this zone, or everywhere. Same as /farm gathering and /farm gathering all."])
+    controls.gathering = CommandButton(gatheringRow, L["Here"], "gathering", 50)
+    controls.gatheringAll = CommandButton(gatheringRow, L["Everywhere"], "gathering all", 82, CONTROL_X + 56)
 
-    local _, checkButton = CommandRow(pages, "loot", 2, "Odd gathers",
-        "Lists in chat gathers that look recorded wrong, to help track down a problem. "
-        .. "It only reads. Same as /farm gathering check.", "Check", "gathering check")
+    local _, checkButton = CommandRow(pages, "loot", 2, L["Odd gathers"],
+        L["Lists in chat gathers that look recorded wrong, to help track down a problem. It only reads. Same as /farm gathering check."], L["Check"], "gathering check")
     controls.gatheringCheck = checkButton
 
     -- Drops only (a player asked, the owner agreed 2026-10-11).
-    pages:Section("loot", 2, "SKINNING")
+    pages:Section("loot", 2, L["SKINNING"])
 
-    local skinningRow = pages:Row("loot", 2, "Hide skinning",
-        "Ticked, Farmer shows only drops: no skinning spots in search, Rankings "
-        .. "or Grind, and no leather, hides or scales among a mob's drops or in what "
-        .. "a kill is worth. Untick it to see skinning. Nothing you recorded is lost. "
-        .. "Same as /farm skinning.")
+    local skinningRow = pages:Row("loot", 2, L["Hide skinning"],
+        L["Ticked, Farmer shows only drops: no skinning spots in search, Rankings or Grind, and no leather, hides or scales among a mob's drops or in what a kill is worth. Untick it to see skinning. Nothing you recorded is lost. Same as /farm skinning."])
 
-    controls.hideSkinning = Widgets.CreateCheckbox(skinningRow, "Hide it", function(checked)
+    controls.hideSkinning = Widgets.CreateCheckbox(skinningRow, L["Hide it"], function(checked)
         ns.DB:SetShowSkinning(not checked)
     end, true)
     controls.hideSkinning:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The hide list (the owner asked 2026-10-11 for a blacklist).
-    local _, hiddenButton = CommandRow(pages, "loot", 2, "Hidden",
-        "Mobs, nodes and items you hid. Right-click one in the search, Rankings, "
-        .. "Grind or the kills panel to hide it; the list shows each with Show again. "
-        .. "Same as /farm hidden, /farm hide and /farm unhide.", "Show list", "hidden")
+    local _, hiddenButton = CommandRow(pages, "loot", 2, L["Hidden"],
+        L["Mobs, nodes and items you hid. Right-click one in the search, Rankings, Grind or the kills panel to hide it; the list shows each with Show again. Same as /farm hidden, /farm hide and /farm unhide."], L["Show list"], "hidden")
     controls.hidden = hiddenButton
 end
 
@@ -756,111 +725,103 @@ function SettingsUI:BuildMapPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("map", 1, "GATHERED NODE MARKERS")
+    pages:Section("map", 1, L["GATHERED NODE MARKERS"])
 
-    local worldRow = pages:Row("map", 1, "World map",
-        "Greyed icons with a gold ring and a check where you gathered. "
-        .. "Same as /farm markers.")
+    local worldRow = pages:Row("map", 1, L["World map"],
+        L["Greyed icons with a gold ring and a check where you gathered. Same as /farm markers."])
 
-    controls.markersWorld = Widgets.CreateCheckbox(worldRow, "Show them", function(checked)
+    controls.markersWorld = Widgets.CreateCheckbox(worldRow, L["Show them"], function(checked)
         ns.MapMarkers:SetWorld(checked)
     end, true)
     controls.markersWorld:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local minimapMarkersRow = pages:Row("map", 1, "Minimap",
-        "The same markers around you. Hover one to see when you gathered it.")
+    local minimapMarkersRow = pages:Row("map", 1, L["Minimap"],
+        L["The same markers around you. Hover one to see when you gathered it."])
 
-    controls.markersMinimap = Widgets.CreateCheckbox(minimapMarkersRow, "Show them", function(checked)
+    controls.markersMinimap = Widgets.CreateCheckbox(minimapMarkersRow, L["Show them"], function(checked)
         ns.MapMarkers:SetMinimap(checked)
     end, true)
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The Grind tab (a player asked, the owner agreed 2026-10-09).
-    pages:Section("map", 1, "GRINDING")
+    pages:Section("map", 1, L["GRINDING"])
 
-    local grindRow = pages:Row("map", 1, "Grinding camps",
-        "Where mobs of a level and type gather, on the window's Grind tab and "
-        .. "the world map. Same as /farm grind and /farm grind pins.")
+    local grindRow = pages:Row("map", 1, L["Grinding camps"],
+        L["Where mobs of a level and type gather, on the window's Grind tab and the world map. Same as /farm grind and /farm grind pins."])
 
-    controls.grindPins = Widgets.CreateCheckbox(grindRow, "On map", function(checked)
+    controls.grindPins = Widgets.CreateCheckbox(grindRow, L["On map"], function(checked)
         ns.GrindPins:SetOn(checked)
     end, true)
     controls.grindPins:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local openGrind = Widgets.CreateButton(grindRow, "Open", function()
+    local openGrind = Widgets.CreateButton(grindRow, L["Open"], function()
         ns.Grinding:Command("")
     end, { width = 50, height = 20 })
     openGrind:SetPoint("TOPRIGHT", grindRow, "TOPRIGHT", 0, 0)
     controls.grindOpen = openGrind
 
-    pages:Section("map", 1, "TOOLTIPS")
+    pages:Section("map", 1, L["TOOLTIPS"])
 
-    local tooltipRow = pages:Row("map", 1, "Where to farm",
-        "Hover a material for the best place to farm it from where you stand. "
-        .. "Same as /farm tooltip.")
+    local tooltipRow = pages:Row("map", 1, L["Where to farm"],
+        L["Hover a material for the best place to farm it from where you stand. Same as /farm tooltip."])
 
-    controls.itemTooltip = Widgets.CreateCheckbox(tooltipRow, "Show it", function(checked)
+    controls.itemTooltip = Widgets.CreateCheckbox(tooltipRow, L["Show it"], function(checked)
         ns.db.itemTooltip = checked
         if ns.ItemTooltip then ns.ItemTooltip.ForgetKept() end
     end, true)
     controls.itemTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- It needs an item's name, so the button says how to type it.
-    local _, whereButton = CommandRow(pages, "map", 1, "Places for an item",
-        "The best places near you to farm an item, typed with its name: "
-        .. "/farm where copper ore. The button says how.", "How to", "where")
+    local _, whereButton = CommandRow(pages, "map", 1, L["Places for an item"],
+        L["The best places near you to farm an item, typed with its name: /farm where copper ore. The button says how."], L["How to"], "where")
     controls.where = whereButton
 
-    pages:Section("map", 2, "GOALS")
+    pages:Section("map", 2, L["GOALS"])
 
-    local goalsRow = pages:Row("map", 2, "Goals panel",
-        "Shows or hides the goals panel; Dock puts it back under the kills panel. "
-        .. "Same as /farm goals and /farm goals dock.")
-    controls.goals = CommandButton(goalsRow, "Show", "goals", 64)
-    controls.goalsDock = CommandButton(goalsRow, "Dock", "goals dock", 64, CONTROL_X + 70)
+    local goalsRow = pages:Row("map", 2, L["Goals panel"],
+        L["Shows or hides the goals panel; Dock puts it back under the kills panel. Same as /farm goals and /farm goals dock."])
+    controls.goals = CommandButton(goalsRow, L["Show"], "goals", 64)
+    controls.goalsDock = CommandButton(goalsRow, L["Dock"], "goals dock", 64, CONTROL_X + 70)
 
-    local _, goalButton = CommandRow(pages, "map", 2, "Your goals",
-        "Lists your goals in chat and opens the panel. Set one with /farm goal Copper Ore 40, "
-        .. "or the Goal button on a search result. Same as /farm goal.", "List them", "goal")
+    local _, goalButton = CommandRow(pages, "map", 2, L["Your goals"],
+        L["Lists your goals in chat and opens the panel. Set one with /farm goal Copper Ore 40, or the Goal button on a search result. Same as /farm goal."], L["List them"], "goal")
     controls.goalList = goalButton
 
-    local bankRow = pages:Row("map", 2, "Count the bank",
-        "Goals count what is in your bank as well as your bags. Same as /farm goal bank.")
+    local bankRow = pages:Row("map", 2, L["Count the bank"],
+        L["Goals count what is in your bank as well as your bags. Same as /farm goal bank."])
 
-    controls.goalsBank = Widgets.CreateCheckbox(bankRow, "Count it", function(checked)
+    controls.goalsBank = Widgets.CreateCheckbox(bankRow, L["Count it"], function(checked)
         if ns.Goals then ns.Goals:SetCountsBank(checked) end
     end, false)
     controls.goalsBank:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    pages:Section("map", 2, "GOAL ARROW")
+    pages:Section("map", 2, L["GOAL ARROW"])
 
-    local arrowRow = pages:Row("map", 2, "Goal arrow",
-        "Points to the nearest place to gather a goal. Same as /farm arrow. "
-        .. "Check lists what the game lets it read here (/farm arrow check).")
+    local arrowRow = pages:Row("map", 2, L["Goal arrow"],
+        L["Points to the nearest place to gather a goal. Same as /farm arrow. Check lists what the game lets it read here (/farm arrow check)."])
 
-    controls.arrow = Widgets.CreateCheckbox(arrowRow, "Show it", function(checked)
+    controls.arrow = Widgets.CreateCheckbox(arrowRow, L["Show it"], function(checked)
         ns.Arrow:SetOn(checked)
     end, false)
     controls.arrow:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Through the command, so the result is kept for "read the probe"
     -- (ns.KeepCheck), as the typed `/farm arrow check` keeps it.
-    local check = Widgets.CreateButton(arrowRow, "Check", function()
+    local check = Widgets.CreateButton(arrowRow, L["Check"], function()
         ns.HandleSlash("arrow check")
     end, { width = 60, height = 20 })
     check:SetPoint("TOPRIGHT", arrowRow, "TOPRIGHT", 0, 0)
     controls.arrowCheck = check
 
-    local _, nextButton = CommandRow(pages, "map", 2, "Next place",
-        "Points the arrow at the next place known for its goal. Same as /farm arrow next.",
-        "Next", "arrow next")
+    local _, nextButton = CommandRow(pages, "map", 2, L["Next place"],
+        L["Points the arrow at the next place known for its goal. Same as /farm arrow next."],
+        L["Next"], "arrow next")
     controls.arrowNext = nextButton
 
-    local tomtomRow = pages:Row("map", 2, "Use TomTom",
-        "With TomTom installed, its arrow points the way instead of this one. "
-        .. "Same as /farm arrow tomtom.")
+    local tomtomRow = pages:Row("map", 2, L["Use TomTom"],
+        L["With TomTom installed, its arrow points the way instead of this one. Same as /farm arrow tomtom."])
 
-    controls.tomtom = Widgets.CreateCheckbox(tomtomRow, "When installed", function(checked)
+    controls.tomtom = Widgets.CreateCheckbox(tomtomRow, L["When installed"], function(checked)
         ns.TomTom:SetOn(checked)
     end, true)
     controls.tomtom:SetPoint("TOPLEFT", CONTROL_X, -2)
@@ -871,24 +832,20 @@ function SettingsUI:BuildSharingPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("sharing", 1, "YOUR OTHER ACCOUNT")
+    pages:Section("sharing", 1, L["YOUR OTHER ACCOUNT"])
 
-    local shareRow = pages:Row("sharing", 1, "Share with it",
-        "Sends your kill tallies, measured drop rates, gathering and fishing to your other "
-        .. "account, and takes theirs, while both are logged in. Counts only: no goals, "
-        .. "settings or positions. Same as /farm share on and off.")
-    controls.share = Widgets.CreateCheckbox(shareRow, "Sharing", function(checked)
+    local shareRow = pages:Row("sharing", 1, L["Share with it"],
+        L["Sends your kill tallies, measured drop rates, gathering and fishing to your other account, and takes theirs, while both are logged in. Counts only: no goals, settings or positions. Same as /farm share on and off."])
+    controls.share = Widgets.CreateCheckbox(shareRow, L["Sharing"], function(checked)
         ns.Share:SetEnabled(checked)
         SettingsUI:Refresh()
     end, false)
     controls.share:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local namesRow = pages:Row("sharing", 1, "Its characters",
-        "A character on your other account, first and last name, as many as you like with "
-        .. "commas between. Farmer on that account needs one of yours named too: sharing "
-        .. "starts only when each names the other. Same as /farm share with.")
+    local namesRow = pages:Row("sharing", 1, L["Its characters"],
+        L["A character on your other account, first and last name, as many as you like with commas between. Farmer on that account needs one of yours named too: sharing starts only when each names the other. Same as /farm share with."])
     GrowRow(namesRow, 26)
-    local names = Widgets.CreateSearchBox(namesRow, "Ana Smith, Bob Jones", nil, function(text)
+    local names = Widgets.CreateSearchBox(namesRow, L["Ana Smith, Bob Jones"], nil, function(text)
         ns.Share:SetNames(text)
         SettingsUI:Refresh()
     end, { plain = true })
@@ -897,27 +854,22 @@ function SettingsUI:BuildSharingPage()
     names:SetHeight(20)
     controls.shareNames = names
 
-    local _, syncButton = CommandRow(pages, "sharing", 1, "Sync now",
-        "Asks your other account for anything new and sends what is new here. It runs by "
-        .. "itself every ten minutes. Same as /farm share sync.", "Sync", "share sync")
+    local _, syncButton = CommandRow(pages, "sharing", 1, L["Sync now"],
+        L["Asks your other account for anything new and sends what is new here. It runs by itself every ten minutes. Same as /farm share sync."], L["Sync"], "share sync")
     controls.shareSync = syncButton
 
-    pages:Section("sharing", 1, "WITH ANOTHER PLAYER")
+    pages:Section("sharing", 1, L["WITH ANOTHER PLAYER"])
 
-    local _, giveButton = CommandRow(pages, "sharing", 1, "Give my data",
-        "Makes your kills, drop rates, gathering and fishing into text you can select and "
-        .. "copy, to send to another player any way you like (a big collection comes in "
-        .. "parts). It holds counts only, no names, goals or settings. Same as /farm give.",
-        "Make text", "give")
+    local _, giveButton = CommandRow(pages, "sharing", 1, L["Give my data"],
+        L["Makes your kills, drop rates, gathering and fishing into text you can select and copy, to send to another player any way you like (a big collection comes in parts). It holds counts only, no names, goals or settings. Same as /farm give."],
+        L["Make text"], "give")
     controls.shareGive = giveButton
 
-    local _, takeButton = CommandRow(pages, "sharing", 1, "Take someone's data",
-        "Paste what another player gave you to add their counts to yours. You see what it "
-        .. "would add first, the same text twice adds nothing, and what you took in can be "
-        .. "taken back out. Same as /farm take.", "Paste", "take")
+    local _, takeButton = CommandRow(pages, "sharing", 1, L["Take someone's data"],
+        L["Paste what another player gave you to add their counts to yours. You see what it would add first, the same text twice adds nothing, and what you took in can be taken back out. Same as /farm take."], L["Paste"], "take")
     controls.shareTake = takeButton
 
-    pages:Section("sharing", 2, "HOW IT WORKS")
+    pages:Section("sharing", 2, L["HOW IT WORKS"])
 
     local block = CreateFrame("Frame", nil, pages.pages.sharing.content)
     block:SetSize(COLUMN_WIDTH, 150)
@@ -934,12 +886,8 @@ function SettingsUI:BuildSharingPage()
     about:SetPoint("TOPLEFT", 0, -50)
     about:SetWidth(COLUMN_WIDTH)
     about:SetWordWrap(true)
-    about:SetText("WoW keeps each account's saved data apart, so this passes it over "
-        .. "in chat whispers between two of your own characters. Both accounts add up "
-        .. "what both counted; nothing is counted twice, and nothing is passed on to anyone "
-        .. "else. The first sync of a big collection can take a while in the background. "
-        .. "What is taken in becomes part of your own totals and cannot be taken back out.")
-    pages:Searchable("sharing", block, "share sync other account second account kills drop rates gathering")
+    about:SetText(L["WoW keeps each account's saved data apart, so this passes it over in chat whispers between two of your own characters. Both accounts add up what both counted; nothing is counted twice, and nothing is passed on to anyone else. The first sync of a big collection can take a while in the background. What is taken in becomes part of your own totals and cannot be taken back out."])
+    pages:Searchable("sharing", block, L["share sync other account second account kills drop rates gathering"])
 end
 
 --- Advanced: debug output, the data the addon carries, and the commands.
@@ -947,52 +895,49 @@ function SettingsUI:BuildAdvancedPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("advanced", 1, "ADVANCED")
+    pages:Section("advanced", 1, L["ADVANCED"])
 
-    local debugRow = pages:Row("advanced", 1, "Debug output",
-        "Extra messages in chat, to help track down a problem.")
+    local debugRow = pages:Row("advanced", 1, L["Debug output"],
+        L["Extra messages in chat, to help track down a problem."])
 
-    controls.debug = Widgets.CreateCheckbox(debugRow, "Enabled", function(checked)
+    controls.debug = Widgets.CreateCheckbox(debugRow, L["Enabled"], function(checked)
         ns.db.debug = checked
     end, false)
     controls.debug:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Core/SisterNote.lua: one chat line, once, naming the Blackthornes
     -- addons the player does not have. Off here is off in all of them.
-    local sistersRow = pages:Row("advanced", 1, "Sister addons",
-        "Once, a few seconds after login, says in chat which Blackthornes addons you don't have "
-        .. "and what each adds. Turning it off here turns it off in all of them. Same as /farm sisters.")
+    local sistersRow = pages:Row("advanced", 1, L["Sister addons"],
+        L["Once, a few seconds after login, says in chat which Blackthornes addons you don't have and what each adds. Turning it off here turns it off in all of them. Same as /farm sisters."])
 
-    controls.sisters = Widgets.CreateCheckbox(sistersRow, "Mention them", function(checked)
+    controls.sisters = Widgets.CreateCheckbox(sistersRow, L["Mention them"], function(checked)
         ns.SisterNote:SetOn(checked)
     end, true)
     controls.sisters:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local _, helpButton = CommandRow(pages, "advanced", 1, "Commands",
-        "Lists every /farm command in chat. Same as /farm help.", "List them", "help")
+    local _, helpButton = CommandRow(pages, "advanced", 1, L["Commands"],
+        L["Lists every /farm command in chat. Same as /farm help."], L["List them"], "help")
     controls.help = helpButton
 
     -- It needs what to search for, so the button says how to type it.
-    local _, chatButton = CommandRow(pages, "advanced", 1, "Search to chat",
-        "Prints a search's results in chat instead of the window: /farm chat copper ore. "
-        .. "The button says how.", "How to", "chat")
+    local _, chatButton = CommandRow(pages, "advanced", 1, L["Search to chat"],
+        L["Prints a search's results in chat instead of the window: /farm chat copper ore. The button says how."], L["How to"], "chat")
     controls.chat = chatButton
 
-    pages:Section("advanced", 2, "DATA")
+    pages:Section("advanced", 2, L["DATA"])
 
-    local _, statsButton = CommandRow(pages, "advanced", 2, "Data loaded",
-        "Says in chat how many items and farming spots are loaded. Same as /farm stats.",
-        "Count it", "stats")
+    local _, statsButton = CommandRow(pages, "advanced", 2, L["Data loaded"],
+        L["Says in chat how many items and farming spots are loaded. Same as /farm stats."],
+        L["Count it"], "stats")
     controls.stats = statsButton
 
-    local _, dataButton = CommandRow(pages, "advanced", 2, "Where it came from",
-        "Lists in chat where the farming spots came from: Forever or Classic. "
-        .. "Same as /farm data.", "List it", "data")
+    local _, dataButton = CommandRow(pages, "advanced", 2, L["Where it came from"],
+        L["Lists in chat where the farming spots came from: Forever or Classic. Same as /farm data."], L["List it"], "data")
     controls.data = dataButton
 
-    local _, listButton = CommandRow(pages, "advanced", 2, "Every item",
-        "Lists in chat every item the addon knows. A long list. Same as /farm list.",
-        "List them", "list")
+    local _, listButton = CommandRow(pages, "advanced", 2, L["Every item"],
+        L["Lists in chat every item the addon knows. A long list. Same as /farm list."],
+        L["List them"], "list")
     controls.list = listButton
 end
 
@@ -1056,18 +1001,18 @@ function SettingsUI:Refresh()
 
     if not usable and not self.recordUnusable then
         self.recordUnusable = true
-        self.recordRow:SetDescription("This client does not let addons read the loot window, "
-            .. "so nothing can be recorded.")
+        self.recordRow:SetDescription(L["This client does not let addons read the loot window, so nothing can be recorded."])
         self.pages:Fit()
     end
 
     local corpses = ns.Harvest:CountCorpses()
 
     if corpses == 0 then
-        self.harvestSummary:SetText(Util.Colored("muted", "Nothing recorded yet."))
+        self.harvestSummary:SetText(Util.Colored("muted", L["Nothing recorded yet."]))
     else
-        self.harvestSummary:SetText(("%s recorded from %s."):format(
-            Util.Plural(corpses, "corpse"), Util.Plural(ns.Harvest:CountMobs(), "mob")))
+        self.harvestSummary:SetText(L.Format("%s recorded from %s.",
+            Util.Plural(corpses, L["corpse"], L["corpses"]),
+            Util.Plural(ns.Harvest:CountMobs(), L["mob"], L["mobs"])))
     end
 
     self.pages:Refresh()
@@ -1151,9 +1096,9 @@ function SettingsUI:RegisterGameOptions()
 
     local blurb = Theme.CreateLabel(panel, "normal", "text")
     blurb:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
-    blurb:SetText("Farmer's settings have a window of their own.")
+    blurb:SetText(L["Farmer's settings have a window of their own."])
 
-    local open = Widgets.CreateButton(panel, "Open Farmer settings", function()
+    local open = Widgets.CreateButton(panel, L["Open Farmer settings"], function()
         -- The game's panel is left as it is: hiding a stock frame runs the
         -- game's own code as this addon and taints it (Equipment's Edit
         -- Mode error, 2026-10-10). Farmer's window is top level in the
@@ -1164,7 +1109,7 @@ function SettingsUI:RegisterGameOptions()
 
     local hint = Theme.CreateLabel(panel, "small", "muted")
     hint:SetPoint("TOPLEFT", open, "BOTTOMLEFT", 0, -10)
-    hint:SetText("Or type /farm settings, or right-click the minimap button.")
+    hint:SetText(L["Or type /farm settings, or right-click the minimap button."])
 
     self.optionsPanel = panel
 
@@ -1205,7 +1150,7 @@ function SettingsUI:OnEnable()
     end
 end
 
-ns.RegisterCommand("settings", "open the settings window", function()
+ns.RegisterCommand("settings", L["open the settings window"], function()
     SettingsUI:Toggle()
 end)
 

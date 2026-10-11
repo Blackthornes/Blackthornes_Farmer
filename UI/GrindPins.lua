@@ -12,6 +12,7 @@
 -- map's canvas, every client call guarded.
 
 local _, ns = ...
+local L = ns.L
 
 local GrindPins = ns.NewModule("GrindPins")
 
@@ -69,12 +70,12 @@ local function ShowTooltip(pin)
     if not (camp and GameTooltip) then return end
     pcall(GameTooltip.SetOwner, GameTooltip, pin, "ANCHOR_RIGHT")
     GameTooltip:AddLine(("%s, %s"):format(camp.zone, camp.label or ""), Theme.Unpack("accent"))
-    GameTooltip:AddLine(("Level %s, %s"):format(ns.Search:LevelText(camp), Util.Plural(camp.count or 0, "mob")),
+    GameTooltip:AddLine(L.Format("Level %s, %s", ns.Search:LevelText(camp), Util.Plural(camp.count or 0, L["mob"], L["mobs"])),
         1, 1, 1)
     for _, mob in ipairs(camp.mobs or {}) do
         GameTooltip:AddDoubleLine(mob.name, mob.type or "", 0.9, 0.9, 0.9, Theme.Unpack("muted"))
     end
-    GameTooltip:AddLine("Click to point the arrow here.", Theme.Unpack("good"))
+    GameTooltip:AddLine(L["Click to point the arrow here."], Theme.Unpack("good"))
     GameTooltip:Show()
 end
 

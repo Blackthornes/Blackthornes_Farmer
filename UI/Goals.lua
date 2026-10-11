@@ -25,6 +25,7 @@
 -- dropped rather than raised.
 
 local _, ns = ...
+local L = ns.L
 
 local GoalsUI = ns.NewModule("GoalsUI")
 
@@ -265,12 +266,12 @@ function GoalsUI:Build()
 
     local title = Theme.CreateLabel(header, "normal", "accent")
     title:SetPoint("LEFT", PADDING + 4, 0)
-    title:SetText("Goals")
+    title:SetText(L["Goals"])
 
     local close = Widgets.CreateButton(header, "X", function()
         ns.db.goalsHidden = true
         GoalsUI:Refresh()
-        ns.Print("goals panel hidden. /farm goals brings it back.")
+        ns.Print(L["goals panel hidden. /farm goals brings it back."])
     end, { width = 18, height = 16, danger = true })
     close:SetPoint("RIGHT", -6, 0)
 
@@ -288,7 +289,7 @@ function GoalsUI:Build()
     footer.left = Theme.CreateLabel(footer, "small", "muted")
     footer.left:SetPoint("LEFT", PADDING, 0)
 
-    footer.next = Widgets.CreateButton(footer, "Set another", function()
+    footer.next = Widgets.CreateButton(footer, L["Set another"], function()
         if ns.UI then
             ns.UI:Show()
             -- The search box is on the Search tab: focused while the window
@@ -396,7 +397,7 @@ function GoalsUI:Card(index)
     card.sub:SetPoint("TOPLEFT", card.name, "BOTTOMLEFT", 0, -2)
 
     -- The best places near you to farm it (2026-09-27).
-    card.where = Widgets.CreateButton(card, "Where?", function()
+    card.where = Widgets.CreateButton(card, L["Where?"], function()
         if card.goal then GoalsUI:OpenSpots(card.goal.item, GoalsUI.frame) end
     end, { width = 46, height = 15, labelKey = "accent" })
     card.where:HookScript("OnLeave", function()
@@ -405,7 +406,7 @@ function GoalsUI:Card(index)
     card.where:HookScript("OnEnter", function(self)
         if GameTooltip then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:AddLine("Best places near you to farm this")
+            GameTooltip:AddLine(L["Best places near you to farm this"])
             GameTooltip:Show()
         end
     end)
@@ -557,8 +558,8 @@ local function SpotText(goal)
     local spot = ok and spots and spots[1]
     if spot then
         local distance = ns.Spots.DistanceText(spot.hops, spot.zone, spot.travel)
-        if distance == "you are here" then
-            text = ("%s, %s"):format(spot.name or "?", Util.Colored("good", "here"))
+        if distance == L["you are here"] then
+            text = ("%s, %s"):format(spot.name or "?", Util.Colored("good", L["here"]))
         else
             text = ("%s, %s"):format(spot.name or "?", spot.zone or "?")
         end
@@ -588,7 +589,7 @@ function GoalsUI:DrawCard(card, goal)
     -- measured: a width picked by eye let a long name run into "23 / 40".
     local countText = GoalsUI.CountText(goal.have or 0, goal.target or 0)
     local maxName = self:BarWidth() - ICON - 8 - Theme.TextWidth("large", Util.StripColor(countText)) - 10
-    local tagText = goal.done and "DONE"
+    local tagText = goal.done and L["DONE"]
         or ((goal.milestone or 0) > 0 and Goals.MILESTONES[goal.milestone].tag) or nil
     if tagText then maxName = maxName - Theme.TextWidth("tiny", tagText) - 16 end
     -- Past the panel's widest, a long name steps down a size or two, and
@@ -614,7 +615,7 @@ function GoalsUI:DrawCard(card, goal)
     -- The tag: the last milestone passed, or DONE.
     local tag
     if goal.done then
-        tag = "DONE"
+        tag = L["DONE"]
     elseif (goal.milestone or 0) > 0 then
         tag = Goals.MILESTONES[goal.milestone].tag
     end
@@ -644,14 +645,14 @@ function GoalsUI:DrawCard(card, goal)
 
     if goal.done then
         local recap = Goals:Recap(goal)
-        card.sub:SetText(Util.Colored("good", "Goal done") .. (goal.doneIn and goal.doneIn >= 1
-            and Util.Colored("muted", "  in " .. Goals.Duration(goal.doneIn)) or ""))
+        card.sub:SetText(Util.Colored("good", L["Goal done"]) .. (goal.doneIn and goal.doneIn >= 1
+            and Util.Colored("muted", L.Format("  in %s", Goals.Duration(goal.doneIn))) or ""))
 
         local parts = {}
         if recap.loots > 0 then
-            parts[#parts + 1] = Util.Plural(recap.loots, "loot")
+            parts[#parts + 1] = Util.Plural(recap.loots, L["loot"], L["loots"])
             if recap.perLoot then
-                parts[#parts + 1] = ("%.1f each"):format(recap.perLoot)
+                parts[#parts + 1] = L.Format("%.1f each", recap.perLoot)
             end
         end
         card.left:SetText(table.concat(parts, "  |  "))
@@ -662,15 +663,15 @@ function GoalsUI:DrawCard(card, goal)
 
         local left = Goals.Left(goal)
         if final then
-            card.left:SetText(left == 1 and "1 more!" or ("%d more!"):format(left))
+            card.left:SetText(left == 1 and L["1 more!"] or L.Format("%d more!", left))
             card.left:SetTextColor(Theme.Unpack("good"))
         else
-            card.left:SetText(("|c%s%d|r left"):format(ns.COLORS.text, left))
+            card.left:SetText(L.Format("|c%s%d|r left", ns.COLORS.text, left))
             card.left:SetTextColor(Theme.Unpack("muted"))
         end
 
         local eta = Goals.Eta(goal)
-        card.right:SetText(eta and (Goals.Duration(eta, true) .. " at your pace") or "")
+        card.right:SetText(eta and L.Format("%s at your pace", Goals.Duration(eta, true)) or "")
     end
 
     card:Show()
@@ -715,7 +716,7 @@ function GoalsUI:Render()
 
     local footer = done > 0 or anyDone
     if footer then
-        self.footer.left:SetText(("Goals done today: |c%s%d|r"):format(ns.COLORS.accent, done))
+        self.footer.left:SetText(L.Format("Goals done today: |c%s%d|r", ns.COLORS.accent, done))
     end
     self.footer:SetShown(footer)
 
@@ -805,13 +806,13 @@ function GoalsUI:ShowCardTooltip(card)
 
     GameTooltip:SetOwner(card, "ANCHOR_RIGHT")
     GameTooltip:AddLine(goal.item)
-    GameTooltip:AddLine(("%d of %d"):format(goal.have or 0, goal.target or 0), 1, 1, 1)
+    GameTooltip:AddLine(L.Format("%d of %d", goal.have or 0, goal.target or 0), 1, 1, 1)
     if goal.done then
-        GameTooltip:AddLine("Click to clear it.", 0.6, 0.6, 0.6)
+        GameTooltip:AddLine(L["Click to clear it."], 0.6, 0.6, 0.6)
     else
-        GameTooltip:AddLine("Click to find where to farm it.", 0.6, 0.6, 0.6)
-        GameTooltip:AddLine("Shift-click to point the goal arrow at it.", 0.6, 0.6, 0.6)
-        GameTooltip:AddLine("Right-click to remove the goal.", 0.6, 0.6, 0.6)
+        GameTooltip:AddLine(L["Click to find where to farm it."], 0.6, 0.6, 0.6)
+        GameTooltip:AddLine(L["Shift-click to point the goal arrow at it."], 0.6, 0.6, 0.6)
+        GameTooltip:AddLine(L["Right-click to remove the goal."], 0.6, 0.6, 0.6)
     end
     GameTooltip:Show()
 end
@@ -832,7 +833,7 @@ function GoalsUI:OnCardClick(card, button)
 
     if button == "RightButton" then
         ns.Goals:Remove(goal.item)
-        ns.Print(("goal for %s removed."):format(Util.Colored("accent", goal.item)))
+        ns.Print(L.Format("goal for %s removed.", Util.Colored("accent", goal.item)))
         return
     end
 
@@ -1039,7 +1040,7 @@ end
 --- GOAL COMPLETE across the top of the panel.
 function GoalsUI:Complete(goal)
     local banner = self:Banner()
-    banner.title:SetText("GOAL COMPLETE")
+    banner.title:SetText(L["GOAL COMPLETE"])
     banner:SetAlpha(0)
     banner:Show()
 
@@ -1187,11 +1188,11 @@ function GoalsUI:Play(change, level, floats)
     if full and change.gathered then
         self:Float(card, ("+%d %s"):format(change.gathered, goal.item), 13, floats * 0.18)
         if change.milestone then
-            self:Float(card, Util.Colored("accent", change.milestone.tag == "HALFWAY"
-                and "Halfway there!" or (change.milestone.tag .. "!")), 16, floats * 0.18 + 0.35)
+            self:Float(card, Util.Colored("accent", change.milestone.at == 0.50
+                and L["Halfway there!"] or (change.milestone.tag .. "!")), 16, floats * 0.18 + 0.35)
         elseif ns.Goals.Final(goal) then
             local left = ns.Goals.Left(goal)
-            self:Float(card, Util.Colored("good", left == 1 and "1 more!" or (left .. " more!")),
+            self:Float(card, Util.Colored("good", left == 1 and L["1 more!"] or L.Format("%d more!", left)),
                 15, floats * 0.18 + 0.35)
         end
     end
@@ -1304,16 +1305,16 @@ function GoalsUI.SpotNote(spot)
     if short then return Util.Colored("warn", short) end
     local yours = spot.yours
     if yours and yours.gathers then
-        return Util.Colored("good", ("you gathered %d here"):format(yours.got or 0))
+        return Util.Colored("good", L.Format("you gathered %d here", yours.got or 0))
     end
     if yours and yours.kills then
         if spot.measured then
-            return Util.Colored("good", ("%s in your %d kills"):format(
+            return Util.Colored("good", L.Format("%s in your %d kills",
                 ns.Tracker.FormatChance(spot.measured), yours.kills))
         end
-        return Util.Colored("good", ("%d from your %d kills"):format(yours.got or 0, yours.kills))
+        return Util.Colored("good", L.Format("%d from your %d kills", yours.got or 0, yours.kills))
     end
-    if spot.chance then return ("%s drop"):format(ns.Tracker.FormatChance(spot.chance)) end
+    if spot.chance then return L.Format("%s drop", ns.Tracker.FormatChance(spot.chance)) end
     if spot.requires then return spot.requires end
     return ""
 end
@@ -1371,15 +1372,14 @@ function GoalsUI:BuildSpots()
 
     panel.empty = Theme.CreateLabel(panel, "small", "muted")
     panel.empty:SetPoint("TOPLEFT", 12, -(SPOTS_TOP + 8))
-    panel.empty:SetText("No places known for this yet.")
+    panel.empty:SetText(L["No places known for this yet."])
 
     panel.rows = {}
 
     local hint = Theme.CreateLabel(panel, "tiny", "dim")
     hint:SetPoint("BOTTOMLEFT", 12, 6)
     hint:SetPoint("BOTTOMRIGHT", -10, 6)
-    hint:SetText("Click a place to print it to chat, pinned on your map when it is in this zone. "
-        .. "Shift-click points the goal arrow there.")
+    hint:SetText(L["Click a place to print it to chat, pinned on your map when it is in this zone. Shift-click points the goal arrow there."])
     hint:SetWordWrap(true)
     panel.hint = hint
 
@@ -1473,13 +1473,13 @@ function GoalsUI:OpenSpots(item, anchor)
 
     local spots, player = ns.Spots:For(item)
 
-    panel.title:SetText(("Where to farm |c%s%s|r"):format(ns.COLORS.text, item))
+    panel.title:SetText(L.Format("Where to farm |c%s%s|r", ns.COLORS.text, item))
     if player.zone and player.level then
-        panel.from:SetText(("Nearest first, from %s at level %d"):format(player.zone, player.level))
+        panel.from:SetText(L.Format("Nearest first, from %s at level %d", player.zone, player.level))
     elseif player.zone then
-        panel.from:SetText(("Nearest first, from %s"):format(player.zone))
+        panel.from:SetText(L.Format("Nearest first, from %s", player.zone))
     else
-        panel.from:SetText("Your zone could not be read here, so these are by level and rate")
+        panel.from:SetText(L["Your zone could not be read here, so these are by level and rate"])
     end
 
     for index, spot in ipairs(spots) do
@@ -1653,21 +1653,21 @@ function GoalsUI:BuildPicker()
     have:SetPoint("TOPLEFT", 10, -56)
     picker.have = have
 
-    local bank = Widgets.CreateCheckbox(picker, "Include bank", function(on)
+    local bank = Widgets.CreateCheckbox(picker, L["Include bank"], function(on)
         ns.Goals:SetCountsBank(on)
         GoalsUI:FillPicker()
     end, ns.Goals:CountsBank())
     bank:SetPoint("TOPLEFT", 10, -74)
     picker.bank = bank
 
-    local set = Widgets.CreateButton(picker, "Set goal", function() GoalsUI:PickerSet() end,
+    local set = Widgets.CreateButton(picker, L["Set goal"], function() GoalsUI:PickerSet() end,
         { width = 80, height = 22, primary = true })
     set:SetPoint("BOTTOMLEFT", 10, 10)
     picker.set = set
 
-    local remove = Widgets.CreateButton(picker, "Remove goal", function()
+    local remove = Widgets.CreateButton(picker, L["Remove goal"], function()
         ns.Goals:Remove(GoalsUI.pickItem)
-        ns.Print(("goal for %s removed."):format(Util.Colored("accent", GoalsUI.pickItem)))
+        ns.Print(L.Format("goal for %s removed.", Util.Colored("accent", GoalsUI.pickItem)))
         picker:Hide()
         GoalsUI:RedrawSearch()
     end, { width = 80, height = 22 })
@@ -1706,9 +1706,10 @@ function GoalsUI:FillPicker()
     local goal = ns.Goals:Find(item)
     local have = ns.Goals:Have(item) or 0
 
-    picker.title:SetText(("GATHERING GOAL  |c%s%s|r"):format(ns.COLORS.text, item:upper()))
-    picker.have:SetText(("You have |c%s%d|r %s."):format(ns.COLORS.text, have,
-        ns.Goals:CountsBank() and "in your bags and bank" or "in your bags"))
+    picker.title:SetText(L.Format("GATHERING GOAL  |c%s%s|r", ns.COLORS.text,
+        (item:upper():gsub("ä", "Ä"):gsub("ö", "Ö"):gsub("ü", "Ü"))))
+    picker.have:SetText(L.Format("You have |c%s%d|r %s.", ns.COLORS.text, have,
+        ns.Goals:CountsBank() and L["in your bags and bank"] or L["in your bags"]))
     picker.bank:SetChecked(ns.Goals:CountsBank())
 
     -- As wide as its title needs, measured: a long name in capitals ran
@@ -1723,7 +1724,7 @@ function GoalsUI:FillPicker()
         chip.label:SetText(tostring(amount))
     end
 
-    picker.set:SetText(goal and "Change goal" or "Set goal")
+    picker.set:SetText(goal and L["Change goal"] or L["Set goal"])
     picker.remove:SetShown(goal ~= nil)
 
     if not GoalsUI.choice or GoalsUI.choice <= have then
@@ -1858,7 +1859,7 @@ function GoalsUI:PickerSet()
     end
 
     picker:Hide()
-    ns.Print(("goal set: %s %s. You have %d, %d to go."):format(
+    ns.Print(L.Format("goal set: %s %s. You have %d, %d to go.",
         Util.Colored("good", tostring(goal.target)), Util.Colored("accent", goal.item),
         goal.have, ns.Goals.Left(goal)))
     self:Show()
@@ -1869,17 +1870,18 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("goals", "show or hide the goals panel (dock puts it back under the kills panel)", function(rest)
+ns.RegisterCommand("goals", L["show or hide the goals panel (dock puts it back under the kills panel)"], function(rest)
     local word = Util.Trim(rest):lower()
 
     if word == "dock" then
         GoalsUI:Dock()
-        ns.Print("goals panel back under the kills panel.")
+        ns.Print(L["goals panel back under the kills panel."])
         return
     end
 
     if #ns.Goals:List() == 0 then
-        ns.Print("no goals yet. /farm goal Copper Ore 40, or the Goal button on a search result.")
+        ns.Print(L["no goals yet. /farm goal Copper Ore 40, or the Goal button on a search result."])
+
         return
     end
 

@@ -53,6 +53,8 @@ expect("a clean package is clear", CLEAN, True)
 expect("the tools folder is refused", with_({"tools/runtests.py": "print()\n"}), False)
 expect("a stray script is refused", with_({"deploy.ps1": "x\n"}), False)
 expect("the README is refused", with_({"README.md": "# Readme\n"}), False)
+expect("the translations are allowed",
+       with_({"Locale/Locale.lua": "local _, ns = ...\n", "Locale/deDE.lua": "local _, ns = ...\n"}), True)
 expect("the Claude notes are refused", with_({"CLAUDE.md": "# Notes\n"}), False)
 expect("the Claude notes are refused anywhere",
        with_({"Core/CLAUDE.md": "# Notes\n"}), False)

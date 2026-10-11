@@ -11,6 +11,7 @@
 -- updates.
 
 local _, ns = ...
+local L = ns.L
 
 local LootTableUI = ns.NewModule("LootTableUI")
 
@@ -50,11 +51,11 @@ local BOTTOM = 34
 
 -- The number columns, right to left, in pixels.
 local COLUMNS = {
-    { key = "perKill", title = "PER KILL", width = 70 },
-    { key = "rate",    title = "RATE",     width = 50 },
-    { key = "total",   title = "TOTAL",    width = 44 },
+    { key = "perKill", title = L["PER KILL"], width = 70 },
+    { key = "rate",    title = L["RATE"],     width = 50 },
+    { key = "total",   title = L["TOTAL"],    width = 44 },
     -- "123 of 1204" once a mob passes a hundred kills.
-    { key = "dropped", title = "DROPPED",  width = 84 },
+    { key = "dropped", title = L["DROPPED"],  width = 84 },
 }
 local GAP = 6
 
@@ -116,13 +117,13 @@ function LootTableUI:Table(mobName)
     -- being shared out among the places that are known.
     local places = Tracker.PlacesText(loot.places, PLACES_SHOWN)
     if places then
-        out.where = "Killed at: " .. places .. "."
+        out.where = L.Format("Killed at: %s.", places)
         if loot.unplaced > 0 then
-            out.where = out.where .. (" %s with no place.")
-                :format(Util.Plural(loot.unplaced, "kill"))
+            out.where = out.where .. L.Format(" %s with no place.",
+                Util.Plural(loot.unplaced, L["kill"], L["kills"]))
         end
     else
-        out.where = "Killed at: recorded from your next kill on."
+        out.where = L["Killed at: recorded from your next kill on."]
     end
 
     if Value then
@@ -136,7 +137,7 @@ function LootTableUI:Table(mobName)
         local row = {
             name = item.name,
             id = id,
-            dropped = ("%d of %d"):format(item.corpses, loot.kills),
+            dropped = L.Format("%d of %d", item.corpses, loot.kills),
             total = ("x%d"):format(item.amount),
             corpses = item.corpses,
             amount = item.amount,
@@ -415,9 +416,9 @@ function LootTableUI:Build()
     end
 
     -- Three numbers across the top.
-    self.kills = Stat(frame, PADDING, "KILLS")
-    self.worth = Stat(frame, PADDING + 130, "WORTH PER KILL")
-    self.coin = Stat(frame, PADDING + 280, "COIN PER KILL")
+    self.kills = Stat(frame, PADDING, L["KILLS"])
+    self.worth = Stat(frame, PADDING + 130, L["WORTH PER KILL"])
+    self.coin = Stat(frame, PADDING + 280, L["COIN PER KILL"])
 
     local status = Theme.CreateLabel(frame, "small", "muted")
     status:SetPoint("TOPLEFT", PADDING, -STATUS_TOP)
@@ -440,7 +441,7 @@ function LootTableUI:Build()
     local headings = {}
     local itemTitle = Theme.CreateLabel(columns, "tiny", "muted")
     itemTitle:SetPoint("LEFT", PADDING - EDGE + 4, 0)
-    itemTitle:SetText("ITEM")
+    itemTitle:SetText(L["ITEM"])
     headings.name = itemTitle
 
     -- The list's rows stop 14 short of its right edge for the scrollbar.
@@ -458,11 +459,11 @@ function LootTableUI:Build()
     -- 2026-10-11), as the search's headings do. Kept in `lootTableSort`.
     local key, ascending = self:SortChoice()
     self.sorter = Widgets.SortableHeadings(headings, {
-        name = "Sort by item name, A to Z.",
-        dropped = "Sort by how many corpses held it, most first.",
-        total = "Sort by how many you took in all, most first.",
-        rate = "Sort by drop rate, best first. Items with no rate yet go last.",
-        perKill = "Sort by what the item adds to a kill, most first. Items with no price go last.",
+        name = L["Sort by item name, A to Z."],
+        dropped = L["Sort by how many corpses held it, most first."],
+        total = L["Sort by how many you took in all, most first."],
+        rate = L["Sort by drop rate, best first. Items with no rate yet go last."],
+        perKill = L["Sort by what the item adds to a kill, most first. Items with no price go last."],
     }, function(newKey, newAscending)
         if ns.db then
             ns.db.lootTableSort = newKey and { key = newKey, ascending = newAscending } or nil
@@ -490,7 +491,7 @@ function LootTableUI:Build()
 
     local empty = Theme.CreateLabel(frame, "small", "muted")
     empty:SetPoint("TOPLEFT", list, "TOPLEFT", 4, -6)
-    empty:SetText("Nothing has dropped from it yet.")
+    empty:SetText(L["Nothing has dropped from it yet."])
 
     local footer = Theme.CreateLabel(frame, "tiny", "dim")
     footer:SetPoint("BOTTOMLEFT", PADDING, 12)
@@ -571,7 +572,7 @@ function LootTableUI:Render()
     end
 
     if data.worth and Money then
-        Count(self.worth, data.worth, data.basis == "tally" and "" or " (est.)")
+        Count(self.worth, data.worth, data.basis == "tally" and "" or L[" (est.)"])
         self.worth:SetTextColor(Theme.Unpack("good"))
     else
         ns.Motion:Stop(self.worth, "count")
@@ -590,26 +591,27 @@ function LootTableUI:Render()
 
     local status
     if data.rated then
-        status = ("%s, every one it has dropped. Rates are from your own kills.")
-            :format(Util.Plural(#data.rows, "item"))
+        status = L.Format("%s, every one it has dropped. Rates are from your own kills.",
+            Util.Plural(#data.rows, L["item"], L["items"]))
     else
-        status = ("%s so far. Drop rates and values after %s more %s.")
-            :format(Util.Plural(#data.rows, "item"), data.needed,
-                data.needed == 1 and "kill" or "kills")
+        local items = Util.Plural(#data.rows, L["item"], L["items"])
+        status = data.needed == 1
+            and L.Format("%s so far. Drop rates and values after %s more kill.", items, data.needed)
+            or L.Format("%s so far. Drop rates and values after %s more kills.", items, data.needed)
     end
 
     -- Coin started being counted after some of these kills; say how many
     -- it is from, so a short average is not mistaken for the whole tally.
     if data.coinKills < data.kills then
         status = status .. (data.coinKills > 0
-            and (" Coin is from your last %s."):format(Util.Plural(data.coinKills, "kill"))
-            or " Coin is counted from your next kill.")
+            and L.Format(" Coin is from your last %s.", Util.Plural(data.coinKills, L["kill"], L["kills"]))
+            or L[" Coin is counted from your next kill."])
     end
     self.status:SetText(status)
     self.where:SetText(data.where)
     self.footer:SetText(ns.Value and ns.Value:HasAuctionPrices()
-        and "Prices: Blackthornes Tradeskills market value, or the vendor price if higher."
-        or "Prices: vendor price. Load Blackthornes Tradeskills for market prices.")
+        and L["Prices: Blackthornes Tradeskills market value, or the vendor price if higher."]
+        or L["Prices: vendor price. Load Blackthornes Tradeskills for market prices."])
 
     local width = self:WidthFor(data.rows, status, data.where)
     self.frame:SetWidth(width)
@@ -728,16 +730,16 @@ function LootTableUI:Refresh()
     if self:IsShown() then self:Render() end
 end
 
-ns.RegisterCommand("loot", "open a mob's full loot table", function(rest)
+ns.RegisterCommand("loot", L["open a mob's full loot table"], function(rest)
     local Tracker = ns.Tracker
     local mobName = Tracker:ResolveMob(rest or "")
 
     if not (mobName and LootTableUI:Show(mobName)) then
         local wanted = Util.Trim(rest or "")
         if wanted == "" then
-            ns.Print("nothing killed yet. Loot something and try again.")
+            ns.Print(L["nothing killed yet. Loot something and try again."])
         else
-            ns.Print(("no kills of %s yet."):format(wanted))
+            ns.Print(L.Format("no kills of %s yet.", wanted))
         end
     end
 end)

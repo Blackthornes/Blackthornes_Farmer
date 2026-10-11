@@ -11,6 +11,7 @@
 -- with how many kills each still needs.
 
 local _, ns = ...
+local L = ns.L
 
 local RankingsUI = ns.NewModule("RankingsUI")
 
@@ -32,15 +33,15 @@ local BASE_WIDTH = { rank = 24, mob = 160, worth = 130, basis = 64, best = 130, 
 local MAX_WIDTH = { mob = 300, worth = 200, basis = 110, best = 240, where = 340 }
 
 local FILTERS = {
-    { label = "ALL", group = false },
-    { label = "MEASURED", group = "measured" },
-    { label = "ESTIMATES", group = "estimate" },
+    { label = L["ALL"], group = false },
+    { label = L["MEASURED"], group = "measured" },
+    { label = L["ESTIMATES"], group = "estimate" },
 }
 
 local HEADINGS = {
-    measured = { "YOUR KILLS", "measured, coin included" },
-    estimate = { "ESTIMATES", "database drop rates, no coin, so they run low" },
-    pending = { "NOT RANKED YET", "keep killing" },
+    measured = { L["YOUR KILLS"], L["measured, coin included"] },
+    estimate = { L["ESTIMATES"], L["database drop rates, no coin, so they run low"] },
+    pending = { L["NOT RANKED YET"], L["keep killing"] },
 }
 
 --- Column left edges and widths for the given widths.
@@ -115,8 +116,8 @@ function RankingsUI:Build(frame)
     self.panel = panel
 
     self.headings = {}
-    for key, text in pairs({ rank = "#", mob = "MOB", worth = "PER KILL", basis = "FROM",
-        best = "BEST DROP", where = "WHERE", level = "LEVEL" }) do
+    for key, text in pairs({ rank = "#", mob = L["MOB"], worth = L["PER KILL"], basis = L["FROM"],
+        best = L["BEST DROP"], where = L["WHERE"], level = L["LEVEL"] }) do
         -- "#" sits over the ranks' right edge; the sort arrow goes before it.
         local label = Theme.CreateLabel(panel, "tiny", "dim", key == "rank" and "RIGHT" or nil)
         label:SetText(text)
@@ -131,13 +132,13 @@ function RankingsUI:Build(frame)
     -- each mob keeps its rank and medal. Kept in `rankingsSort`.
     local key, ascending = self:SortChoice()
     self.sorter = Widgets.SortableHeadings(self.headings, {
-        rank = "Sort by rank, best first: the usual order.",
-        mob = "Sort by mob name, A to Z.",
-        worth = "Sort by what a kill is worth, best first.",
-        basis = "Sort by how many you have killed, most first.",
-        best = "Sort by the best drop's name, A to Z.",
-        where = "Sort by where it is, A to Z.",
-        level = "Sort by level, lowest first.",
+        rank = L["Sort by rank, best first: the usual order."],
+        mob = L["Sort by mob name, A to Z."],
+        worth = L["Sort by what a kill is worth, best first."],
+        basis = L["Sort by how many you have killed, most first."],
+        best = L["Sort by the best drop's name, A to Z."],
+        where = L["Sort by where it is, A to Z."],
+        level = L["Sort by level, lowest first."],
     }, function(newKey, newAscending)
         if ns.db then
             ns.db.rankingsSort = newKey and { key = newKey, ascending = newAscending } or nil
@@ -172,9 +173,8 @@ function RankingsUI:Build(frame)
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText(("A mob is measured once you have %d kills of it. "
-        .. "Hover a mob for what makes up its worth, click it for its loot table.")
-        :format(ns.Tracker.MIN_KILLS))
+    footer:SetText(L.Format("A mob is measured once you have %d kills of it. Hover a mob for what makes up its worth, click it for its loot table.",
+        ns.Tracker.MIN_KILLS))
     self.footer = footer
 
     view:Hide()
@@ -335,9 +335,9 @@ local function EntryTexts(data)
     local texts = { mob = entry.mob, where = entry.where or "", level = entry.level or "" }
 
     if entry.group == "pending" then
-        texts.worth = entry.unpriced and "no prices yet"
-            or ("%d more to go"):format(entry.needed)
-        texts.basis = Util.Plural(entry.kills, "kill")
+        texts.worth = entry.unpriced and L["no prices yet"]
+            or L.Format("%d more to go", entry.needed)
+        texts.basis = Util.Plural(entry.kills, L["kill"], L["kills"])
         texts.best = ""
         return texts
     end
@@ -347,10 +347,10 @@ local function EntryTexts(data)
 
     if entry.group == "measured" then
         texts.worth = ns.Value.Coins(entry.value)
-        texts.basis = Util.Plural(entry.kills, "kill")
+        texts.basis = Util.Plural(entry.kills, L["kill"], L["kills"])
     else
         texts.worth = "~" .. ns.Value.Coins(entry.value)
-        texts.basis = "estimate"
+        texts.basis = L["estimate"]
     end
 
     return texts
@@ -467,8 +467,8 @@ function RankingsUI:OnRowClick(data, button)
     local mob = data.entry.mob
     if ns.LootTableUI and ns.LootTableUI:Show(mob) then return end
 
-    ns.Print(("%s: you have not killed one yet, so there is no loot table. "
-        .. "Its worth is an estimate from the database."):format(Util.Colored("accent", mob)))
+    ns.Print(L.Format("%s: you have not killed one yet, so there is no loot table. Its worth is an estimate from the database.",
+        Util.Colored("accent", mob)))
 end
 
 --------------------------------------------------------------------------------
@@ -483,7 +483,7 @@ local function PendingNote(entries)
         if entry.unpriced then prices = true else kills = true end
     end
     if not prices then return nil end
-    return kills and "waiting on kills or prices" or "waiting on prices"
+    return kills and L["waiting on kills or prices"] or L["waiting on prices"]
 end
 
 --- The board as list rows, for the chosen filter.
@@ -515,12 +515,12 @@ function RankingsUI:Rows(board)
     end
 
     if not wanted or wanted == "measured" then
-        Add("measured", ("Nothing yet. Kill a mob %d times to rank it from your own loot.")
-            :format(ns.Tracker.MIN_KILLS))
+        Add("measured", L.Format("Nothing yet. Kill a mob %d times to rank it from your own loot.",
+            ns.Tracker.MIN_KILLS))
     end
 
     if not wanted or wanted == "estimate" then
-        Add("estimate", "No database drop rate has a price yet.")
+        Add("estimate", L["No database drop rate has a price yet."])
     end
 
     if not wanted or wanted == "measured" then
@@ -588,9 +588,9 @@ end
 
 function RankingsUI:PriceText()
     if ns.Value:HasAuctionPrices() then
-        return "Tradeskills auction prices"
+        return L["Tradeskills auction prices"]
     end
-    return "vendor prices, Tradeskills not loaded"
+    return L["vendor prices, Tradeskills not loaded"]
 end
 
 --- A click on a heading: the board already built, in the new order, from

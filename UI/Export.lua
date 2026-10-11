@@ -9,6 +9,7 @@
 -- is: run the command, press Ctrl+C, paste into your editor.
 
 local _, ns = ...
+local L = ns.L
 
 local UI = ns.UI
 
@@ -43,7 +44,7 @@ function UI:BuildExport()
     local trim
     if ns.Titanforged then
         trim = ns.Titanforged:Dress(frame, {
-            title = "Export",
+            title = L["Export"],
             close = function() UI:HideExport() end,
         })
         local left, right, top, bottom = ns.Titanforged.Reach(trim)
@@ -92,14 +93,14 @@ function UI:BuildExport()
     else
         local title = Theme.CreateLabel(frame, "large", "accent")
         title:SetPoint("TOPLEFT", PADDING, -10)
-        title:SetText("Export")
+        title:SetText(L["Export"])
         self.exportTitle = title
     end
 
     local hint = Theme.CreateLabel(frame, "small", "muted")
     hint:SetPoint("TOPLEFT", PADDING, -42)
     hint:SetPoint("TOPRIGHT", -PADDING, -42)
-    hint:SetText("Already selected. Press Ctrl+C, then paste it into your editor.")
+    hint:SetText(L["Already selected. Press Ctrl+C, then paste it into your editor."])
 
     -- The box itself.
     local panel = Theme.CreatePanel(frame, "panel", "border")
@@ -193,12 +194,12 @@ function UI:BuildExport()
     self.exportSlider = slider
 
     -- Footer buttons.
-    local selectAll = Widgets.CreateButton(frame, "Select all", function()
+    local selectAll = Widgets.CreateButton(frame, L["Select all"], function()
         UI:FocusExport()
     end, { width = 90, height = 22 })
     selectAll:SetPoint("BOTTOMLEFT", PADDING, 12)
 
-    local done = Widgets.CreateButton(frame, "Close", function() UI:HideExport() end,
+    local done = Widgets.CreateButton(frame, L["Close"], function() UI:HideExport() end,
         { width = 70, height = 22 })
     done:SetPoint("BOTTOMRIGHT", -PADDING, 12)
 
@@ -208,12 +209,12 @@ function UI:BuildExport()
     self.exportCount = count
 
     -- Previous and Next, only for a handout in parts (Logic/Transfer.lua).
-    local prev = Widgets.CreateButton(frame, "Previous", function()
+    local prev = Widgets.CreateButton(frame, L["Previous"], function()
         if UI.exportNav then UI.exportNav.step(-1) end
     end, { width = 80, height = 22 })
     prev:SetPoint("LEFT", selectAll, "RIGHT", 8, 0)
     prev:Hide()
-    local nextPart = Widgets.CreateButton(frame, "Next part", function()
+    local nextPart = Widgets.CreateButton(frame, L["Next part"], function()
         if UI.exportNav then UI.exportNav.step(1) end
     end, { width = 90, height = 22 })
     nextPart:SetPoint("LEFT", prev, "RIGHT", 8, 0)
@@ -252,9 +253,9 @@ function UI:ShowExport(text, title, nav)
     self.exportPrev:SetShown(nav ~= nil and nav.index > 1)
     self.exportNext:SetShown(nav ~= nil and nav.index < nav.count)
     if self.exportPlate then
-        self.exportPlate:SetTitle(title or "Export")
+        self.exportPlate:SetTitle(title or L["Export"])
     else
-        self.exportTitle:SetText(title or "Export")
+        self.exportTitle:SetText(title or L["Export"])
     end
 
     self.exportEdit:SetText(text)
@@ -264,7 +265,7 @@ function UI:ShowExport(text, title, nav)
 
     local lines = 1
     for _ in text:gmatch("\n") do lines = lines + 1 end
-    self.exportCount:SetText(("%d lines, %d characters"):format(lines, #text))
+    self.exportCount:SetText(L.Format("%d lines, %d characters", lines, #text))
 
     if not self.exportFrame:IsShown() then
         self.exportFrame:Show()

@@ -21,6 +21,7 @@
 -- ranking then leaves distance or level out rather than guessing.
 
 local _, ns = ...
+local L = ns.L
 
 local Spots = ns.NewModule("Spots")
 
@@ -357,8 +358,10 @@ end
 function Spots.SkillShortText(spot)
     local short = spot.skillShort
     if not short then return nil end
-    if short.have then return ("needs %d, you have %d"):format(short.needed, short.have) end
-    return ("needs %s"):format(short.profession)
+    if short.have then return L.Format("needs %d, you have %d", short.needed, short.have) end
+    -- The profession is kept by its English name; only the words shown change.
+    local shown = ({ Mining = L["Mining"], Herbalism = L["Herbalism"], Skinning = L["Skinning"] })[short.profession]
+    return L.Format("needs %s", shown or short.profession)
 end
 
 --------------------------------------------------------------------------------
@@ -462,12 +465,15 @@ function Spots.DistanceText(hops, zone, travel)
     -- A spot recorded where the zone could not be read (inside an
     -- instance) says nothing, rather than "in many places".
     if type(zone) ~= "string" then return "" end
-    if not Spots.ZoneOf(zone) then return "in many places" end
+    if not Spots.ZoneOf(zone) then return L["in many places"] end
     if hops == nil then return "" end
+    -- `travel` stays English (Arrow reads it); only the words shown change.
+    if travel == "by boat" then return L["by boat"] end
+    if travel == "other continent" then return L["other continent"] end
     if travel then return travel end
-    if hops == 0 then return "you are here" end
-    if hops == 1 then return "next zone over" end
-    return ("%d zones away"):format(hops)
+    if hops == 0 then return L["you are here"] end
+    if hops == 1 then return L["next zone over"] end
+    return L.Format("%d zones away", hops)
 end
 
 function Spots:Score(spot, player)
@@ -621,7 +627,7 @@ end
 function Spots:Share(itemName, spot)
     local marked = self:Mark(spot)
     ns.Print(("%s: %s%s"):format(Util.Colored("accent", itemName), self:Line(spot),
-        marked and Util.Colored("good", "  (pinned on your map)") or ""))
+        marked and Util.Colored("good", L["  (pinned on your map)"]) or ""))
     return marked
 end
 
@@ -629,10 +635,10 @@ end
 -- Command
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("where", "the best places near you to farm an item: /farm where copper ore", function(rest)
+ns.RegisterCommand("where", L["the best places near you to farm an item: /farm where copper ore"], function(rest)
     local name = ns.Goals and ns.Goals:ResolveItem(rest) or Util.Trim(rest)
     if not name or name == "" then
-        ns.Print("name an item: /farm where copper ore")
+        ns.Print(L["name an item: /farm where copper ore"])
         return
     end
 
@@ -643,7 +649,7 @@ ns.RegisterCommand("where", "the best places near you to farm an item: /farm whe
 
     local spots = Spots:For(name)
     if #spots == 0 then
-        ns.Print(("no places known for %s yet."):format(name))
+        ns.Print(L.Format("no places known for %s yet.", name))
         return
     end
     for index, spot in ipairs(spots) do

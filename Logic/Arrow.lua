@@ -29,6 +29,7 @@
 -- arrow is hidden.
 
 local _, ns = ...
+local L = ns.L
 
 local Arrow = ns.NewModule("Arrow")
 
@@ -95,7 +96,7 @@ end
 function Arrow:TurnOnForGoal()
     if not ns.db or self.IsOn() or ns.db.arrowTurnedOff then return false end
     self:SetOn(true)
-    ns.Print("goal arrow on: it points to the nearest place to gather. Its close button puts it away.")
+    ns.Print(L["goal arrow on: it points to the nearest place to gather. Its close button puts it away."])
     if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
     return true
 end
@@ -157,7 +158,7 @@ function Arrow:Aim(item, spot)
     end
     if not Arrow.IsOn() then
         self:SetOn(true)
-        ns.Print("goal arrow on. /farm arrow off, or the settings page, hides it.")
+        ns.Print(L["goal arrow on. /farm arrow off, or the settings page, hides it."])
     end
     self:Changed(true)
     return true
@@ -179,7 +180,7 @@ function Arrow:Grind(camp)
     if ns.ArrowUI and ns.ArrowUI.Claim then ns.ArrowUI:Claim() end
     if not Arrow.IsOn() then
         self:SetOn(true)
-        ns.Print("arrow on. /farm arrow off, or the settings page, hides it.")
+        ns.Print(L["arrow on. /farm arrow off, or the settings page, hides it."])
     end
     self:Changed(true)
     return true
@@ -641,37 +642,37 @@ end
 function Arrow.Yards(yards)
     local whole = math.floor(yards + 0.5)
     if whole >= 1000 then
-        return ("%d,%03d yd"):format(math.floor(whole / 1000), whole % 1000)
+        return L.Format("%d,%03d yd", math.floor(whole / 1000), whole % 1000)
     end
     if whole >= 100 then whole = math.floor(whole / 10 + 0.5) * 10 end
-    return ("%d yd"):format(whole)
+    return L.Format("%d yd", whole)
 end
 
 --- "2 min ago", "40s ago".
 local function Ago(seconds)
-    if seconds < 60 then return ("%ds ago"):format(math.max(0, math.floor(seconds))) end
-    return ("%d min ago"):format(math.floor(seconds / 60))
+    if seconds < 60 then return L.Format("%ds ago", math.max(0, math.floor(seconds))) end
+    return L.Format("%d min ago", math.floor(seconds / 60))
 end
 
 --- The note under a place: why it is there, in the dial's words.
 function Arrow.Note(target, now)
     if target.yours and target.gathers then
         if target.resting and target.last and now then
-            return ("picked %s, may not be back yet"):format(Ago(now - target.last)), "muted"
+            return L.Format("picked %s, may not be back yet", Ago(now - target.last)), "muted"
         end
-        return target.gathers == 1 and "your own spot" or
-            ("your own spot, gathered %d times"):format(target.gathers), "good"
+        return target.gathers == 1 and L["your own spot"] or
+            L.Format("your own spot, gathered %d times", target.gathers), "good"
     end
     if target.far then
-        return target.travel == "by boat" and "take the boat"
-            or "other continent: take the boat or zeppelin", "muted"
+        return target.travel == "by boat" and L["take the boat"]
+            or L["other continent: take the boat or zeppelin"], "muted"
     end
-    if target.here then return "about this zone, no one spot", "accent" end
-    if target.area then return "somewhere in " .. (target.zone or "this zone"), "accent" end
+    if target.here then return L["about this zone, no one spot"], "accent" end
+    if target.area then return L.Format("somewhere in %s", target.zone or L["this zone"]), "accent" end
 
     local rate = target.measured or target.chance
     if rate and ns.Tracker and ns.Tracker.FormatChance then
-        return ("%s drop"):format(ns.Tracker.FormatChance(rate)), target.forever and "good" or "muted"
+        return L.Format("%s drop", ns.Tracker.FormatChance(rate)), target.forever and "good" or "muted"
     end
     return "", "muted"
 end
@@ -753,13 +754,13 @@ function Arrow:State(clock)
 
     if target.far then
         state.mode = "far"
-        state.distance = target.zone or "far away"
+        state.distance = target.zone or L["far away"]
         return state
     end
 
     if target.here then
         state.mode = "here"
-        state.distance = "In " .. (target.zone or "this zone")
+        state.distance = L.Format("In %s", target.zone or L["this zone"])
         return state
     end
 
@@ -767,7 +768,7 @@ function Arrow:State(clock)
     local north, west = Arrow.Offset(here, target.map, target.x, target.y)
     if not north then
         state.mode = "far"
-        state.distance = target.zone or "far away"
+        state.distance = target.zone or L["far away"]
         return state
     end
 
@@ -781,7 +782,7 @@ function Arrow:State(clock)
     local reach = NODE_KINDS[target.kind or ""] and ARRIVED_NODE or ARRIVED_MOB
     if not target.area and yards <= reach then
         state.mode = "arrived"
-        state.distance = "You're there"
+        state.distance = L["You're there"]
         return state
     end
 
@@ -848,17 +849,17 @@ local function Status()
     if Arrow.IsOn() then
         local goal = Arrow:Goal()
         if goal then
-            ns.Print(("goal arrow on, following %s. Click it for the next goal, right-click for "
-                .. "the next place."):format(Util.Colored("accent", goal.item)))
+            ns.Print(L.Format("goal arrow on, following %s. Click it for the next goal, right-click for the next place.",
+                Util.Colored("accent", goal.item)))
         else
-            ns.Print("goal arrow on. It shows once you set a goal: /farm goal Copper Ore 40.")
+            ns.Print(L["goal arrow on. It shows once you set a goal: /farm goal Copper Ore 40."])
         end
     else
-        ns.Print("goal arrow off. /farm arrow on shows it.")
+        ns.Print(L["goal arrow off. /farm arrow on shows it."])
     end
 end
 
-ns.RegisterCommand("arrow", "an arrow to the nearest place to gather a goal (on, off, next, check, tomtom, <goal>)", function(rest)
+ns.RegisterCommand("arrow", L["an arrow to the nearest place to gather a goal (on, off, next, check, tomtom, <goal>)"], function(rest)
     local argument = Util.Trim(rest)
     local word = argument:lower()
 
@@ -871,9 +872,9 @@ ns.RegisterCommand("arrow", "an arrow to the nearest place to gather a goal (on,
     elseif word == "next" then
         local target = Arrow:NextSpot()
         if target then
-            ns.Print(("pointing at %s."):format(Util.Colored("accent", Arrow.Place(target))))
+            ns.Print(L.Format("pointing at %s.", Util.Colored("accent", Arrow.Place(target))))
         else
-            ns.Print("no other place known for that goal.")
+            ns.Print(L["no other place known for that goal."])
         end
     elseif word == "check" then
         ns.KeepCheck("arrow check", Arrow.Check, Arrow)
@@ -881,23 +882,24 @@ ns.RegisterCommand("arrow", "an arrow to the nearest place to gather a goal (on,
         local TomTom = ns.TomTom
         if word == "tomtom" then TomTom:SetOn(not TomTom.IsOn()) else TomTom:SetOn(word == "tomtom on") end
         if not TomTom.IsOn() then
-            ns.Print("TomTom not used: the goal arrow shows its own dial.")
+            ns.Print(L["TomTom not used: the goal arrow shows its own dial."])
         elseif TomTom.Installed() then
-            ns.Print("TomTom used: its arrow shows the goal arrow's place.")
+            ns.Print(L["TomTom used: its arrow shows the goal arrow's place."])
         else
-            ns.Print("TomTom will be used once it is installed.")
+            ns.Print(L["TomTom will be used once it is installed."])
         end
         if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
     elseif word == "reset" then
         if ns.ArrowUI and ns.ArrowUI.ResetPosition then ns.ArrowUI:ResetPosition() end
-        ns.Print("goal arrow put back where it started.")
+        ns.Print(L["goal arrow put back where it started."])
     else
         local name = ns.Goals:ResolveItem(argument) or argument
         if Arrow:Follow(name) then
             if not Arrow.IsOn() then Arrow:SetOn(true) end
-            ns.Print(("goal arrow following %s."):format(Util.Colored("accent", Arrow:Goal().item)))
+            ns.Print(L.Format("goal arrow following %s.", Util.Colored("accent", Arrow:Goal().item)))
         else
-            ns.Print(("no open goal for %s. /farm goal %s 20 sets one."):format(argument, argument))
+            ns.Print(L.Format("no open goal for %s. /farm goal %s 20 sets one.", argument, argument))
+
         end
     end
 end)

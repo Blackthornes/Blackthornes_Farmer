@@ -26,6 +26,7 @@
 -- that character's.
 
 local _, ns = ...
+local L = ns.L
 
 local Goals = ns.NewModule("Goals")
 
@@ -38,7 +39,7 @@ Goals.MAX = 6
 -- Where the milestones sit, and what each one says.
 Goals.MILESTONES = {
     { at = 0.25, tag = "25%" },
-    { at = 0.50, tag = "HALFWAY" },
+    { at = 0.50, tag = L["HALFWAY"] },
     { at = 0.75, tag = "75%" },
 }
 
@@ -315,13 +316,13 @@ function Goals:Set(name, target)
     name = self:ResolveItem(name)
     target = math.floor(tonumber(target) or 0)
 
-    if not name then return nil, "no item named" end
-    if target < 1 then return nil, "the amount has to be 1 or more" end
-    if target > 99999 then return nil, "that is more than anyone could carry" end
+    if not name then return nil, L["no item named"] end
+    if target < 1 then return nil, L["the amount has to be 1 or more"] end
+    if target > 99999 then return nil, L["that is more than anyone could carry"] end
 
     local have = self:Have(name) or 0
     if have >= target then
-        return nil, ("you already have %d %s"):format(have, name)
+        return nil, L.Format("you already have %d %s", have, name)
     end
 
     local goal = self:Find(name)
@@ -341,7 +342,7 @@ function Goals:Set(name, target)
             end
         end
         if #self:List() >= Goals.MAX then
-            return nil, ("%d goals is the most at once"):format(Goals.MAX)
+            return nil, L.Format("%d goals is the most at once", Goals.MAX)
         end
 
         goal = { item = name }
@@ -444,16 +445,16 @@ function Goals.Duration(seconds, rough)
     seconds = math.max(0, math.floor(tonumber(seconds) or 0))
 
     if rough then
-        if seconds < 60 then return "under a minute" end
+        if seconds < 60 then return L["under a minute"] end
         local minutes = math.floor(seconds / 60 + 0.5)
-        if minutes < 60 then return ("about %d min"):format(minutes) end
-        return ("about %d hr %d min"):format(math.floor(minutes / 60), minutes % 60)
+        if minutes < 60 then return L.Format("about %d min", minutes) end
+        return L.Format("about %d hr %d min", math.floor(minutes / 60), minutes % 60)
     end
 
-    if seconds < 60 then return ("%ds"):format(seconds) end
+    if seconds < 60 then return L.Format("%ds", seconds) end
     local minutes = math.floor(seconds / 60)
-    if minutes < 60 then return ("%d min %ds"):format(minutes, seconds % 60) end
-    return ("%d hr %d min"):format(math.floor(minutes / 60), minutes % 60)
+    if minutes < 60 then return L.Format("%d min %ds", minutes, seconds % 60) end
+    return L.Format("%d hr %d min", math.floor(minutes / 60), minutes % 60)
 end
 
 --- The best place the database knows for an item: the highest drop rate,
@@ -584,11 +585,11 @@ end
 
 --- A goal just reached its number: a line in chat, and the fanfare.
 function Goals:Finished(goal)
-    local line = ("Goal done: %s %s!"):format(
+    local line = L.Format("Goal done: %s %s!",
         Util.Colored("good", tostring(goal.target)), Util.Colored("accent", goal.item))
 
     if (tonumber(goal.doneIn) or 0) >= 1 then
-        line = line .. (" %s of gathering."):format(Goals.Duration(goal.doneIn))
+        line = line .. L.Format(" %s of gathering.", Goals.Duration(goal.doneIn))
     end
 
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
@@ -685,21 +686,21 @@ end
 local function PrintGoals()
     local list = Goals:List()
     if #list == 0 then
-        ns.Print("no goals yet. /farm goal Copper Ore 40, or the Goal button on a search result.")
+        ns.Print(L["no goals yet. /farm goal Copper Ore 40, or the Goal button on a search result."])
         return
     end
 
-    ns.Print("your goals:")
+    ns.Print(L["your goals:"])
     for _, goal in ipairs(list) do
-        local state = goal.done and Util.Colored("good", "done")
-            or ("%d left"):format(Goals.Left(goal))
+        local state = goal.done and Util.Colored("good", L["done"])
+            or L.Format("%d left", Goals.Left(goal))
         ns.PrintRaw(("  %s  %d / %d  %s"):format(
             Util.Colored("accent", goal.item), goal.have or 0, goal.target or 0,
             Util.Colored("muted", state)))
     end
 end
 
-ns.RegisterCommand("goal", "set a gathering goal: /farm goal Copper Ore 40 (remove, bank on/off)", function(rest)
+ns.RegisterCommand("goal", L["set a gathering goal: /farm goal Copper Ore 40 (remove, bank on/off)"], function(rest)
     rest = Util.Trim(rest)
     local word, after = rest:match("^(%S+)%s*(.*)$")
     word = word and word:lower()
@@ -712,16 +713,16 @@ ns.RegisterCommand("goal", "set a gathering goal: /farm goal Copper Ore 40 (remo
 
     if word == "remove" or word == "clear" then
         if word == "clear" and after == "" then
-            ns.Print(("took %s off the panel."):format(
-                Util.Plural(Goals:ClearDone(), "finished goal")))
+            ns.Print(L.Format("took %s off the panel.",
+                Util.Plural(Goals:ClearDone(), L["finished goal"], L["finished goals"])))
             return
         end
 
         local name = Goals:ResolveItem(after)
         if name and Goals:Remove(name) then
-            ns.Print(("goal for %s removed."):format(Util.Colored("accent", name)))
+            ns.Print(L.Format("goal for %s removed.", Util.Colored("accent", name)))
         else
-            ns.Print(("no goal for %s."):format(after ~= "" and after or "that"))
+            ns.Print(L.Format("no goal for %s.", after ~= "" and after or L["that"]))
         end
         return
     end
@@ -733,8 +734,8 @@ ns.RegisterCommand("goal", "set a gathering goal: /farm goal Copper Ore 40 (remo
         else Goals:SetCountsBank(not Goals:CountsBank()) end
 
         ns.Print(Goals:CountsBank()
-            and "goals count your bank too."
-            or "goals count your bags only.")
+            and L["goals count your bank too."]
+            or L["goals count your bags only."])
         return
     end
 
@@ -743,17 +744,18 @@ ns.RegisterCommand("goal", "set a gathering goal: /farm goal Copper Ore 40 (remo
     if not name then amount, name = rest:match("^(%d+)%s+(.+)$") end
 
     if not (name and amount) then
-        ns.Print("give it a number: /farm goal Copper Ore 40")
+        ns.Print(L["give it a number: /farm goal Copper Ore 40"])
         return
     end
 
     local goal, why = Goals:Set(name, amount)
     if not goal then
-        ns.Print(("no goal set: %s."):format(why))
+        ns.Print(L.Format("no goal set: %s.", why))
         return
     end
 
-    ns.Print(("goal set: %s %s. You have %d, %d to go."):format(
+    ns.Print(L.Format("goal set: %s %s. You have %d, %d to go.",
+
         Util.Colored("good", tostring(goal.target)), Util.Colored("accent", goal.item),
         goal.have, Goals.Left(goal)))
     if ns.GoalsUI then ns.GoalsUI:Show() end

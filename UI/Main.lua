@@ -11,6 +11,7 @@
 -- draw as one that matches a single item.
 
 local _, ns = ...
+local L = ns.L
 
 local UI = ns.NewModule("UI")
 
@@ -46,9 +47,9 @@ UI.BASE_WIDTH = WIDTH
 
 -- The window's tabs, left to right.
 local TABS = {
-    { key = "search", text = "SEARCH" },
-    { key = "rankings", text = "RANKINGS" },
-    { key = "grind", text = "GRIND" },
+    { key = "search", text = L["SEARCH"] },
+    { key = "rankings", text = L["RANKINGS"] },
+    { key = "grind", text = L["GRIND"] },
 }
 
 -- Column widths, left to right, at their narrowest. The source, where and
@@ -77,7 +78,7 @@ local NOTE_INDENT = "     "
 local ZONE_INDENT = "    "
 
 local function ZoneCount(count)
-    return ("%d %s"):format(count, count == 1 and "spot" or "spots")
+    return count == 1 and L["1 spot"] or L.Format("%d spots", count)
 end
 
 -- How bright the glow round the window sits; it flares brighter as the
@@ -278,7 +279,7 @@ function UI:BuildHeader()
     header:SetPoint("TOPRIGHT", -PADDING, -HEAD_TOP)
     header:SetHeight(24)
 
-    local settings = Widgets.CreateButton(header, "Settings", function()
+    local settings = Widgets.CreateButton(header, L["Settings"], function()
         if ns.SettingsUI then ns.SettingsUI:Toggle() end
     end, { width = 64, height = 24 })
     settings:SetPoint("TOPRIGHT", 0, 0)
@@ -307,7 +308,7 @@ function UI:BuildBody()
     self.searchView = frame
 
     local search = Widgets.CreateSearchBox(frame,
-        "an item, a zone, a mob, or a place",
+        L["an item, a zone, a mob, or a place"],
         function(text) UI:Search(text, true) end)
 
     -- Up in the top row, beside the portrait and the Settings button.
@@ -327,19 +328,19 @@ function UI:BuildBody()
 
     -- Section each item's spots by zone (a player's request, 2026-10-05).
     -- A toggle on the right of the chip row, kept in `searchByZone`.
-    local byZone = Widgets.CreateChip(filters, "BY ZONE", function(clicked)
+    local byZone = Widgets.CreateChip(filters, L["BY ZONE"], function(clicked)
         if ns.db then ns.db.searchByZone = not (ns.db.searchByZone == true) end
         clicked:SetSelected(ns.db and ns.db.searchByZone == true)
         UI:Render()
     end)
     byZone:SetPoint("RIGHT", filters, "RIGHT", 0, 0)
-    byZone:SetWidth(math.max(64, Theme.TextWidth("tiny", "BY ZONE") + 22))
+    byZone:SetWidth(math.max(64, Theme.TextWidth("tiny", L["BY ZONE"]) + 22))
     byZone:SetSelected(ns.db and ns.db.searchByZone == true)
     byZone:HookScript("OnEnter", function(self)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Group each item's spots by zone", 1, 1, 1)
-        GameTooltip:AddLine("Zones come in the order of their best spot, by whichever column you sorted on.",
+        GameTooltip:AddLine(L["Group each item's spots by zone"], 1, 1, 1)
+        GameTooltip:AddLine(L["Zones come in the order of their best spot, by whichever column you sorted on."],
             Theme.Unpack("muted"))
         GameTooltip:Show()
     end)
@@ -397,8 +398,7 @@ function UI:BuildBody()
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText("Unmarked spots come from Classic data and are not confirmed on Forever yet. "
-        .. "Click a row to print it to chat.")
+    footer:SetText(L["Unmarked spots come from Classic data and are not confirmed on Forever yet. Click a row to print it to chat."])
     self.footer = footer
 
     self:BuildEmpty()
@@ -430,12 +430,12 @@ function UI:BuildEmpty()
     -- In gold, as every heading in the house is.
     local line = Theme.CreateLabel(empty, "large", "accent", "CENTER")
     line:SetPoint("TOP", icon, "BOTTOM", 0, -14)
-    line:SetText("What are you farming?")
+    line:SetText(L["What are you farming?"])
     self.emptyLine = line
 
     local hint = Theme.CreateLabel(empty, "small", "muted", "CENTER")
     hint:SetPoint("TOP", line, "BOTTOM", 0, -6)
-    hint:SetText("Type an item, a zone, a mob or a place.")
+    hint:SetText(L["Type an item, a zone, a mob or a place."])
 
     local caption = Theme.CreateLabel(empty, "tiny", "dim", "CENTER")
     caption:SetPoint("TOP", hint, "BOTTOM", 0, -22)
@@ -491,7 +491,7 @@ function UI:ShowEmpty()
     end
 
     self.suggestRow:SetWidth(math.max(1, total - 6))
-    self.emptyCaption:SetText(#picks > 0 and ("GOOD AT LEVEL %d"):format(level) or "")
+    self.emptyCaption:SetText(#picks > 0 and L.Format("GOOD AT LEVEL %d", level) or "")
     self.suggestRow:SetShown(#picks > 0)
 
     if not empty:IsShown() then
@@ -646,11 +646,11 @@ function UI:BuildColumnHeadings()
     end
 
     Heading("kind", "")
-    Heading("name", "SOURCE")
-    Heading("where", "WHERE")
-    Heading("level", "LEVEL")
-    Heading("drop", "DROP")
-    Heading("value", "PER KILL")
+    Heading("name", L["SOURCE"])
+    Heading("where", L["WHERE"])
+    Heading("level", L["LEVEL"])
+    Heading("drop", L["DROP"])
+    Heading("value", L["PER KILL"])
 
     self.columns = COLUMN
     self:PlaceHeadings()
@@ -660,12 +660,11 @@ function UI:BuildColumnHeadings()
     -- the next session in `searchSort`.
     local saved = ns.db and type(ns.db.searchSort) == "table" and ns.db.searchSort or {}
     self.sorter = Widgets.SortableHeadings(self.headings, {
-        name = "Sort by source name, A to Z.",
-        where = "Closest to you first: your zone, then zones nearest your level.",
-        level = "Sort by level, lowest first.",
-        drop = "Sort by drop rate, best first. Spots with no known rate go last.",
-        value = "Sort by what a kill is worth, best first. Your own kills' worth comes before estimates; "
-            .. "mobs with no price go last.",
+        name = L["Sort by source name, A to Z."],
+        where = L["Closest to you first: your zone, then zones nearest your level."],
+        level = L["Sort by level, lowest first."],
+        drop = L["Sort by drop rate, best first. Spots with no known rate go last."],
+        value = L["Sort by what a kill is worth, best first. Your own kills' worth comes before estimates; mobs with no price go last."],
     }, function(key, ascending)
         if ns.db then ns.db.searchSort = { key = key, ascending = ascending } end
         UI:Render()
@@ -717,7 +716,7 @@ function UI:ShowMobTooltip(owner, mobName)
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
     GameTooltip:AddLine(mobName)
-    GameTooltip:AddLine(("Worth about %s a kill"):format(ns.Value.Coins(worth)),
+    GameTooltip:AddLine(L.Format("Worth about %s a kill", ns.Value.Coins(worth)),
         Theme.Unpack("good"))
 
     for index = 1, math.min(#details.priced, 4) do
@@ -727,8 +726,8 @@ function UI:ShowMobTooltip(owner, mobName)
     end
 
     GameTooltip:AddLine(details.basis == "tally"
-        and ("From your %d kills, %s."):format(details.kills, ns.Value:PriceNote(details))
-        or ("Estimate from %s. Coin not counted."):format(ns.Value:PriceNote(details)),
+        and L.Format("From your %d kills, %s.", details.kills, ns.Value:PriceNote(details))
+        or L.Format("Estimate from %s. Coin not counted.", ns.Value:PriceNote(details)),
         Theme.Unpack("muted"))
     GameTooltip:Show()
 end
@@ -770,7 +769,7 @@ function UI:CreateRow(row)
     row.heading:SetPoint("RIGHT", -64, 0)
 
     -- Set a gathering goal for the item (UI/Goals.lua).
-    row.goal = Widgets.CreateButton(row, "Goal", function(self)
+    row.goal = Widgets.CreateButton(row, L["Goal"], function(self)
         local data = row.data
         if data and data.type == "item" and ns.GoalsUI then
             local name = data.item.name
@@ -875,7 +874,7 @@ function UI:UpdateRow(row, data, index)
             row.goal:SetText(("%d/%d"):format(goal.have or 0, goal.target or 0))
             row.goal:SetLabelColor("accent")
         else
-            row.goal:SetText("Goal")
+            row.goal:SetText(L["Goal"])
             row.goal:SetLabelColor(nil)
         end
         row.goal:Show()
@@ -1007,7 +1006,7 @@ function UI:OnRowClick(data, button)
     local where = ns.DB:WhereText(source)
     if where then parts[#parts + 1] = where end
 
-    parts[#parts + 1] = ("level %s"):format(ns.Search:LevelText(source))
+    parts[#parts + 1] = L.Format("level %s", ns.Search:LevelText(source))
 
     if source.chance then
         parts[#parts + 1] = ns.Search:ChanceText(source.chance)
@@ -1066,8 +1065,8 @@ function UI:Render()
         -- last search's long names needed.
         self:FitColumns({})
         self.summary:SetText(("%s, %s"):format(
-            Util.Plural(ns.DB:CountItems(), "item"),
-            Util.Plural(ns.DB:CountSources(), "spot")))
+            Util.Plural(ns.DB:CountItems(), L["item"], L["items"]),
+            Util.Plural(ns.DB:CountSources(), L["spot"], L["spots"])))
         self:ShowEmpty()
         return
     end
@@ -1121,9 +1120,9 @@ function UI:Render()
     if total == 0 then
         -- Said when hiding (skinning, the hide list) is what emptied it.
         self.summary:SetText(Util.Colored("muted", ns.Search.hidHit
-            and "nothing found, the matches are hidden" or "nothing found"))
+            and L["nothing found, the matches are hidden"] or L["nothing found"]))
     else
-        self.summary:SetText(("%s matching"):format(Util.Plural(total, "item")))
+        self.summary:SetText(L.Format("%s matching", Util.Plural(total, L["item"], L["items"])))
     end
 end
 
@@ -1161,7 +1160,7 @@ function UI:BuildChips(query)
     -- One kind is not a choice, so there is nothing to offer.
     if #kinds < 2 then return end
 
-    local entries = { { label = "ALL", kind = nil } }
+    local entries = { { label = L["ALL"], kind = nil } }
     for _, kind in ipairs(kinds) do
         entries[#entries + 1] = { label = ns.DB:KindTag(kind), kind = kind }
     end
@@ -1502,9 +1501,9 @@ function UI:BuildMinimapButton()
         GameTooltip:AddLine("Blackthornes Farmer")
         -- Which version is installed, so a player can say when reporting.
         GameTooltip:AddLine(ns.VersionLabel(), 0.5, 0.5, 0.5)
-        GameTooltip:AddLine("Click to open", 0.7, 0.7, 0.7)
-        GameTooltip:AddLine("Right-click for settings", 0.7, 0.7, 0.7)
-        GameTooltip:AddLine("Drag to move it round the minimap", 0.5, 0.5, 0.5)
+        GameTooltip:AddLine(L["Click to open"], 0.7, 0.7, 0.7)
+        GameTooltip:AddLine(L["Right-click for settings"], 0.7, 0.7, 0.7)
+        GameTooltip:AddLine(L["Drag to move it round the minimap"], 0.5, 0.5, 0.5)
         GameTooltip:Show()
     end)
 
@@ -1549,12 +1548,13 @@ function UI:ToggleMinimapButton()
     return not (ns.db and ns.db.minimapHidden)
 end
 
-ns.RegisterCommand("minimap", "show or hide the minimap button", function()
+ns.RegisterCommand("minimap", L["show or hide the minimap button"], function()
     local shown = ns.UI:ToggleMinimapButton()
 
     if shown then
-        ns.Print("minimap button shown.")
+        ns.Print(L["minimap button shown."])
     else
-        ns.Print("minimap button hidden. /farm minimap brings it back.")
+        ns.Print(L["minimap button hidden. /farm minimap brings it back."])
+
     end
 end)

@@ -16,6 +16,7 @@
 -- place goes to TomTom instead and the dial stays hidden (Logic/TomTom.lua).
 
 local ADDON, ns = ...
+local L = ns.L
 
 local ArrowUI = ns.NewModule("ArrowUI")
 
@@ -194,15 +195,15 @@ function ArrowUI:OnClick(button)
     local Arrow = ns.Arrow
     if button == "RightButton" then
         local target = Arrow:NextSpot()
-        if not target then ns.Print("no other place known for that goal.") end
+        if not target then ns.Print(L["no other place known for that goal."]) end
     elseif Arrow.grind then
         -- Following a grinding camp: a click goes back to the goals.
         Arrow:StopGrind()
-        ns.Print("back to your goals.")
+        ns.Print(L["back to your goals."])
     else
         local before = Arrow:Goal()
         local goal = Arrow:NextGoal()
-        if goal and goal == before then ns.Print("that is your only open goal.") end
+        if goal and goal == before then ns.Print(L["that is your only open goal."]) end
     end
     self.since = STEP
     self:Draw(true)
@@ -211,25 +212,25 @@ end
 --- The close gem: the arrow off until turned on again.
 function ArrowUI:Close()
     ns.Arrow:SetOn(false)
-    ns.Print("goal arrow off. /farm arrow, or the settings page, brings it back.")
+    ns.Print(L["goal arrow off. /farm arrow, or the settings page, brings it back."])
     if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
 end
 
 function ArrowUI:ShowTooltip(owner)
     if not GameTooltip then return end
     GameTooltip:SetOwner(owner, "ANCHOR_BOTTOM")
-    GameTooltip:AddLine("Goal arrow")
+    GameTooltip:AddLine(L["Goal arrow"])
     local state = self.state
     if state and state.count and state.count > 1 then
-        GameTooltip:AddLine(("Place %d of %d"):format(state.index or 1, state.count), 1, 1, 1)
+        GameTooltip:AddLine(L.Format("Place %d of %d", state.index or 1, state.count), 1, 1, 1)
     end
     if ns.Arrow.grind then
-        GameTooltip:AddLine("Click to go back to your goals.", 0.9, 0.9, 0.9)
+        GameTooltip:AddLine(L["Click to go back to your goals."], 0.9, 0.9, 0.9)
     else
-        GameTooltip:AddLine("Click for the next goal.", 0.9, 0.9, 0.9)
+        GameTooltip:AddLine(L["Click for the next goal."], 0.9, 0.9, 0.9)
     end
-    GameTooltip:AddLine("Right-click for the next place.", 0.9, 0.9, 0.9)
-    GameTooltip:AddLine("Drag to move it. The red gem closes it.", 0.9, 0.9, 0.9)
+    GameTooltip:AddLine(L["Right-click for the next place."], 0.9, 0.9, 0.9)
+    GameTooltip:AddLine(L["Drag to move it. The red gem closes it."], 0.9, 0.9, 0.9)
     GameTooltip:Show()
 end
 
@@ -288,13 +289,13 @@ end
 function ArrowUI.Words(state)
     local mode = state.mode
     if mode == "none" then
-        return "No goal yet", "Set a goal to follow", "/farm goal Copper Ore 40", "muted"
+        return L["No goal yet"], L["Set a goal to follow"], L["/farm goal Copper Ore 40"], "muted"
     end
     if mode == "blind" then
-        return "Can't see you here", "The game won't say where you are", "/farm arrow check", "muted"
+        return L["Can't see you here"], L["The game won't say where you are"], "/farm arrow check", "muted"
     end
     if mode == "nowhere" then
-        return "No places known", "Farm it once and it learns", "", "muted"
+        return L["No places known"], L["Farm it once and it learns"], "", "muted"
     end
     return state.distance or "", state.place or "", state.note or "", state.noteColor or "muted"
 end
@@ -352,7 +353,8 @@ function ArrowUI:Draw(force)
     -- The plate carries a goal or nothing: never a name for the dial.
     local title = goal and ("%s  %d / %d"):format(goal.item, goal.have or 0, goal.target or 0) or ""
     -- A grinding camp has no count: its place is the plate.
-    if goal and goal.grind then title = "Grind: " .. goal.item end
+    if goal and goal.grind then title = L.Format("Grind: %s", goal.item) end
+
     self.plate:SetShown(title ~= "")
     local distance, place, note, noteColor = ArrowUI.Words(state)
 

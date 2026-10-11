@@ -26,6 +26,7 @@
 -- spot (Data/Database.lua). Their levels are often wrong on Forever.
 
 local _, ns = ...
+local L = ns.L
 
 local Grinding = ns.NewModule("Grinding")
 
@@ -49,8 +50,8 @@ Grinding.OTHER = "Other"
 
 -- What a mob gives, as facts in the data.
 Grinding.GIVES = {
-    { key = "cloth", label = "Cloth" },
-    { key = "skinning", label = "Skinning" },
+    { key = "cloth", label = L["Cloth"] },
+    { key = "skinning", label = L["Skinning"] },
 }
 
 -- Sources whose `name` is a creature.
@@ -72,6 +73,20 @@ Grinding.TYPE_IDS = {
 }
 local ENGLISH_TYPE = {}
 for _, kind in pairs(Grinding.TYPE_IDS) do ENGLISH_TYPE[kind] = true end
+
+-- The words players see for each type (and Other), in the game's own
+-- German where there is a translation. The types themselves stay English.
+local TYPE_LABELS = {
+    Beast = L["Beast"], Dragonkin = L["Dragonkin"], Demon = L["Demon"],
+    Elemental = L["Elemental"], Giant = L["Giant"], Undead = L["Undead"],
+    Humanoid = L["Humanoid"], Critter = L["Critter"], Mechanical = L["Mechanical"],
+    Other = L["Other"],
+}
+
+--- A type (English, as kept) in the words players read.
+function Grinding.TypeLabel(kind)
+    return TYPE_LABELS[kind] or kind
+end
 
 -- [the client's name] = English, read once the client names every ID.
 local clientTypes
@@ -257,11 +272,11 @@ end
 
 --- The orders the camps can be listed in (the Sort menu).
 Grinding.SORTS = {
-    { key = "busiest", label = "Busiest", tip = "Camps with the most mobs first." },
-    { key = "nearest", label = "Nearest", tip = "Camps closest to you first." },
-    { key = "level", label = "Level", tip = "The lowest level camps first." },
-    { key = "levelnear", label = "Level, then nearest",
-      tip = "The lowest level camps first; camps of the same level, the nearest first." },
+    { key = "busiest", label = L["Busiest"], tip = L["Camps with the most mobs first."] },
+    { key = "nearest", label = L["Nearest"], tip = L["Camps closest to you first."] },
+    { key = "level", label = L["Level"], tip = L["The lowest level camps first."] },
+    { key = "levelnear", label = L["Level, then nearest"],
+      tip = L["The lowest level camps first; camps of the same level, the nearest first."] },
 }
 
 local function KnownSort(key)
@@ -561,9 +576,9 @@ function Grinding:Camps(filter)
             if camp.location then
                 camp.label = camp.location
             elseif camp.coords then
-                camp.label = ("around %.0f, %.0f"):format(camp.coords[1], camp.coords[2])
+                camp.label = L.Format("around %.0f, %.0f", camp.coords[1], camp.coords[2])
             else
-                camp.label = "around the zone"
+                camp.label = L["around the zone"]
             end
 
             if ns.Spots.ZoneOf(camp.zone) and player.zone then
@@ -598,7 +613,7 @@ end
 --- One camp as a chat line: "The Barrens, The Dry Hills (14-18): 4 mobs".
 function Grinding:Line(camp)
     local text = ("%s, %s (%s): %s"):format(Util.Colored("accent", camp.zone), camp.label,
-        ns.Search:LevelText(camp), Util.Plural(camp.count, "mob"))
+        ns.Search:LevelText(camp), Util.Plural(camp.count, L["mob"], L["mobs"]))
     local distance = ns.Spots.DistanceText(camp.hops, camp.zone, camp.travel)
     if distance ~= "" then text = text .. ", " .. distance end
     return text
@@ -628,10 +643,10 @@ function Grinding:Command(rest)
         if key == "level" and (words[#words] == "nearest" or words[#words] == "near") then key = "levelnear" end
         if key then
             self:SetSort(key)
-            ns.Print(("grinding camps sorted by: %s."):format(Util.Colored("accent", Grinding.SortLabel(key))))
+            ns.Print(L.Format("grinding camps sorted by: %s.", Util.Colored("accent", Grinding.SortLabel(key))))
             Open()
         else
-            ns.Print("sort by busiest, nearest, level, or level nearest.")
+            ns.Print(L["sort by busiest, nearest, level, or level nearest."])
         end
         return
     end
@@ -640,8 +655,8 @@ function Grinding:Command(rest)
         if ns.GrindPins then
             local on = words[2] == "on" or (words[2] ~= "off" and not ns.GrindPins.IsOn())
             ns.GrindPins:SetOn(on)
-            ns.Print(("grinding camps on the world map: %s."):format(
-                Util.Colored("accent", on and "on" or "off")))
+            ns.Print(L.Format("grinding camps on the world map: %s.",
+                Util.Colored("accent", on and L["on"] or L["off"])))
         end
         return
     end
@@ -674,6 +689,7 @@ function Grinding:Command(rest)
     Open()
 end
 
-ns.RegisterCommand("grind", "where mobs of a level and type gather: /farm grind 15-20 humanoid", function(rest)
+ns.RegisterCommand("grind", L["where mobs of a level and type gather: /farm grind 15-20 humanoid"], function(rest)
+
     Grinding:Command(rest)
 end)

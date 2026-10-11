@@ -7,6 +7,7 @@
 -- (DB.hiddenVersion).
 
 local _, ns = ...
+local L = ns.L
 
 local HiddenUI = ns.NewModule("HiddenUI")
 
@@ -19,7 +20,7 @@ local HEIGHT = 380
 local PADDING = 14
 local ROW = 26
 
-local KIND_TAG = { item = "ITEM", source = "MOB / NODE" }
+local KIND_TAG = { item = L["ITEM"], source = L["MOB / NODE"] }
 
 function HiddenUI:Build()
     if self.frame then return self.frame end
@@ -39,7 +40,7 @@ function HiddenUI:Build()
     local trim
     if ns.Titanforged then
         trim = ns.Titanforged:Dress(frame, {
-            title = "Hidden",
+            title = L["Hidden"],
             close = function() HiddenUI:Hide() end,
         })
         local left, right, top, bottom = ns.Titanforged.Reach(trim)
@@ -72,8 +73,7 @@ function HiddenUI:Build()
     hint:SetPoint("TOPLEFT", PADDING, -38)
     hint:SetPoint("TOPRIGHT", -PADDING, -38)
     hint:SetWordWrap(true)
-    hint:SetText("Mobs, nodes and items you hid are left out of the search, Rankings, "
-        .. "Grind and the kills panel. Nothing you recorded is lost.")
+    hint:SetText(L["Mobs, nodes and items you hid are left out of the search, Rankings, Grind and the kills panel. Nothing you recorded is lost."])
 
     local panel = Theme.CreatePanel(frame, "panel", "border")
     panel:SetPoint("TOPLEFT", PADDING, -84)
@@ -94,8 +94,7 @@ function HiddenUI:Build()
     empty:SetPoint("TOPLEFT", 12, -24)
     empty:SetPoint("TOPRIGHT", -12, -24)
     empty:SetWordWrap(true)
-    empty:SetText("Nothing hidden. Right-click a mob or an item in the search, "
-        .. "Rankings, Grind or the kills panel to hide it, or type /farm hide and its name.")
+    empty:SetText(L["Nothing hidden. Right-click a mob or an item in the search, Rankings, Grind or the kills panel to hide it, or type /farm hide and its name."])
     self.empty = empty
 
     return frame
@@ -111,7 +110,7 @@ function HiddenUI:CreateRow(row)
     row.name:SetPoint("RIGHT", row, "RIGHT", -104, 0)
     row.name:SetWordWrap(true)
 
-    row.show = Widgets.CreateButton(row, "Show again", function()
+    row.show = Widgets.CreateButton(row, L["Show again"], function()
         if row.data then HiddenUI:ShowAgain(row.data) end
     end, { width = 96, height = 20 })
     row.show:SetPoint("RIGHT", -4, 0)
@@ -126,7 +125,7 @@ end
 function HiddenUI:ShowAgain(data)
     local name = ns.DB:Unhide(data.kind, data.name)
     if name then
-        ns.Print(("%s is shown again."):format(Util.Colored("accent", name)))
+        ns.Print(L.Format("%s is shown again.", Util.Colored("accent", name)))
     end
 end
 
@@ -177,7 +176,7 @@ local function Parse(rest)
     return ns.DB:GetItem(text) and "item" or "source", text
 end
 
-ns.RegisterCommand("hide", "hide a mob, node or item from the lists: /farm hide <name>, or alone to see what is hidden", function(rest)
+ns.RegisterCommand("hide", L["hide a mob, node or item from the lists: /farm hide <name>, or alone to see what is hidden"], function(rest)
     local kind, name = Parse(rest)
     if not kind then
         HiddenUI:Toggle()
@@ -185,11 +184,11 @@ ns.RegisterCommand("hide", "hide a mob, node or item from the lists: /farm hide 
     end
     local kept = ns.DB:Hide(kind, name)
     if kept then
-        ns.Print(("hid %s. /farm unhide %s shows it again."):format(Util.Colored("accent", kept), kept))
+        ns.Print(L.Format("hid %s. /farm unhide %s shows it again.", Util.Colored("accent", kept), kept))
     end
 end)
 
-ns.RegisterCommand("unhide", "show a hidden mob, node or item again: /farm unhide <name>", function(rest)
+ns.RegisterCommand("unhide", L["show a hidden mob, node or item again: /farm unhide <name>"], function(rest)
     local kind, name = Parse(rest)
     if not kind then
         HiddenUI:Show()
@@ -198,12 +197,12 @@ ns.RegisterCommand("unhide", "show a hidden mob, node or item again: /farm unhid
     local had = ns.DB:Unhide(kind, name)
         or ns.DB:Unhide(kind == "item" and "source" or "item", name)
     if had then
-        ns.Print(("%s is shown again."):format(Util.Colored("accent", had)))
+        ns.Print(L.Format("%s is shown again.", Util.Colored("accent", had)))
     else
-        ns.Print(("%s is not hidden. /farm hidden lists what is."):format(name))
+        ns.Print(L.Format("%s is not hidden. /farm hidden lists what is.", name))
     end
 end)
 
-ns.RegisterCommand("hidden", "list what you hid, each with Show again", function()
+ns.RegisterCommand("hidden", L["list what you hid, each with Show again"], function()
     HiddenUI:Toggle()
 end)

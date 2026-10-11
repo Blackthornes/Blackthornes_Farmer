@@ -40,6 +40,7 @@
 -- effect is playing, so an idle panel costs nothing per frame.
 
 local _, ns = ...
+local L = ns.L
 
 local TrackerFX = ns.NewModule("TrackerFX")
 
@@ -49,7 +50,7 @@ local Util = ns.Util
 local LEVELS = { "off", "subtle", "full" }
 TrackerFX.LEVELS = LEVELS
 
-local LEVEL_NAMES = { off = "Off", subtle = "Subtle", full = "Full" }
+local LEVEL_NAMES = { off = L["Off"], subtle = L["Subtle"], full = L["Full"] }
 TrackerFX.LEVEL_NAMES = LEVEL_NAMES
 
 -- How long each effect runs, in seconds, and how strong it starts.
@@ -89,7 +90,7 @@ local SHINE_WIDTH = 36
 local BRIGHT_GOLD = { 1, 0.906, 0.639 }   -- #FFE7A3
 
 -- What the banner says when its whole title will not fit a narrow panel.
-local SHORT_TITLE = "RATES UNLOCKED"
+local SHORT_TITLE = L["RATES UNLOCKED"]
 
 -- As rates unlock, the glow round the panel flares to this many times its
 -- resting brightness and settles back over this long.
@@ -100,7 +101,7 @@ local FLARE_TIME = 1.4
 local STREAK_CHEER = 5
 
 -- What a float says ahead of a drop's name, by quality.
-local CHEERS = { [2] = "Nice!", [3] = "Rare!", [4] = "Epic!", [5] = "Legendary!" }
+local CHEERS = { [2] = L["Nice!"], [3] = L["Rare!"], [4] = L["Epic!"], [5] = L["Legendary!"] }
 
 -- Two rare-drop sounds in a row would step on each other.
 local RARE_GAP = 1
@@ -597,7 +598,7 @@ function TrackerFX:Slide(row, key, from, to)
 end
 
 -- What a mark on the progress bar floats as it is passed.
-local MARK_CHEERS = { "25%!", "Halfway there!", "75%!" }
+local MARK_CHEERS = { "25%!", L["Halfway there!"], "75%!" }
 
 --- A band's progress bar went up: the goal bar's slide, lit gain and shine,
 --- a gold pulse at each mark, and the countdown floating in the last stretch.
@@ -655,11 +656,11 @@ function TrackerFX:Progress(row, line, was, level)
     if not (full and was) then return end
 
     if passed then
-        self:FloatText(Util.Colored("accent", MARK_CHEERS[line.milestone] or "Nice!"),
+        self:FloatText(Util.Colored("accent", MARK_CHEERS[line.milestone] or L["Nice!"]),
             row, 0.35, FLOAT_RARE_SIZE)
     elseif line.final then
         local left = (line.target or 0) - (line.have or 0)
-        self:FloatText(Util.Colored("good", ("%d more!"):format(left)), row, 0.35, 15)
+        self:FloatText(Util.Colored("good", L.Format("%d more!", left)), row, 0.35, 15)
     end
 end
 
@@ -708,7 +709,7 @@ function TrackerFX:LineGained(row, line, was, level)
         if level == "full" then
             self:Pop(row, key)
             if cheer then
-                self:FloatText(Util.Colored("accent", ("Streak x%d!"):format(line.count)),
+                self:FloatText(Util.Colored("accent", L.Format("Streak x%d!", line.count)),
                     row, 0, FLOAT_RARE_SIZE)
             end
         end
@@ -1130,7 +1131,7 @@ function TrackerFX:SetLevel(level)
     if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
 end
 
-ns.RegisterCommand("effects", "how much the panels and windows move: full, subtle or off", function(rest)
+ns.RegisterCommand("effects", L["how much the panels and windows move: full, subtle or off"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     if not LEVEL_NAMES[argument] then
@@ -1144,14 +1145,14 @@ ns.RegisterCommand("effects", "how much the panels and windows move: full, subtl
     TrackerFX:SetLevel(argument)
 
     local lines = {
-        full = "window effects: full. Windows fade up and glow, counts glow and loot floats off the kill panel.",
-        subtle = "window effects: subtle. Shorter fades, and nothing floats.",
-        off = "window effects off. Nothing moves. /farm effects full turns them back on.",
+        full = L["window effects: full. Windows fade up and glow, counts glow and loot floats off the kill panel."],
+        subtle = L["window effects: subtle. Shorter fades, and nothing floats."],
+        off = L["window effects off. Nothing moves. /farm effects full turns them back on."],
     }
     ns.Print(lines[argument])
 end)
 
-ns.RegisterCommand("raresound", "a sound when something green or better drops (on/off)", function(rest)
+ns.RegisterCommand("raresound", L["a sound when something green or better drops (on/off)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "on" then
@@ -1163,8 +1164,8 @@ ns.RegisterCommand("raresound", "a sound when something green or better drops (o
     end
 
     ns.Print(TrackerFX.RareSoundOn()
-        and "a sound plays when something green or better drops. /farm raresound off to stop."
-        or "no sound for rare drops. /farm raresound on to bring it back.")
+        and L["a sound plays when something green or better drops. /farm raresound off to stop."]
+        or L["no sound for rare drops. /farm raresound on to bring it back."])
 
     if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
 end)

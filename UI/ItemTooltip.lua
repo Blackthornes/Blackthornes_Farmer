@@ -16,6 +16,7 @@
 -- and only appended to.
 
 local _, ns = ...
+local L = ns.L
 
 local ItemTooltip = ns.NewModule("ItemTooltip")
 
@@ -159,7 +160,7 @@ function ItemTooltip:LineFor(item, player)
     local short = ns.Spots.SkillShortText and ns.Spots.SkillShortText(spot)
     if short then parts[#parts + 1] = short end
 
-    return Util.Colored("accent", "Farm: ") .. Util.Colored("text", table.concat(parts, ", "))
+    return Util.Colored("accent", L["Farm: "]) .. Util.Colored("text", table.concat(parts, ", "))
 end
 
 -- Answers already worked out: [item name] = { line, at, zone }.
@@ -290,10 +291,10 @@ end
 -- "Hide skinning" moved: the kept lines were worked out under the other one.
 ns.DB.hideWatchers.tooltip = function() ItemTooltip.ForgetKept() end
 
-ns.RegisterCommand("tooltip", "turn the farming line on material tooltips on or off", function()
+ns.RegisterCommand("tooltip", L["turn the farming line on material tooltips on or off"], function()
     ns.db.itemTooltip = not ItemTooltip:IsEnabled()
     ItemTooltip.ForgetKept()
-    ns.Print(("farming line on material tooltips %s."):format(
-        ItemTooltip:IsEnabled() and "on" or "off"))
+    ns.Print(ItemTooltip:IsEnabled() and L["farming line on material tooltips on."]
+        or L["farming line on material tooltips off."])
     if ns.SettingsUI then ns.SettingsUI:Refresh() end
 end)

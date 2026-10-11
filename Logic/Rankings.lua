@@ -17,6 +17,7 @@
 -- needs, since that is the way onto the board.
 
 local _, ns = ...
+local L = ns.L
 
 local Rankings = ns.NewModule("Rankings")
 
@@ -135,7 +136,7 @@ function Rankings:Build()
     return board
 end
 
-ns.RegisterCommand("rankings", "mobs ranked by what a kill is worth", function()
+ns.RegisterCommand("rankings", L["mobs ranked by what a kill is worth"], function()
     ns.UI:Show()
     ns.UI:ShowTab("rankings")
 end)

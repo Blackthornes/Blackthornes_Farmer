@@ -8,6 +8,7 @@
 -- if the mouse never comes onto it.
 
 local _, ns = ...
+local L = ns.L
 
 local HideMenu = ns.NewModule("HideMenu")
 
@@ -19,9 +20,6 @@ local ROW = 20
 local MOST = 3
 -- Seconds it waits for the mouse to come onto it.
 HideMenu.WAIT = 6
-
---- What a kind is called in a line: a mob or a node is a "source".
-local KIND_WORD = { item = "item", source = "mob or node" }
 
 function HideMenu:Build()
     if self.frame then return self.frame end
@@ -99,7 +97,7 @@ function HideMenu:Open(choices)
         local choice = kept[index]
         if choice then
             line.choice = choice
-            line.label:SetText("Hide " .. choice.name)
+            line.label:SetText(L.Format("Hide %s", choice.name))
             local w = Theme.TextWidth("tiny", line.label:GetText())
             local ok, drawn = pcall(line.label.GetStringWidth, line.label)
             if ok and type(drawn) == "number" and drawn > w then w = drawn end
@@ -149,6 +147,11 @@ function HideMenu:Pick(choice)
     if not choice then return end
     local name = ns.DB:Hide(choice.kind, choice.name)
     if not name then return end
-    ns.Print(("hid %s %s. /farm hidden lists what you hid, with Show again."):format(
-        KIND_WORD[choice.kind] or "", Util.Colored("accent", name)))
+    -- A mob or a node is a "source".
+    local shown = Util.Colored("accent", name)
+    if choice.kind == "item" then
+        ns.Print(L.Format("hid item %s. /farm hidden lists what you hid, with Show again.", shown))
+    else
+        ns.Print(L.Format("hid mob or node %s. /farm hidden lists what you hid, with Show again.", shown))
+    end
 end
