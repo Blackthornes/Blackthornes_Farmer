@@ -107,6 +107,12 @@ Toggle(controls.debug)
 suite.check("debug output", ns.db.debug == true)
 Toggle(controls.debug)
 
+suite.check("the sister addons box starts ticked", controls.sisters:GetChecked())
+Toggle(controls.sisters)
+suite.check("unticking it turns the note off", ns.db.sisterNote == false)
+Toggle(controls.sisters)
+suite.check("and ticking it turns it back on", ns.db.sisterNote == true)
+
 -- Recording.
 suite.check("recording starts on", ns.Harvest.enabled and controls.record:GetChecked())
 Toggle(controls.record)
@@ -245,7 +251,7 @@ end
 local covered = {
     settings = true, minimap = true, tracker = true, report = true, celebrate = true,
     announce = true, raresound = true, effects = true, markers = true, tooltip = true,
-    arrow = true, grind = true, export = true,
+    arrow = true, grind = true, export = true, sisters = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
 local missing = {}

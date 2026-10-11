@@ -894,6 +894,17 @@ function SettingsUI:BuildAdvancedPage()
     end, false)
     controls.debug:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Core/SisterNote.lua: one chat line, once, naming the Blackthornes
+    -- addons the player does not have. Off here is off in all of them.
+    local sistersRow = pages:Row("advanced", 1, "Sister addons",
+        "Once, a few seconds after login, says in chat which Blackthornes addons you don't have "
+        .. "and what each adds. Turning it off here turns it off in all of them. Same as /farm sisters.")
+
+    controls.sisters = Widgets.CreateCheckbox(sistersRow, "Mention them", function(checked)
+        ns.SisterNote:SetOn(checked)
+    end, true)
+    controls.sisters:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     local _, helpButton = CommandRow(pages, "advanced", 1, "Commands",
         "Lists every /farm command in chat. Same as /farm help.", "List them", "help")
     controls.help = helpButton
@@ -946,6 +957,7 @@ function SettingsUI:Refresh()
         button:SetLabelColor(button.percent == tallyPercent and "good" or nil)
     end
     controls.debug:SetChecked(db.debug == true)
+    controls.sisters:SetChecked(ns.SisterNote:IsOn())
     controls.share:SetChecked(db.shareData == true)
     controls.shareNames:SetText(db.shareNames or "")
     self.shareSummary:SetText(ns.Share:Describe())
