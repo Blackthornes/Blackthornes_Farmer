@@ -62,6 +62,40 @@ local unnamed = Harvest.records["Creature #99999|Ragefire Chasm|"]
 suite.check("an unnamed mob is still kept, by its ID", unnamed and unnamed.npc == 99999)
 suite.check("and is not exported", not Harvest:ExportItem("Gelatinous Goo"):find("Creature #", 1, true))
 
+-- No link, but Classic knows the ID.
+suite.check("Classic's dungeon names are shipped", ns.NPC_NAMES[11318] == "Ragefire Trogg")
+local TROGG = "Creature-0-4621-389-76516-11318-000CCB0C4B"
+Open({ { TROGG, 1 } }, { { name = "Heavy Shortbow", id = 3036 } })
+suite.check("Classic's name stands in when the game gives none",
+    Harvest.records["Ragefire Trogg|Ragefire Chasm|"] ~= nil)
+suite.check("and is not kept as the game's", ns.db.npcNames[11318] == nil)
+
+-- What was saved as "Creature #11318" before the names shipped.
+Harvest.records["Creature #11318|Ragefire Chasm|"] = {
+    mob = "Creature #11318", zone = "Ragefire Chasm", corpses = 3, npc = 11318,
+    items = { ["Heavy Shortbow"] = { name = "Heavy Shortbow", id = 3036, corpses = 1, count = 1 },
+              ["Feeble Shortbow"] = { name = "Feeble Shortbow", id = 2777, corpses = 1, count = 1 } },
+}
+ns.db.tracker = ns.db.tracker or {}
+ns.db.tracker.mobs = ns.db.tracker.mobs or {}
+ns.db.tracker.mobs["Creature #11318"] = { kills = 3, copper = 121, coinKills = 3,
+    items = { ["Heavy Shortbow"] = 1 }, places = { ["Ragefire Chasm"] = 3 } }
+ns.db.tracker.mobs["Ragefire Trogg"] = { kills = 1, copper = 10, coinKills = 1,
+    items = { ["Heavy Shortbow"] = 1 }, places = { ["Ragefire Chasm"] = 1 } }
+
+Harvest:NameUnnamed()
+local trogg = Harvest.records["Ragefire Trogg|Ragefire Chasm|"]
+suite.check("the old record takes its name", Harvest.records["Creature #11318|Ragefire Chasm|"] == nil)
+suite.check("adding its corpses to the named one", trogg.corpses == 4, trogg.corpses)
+suite.check("and its drops", trogg.items["Heavy Shortbow"].count == 2
+    and trogg.items["Feeble Shortbow"].count == 1, trogg.items["Heavy Shortbow"].count)
+local tally = ns.db.tracker.mobs["Ragefire Trogg"]
+suite.check("the kill tally is named too", ns.db.tracker.mobs["Creature #11318"] == nil)
+suite.check("with the kills added", tally.kills == 4 and tally.copper == 131, tally.kills)
+suite.check("and the drops", tally.items["Heavy Shortbow"] == 2 and tally.places["Ragefire Chasm"] == 4)
+suite.check("a mob still unnamed is left as it is",
+    Harvest.records["Creature #99999|Ragefire Chasm|"] ~= nil)
+
 -- A chest, or a window that names nobody, is still skipped.
 local before = Harvest:CountCorpses()
 Open({ { "GameObject-0-4621-389-76516-1234-0000CB0C4E", 1 } }, { { name = "Linen Cloth", id = 2589 } })

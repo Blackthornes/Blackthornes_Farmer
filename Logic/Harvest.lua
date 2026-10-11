@@ -331,23 +331,37 @@ function Harvest.NpcID(guid)
     return tonumber(id)
 end
 
---- What a mob ID is called. Asked of the game once, through the unit link
---- the guid makes, and kept account wide in npcNames; when the game will not
---- say, "Creature #11320", with the ID kept on the record so the name can be
---- put back later.
-function Harvest:NpcName(npcID, guid)
+--- What a mob ID is called, without asking the game: a name it gave before
+--- (npcNames, account wide), then Classic's (Data/NpcNames.lua). Nil when
+--- neither knows it.
+function Harvest.KnownNpcName(npcID)
     local db = ns.db
     local names = type(db) == "table" and db.npcNames or nil
     if type(names) == "table" and type(names[npcID]) == "string" then
         return names[npcID]
     end
+    local shipped = ns.NPC_NAMES
+    return type(shipped) == "table" and shipped[npcID] or nil
+end
+
+--- What a mob ID is called. The game's own answer, through the unit link
+--- the guid makes, is asked once and kept in npcNames, since Forever's
+--- names beat Classic's. Inside a dungeon the game gives none (Ragefire
+--- Chasm, 2026-10-10), so Classic's name stands in; a mob Forever added has
+--- none, and is "Creature #11320", with the ID kept on the record so the
+--- name can be put back once it is known (NameUnnamed).
+function Harvest:NpcName(npcID, guid)
+    local db = ns.db
+    local learned = type(db) == "table" and type(db.npcNames) == "table" and db.npcNames[npcID]
+    if type(learned) == "string" then return learned end
 
     local name = Harvest.NameFromLink(guid)
     if name and type(db) == "table" then
         if type(db.npcNames) ~= "table" then db.npcNames = {} end
         db.npcNames[npcID] = name
+        return name
     end
-    return name or ("Creature #%d"):format(npcID)
+    return Harvest.KnownNpcName(npcID) or ("Creature #%d"):format(npcID)
 end
 
 --- The name the game's tooltip gives for a creature guid's unit link, or nil.
@@ -637,6 +651,82 @@ end
 
 local function RecordKey(mob, zone, location)
     return ("%s|%s|%s"):format(mob, zone or "?", location or "")
+end
+
+-- Adds every number in `from` into `into`, table by table. A kill tally is
+-- numbers all the way down, so two tallies of one mob add up this way.
+local function AddCounts(into, from)
+    for key, value in pairs(from) do
+        if type(value) == "number" then
+            into[key] = (tonumber(into[key]) or 0) + value
+        elseif type(value) == "table" then
+            if type(into[key]) ~= "table" then into[key] = {} end
+            AddCounts(into[key], value)
+        elseif into[key] == nil then
+            into[key] = value
+        end
+    end
+end
+
+--- Puts names on what was kept as "Creature #ID" once the name is known,
+--- in the harvest and the kill tally both, adding it to a record of that
+--- name already there. Nothing is dropped: one still nameless stays.
+function Harvest:NameUnnamed()
+    local moves = {}
+    for key, record in pairs(self.records) do
+        if Harvest.Unnamed(record) then
+            local npcID = tonumber(record.npc) or tonumber(record.mob:match("%d+"))
+            local name = npcID and Harvest.KnownNpcName(npcID)
+            if name then moves[#moves + 1] = { key = key, record = record, name = name } end
+        end
+    end
+
+    for _, move in ipairs(moves) do
+        local old = move.record
+        local key = RecordKey(move.name, old.zone, old.location)
+        local into = self.records[key]
+        self.records[move.key] = nil
+
+        if not into then
+            old.mob = move.name
+            self.records[key] = old
+        else
+            into.corpses = (into.corpses or 0) + (old.corpses or 0)
+            into.npc = into.npc or old.npc
+            into.coords = into.coords or old.coords
+            if old.minLevel then into.minLevel = math.min(into.minLevel or old.minLevel, old.minLevel) end
+            if old.maxLevel then into.maxLevel = math.max(into.maxLevel or old.maxLevel, old.maxLevel) end
+            for itemName, entry in pairs(old.items or {}) do
+                local have = into.items[itemName]
+                if have then
+                    have.corpses = (have.corpses or 0) + (entry.corpses or 0)
+                    have.count = (have.count or 0) + (entry.count or 0)
+                    have.id = have.id or entry.id
+                else
+                    into.items[itemName] = entry
+                end
+            end
+        end
+    end
+
+    local tracker = type(ns.db) == "table" and type(ns.db.tracker) == "table" and ns.db.tracker.mobs
+    if type(tracker) == "table" then
+        local renames = {}
+        for mob, tally in pairs(tracker) do
+            local npcID = type(mob) == "string" and tonumber(mob:match("^Creature #(%d+)$"))
+            local name = npcID and Harvest.KnownNpcName(npcID)
+            if name and type(tally) == "table" then renames[#renames + 1] = { mob = mob, name = name } end
+        end
+        for _, rename in ipairs(renames) do
+            local tally = tracker[rename.mob]
+            tracker[rename.mob] = nil
+            if type(tracker[rename.name]) == "table" then
+                AddCounts(tracker[rename.name], tally)
+            else
+                tracker[rename.name] = tally
+            end
+        end
+    end
 end
 
 function Harvest:GetRecord(mob, level, zone, location)
@@ -1265,6 +1355,9 @@ function Harvest:Restore()
     self:PruneMoney()
 
     self.carriedOver = self:ApplyCarryover()
+
+    -- Dungeon mobs kept as "Creature #ID" get their names where now known.
+    self:NameUnnamed()
 
     -- Left behind by the version that worked around the client bug. Nothing
     -- reads it any more.
