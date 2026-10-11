@@ -287,6 +287,26 @@ end
 -- client will not give one) and the unit token the corpse is ("target",
 -- "mouseover", "softinteract"; nil when it was only known by its guid).
 function Harvest:Corpse()
+    -- Every reader asks this several times a window (once a slot, and
+    -- again per check), and inside a dungeon each answer builds a tooltip
+    -- for the mob's name, so one window's answer serves the rest of it.
+    local reading = self.lootReading
+    if reading and reading.corpse then
+        local kept = reading.corpse
+        return kept[1], kept[2], kept[3], kept[4]
+    end
+
+    local name, level, guid, unit = self:FindCorpse()
+    if reading then reading.corpse = { name, level, guid, unit } end
+    return name, level, guid, unit
+end
+
+function Harvest:FindCorpse()
+    -- A rogue's Pick Pocket opens a loot window on a mob still alive. It is
+    -- no kill, and taking it for one put pocket loot in the drop rates and
+    -- left the real kill's coin uncounted (its corpse was "already opened").
+    if self:PickingPockets() then return nil end
+
     local name, level, guid = self:UnitCorpse("target")
     if name and self:LootIsFrom(guid) then return name, level, guid, "target" end
 
@@ -305,7 +325,7 @@ function Harvest:Corpse()
 
     for _, source in ipairs(sources) do
         local known = self:KnownUnit(source)
-        if known then return known.name, known.level, source end
+        if known and not self:StillAlive(source) then return known.name, known.level, source end
     end
 
     -- Inside a dungeon the corpse's own name and guid are hidden, but the
@@ -316,10 +336,74 @@ function Harvest:Corpse()
     -- SlotIsTargets, as with a target.
     for _, source in ipairs(sources) do
         local npcID = Harvest.NpcID(source)
-        if npcID then return self:NpcName(npcID, source), nil, source end
+        if npcID and not self:StillAlive(source) then return self:NpcName(npcID, source), nil, source end
     end
 
     return nil
+end
+
+-- Units a living mob the loot window names could be: one picked from by
+-- Pick Pocket is targeted, or under the mouse or the interact key.
+Harvest.LIVING_UNITS = { "target", "mouseover", "softinteract", "softenemy" }
+
+--- Is `guid` a mob the client shows alive right now? Only a plain answer
+--- counts: a guid or a death it will not let be read says nothing.
+function Harvest:StillAlive(guid)
+    if type(guid) ~= "string" or not UnitGUID or not UnitIsDead then return false end
+    for _, unit in ipairs(Harvest.LIVING_UNITS) do
+        local gotGuid, unitGuid = pcall(UnitGUID, unit)
+        if gotGuid and Readable(unitGuid) == guid then
+            local gotDead, dead = pcall(UnitIsDead, unit)
+            local readable, living = pcall(function() return gotDead and (dead == false or dead == nil) end)
+            if readable and living == true then return true end
+        end
+    end
+    return false
+end
+
+-- Pick Pocket, by id and by name for a client whose ids differ, and how
+-- long after the cast its loot window counts as the pocket's.
+Harvest.PICK_POCKET_ID = 921
+local PICK_POCKET_SECONDS = 2
+
+local function SpellName(spellID)
+    if type(C_Spell) == "table" and type(C_Spell.GetSpellName) == "function" then
+        local ok, name = pcall(C_Spell.GetSpellName, spellID)
+        local text = ok and Readable(name) or nil
+        if text then return text end
+    end
+    if type(GetSpellInfo) == "function" then
+        local ok, name = pcall(GetSpellInfo, spellID)
+        return ok and Readable(name) or nil
+    end
+    return nil
+end
+
+local function Now()
+    if type(GetTime) ~= "function" then return nil end
+    local ok, now = pcall(GetTime)
+    return ok and ReadableNumber(now) or nil
+end
+
+--- Is `spellID` Pick Pocket?
+function Harvest.IsPickPocket(spellID)
+    local id = ReadableNumber(spellID)
+    if not id then return false end
+    if id == Harvest.PICK_POCKET_ID then return true end
+    local name = SpellName(id)
+    return name ~= nil and name == SpellName(Harvest.PICK_POCKET_ID)
+end
+
+--- One of the player's casts was sent or went through.
+function Harvest:OnPlayerCast(unit, spellID)
+    if Readable(unit) ~= "player" or not Harvest.IsPickPocket(spellID) then return end
+    self.pickedPocketAt = Now()
+end
+
+--- Did the loot window just open come from your own Pick Pocket?
+function Harvest:PickingPockets()
+    local at, now = self.pickedPocketAt, Now()
+    return at ~= nil and now ~= nil and now - at >= 0 and now - at <= PICK_POCKET_SECONDS
 end
 
 --- The mob ID in a creature's guid ("Creature-0-4621-389-76516-11320-..."
@@ -1419,6 +1503,14 @@ function Harvest:OnEnable()
         Harvest:NotePicked()
     end)
     ns.RegisterEvent(self, "UPDATE_MOUSEOVER_UNIT", function() Harvest:NoteUnit("mouseover") end)
+    -- Pick Pocket's window is a living mob's, never a kill: SENT where the
+    -- client says it first, SUCCEEDED where it does not.
+    ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_SENT", function(_, _, unit, _, _, spellID)
+        Harvest:OnPlayerCast(unit, spellID)
+    end)
+    ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_SUCCEEDED", function(_, _, unit, _, spellID)
+        Harvest:OnPlayerCast(unit, spellID)
+    end)
     ns.RegisterEvent(self, "PLAYER_SOFT_ENEMY_CHANGED", function() Harvest:NoteUnit("softenemy") end)
     ns.RegisterEvent(self, "PLAYER_SOFT_INTERACT_CHANGED", function() Harvest:NoteUnit("softinteract") end)
     ns.RegisterEvent(self, "NAME_PLATE_UNIT_ADDED", function(_, _, unit)

@@ -592,14 +592,47 @@ function Goals:OnEnable()
 
     for _, window in ipairs(AWAY) do
         ns.RegisterEvent(self, window.open, function() Goals.away[window.kind] = true end)
-        ns.RegisterEvent(self, window.close, function()
-            Goals.away[window.kind] = nil
-            Goals.awayUntil = Now() + AWAY_GRACE
-            -- Whatever moved while it was open is already counted; read the
-            -- bags once more so the next loot is measured from here.
-            Goals:Update(true)
-        end)
+        ns.RegisterEvent(self, window.close, function() Goals:WindowClosed(window.kind) end)
     end
+
+    -- Walking away ends the game's interaction too; heard as well, since a
+    -- client that said that and not MAIL_CLOSED (Butler found one,
+    -- 2026-10-11) left the goals counting nothing gathered until /reload.
+    ns.RegisterEvent(self, "PLAYER_INTERACTION_MANAGER_FRAME_HIDE", function(_, _, kind)
+        local away = Goals.InteractionKind(kind)
+        if away and Goals.away[away] then Goals:WindowClosed(away) end
+    end)
+end
+
+--- One of the AWAY windows closed.
+function Goals:WindowClosed(kind)
+    self.away[kind] = nil
+    self.awayUntil = Now() + AWAY_GRACE
+    -- Whatever moved while it was open is already counted; read the
+    -- bags once more so the next loot is measured from here.
+    self:Update(true)
+end
+
+-- The game's interaction types for the AWAY windows that have one, with
+-- the numbers retail gives them for a client without the Enum.
+local INTERACTIONS = {
+    { name = "TradePartner", number = 1, kind = "trade" },
+    { name = "Merchant", number = 5, kind = "vendor" },
+    { name = "Banker", number = 8, kind = "bank" },
+    { name = "MailInfo", number = 17, kind = "mail" },
+    { name = "Auctioneer", number = 21, kind = "auction" },
+}
+
+--- The AWAY kind for one of the game's interaction types, else nil.
+function Goals.InteractionKind(kind)
+    if type(kind) ~= "number" then return nil end
+    local enum = rawget(_G, "Enum")
+    local types = type(enum) == "table" and rawget(enum, "PlayerInteractionType") or nil
+    for _, entry in ipairs(INTERACTIONS) do
+        local number = type(types) == "table" and rawget(types, entry.name) or entry.number
+        if kind == number then return entry.kind end
+    end
+    return nil
 end
 
 --------------------------------------------------------------------------------

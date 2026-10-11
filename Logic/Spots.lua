@@ -254,6 +254,10 @@ function Spots:Candidates(itemName)
                 kind = "mob",
                 zone = record.zone,
                 location = record.location,
+                -- Where you stood at its first corpse, in percent, the
+                -- same as the database's: the arrow and the map pin use it.
+                coords = type(record.coords) == "table" and tonumber(record.coords[1])
+                    and tonumber(record.coords[2]) and record.coords or nil,
                 minLevel = record.minLevel,
                 maxLevel = record.maxLevel,
                 yours = { kills = record.corpses, got = row.entry.corpses },

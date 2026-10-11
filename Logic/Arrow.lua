@@ -508,7 +508,10 @@ function Arrow:Sources(item, player)
         for _, spot in ipairs(Gathering:Spots()) do
             if type(spot) == "table" and nodes[spot.node] and tonumber(spot.x) and tonumber(spot.y)
                 and spot.map then
-                mine[#mine + 1] = spot
+                -- A saved spot's place in the world never moves, so it is
+                -- read once here, not every Arrow.REFRESH for every spot.
+                local continent, north, west = Arrow.WorldPos(spot.map, tonumber(spot.x), tonumber(spot.y))
+                mine[#mine + 1] = { spot = spot, continent = continent, north = north, west = west }
             end
         end
     end
@@ -534,7 +537,8 @@ function Arrow:Targets(item, here)
 
     -- Your own spots.
     local own = {}
-    for _, spot in ipairs(mine) do
+    for _, kept in ipairs(mine) do
+        local spot = kept.spot
         local x, y = tonumber(spot.x), tonumber(spot.y)
         local target = {
             name = spot.node, kind = spot.kind or "node", map = spot.map, x = x, y = y,
@@ -543,7 +547,14 @@ function Arrow:Targets(item, here)
         }
         local last = target.last
         target.resting = last and now - last < RESTING and now - last >= 0 or nil
-        local north, west = Arrow.Offset(here, spot.map, x, y)
+        local north, west
+        if kept.continent and here and here.continent then
+            if kept.continent == here.continent then
+                north, west = kept.north - here.north, kept.west - here.west
+            end
+        else
+            north, west = Arrow.Offset(here, spot.map, x, y)
+        end
         if north then
             target.yards, target.bearing = Arrow.Measure(north, west)
             exact[#exact + 1] = target

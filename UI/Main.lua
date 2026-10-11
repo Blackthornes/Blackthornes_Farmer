@@ -364,9 +364,10 @@ function UI:BuildBody()
     self.list = list
 
     -- The installed version, small and faint in the bottom right corner, so
-    -- a player can see at a glance which one they run. The footers on both
-    -- tabs stop short of it.
-    local version = Theme.CreateLabel(frame, "tiny", "dim", "RIGHT")
+    -- a player can see at a glance which one they run. The footers on every
+    -- tab stop short of it. On the window itself, not the Search tab's
+    -- view, or the other tabs hid it with the search.
+    local version = Theme.CreateLabel(self.frame, "tiny", "dim", "RIGHT")
     version:SetPoint("BOTTOMRIGHT", -PADDING, 6)
     version:SetHeight(26)
     version:SetJustifyV("MIDDLE")
@@ -994,10 +995,14 @@ end
 
 function UI:Search(query, typed)
     self:Build()
+    -- This draws the list itself below, so opening the window or the tab
+    -- on the way does not draw it first (twice, on the first open).
+    self.searching = true
     self:Show()
 
     -- A search from chat is an answer wanted now, whichever tab was open.
     if self.tab ~= "search" then self:ShowTab("search") end
+    self.searching = nil
 
     query = Util.Trim(query or "")
 
@@ -1023,6 +1028,8 @@ end
 
 function UI:Render()
     local query = self.lastQuery or ""
+    -- Drawn now, so whatever went stale out of sight is caught up.
+    self.searchStale = nil
 
     if query == "" then
         self.list:SetData({})
@@ -1206,6 +1213,7 @@ end
 function UI:DrawUnsearched()
     -- Also redrawn when a goal's count moved while it was out of sight
     -- (GoalsUI:RedrawSearch), so its Goal buttons read right.
+    if self.searching then return end
     if self.lastQuery == nil or self.searchStale then
         self.searchStale = nil
         self:Render()
@@ -1279,7 +1287,11 @@ function UI:Toggle()
         return
     end
 
+    -- Whichever tab it opens on is drawn just below, so Show does not
+    -- draw the search first.
+    self.searching = true
     self:Show()
+    self.searching = nil
 
     if ns.db and (ns.db.lastTab == "rankings" or ns.db.lastTab == "grind") then
         self:ShowTab(ns.db.lastTab)

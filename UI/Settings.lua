@@ -792,8 +792,10 @@ function SettingsUI:BuildMapPage()
     end, false)
     controls.arrow:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Through the command, so the result is kept for "read the probe"
+    -- (ns.KeepCheck), as the typed `/farm arrow check` keeps it.
     local check = Widgets.CreateButton(arrowRow, "Check", function()
-        ns.Arrow:Check()
+        ns.HandleSlash("arrow check")
     end, { width = 60, height = 20 })
     check:SetPoint("TOPRIGHT", arrowRow, "TOPRIGHT", 0, 0)
     controls.arrowCheck = check

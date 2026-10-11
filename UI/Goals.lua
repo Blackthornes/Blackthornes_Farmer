@@ -547,6 +547,15 @@ local function SpotText(goal)
     return text
 end
 
+--- The largest label size a goal's name fits in `room` at: "normal",
+--- "small" or "tiny" (where a name still too long wraps).
+function GoalsUI.NameSize(name, room)
+    for _, size in ipairs({ "normal", "small" }) do
+        if Theme.TextWidth(size, name) <= room then return size end
+    end
+    return "tiny"
+end
+
 function GoalsUI:DrawCard(card, goal)
     local Goals = ns.Goals
     card.goal = goal
@@ -562,13 +571,15 @@ function GoalsUI:DrawCard(card, goal)
     local tagText = goal.done and "DONE"
         or ((goal.milestone or 0) > 0 and Goals.MILESTONES[goal.milestone].tag) or nil
     if tagText then maxName = maxName - Theme.TextWidth("tiny", tagText) - 16 end
+    -- Past the panel's widest, a long name steps down a size or two, and
+    -- at the smallest wraps onto a second line: never cut to "...".
     local name = goal.item
-    if Theme.TextWidth("normal", name) > maxName then
-        while #name > 4 and Theme.TextWidth("normal", name .. "...") > maxName do
-            name = name:sub(1, -2)
-        end
-        name = name .. "..."
-    end
+    local size = GoalsUI.NameSize(name, maxName)
+    pcall(card.name.SetFont, card.name, Theme.FONT, Theme.sizes[size], "")
+    local wraps = Theme.TextWidth(size, name) > maxName
+    card.name:SetWidth(wraps and math.max(1, maxName) or 0)
+    card.name:SetWordWrap(wraps)
+    if card.name.SetMaxLines then pcall(card.name.SetMaxLines, card.name, wraps and 2 or 0) end
     card.name:SetText(name)
     if type(look.color) == "string" and #look.color == 8 and look.color ~= "ffffffff" then
         card.name:SetText(("|c%s%s|r"):format(look.color, name))
