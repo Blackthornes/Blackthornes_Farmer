@@ -154,6 +154,7 @@ function env.InstallClient()
     _G.C_ChatInfo = nil
     _G.geterrorhandler = function() return function(err) error(err, 0) end end
     _G.BlackthornesFarmerDB = nil
+    _G.BlackthornesSisterNote = nil
 
     -- Theme asks for the default font through pcall and falls back on its own,
     -- so leaving GameFontNormal absent exercises that path.
@@ -300,6 +301,7 @@ end
 local FILES = {
     "Core/Init.lua",
     "Core/Util.lua",
+    "Core/SisterNote.lua",
     "Core/Serialize.lua",
     "Core/Comm.lua",
     "Data/Database.lua",
