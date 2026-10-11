@@ -191,9 +191,24 @@ skin opens a loot window and recorded loot has the leather as a drop. The
 search, `DB:ByName` (Rankings, worth estimates), `Value:FromTally`,
 `Tracker:Summary` (panel, loot table), the Grind tab and the tooltip line
 follow it; recorded data is never changed, and goals and their arrow still
-follow a goal for leather. `DB:SetShowSkinning` moves `DB.skinningVersion`
-and calls `DB.skinningWatchers`, so only the lists that show it redraw.
+follow a goal for leather. `DB:SetShowSkinning` moves `DB.hiddenVersion`
+and calls `DB.hideWatchers`, so only the lists that show it redraw.
 Tested in `tools/test_showskinning.lua`.
+
+The hide list (the owner asked the same day for a blacklist): a mob, node
+or item the player never wants to see, kept account wide in `hiddenItems`
+and `hiddenSources` (`[lower case name] = name`; never rename either; an
+item is keyed by the data's English name). `DB:Hide`, `DB:Unhide`,
+`DB:IsHiddenItem`, `DB:IsHiddenSource`; `DB:HidesItem` and
+`DB:HidesSource` answer for both rules, and the same `hiddenVersion` and
+watchers redraw. A right-click on a row in the search, Rankings, Grind,
+the loot table or the kills panel opens `UI/HideMenu.lua` ("Hide NAME",
+nothing hidden until a line is clicked); `UI/HiddenWindow.lua` (`/farm
+hidden`, Settings > Loot, `hiddenScale`) lists them with Show again;
+`/farm hide <name>` and `/farm unhide <name>`. Rankings, the panel's
+mobs (`Tracker:SessionMobs`) and the Loot tab (`TrackerUI:SessionItems`)
+leave hidden ones out; recorded data is never changed. Tested in
+`tools/test_hidelist.lua`.
 
 ## The settings pages (from Tradeskills)
 

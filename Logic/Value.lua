@@ -282,10 +282,10 @@ function Value:FromTally(mobName)
 
     details.coin = coin
 
-    -- Skinning left out ("Hide skinning") leaves its leather out of the worth.
-    local hides = not (ns.DB and ns.DB:ShowsSkinning())
+    -- Skinning left out ("Hide skinning") and items on the hide list
+    -- (DB:HidesItem) are left out of the worth.
     for name, corpses in pairs(type(mob.items) == "table" and mob.items or {}) do
-        if hides and ns.DB:HidesItem(name) then corpses = nil end
+        if ns.DB and ns.DB:HidesItem(name) then corpses = nil end
         local perCorpse = corpses and Tracker:StackSize(mobName, name)
         local unit, from
         if corpses then unit, from = self:UnitPrice(self:ItemID(name)) end

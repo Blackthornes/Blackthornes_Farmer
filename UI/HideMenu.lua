@@ -1,0 +1,148 @@
+-- Blackthornes Farmer -- UI/HideMenu.lua
+-- The small menu a right-click on a row opens: "Hide Mangy Wolf", "Hide
+-- Light Leather". The hide list itself is Data/Database.lua's (DB:Hide);
+-- this only asks which, at the mouse, and says in chat how to undo it.
+--
+-- It waits for a click and never hides anything by itself. It goes when one
+-- of its lines is clicked, when the mouse leaves it, or after a few seconds
+-- if the mouse never comes onto it.
+
+local _, ns = ...
+
+local HideMenu = ns.NewModule("HideMenu")
+
+local Theme = ns.Theme
+local Widgets = ns.Widgets
+local Util = ns.Util
+
+local ROW = 20
+local MOST = 3
+-- Seconds it waits for the mouse to come onto it.
+HideMenu.WAIT = 6
+
+--- What a kind is called in a line: a mob or a node is a "source".
+local KIND_WORD = { item = "item", source = "mob or node" }
+
+function HideMenu:Build()
+    if self.frame then return self.frame end
+
+    local menu = Theme.CreatePanel(UIParent, "panel", "metal")
+    pcall(menu.SetFrameStrata, menu, "FULLSCREEN_DIALOG")
+    pcall(menu.SetToplevel, menu, true)
+    pcall(menu.SetClampedToScreen, menu, true)
+    menu:EnableMouse(true)
+    menu:Hide()
+
+    menu.lines = {}
+    for index = 1, MOST do
+        local line = Widgets.CreateChip(menu, "", function(self)
+            HideMenu:Pick(self.choice)
+        end, { noUnderline = true })
+        line:SetPoint("TOPLEFT", 4, -4 - (index - 1) * ROW)
+        line:SetPoint("TOPRIGHT", -4, -4 - (index - 1) * ROW)
+        line:HookScript("OnEnter", function() HideMenu.entered = true end)
+        line:Hide()
+        menu.lines[index] = line
+    end
+
+    -- Leaving it closes it, once the mouse has been on it. A line takes the
+    -- mouse from the menu, so the check waits a moment for it to come back.
+    menu:SetScript("OnEnter", function() HideMenu.entered = true end)
+    menu:SetScript("OnLeave", function()
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0.3, function() HideMenu:CloseIfLeft() end)
+        end
+    end)
+    for _, line in ipairs(menu.lines) do
+        line:HookScript("OnLeave", function()
+            if C_Timer and C_Timer.After then
+                C_Timer.After(0.3, function() HideMenu:CloseIfLeft() end)
+            end
+        end)
+    end
+
+    self.frame = menu
+    return menu
+end
+
+--- Is the mouse over the menu or one of its lines?
+local function Over(frame)
+    local ok, over = pcall(frame.IsMouseOver, frame)
+    return ok and over == true
+end
+
+function HideMenu:CloseIfLeft()
+    local menu = self.frame
+    if not (menu and menu:IsShown()) then return end
+    if Over(menu) then return end
+    menu:Hide()
+end
+
+--- Open at the mouse with one line per `choices` entry: { kind = "item" or
+--- "source", name }. Choices without a name, or already hidden, are left
+--- out; with none left it does not open.
+function HideMenu:Open(choices)
+    local kept = {}
+    for _, choice in ipairs(choices or {}) do
+        local name = choice and choice.name
+        if type(name) == "string" and name ~= "" and #kept < MOST then
+            local hidden = choice.kind == "item" and ns.DB:IsHiddenItem(name)
+                or choice.kind ~= "item" and ns.DB:IsHiddenSource(name)
+            if not hidden then kept[#kept + 1] = choice end
+        end
+    end
+    if #kept == 0 then return false end
+
+    local menu = self:Build()
+    local width = 120
+    for index, line in ipairs(menu.lines) do
+        local choice = kept[index]
+        if choice then
+            line.choice = choice
+            line.label:SetText("Hide " .. choice.name)
+            local w = Theme.TextWidth("tiny", line.label:GetText())
+            local ok, drawn = pcall(line.label.GetStringWidth, line.label)
+            if ok and type(drawn) == "number" and drawn > w then w = drawn end
+            width = math.max(width, math.ceil(w) + 24)
+            line:Show()
+        else
+            line.choice = nil
+            line:Hide()
+        end
+    end
+    menu:SetWidth(width + 8)
+    menu:SetHeight(8 + #kept * ROW - 2)
+
+    -- At the mouse, its top left corner just under it.
+    menu:ClearAllPoints()
+    local x, y = GetCursorPosition and GetCursorPosition()
+    local scale = UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
+    if type(x) == "number" and type(y) == "number" and type(scale) == "number" and scale > 0 then
+        menu:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x / scale - 6, y / scale + 6)
+    else
+        menu:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    end
+
+    self.entered = false
+    self.opened = (self.opened or 0) + 1
+    local opened = self.opened
+    menu:Show()
+
+    -- Never come onto: it goes by itself.
+    if C_Timer and C_Timer.After then
+        C_Timer.After(HideMenu.WAIT, function()
+            if HideMenu.opened == opened and not HideMenu.entered then menu:Hide() end
+        end)
+    end
+    return true
+end
+
+--- A line was clicked: hide it, and say how to bring it back.
+function HideMenu:Pick(choice)
+    if self.frame then self.frame:Hide() end
+    if not choice then return end
+    local name = ns.DB:Hide(choice.kind, choice.name)
+    if not name then return end
+    ns.Print(("hid %s %s. /farm hidden lists what you hid, with Show again."):format(
+        KIND_WORD[choice.kind] or "", Util.Colored("accent", name)))
+end

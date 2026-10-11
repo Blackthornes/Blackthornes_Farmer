@@ -315,7 +315,7 @@ end
 local function Stamp()
     return ("%d:%d:%d:%d"):format(ns.DB:CountSources(),
         ns.Harvest and ns.Harvest:CountCorpses() or 0, Grinding.typesVersion or 0,
-        ns.DB.skinningVersion or 0)
+        ns.DB.hiddenVersion or 0)
 end
 
 --- Every mob spot known, one per mob, zone and place in the zone:
@@ -367,7 +367,8 @@ function Grinding:Mobs()
         local itemHidden = ns.DB:HidesItem(item)
         for _, source in ipairs(item.sources or {}) do
             if CREATURE_KINDS[source.kind or "mob"] and type(source.name) == "string"
-                and type(source.zone) == "string" and (skinning or source.kind ~= "skinning") then
+                and type(source.zone) == "string" and (skinning or source.kind ~= "skinning")
+                and not ns.DB:IsHiddenSource(source.name) then
                 local mob = Spot(source.name, source.zone, source.location)
                 Note(mob, source.provenance == "forever", source.minLevel, source.maxLevel, source.coords)
                 if source.kind == "skinning" then mob.skinning = true end
@@ -382,7 +383,8 @@ function Grinding:Mobs()
     -- Mobs you looted yourself, whatever they dropped.
     local records = ns.Harvest and ns.Harvest.records or {}
     for _, record in pairs(records) do
-        if type(record) == "table" and type(record.mob) == "string" and type(record.zone) == "string" then
+        if type(record) == "table" and type(record.mob) == "string" and type(record.zone) == "string"
+            and not ns.DB:IsHiddenSource(record.mob) then
             local mob = Spot(record.mob, record.zone, record.location)
             Note(mob, true, tonumber(record.minLevel), tonumber(record.maxLevel), record.coords)
             mob.corpses = (mob.corpses or 0) + (tonumber(record.corpses) or 0)

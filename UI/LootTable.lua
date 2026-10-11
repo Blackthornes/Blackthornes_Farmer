@@ -478,6 +478,12 @@ function LootTableUI:Build()
         -- scroll or new loot puts another item under a still mouse.
         onEnter = ShowItemTooltip,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
+        -- Right-click offers to hide the item (HideMenu).
+        onClick = function(data, button)
+            if button == "RightButton" and data and data.name then
+                ns.HideMenu:Open({ { kind = "item", name = data.name } })
+            end
+        end,
         fadeKey = "window",
     })
     list:SetPoint("BOTTOMRIGHT", -PADDING, BOTTOM)

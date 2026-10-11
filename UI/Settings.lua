@@ -742,6 +742,13 @@ function SettingsUI:BuildLootPage()
         ns.DB:SetShowSkinning(not checked)
     end, true)
     controls.hideSkinning:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The hide list (the owner asked 2026-10-11 for a blacklist).
+    local _, hiddenButton = CommandRow(pages, "loot", 2, "Hidden",
+        "Mobs, nodes and items you hid. Right-click one in the search, Rankings, "
+        .. "Grind or the kills panel to hide it; the list shows each with Show again. "
+        .. "Same as /farm hidden, /farm hide and /farm unhide.", "Show list", "hidden")
+    controls.hidden = hiddenButton
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.

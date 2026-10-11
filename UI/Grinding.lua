@@ -237,7 +237,7 @@ function GrindingUI:Build(frame)
         rowHeight = ROW_HEIGHT,
         createRow = function(row) GrindingUI:CreateRow(row) end,
         updateRow = function(row, data) GrindingUI:UpdateRow(row, data) end,
-        onClick = function(data) GrindingUI:OnRowClick(data) end,
+        onClick = function(data, button) GrindingUI:OnRowClick(data, button) end,
         onEnter = function(row, data) GrindingUI:ShowRowTooltip(row, data) end,
         onLeave = HideTip,
         fadeKey = "well",
@@ -597,7 +597,15 @@ function GrindingUI:ShowRowTooltip(row, data)
 end
 
 --- A camp points the arrow there; a mob opens its loot table, or says why not.
-function GrindingUI:OnRowClick(data)
+function GrindingUI:OnRowClick(data, button)
+    -- Right-click on a mob offers to hide it (HideMenu).
+    if button == "RightButton" then
+        if data.type == "mob" then
+            ns.HideMenu:Open({ { kind = "source", name = data.mob.name } })
+        end
+        return
+    end
+
     if data.type == "camp" then
         local camp = data.camp
         ns.Arrow:Grind(camp)
@@ -786,7 +794,7 @@ function GrindingUI:SkinningChanged()
     self:Refresh()
 end
 
-ns.DB.skinningWatchers.grind = function() GrindingUI:SkinningChanged() end
+ns.DB.hideWatchers.grind = function() GrindingUI:SkinningChanged() end
 
 --- Redraw if the tab is on screen.
 function GrindingUI:Refresh()

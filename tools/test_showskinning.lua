@@ -80,7 +80,7 @@ suite.check("and its worth counts it", before and before > 0, before)
 --------------------------------------------------------------------------------
 
 local redrawn = 0
-DB.skinningWatchers.test = function() redrawn = redrawn + 1 end
+DB.hideWatchers.test = function() redrawn = redrawn + 1 end
 
 ns.HandleSlash("skinning")
 suite.check("/farm skinning leaves it out", not DB:ShowsSkinning())
@@ -168,7 +168,7 @@ suite.check("/farm skinning on", DB:ShowsSkinning())
 ns.UI:Show()
 ns.UI:Search("leather")
 ns.UI.filterKind = "skinning"
-for name, redraw in pairs(DB.skinningWatchers) do
+for name, redraw in pairs(DB.hideWatchers) do
     local ok, err = pcall(redraw)
     suite.check("the " .. name .. " redraw runs", ok, err)
 end
@@ -177,7 +177,7 @@ suite.check("a picked Skinning chip in the search lets go", ns.UI.filterKind == 
 DB:SetShowSkinning(true)
 ns.UI:Hide()
 
-DB.skinningWatchers.test = nil
+DB.hideWatchers.test = nil
 ns.db.grindGives = nil
 
 return suite

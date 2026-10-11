@@ -980,6 +980,19 @@ end
 --- Clicking a row prints it to chat, which is how you paste a spot to someone
 --- or keep it in the log while you fly there.
 function UI:OnRowClick(data, button)
+    -- Right-click offers to hide the mob or node, or the item (HideMenu).
+    if button == "RightButton" then
+        if data.type == "source" or data.type == "item" then
+            local choices = {}
+            if data.type == "source" and data.source.name then
+                choices[1] = { kind = "source", name = data.source.name }
+            end
+            choices[#choices + 1] = { kind = "item", name = data.item.name }
+            ns.HideMenu:Open(choices)
+        end
+        return
+    end
+
     if data.type == "item" then
         self.collapsed[data.item.name] = not self.collapsed[data.item.name]
         self:Render()
@@ -1106,9 +1119,9 @@ function UI:Render()
     self.arriving = false
 
     if total == 0 then
-        -- Said when it was skinning being left out that emptied it.
-        self.summary:SetText(Util.Colored("muted", ns.Search.skinningHid
-            and "nothing found, skinning is left out" or "nothing found"))
+        -- Said when hiding (skinning, the hide list) is what emptied it.
+        self.summary:SetText(Util.Colored("muted", ns.Search.hidHit
+            and "nothing found, the matches are hidden" or "nothing found"))
     else
         self.summary:SetText(("%s matching"):format(Util.Plural(total, "item")))
     end
@@ -1131,7 +1144,7 @@ function UI:SkinningChanged()
     end
 end
 
-ns.DB.skinningWatchers.search = function() UI:SkinningChanged() end
+ns.DB.hideWatchers.search = function() UI:SkinningChanged() end
 
 --- Chips for the source kinds this search turned up, plus All.
 function UI:BuildChips(query)

@@ -288,7 +288,7 @@ function ItemTooltip:OnEnable()
 end
 
 -- "Hide skinning" moved: the kept lines were worked out under the other one.
-ns.DB.skinningWatchers.tooltip = function() ItemTooltip.ForgetKept() end
+ns.DB.hideWatchers.tooltip = function() ItemTooltip.ForgetKept() end
 
 ns.RegisterCommand("tooltip", "turn the farming line on material tooltips on or off", function()
     ns.db.itemTooltip = not ItemTooltip:IsEnabled()

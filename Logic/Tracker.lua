@@ -283,14 +283,13 @@ function Tracker:Summary(mobName)
     local kills = tonumber(mob.kills) or 0
     local items = {}
 
-    -- Skinning left out ("Hide skinning", DB:HidesItem): its leather is not
-    -- among the drops shown. It stays in the tally.
+    -- Skinning left out ("Hide skinning") and items on the hide list
+    -- (DB:HidesItem) are not among the drops shown. They stay in the tally.
     local DB = ns.DB
-    local hides = DB and not DB:ShowsSkinning()
 
     for name, corpses in pairs(type(mob.items) == "table" and mob.items or {}) do
         corpses = tonumber(corpses) or 0
-        if not (hides and DB:HidesItem(name)) then
+        if not (DB and DB:HidesItem(name)) then
             items[#items + 1] = {
                 name = name,
                 corpses = corpses,
@@ -415,7 +414,8 @@ function Tracker:SessionMobs()
     local mobs = {}
 
     for name in pairs(self.session) do
-        local summary = self:Summary(name)
+        -- A mob on the hide list is not on the panel (DB:IsHiddenSource).
+        local summary = not (ns.DB and ns.DB:IsHiddenSource(name)) and self:Summary(name)
         if summary then mobs[#mobs + 1] = summary end
     end
 

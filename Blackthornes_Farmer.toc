@@ -67,5 +67,7 @@ UI\MapMarkers.lua
 UI\GrindPins.lua
 UI\Arrow.lua
 UI\ItemTooltip.lua
+UI\HideMenu.lua
+UI\HiddenWindow.lua
 UI\Settings.lua
 Data\Data_Harvested.lua

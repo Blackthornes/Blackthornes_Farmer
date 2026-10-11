@@ -54,14 +54,18 @@ function Search:Run(query)
 
     local last = self.lastRun
     if last and last.query == query and last.changes == ns.DB.changes
-        and last.names == ns.DB.namesVersion and last.skinning == ns.DB.skinningVersion then
-        self.skinningHid = last.skinningHid
+        and last.names == ns.DB.namesVersion and last.hidden == ns.DB.hiddenVersion then
+        self.hidHit = last.hidHit
         return last.results
     end
 
     -- With skinning left out, an item that comes from skinning is no
-    -- result at all ("Hide skinning", DB:HidesItem).
-    self.skinningHid = false
+    -- result at all ("Hide skinning", DB:HidesItem), and neither is an item
+    -- on the hide list; a mob or node on it is not among an item's spots,
+    -- and an item left with none is no result. `hidHit` says something
+    -- matched and was hidden, for what an empty search says.
+    self.hidHit = false
+    local hidesSources = ns.DB:HidesAny("source")
 
     for item in ns.DB:Iterate() do
         local score, why = MatchScore(item.name:lower(), query), "name"
@@ -113,8 +117,22 @@ function Search:Run(query)
             end
         end
 
+        if score > 0 and hidesSources then
+            local all = matched or item.sources
+            local kept = {}
+            for _, source in ipairs(all) do
+                if not ns.DB:IsHiddenSource(source.name) then kept[#kept + 1] = source end
+            end
+            if #kept == 0 then
+                score = 0
+                self.hidHit = true
+            elseif #kept < #all then
+                matched = kept
+            end
+        end
+
         if score > 0 and ns.DB:HidesItem(item) then
-            self.skinningHid = true
+            self.hidHit = true
         elseif score > 0 then
             results[#results + 1] = { item = item, score = score, why = why, sources = matched }
         end
@@ -126,7 +144,7 @@ function Search:Run(query)
     end)
 
     self.lastRun = { query = query, changes = ns.DB.changes, names = ns.DB.namesVersion,
-        skinning = ns.DB.skinningVersion, skinningHid = self.skinningHid, results = results }
+        hidden = ns.DB.hiddenVersion, hidHit = self.hidHit, results = results }
     return results
 end
 
@@ -371,12 +389,13 @@ function Search:ItemHeader(item, shown)
             item.category, self:SpotsText(shown or #item.sources, #item.sources))))
 end
 
---- What an empty search says. When skinning is left out and that is what
---- emptied it, it says so, rather than that nothing is known.
+--- What an empty search says. When hiding (skinning, or the hide list) is
+--- what emptied it, it says so, rather than that nothing is known.
 function Search:NothingFoundText(query)
-    if self.skinningHid then
-        return ('Only skinning has "%s", and skinning is left out. Untick Hide skinning '
-            .. "in Settings (Loot), or type /farm skinning."):format(query)
+    if self.hidHit then
+        return ('Everything that matches "%s" is hidden: skinning is left out '
+            .. "(Hide skinning, in Settings under Loot) or it is on your hide list "
+            .. "(/farm hidden)."):format(query)
     end
     return ('Nothing found for "%s". Try part of a name, a zone, or a category.'):format(query)
 end
