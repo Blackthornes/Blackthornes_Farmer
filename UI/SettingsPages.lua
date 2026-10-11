@@ -264,6 +264,16 @@ function Page:Row(pageKey, column, labelText, description)
         if shown and self.pages.fitted then self.pages:Fit() end
     end
 
+    --- Make room for a second line of controls under the first (a Reload
+    --- button), the description moving down with it.
+    function row:Grow(by)
+        top = top + by
+        self.compactHeight = top
+        hint:ClearAllPoints()
+        hint:SetPoint("TOPLEFT", 0, -top)
+        self:SetDescription(self.description)
+    end
+
     row:SetDescription(type(description) == "function" and description() or description)
     page.rows[#page.rows + 1] = row
     self:Searchable(pageKey, row, labelText .. " " .. (row.description or ""))
@@ -506,6 +516,29 @@ end
 SettingsPages.TEXT_SIZES = { "normal", "large", "larger" }
 SettingsPages.TEXT_LABELS = { normal = "Normal", large = "Large", larger = "Larger" }
 
+--- Widen `stepper` to its longest word at the player's text size, so a
+--- word like "Titanforged" stays inside its box: two 22 px buttons, the
+--- gaps beside them and a little room, never under 100.
+function SettingsPages.FitStepper(stepper, words)
+    local widest = 0
+    for _, word in pairs(words) do
+        local ok, width = pcall(Theme.TextWidth, "small", word)
+        width = ok and Number(width) or 0
+        if width > widest then widest = width end
+    end
+    stepper:SetWidth(math.max(100, math.ceil(widest) + 22 * 2 + 4 * 2 + 12))
+end
+
+--- Put a row's Reload button under its control, lined up with the
+--- control's right edge, the row a line taller for it. Every Reload in
+--- Settings sits the same way, and none runs into a setting's name or the
+--- other column.
+function SettingsPages.ReloadUnder(row, control, reload)
+    reload:ClearAllPoints()
+    reload:SetPoint("TOPRIGHT", control, "BOTTOMRIGHT", 0, -4)
+    if row.Grow then row:Grow(24) end
+end
+
 --- A "Text size" stepper and its "Reload" button on `row`, at `x`.
 -- Returns the stepper; stepper:Sync() puts it back in step with the save.
 function SettingsPages.TextSizeControl(row, x, db)
@@ -520,25 +553,14 @@ function SettingsPages.TextSizeControl(row, x, db)
             reload:SetShown((Theme.TEXT_STEPS[sizes[value]] or 0) ~= Theme.TextStep())
         end,
     })
-    -- Narrower than a stepper's usual 118, so Reload fits beside it.
-    stepper:SetWidth(100)
+    SettingsPages.FitStepper(stepper, SettingsPages.TEXT_LABELS)
     stepper:SetPoint("TOPLEFT", x, -2)
 
     -- ReloadUI is allowed from a click, and saves everything first.
     reload = Widgets.CreateButton(row, "Reload", function()
         if ReloadUI then ReloadUI() end
     end, { width = 60, height = 20 })
-
-    -- To the stepper's right when the column has room for it, else between
-    -- the setting's name and the stepper, so it never runs into the other
-    -- column or off the window.
-    local room = Number(row.pages and row.pages.opts.columnWidth) or 0
-    local width = Number(reload:GetWidth()) or 60
-    if x + 100 + 6 + width <= room then
-        reload:SetPoint("LEFT", stepper, "RIGHT", 6, 0)
-    else
-        reload:SetPoint("RIGHT", stepper, "LEFT", -6, 0)
-    end
+    SettingsPages.ReloadUnder(row, stepper, reload)
     reload:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine("Reload the interface so the new text size shows (/reload)", 1, 1, 1, true)
