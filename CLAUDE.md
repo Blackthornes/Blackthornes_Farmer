@@ -93,6 +93,43 @@ item with a goal reads its count. Keep the global, `Butler:Advise(itemID)`
 and these four fields stable; if one has to change, change Butler's
 `Logic/Sisters.lua` too.
 
+## Sharing with the player's other account
+
+The owner agreed (2026-10-11, a viewer's question on stream: can Farmer track
+across characters and accounts?). Farmer's saved data was already shared by
+every character on one account (`BlackthornesFarmerDB`; only goals are per
+character, by `owner`), but WoW keeps accounts apart, so `Logic/Share.lua`
+passes it over addon whispers the way Tradeskills' account link does
+(`Logic/AccountLink.lua`, setting `linkNames`, both sides name each other).
+Farmer has its own pairing, `shareNames`, rather than reading Tradeskills',
+since neither addon depends on the other.
+
+`Core/Comm.lua` and `Core/Serialize.lua` are Tradeskills' files brought over
+(the prefix is `BFRshare`, so the two never read each other's messages; the
+test command is gone and `Comm:Start`/`Stop` listen only while sharing is on,
+since every addon's messages come through in a raid). A fix to the wire or
+the serializer belongs in both repos.
+
+What is shared is counts only: the loot harvest (`ns.Harvest.records`), the
+kill tally (`tracker.mobs`), `gathering.nodes` and `fishing.spots`. Never
+goals, settings or positions. How it never counts one twice: a side sends
+only its own (its totals less what it has taken, `Share.Export`), and the
+other adds only the rise over the most it has ever taken from that partner
+(`Share.Merge`, kept in `shareIn[partner].credit`; a partner whose counts
+fell, a reset, adds nothing until they pass it). So nothing goes round a
+loop and nothing is relayed to a third account. Saved, never renamed:
+`shareData` (off by default), `shareNames` (full names, comma apart) and
+`shareIn` (`[partner] = { name, hashes, credit }`). Taken counts are merged
+into the ordinary tables and cannot be taken back out; nothing is deleted. A
+kill tally is made through `Tracker:GetMob`, which sets a pre-coin tally
+aside first. Records are whitelisted and type-checked (`Share.CleanRecord`),
+and a record whose key is not what its own fields make is refused. Lists are
+built a slice a frame (`Share.SLICE`), never in combat, and sent a batch at a
+time as the pacing frees up. Tested in `tools/test_share.lua`, which plays two
+accounts over a pretend chat. Not yet seen in game; the owner has one account,
+so only Tradeskills' one-account whisper test (full names, 2026-10-07) backs
+the wire.
+
 ## The settings pages (from Tradeskills)
 
 The owner asked (2026-10-09) for Tradeskills' Settings upgrade in Pets,

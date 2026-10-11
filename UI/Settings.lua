@@ -50,6 +50,8 @@ local PAGES = {
       tip = "Recording what drops and its export, and your fishing and gathering" },
     { key = "map", text = "MAP & GOALS",
       tip = "Node markers, grinding camps, goals and the goal arrow" },
+    { key = "sharing", text = "SHARING",
+      tip = "Share kills, drop rates and gathering with your other account" },
     { key = "advanced", text = "ADVANCED",
       tip = "Debug output, the data loaded and the list of commands" },
 }
@@ -317,6 +319,7 @@ function SettingsUI:Build()
     self:BuildTallyPage()
     self:BuildLootPage()
     self:BuildMapPage()
+    self:BuildSharingPage()
     self:BuildAdvancedPage()
     self.pages:Fit()
 
@@ -815,6 +818,67 @@ function SettingsUI:BuildMapPage()
     controls.tomtom:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
+--- Sharing: kills, drop rates and gathering with your other account.
+function SettingsUI:BuildSharingPage()
+    local controls = self.controls
+    local pages = self.pages
+
+    pages:Section("sharing", 1, "YOUR OTHER ACCOUNT")
+
+    local shareRow = pages:Row("sharing", 1, "Share with it",
+        "Sends your kill tallies, measured drop rates, gathering and fishing to your other "
+        .. "account, and takes theirs, while both are logged in. Counts only: no goals, "
+        .. "settings or positions. Same as /farm share on and off.")
+    controls.share = Widgets.CreateCheckbox(shareRow, "Sharing", function(checked)
+        ns.Share:SetEnabled(checked)
+        SettingsUI:Refresh()
+    end, false)
+    controls.share:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local namesRow = pages:Row("sharing", 1, "Its characters",
+        "A character on your other account, first and last name, as many as you like with "
+        .. "commas between. Farmer on that account needs one of yours named too: sharing "
+        .. "starts only when each names the other. Same as /farm share with.")
+    GrowRow(namesRow, 26)
+    local names = Widgets.CreateSearchBox(namesRow, "Ana Smith, Bob Jones", nil, function(text)
+        ns.Share:SetNames(text)
+        SettingsUI:Refresh()
+    end, { plain = true })
+    names:SetPoint("TOPLEFT", 0, -26)
+    names:SetWidth(COLUMN_WIDTH)
+    names:SetHeight(20)
+    controls.shareNames = names
+
+    local _, syncButton = CommandRow(pages, "sharing", 1, "Sync now",
+        "Asks your other account for anything new and sends what is new here. It runs by "
+        .. "itself every ten minutes. Same as /farm share sync.", "Sync", "share sync")
+    controls.shareSync = syncButton
+
+    pages:Section("sharing", 2, "HOW IT WORKS")
+
+    local block = CreateFrame("Frame", nil, pages.pages.sharing.content)
+    block:SetSize(COLUMN_WIDTH, 150)
+    block.fixedHeight = 150
+    pages:Place("sharing", 2, block, -4)
+
+    local summary = Theme.CreateLabel(block, "small", "text")
+    summary:SetPoint("TOPLEFT", 0, 0)
+    summary:SetWidth(COLUMN_WIDTH)
+    summary:SetWordWrap(true)
+    self.shareSummary = summary
+
+    local about = Theme.CreateLabel(block, "tiny", "muted")
+    about:SetPoint("TOPLEFT", 0, -50)
+    about:SetWidth(COLUMN_WIDTH)
+    about:SetWordWrap(true)
+    about:SetText("WoW keeps each account's saved data apart, so this passes it over "
+        .. "in chat whispers between two of your own characters. Both accounts add up "
+        .. "what both counted; nothing is counted twice, and nothing is passed on to anyone "
+        .. "else. The first sync of a big collection can take a while in the background. "
+        .. "What is taken in becomes part of your own totals and cannot be taken back out.")
+    pages:Searchable("sharing", block, "share sync other account second account kills drop rates gathering")
+end
+
 --- Advanced: debug output, the data the addon carries, and the commands.
 function SettingsUI:BuildAdvancedPage()
     local controls = self.controls
@@ -882,6 +946,9 @@ function SettingsUI:Refresh()
         button:SetLabelColor(button.percent == tallyPercent and "good" or nil)
     end
     controls.debug:SetChecked(db.debug == true)
+    controls.share:SetChecked(db.shareData == true)
+    controls.shareNames:SetText(db.shareNames or "")
+    self.shareSummary:SetText(ns.Share:Describe())
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)

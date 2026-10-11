@@ -105,6 +105,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm data` | where the loaded data came from |
 | `/farm stats` | how many items and spots are loaded |
 | `/farm list` | list every item in the database |
+| `/farm share [on\|off\|with <names>\|sync]` | share kills, drop rates, gathering and fishing with your other account (off to start; `with` names its characters, `sync` asks for anything new) |
 | `/farm harvest` | everything the addon has recorded from your loot, across sessions |
 | `/farm export [item]` | hand that back as a data file, ready to paste |
 | `/farm help` | the command list |
@@ -143,7 +144,8 @@ milestones and sounds, and your last mob's kills, loot table and worth),
 **Loot** (pausing loot recording, remembered between sessions, with an Export
 button, and your fishing and gathering), **Map & goals** (node markers, the
 Grind tab's camps, the farming line on material tooltips, goals and the goal
-arrow) and **Advanced** (debug output and the data loaded). Hover a setting to
+arrow), **Sharing** (your other account, below) and **Advanced** (debug output and
+the data loaded). Hover a setting to
 see what it does, or tick **Show descriptions** to see it under every row;
 **Find a setting** searches every page. **Text size** makes all of the
 addon's text a point or two bigger after a `/reload`. Every `/farm` command
@@ -396,6 +398,26 @@ another Blackthornes arrow takes it away. Places TomTom cannot point at, like
 the other continent, show on the dial as before. Untick **Use TomTom** on the
 settings page, or type `/farm arrow tomtom off`, to keep the dial.
 
+### Sharing with your other account
+
+The game keeps each account's saved data apart, so what Farmer measures on one
+account is not there on the other. **Settings > Sharing** (or `/farm share`)
+passes it across, the way Tradeskills' account link passes characters: tick
+**Share with it**, type the full name of a character on your other account, and
+do the same there with one of this account's characters. Sharing starts when
+each side names the other, and works while both are logged in on the same realm.
+
+What crosses is counts only: your kill tallies, the measured drop rates,
+nodes gathered and spots fished. Not goals, settings or where windows sit. Each
+account sends only what it counted itself and takes only what is new, so
+nothing is counted twice, however often it syncs, and nothing is passed on to
+anyone else. Anything that arrives is checked field by field first, and only
+a character you named is listened to. What is taken in becomes part of the
+totals and cannot be taken back out. The first sync of a big collection runs in
+the background and can take a while; `/farm share sync` (or **Sync now**)
+asks again, and it runs by itself every ten minutes. It is off until you tick
+it, and while it is off Farmer does not listen to addon messages at all.
+
 ## The data
 
 The addon ships with a seed database covering ore, herbs, cloth, leather, mob
@@ -615,7 +637,7 @@ WoW says nothing about it.
 
 | Folder | What is in it |
 |---|---|
-| `Core/` | Namespace, module registry, event dispatch, slash commands, saved variables |
+| `Core/` | Namespace, module registry, event dispatch, slash commands, saved variables, and the addon-message wire sharing uses |
 | `Data/` | The item database and the seed data files |
 | `Logic/` | Ranked search, the display lines it produces, and the loot harvester |
 | `UI/` | Theme, widgets, the main window and the export window |
