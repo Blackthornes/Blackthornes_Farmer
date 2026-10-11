@@ -153,7 +153,7 @@ function RankingsUI:Build(frame)
         rowHeight = ROW_HEIGHT,
         createRow = function(row) RankingsUI:CreateRow(row) end,
         updateRow = function(row, data, index) RankingsUI:UpdateRow(row, data, index) end,
-        onClick = function(data) RankingsUI:OnRowClick(data) end,
+        onClick = function(data, button) RankingsUI:OnRowClick(data, button) end,
         onEnter = function(row, data)
             if data.entry then ns.UI:ShowMobTooltip(row, data.entry.mob) end
         end,
@@ -455,8 +455,14 @@ function RankingsUI:UpdateRow(row, data, index)
 end
 
 --- A mob you have killed opens its loot table; one you have not says so.
-function RankingsUI:OnRowClick(data)
+function RankingsUI:OnRowClick(data, button)
     if not data.entry then return end
+
+    -- Right-click offers to hide the mob (HideMenu).
+    if button == "RightButton" then
+        ns.HideMenu:Open({ { kind = "source", name = data.entry.mob } })
+        return
+    end
 
     local mob = data.entry.mob
     if ns.LootTableUI and ns.LootTableUI:Show(mob) then return end
@@ -631,6 +637,9 @@ function RankingsUI:Render(arrive)
 
     return width
 end
+
+-- "Hide skinning" moved: leather counts toward a kill's worth or not.
+ns.DB.hideWatchers.rankings = function() RankingsUI:Refresh() end
 
 --- Redraw if the tab is on screen: a kill can change the board. The board
 --- prices every rated mob, so a burst of loot gets one redraw, not one each.

@@ -54,9 +54,18 @@ function Search:Run(query)
 
     local last = self.lastRun
     if last and last.query == query and last.changes == ns.DB.changes
-        and last.names == ns.DB.namesVersion then
+        and last.names == ns.DB.namesVersion and last.hidden == ns.DB.hiddenVersion then
+        self.hidHit = last.hidHit
         return last.results
     end
+
+    -- With skinning left out, an item that comes from skinning is no
+    -- result at all ("Hide skinning", DB:HidesItem), and neither is an item
+    -- on the hide list; a mob or node on it is not among an item's spots,
+    -- and an item left with none is no result. `hidHit` says something
+    -- matched and was hidden, for what an empty search says.
+    self.hidHit = false
+    local hidesSources = ns.DB:HidesAny("source")
 
     for item in ns.DB:Iterate() do
         local score, why = MatchScore(item.name:lower(), query), "name"
@@ -108,7 +117,23 @@ function Search:Run(query)
             end
         end
 
-        if score > 0 then
+        if score > 0 and hidesSources then
+            local all = matched or item.sources
+            local kept = {}
+            for _, source in ipairs(all) do
+                if not ns.DB:IsHiddenSource(source.name) then kept[#kept + 1] = source end
+            end
+            if #kept == 0 then
+                score = 0
+                self.hidHit = true
+            elseif #kept < #all then
+                matched = kept
+            end
+        end
+
+        if score > 0 and ns.DB:HidesItem(item) then
+            self.hidHit = true
+        elseif score > 0 then
             results[#results + 1] = { item = item, score = score, why = why, sources = matched }
         end
     end
@@ -118,7 +143,8 @@ function Search:Run(query)
         return a.item.name < b.item.name
     end)
 
-    self.lastRun = { query = query, changes = ns.DB.changes, names = ns.DB.namesVersion, results = results }
+    self.lastRun = { query = query, changes = ns.DB.changes, names = ns.DB.namesVersion,
+        hidden = ns.DB.hiddenVersion, hidHit = self.hidHit, results = results }
     return results
 end
 
@@ -363,6 +389,17 @@ function Search:ItemHeader(item, shown)
             item.category, self:SpotsText(shown or #item.sources, #item.sources))))
 end
 
+--- What an empty search says. When hiding (skinning, or the hide list) is
+--- what emptied it, it says so, rather than that nothing is known.
+function Search:NothingFoundText(query)
+    if self.hidHit then
+        return ('Everything that matches "%s" is hidden: skinning is left out '
+            .. "(Hide skinning, in Settings under Loot) or it is on your hide list "
+            .. "(/farm hidden)."):format(query)
+    end
+    return ('Nothing found for "%s". Try part of a name, a zone, or a category.'):format(query)
+end
+
 --- Flat display lines for a query, shared by the window and `/farm chat`.
 -- @return lines, total number of matching items
 function Search:BuildLines(query, maxItems)
@@ -373,9 +410,7 @@ function Search:BuildLines(query, maxItems)
     maxItems = maxItems or 12
 
     if total == 0 then
-        lines[1] = Util.Colored("muted",
-            ('Nothing found for "%s". Try part of a name, a zone, or a category.')
-            :format(query))
+        lines[1] = Util.Colored("muted", self:NothingFoundText(query))
         return lines, 0
     end
 
@@ -548,13 +583,14 @@ function Search:ForLevel(level, skills)
 
     for item in ns.DB:Iterate() do
         local fits = 0
+        if ns.DB:HidesItem(item) then fits = -1 end
         for _, source in ipairs(item.sources) do
             local low = tonumber(source.minLevel)
             local high = tonumber(source.maxLevel) or (low and low + 10)
             local profession, needed, have
             if player then profession, needed, have = ns.Spots.SkillNeed(source, player) end
             local canGather = not profession or have == nil or have >= needed
-            if canGather and low and low <= level and level <= high then fits = fits + 1 end
+            if fits >= 0 and canGather and low and low <= level and level <= high then fits = fits + 1 end
         end
 
         local pick = best[item.category]
@@ -589,6 +625,24 @@ ns.RegisterCommand("chat", "print results to chat instead of the window", functi
         return
     end
     ns.Search:PrintResults(rest)
+end)
+
+-- Skinning shown or left out (DB:SetShowSkinning, the Settings row "Show
+-- skinning").
+ns.RegisterCommand("skinning", "show skinning, or leave it out and show only drops: on or off", function(rest)
+    local word = Util.Trim(rest or ""):lower()
+    local on
+    if word == "on" or word == "show" then
+        on = true
+    elseif word == "off" or word == "hide" then
+        on = false
+    else
+        on = not ns.DB:ShowsSkinning()
+    end
+    ns.DB:SetShowSkinning(on)
+    ns.Print(on and "skinning is shown again."
+        or "skinning is left out: only drops are shown. /farm skinning puts it back.")
+    if ns.SettingsUI then ns.SettingsUI:Refresh() end
 end)
 
 ns.RegisterCommand("stats", "how much data is loaded", function()

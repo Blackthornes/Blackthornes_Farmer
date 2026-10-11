@@ -225,6 +225,7 @@ local buttons = {
     shareSync = "share sync",
     shareGive = "give",
     shareTake = "take",
+    hidden = "hidden",
 }
 local wrong = {}
 for key, command in pairs(buttons) do
@@ -253,7 +254,7 @@ end
 local covered = {
     settings = true, minimap = true, tracker = true, report = true, celebrate = true,
     announce = true, raresound = true, effects = true, markers = true, tooltip = true,
-    arrow = true, grind = true, export = true, sisters = true,
+    arrow = true, grind = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
 local missing = {}

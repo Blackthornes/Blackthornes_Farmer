@@ -83,7 +83,8 @@ local windows = {
     { name = "where to farm", key = "goalSpotsScale",
       build = function() return ns.GoalsUI:BuildSpots() end, grip = function() return ns.GoalsUI.spots.sizeGrip end },
     { name = "goal picker", key = "goalPickerScale",
-      build = function() return ns.GoalsUI:BuildPicker() end, grip = function() return ns.GoalsUI.picker.sizeGrip end },
+      build = function() return ns.GoalsUI:BuildPicker() end, grip = function() return ns.GoalsUI.picker.sizeGrip end },    { name = "hidden", key = "hiddenScale",
+      build = function() return ns.HiddenUI:Build() end, grip = function() return ns.HiddenUI.sizeGrip end },
 }
 
 -- The size each window is opened at.

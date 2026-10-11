@@ -1181,6 +1181,15 @@ function TrackerUI:CreateLine(parent, index)
         end
 
         local line = self.line
+        -- Right-click offers to hide the mob, or the Loot tab's item.
+        if button == "RightButton" and line and ns.HideMenu then
+            if line.mob then
+                ns.HideMenu:Open({ { kind = "source", name = line.mob } })
+            elseif line.style == "loot" and line.item then
+                ns.HideMenu:Open({ { kind = "item", name = line.item } })
+            end
+            return
+        end
         if button ~= "LeftButton" or not line then return end
 
         if line.openKey then
@@ -1813,6 +1822,11 @@ function TrackerUI:SessionItems()
     Take(ns.Tracker.sessionLoot, ns.Tracker.sessionFrom, nil)
     if ns.Fishing then Take(ns.Fishing.sessionCatch, nil, "Fishing") end
     if ns.Gathering then Take(ns.Gathering.sessionItems, ns.Gathering.sessionFrom, "Gathering") end
+
+    -- An item on the hide list is not shown (DB:IsHiddenItem).
+    for name in pairs(byName) do
+        if ns.DB:IsHiddenItem(name) then byName[name] = nil end
+    end
 
     local items = {}
     for _, entry in pairs(byName) do
@@ -2690,6 +2704,12 @@ end
 --- For a change made elsewhere, such as the panel's size in Settings.
 function TrackerUI:FollowGoals()
     FollowGoals()
+end
+
+-- "Hide skinning" moved: the panel's drops (Tracker:Summary) and an open
+-- loot table follow it. Nothing is built for it.
+ns.DB.hideWatchers.tally = function()
+    if TrackerUI.frame then TrackerUI:Refresh() end
 end
 
 --- Redraw, and show or hide to match the saved setting.

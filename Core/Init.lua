@@ -405,6 +405,9 @@ local DEFAULTS = {
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,
+    -- Skinning spots and leather left out of what Farmer lists, drops only
+    -- (DB:ShowsSkinning). The owner asked for it on by default.
+    hideSkinning = true,
 
     -- The goal arrow (UI/Arrow.lua): off until turned on, or until the
     -- first new goal turns it on (Arrow:TurnOnForGoal) while the player has

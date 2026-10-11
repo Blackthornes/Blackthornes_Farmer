@@ -140,6 +140,8 @@ end
 --- "Farm: Witchwing Slayer (16-17), The Barrens, ~14%, next zone over", or
 --- nil when no spot is known.
 function ItemTooltip:LineFor(item, player)
+    -- Leather says nothing while skinning is left out ("Hide skinning").
+    if ns.DB:HidesItem(item) then return nil end
     local spot = ns.Spots:For(item.name, player)[1]
     if not spot then return nil end
 
@@ -284,6 +286,9 @@ function ItemTooltip:OnEnable()
         OnTooltipSetItem = self:InstallScriptHooks(),
     }
 end
+
+-- "Hide skinning" moved: the kept lines were worked out under the other one.
+ns.DB.hideWatchers.tooltip = function() ItemTooltip.ForgetKept() end
 
 ns.RegisterCommand("tooltip", "turn the farming line on material tooltips on or off", function()
     ns.db.itemTooltip = not ItemTooltip:IsEnabled()

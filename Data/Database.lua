@@ -151,6 +151,9 @@ function DB:AddSource(item, source)
     end
 
     source.kind = source.kind or "mob"
+    -- An item the data names a skinning spot for comes from skinning, also
+    -- where it was looted (a skin opens a loot window too): DB:FromSkinning.
+    if source.kind == "skinning" then item.fromSkinning = true end
     source.minLevel = source.minLevel or source.level
     source.maxLevel = source.maxLevel or source.minLevel
 
@@ -377,14 +380,15 @@ end
 --- walking Iterate would find them. Built on first use and again only after
 --- a source is added, so valuing a mob no longer walks the whole database.
 function DB:ByName()
-    if self.byName and self.byNameAt == self.changes then return self.byName end
+    local stamp = self.changes .. ":" .. self.hiddenVersion
+    if self.byName and self.byNameAt == stamp then return self.byName end
 
     local byName = {}
     for _, key in ipairs(self.order) do
         local item = self.items[key]
         for _, source in ipairs(item.sources or {}) do
             local name = source.name
-            if type(name) == "string" then
+            if type(name) == "string" and not self:HidesSource(source, item) then
                 local list = byName[name]
                 if not list then
                     list = {}
@@ -395,8 +399,175 @@ function DB:ByName()
         end
     end
 
-    self.byName, self.byNameAt = byName, self.changes
+    self.byName, self.byNameAt = byName, stamp
     return byName
+end
+
+--------------------------------------------------------------------------------
+-- Skinning, shown or left out
+--
+-- A player asked for Farmer to show drops only, without skinning (the owner
+-- agreed 2026-10-11, and asked for it on by default). "Hide skinning" in
+-- Settings (`hideSkinning`, account wide, on unless unticked; never rename
+-- it) and /farm skinning. Ticked, what Farmer lists as where to farm and what a kill is worth leaves out
+-- every skinning spot, and every item that comes from skinning: a skin
+-- opens a loot window like a corpse does, so recorded loot has the leather
+-- as one of the mob's drops, and only the item tells them apart. Nothing
+-- recorded is changed or deleted; unticking it puts it all back. A goal
+-- is the player's own ask, so goals and their arrow still follow one.
+--------------------------------------------------------------------------------
+
+-- Moves whenever the setting or the hide list below does, so what was
+-- worked out before is worked out again on its next draw.
+DB.hiddenVersion = 0
+
+-- What redraws when it moves, each called inside a pcall and doing nothing
+-- for a window not built: [name] = function.
+DB.hideWatchers = {}
+
+--- Is skinning shown? (Only once "Hide skinning" is unticked.)
+function DB:ShowsSkinning()
+    return ns.db ~= nil and ns.db.hideSkinning == false
+end
+
+--- Does the item named `name` come from skinning? (The data names a
+--- skinning spot for it: leather, hides, scales.)
+function DB:FromSkinning(name)
+    local item = type(name) == "table" and name or self:GetItem(name)
+    return item ~= nil and item.fromSkinning == true
+end
+
+--------------------------------------------------------------------------------
+-- The hide list
+--
+-- The owner asked (2026-10-11) for a blacklist beside Hide skinning: a mob,
+-- a node or an item the player never wants to see. Right-click a row in the
+-- search, Rankings, Grind or the kills panel ("Hide"), or /farm hide and a
+-- name; the Hidden window (/farm hidden, Settings > Loot) lists them with
+-- Show again. Kept account wide in `hiddenItems` and `hiddenSources`
+-- ([lower case name] = the name as shown; never rename either). Like
+-- skinning, it only leaves things out of what is shown: nothing recorded is
+-- changed. A goal still follows its item.
+--------------------------------------------------------------------------------
+
+--- The saved list for "item" or "source" (a mob or a node), made on first use.
+function DB:HiddenList(kind)
+    local db = ns.db
+    if not db then return {} end
+    local key = kind == "item" and "hiddenItems" or "hiddenSources"
+    if type(db[key]) ~= "table" then db[key] = {} end
+    return db[key]
+end
+
+--- How the list keys an item: the data's own (English) name when it knows
+--- the item, so a German client's name hides the same entry.
+local function ItemKey(name)
+    local item = type(name) == "table" and name or DB:GetItem(name)
+    if item then return item.name:lower(), item.name end
+    if type(name) ~= "string" then return nil end
+    local trimmed = Util.Trim(name)
+    if trimmed == "" then return nil end
+    return trimmed:lower(), trimmed
+end
+
+local function SourceKey(name)
+    if type(name) ~= "string" then return nil end
+    local trimmed = Util.Trim(name)
+    if trimmed == "" then return nil end
+    return trimmed:lower(), trimmed
+end
+
+--- Is anything on the hide list? (Most players never use it, so every
+--- check below costs one look when it is empty.)
+function DB:HidesAny(kind)
+    local db = ns.db
+    local list = db and db[kind == "item" and "hiddenItems" or "hiddenSources"]
+    return type(list) == "table" and next(list) ~= nil
+end
+
+--- Is the mob or node named `name` on the hide list?
+function DB:IsHiddenSource(name)
+    if not self:HidesAny("source") then return false end
+    local key = SourceKey(name)
+    return key ~= nil and self:HiddenList("source")[key] ~= nil
+end
+
+--- Is the item (or item named `name`) on the hide list?
+function DB:IsHiddenItem(name)
+    if not self:HidesAny("item") then return false end
+    local key = ItemKey(name)
+    return key ~= nil and self:HiddenList("item")[key] ~= nil
+end
+
+--- Is the item named `name` (or the item itself) left out right now: from
+--- skinning while skinning is hidden, or on the hide list?
+function DB:HidesItem(name)
+    if not self:ShowsSkinning() and self:FromSkinning(name) then return true end
+    return self:IsHiddenItem(name)
+end
+
+--- Is `source` of `item` left out right now?
+function DB:HidesSource(source, item)
+    if type(source) ~= "table" then return false end
+    if not self:ShowsSkinning() and (source.kind == "skinning"
+        or (item ~= nil and item.fromSkinning == true)) then
+        return true
+    end
+    if item ~= nil and self:IsHiddenItem(item) then return true end
+    return self:IsHiddenSource(source.name)
+end
+
+--- Something hidden or shown again: what was worked out before is worked
+--- out again, and what shows it redraws.
+function DB:HiddenChanged()
+    self.hiddenVersion = self.hiddenVersion + 1
+    for _, redraw in pairs(self.hideWatchers) do pcall(redraw) end
+end
+
+--- Put `name` on the hide list as an "item" or a "source". Returns the name
+--- as kept, or nil when there is no name.
+function DB:Hide(kind, name)
+    local key, shown
+    if kind == "item" then key, shown = ItemKey(name) else key, shown = SourceKey(name) end
+    if not key then return nil end
+    self:HiddenList(kind)[key] = shown
+    self:HiddenChanged()
+    return shown
+end
+
+--- Take `name` off the hide list. Returns the name it had, or nil when it
+--- was not on it.
+function DB:Unhide(kind, name)
+    local key
+    if kind == "item" then key = ItemKey(name) else key = SourceKey(name) end
+    local list = self:HiddenList(kind)
+    local had = key and list[key]
+    if not had then return nil end
+    list[key] = nil
+    self:HiddenChanged()
+    return had
+end
+
+--- Everything on the hide list, A to Z: { { kind, name }, ... }.
+function DB:HiddenEntries()
+    local out = {}
+    for _, kind in ipairs({ "source", "item" }) do
+        for _, name in pairs(self:HidesAny(kind) and self:HiddenList(kind) or {}) do
+            if type(name) == "string" then out[#out + 1] = { kind = kind, name = name } end
+        end
+    end
+    table.sort(out, function(a, b)
+        if a.name:lower() ~= b.name:lower() then return a.name:lower() < b.name:lower() end
+        return a.kind < b.kind
+    end)
+    return out
+end
+
+--- Show skinning or leave it out, and redraw what lists it.
+function DB:SetShowSkinning(on)
+    on = on and true or false
+    if ns.db then ns.db.hideSkinning = not on end
+    self:HiddenChanged()
 end
 
 --- Every item, in registration order.

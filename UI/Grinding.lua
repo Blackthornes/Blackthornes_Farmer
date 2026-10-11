@@ -237,7 +237,7 @@ function GrindingUI:Build(frame)
         rowHeight = ROW_HEIGHT,
         createRow = function(row) GrindingUI:CreateRow(row) end,
         updateRow = function(row, data) GrindingUI:UpdateRow(row, data) end,
-        onClick = function(data) GrindingUI:OnRowClick(data) end,
+        onClick = function(data, button) GrindingUI:OnRowClick(data, button) end,
         onEnter = function(row, data) GrindingUI:ShowRowTooltip(row, data) end,
         onLeave = HideTip,
         fadeKey = "well",
@@ -357,8 +357,15 @@ function GrindingUI:LayoutChips()
 
     local chips = {}
     for _, chip in ipairs(self.typeChips) do chips[#chips + 1] = { chip, 0 } end
+    -- The Skinning chip goes while skinning is left out (DB:ShowsSkinning).
+    local skinning = ns.DB:ShowsSkinning()
     for index, chip in ipairs(self.givesChips) do
-        chips[#chips + 1] = { chip, index == 1 and GROUP_GAP or 0 }
+        if chip.givesKey == "skinning" and not skinning then
+            chip:Hide()
+        else
+            chip:Show()
+            chips[#chips + 1] = { chip, index == 1 and GROUP_GAP or 0 }
+        end
     end
 
     -- Sort sits in the top row beside My level while it clears the Settings
@@ -590,7 +597,15 @@ function GrindingUI:ShowRowTooltip(row, data)
 end
 
 --- A camp points the arrow there; a mob opens its loot table, or says why not.
-function GrindingUI:OnRowClick(data)
+function GrindingUI:OnRowClick(data, button)
+    -- Right-click on a mob offers to hide it (HideMenu).
+    if button == "RightButton" then
+        if data.type == "mob" then
+            ns.HideMenu:Open({ { kind = "source", name = data.mob.name } })
+        end
+        return
+    end
+
     if data.type == "camp" then
         local camp = data.camp
         ns.Arrow:Grind(camp)
@@ -769,6 +784,17 @@ function GrindingUI:Render(arrive)
 
     return width
 end
+
+--- "Hide skinning" moved: the chips are laid out again (the Skinning
+--- chip comes or goes) and the camps redrawn if the tab is on screen; out
+--- of sight, the list's stamp moved, so its next draw builds it again.
+function GrindingUI:SkinningChanged()
+    if not self.view then return end
+    self:LayoutChips()
+    self:Refresh()
+end
+
+ns.DB.hideWatchers.grind = function() GrindingUI:SkinningChanged() end
 
 --- Redraw if the tab is on screen.
 function GrindingUI:Refresh()

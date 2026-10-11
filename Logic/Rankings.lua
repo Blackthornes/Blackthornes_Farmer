@@ -106,7 +106,8 @@ function Rankings:Build()
     local board = { measured = {}, estimate = {}, pending = {} }
 
     for name in pairs(names) do
-        local entry = self:Entry(name)
+        -- A mob on the hide list is not ranked (DB:IsHiddenSource).
+        local entry = not ns.DB:IsHiddenSource(name) and self:Entry(name)
         if entry then
             local list = board[entry.group]
             list[#list + 1] = entry

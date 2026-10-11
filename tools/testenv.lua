@@ -362,6 +362,8 @@ local UI_FILES = {
     "UI/GrindPins.lua",
     "UI/Arrow.lua",
     "UI/ItemTooltip.lua",
+    "UI/HideMenu.lua",
+    "UI/HiddenWindow.lua",
     "UI/Settings.lua",
 }
 
@@ -397,6 +399,11 @@ function env.Load(opts)
     -- ADDON_LOADED installs saved variables; tests that skip the event loop
     -- still need ns.db to exist.
     ns.LoadSavedVariables()
+
+    -- Farmer leaves skinning out by default ("Hide skinning"); the suites
+    -- written before it test the whole picture, so they see it all.
+    -- tools/test_showskinning.lua loads with { hideSkinning = true }.
+    if not opts.hideSkinning then ns.db.hideSkinning = false end
 
     env.ns = ns
     return ns
