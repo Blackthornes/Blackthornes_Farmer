@@ -13,6 +13,9 @@
 # X-Wago-ID: 
 # X-WoWI-ID: 
 
+Locale\Locale.lua
+Locale\deDE.lua
+
 Core\Init.lua
 Core\Util.lua
 Core\SisterNote.lua

@@ -21,6 +21,10 @@ local _, ns = ...
 local SettingsPages = {}
 ns.SettingsPages = SettingsPages
 
+-- The words through the addon's translation table where it has one (ns.L,
+-- Locale/Locale.lua), else in English, so this file stays the same in all.
+local L = ns.L or setmetatable({}, { __index = function(_, key) return key end })
+
 local Theme = ns.Theme
 local Widgets = ns.Widgets
 
@@ -348,13 +352,13 @@ function Page:BuildBar()
     end
 
     -- The house order for an option bar: search, then tick boxes.
-    self.describe = Widgets.CreateCheckbox(bar, "Show descriptions", function(checked)
+    self.describe = Widgets.CreateCheckbox(bar, L["Show descriptions"], function(checked)
         self:DB().settingsDescriptions = checked
         self:ShowDescriptions(checked)
     end, false)
     self.describe:SetPoint("RIGHT", bar, "RIGHT", -opts.padding, 0)
 
-    self.find = Widgets.CreateSearchBox(bar, "Find a setting", function(text) self:Search(text) end)
+    self.find = Widgets.CreateSearchBox(bar, L["Find a setting"], function(text) self:Search(text) end)
     self.find:SetWidth(170)
     self.find:SetPoint("RIGHT", self.describe, "LEFT", -BAR_GAP, 0)
 
@@ -385,7 +389,7 @@ function Page:BarWidth()
         if index > 1 then width = width + SWITCH_GAP end
     end
     -- The tick box is its square, a gap and its words.
-    local tick = 24 + Theme.TextWidth("small", "Show descriptions")
+    local tick = 24 + Theme.TextWidth("small", L["Show descriptions"])
     return width + BAR_GAP + 170 + BAR_GAP + tick
 end
 
@@ -514,7 +518,7 @@ end
 
 -- Stored as words, so a save reads plainly; shown on a stepper as a step.
 SettingsPages.TEXT_SIZES = { "normal", "large", "larger" }
-SettingsPages.TEXT_LABELS = { normal = "Normal", large = "Large", larger = "Larger" }
+SettingsPages.TEXT_LABELS = { normal = L["Normal"], large = L["Large"], larger = L["Larger"] }
 
 --- Widen `stepper` to its longest word at the player's text size, so a
 --- word like "Titanforged" stays inside its box: two 22 px buttons, the
@@ -557,13 +561,13 @@ function SettingsPages.TextSizeControl(row, x, db)
     stepper:SetPoint("TOPLEFT", x, -2)
 
     -- ReloadUI is allowed from a click, and saves everything first.
-    reload = Widgets.CreateButton(row, "Reload", function()
+    reload = Widgets.CreateButton(row, L["Reload"], function()
         if ReloadUI then ReloadUI() end
     end, { width = 60, height = 20 })
     SettingsPages.ReloadUnder(row, stepper, reload)
     reload:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine("Reload the interface so the new text size shows (/reload)", 1, 1, 1, true)
+        GameTooltip:AddLine(L["Reload the interface so the new text size shows (/reload)"], 1, 1, 1, true)
         GameTooltip:Show()
     end)
     reload:HookScript("OnLeave", function() GameTooltip:Hide() end)

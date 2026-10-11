@@ -304,6 +304,8 @@ end
 --------------------------------------------------------------------------------
 
 local FILES = {
+    "Locale/Locale.lua",
+    "Locale/deDE.lua",
     "Core/Init.lua",
     "Core/Util.lua",
     "Core/SisterNote.lua",
@@ -376,10 +378,15 @@ function env.HasHarvested()
 end
 
 --- Load the addon exactly as the TOC does, and return its namespace.
+--- `opts.locale` ("deDE") loads it as a client in that language would.
 function env.Load(opts)
     opts = opts or {}
 
     env.InstallClient()
+    if opts.locale then
+        local locale = opts.locale
+        _G.GetLocale = function() return locale end
+    end
 
     local ns = {}
 
