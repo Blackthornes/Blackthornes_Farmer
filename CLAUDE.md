@@ -254,6 +254,19 @@ Changes to the Discord bots, the digest or the release posting tools
 (like this one) never go in a CHANGELOG, #announcements or #general
 section (the owner, 2026-10-10): they are not changes to the addon.
 
+## Loot inside dungeons
+
+Inside a dungeon the client hides the corpse's name and guid from addons,
+so until 2026-10-11 nothing looted there was recorded. The loot window
+still names its source by guid (`GetLootSourceInfo`, readable in Ragefire
+Chasm), and that guid carries the mob's ID, so `Harvest:Corpse` falls back
+to the first creature the window names (`Harvest.NpcID`). Its name comes
+from the game's unit link (`Harvest.NameFromLink`), kept account wide in
+`npcNames[id]` (never rename it); a name the game will not give leaves the
+record as "Creature #ID" with `record.npc`, kept but never exported
+(`Harvest.Unnamed`). This works the same in every dungeon and raid.
+`/farm harvest check` reports what a dungeon lets the addon read.
+
 ## The owner's standing rules (both addons)
 
 - **"Always check that it's clear to post."** Anything public is checked for
