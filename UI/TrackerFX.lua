@@ -109,6 +109,16 @@ local RARE_GAP = 1
 -- Uncommon (green) and better.
 local RARE_QUALITY = 2
 
+-- Rare (blue) and better: the goblin's line instead of the chime.
+local VOICE_QUALITY = 3
+
+-- Spoken lines the game already has, played by file ID (nothing is shipped):
+-- a goblin vendor for a blue or better drop, the orc peon's "Work complete!"
+-- for a goal reached (the owner picked both, 2026-10-12). Each waits
+-- VOICE_GAP seconds before it can play again, so it stays a treat.
+TrackerFX.VOICE = { drop = 550782, goal = 558132 }
+local VOICE_GAP = 180
+
 -- Each row's wash, and which float labels are in the air, kept here rather
 -- than as fields on the frames themselves.
 local flashes = setmetatable({}, { __mode = "k" })
@@ -119,6 +129,7 @@ TrackerFX.effects = {}
 TrackerFX.clock = 0
 TrackerFX.chips = {}
 TrackerFX.rareAt = nil
+TrackerFX.saidAt = {}
 
 --------------------------------------------------------------------------------
 -- Settings
@@ -133,6 +144,11 @@ end
 
 function TrackerFX.RareSoundOn()
     return not (ns.db and ns.db.trackerRareSound == false)
+end
+
+--- Voice lines: on unless unticked.
+function TrackerFX.VoiceOn()
+    return not (ns.db and ns.db.trackerVoice == false)
 end
 
 --- An item's quality, from the colour the tracker kept for it. Nil when the
@@ -306,12 +322,13 @@ function TrackerFX:HiddenLoot()
     for key, item in pairs(items) do self.hiddenLoot[key] = item.count end
     if not was then return end
 
+    local best = 0
     for key, item in pairs(items) do
-        if item.count > (was[key] or 0) and (TrackerFX.QualityOf(item.name) or 0) >= RARE_QUALITY then
-            self:PlayRare()
-            return
+        if item.count > (was[key] or 0) then
+            best = math.max(best, TrackerFX.QualityOf(item.name) or 0)
         end
     end
+    if best >= RARE_QUALITY then self:PlayRare(best) end
 end
 
 --- The panel is drawing again; the hidden count is done with.
@@ -417,11 +434,11 @@ end
 function TrackerFX:Play(plan, rowFor)
     if not plan then return end
 
-    local rare = false
+    local best = 0
     for _, item in ipairs(plan.items) do
-        if (item.quality or 0) >= RARE_QUALITY then rare = true end
+        best = math.max(best, item.quality or 0)
     end
-    if rare then self:PlayRare() end
+    if best >= RARE_QUALITY then self:PlayRare(best) end
 
     local level = TrackerFX.Level()
     if level == "off" then return end
@@ -1107,13 +1124,33 @@ end
 -- Sound
 --------------------------------------------------------------------------------
 
-function TrackerFX:PlayRare()
+--- A green or better drop. Blue and better say the goblin's line when it
+--- has not played lately; otherwise (or with voice lines off) the chime.
+function TrackerFX:PlayRare(quality)
+    if (quality or 0) >= VOICE_QUALITY and self:Say("drop") then return end
+
     if not TrackerFX.RareSoundOn() then return end
     local now = type(GetTime) == "function" and GetTime() or self.clock
     if self.rareAt and now - self.rareAt < RARE_GAP then return end
 
     self.rareAt = now
     ns.Tracker.PlayFile(ns.Tracker.SOUNDS.rare)
+end
+
+--- Say one of the voice lines ("drop" or "goal"). True when the client says
+--- it will play; false when they are off, it played lately, or it is refused.
+function TrackerFX:Say(kind)
+    local id = TrackerFX.VOICE[kind]
+    if not id or not TrackerFX.VoiceOn() or type(PlaySoundFile) ~= "function" then return false end
+
+    local now = type(GetTime) == "function" and GetTime() or self.clock
+    local last = self.saidAt[kind]
+    if last and now - last < VOICE_GAP then return false end
+
+    local ok, willPlay = pcall(PlaySoundFile, id, "Dialog")
+    if not (ok and willPlay) then return false end
+    self.saidAt[kind] = now
+    return true
 end
 
 --------------------------------------------------------------------------------
@@ -1150,6 +1187,24 @@ ns.RegisterCommand("effects", L["how much the panels and windows move: full, sub
         off = L["window effects off. Nothing moves. /farm effects full turns them back on."],
     }
     ns.Print(lines[argument])
+end)
+
+ns.RegisterCommand("voice", L["spoken lines for a blue drop or a goal reached (on/off)"], function(rest)
+    local argument = Util.Trim(rest):lower()
+
+    if argument == "on" then
+        ns.db.trackerVoice = true
+    elseif argument == "off" then
+        ns.db.trackerVoice = false
+    else
+        ns.db.trackerVoice = ns.db.trackerVoice == false
+    end
+
+    ns.Print(TrackerFX.VoiceOn()
+        and L["voice lines on: a goblin cheers a blue or better drop, and a peon says \"Work complete!\" when a goal is done. /farm voice off to stop."]
+        or L["voice lines off. /farm voice on to bring them back."])
+
+    if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
 end)
 
 ns.RegisterCommand("raresound", L["a sound when something green or better drops (on/off)"], function(rest)

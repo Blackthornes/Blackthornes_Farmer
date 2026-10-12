@@ -594,7 +594,9 @@ function Goals:Finished(goal)
 
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
 
-    -- The drop-rates-unlocked sound: the one picked for big moments.
+    -- The peon's "Work complete!", or with voice lines off (or said a
+    -- moment ago) the drop-rates-unlocked sound, the one for big moments.
+    if ns.TrackerFX and ns.TrackerFX:Say("goal") then return end
     if ns.Tracker and not ns.Tracker.PlayFile(ns.Tracker.SOUNDS.unlock)
         and type(PlaySound) == "function" then
         pcall(PlaySound, 888, "Master")
