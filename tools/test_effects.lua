@@ -72,12 +72,14 @@ local WOOL = { name = "Wool Cloth", id = 2589, quantity = 2 }
 local FANG = { name = "Large Fang", id = 5637 }
 local CLOAK = { name = "Scouting Cloak", id = 4690 }
 local COINS = { name = "38 Silver", money = true }
+local BRACERS = { name = "Glinting Steel Bracers", id = 6551 }
 
 -- The cloak is green. The test client's links are all white, and the colour
 -- kept first is the one that stays.
 ns.db.tracker = ns.db.tracker or {}
 ns.db.tracker.looks = ns.db.tracker.looks or {}
 ns.db.tracker.looks["Scouting Cloak"] = { color = "ff1eff00" }
+ns.db.tracker.looks["Glinting Steel Bracers"] = { color = "ff0070dd" }
 
 suite.check("green is rare", FX.QualityOf("Scouting Cloak") == 2, FX.QualityOf("Scouting Cloak"))
 suite.check("white is not", FX.QualityOf("Nothing Seen") == nil)
@@ -204,15 +206,41 @@ suite.check("switched off, silent", #played == 2, #played)
 ns.HandleSlash("raresound on")
 suite.check("back on", FX.RareSoundOn())
 
+-- Blue: the goblin's line in place of the chime, then the chime again
+-- until the line may play again.
+Settle()
+FX.rareAt, FX.saidAt = nil, {}
+played = {}
+Loot("Mangy Wolf", { BRACERS })
+suite.check("blue says the goblin's line", #played == 1 and played[1].path == FX.VOICE.drop
+    and played[1].channel == "Dialog", played[1] and played[1].path)
+Settle()
+FX.rareAt = nil
+Loot("Mangy Wolf", { BRACERS })
+suite.check("said lately: the chime instead", #played == 2 and played[2].path == Tracker.SOUNDS.rare,
+    played[2] and played[2].path)
+ns.HandleSlash("voice off")
+suite.check("voice off saved", ns.db.trackerVoice == false and not FX.VoiceOn())
+Settle()
+FX.rareAt, FX.saidAt = nil, {}
+Loot("Mangy Wolf", { BRACERS })
+suite.check("voice off: the chime", #played == 3 and played[3].path == Tracker.SOUNDS.rare)
+ns.HandleSlash("voice on")
+suite.check("voice back on", FX.VoiceOn())
+Settle()
+FX.rareAt, FX.saidAt = nil, {}
+Loot("Mangy Wolf", { CLOAK })
+suite.check("green still only chimes", #played == 4 and played[4].path == Tracker.SOUNDS.rare)
+
 -- The panel hidden: the chime has its own switch and still plays.
 ns.db.trackerHidden = true
 TUI:Refresh()
 FX.rareAt = nil
 Loot("Mangy Wolf", { CLOAK })
-suite.check("hidden panel, green still chimes", #played == 3, #played)
+suite.check("hidden panel, green still chimes", #played == 5, #played)
 FX.rareAt = nil
 Loot("Mangy Wolf", { WOOL })
-suite.check("hidden panel, white stays quiet", #played == 3, #played)
+suite.check("hidden panel, white stays quiet", #played == 5, #played)
 ns.db.trackerHidden = false
 TUI:Refresh()
 played = { 1, 2 }

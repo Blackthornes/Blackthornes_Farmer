@@ -199,7 +199,7 @@ clock = clock + 20
 changes = Bags(41)
 suite.check("finished", goal.done == true and changes[1].done == true)
 suite.check("chat line", Chat("Goal done") ~= nil)
-suite.check("the unlock sound", played[1] and played[1]:find("drop%-rates%-unlocked") ~= nil, played[1])
+suite.check("the peon's \"Work complete!\"", played[1] == ns.TrackerFX.VOICE.goal and #played == 1, played[1])
 suite.check("banner up", GUI.banner and GUI.banner:IsShown())
 suite.check("banner says it", GUI.banner.title:GetText() == "GOAL COMPLETE")
 suite.check("one done today", Goals:DoneToday() == 1)

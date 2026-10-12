@@ -618,6 +618,14 @@ function SettingsUI:BuildTallyPage()
     end, true)
     controls.rareSound:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    local voiceRow = pages:Row("tally", 1, L["Voice lines"],
+        L["A goblin cheers a blue or better drop, and a peon says \"Work complete!\" when a goal is done. The game's own voices, a few minutes apart. Same as /farm voice."])
+
+    controls.voice = Widgets.CreateCheckbox(voiceRow, L["Say them"], function(checked)
+        ns.db.trackerVoice = checked
+    end, true)
+    controls.voice:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- The mob you last looted, as the commands read it with no name.
     pages:Section("tally", 2, L["YOUR LAST MOB"])
 
@@ -1026,6 +1034,7 @@ function SettingsUI:Refresh()
         if name == level then controls.effects:SetValue(index, true) end
     end
     controls.rareSound:SetChecked(ns.TrackerFX.RareSoundOn())
+    controls.voice:SetChecked(ns.TrackerFX.VoiceOn())
     controls.textSize:Sync()
     controls.windowStyle:Sync()
 
