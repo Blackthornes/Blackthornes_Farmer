@@ -226,6 +226,7 @@ local buttons = {
     shareGive = "give",
     shareTake = "take",
     hidden = "hidden",
+    whatsnew = "whatsnew",
 }
 local wrong = {}
 for key, command in pairs(buttons) do
