@@ -4,6 +4,34 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.30.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- **What's New window:** the first time the game loads after an update,
+  one window shows what changed in every Blackthornes addon that was
+  updated, with dark glass cards and a little motion. "Motion" in Settings
+  turns the movement off, "Show after updates" turns the window off (off
+  in one addon is off in all of them), and the `whatsnew` command or a
+  Settings button opens it any time.
+- **Zone names from the Forever client:** on a Deutsch (German) client,
+  zones, dungeons and raids show by the game's own names everywhere Farmer
+  names a place, and typing one in the search finds it, from the start.
+  Forever's new zones (Mount Hyjal, Riverglades, Shen'dralas, Zephras Isle)
+  are known too. An English client sees no change.
+- **Voice lines:** a blue or better drop plays a goblin's line and a
+  finished goal plays "Work complete!", each at most once every three
+  minutes; the chime and fanfare play in between. "Voice lines" on the
+  Kill tally page of Settings and `/farm voice` turn them off.
+- **Spreadsheet export:** `/farm export csv`, or "Spreadsheet (CSV)" on
+  the Loot page of Settings, opens Loot, Kills, Gathering and Fishing
+  sheets to copy into a spreadsheet. Counts only; hidden mobs and items
+  stay out.
+- **Dark glass lines:** the Kills & Loot and Goals panels use the house
+  dark glass rows, and Loot tab lines now light under the mouse and open
+  Hide on a right-click.
+
 ## 0.29.0
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
