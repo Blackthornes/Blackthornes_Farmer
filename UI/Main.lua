@@ -539,7 +539,7 @@ local function SourceTexts(source)
     local where = ns.DB:WhereText(source)
 
     return source.name or source.requires or ns.DB:KindLabel(source.kind),
-        where and (source.zone .. Util.Colored("dim", " / ") .. where) or source.zone,
+        where and (ns.Spots.Show(source.zone) .. Util.Colored("dim", " / ") .. where) or ns.Spots.Show(source.zone),
         (not source.chance and source.requires and source.name) and source.requires or nil
 end
 
@@ -885,7 +885,7 @@ function UI:UpdateRow(row, data, index)
         PlaceHeading(row, 2, 2)
         row.bandStripe:Show()
         row.heading:SetTextColor(Theme.Unpack("accentHi"))
-        row.heading:SetText(ZONE_INDENT .. data.zone .. "  " .. Util.Colored("dim", ZoneCount(data.count)))
+        row.heading:SetText(ZONE_INDENT .. ns.Spots.Show(data.zone) .. "  " .. Util.Colored("dim", ZoneCount(data.count)))
         row.heading:Show()
         return
     end
@@ -1001,7 +1001,7 @@ function UI:OnRowClick(data, button)
     if data.type ~= "source" then return end
 
     local source = data.source
-    local parts = { source.name or ns.DB:KindLabel(source.kind), source.zone }
+    local parts = { source.name or ns.DB:KindLabel(source.kind), ns.Spots.Show(source.zone) }
 
     local where = ns.DB:WhereText(source)
     if where then parts[#parts + 1] = where end

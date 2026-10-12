@@ -69,7 +69,7 @@ local function ShowTooltip(pin)
     local camp = pin.camp
     if not (camp and GameTooltip) then return end
     pcall(GameTooltip.SetOwner, GameTooltip, pin, "ANCHOR_RIGHT")
-    GameTooltip:AddLine(("%s, %s"):format(camp.zone, camp.label or ""), Theme.Unpack("accent"))
+    GameTooltip:AddLine(("%s, %s"):format(ns.Spots.Show(camp.zone), camp.label or ""), Theme.Unpack("accent"))
     GameTooltip:AddLine(L.Format("Level %s, %s", ns.Search:LevelText(camp), Util.Plural(camp.count or 0, L["mob"], L["mobs"])),
         1, 1, 1)
     for _, mob in ipairs(camp.mobs or {}) do

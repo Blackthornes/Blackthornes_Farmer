@@ -75,7 +75,8 @@ function Rankings:Entry(mobName)
         entry.where = places[1].name
     elseif spot then
         local landmark = ns.DB:WhereText(spot)
-        entry.where = landmark and (spot.zone .. ", " .. landmark) or spot.zone
+        local zone = ns.Spots.Show(spot.zone)
+        entry.where = landmark and (zone .. ", " .. landmark) or zone
     end
 
     if value then

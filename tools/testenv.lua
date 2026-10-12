@@ -314,6 +314,7 @@ local FILES = {
     "Core/Comm.lua",
     "Data/Database.lua",
     "Data/NpcNames.lua",
+    "Data/Zones.lua",
     "Data/Data_Mining.lua",
     "Data/Data_Herbalism.lua",
     "Data/Data_Cloth.lua",

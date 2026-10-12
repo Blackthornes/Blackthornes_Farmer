@@ -199,7 +199,8 @@ end
 function Arrow:Following()
     local camp = self.grind
     if camp then
-        return { item = ("%s, %s"):format(camp.zone, camp.label or camp.zone), grind = camp }
+        local zone = ns.Spots.Show(camp.zone)
+        return { item = ("%s, %s"):format(zone, camp.label or zone), grind = camp }
     end
     return self:Goal()
 end
@@ -668,7 +669,7 @@ function Arrow.Note(target, now)
             or L["other continent: take the boat or zeppelin"], "muted"
     end
     if target.here then return L["about this zone, no one spot"], "accent" end
-    if target.area then return L.Format("somewhere in %s", target.zone or L["this zone"]), "accent" end
+    if target.area then return L.Format("somewhere in %s", ns.Spots.Show(target.zone) or L["this zone"]), "accent" end
 
     local rate = target.measured or target.chance
     if rate and ns.Tracker and ns.Tracker.FormatChance then
@@ -681,7 +682,7 @@ end
 function Arrow.Place(target, here)
     local name = target.name or "?"
     if target.zone and not (here and target.zone == here.zone) then
-        return name .. ", " .. target.zone
+        return name .. ", " .. ns.Spots.Show(target.zone)
     end
     if target.location then return name .. ", " .. target.location end
     return name
@@ -754,13 +755,13 @@ function Arrow:State(clock)
 
     if target.far then
         state.mode = "far"
-        state.distance = target.zone or L["far away"]
+        state.distance = ns.Spots.Show(target.zone) or L["far away"]
         return state
     end
 
     if target.here then
         state.mode = "here"
-        state.distance = L.Format("In %s", target.zone or L["this zone"])
+        state.distance = L.Format("In %s", ns.Spots.Show(target.zone) or L["this zone"])
         return state
     end
 
@@ -768,7 +769,7 @@ function Arrow:State(clock)
     local north, west = Arrow.Offset(here, target.map, target.x, target.y)
     if not north then
         state.mode = "far"
-        state.distance = target.zone or L["far away"]
+        state.distance = ns.Spots.Show(target.zone) or L["far away"]
         return state
     end
 
@@ -788,7 +789,7 @@ function Arrow:State(clock)
 
     state.mode = "point"
     if target.area then
-        state.distance = ("%s, %s"):format(target.zone or "?", Arrow.Yards(yards))
+        state.distance = ("%s, %s"):format(ns.Spots.Show(target.zone) or "?", Arrow.Yards(yards))
     else
         state.distance = Arrow.Yards(yards)
     end

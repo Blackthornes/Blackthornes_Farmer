@@ -104,28 +104,16 @@ local INSIDE = {
     ["Stratholme"] = "Eastern Plaguelands",
 }
 
--- Each zone's map ID, as Classic numbers its maps (Elwynn Forest 1429), for
--- a client that names its zones in another language: there GetRealZoneText
--- says "Wald von Elwynn", and the zone is told by the map you are on (or
--- one it sits inside) instead. On an English client the names match and
--- these are never read. Forever's own numbers are not confirmed, so a map
--- whose ID is not here leaves the client's name as it was.
-Spots.ZONE_MAPS = {
-    ["Durotar"] = 1411, ["Mulgore"] = 1412, ["The Barrens"] = 1413,
-    ["Alterac Mountains"] = 1416, ["Arathi Highlands"] = 1417, ["Badlands"] = 1418,
-    ["Blasted Lands"] = 1419, ["Tirisfal Glades"] = 1420, ["Silverpine Forest"] = 1421,
-    ["Western Plaguelands"] = 1422, ["Eastern Plaguelands"] = 1423, ["Hillsbrad Foothills"] = 1424,
-    ["The Hinterlands"] = 1425, ["Dun Morogh"] = 1426, ["Searing Gorge"] = 1427,
-    ["Burning Steppes"] = 1428, ["Elwynn Forest"] = 1429, ["Deadwind Pass"] = 1430,
-    ["Duskwood"] = 1431, ["Loch Modan"] = 1432, ["Redridge Mountains"] = 1433,
-    ["Stranglethorn Vale"] = 1434, ["Swamp of Sorrows"] = 1435, ["Westfall"] = 1436,
-    ["Wetlands"] = 1437, ["Teldrassil"] = 1438, ["Darkshore"] = 1439, ["Ashenvale"] = 1440,
-    ["Thousand Needles"] = 1441, ["Stonetalon Mountains"] = 1442, ["Desolace"] = 1443,
-    ["Feralas"] = 1444, ["Dustwallow Marsh"] = 1445, ["Tanaris"] = 1446, ["Azshara"] = 1447,
-    ["Felwood"] = 1448, ["Un'Goro Crater"] = 1449, ["Moonglade"] = 1450, ["Silithus"] = 1451,
-    ["Winterspring"] = 1452, ["Stormwind City"] = 1453, ["Orgrimmar"] = 1454,
-    ["Ironforge"] = 1455, ["Thunder Bluff"] = 1456, ["Darnassus"] = 1457, ["Undercity"] = 1458,
-}
+-- Each zone's map ID (Elwynn Forest 1429), for a client that names its
+-- zones in another language: there GetRealZoneText says "Wald von Elwynn",
+-- and the zone is told by the map you are on (or one it sits inside)
+-- instead. On an English client the names match and these are never read.
+-- The numbers are Forever's own, from the client's game tables
+-- (Data/Zones.lua, tools/make_zones.py); they match Classic's, and Forever's
+-- new zones (Mount Hyjal, Riverglades and the like) are there too.
+local ZONE_DATA = ns.ZONE_DATA or {}
+Spots.ZONE_MAPS = {}
+for zone, mapID in pairs(ZONE_DATA.maps or {}) do Spots.ZONE_MAPS[zone] = mapID end
 Spots.MAP_ZONES = {}
 for zone, mapID in pairs(Spots.ZONE_MAPS) do Spots.MAP_ZONES[mapID] = zone end
 
@@ -172,10 +160,41 @@ function Spots.ZoneOf(place)
     return INSIDE[place] or place
 end
 
---- `zone` by the English name the data uses, where this session has seen
---- the client call it something else; else as it is.
+--- The client's language when it is one the zone names are shipped in
+--- ("deDE"), else nil: an English client, or one without them.
+--- Read once: the client's language does not change while it runs (kept
+--- by the GetLocale it was read from, so a test that swaps it is heard).
+local localeFrom, localeKept
+function Spots.ZoneLocale()
+    if type(GetLocale) ~= "function" then return nil end
+    if localeFrom == GetLocale then return localeKept end
+    local ok, locale = pcall(GetLocale)
+    if not ok or type(locale) ~= "string" or type((ZONE_DATA.names or {})[locale]) ~= "table"
+        or type((ZONE_DATA.english or {})[locale]) ~= "table" then
+        locale = nil
+    end
+    localeFrom, localeKept = GetLocale, locale
+    return locale
+end
+
+--- `zone` by the English name the data uses: where this session has seen
+--- the client call it something else, or the client's own name for it in
+--- Forever's game tables (Data/Zones.lua); else as it is.
 function Spots.English(zone)
-    return Spots.clientZones[zone] or zone
+    if Spots.clientZones[zone] then return Spots.clientZones[zone] end
+    local locale = type(zone) == "string" and Spots.ZoneLocale()
+    return locale and ZONE_DATA.english[locale][zone] or zone
+end
+
+--- `zone` as the client names it, for showing: "Wald von Elwynn" for
+--- Elwynn Forest on a German client. The data and every comparison keep the
+--- English name; only the words on screen change. A name the tables do not
+--- know (one Forever added, "any coastline") shows as it is.
+function Spots.Show(zone)
+    if type(zone) ~= "string" then return zone end
+    local locale = Spots.ZoneLocale()
+    if not locale then return zone end
+    return ZONE_DATA.names[locale][Spots.English(zone)] or zone
 end
 
 --- Is `zone` a place the map knows by its English name?
@@ -261,7 +280,9 @@ function Spots:Player()
     local zone = ns.Harvest.Readable(Read(GetRealZoneText))
     if zone == "" then zone = nil end
     if zone and not Spots.Known(zone) and not Util.EnglishClient() then
-        local english = Spots.clientZones[zone] or Spots.ZoneFromMap()
+        local english = Spots.English(zone)
+        if english == zone or not Spots.Known(english) then english = Spots.ZoneFromMap() or english end
+        if english == zone then english = nil end
         if english then
             Spots.clientZones[zone] = english
             zone = english

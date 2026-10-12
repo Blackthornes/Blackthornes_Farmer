@@ -612,7 +612,7 @@ end
 
 --- One camp as a chat line: "The Barrens, The Dry Hills (14-18): 4 mobs".
 function Grinding:Line(camp)
-    local text = ("%s, %s (%s): %s"):format(Util.Colored("accent", camp.zone), camp.label,
+    local text = ("%s, %s (%s): %s"):format(Util.Colored("accent", ns.Spots.Show(camp.zone)), camp.label,
         ns.Search:LevelText(camp), Util.Plural(camp.count, L["mob"], L["mobs"]))
     local distance = ns.Spots.DistanceText(camp.hops, camp.zone, camp.travel)
     if distance ~= "" then text = text .. ", " .. distance end

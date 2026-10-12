@@ -530,10 +530,8 @@ a frame and on `GET_ITEM_INFO_RECEIVED`), the search matches it too, and a
 goal set by the client's name keeps that name (`Goals:ResolveItem`;
 `Goals:Find` matches either name). Skills: `Gathering.ClientNames` and
 `SkillOf` (spell names by ID, skill line names through
-`C_TradeSkillUI.GetProfessionInfoBySkillLineID`). Zones: Classic's map IDs
-in `Spots.ZONE_MAPS` (Forever's numbers not confirmed), `Spots:Player`
-names the zone by the map, `Spots.English` maps a client name seen this
-session. Creature types are kept in English (`Grinding.EnglishType`,
+`C_TradeSkillUI.GetProfessionInfoBySkillLineID`). Zones: see "Zone names from
+the client" below. Creature types are kept in English (`Grinding.EnglishType`,
 `C_CreatureInfo.GetCreatureTypeInfo`), and coin words come from
 `COPPER_AMOUNT` and the like (`Harvest.CoinValue`). Loot records stay keyed
 by the client's mob name, and fishing schools are still told by English
@@ -559,7 +557,8 @@ the language as "Deutsch"; the code names stay `deDE` and
 - **Left in English on purpose:** slash command words, saved and internal
   keys, anything compared against data or the client (zone names, coin
   words, skill names, creature types: `Grinding.TypeLabel` only shows
-  one), data names (items, mobs, zones), "Creature #ID", the harvest and
+  one), data names (items, mobs; zones are kept English and only shown
+  in German, `Spots.Show`), "Creature #ID", the harvest and
   fishing export text, debug lines, and the checks players run for a
   report (`/farm arrow check`, `gathering check`, `harvest check`).
   `Spots.Hops`' `travel` stays English; only `Spots.DistanceText` says it.
@@ -567,6 +566,33 @@ the language as "Deutsch"; the code names stay `deDE` and
   and a new fixed width must wrap or grow, never end in "...".
 - `Locale/Locale.lua` and `tools/check_locale.py` are the same as Pets';
   a fix to either belongs in every addon that has them.
+
+## Zone names from the client
+
+The owner said "do it all" (2026-10-12) to using the Forever client's game
+tables in every addon. Farmer's part is `Data/Zones.lua`, written by
+`tools/make_zones.py` from the tables' AreaTable, Map and UiMap (English
+and deDE exports, build named in the file; never edit it by hand, and never
+commit the tables or name where they came from: "the Forever client's game
+tables"). It holds names and map IDs only, no drop rates or spawns.
+
+- `ns.ZONE_DATA.maps`: each zone's map ID, Forever's own (they match
+  Classic's, and Forever's new zones are there). `Spots.ZONE_MAPS` is
+  built from it; `Spots:Player` names the zone by the map when the name
+  alone does not say.
+- `ns.ZONE_DATA.english.deDE`: the English name of every German zone,
+  dungeon and raid name the client gives. `Spots.English` reads it on a
+  German client (after the names seen this session), so a record kept
+  under "Wald von Elwynn" counts as Elwynn Forest anywhere.
+- `ns.ZONE_DATA.names.deDE`: the German name of each, for showing.
+  `Spots.Show(zone)` gives it on a German client (`Spots.ZoneLocale`, read
+  once) and the zone as it is otherwise. The search rows and zone
+  headings, Where to farm, the Grind tab and its pins, the item tooltip,
+  Rankings, fishing and gathering places and the arrow show zones through
+  it, and the search matches the German name too. Everything kept or
+  compared stays English. A new place that shows a zone calls it too.
+
+Tested in `tools/test_zones.lua`. Not yet seen in game.
 
 ## The owner's standing rules (both addons)
 
