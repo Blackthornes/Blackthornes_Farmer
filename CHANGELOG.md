@@ -4,6 +4,19 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.29.0
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- **Prices without Tradeskills:** when Tradeskills isn't loaded, Farmer
+  prices drops from TradeSkillMaster's market value, or Auctionator's,
+  whichever is installed. Tradeskills still comes first whenever it's
+  loaded, greys stay vendor only, and the vendor price still wins when
+  it's higher. "TSM and Auctionator" on the Loot page of Settings turns it
+  off. Rankings, the loot table and `/farm value` say where prices come
+  from.
+
 ## 0.28.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game
