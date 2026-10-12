@@ -1004,10 +1004,18 @@ local function Lit(row, value)
     row.hover:SetAlpha(value)
     row.hoverEdge:SetAlpha(value)
     -- A gradient faded with SetAlpha alone stays lit on Forever, so the
-    -- bleed is hidden outright at rest.
-    row.hoverBleed:SetAlpha(value)
-    row.hoverBleed:SetShown(value > 0)
+    -- bleed and the wash go through LightGradient, hidden outright at rest.
+    -- Both sit above a loot line's quality light, so every line shows it.
+    Theme.LightGradient(row.hoverBleed, "HORIZONTAL", "accent", 0.22, 0, value)
+    Theme.LightGradient(row.hoverWash, "HORIZONTAL", "accent", 0.10, 0, value)
 end
+
+--- Whether a line lights and takes the mouse: one that opens or folds
+--- something, a mob, and a Loot tab item (right-click hides it).
+local function TakesMouse(line)
+    return line ~= nil and (line.mob ~= nil or line.openKey ~= nil or line.style == "loot")
+end
+TrackerUI.TakesMouse = TakesMouse
 
 --- Whether the mouse is on `row` and the row is on screen. Read in a pcall,
 --- as every client value is; a client that cannot say answers no.
@@ -1154,7 +1162,7 @@ function TrackerUI:CreateLine(parent, index)
     row.hover:SetColorTexture(Theme.Unpack("glassHover"))
     row.hover:SetAlpha(0)
 
-    row.hoverEdge = row:CreateTexture(nil, "ARTWORK")
+    row.hoverEdge = row:CreateTexture(nil, "ARTWORK", nil, 7)
     row.hoverEdge:SetPoint("TOPLEFT")
     row.hoverEdge:SetPoint("BOTTOMLEFT")
     row.hoverEdge:SetWidth(2)
@@ -1165,14 +1173,17 @@ function TrackerUI:CreateLine(parent, index)
     row.hoverBleed:SetPoint("TOPLEFT", 2, 0)
     row.hoverBleed:SetPoint("BOTTOMLEFT", 2, 0)
     row.hoverBleed:SetWidth(18)
-    Theme.SetGradientAlpha(row.hoverBleed, "HORIZONTAL", "accent", 0.22, 0)
     pcall(row.hoverBleed.SetBlendMode, row.hoverBleed, "ADD")
-    row.hoverBleed:SetAlpha(0)
     row.hoverBleed:Hide()
+
+    -- A soft gold wash across the line from its left, as list rows light.
+    row.hoverWash = row:CreateTexture(nil, "BORDER", nil, 1)
+    row.hoverWash:SetAllPoints(row)
+    row.hoverWash:Hide()
 
     row:SetScript("OnEnter", function(self)
         local line = self.line
-        if not (line and (line.openKey or line.mob)) then return end
+        if not TakesMouse(line) then return end
         TrackerUI.hovered = self
         ns.Motion:Blend(self, "hover", 1, 0.12, function(value) Lit(self, value) end)
         TrackerUI:CardTooltip(self)
@@ -1326,7 +1337,9 @@ function TrackerUI:CardTooltip(row)
 
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
     GameTooltip:AddLine(line.left)
-    if line.openKey then
+    if line.style == "loot" then
+        GameTooltip:AddLine(L["Right-click to hide it."], 1, 1, 1)
+    elseif line.openKey then
         GameTooltip:AddLine(line.folded and L["Click to show its loot."] or L["Click to fold it."], 1, 1, 1)
         if line.mob then
             GameTooltip:AddLine(L["Click an item for everything it has dropped."], 1, 1, 1)
@@ -2132,7 +2145,7 @@ function TrackerUI:DrawLine(row, line)
 
     -- Only rows that open or fold something take the mouse, so the rest of
     -- the panel still drags from anywhere.
-    local takesMouse = line.mob ~= nil or line.openKey ~= nil
+    local takesMouse = TakesMouse(line)
     row:EnableMouse(takesMouse)
     self:Relight(row, takesMouse)
 
