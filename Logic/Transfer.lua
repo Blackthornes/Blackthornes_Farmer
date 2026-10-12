@@ -23,6 +23,7 @@ local _, ns = ...
 local L = ns.L
 
 local Transfer = ns.NewModule("Transfer")
+Transfer.removing = {}
 
 local Share = ns.Share
 local Serialize = ns.Serialize
@@ -427,8 +428,10 @@ function Transfer.Describe(plan)
 end
 
 --- Take a measured plan in. `done(records)`.
+--- While another Apply or a Remove is still being worked through it is
+--- `done(nil, "busy")`: nothing was taken, so the caller keeps the plan.
 function Transfer:Apply(plan, done)
-    if self.applying then return done(0) end
+    if self.applying or next(self.removing) then return done(nil, "busy") end
     self.applying = true
 
     local state = { key = Transfer.LedgerKey(plan.id), name = "Imported " .. plan.id }
@@ -480,12 +483,17 @@ end
 
 --- Take everything an import added back out, exactly as the ledger has it.
 -- `done(records)`.
+-- A second click while one runs, or one while an Apply runs, is
+-- `done(nil, "busy")`: the ledger is only deleted at the end, so a second
+-- run subtracted it twice and took the player's own counts with it.
 function Transfer:Remove(id, done)
     local key = Transfer.LedgerKey(id)
     local held = ns.db.shareIn and ns.db.shareIn[key]
     if not (type(held) == "table" and held.kind == "import" and type(held.credit) == "table") then
         return done(0)
     end
+    if self.removing[key] or self.applying then return done(nil, "busy") end
+    self.removing[key] = true
 
     local jobs = {}
     for _, section in ipairs(SECTIONS) do
@@ -503,6 +511,7 @@ function Transfer:Remove(id, done)
         if Empty(job.section.spec, own) then store[job.key] = nil end
     end, function()
         ns.db.shareIn[key] = nil
+        self.removing[key] = nil
         Share:Changed()
         done(#jobs)
     end)

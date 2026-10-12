@@ -389,8 +389,10 @@ end
 -- Candidates
 --------------------------------------------------------------------------------
 
+-- By the zone's English name: your own records keep the client's
+-- ("Wald von Elwynn"), the data English, and one place was listed twice.
 local function Key(name, zone)
-    return ((name or "?") .. "|" .. (zone or "?")):lower()
+    return ((name or "?") .. "|" .. (Spots.English(zone) or "?")):lower()
 end
 
 --- Every place known for `item`: the database's, merged with what you have

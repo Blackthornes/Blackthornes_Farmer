@@ -383,8 +383,16 @@ function Look.Checkbox(checkbox, box, tick)
     pcall(light.SetBlendMode, light, "ADD")
     light:Hide()
 
+    -- A disabled box is greyed and dimmed like the game's own, and never
+    -- lights under the mouse: it looked like a box that would click.
     local function Paint()
+        local disabled = rawget(checkbox, "disabled") and true or false
         check:SetShown(checkbox.checked and true or false)
+        pcall(well.SetDesaturated, well, disabled)
+        pcall(check.SetDesaturated, check, disabled)
+        well:SetAlpha(disabled and 0.5 or 1)
+        check:SetAlpha(disabled and 0.5 or 1)
+        if disabled then light:Hide() end
     end
     Paint()
 
@@ -394,8 +402,18 @@ function Look.Checkbox(checkbox, box, tick)
         Paint()
     end
 
+    local setDisabled = rawget(checkbox, "SetDisabled")
+    if setDisabled then
+        function checkbox:SetDisabled(disabled)
+            setDisabled(self, disabled)
+            Paint()
+        end
+    end
+
     if checkbox.HookScript then
-        checkbox:HookScript("OnEnter", function() light:Show() end)
+        checkbox:HookScript("OnEnter", function()
+            if not rawget(checkbox, "disabled") then light:Show() end
+        end)
         checkbox:HookScript("OnLeave", function() light:Hide() end)
     end
     return true

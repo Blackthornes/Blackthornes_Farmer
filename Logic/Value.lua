@@ -269,10 +269,12 @@ function Value:AuctionPrice(itemID)
 end
 
 --- True for a grey (poor quality) item: from the client's item info, else
---- from the colour of a loot link we have seen for it.
+--- from the colour of a loot link we have seen for it. The second answer
+--- says whether the quality is known at all: false while the client is
+--- still loading an item no grey link was seen for.
 function Value:IsPoor(itemID)
     local known = poor[itemID]
-    if known ~= nil then return known end
+    if known ~= nil then return known, true end
 
     local getInfo = (C_Item and C_Item.GetItemInfo) or _G.GetItemInfo
     if type(getInfo) == "function" then
@@ -280,17 +282,20 @@ function Value:IsPoor(itemID)
         quality = ok and ns.Harvest.ReadableNumber(quality) or nil
         if quality then
             if itemID then poor[itemID] = quality == 0 end
-            return quality == 0
+            return quality == 0, true
         end
     end
 
-    -- Item info not cached yet: a grey loot link says the same thing.
+    -- Item info not cached yet: a loot link's colour says the same thing.
     if itemID and self:GreyLinks()[itemID] then
         poor[itemID] = true
-        return true
+        return true, true
+    end
+    if itemID and self.greyLinks and self.greyLinks.colored[itemID] then
+        return false, true
     end
 
-    return false
+    return false, false
 end
 
 --- Item ids a grey loot link has been seen for, from the kept looks. Walked
@@ -301,14 +306,17 @@ function Value:GreyLinks()
     local kept = self.greyLinks
     if kept and kept.version == version then return kept.ids end
 
-    local ids = {}
+    local ids, colored = {}, {}
     local grey = Tracker and Tracker.QUALITY and Tracker.QUALITY[0]
     if grey and Tracker.Looks then
         for _, look in pairs(Tracker:Looks()) do
-            if type(look) == "table" and look.id and look.color == grey then ids[look.id] = true end
+            if type(look) == "table" and look.id and look.color then
+                if look.color == grey then ids[look.id] = true else colored[look.id] = true end
+            end
         end
     end
-    self.greyLinks = { version = version, ids = ids }
+    -- `colored`: a link seen in another colour, so not grey.
+    self.greyLinks = { version = version, ids = ids, colored = colored }
     return ids
 end
 
@@ -319,7 +327,11 @@ function Value:UnitPrice(itemID)
     if not itemID then return nil end
 
     local vendor = self:VendorPrice(itemID)
-    if self:IsPoor(itemID) then
+    local isPoor, sure = self:IsPoor(itemID)
+    -- Not known yet counts as grey: right after login a grey the client
+    -- had not loaded took a thin market's auction price (a 3c fang at 50s).
+    -- Asking has the client load it, and the next draw has its quality.
+    if isPoor or not sure then
         if vendor then return vendor, "vendor" end
         return nil
     end

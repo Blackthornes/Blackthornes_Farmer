@@ -572,7 +572,7 @@ function UI:FitColumns(rows)
         elseif row.type == "zone" then
             -- A zone's heading takes the where column's room and more; it
             -- only needs not to run past the row.
-            note = math.max(note, Theme.TextWidth("small", ZONE_INDENT .. row.zone .. "  " .. ZoneCount(row.count)) + 4)
+            note = math.max(note, Theme.TextWidth("small", ZONE_INDENT .. ns.Spots.Show(row.zone) .. "  " .. ZoneCount(row.count)) + 4)
         elseif row.type == "note" then
             -- A note is one line across the whole row.
             note = math.max(note, Theme.TextWidth("small", NOTE_INDENT .. row.text) + 4)
@@ -1051,6 +1051,12 @@ function UI:Search(query, typed)
 
     self:BuildChips(query)
     self:Render()
+end
+
+--- Counts changed elsewhere (a partner's shared counts, a handout taken):
+--- the search list follows while it shows, or is marked stale.
+function UI:RefreshActive()
+    if ns.GoalsUI and ns.GoalsUI.RedrawSearch then ns.GoalsUI:RedrawSearch() end
 end
 
 function UI:Render()

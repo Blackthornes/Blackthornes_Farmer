@@ -73,7 +73,7 @@ local function ShowTooltip(pin)
     GameTooltip:AddLine(L.Format("Level %s, %s", ns.Search:LevelText(camp), Util.Plural(camp.count or 0, L["mob"], L["mobs"])),
         1, 1, 1)
     for _, mob in ipairs(camp.mobs or {}) do
-        GameTooltip:AddDoubleLine(mob.name, mob.type or "", 0.9, 0.9, 0.9, Theme.Unpack("muted"))
+        GameTooltip:AddDoubleLine(mob.name, mob.type and ns.Grinding.TypeLabel(mob.type) or "", 0.9, 0.9, 0.9, Theme.Unpack("muted"))
     end
     GameTooltip:AddLine(L["Click to point the arrow here."], Theme.Unpack("good"))
     GameTooltip:Show()
