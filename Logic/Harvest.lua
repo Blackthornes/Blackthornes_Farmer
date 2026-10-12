@@ -753,6 +753,21 @@ local function AddCounts(into, from)
     end
 end
 
+--- What partners and handouts gave under `from` (shareIn's ledgers, by
+--- record key) follows the record to `to`. Left under the old key, the
+--- ledger no longer matched: a partner's counts were sent back to them as
+--- this side's own, and a handout could not be taken back out.
+local function MoveCredit(section, from, to)
+    for _, held in pairs(type(ns.db) == "table" and type(ns.db.shareIn) == "table" and ns.db.shareIn or {}) do
+        local credit = type(held) == "table" and type(held.credit) == "table" and held.credit[section]
+        local taken = type(credit) == "table" and credit[from]
+        if type(taken) == "table" then
+            credit[from] = nil
+            if type(credit[to]) == "table" then AddCounts(credit[to], taken) else credit[to] = taken end
+        end
+    end
+end
+
 --- Puts names on what was kept as "Creature #ID" once the name is known,
 --- in the harvest and the kill tally both, adding it to a record of that
 --- name already there. Nothing is dropped: one still nameless stays.
@@ -771,6 +786,7 @@ function Harvest:NameUnnamed()
         local key = RecordKey(move.name, old.zone, old.location)
         local into = self.records[key]
         self.records[move.key] = nil
+        MoveCredit("h", move.key, key)
 
         if not into then
             old.mob = move.name
@@ -805,7 +821,11 @@ function Harvest:NameUnnamed()
         for _, rename in ipairs(renames) do
             local tally = tracker[rename.mob]
             tracker[rename.mob] = nil
+            MoveCredit("k", rename.mob, rename.name)
             if type(tracker[rename.name]) == "table" then
+                -- A tally from before coin was counted over kills is set
+                -- aside first, or its old coin was split over the new kills.
+                if ns.Tracker and tally.coinKills ~= nil then pcall(ns.Tracker.GetMob, ns.Tracker, rename.name) end
                 AddCounts(tracker[rename.name], tally)
             else
                 tracker[rename.name] = tally

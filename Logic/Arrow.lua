@@ -493,8 +493,10 @@ function Arrow:SpotTarget(spot, here, rank)
             target.yards, target.bearing = Arrow.Measure(north, west)
             return target, "exact"
         end
-        target.far = true
-        return target, "far"
+        -- On this continent, only not measurable from here yet: "somewhere
+        -- in" it, never "other continent: take the boat or zeppelin".
+        target.area = true
+        return target, "area"
     elseif mapID and here and zone == ns.Spots.ZoneOf(here.zone) then
         -- About the zone you are in: nothing to point at.
         target.map, target.here = mapID, true

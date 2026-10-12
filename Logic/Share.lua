@@ -240,7 +240,14 @@ local function Merge(spec, own, inn, credit)
                         added = true
                     end
                 else
-                    if type(own[field][name]) ~= "table" then own[field][name] = {} end
+                    if type(own[field][name]) ~= "table" then
+                        -- Every count starts at 0, as OwnRecord's do: a
+                        -- 0 or missing count left it nil, and the next
+                        -- loot's `entry.corpses + 1` raised.
+                        local fresh = {}
+                        for add in pairs(sub.add or {}) do fresh[add] = 0 end
+                        own[field][name] = fresh
+                    end
                     if type(credit[field][name]) ~= "table" then credit[field][name] = {} end
                     if Merge(sub, own[field][name], entry, credit[field][name]) then added = true end
                 end
@@ -699,6 +706,8 @@ function Share:Changed()
     self.refreshing = true
     C_Timer.After(1, function()
         self.refreshing = nil
+        -- What the arrow's places were made from moved too (Arrow:Sources).
+        if ns.Harvest then ns.Harvest.changes = (ns.Harvest.changes or 0) + 1 end
         if ns.TrackerUI and ns.TrackerUI.Refresh then pcall(ns.TrackerUI.Refresh, ns.TrackerUI) end
         if ns.UI and ns.UI.RefreshActive then pcall(ns.UI.RefreshActive, ns.UI) end
     end)

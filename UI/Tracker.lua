@@ -233,6 +233,7 @@ function TrackerUI:BuildGrip(frame)
     pcall(grip.SetPushedTexture, grip, [[Interface\ChatFrame\UI-ChatIM-SizeGrabber-Down]])
 
     grip:SetScript("OnMouseDown", function()
+        grip.held = true
         TrackerUI.sizing = true
         -- Pin the top first, so the panel grows downward from where it is.
         TrackerUI:AnchorTop()
@@ -243,7 +244,12 @@ function TrackerUI:BuildGrip(frame)
         frame:StartSizing("BOTTOMRIGHT")
     end)
 
-    grip:SetScript("OnMouseUp", function()
+    -- Let go, or the panel hid mid-drag (Alt-Z, a macro): either way the
+    -- drag ends, or `sizing` stuck on kept the panel from fitting itself
+    -- or following the group frames again.
+    local function StopSizing()
+        if not rawget(grip, "held") then return end
+        grip.held = nil
         frame:StopMovingOrSizing()
         TrackerUI.sizing = false
         TrackerUI.tabNeeds = nil
@@ -254,11 +260,15 @@ function TrackerUI:BuildGrip(frame)
         -- group frames rather than being pinned where it happens to be.
         if not TrackerUI.grouped then TrackerUI:SavePosition() end
         TrackerUI:Render()
-    end)
+        -- A docked goals panel takes the new width now, not at the next loot.
+        TrackerUI:FollowGoals()
+    end
+    grip:SetScript("OnMouseUp", StopSizing)
+    grip:SetScript("OnHide", StopSizing)
 
     -- Redraw while dragging, so you see what fits as you go.
     frame:SetScript("OnSizeChanged", function()
-        if TrackerUI.sizing then TrackerUI:Render() end
+        if TrackerUI.sizing then TrackerUI:Arrange() end
     end)
 
     self.grip = grip
@@ -987,10 +997,14 @@ end
 --- session said you earned a fortune. Returns the session's value.
 function TrackerUI:NoteStart()
     local total = ns.Value and ns.Value:Session()
-    if not (total and total > 0) then
+    -- Only nothing gathered at all stops the clock. Worth 0 with items not
+    -- priced yet (item info still loading after a /reload) kept nothing
+    -- back either, and lost the play time the panel had brought back.
+    if total == nil then
         self.startedAt = nil
         return nil
     end
+    if not (total > 0) then return nil end
 
     if not self.startedAt and type(GetTime) == "function" then
         local ok, now = pcall(GetTime)
@@ -1022,6 +1036,15 @@ TrackerUI.TakesMouse = TakesMouse
 local function UnderMouse(row)
     local ok, over = pcall(function() return row:IsVisible() and row:IsMouseOver() end)
     return ok and over and true or false
+end
+
+--- Takes a gradient off a texture: white at every corner again.
+local function PlainTexture(texture)
+    if type(CreateColor) == "function"
+        and pcall(texture.SetGradient, texture, "HORIZONTAL", CreateColor(1, 1, 1, 1), CreateColor(1, 1, 1, 1)) then
+        return
+    end
+    pcall(texture.SetVertexColor, texture, 1, 1, 1, 1)
 end
 
 --- One row of the column. Every row can be any kind of line; DrawLine
@@ -2029,6 +2052,9 @@ function TrackerUI:DrawLine(row, line)
     -- (2026-09-28: "i like that neon glow"; 2026-10-12, as the top row of
     -- Tradeskills' queue).
     if line.style == "mob" and line.live then
+        -- The row may have lit a green drop on the Loot tab, and a colour
+        -- does not undo a gradient: it stayed tinted and see-through.
+        PlainTexture(row.live)
         row.live:SetColorTexture(Theme.Unpack("glassActive"))
         row.live:Show()
         row.edge:SetColorTexture(BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3], 1)
@@ -2189,7 +2215,10 @@ function TrackerUI:DrawLootParts(row, line)
         row.live:SetColorTexture(1, 1, 1, 1)
         local ok = type(CreateColor) == "function" and pcall(row.live.SetGradient, row.live, "HORIZONTAL",
             CreateColor(r, g, b, 0.26), CreateColor(r, g, b, 0.02))
-        if not ok then row.live:SetColorTexture(r, g, b, 0.14) end
+        if not ok then
+            PlainTexture(row.live)
+            row.live:SetColorTexture(r, g, b, 0.14)
+        end
         row.live:Show()
         row.edge:SetColorTexture(r, g, b, 1)
         row.edge:SetWidth(2)
@@ -2392,7 +2421,7 @@ end
 function TrackerUI:ScrollBy(lines)
     local was = self.scroll or 0
     self.scroll = math.max(0, math.min(self.maxScroll or 0, was + (tonumber(lines) or 0)))
-    if self.scroll ~= was then self:Render() end
+    if self.scroll ~= was then self:Arrange() end
 end
 
 --------------------------------------------------------------------------------
@@ -2452,11 +2481,6 @@ function TrackerUI:Render()
     local titleNeeds = self:DrawTitle(titleLine)
     local toolbarNeeds = self:DrawToolbar()
 
-    -- While the grip is held, the panel is whatever size the drag says;
-    -- otherwise it is the saved size. The column scrolls within it.
-    local limit = self.sizing and self.frame:GetHeight() or self:MaxHeight()
-    local room = math.max(LINE * 2, limit - TOP - PADDING * 2)
-
     -- The width first: every line drawn once to see what it needs.
     local width = tonumber(self.frame:GetWidth()) or self:Width()
     if not self.sizing then
@@ -2475,10 +2499,34 @@ function TrackerUI:Render()
         self.frame:SetWidth(width)
     end
 
-    local heights, total = {}, 0
-    for index, line in ipairs(all) do
-        heights[index] = self:LineHeight(line, width)
-        total = total + heights[index]
+    self.arranged = { all = all, width = width, counts = counts, titleLine = titleLine }
+    self:Arrange(true)
+end
+
+--- Lays the lines Render worked out into the rows: which show at this
+--- scroll, where each sits, and the panel's height. A wheel tick or a
+--- drag of the corner grip comes here alone, so the mobs are not priced
+--- and every line measured again for a list that only moved (smooth play).
+--- `effects` is Render's: the counts changed, so the effects play.
+function TrackerUI:Arrange(effects)
+    local arranged = self.arranged
+    if not arranged then return self:Render() end
+    local all, titleLine, counts = arranged.all, arranged.titleLine, arranged.counts
+    local width = arranged.width
+    if not effects then width = tonumber(self.frame:GetWidth()) or width end
+    -- While the grip is held, the panel is whatever size the drag says;
+    -- otherwise it is the saved size. The column scrolls within it.
+    local limit = self.sizing and self.frame:GetHeight() or self:MaxHeight()
+    local room = math.max(LINE * 2, limit - TOP - PADDING * 2)
+
+    -- Heights hang on the width (icon rows wrap), so they are kept for it.
+    local heights = arranged.heights
+    if not heights or arranged.heightsWidth ~= width then
+        heights = {}
+        for index, line in ipairs(all) do
+            heights[index] = self:LineHeight(line, width)
+        end
+        arranged.heights, arranged.heightsWidth = heights, width
     end
 
     -- Scrolled no further than it takes to bring the last line to the
@@ -2537,7 +2585,7 @@ function TrackerUI:Render()
     -- value line can carry its "+38s". Never allowed to stop the panel.
     local FX = ns.TrackerFX
     local plan
-    if FX then
+    if FX and effects then
         local ok, result = pcall(FX.Prepare, FX, fxAll, fxShown)
         plan = ok and result or nil
         if not ok then ns.Debug("panel effects:", tostring(result)) end
@@ -2599,7 +2647,7 @@ function TrackerUI:Render()
         if not ok then ns.Debug("panel effects:", tostring(err)) end
     end
 
-    self:NoteRanks(shown)
+    if effects then self:NoteRanks(shown) end
 end
 
 --- How wide the panel must be for `line` to show in full, measured on a

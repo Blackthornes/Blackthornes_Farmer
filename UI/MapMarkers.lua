@@ -160,6 +160,7 @@ local function Complete(pin, size, corner)
         local hit = CreateFrame("Frame", nil, pin)
         hit:SetAllPoints(badge)
         hit:EnableMouse(true)
+        pcall(hit.SetMouseClickEnabled, hit, false)
         hit:SetScript("OnEnter", function() ShowTooltip(pin) end)
         hit:SetScript("OnLeave", HideTooltip)
         pin.hit = hit
@@ -216,6 +217,9 @@ function MapMarkers.CreatePin(parent, size)
     local pin = CreateFrame("Frame", nil, parent)
     pin:SetSize(size, size)
     pin:EnableMouse(true)
+    -- It shows its tooltip under the mouse, but a click goes on to the map:
+    -- a herbalist's dozens of markers swallowed the clicks that zoom in or out.
+    pcall(pin.SetMouseClickEnabled, pin, false)
 
     local ring = pin:CreateTexture(nil, "BACKGROUND")
     ring:SetAllPoints(pin)

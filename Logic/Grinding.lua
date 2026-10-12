@@ -400,7 +400,9 @@ function Grinding:Mobs()
     for _, record in pairs(records) do
         if type(record) == "table" and type(record.mob) == "string" and type(record.zone) == "string"
             and not ns.DB:IsHiddenSource(record.mob) then
-            local mob = Spot(record.mob, record.zone, record.location)
+            -- Kept under the client's zone name ("Wald von Elwynn"); in
+            -- English, so it is the data's camp and confirms its spot.
+            local mob = Spot(record.mob, ns.Spots.English(record.zone), record.location)
             Note(mob, true, tonumber(record.minLevel), tonumber(record.maxLevel), record.coords)
             mob.corpses = (mob.corpses or 0) + (tonumber(record.corpses) or 0)
             for name in pairs(type(record.items) == "table" and record.items or {}) do

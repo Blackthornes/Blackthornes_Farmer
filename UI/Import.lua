@@ -188,7 +188,9 @@ function UI:ImportChanged()
             local text = ns.Transfer.Describe(plan)
             UI.importPlan = plan
             UI.importPreview:SetText(text)
-            UI.importApply:SetShown(#plan.list > 0)
+            -- Not while the last part is still going in: ImportApply reads
+            -- this one again once it is.
+            UI.importApply:SetShown(#plan.list > 0 and not ns.Transfer.applying)
         end)
     end)
 end
@@ -199,11 +201,26 @@ function UI:ImportApply()
     self.importPlan = nil
     self.importApply:Hide()
     self.importPreview:SetText(L["Adding..."])
-    ns.Transfer:Apply(plan, function(taken)
-        UI.importPreview:SetText(taken == 1
-            and L.Format("Done. %d record added to your own. Paste the next part if there is one.", taken)
-            or L.Format("Done. %d records added to your own. Paste the next part if there is one.", taken))
-        UI.importEdit:SetText("")
+    -- Something pasted while this is added is the next part: it is kept,
+    -- and read again once this is in (it said "Done. 0" and was lost).
+    local stamp = self.importStamp
+    ns.Transfer:Apply(plan, function(taken, why)
+        if why == "busy" then
+            if stamp == UI.importStamp then
+                UI.importPlan = plan
+                UI.importApply:Show()
+            end
+            UI.importPreview:SetText(L["Still working on the last one. Try again in a moment."])
+            return
+        end
+        if stamp ~= UI.importStamp then
+            UI:ImportChanged()
+        else
+            UI.importPreview:SetText(taken == 1
+                and L.Format("Done. %d record added to your own. Paste the next part if there is one.", taken)
+                or L.Format("Done. %d records added to your own. Paste the next part if there is one.", taken))
+            UI.importEdit:SetText("")
+        end
         UI:ImportList()
     end)
 end
@@ -218,12 +235,19 @@ end
 
 --- A first click asks; a second, within a few seconds, takes it back out.
 function UI:ImportRemove(row)
-    if not row.importId then return end
+    if not row.importId or rawget(row, "busy") then return end
     if row.confirming then
         local id = row.importId
         row.confirming = false
+        row.busy = true
         row.remove:SetText(L["Removing..."])
-        ns.Transfer:Remove(id, function(count)
+        ns.Transfer:Remove(id, function(count, why)
+            row.busy = nil
+            if why == "busy" then
+                row.remove:SetText(L["Remove"])
+                UI.importPreview:SetText(L["Still working on the last one. Try again in a moment."])
+                return
+            end
             UI.importPreview:SetText(count == 1
                 and L.Format("Took back what that string added (%d record).", count)
                 or L.Format("Took back what that string added (%d records).", count))

@@ -218,6 +218,14 @@ unit = Value:UnitPrice(3303)
 suite.check("an uncached white item still takes the auction price", unit == 500, unit)
 UNCACHED[3302], UNCACHED[3303] = nil, nil
 
+-- Not cached and no loot link seen: its quality is not known yet, so it is
+-- not given an auction price (a grey at a thin market's 50s, at login).
+UNCACHED[3304] = true
+AUCTION[3304] = 5000
+unit = Value:UnitPrice(3304)
+suite.check("an uncached item of unknown quality is not priced at auction", unit == nil, unit)
+UNCACHED[3304] = nil
+
 -- A quality this client will not let us read costs nothing but the check.
 local realInfo = C_Item.GetItemInfo
 C_Item.GetItemInfo = function() return "item", nil, env.Secret("quality") end
