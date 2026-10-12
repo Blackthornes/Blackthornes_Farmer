@@ -609,9 +609,14 @@ function LootTableUI:Render()
     end
     self.status:SetText(status)
     self.where:SetText(data.where)
-    self.footer:SetText(ns.Value and ns.Value:HasAuctionPrices()
-        and L["Prices: Blackthornes Tradeskills market value, or the vendor price if higher."]
-        or L["Prices: vendor price. Load Blackthornes Tradeskills for market prices."])
+    local source = ns.Value and ns.Value:PriceSource()
+    if source == "tradeskills" then
+        self.footer:SetText(L["Prices: Blackthornes Tradeskills market value, or the vendor price if higher."])
+    elseif source then
+        self.footer:SetText(L["Prices: TSM or Auctionator market value, or the vendor price if higher."])
+    else
+        self.footer:SetText(L["Prices: vendor price. Load Blackthornes Tradeskills for market prices."])
+    end
 
     local width = self:WidthFor(data.rows, status, data.where)
     self.frame:SetWidth(width)

@@ -587,8 +587,11 @@ function RankingsUI:FitColumns(rows)
 end
 
 function RankingsUI:PriceText()
-    if ns.Value:HasAuctionPrices() then
+    local source = ns.Value:PriceSource()
+    if source == "tradeskills" then
         return L["Tradeskills auction prices"]
+    elseif source then
+        return L["TSM or Auctionator auction prices"]
     end
     return L["vendor prices, Tradeskills not loaded"]
 end

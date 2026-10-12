@@ -687,6 +687,17 @@ function SettingsUI:BuildLootPage()
         L["Ready"], "harvest check")
     controls.harvestCheck = lootCheckButton
 
+    -- Without Tradeskills (the owner asked 2026-10-12).
+    pages:Section("loot", 1, L["PRICES"])
+
+    local otherRow = pages:Row("loot", 1, L["TSM and Auctionator"],
+        L["When Blackthornes Tradeskills isn't loaded, Farmer prices drops with TradeSkillMaster's or Auctionator's auction prices, if either is loaded. Tradeskills always comes first when it is."])
+
+    controls.otherPriceAddons = Widgets.CreateCheckbox(otherRow, L["Use them"], function(checked)
+        ns.Value:SetUsesOtherAddons(checked)
+    end, true)
+    controls.otherPriceAddons:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     pages:Section("loot", 2, L["FISHING AND GATHERING"])
 
     local fishingRow = pages:Row("loot", 2, L["Fishing"],
@@ -973,6 +984,7 @@ function SettingsUI:Refresh()
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
+    controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
     controls.grindPins:SetChecked(db.grindPins ~= false)

@@ -12,8 +12,10 @@
 -- A unit price is the auction market value, or what a vendor pays if that is
 -- more (nobody sells grey scraps on the auction house for less than the
 -- vendor gives). A grey item is only ever its vendor price, whatever the
--- auction house says. Without Tradeskills only the vendor price is known, and
--- the value says so.
+-- auction house says. Without Tradeskills, TradeSkillMaster's or Auctionator's
+-- price stands in when one of them is loaded (the owner asked 2026-10-12;
+-- `otherPriceAddons`, on unless unticked); with none of them only the vendor
+-- price is known, and the value says so.
 --
 -- Where the numbers come from, best first:
 --   1. your own tally, once a mob has MIN_KILLS kills -- measured amounts and
@@ -46,7 +48,89 @@ function Value:Prices()
 end
 
 function Value:HasAuctionPrices()
-    return self:Prices() ~= nil
+    return self:PriceSource() ~= nil
+end
+
+--------------------------------------------------------------------------------
+-- TradeSkillMaster and Auctionator, when Tradeskills is not loaded
+--------------------------------------------------------------------------------
+-- Read only, inside a pcall, through each addon's own API, with no TOC
+-- dependency. Tradeskills, when loaded, already asks them itself for items
+-- it has not priced, so they are read here only without it:
+--   TSM_API.GetCustomPriceValue("DBMarket", "i:<itemID>")
+--   Auctionator.API.v1.GetAuctionPriceByItemID("Blackthornes_Farmer", itemID)
+-- TSM first. Prices are read many times a draw, so each answer is kept
+-- OTHER_CACHE_FOR seconds.
+
+Value.OTHER_CACHE_FOR = 60
+Value.OTHER_MAX_PRICE = 1e11   -- above this is not a price (10 million gold)
+local otherCache = {}          -- [itemID] = { copper or false, at }
+
+local function Clock()
+    if type(GetTime) ~= "function" then return 0 end
+    local ok, now = pcall(GetTime)
+    return ok and tonumber(now) or 0
+end
+
+function Value:UsesOtherAddons()
+    return not (ns.db and ns.db.otherPriceAddons == false)
+end
+
+local function TSMCall()
+    local api = rawget(_G, "TSM_API")
+    if type(api) ~= "table" or type(api.GetCustomPriceValue) ~= "function" then return nil end
+    return api.GetCustomPriceValue
+end
+
+local function AuctionatorCall()
+    local addon = rawget(_G, "Auctionator")
+    local api = type(addon) == "table" and type(addon.API) == "table" and addon.API.v1
+    if type(api) ~= "table" or type(api.GetAuctionPriceByItemID) ~= "function" then return nil end
+    return api.GetAuctionPriceByItemID
+end
+
+local function Copper(ok, value)
+    if not ok or type(value) ~= "number" or value ~= value then return nil end
+    if value <= 0 or value > Value.OTHER_MAX_PRICE then return nil end
+    return math.floor(value + 0.5)
+end
+
+--- Where auction prices come from now: "tradeskills", "tsm", "auctionator"
+--- ("tsm" when both of the last two are loaded), or nil for vendor only.
+function Value:PriceSource()
+    if self:Prices() then return "tradeskills" end
+    if not self:UsesOtherAddons() then return nil end
+    if TSMCall() then return "tsm" end
+    if AuctionatorCall() then return "auctionator" end
+    return nil
+end
+
+--- TradeSkillMaster's, else Auctionator's market value for one, in copper.
+function Value:OtherPrice(itemID)
+    if type(itemID) ~= "number" or not self:UsesOtherAddons() then return nil end
+    local tsm, auctionator = TSMCall(), AuctionatorCall()
+    if not tsm and not auctionator then return nil end
+
+    local now = Clock()
+    local kept = otherCache[itemID]
+    if kept and now - kept[2] < self.OTHER_CACHE_FOR and now >= kept[2] then
+        return kept[1] or nil
+    end
+
+    local copper
+    if tsm then copper = Copper(pcall(tsm, "DBMarket", "i:" .. itemID)) end
+    if not copper and auctionator then
+        copper = Copper(pcall(auctionator, "Blackthornes_Farmer", itemID))
+    end
+    otherCache[itemID] = { copper or false, now }
+    return copper
+end
+
+--- Turn reading TSM and Auctionator on or off.
+function Value:SetUsesOtherAddons(on)
+    if not ns.db then return end
+    ns.db.otherPriceAddons = on and true or false
+    otherCache = {}
 end
 
 -- What item tooltips said a vendor pays, kept for the session.
@@ -169,10 +253,11 @@ function Value:VendorPrice(itemID)
     return copper
 end
 
---- Tradeskills' market value for one, in copper.
+--- Tradeskills' market value for one, in copper; without Tradeskills,
+--- TradeSkillMaster's or Auctionator's.
 function Value:AuctionPrice(itemID)
     local prices = self:Prices()
-    if not prices then return nil end
+    if not prices then return self:OtherPrice(itemID) end
 
     local ok, copper = pcall(prices.GetValue, prices, itemID)
     if not ok then return nil end
@@ -526,6 +611,6 @@ ns.RegisterCommand("value", L["what a mob is worth per kill, from Tradeskills pr
 
     if not Value:HasAuctionPrices() then
         ns.PrintRaw(Util.Colored("muted",
-            L["  Blackthornes Tradeskills is not loaded, so these are vendor prices."]))
+            L["  No auction prices are loaded, so these are vendor prices."]))
     end
 end)

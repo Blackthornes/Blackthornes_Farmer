@@ -159,8 +159,8 @@ suite.check("and it says so", Value:PriceNote(details) == "vendor prices", Value
 mark = #env.chat
 ns.HandleSlash("value mangy")
 said = table.concat(env.chat, "\n", mark + 1)
-suite.check("/farm value says Tradeskills is not loaded",
-    said:find("not loaded", 1, true) ~= nil, said)
+suite.check("/farm value says no auction prices are loaded",
+    said:find("No auction prices are loaded", 1, true) ~= nil, said)
 
 InstallTradeskills()
 

@@ -27,7 +27,13 @@ _G.BlackthornesTS.Prices:GetValue(itemID)   -- Tradeskills' smoothed market valu
 ```
 
 Nothing is copied, nothing is written back, and there is no TOC dependency.
-Without Tradeskills, Farmer falls back to the vendor price. Tradeskills'
+Tradeskills itself fills gaps from TradeSkillMaster, then Auctionator
+(2026-10-12; the owner allowed naming both in public). Without Tradeskills,
+Farmer reads them itself (`Value:OtherPrice`: `TSM_API.GetCustomPriceValue
+("DBMarket", "i:<id>")`, then `Auctionator.API.v1.GetAuctionPriceByItemID
+("Blackthornes_Farmer", id)`, in a pcall, kept 60 s), "TSM and Auctionator"
+on the Loot page (`otherPriceAddons`, on unless unticked, never rename it;
+`tools/test_otherprices.lua`); with none of them, the vendor price. Tradeskills'
 `CLAUDE.md` asks its side to keep that global, `Prices` and `GetValue(itemID)`
 stable; if Farmer needs more from it, change both repos together.
 

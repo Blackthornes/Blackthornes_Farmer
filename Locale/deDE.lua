@@ -350,7 +350,7 @@ L["%s: no drop rates with prices to value it by yet."] = "%s: noch keine Dropcha
 L["%s: about %s a kill %s"] = "%s: etwa %s pro Kill %s"
 L["  coin  %s"] = "  Münzen  %s"
 L["  no price yet: %s"] = "  noch kein Preis: %s"
-L["  Blackthornes Tradeskills is not loaded, so these are vendor prices."] = "  Blackthornes Tradeskills ist nicht geladen, das sind also Händlerpreise."
+L["  No auction prices are loaded, so these are vendor prices."] = "  Es sind keine Auktionspreise geladen, das sind also Händlerpreise."
 
 -- Logic/Rankings.lua
 L["mobs ranked by what a kill is worth"] = "Gegner nach dem Wert eines Kills geordnet"
@@ -634,6 +634,12 @@ L["waiting on prices"] = "wartet auf Preise"
 L["Nothing yet. Kill a mob %d times to rank it from your own loot."] = "Noch nichts. Töte einen Gegner %d-mal, um ihn nach deiner eigenen Beute einzustufen."
 L["No database drop rate has a price yet."] = "Noch keine Dropchance aus der Datenbank hat einen Preis."
 L["Tradeskills auction prices"] = "Auktionspreise aus Tradeskills"
+L["TSM or Auctionator auction prices"] = "Auktionspreise aus TSM oder Auctionator"
+L["Prices: TSM or Auctionator market value, or the vendor price if higher."] = "Preise: Marktwert aus TSM oder Auctionator, oder der Händlerpreis, wenn er höher ist."
+L["PRICES"] = "PREISE"
+L["TSM and Auctionator"] = "TSM und Auctionator"
+L["When Blackthornes Tradeskills isn't loaded, Farmer prices drops with TradeSkillMaster's or Auctionator's auction prices, if either is loaded. Tradeskills always comes first when it is."] = "Wenn Blackthornes Tradeskills nicht geladen ist, bepreist Farmer Beute mit den Auktionspreisen von TradeSkillMaster oder Auctionator, wenn eines davon geladen ist. Tradeskills kommt immer zuerst, wenn es geladen ist."
+L["Use them"] = "Nutzen"
 L["vendor prices, Tradeskills not loaded"] = "Händlerpreise, Tradeskills nicht geladen"
 
 -- ItemTooltip.lua
