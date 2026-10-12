@@ -341,13 +341,20 @@ function GoalsUI:Card(index)
     card:SetHeight(CARD)
     card:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
-    card.band = Theme.Fill(card, "row", 1)
+    -- Dark glass, a shade apart card by card, with a fine line under each
+    -- (the house list rows, 2026-10-12).
+    card.band = Theme.Fill(card, index % 2 == 0 and "glassAlt" or "glass")
+    card.rule = card:CreateTexture(nil, "BACKGROUND", nil, 1)
+    card.rule:SetPoint("BOTTOMLEFT")
+    card.rule:SetPoint("BOTTOMRIGHT")
+    card.rule:SetHeight(1)
+    card.rule:SetColorTexture(Theme.Unpack("border", 0.6))
 
     -- Under the mouse the card lifts, a lighter wash and a lit edge easing
     -- in, so it reads as something to click. Both start clear.
     card.hover = card:CreateTexture(nil, "BACKGROUND", nil, 1)
     card.hover:SetAllPoints(card)
-    card.hover:SetColorTexture(Theme.Unpack("rowHover"))
+    card.hover:SetColorTexture(Theme.Unpack("glassHover"))
     card.hover:SetAlpha(0)
     Theme.Border(card, "borderLit")
     for _, line in ipairs(card.borderTextures) do line:SetAlpha(0) end
@@ -1402,7 +1409,13 @@ function GoalsUI:SpotRow(index)
     row:SetPoint("TOPLEFT", SPOTS_EDGE, -(SPOTS_TOP + (index - 1) * SPOT_ROW))
     row:SetPoint("TOPRIGHT", -SPOTS_EDGE, -(SPOTS_TOP + (index - 1) * SPOT_ROW))
 
-    row.band = Theme.Fill(row, "row", index % 2 == 0 and 0.35 or 0.8)
+    -- Dark glass, a shade apart row by row, with a fine line under each.
+    row.band = Theme.Fill(row, index % 2 == 0 and "glassAlt" or "glass")
+    row.rule = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.rule:SetPoint("BOTTOMLEFT")
+    row.rule:SetPoint("BOTTOMRIGHT")
+    row.rule:SetHeight(1)
+    row.rule:SetColorTexture(Theme.Unpack("border", 0.6))
     -- The light the lists' rows wear under the mouse. The wash here was
     -- filled clear, so no alpha could ever show it.
     Widgets.RowLight(row)

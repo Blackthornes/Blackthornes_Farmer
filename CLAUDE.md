@@ -259,7 +259,10 @@ ported from Tradeskills. Glows and glints follow the Window effects setting
 export and the loot table the plate and close gem; the goal picker and
 Where to farm the rim and close gem (their own titles stay inside). The
 kills panel, the goals panel, banners and toasts stay up while playing and
-keep their own look. Anything placed inside a dressed window stays 6 pixels
+keep their own frame, though their lines are dark glass too (2026-10-12:
+`TrackerUI.Stripe` shades each line once a redraw, the open mob is
+`glassActive` with a bright gold edge, an open card's lines sit on its
+`glassAlt` card; the goal cards and spot rows alternate by index). Anything placed inside a dressed window stays 6 pixels
 in from its edge, or it covers the rim.
 
 Every window wears the house size grip (the owner, 2026-10-11, as in
@@ -596,6 +599,16 @@ Tested in `tools/test_zones.lua`. Not yet seen in game.
 
 ## The owner's standing rules (both addons)
 
+- **Every list is dark glass** (the owner, 2026-10-12: "keep this as the
+  standard across all Blackthornes addons", after Farmer's Kills & Loot
+  panel was given the look of Tradeskills' queue). Rows or lines take
+  `glass` and `glassAlt` in turn, by place, with a 1 px `border` line
+  (alpha 0.6) under each; under the mouse `glassHover` and a gold edge,
+  only on that row; the row picked or open is `glassActive` with a bright
+  gold edge down its left. Never the older `row`/`rowAlt` bands for a
+  list, a panel's lines or cards. A gradient fades through
+  `Theme.LightGradient` or is hidden, never with SetAlpha alone (it stayed
+  lit on Forever). This rule is in every addon's notes; keep them the same.
 - **"Always check that it's clear to post."** Anything public is checked for
   private or unexpected content first, and nothing is published or uploaded
   without the owner's go-ahead. He tags releases himself.
