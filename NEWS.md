@@ -15,6 +15,16 @@ the thanks line: `python tools/make_whatsnew.py` writes them into
 Core/WhatsNewText.lua for the in-game What's New window. Run it after
 writing a section; the release check refuses a tag while it is behind.
 
+## 0.30.0
+
+- A new What's New window shows what changed after each update.
+- Zones show their German names on a Deutsch client, and Forever's new zones are in.
+- Blue drops and finished goals now get a voice line.
+- Export your loot, kills, gathering and fishing as a spreadsheet.
+- The Kills & Loot and Goals panels got the new dark look.
+
+Thanks Manthieius for the spreadsheet idea!
+
 ## 0.29.0
 
 - No Tradeskills? Farmer can price your loot with TradeSkillMaster or Auctionator now.
