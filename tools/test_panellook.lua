@@ -368,6 +368,42 @@ suite.check("off: the line is under its tab and a tab lights, at once",
 loot:GetScript("OnLeave")(loot)
 ns.HandleSlash("effects full")
 
+-- A Loot tab line lights under the mouse too (the owner, 2026-10-12: the
+-- hover "doesn't appear when moving over this list"). It took no mouse, so
+-- nothing lit it; now it does, the gold edge, wash and bleed come up over
+-- its quality light, and its tooltip says a right-click hides it.
+TUI:SetTab("loot")
+local item
+for index, line in ipairs(TUI.shown or {}) do
+    if line.style == "loot" then item = TUI.lines[index] break end
+end
+suite.check("loot: the Loot tab has an item line", item ~= nil)
+if item then
+    local takes
+    item.EnableMouse = function(_, on) takes = on end
+    TUI:Render()
+    suite.check("loot: an item line takes the mouse", takes == true and TUI.TakesMouse(item.line))
+    item.IsVisible = function() return true end
+    item.IsMouseOver = function() return true end
+    item.hover.SetAlpha = function(self, alpha) self._alpha = alpha end
+    item.hoverEdge.SetAlpha = function(self, alpha) self._alpha = alpha end
+    GameTooltip._lines = {}
+    item:GetScript("OnEnter")(item)
+    Motion:FinishAll()
+    local said = table.concat(GameTooltip._lines, " / ")
+    suite.check("loot: under the mouse it lights, gold edge and wash shown",
+        item.hover._alpha == 1 and item.hoverEdge._alpha == 1
+        and item.hoverWash:IsShown() and item.hoverBleed:IsShown(), said)
+    suite.check("loot: its tooltip says a right-click hides it",
+        said:find("Right-click to hide it.", 1, true) ~= nil, said)
+    item:GetScript("OnLeave")(item)
+    Motion:FinishAll()
+    suite.check("loot: leaving, the wash and bleed are hidden, not faded",
+        item.hover._alpha == 0 and not item.hoverWash:IsShown() and not item.hoverBleed:IsShown())
+    item.IsMouseOver = function() return false end
+end
+TUI:SetTab("farm")
+
 -- Dark glass lines (the owner, 2026-10-12, "like the Tradeskills queue"):
 -- folded mobs and loose lines take glass and glassAlt in turn, a heading
 -- keeps its band, an open card's lines sit on the card, and the Loot tab
