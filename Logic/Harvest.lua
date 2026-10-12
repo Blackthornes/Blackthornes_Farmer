@@ -1773,6 +1773,19 @@ end)
 ns.RegisterCommand("export", L["hand back what you harvested, ready to paste"], function(rest)
     local wanted = ns.Util.Trim(rest or "")
 
+    -- "/farm export csv [loot|kills|gathering|fishing]": the spreadsheet
+    -- (Logic/CSV.lua).
+    local sheetWord = wanted:lower():match("^csv%s*(.*)$")
+    if sheetWord and ns.CSV then
+        local sheet = ns.CSV.SheetFor(sheetWord)
+        if not sheet then
+            ns.Print(L.Format("No sheet called %s. Try loot, kills, gathering or fishing.", sheetWord))
+            return
+        end
+        ns.CSV:Show(sheet)
+        return
+    end
+
     if wanted == "" then
         ns.UI:ShowExport(ns.Harvest:ExportAll(), L["Export: everything harvested"])
         return

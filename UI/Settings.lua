@@ -686,6 +686,11 @@ function SettingsUI:BuildLootPage()
     self.exportHint = exportHint
     pages:Searchable("loot", block, L["export recorded loot data file"])
 
+    local _, csvButton = CommandRow(pages, "loot", 1, L["Spreadsheet (CSV)"],
+        L["Your loot, kills, gathering and fishing counts as CSV, a sheet each, to paste into Notepad or a spreadsheet. Counts only. Same as /farm export csv."],
+        L["Export"], "export csv")
+    controls.exportCsv = csvButton
+
     local _, harvestButton = CommandRow(pages, "loot", 1, L["What you recorded"],
         L["Lists in chat the items you have looted most, and from how many corpses. Same as /farm harvest."], L["List it"], "harvest")
     controls.harvest = harvestButton

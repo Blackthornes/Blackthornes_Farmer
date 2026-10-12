@@ -339,6 +339,7 @@ local FILES = {
     "Logic/Grinding.lua",
     "Logic/Share.lua",
     "Logic/Transfer.lua",
+    "Logic/CSV.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
