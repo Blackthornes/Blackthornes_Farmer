@@ -4,6 +4,20 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.28.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- **Deutsch:** on a Deutsch (German) client, Farmer's own words are in
+  German: the search window, Rankings, Grind, the kills and loot panel,
+  the loot table, goals and the arrow, map markers, sharing, Give and Take
+  data, the Hide menu and every Settings page. Item, mob and zone names
+  come from the game, as before. English clients see exactly what they
+  saw before.
+- **Fixes:** a copy played from a checkout shows its real version instead
+  of "dev build".
+
 ## 0.27.1
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is

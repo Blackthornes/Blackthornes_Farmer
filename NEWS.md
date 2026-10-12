@@ -12,6 +12,10 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.28.0
+
+- Farmer speaks Deutsch now if your game is in German.
+
 ## 0.27.1
 
 - Right-click to hide something and the menu now pops up right where your mouse is.
