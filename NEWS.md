@@ -12,6 +12,10 @@ is the only report that names players. A version with no section here posts
 nothing in #general.
 This file does not ship in the addon.
 
+## 0.29.0
+
+- No Tradeskills? Farmer can price your loot with TradeSkillMaster or Auctionator now.
+
 ## 0.28.0
 
 - Farmer speaks Deutsch now if your game is in German.
