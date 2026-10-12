@@ -536,6 +536,13 @@ the language as "Deutsch"; the code names stay `deDE` and
   without the owner's go-ahead. He tags releases himself.
 - **Changelogs come from git history,** never from asking the owner. Claude drafts
   the CHANGELOG section in a PR; the owner merges, pulls `main`, tags and pushes.
+- **A checkout shows the real version number** (the owner,
+  2026-10-12). `ns.RELEASED_VERSION` in `Core/Init.lua` is the newest
+  `## X.Y.Z` in CHANGELOG.md, shown when the packager has not filled in the
+  TOC's `@project-version@` (he plays from a clone). The release PR that
+  writes the CHANGELOG section changes it too; `tools/check_release.py`
+  refuses a tag it does not match, and `tools/test_check_release.py` fails
+  while the two disagree. This rule is in every addon's notes.
 - **Every reply that ships code ends with the GitHub Desktop steps,** naming
   the branch: merge the PR on github.com, switch **Current branch** to
   **main**, **Pull origin**, then `/reload` or a full restart (a full restart

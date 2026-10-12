@@ -22,7 +22,6 @@ if not (ok and locale == "deDE") then return end
 -- ======================================================================
 -- Core, sharing and giving data
 -- ======================================================================
-L["dev build"] = "Entwicklerversion"
 L["Saved for Claude, /reload to write it."] = "Für Claude gespeichert, /reload schreibt es."
 L["module %s:%s failed"] = "Modul %s:%s fehlgeschlagen"
 L["search for something to farm"] = "sucht etwas zum Farmen"

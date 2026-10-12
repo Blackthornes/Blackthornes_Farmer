@@ -5,7 +5,7 @@
 -- rewrites that to the tag it builds, which starts with a "v". The addon shows
 -- the version with its own "v" in front, so it must drop the tag's or players
 -- read "vv0.2.0". Straight from the repository the keyword arrives untouched,
--- and that is a dev build, not a version.
+-- and the version shown is the changelog's newest (ns.RELEASED_VERSION).
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("version")
@@ -33,11 +33,15 @@ ns = LoadWith("0.2.1")
 suite.check("a bare version is kept", ns.VERSION == "0.2.1", ns.VERSION)
 
 ns = LoadWith("@project-version@")
-suite.check("an unpackaged checkout is a dev build", ns.VERSION == "dev", ns.VERSION)
-suite.check("and says so", ns.VersionLabel() == "dev build", ns.VersionLabel())
+suite.check("an unpackaged checkout is the released version",
+    ns.VERSION == ns.RELEASED_VERSION, ns.VERSION)
+suite.check("and is shown as a version",
+    ns.VersionLabel() == "v" .. ns.RELEASED_VERSION, ns.VersionLabel())
+suite.check("which looks like one",
+    ns.RELEASED_VERSION:find("^%d+%.%d+%.%d+") ~= nil, ns.RELEASED_VERSION)
 
 ns = LoadWith(nil)
-suite.check("no version at all", ns.VERSION == "0.0.0", ns.VERSION)
+suite.check("no version at all is the released one", ns.VERSION == ns.RELEASED_VERSION, ns.VERSION)
 
 -- Shown in the window's corner and at the top of Settings (2026-10-09: a
 -- player asked to see at a glance which version he runs).
@@ -57,6 +61,6 @@ suite.check("the main window shows the version",
 _G.C_AddOns = { GetAddOnMetadata = function() error("no") end }
 ns = env.Load()
 _G.C_AddOns = nil
-suite.check("a failing client read is no version", ns.VERSION == "0.0.0", ns.VERSION)
+suite.check("a failing client read is the released version", ns.VERSION == ns.RELEASED_VERSION, ns.VERSION)
 
 suite.done()
