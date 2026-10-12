@@ -15,6 +15,13 @@ the thanks line: `python tools/make_whatsnew.py` writes them into
 Core/WhatsNewText.lua for the in-game What's New window. Run it after
 writing a section; the release check refuses a tag while it is behind.
 
+## 0.30.1
+
+- The Kills & Loot panel scrolls smoothly now.
+- Gold per hour keeps counting after a reload.
+- Grey items are always priced at what a vendor pays.
+- Fixes for sharing, importing, map clicks and Deutsch clients.
+
 ## 0.30.0
 
 - A new What's New window shows what changed after each update.
@@ -23,7 +30,7 @@ writing a section; the release check refuses a tag while it is behind.
 - Export your loot, kills, gathering and fishing as a spreadsheet.
 - The Kills & Loot and Goals panels got the new dark look.
 
-Thanks Manthieius for the spreadsheet idea!
+Thanks manthieus for the spreadsheet idea!
 
 ## 0.29.0
 
