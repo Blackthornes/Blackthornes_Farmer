@@ -101,11 +101,13 @@ function UI:BuildExport()
     hint:SetPoint("TOPLEFT", PADDING, -42)
     hint:SetPoint("TOPRIGHT", -PADDING, -42)
     hint:SetText(L["Already selected. Press Ctrl+C, then paste it into your editor."])
+    self.exportHint = hint
 
     -- The box itself.
     local panel = Theme.CreatePanel(frame, "panel", "border")
     panel:SetPoint("TOPLEFT", PADDING, -62)
     panel:SetPoint("BOTTOMRIGHT", -PADDING, 42)
+    self.exportPanel = panel
 
     local scroll = CreateFrame("ScrollFrame", nil, panel)
     scroll:SetPoint("TOPLEFT", 8, -8)
@@ -238,15 +240,59 @@ function UI:FocusExport()
     edit:HighlightText()
 end
 
+--- The spreadsheet's sheets as tabs along the top of the window
+--- (Logic/CSV.lua), shown only while a spreadsheet is; the box moves down
+--- under them and the hint says what to do with a CSV.
+function UI:LayExportSheets(sheets)
+    local frame = self.exportFrame
+    local hint, panel = self.exportHint, self.exportPanel
+
+    if sheets and not self.exportSheets then
+        local tabs = {}
+        for index, key in ipairs(sheets.sheets) do
+            tabs[index] = { key = key, text = sheets.labels[key] or key }
+        end
+        local strip = Widgets.CreateTabStrip(frame, tabs, function(key)
+            if UI.exportPick then UI.exportPick(key) end
+        end, { width = WIDTH - PADDING * 2 })
+        strip:SetPoint("TOPLEFT", PADDING, -36)
+        self.exportSheets = strip
+    end
+
+    hint:ClearAllPoints()
+    panel:ClearAllPoints()
+    panel:SetPoint("BOTTOMRIGHT", -PADDING, 42)
+
+    if sheets then
+        self.exportPick = sheets.pick
+        self.exportSheets:Show()
+        self.exportSheets:Select(sheets.current)
+        hint:SetPoint("TOPLEFT", PADDING, -70)
+        hint:SetPoint("TOPRIGHT", -PADDING, -70)
+        hint:SetText(sheets.hint or "")
+        panel:SetPoint("TOPLEFT", PADDING, -100)
+    else
+        self.exportPick = nil
+        if self.exportSheets then self.exportSheets:Hide() end
+        hint:SetPoint("TOPLEFT", PADDING, -42)
+        hint:SetPoint("TOPRIGHT", -PADDING, -42)
+        hint:SetText(L["Already selected. Press Ctrl+C, then paste it into your editor."])
+        panel:SetPoint("TOPLEFT", PADDING, -62)
+    end
+end
+
 --- Show `text` in the export window.
 --
 -- `title` is optional and names what is being handed over, so a single-item
 -- export and a whole-session export do not look identical.
 -- `nav` is optional, { index, count, step(delta) }, for a handout in parts.
-function UI:ShowExport(text, title, nav)
+-- `sheets` is optional, { sheets, labels, current, pick(key), hint }, for
+-- the spreadsheet (Logic/CSV.lua).
+function UI:ShowExport(text, title, nav, sheets)
     text = tostring(text or "")
 
     self:BuildExport()
+    self:LayExportSheets(sheets)
 
     self.exportText = text
     self.exportNav = nav
