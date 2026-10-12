@@ -368,6 +368,30 @@ suite.check("off: the line is under its tab and a tab lights, at once",
 loot:GetScript("OnLeave")(loot)
 ns.HandleSlash("effects full")
 
+-- Dark glass lines (the owner, 2026-10-12, "like the Tradeskills queue"):
+-- folded mobs and loose lines take glass and glassAlt in turn, a heading
+-- keeps its band, an open card's lines sit on the card, and the Loot tab
+-- shades by rank.
+local striped = TUI.Stripe({
+    { style = "heading" },
+    { style = "mob", folded = false, live = true },
+    { style = "place" }, { style = "icons" },
+    { style = "mob", folded = true },
+    { style = "mob", folded = true },
+    { style = "heading" },
+    { style = "note" }, { style = "value" },
+})
+suite.check("glass: a heading keeps its band",
+    striped[1].glass == "header" and striped[7].glass == "header")
+suite.check("glass: an open card's lines sit on the card",
+    striped[3].glass == false and striped[4].glass == false)
+suite.check("glass: mobs and loose lines take glass and glassAlt in turn",
+    striped[2].glass == "glass" and striped[5].glass == "glassAlt" and striped[6].glass == "glass"
+    and striped[8].glass == "glass" and striped[9].glass == "glassAlt")
+local ranked = TUI.Stripe({ { style = "loot", rank = 1 }, { style = "loot", rank = 2 } })
+suite.check("glass: the Loot tab shades by rank",
+    ranked[1].glass == "glass" and ranked[2].glass == "glassAlt")
+
 Theme.SetGradientAlpha = SetGradientAlpha
 Theme.SetHalo = SetHalo
 _G.PlaySoundFile = nil

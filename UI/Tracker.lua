@@ -1003,7 +1003,10 @@ end
 local function Lit(row, value)
     row.hover:SetAlpha(value)
     row.hoverEdge:SetAlpha(value)
+    -- A gradient faded with SetAlpha alone stays lit on Forever, so the
+    -- bleed is hidden outright at rest.
     row.hoverBleed:SetAlpha(value)
+    row.hoverBleed:SetShown(value > 0)
 end
 
 --- Whether the mouse is on `row` and the row is on screen. Read in a pcall,
@@ -1020,11 +1023,17 @@ function TrackerUI:CreateLine(parent, index)
     row:SetHeight(LINE)
     row:SetFrameLevel(parent:GetFrameLevel() + 3)
 
-    -- A full-width band behind headings and mob names, so the column reads as
-    -- blocks rather than one long list.
-    row.band = Theme.Fill(row, "row", 0.9)
+    -- Dark glass (the owner, 2026-10-12, "like the Tradeskills queue"): every
+    -- line a shade apart, glass and glassAlt in turn (Stripe), with a fine
+    -- line under each, so the column reads as separate lines.
+    row.band = Theme.Fill(row, "glass")
+    row.rule = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.rule:SetPoint("BOTTOMLEFT")
+    row.rule:SetPoint("BOTTOMRIGHT")
+    row.rule:SetHeight(1)
+    row.rule:SetColorTexture(Theme.Unpack("border", 0.6))
 
-    -- The card you are on: a gold wash fading across and a bright edge.
+    -- The card you are on: dark gold (glassActive) and a bright edge.
     row.live = row:CreateTexture(nil, "BACKGROUND", nil, 2)
     row.live:SetAllPoints(row)
     row.live:SetColorTexture(1, 1, 1, 1)
@@ -1142,7 +1151,7 @@ function TrackerUI:CreateLine(parent, index)
     row.dragged = false
     row.hover = row:CreateTexture(nil, "BACKGROUND", nil, 1)
     row.hover:SetAllPoints(row)
-    row.hover:SetColorTexture(Theme.Unpack("rowHover", 0.7))
+    row.hover:SetColorTexture(Theme.Unpack("glassHover"))
     row.hover:SetAlpha(0)
 
     row.hoverEdge = row:CreateTexture(nil, "ARTWORK")
@@ -1159,6 +1168,7 @@ function TrackerUI:CreateLine(parent, index)
     Theme.SetGradientAlpha(row.hoverBleed, "HORIZONTAL", "accent", 0.22, 0)
     pcall(row.hoverBleed.SetBlendMode, row.hoverBleed, "ADD")
     row.hoverBleed:SetAlpha(0)
+    row.hoverBleed:Hide()
 
     row:SetScript("OnEnter", function(self)
         local line = self.line
@@ -1882,10 +1892,32 @@ end
 -- Drawing
 --------------------------------------------------------------------------------
 
-local BAND = {
-    heading = { key = "header", alpha = 1 },
-    mob     = { key = "row", alpha = 0.9 },
-}
+--- Each line's glass shade, worked out once a redraw over every line
+--- (Render), so the shades follow the list rather than the rows on screen.
+--- Headings keep the header band; lines inside an open card sit on the
+--- card's own darker glass; the rest take glass and glassAlt in turn (the
+--- Loot tab's by rank, so a line keeps its shade as the list scrolls).
+function TrackerUI.Stripe(lines)
+    local turn, inCard = 0, false
+    for _, line in ipairs(lines) do
+        local style = line.style
+        if style == "heading" then
+            line.glass, inCard, turn = "header", false, 0
+        elseif style == "mob" then
+            inCard = not line.folded
+            turn = turn + 1
+            line.glass = turn % 2 == 0 and "glassAlt" or "glass"
+        elseif inCard then
+            line.glass = false
+        elseif style == "loot" and line.rank then
+            line.glass = line.rank % 2 == 0 and "glassAlt" or "glass"
+        else
+            turn = turn + 1
+            line.glass = turn % 2 == 0 and "glassAlt" or "glass"
+        end
+    end
+    return lines
+end
 
 --- How tall a line is drawn. Icons wrap to the panel's width.
 function TrackerUI:LineHeight(line, width)
@@ -1927,14 +1959,16 @@ function TrackerUI:DrawLine(row, line)
     ClearExtras(row)
     row.line = line
 
-    local band = BAND[line.style]
-
-    if band then
-        row.band:SetColorTexture(Theme.Unpack(band.key, band.alpha))
+    -- A line measured before any Stripe (Needs) takes plain glass.
+    local glass = line.glass
+    if glass == nil then glass = line.style == "heading" and "header" or "glass" end
+    if glass then
+        row.band:SetColorTexture(Theme.Unpack(glass))
         row.band:Show()
     else
         row.band:Hide()
     end
+    row.rule:SetShown(line.style ~= "heading")
 
     if line.style == "icons" then
         return self:DrawIcons(row, line)
@@ -1978,14 +2012,11 @@ function TrackerUI:DrawLine(row, line)
         end
     end
 
-    -- The card you are on glows: a gold wash across its band and a bright
-    -- edge down its left (2026-09-28: "i like that neon glow").
+    -- The card you are on: dark gold glass and a bright edge down its left
+    -- (2026-09-28: "i like that neon glow"; 2026-10-12, as the top row of
+    -- Tradeskills' queue).
     if line.style == "mob" and line.live then
-        row.live:SetColorTexture(1, 1, 1, 1)
-        local r, g, b = Theme.Unpack("accent")
-        local ok = type(CreateColor) == "function" and pcall(row.live.SetGradient, row.live, "HORIZONTAL",
-            CreateColor(r, g, b, 0.34), CreateColor(r, g, b, 0.04))
-        if not ok then row.live:SetColorTexture(r, g, b, 0.18) end
+        row.live:SetColorTexture(Theme.Unpack("glassActive"))
         row.live:Show()
         row.edge:SetColorTexture(BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3], 1)
         row.edge:SetWidth(3)
@@ -2152,9 +2183,6 @@ function TrackerUI:DrawLootParts(row, line)
         row.edge:Show()
     end
 
-    row.band:SetColorTexture(Theme.Unpack(line.rank % 2 == 0 and "rowAlt" or "row", 0.55))
-    row.band:Show()
-
     return PADDING - 2 + MEDAL + 5 + LOOT_ICON + 6
 end
 
@@ -2297,7 +2325,7 @@ function TrackerUI:Card(index)
 
     card = CreateFrame("Frame", nil, self.frame)
     card:SetFrameLevel(self.frame:GetFrameLevel() + 1)
-    card.fill = Theme.Fill(card, "rowAlt", 0.55)
+    card.fill = Theme.Fill(card, "glassAlt")
 
     card.edges = {}
     for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
@@ -2402,7 +2430,7 @@ function TrackerUI:Render()
     local counts, looted, kills = self:TabCounts()
     self:NoteDots(looted, kills)
 
-    local all = self:Lines()
+    local all = TrackerUI.Stripe(self:Lines())
 
     -- The gathered value goes in the title bar. The effects see it as the
     -- first line, ahead of the column's.
