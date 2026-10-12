@@ -116,7 +116,7 @@ local VOICE_QUALITY = 3
 -- a goblin vendor for a blue or better drop, the orc peon's "Work complete!"
 -- for a goal reached (the owner picked both, 2026-10-12). Each waits
 -- VOICE_GAP seconds before it can play again, so it stays a treat.
-TrackerFX.VOICE = { drop = 550782, goal = 558132 }
+TrackerFX.VOICE = { drop = 550785, goal = 558132 }
 local VOICE_GAP = 180
 
 -- Each row's wash, and which float labels are in the air, kept here rather
