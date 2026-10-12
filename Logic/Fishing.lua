@@ -360,7 +360,7 @@ function Fishing:Summary(key)
         key = key,
         spot = spot,
         name = Fishing.SpotName(spot),
-        place = ns.Tracker.PlaceName(spot.zone, spot.location),
+        place = ns.Tracker.PlaceName(ns.Spots.Show(spot.zone), spot.location),
         casts = casts,
         session = self.session[key] or 0,
         rated = casts >= MIN_CASTS,

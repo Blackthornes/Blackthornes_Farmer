@@ -494,7 +494,7 @@ function Gathering:Summary(key)
         key = key,
         node = entry,
         name = entry.node or "?",
-        place = ns.Tracker.PlaceName(entry.zone, entry.location),
+        place = ns.Tracker.PlaceName(ns.Spots.Show(entry.zone), entry.location),
         gathers = gathers,
         session = self.session[key] or 0,
         rated = gathers >= MIN_GATHERS,

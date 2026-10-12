@@ -561,7 +561,7 @@ local function SpotText(goal)
         if distance == L["you are here"] then
             text = ("%s, %s"):format(spot.name or "?", Util.Colored("good", L["here"]))
         else
-            text = ("%s, %s"):format(spot.name or "?", spot.zone or "?")
+            text = ("%s, %s"):format(spot.name or "?", ns.Spots.Show(spot.zone) or "?")
         end
     end
     spotTexts[item] = { key = key, text = text }
@@ -1475,9 +1475,9 @@ function GoalsUI:OpenSpots(item, anchor)
 
     panel.title:SetText(L.Format("Where to farm |c%s%s|r", ns.COLORS.text, item))
     if player.zone and player.level then
-        panel.from:SetText(L.Format("Nearest first, from %s at level %d", player.zone, player.level))
+        panel.from:SetText(L.Format("Nearest first, from %s at level %d", ns.Spots.Show(player.zone), player.level))
     elseif player.zone then
-        panel.from:SetText(L.Format("Nearest first, from %s", player.zone))
+        panel.from:SetText(L.Format("Nearest first, from %s", ns.Spots.Show(player.zone)))
     else
         panel.from:SetText(L["Your zone could not be read here, so these are by level and rate"])
     end
@@ -1499,7 +1499,7 @@ function GoalsUI:OpenSpots(item, anchor)
         end
 
         local distance = ns.Spots.DistanceText(spot.hops, spot.zone, spot.travel)
-        local where = spot.zone or "?"
+        local where = ns.Spots.Show(spot.zone) or "?"
         if spot.location then where = where .. ", " .. spot.location end
         if distance ~= "" then
             where = where .. ("  |c%s%s|r"):format(ns.COLORS[DistanceColor(spot.hops)], distance)

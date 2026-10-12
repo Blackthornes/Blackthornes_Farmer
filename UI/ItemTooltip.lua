@@ -150,7 +150,7 @@ function ItemTooltip:LineFor(item, player)
     if spot.minLevel then
         parts[1] = parts[1] .. (" (%s)"):format(ns.Search:LevelText(spot))
     end
-    if type(spot.zone) == "string" then parts[#parts + 1] = spot.zone end
+    if type(spot.zone) == "string" then parts[#parts + 1] = ns.Spots.Show(spot.zone) end
 
     local rate = spot.measured or spot.chance
     if type(rate) == "number" then parts[#parts + 1] = ns.Search:ChanceText(rate) end

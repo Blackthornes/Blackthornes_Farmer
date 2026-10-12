@@ -538,7 +538,7 @@ function GrindingUI.CampText(camp)
     local parts = { Util.Plural(camp.count, L["mob"], L["mobs"]) }
     local distance = ns.Spots.DistanceText(camp.hops, camp.zone, camp.travel)
     if distance ~= "" then parts[#parts + 1] = distance end
-    return ("%s, %s  %s"):format(camp.zone, camp.label,
+    return ("%s, %s  %s"):format(ns.Spots.Show(camp.zone), camp.label,
         Util.Colored("muted", ("(%s, %s)"):format(ns.Search:LevelText(camp), table.concat(parts, ", "))))
 end
 
@@ -594,7 +594,7 @@ function GrindingUI:ShowRowTooltip(row, data)
     if data.type ~= "camp" then return end
     local camp = data.camp
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
-    GameTooltip:AddLine(("%s, %s"):format(camp.zone, camp.label), Theme.Unpack("accent"))
+    GameTooltip:AddLine(("%s, %s"):format(ns.Spots.Show(camp.zone), camp.label), Theme.Unpack("accent"))
     for _, mob in ipairs(camp.mobs) do
         GameTooltip:AddDoubleLine(mob.name, ns.Search:LevelText(mob), 1, 1, 1, Theme.Unpack("muted"))
     end

@@ -93,7 +93,10 @@ function Search:Run(query)
             for _, source in ipairs(item.sources) do
                 local how
 
-                if MatchScore(source.zone:lower(), query) > 0 then
+                -- The zone as the client names it too ("Wald von Elwynn").
+                local shown = ns.Spots and ns.Spots.Show(source.zone)
+                if MatchScore(source.zone:lower(), query) > 0
+                    or (shown and shown ~= source.zone and MatchScore(shown:lower(), query) > 0) then
                     how = "zone"
 
                 -- A landmark is how people actually name a farming spot to
