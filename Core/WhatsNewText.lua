@@ -5,6 +5,12 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "0.30.1", lines = {
+        "The Kills & Loot panel scrolls smoothly now.",
+        "Gold per hour keeps counting after a reload.",
+        "Grey items are always priced at what a vendor pays.",
+        "Fixes for sharing, importing, map clicks and Deutsch clients.",
+    } },
     { version = "0.30.0", lines = {
         "A new What's New window shows what changed after each update.",
         "Zones show their German names on a Deutsch client, and Forever's new zones are in.",
@@ -14,8 +20,5 @@ ns.WHATS_NEW = {
     } },
     { version = "0.29.0", lines = {
         "No Tradeskills? Farmer can price your loot with TradeSkillMaster or Auctionator now.",
-    } },
-    { version = "0.28.0", lines = {
-        "Farmer speaks Deutsch now if your game is in German.",
     } },
 }

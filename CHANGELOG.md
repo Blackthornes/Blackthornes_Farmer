@@ -4,6 +4,39 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.30.1
+
+For WoW: Forever (interface 16001). No files were added, so `/reload` is
+enough after updating.
+
+- **Smoother kills panel:** scrolling it, or dragging its corner grip,
+  only moves the lines; nothing is priced or measured again on each wheel
+  tick. The grip lets go when the panel hides, and a docked Goals panel
+  follows the new width.
+- **Gold per hour after a reload:** the clock keeps its play time while
+  prices are still loading, rather than starting again from zero.
+- **Grey items:** an item whose quality the client hasn't given yet is
+  priced at what a vendor pays until it is known, so a grey never takes an
+  auction price.
+- **Sharing and handed-out data:** counts for a mob first kept as
+  "Creature #ID" stay exact once it gets its name, and a handout can still
+  be removed after that. A newly shared item record no longer raises an
+  error on the next loot, and the arrow and search list catch up when
+  shared counts arrive.
+- **Import window:** a part pasted while the last one is still going in is
+  kept, and Apply or Remove can't run twice at once.
+- **Map markers:** clicks on the world map go through Farmer's markers,
+  which keep their tooltips.
+- **Blizzard window style:** a tick box that can't be changed now looks
+  greyed out.
+- **Deutsch (German) clients:** search zone headings fit their German
+  names, Grind pins name creature types in German, and your own record of
+  a place and the shipped data for it count as one place.
+- **Goal arrow:** a spot on your continent that can't be measured yet says
+  "somewhere in" the zone instead of telling you to take a boat.
+- **What's New:** closing the window while holding its scroll bar lets go
+  of it.
+
 ## 0.30.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game
