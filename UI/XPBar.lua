@@ -814,11 +814,11 @@ function XPBarUI:Cheer(info)
     self:LayCheerRows(info)
 
     cheer:ClearAllPoints()
-    if self.frame and self.frame:IsShown() then
-        cheer:SetPoint("TOP", self.frame, "BOTTOM", 0, -14)
-    else
-        cheer:SetPoint("TOP", UIParent, "TOP", 0, -140)
-    end
+    -- the game's own level-up banner sits near the top of the screen, so ours
+    -- goes a good way below it, whatever the bar does
+    local ok, height = pcall(UIParent.GetHeight, UIParent)
+    if not ok or type(height) ~= "number" or height <= 0 then height = 1080 end
+    cheer:SetPoint("TOP", UIParent, "TOP", 0, -math.floor(height * 0.3))
     cheer:SetAlpha(1)
     cheer:Show()
     if ns.Motion then ns.Motion:Open(cheer, 12) end
