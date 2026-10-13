@@ -13,6 +13,10 @@
 --   sessions = { { day, at, seconds, copper, kills }, ... }  newest last
 --   pace[mob] = { kills, seconds }   how long a kill of it takes you
 --
+-- A session also keeps its gold by source (`sources`, added 2026-10-13 for
+-- the tab's This session view). How the gold grew through this login and
+-- the mobs killed in it are kept in memory only.
+--
 -- Copper is what each thing was worth when it was looted (Value:UnitPrice:
 -- greys at vendor, the rest the best of auction and vendor), coin as it
 -- came. An item with no price yet waits in memory and is priced on the next
@@ -40,6 +44,7 @@ Stats.BEST_AGAINST = 3       -- sessions charted before a best is cheered
 Stats.KEEP_DAYS = 100
 Stats.KEEP_SESSIONS = 30
 Stats.LUCK_MIN_KILLS = 10
+Stats.LUCK_KEEP = 30         -- seconds the overall luck is kept before working it out again
 
 -- Where gold comes from, in the order the chart stacks them.
 Stats.SOURCES = { "drops", "coin", "gather", "fish", "grey" }
@@ -48,6 +53,22 @@ Stats.SOURCES = { "drops", "coin", "gather", "fish", "grey" }
 local CREATURE_KINDS = { mob = true }
 
 Stats.version = 0
+
+-- The tab's two views (the owner, 2026-10-13): this login, or everything
+-- kept. Saved as `statsView` (account wide, never rename it).
+Stats.VIEWS = { "session", "overall" }
+Stats.CURVE_KEEP = 400       -- points of this login's gold kept, then thinned
+
+--- The view the tab shows: "session" (the default) or "overall".
+function Stats:View()
+    return ns.db and ns.db.statsView == "overall" and "overall" or "session"
+end
+
+function Stats:SetView(view)
+    if not ns.db then return end
+    ns.db.statsView = view == "overall" and "overall" or "session"
+    self.version = self.version + 1
+end
 
 --------------------------------------------------------------------------------
 -- The clock
@@ -136,6 +157,36 @@ local function Add(into, key, amount)
     into[key] = (Number(into[key]) or 0) + amount
 end
 
+--- Copper into a session, under its source too, and a point on this
+--- login's curve (farming seconds, copper so far).
+function Stats:AddToSession(session, source, copper)
+    Add(session, "copper", copper)
+    if type(session.sources) ~= "table" then session.sources = {} end
+    Add(session.sources, source, copper)
+    if session ~= self.current then return end
+
+    local curve = self.curve
+    if not curve then
+        curve = { { 0, 0 } }
+        self.curve = curve
+    end
+    local seconds = Number(session.seconds) or 0
+    local last = curve[#curve]
+    if last[1] == seconds and #curve > 1 then
+        last[2] = Number(session.copper) or 0
+    else
+        curve[#curve + 1] = { seconds, Number(session.copper) or 0 }
+    end
+    -- Thinned to every other point when long, the first and last kept.
+    if #curve > Stats.CURVE_KEEP then
+        local kept = {}
+        for index = 1, #curve do
+            if index % 2 == 1 or index == #curve then kept[#kept + 1] = curve[index] end
+        end
+        self.curve = kept
+    end
+end
+
 --- Days past KEEP_DAYS, sessions past KEEP_SESSIONS and sessions too short
 --- to chart go. Run once at login; never touches anything else.
 function Stats:Prune()
@@ -186,7 +237,7 @@ function Stats:Earn(source, copper)
     copper = Number(copper)
     if not copper or copper <= 0 then return end
     local session, day = self:Session(), self:Day()
-    if session then Add(session, "copper", copper) end
+    if session then self:AddToSession(session, source, copper) end
     if day then Add(day, source, copper) end
     self.version = self.version + 1
     self:CheckBest()
@@ -228,7 +279,7 @@ function Stats:Price(kind, name, count, dayKey)
         -- Priced late, on another day: it belongs to the day it was looted.
         local day = self:Day(dayKey)
         if day then Add(day, source, unit * count) end
-        if self.current then Add(self.current, "copper", unit * count) end
+        if self.current then self:AddToSession(self.current, source, unit * count) end
         self.version = self.version + 1
         return true
     end
@@ -451,6 +502,60 @@ function Stats:Sources(count)
     return list, total
 end
 
+--- Gold by source in this login's session: the same shape as Sources.
+function Stats:SessionSources()
+    local sources = self.current and type(self.current.sources) == "table" and self.current.sources or {}
+    local list, total = {}, 0
+    for _, source in ipairs(Stats.SOURCES) do
+        local copper = Number(sources[source]) or 0
+        list[#list + 1] = { key = source, copper = copper }
+        total = total + copper
+    end
+    return list, total
+end
+
+--- Gold by source over every day kept, the same shape as Sources, and the
+--- first day farmed.
+function Stats:AllSources()
+    local store = self:Store()
+    local totals, first = {}, nil
+    for _, source in ipairs(Stats.SOURCES) do totals[source] = 0 end
+    for key, day in pairs(store and store.days or {}) do
+        if type(key) == "string" and Farmed(day) then
+            for _, source in ipairs(Stats.SOURCES) do
+                totals[source] = totals[source] + (Number(day[source]) or 0)
+            end
+            if not first or key < first then first = key end
+        end
+    end
+    local list, total = {}, 0
+    for _, source in ipairs(Stats.SOURCES) do
+        list[#list + 1] = { key = source, copper = totals[source] }
+        total = total + totals[source]
+    end
+    return list, total, first
+end
+
+--- How this login's gold grew: `count` points spread over the farming time,
+--- { { seconds, copper } }, the first at nothing. Nil until there is
+--- farming time and gold to draw.
+function Stats:Curve(count)
+    local curve = self.curve
+    if not curve or #curve < 2 then return nil end
+    local last = curve[#curve]
+    if last[1] <= 0 or last[2] <= 0 then return nil end
+    count = math.max(2, count or 20)
+    local points, index = {}, 1
+    for step = 0, count - 1 do
+        local at = last[1] * step / (count - 1)
+        while curve[index + 1] and curve[index + 1][1] <= at do index = index + 1 end
+        local copper = curve[index][2]
+        if step == 0 then copper = 0 elseif step == count - 1 then copper = last[2] end
+        points[#points + 1] = { seconds = at, copper = copper }
+    end
+    return points
+end
+
 --- Days in a row you farmed, counting back from today (or from yesterday
 --- while today has nothing yet), and the longest run kept.
 function Stats:Streak(now)
@@ -512,6 +617,53 @@ function Stats:Summary()
     if seconds >= 60 then summary.killsPerHour = kills / seconds * 3600 end
 
     summary.streak, summary.longest = self:Streak()
+
+    -- This session.
+    summary.sessionCopper = session and Number(session.copper) or 0
+    summary.sessionKills = session and Number(session.kills) or 0
+    if summary.sessionSeconds >= 60 then
+        summary.sessionKillsPerHour = summary.sessionKills / summary.sessionSeconds * 3600
+    end
+    for mob, entry in pairs(self.luck or {}) do
+        if not (ns.DB and ns.DB.IsHiddenSource and ns.DB:IsHiddenSource(mob))
+            and (not summary.topKills or entry.kills > summary.topKills
+                or (entry.kills == summary.topKills and mob < summary.topMob)) then
+            summary.topMob, summary.topKills = mob, entry.kills
+        end
+    end
+
+    -- Overall: every charted session, every day kept, and the kill tally
+    -- kept since long before this log.
+    local store = self:Store()
+    local allCopper, allSeconds, sessions = 0, 0, 0
+    for _, entry in ipairs(store and store.sessions or {}) do
+        if Stats.Rate(entry) then
+            sessions = sessions + 1
+            allCopper = allCopper + (Number(entry.copper) or 0)
+            allSeconds = allSeconds + (Number(entry.seconds) or 0)
+        end
+    end
+    summary.sessions = sessions
+    if allSeconds > 0 then summary.overallRate = allCopper / allSeconds * 3600 end
+
+    local _, total, first = self:AllSources()
+    summary.allCopper, summary.firstDay = total, first
+    local seconds = 0
+    for _, day in pairs(store and store.days or {}) do
+        if type(day) == "table" then seconds = seconds + (Number(day.seconds) or 0) end
+    end
+    summary.allSeconds = seconds
+
+    local kills, kinds = 0, 0
+    local Tracker = ns.Tracker
+    for name, mob in pairs(Tracker and Tracker:Store() or {}) do
+        local count = type(mob) == "table" and Number(mob.kills) or 0
+        if type(name) == "string" and count > 0
+            and not (ns.DB and ns.DB.IsHiddenSource and ns.DB:IsHiddenSource(name)) then
+            kills, kinds = kills + count, kinds + 1
+        end
+    end
+    summary.allKills, summary.mobKinds = kills, kinds
     return summary
 end
 
@@ -543,19 +695,22 @@ end
 --- Mobs you have killed enough to measure, by gold an hour at your kill
 --- speed: { { mob, rate, perKill, seconds, own } }, best first, at most
 --- `count`.
-function Stats:BestMobs(count)
+function Stats:BestMobs(count, view)
     local list = {}
     local Tracker, Value = ns.Tracker, ns.Value
     if not (Tracker and Value) then return list end
+    -- This session: only the mobs killed since login.
+    local only = view == "session" and (self.luck or {}) or nil
     for name, mob in pairs(Tracker:Store()) do
         if type(name) == "string" and type(mob) == "table"
+            and (not only or only[name])
             and (Number(mob.kills) or 0) >= Tracker.MIN_KILLS
             and not (ns.DB and ns.DB:IsHiddenSource(name)) then
             local perKill = Value:FromTally(name)
             local seconds, own = self:SecondsPerKill(name)
             if perKill and perKill > 0 and seconds then
                 list[#list + 1] = { mob = name, perKill = perKill, seconds = seconds, own = own,
-                    rate = perKill * 3600 / seconds }
+                    rate = perKill * 3600 / seconds, sessionKills = only and only[name].kills or nil }
             end
         end
     end
@@ -576,12 +731,35 @@ end
 --- { { name, got, expected, color } } }, percent by worth (an item with no
 --- price is listed but left out of it). Nil until LUCK_MIN_KILLS kills of
 --- mobs the data has rates for.
-function Stats:Luck()
-    if not (self.luck and ns.DB and ns.Value) then return nil end
+function Stats:Luck(view)
     local Value, Tracker = ns.Value, ns.Tracker
+    if not (ns.DB and Value) then return nil end
+
+    -- This login's drops, or (overall) the kill tally: the corpses that
+    -- dropped each item, times how many come at once.
+    local mobs = self.luck
+    if view == "overall" then
+        -- Hundreds of mobs: worked out at most once every LUCK_KEEP seconds.
+        local now = Now()
+        if self.overallLuck ~= nil and now and self.overallLuckAt
+            and now - self.overallLuckAt < Stats.LUCK_KEEP then
+            return self.overallLuck or nil
+        end
+        self.overallLuckAt = now
+        self.overallLuck = false
+        mobs = {}
+        for name, mob in pairs(Tracker and Tracker:Store() or {}) do
+            local kills = type(mob) == "table" and Number(mob.kills) or 0
+            if type(name) == "string" and kills > 0 and type(mob.items) == "table"
+                and not ns.DB:IsHiddenSource(name) then
+                mobs[name] = { kills = kills, items = mob.items, corpses = true }
+            end
+        end
+    end
+    if not mobs then return nil end
     local items, kills = {}, 0
 
-    for mobName, mob in pairs(self.luck) do
+    for mobName, mob in pairs(mobs) do
         local rated = false
         local seen = {}
         for _, entry in ipairs(ns.DB:ByName()[mobName] or {}) do
@@ -597,7 +775,9 @@ function Stats:Luck()
                     items[item.name] = row
                 end
                 row.expected = row.expected + mob.kills * source.chance / 100 * (Number(stack) or 1)
-                row.got = row.got + (mob.items[item.name] or 0)
+                local got = Number(mob.items[item.name]) or 0
+                if mob.corpses then got = got * (Number(stack) or 1) end
+                row.got = row.got + got
             end
         end
         if rated then kills = kills + mob.kills end
@@ -626,7 +806,9 @@ function Stats:Luck()
     end)
     while #rows > 3 do table.remove(rows) end
 
-    return { percent = (got / expected - 1) * 100, kills = kills, rows = rows }
+    local result = { percent = (got / expected - 1) * 100, kills = kills, rows = rows }
+    if view == "overall" then self.overallLuck = result end
+    return result
 end
 
 --------------------------------------------------------------------------------
@@ -667,8 +849,15 @@ function Stats:OnEnable()
     ns.RegisterEvent(self, "PLAYER_LOGOUT", function() Stats:Settle() end)
 end
 
-ns.RegisterCommand("charts", L["the Stats tab: your farming in charts (cheer on|off)"], function(rest)
+ns.RegisterCommand("charts", L["the Stats tab: your farming in charts (session|overall, cheer on|off)"], function(rest)
     local word, value = (rest or ""):lower():match("^(%S*)%s*(%S*)")
+    if word == "session" or word == "overall" then
+        Stats:SetView(word)
+        ns.UI:Show()
+        ns.UI:ShowTab("stats")
+        if ns.StatsUI and ns.StatsUI.ViewChanged then ns.StatsUI:ViewChanged() end
+        return
+    end
     if word == "cheer" then
         local on
         if value == "on" then on = true elseif value == "off" then on = false
