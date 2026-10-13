@@ -517,7 +517,8 @@ never parented, `Media/Frame/Glow.tga` crossed, twinkling by an animation
 group) to the game's nameplate for that object
 (`C_NamePlate.GetNamePlateForUnit("softinteract")`). The nameplate only
 exists with `SoftTargetInteract` at 3 and `SoftTargetNameplateInteract` on,
-so while "Sparkle on nodes" (`nodeSparkle`, on unless unticked, Map & goals
+and `SoftTargetInteractRange` 30 and `SoftTargetInteractArc` 2 (all round)
+let it pick a node farther off (2026-10-13), so while "Sparkle on nodes" (`nodeSparkle`, on unless unticked, Map & goals
 page, `/farm sparkle`) is ticked Farmer raises them out of combat, keeping
 the old values in `nodeSparkleCVars` (never rename either) and putting them
 back when unticked. A node is a herb or vein the data knows, the client's

@@ -14,7 +14,7 @@ local ns = env.Load({ ui = true })
 local NodeSparkle = ns.NodeSparkle
 
 -- The game's settings.
-local cvars = { SoftTargetInteract = "1", SoftTargetNameplateInteract = "0" }
+local cvars = { SoftTargetInteract = "1", SoftTargetNameplateInteract = "0", SoftTargetInteractRange = "10", SoftTargetInteractArc = "0" }
 local sets = 0
 _G.C_CVar = {
     GetCVar = function(name) return cvars[name] end,
@@ -81,6 +81,8 @@ suite.check("a secret guid costs nothing worse", Face("Copper Vein", env.Secret(
 NodeSparkle:SetEnabled(true)
 suite.check("turns on the interact target", cvars.SoftTargetInteract == "3", cvars.SoftTargetInteract)
 suite.check("and its nameplate", cvars.SoftTargetNameplateInteract == "1")
+suite.check("looks farther", cvars.SoftTargetInteractRange == "30")
+suite.check("and all the way round", cvars.SoftTargetInteractArc == "2")
 suite.check("keeping what they were", ns.db.nodeSparkleCVars.SoftTargetInteract == "1"
     and ns.db.nodeSparkleCVars.SoftTargetNameplateInteract == "0")
 
@@ -89,7 +91,8 @@ NodeSparkle:ApplySettings()
 suite.check("nothing set twice", sets == before)
 
 NodeSparkle:SetEnabled(false)
-suite.check("off puts them back", cvars.SoftTargetInteract == "1" and cvars.SoftTargetNameplateInteract == "0")
+suite.check("off puts them back", cvars.SoftTargetInteract == "1" and cvars.SoftTargetNameplateInteract == "0"
+    and cvars.SoftTargetInteractRange == "10" and cvars.SoftTargetInteractArc == "0")
 suite.check("and forgets them", next(ns.db.nodeSparkleCVars) == nil)
 suite.check("off shows nothing", Face("Copper Vein", VEIN) == "off")
 
