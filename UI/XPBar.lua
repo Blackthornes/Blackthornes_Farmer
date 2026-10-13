@@ -46,6 +46,14 @@ XPBarUI.FADE = 0.8
 XPBarUI.FLOAT = 1.3
 -- How often the played time is written again while the bar shows.
 XPBarUI.CLOCK = 30
+-- The star at the tip breathes, and a faint light runs along the gold, by
+-- Window effects: { star's grow, star's dim, seconds a breath, sweep's
+-- light, sweep's speed in pixels a second, rest between sweeps }.
+XPBarUI.MOTION = {
+    full = { grow = 1.18, dim = 0.7, breath = 1.1, light = 0.32, speed = 90, rest = 1.5 },
+    subtle = { grow = 1.07, dim = 0.88, breath = 1.6, light = 0.16, speed = 60, rest = 3 },
+}
+XPBarUI.SWEEP = 48
 -- Where the bar sits until it is moved.
 XPBarUI.HOME = { "TOP", "TOP", 0, -40 }
 
@@ -172,6 +180,29 @@ function XPBarUI:Build()
     pcall(spark.SetBlendMode, spark, "ADD")
     spark:SetSize(BAR + 12, BAR + 12)
     self.spark = spark
+    local sparkGlow = bar:CreateTexture(nil, "OVERLAY", nil, 3)
+    sparkGlow:SetTexture(GLOW)
+    pcall(sparkGlow.SetBlendMode, sparkGlow, "ADD")
+    sparkGlow:SetSize(BAR * 2, BAR * 2)
+    sparkGlow:SetPoint("CENTER", spark, "CENTER", 0, 0)
+    sparkGlow:SetVertexColor(1, 0.92, 0.65, 0.5)
+    self.sparkGlow = sparkGlow
+
+    -- The light that runs along the gold, kept inside the gold.
+    local sweepClip = CreateFrame("Frame", nil, bar)
+    sweepClip:SetPoint("TOPLEFT", bar, "TOPLEFT", 1, -1)
+    sweepClip:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 1, 1)
+    sweepClip:SetWidth(1)
+    pcall(sweepClip.SetClipsChildren, sweepClip, true)
+    local sweep = sweepClip:CreateTexture(nil, "OVERLAY", nil, 2)
+    sweep:SetTexture(GLOW)
+    pcall(sweep.SetBlendMode, sweep, "ADD")
+    sweep:SetSize(self.SWEEP, BAR * 2)
+    sweep:SetPoint("CENTER", sweepClip, "LEFT", -self.SWEEP / 2, 0)
+    sweep:SetVertexColor(1, 0.95, 0.8, 1)
+    sweep:SetAlpha(0)
+    self.sweepClip, self.sweep = sweepClip, sweep
+    self:MakeMotion()
 
     local wave = bar:CreateTexture(nil, "OVERLAY", nil, 5)
     wave:SetTexture(GLOW)
@@ -405,6 +436,8 @@ function XPBarUI:Refresh()
     self.spark:ClearAllPoints()
     self.spark:SetPoint("CENTER", self.bar, "LEFT", 1 + share * inner, 0)
     self.spark:SetShown(share > 0)
+    self.sparkGlow:SetShown(share > 0)
+    self:FitSweep(share * inner)
 
     self.inReach = summary.inReach
     if not summary.inReach then Theme.SetHalo(self.bar, 0.18, "accent") end
@@ -417,6 +450,7 @@ end
 function XPBarUI:Tick(elapsed)
     elapsed = tonumber(elapsed) or 0
     self.clock = (self.clock or 0) + elapsed
+    if Level() ~= self.motionLevel then self:ApplyMotion() end
     if self.clock >= self.CLOCK then
         self.clock = 0
         self:Refresh()
@@ -432,6 +466,133 @@ function XPBarUI:Tick(elapsed)
         local ok, over = pcall(function() return self.frame:IsMouseOver() or self.grip:IsMouseOver() end)
         if ok and not over then self.grip:SetAlpha(0) end
     end
+end
+
+--------------------------------------------------------------------------------
+-- The star's breath and the light along the gold
+--------------------------------------------------------------------------------
+
+-- Both are animations the game plays, so nothing here runs a frame at a
+-- time; they are only set again when Window effects or the gold's width
+-- moves.
+
+local function Group(region, looping)
+    local ok, group = pcall(region.CreateAnimationGroup, region)
+    if not ok or type(group) ~= "table" then return nil end
+    pcall(group.SetLooping, group, looping)
+    return group
+end
+
+local function Anim(group, kind)
+    local ok, anim = pcall(group.CreateAnimation, group, kind)
+    if ok and type(anim) == "table" then return anim end
+    return nil
+end
+
+function XPBarUI:MakeMotion()
+    local breath = Group(self.spark, "BOUNCE")
+    if breath then
+        self.breath = breath
+        self.breathScale = Anim(breath, "Scale")
+        self.breathDim = Anim(breath, "Alpha")
+    end
+    local glow = Group(self.sparkGlow, "BOUNCE")
+    if glow then
+        self.glowBreath = glow
+        self.glowDim = Anim(glow, "Alpha")
+    end
+    local sweep = Group(self.sweep, "REPEAT")
+    if sweep then
+        self.sweepGroup = sweep
+        self.sweepMove = Anim(sweep, "Translation")
+        self.sweepLight = Anim(sweep, "Alpha")
+    end
+    self.sweepWidth = 0
+end
+
+local function Stop(group)
+    if group then pcall(group.Stop, group) end
+end
+
+local function Play(group)
+    if group then pcall(group.Play, group) end
+end
+
+--- Sets the breath and the sweep for Window effects: Full, Subtle or none.
+function XPBarUI:ApplyMotion()
+    local level = Level()
+    self.motionLevel = level
+    local spec = self.MOTION[level]
+    Stop(self.breath)
+    Stop(self.glowBreath)
+    Stop(self.sweepGroup)
+    if self.sweep then self.sweep:SetAlpha(0) end
+    if not spec then return end
+
+    pcall(function()
+        local scale = self.breathScale
+        if scale then
+            if scale.SetScaleFrom then
+                scale:SetScaleFrom(1, 1)
+                scale:SetScaleTo(spec.grow, spec.grow)
+            else
+                scale:SetScale(spec.grow, spec.grow)
+            end
+            scale:SetDuration(spec.breath)
+            scale:SetSmoothing("IN_OUT")
+        end
+        local dim = self.breathDim
+        if dim then
+            dim:SetFromAlpha(1)
+            dim:SetToAlpha(spec.dim)
+            dim:SetDuration(spec.breath)
+            dim:SetSmoothing("IN_OUT")
+        end
+        local glow = self.glowDim
+        if glow then
+            glow:SetFromAlpha(1)
+            glow:SetToAlpha(0.35)
+            glow:SetDuration(spec.breath)
+            glow:SetSmoothing("IN_OUT")
+        end
+    end)
+    Play(self.breath)
+    Play(self.glowBreath)
+    self:FitSweep(self.sweepWidth or 0, true)
+end
+
+--- The light runs the gold's width at an even pace, then rests.
+function XPBarUI:FitSweep(width, force)
+    width = math.floor(tonumber(width) or 0)
+    if not self.sweepClip then return end
+    if not force and math.abs(width - (self.sweepWidth or 0)) < 2 then return end
+    self.sweepWidth = width
+    self.sweepClip:SetWidth(math.max(1, width))
+
+    local spec = self.MOTION[self.motionLevel or Level()]
+    if not (spec and self.sweepGroup and self.sweepMove) or width < self.SWEEP then
+        Stop(self.sweepGroup)
+        return
+    end
+    local travel = width + self.SWEEP
+    local seconds = travel / spec.speed
+    pcall(function()
+        local move = self.sweepMove
+        move:SetOffset(travel, 0)
+        move:SetDuration(seconds)
+        move:SetOrder(1)
+        local light = self.sweepLight
+        if light then
+            light:SetFromAlpha(spec.light)
+            light:SetToAlpha(spec.light)
+            light:SetDuration(seconds)
+            light:SetOrder(1)
+        end
+        -- The rest: the light waits out of sight before the next run.
+        move:SetEndDelay(spec.rest)
+    end)
+    Stop(self.sweepGroup)
+    Play(self.sweepGroup)
 end
 
 --------------------------------------------------------------------------------
