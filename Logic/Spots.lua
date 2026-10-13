@@ -475,6 +475,49 @@ function Spots:Candidates(itemName)
         end
     end
 
+    -- Clams and the like you opened that held it: the places the clam
+    -- itself drops, from the database and from your own kills.
+    if ns.Containers and ns.Containers.Holding then
+        local ok, held = pcall(ns.Containers.Holding, ns.Containers, itemName)
+        for _, container in ipairs(ok and held or {}) do
+            local yours = { opens = container.opens, got = container.got, container = container.name }
+            local inside = ns.DB:GetItem(container.name)
+            for _, source in ipairs(inside and inside.sources or {}) do
+                Add({
+                    name = container.name,
+                    kind = "container",
+                    zone = source.zone,
+                    location = source.location,
+                    coords = source.coords,
+                    minLevel = source.minLevel,
+                    maxLevel = source.maxLevel,
+                    requires = source.requires,
+                    yours = yours,
+                    forever = source.provenance == "forever",
+                })
+            end
+            local gotRows, rows = false, nil
+            if ns.Harvest and ns.Harvest.ForItem then
+                gotRows, rows = pcall(ns.Harvest.ForItem, ns.Harvest, container.name)
+            end
+            for _, row in ipairs(gotRows and rows or {}) do
+                local record = row.record
+                Add({
+                    name = container.name,
+                    kind = "container",
+                    zone = record.zone,
+                    location = record.location,
+                    coords = type(record.coords) == "table" and tonumber(record.coords[1])
+                        and tonumber(record.coords[2]) and record.coords or nil,
+                    minLevel = record.minLevel,
+                    maxLevel = record.maxLevel,
+                    yours = yours,
+                    forever = true,
+                })
+            end
+        end
+    end
+
     return list
 end
 
