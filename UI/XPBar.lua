@@ -73,6 +73,12 @@ function XPBarUI.CheerOn() return not (ns.db and ns.db.xpBarCheer == false) end
 function XPBarUI.ChimeOn() return not (ns.db and ns.db.xpBarChime == false) end
 function XPBarUI.HidesGame() return ns.db ~= nil and ns.db.xpBarHideGame == true end
 
+--- "1 kill" for one, else the whole phrase already made with its number.
+local function Count(count, single, many)
+    if count == 1 then return single end
+    return many
+end
+
 local function Level()
     return ns.Motion and ns.Motion.Level() or "full"
 end
@@ -560,7 +566,7 @@ function XPBarUI.CardLines(s)
             right = L.Format("+%s, %d%% of what is left", Comma(s.readyXP),
                 math.floor(s.readyXP / math.max(1, s.left) * 100 + 0.5))
         end
-        Add({ title = L.Format("Hand in %s", Util.Plural(#s.ready,
+        Add({ title = L.Format("Hand in %s", Count(#s.ready,
                 L["1 finished quest"], L.Format("%d finished quests", #s.ready))),
             sub = table.concat(names, ", "), right = right, key = "good", picked = true })
     end
@@ -582,7 +588,7 @@ function XPBarUI.CardLines(s)
             xp = xp + quest.xp
             subs[#subs + 1] = quest.lines[1] or quest.title
         end
-        Add({ title = Util.Plural(#s.near, L["1 quest in your log is under way"],
+        Add({ title = Count(#s.near, L["1 quest in your log is under way"],
                 L.Format("%d quests in your log are under way", #s.near)),
             sub = table.concat(subs, ", "), right = "+" .. Comma(xp), key = "good" })
     end
@@ -595,8 +601,8 @@ function XPBarUI.CardLines(s)
     local session = s.session
     Add({ title = L["This session"],
         sub = L.Format("%s, %s (%s XP), %s (%s XP)", ns.XP.Duration(ns.XP:Seconds()),
-            Util.Plural(session.kills, L["1 kill"], L.Format("%d kills", session.kills)), Comma(session.killXP),
-            Util.Plural(session.quests, L["1 quest"], L.Format("%d quests", session.quests)), Comma(session.questXP)),
+            Count(session.kills, L["1 kill"], L.Format("%d kills", session.kills)), Comma(session.killXP),
+            Count(session.quests, L["1 quest"], L.Format("%d quests", session.quests)), Comma(session.questXP)),
         right = "+" .. Comma(session.gained) })
 
     if s.level < s.cap then
@@ -604,7 +610,7 @@ function XPBarUI.CardLines(s)
         Add({ title = L.Format("Level %d", s.cap),
             sub = s.toCap and L.Format("about %s of play at your usual pace", ns.XP.Duration(s.toCap))
                 or L["Your usual pace shows after an hour or so of play."],
-            right = Util.Plural(levels, L["1 level to go"], L.Format("%d levels to go", levels)), key = "accent" })
+            right = Count(levels, L["1 level to go"], L.Format("%d levels to go", levels)), key = "accent" })
     end
     return lines
 end
@@ -771,7 +777,7 @@ function XPBarUI.CheerLines(info)
         end
     end
     if info.talents and info.talents > 0 then
-        lines[#lines + 1] = { Util.Plural(info.talents, L["1 new talent point"],
+        lines[#lines + 1] = { Count(info.talents, L["1 new talent point"],
             L.Format("%d new talent points", info.talents)), "" }
     end
     if info.training then
@@ -814,11 +820,11 @@ function XPBarUI:Cheer(info)
     self:LayCheerRows(info)
 
     cheer:ClearAllPoints()
-    if self.frame and self.frame:IsShown() then
-        cheer:SetPoint("TOP", self.frame, "BOTTOM", 0, -14)
-    else
-        cheer:SetPoint("TOP", UIParent, "TOP", 0, -140)
-    end
+    -- the game's own level-up banner sits near the top of the screen, so ours
+    -- goes a good way below it, whatever the bar does
+    local ok, height = pcall(UIParent.GetHeight, UIParent)
+    if not ok or type(height) ~= "number" or height <= 0 then height = 1080 end
+    cheer:SetPoint("TOP", UIParent, "TOP", 0, -math.floor(height * 0.3))
     cheer:SetAlpha(1)
     cheer:Show()
     if ns.Motion then ns.Motion:Open(cheer, 12) end
