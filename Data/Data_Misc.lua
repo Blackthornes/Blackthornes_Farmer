@@ -66,8 +66,9 @@ DB:RegisterItem({
 --------------------------------------------------------------------------------
 -- Pearls
 --
--- All out of clams, which drop off coastal murlocs and naga and turn up in
--- fishing. The pearl depends on the clam, and the clam on the mob's level.
+-- All out of clams, which drop off coastal murlocs, naga, turtles and crabs,
+-- or lie underwater (Giant Clams). The pearl depends on the clam, and the
+-- clam on the mob's level. Checked against Classic's world data.
 --------------------------------------------------------------------------------
 
 DB:RegisterItem({
@@ -75,8 +76,18 @@ DB:RegisterItem({
     id = 5500,
     category = "Fishing",
     sources = {
-        { kind = "container", name = "Thick-shelled Clam", zone = "Stranglethorn Vale", minLevel = 30, maxLevel = 40, note = "off the coastal murlocs and naga" },
-        { kind = "container", name = "Thick-shelled Clam", zone = "Desolace", minLevel = 30, maxLevel = 40, note = "off the coastal naga" },
+        { kind = "container", name = "Thick-shelled Clam", zone = "Wetlands", minLevel = 20, maxLevel = 29, note = "off the Bluegill murlocs on the coast" },
+        { kind = "container", name = "Giant Clam", zone = "Wetlands", minLevel = 20, maxLevel = 30, note = "underwater along the coast" },
+        { kind = "container", name = "Thick-shelled Clam", zone = "Darkshore", minLevel = 23, maxLevel = 25, note = "off the Deep Sea Threshadons" },
+        { kind = "container", name = "Giant Clam", zone = "Darkshore", minLevel = 10, maxLevel = 20, note = "underwater along the coast" },
+        { kind = "container", name = "Giant Clam", zone = "Ashenvale", minLevel = 18, maxLevel = 30, note = "underwater along the coast" },
+        { kind = "container", name = "Thick-shelled Clam", zone = "Blackfathom Deeps", minLevel = 20, maxLevel = 28, note = "off the murlocs, naga and crabs" },
+        { kind = "container", name = "Thick-shelled Clam", zone = "Hillsbrad Foothills", minLevel = 28, maxLevel = 32, note = "off the Torn Fin murlocs, Daggerspine naga and Snapjaw turtles" },
+        { kind = "container", name = "Thick-shelled Clam", zone = "Alterac Mountains", minLevel = 30, maxLevel = 31, note = "off the Snapjaw turtles" },
+        { kind = "container", name = "Thick-shelled Clam", zone = "Silverpine Forest", minLevel = 30, maxLevel = 31, note = "off the Snapjaw turtles" },
+        { kind = "container", name = "Big-mouth Clam", zone = "Stranglethorn Vale", minLevel = 43, maxLevel = 44, note = "off the Naga Explorers on the coast" },
+        { kind = "container", name = "Big-mouth Clam", zone = "Swamp of Sorrows", minLevel = 41, maxLevel = 45, note = "off the Marsh murlocs" },
+        { kind = "container", name = "Big-mouth Clam", zone = "Feralas", minLevel = 41, maxLevel = 45, note = "off the Hatecrest naga" },
     },
 })
 
@@ -267,7 +278,8 @@ DB:RegisterItem({
     id = 7974,
     category = "Cooking",
     sources = {
-        { kind = "container", name = "Thick-shelled Clam", zone = "Stranglethorn Vale", minLevel = 30, maxLevel = 45, note = "off the coastal murlocs and naga" },
+        { kind = "container", name = "Big-mouth Clam", zone = "Stranglethorn Vale", minLevel = 43, maxLevel = 44, note = "off the Naga Explorers on the coast" },
+        { kind = "container", name = "Big-mouth Clam", zone = "Feralas", minLevel = 41, maxLevel = 45, note = "off the Hatecrest naga" },
     },
 })
 

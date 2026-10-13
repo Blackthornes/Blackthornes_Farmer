@@ -327,6 +327,7 @@ local FILES = {
     "Logic/Tracker.lua",
     "Logic/Fishing.lua",
     "Logic/Gathering.lua",
+    "Logic/Containers.lua",
     "Logic/Respawn.lua",
     "Logic/Value.lua",
     "Logic/Rankings.lua",

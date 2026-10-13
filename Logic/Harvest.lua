@@ -629,7 +629,10 @@ function Harvest:IsNodeLoot()
         end
     end
 
-    return ns.Gathering ~= nil and ns.Gathering:IsGathering()
+    if ns.Gathering ~= nil and ns.Gathering:IsGathering() then return true end
+
+    -- A clam opened from the bags, a Giant Clam or a chest.
+    return ns.Containers ~= nil and ns.Containers:Claims() == true
 end
 
 -- A guid the client spells "Creature-0-...", "GameObject-0-...": the kinds

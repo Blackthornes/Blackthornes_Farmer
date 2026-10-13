@@ -1311,7 +1311,13 @@ function GoalsUI.SpotNote(spot)
     local short = ns.Spots.SkillShortText and ns.Spots.SkillShortText(spot)
     if short then return Util.Colored("warn", short) end
     local yours = spot.yours
+    if yours and yours.opens then
+        return Util.Colored("good", L.Format("in %d of the %d you opened", yours.got or 0, yours.opens))
+    end
     if yours and yours.gathers then
+        if spot.kind == "container" then
+            return Util.Colored("good", L.Format("%d from the %d you opened here", yours.got or 0, yours.gathers))
+        end
         return Util.Colored("good", L.Format("you gathered %d here", yours.got or 0))
     end
     if yours and yours.kills then
