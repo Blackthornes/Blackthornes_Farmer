@@ -39,7 +39,9 @@
 -- combat, and what is sent goes out a batch at a time as the pacing allows.
 --
 -- Guildmates use the same conversation (Logic/GuildShare.lua): a state with
--- `guild` set comes from GuildShare:PartnerFor instead of the typed names.
+-- `guild` set comes from GuildShare:PartnerFor instead of the typed names,
+-- and carries where its counts go instead of the player's own tables:
+-- `sections` (the ones shared), `store(key, create)` and `book()` (ledgers).
 
 local _, ns = ...
 local L = ns.L
@@ -394,15 +396,18 @@ end
 
 --- What was heard from and taken from a partner, made if new.
 function Share:Held(state)
-    if type(ns.db.shareIn) ~= "table" then ns.db.shareIn = {} end
-    local held = ns.db.shareIn[state.key]
+    -- A guildmate's ledger is kept apart (GuildShare.Book), as their counts are.
+    local book = state.book and state.book()
+    if not book then
+        if type(ns.db.shareIn) ~= "table" then ns.db.shareIn = {} end
+        book = ns.db.shareIn
+    end
+    local held = book[state.key]
     if type(held) ~= "table" then
         held = {}
-        ns.db.shareIn[state.key] = held
+        book[state.key] = held
     end
     held.name = state.name
-    -- "guild" for a guildmate's ledger; an import's keeps "import".
-    if state.kind and held.kind == nil then held.kind = state.kind end
     if type(held.hashes) ~= "table" then held.hashes = {} end
     if type(held.credit) ~= "table" then held.credit = {} end
     for _, section in ipairs(SECTIONS) do
@@ -457,7 +462,7 @@ function Share:Build(state, done)
     local manifest, keys, jobs = {}, {}, {}
     for _, section in ipairs(SECTIONS) do
         manifest[section.key], keys[section.key] = {}, {}
-        local store = Share.Store(section.key)
+        local store = (not state.sections or state.sections[section.key]) and Share.Store(section.key)
         if type(store) == "table" then
             for key in pairs(store) do
                 if type(key) == "string" then jobs[#jobs + 1] = { section = section, key = key } end
@@ -587,7 +592,8 @@ function Share:OnManifest(sender, manifest, channel)
     local held = self:Held(state)
     local want, total = {}, 0
     for _, section in ipairs(SECTIONS) do
-        local listed = type(manifest[section.key]) == "table" and manifest[section.key] or {}
+        local listed = (not state.sections or state.sections[section.key])
+            and type(manifest[section.key]) == "table" and manifest[section.key] or {}
         local mine = held.hashes[section.key]
         local asked = {}
         for short, hash in pairs(listed) do
@@ -611,7 +617,7 @@ function Share:OnWant(sender, want, channel)
     local function Serve()
         local todo = {}
         for _, section in ipairs(SECTIONS) do
-            local asked = want[section.key]
+            local asked = (not state.sections or state.sections[section.key]) and want[section.key]
             local known = state.keys and state.keys[section.key]
             if type(asked) == "table" and known then
                 for _, short in ipairs(asked) do
@@ -668,6 +674,7 @@ function Share:Accept(state, entry)
     if type(entry) ~= "table" then return nil, "not a record" end
     local section = type(entry.s) == "string" and BY_KEY[entry.s]
     if not section then return nil, "unknown kind" end
+    if state.sections and not state.sections[section.key] then return nil, "not shared" end
 
     -- A record's key joins its fields with "|", so it keeps them; it must
     -- then be exactly what the record's own fields make (below).
@@ -680,7 +687,8 @@ function Share:Accept(state, entry)
     -- A guildmate's counts are checked for being play (GuildShare.Plausible).
     if state.check and not state.check(section, record) then return nil, "not plausible" end
 
-    local store = Share.Store(section.key, true)
+    local store
+    if state.store then store = state.store(section.key, true) else store = Share.Store(section.key, true) end
     if type(store) ~= "table" then return nil, "no saved data" end
 
     local held = self:Held(state)
@@ -713,8 +721,9 @@ function Share:OnRecords(sender, batch, channel)
     if taken > 0 then
         state.receivedAt = time()
         self.taken = (self.taken or 0) + taken
-        self:Changed()
-        if state.guild and ns.GuildShare then ns.GuildShare:Received(state) end
+        -- A guildmate's counts are not the player's: only the guild's rates
+        -- in the database move (GuildShare:Received).
+        if state.guild and ns.GuildShare then ns.GuildShare:Received(state) else self:Changed() end
     end
 end
 

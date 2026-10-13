@@ -66,6 +66,8 @@ local COLUMN_GAP = 6
 
 local DROP_BAR_WIDTH = 46
 local BADGE_TEXT = "Forever"
+-- A rate measured by guildmates (Logic/GuildShare.lua).
+local GUILD_BADGE = L["Guild"]
 
 -- A row is this much narrower than the window: the window's padding, the
 -- list's inset in its panel, and the scrollbar beside the rows.
@@ -569,6 +571,9 @@ function UI:FitColumns(rows)
             if row.source.provenance == "forever" then
                 widths.badge = math.max(widths.badge, Theme.TextWidth("tiny", BADGE_TEXT))
             end
+            if row.source.provenance == "guild" then
+                widths.badge = math.max(widths.badge, Theme.TextWidth("tiny", GUILD_BADGE))
+            end
         elseif row.type == "zone" then
             -- A zone's heading takes the where column's room and more; it
             -- only needs not to run past the row.
@@ -972,6 +977,11 @@ function UI:UpdateRow(row, data, index)
 
     if source.provenance == "forever" then
         row.badge:SetText(BADGE_TEXT)
+        row.badge:SetTextColor(Theme.Unpack("good"))
+        row.badge:Show()
+    elseif source.provenance == "guild" then
+        row.badge:SetText(GUILD_BADGE)
+        row.badge:SetTextColor(Theme.Unpack("accent"))
         row.badge:Show()
     end
 end

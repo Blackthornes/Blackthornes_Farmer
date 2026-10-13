@@ -1,6 +1,5 @@
 -- Blackthornes Farmer -- Logic/GuildShare.lua
--- Kills, drop rates, gathering and fishing shared with guildmates who use
--- Farmer.
+-- Drop rates shared with guildmates who use Farmer.
 --
 -- Asked 2026-10-13 by the owner, off by default. It is the account sharing
 -- of Logic/Share.lua with a different way of finding partners: instead of
@@ -9,29 +8,30 @@
 --
 --   * Now and then (and soon after login) each side says hello to the guild:
 --     one short message with its Farmer id (`Transfer:SourceId`) and a hash
---     of everything it would share. Someone new to a side gets a hello back,
---     at most one a minute, so the two always know each other.
+--     of what it would share. Someone new to a side gets a hello back, at
+--     most one a minute, so the two always know each other.
 --   * A hello whose hash differs from the last one fully taken starts the
 --     same whispered conversation as account sharing (manifest, want,
 --     records), one guildmate at a time, each at most every half hour.
---   * Counts are taken the same way: only the rise over what that Farmer has
---     given before (`shareIn["guild:<id>"]`, `kind = "guild"`), only the
---     sender's own (nothing is passed on), never twice for one account
---     however many characters it has, and never from a guildmate who is
---     also the other account named in Settings.
+--   * Only drop records go ("h"), and only the sender's own: what came from
+--     the guild is never sent on.
 --
 -- What is different from account sharing, because a guild is not you:
---   * Records also have to look like play (`GuildShare.Plausible`: no tally
---     past Transfer.MAX_COUNT, no drop record with far more items than
---     corpses).
---   * At most MAX_GUILDMATES guildmates are kept, so a big guild cannot grow
---     the saved data without end.
---   * Everything taken from the guild can be taken back out:
---     `/farm share guild forget confirm` subtracts exactly the ledgers and
---     turns guild sharing off.
+--   * A guildmate's counts never join the player's own. Kills, loot, the
+--     session, Rankings, the tooltip's kill count and everything earned by
+--     killing stay the player's alone. They are kept apart, in `guildDrops`
+--     (shaped as Harvest's records) with their ledgers in `guildIn`, and only
+--     the drop rates they make show: as rows in the database marked "guild"
+--     (only where nothing measured on Forever stands, and only from
+--     MIN_SAMPLE corpses), and in a mob's loot table until the player has
+--     killed enough for rates of their own (GuildShare:RateFor).
+--   * Records also have to look like play (`GuildShare.Plausible`).
+--   * At most MAX_GUILDMATES guildmates are kept.
+--   * Turned off, the guild's rows leave the database (the data is kept);
+--     `/farm share guild forget confirm` deletes it and turns sharing off.
 --
--- Saved, account wide, never renamed: `shareGuild` (on or off) and the
--- ledgers in `shareIn` above (`top` there is the hash last taken in full).
+-- Saved, account wide, never renamed: `shareGuild` (on or off),
+-- `guildDrops` and `guildIn` (`top` there is the hash last taken in full).
 
 local _, ns = ...
 local L = ns.L
@@ -52,7 +52,8 @@ GuildShare.MAX_GUILDMATES = 20
 GuildShare.byId = {}       -- Farmer id -> state
 GuildShare.bySender = {}   -- name key of the character playing -> state
 GuildShare.queue = {}
-GuildShare.me = { key = "guild-hello", name = "" }
+GuildShare.me = { key = "guild-hello", name = "", sections = { h = true } }
+GuildShare.shown = {}       -- record key -> { corpses, rows } put in the database
 
 function GuildShare:On()
     return ns.db ~= nil and ns.db.shareGuild == true
@@ -67,15 +68,33 @@ local function ValidId(id)
     return type(id) == "string" and #id >= 6 and #id <= 16 and id:match("^%x+$") ~= nil
 end
 
+-- A guildmate's rate is shown from this many corpses, as the player's own.
+GuildShare.MIN_SAMPLE = 20
+GuildShare.PUBLISH_SLICE = 100   -- records put in the database a frame
+
+--- The guild's drop records, as Harvest's: [mob|zone|location] = record.
+local function Drops(create)
+    if type(ns.db) ~= "table" then return nil end
+    if type(ns.db.guildDrops) ~= "table" then
+        if not create then return nil end
+        ns.db.guildDrops = {}
+    end
+    return ns.db.guildDrops
+end
+
+--- What was heard from and taken from each guildmate.
 local function Ledgers()
+    if type(ns.db) ~= "table" then return {} end
+    if type(ns.db.guildIn) ~= "table" then ns.db.guildIn = {} end
+    return ns.db.guildIn
+end
+
+--- The other account's ledgers, from account sharing.
+local function AccountLedgers()
     return type(ns.db) == "table" and type(ns.db.shareIn) == "table" and ns.db.shareIn or {}
 end
 
---- The ledger a guildmate's counts go in: an earlier import from the same
---- Farmer keeps its own, so nothing it gave is counted again.
 function GuildShare.LedgerKey(id)
-    local import = "import:" .. id
-    if type(Ledgers()[import]) == "table" then return import end
     return "guild:" .. id
 end
 
@@ -84,7 +103,7 @@ end
 local function Guildmates()
     local count = 0
     for _, held in pairs(Ledgers()) do
-        if type(held) == "table" and held.kind == "guild" then count = count + 1 end
+        if type(held) == "table" then count = count + 1 end
     end
     for _, state in pairs(GuildShare.byId) do
         if type(Ledgers()[state.key]) ~= "table" then count = count + 1 end
@@ -95,7 +114,7 @@ end
 --- True when `id` is the other account named in Settings: its counts come
 --- by whisper already.
 local function LinkedAccount(id)
-    for _, held in pairs(Ledgers()) do
+    for _, held in pairs(AccountLedgers()) do
         if type(held) == "table" and held.kind == nil and held.account == id then return true end
     end
     return false
@@ -148,7 +167,12 @@ function GuildShare:OnHello(sender, body, channel)
     if new then
         local key = GuildShare.LedgerKey(id)
         if type(Ledgers()[key]) ~= "table" and Guildmates() >= self.MAX_GUILDMATES then return end
-        state = { key = key, id = id, guild = true, kind = "guild", check = GuildShare.Plausible }
+        state = {
+            key = key, id = id, guild = true, check = GuildShare.Plausible,
+            sections = { h = true },
+            store = function(section, create) return section == "h" and Drops(create) or nil end,
+            book = Ledgers,
+        }
         self.byId[id] = state
     end
 
@@ -218,6 +242,7 @@ end
 --- is always answered with one), which also says whether everything arrived.
 function GuildShare:Received(state)
     state.lastRecordAt = time()
+    self:PublishSoon()
     if state.confirming then return end
     state.confirming = true
     local function Confirm()
@@ -249,6 +274,153 @@ function GuildShare:OnOffline(key)
 end
 
 --------------------------------------------------------------------------------
+-- What the guild's records show: rows in the database, and loot table rates
+--------------------------------------------------------------------------------
+
+--- A record that can give a rate: a named mob with enough corpses.
+local function Usable(record)
+    return type(record) == "table" and type(record.mob) == "string"
+        and not record.mob:match("^Creature #%d+$")
+        and type(record.zone) == "string" and record.zone ~= ""
+        and type(record.corpses) == "number" and record.corpses >= GuildShare.MIN_SAMPLE
+        and type(record.items) == "table"
+end
+
+local function Coords(record)
+    local coords = record.coords
+    if type(coords) ~= "table" then return nil end
+    local x, y = tonumber(coords[1]), tonumber(coords[2])
+    if not (x and y and x >= 0 and x <= 100 and y >= 0 and y <= 100) then return nil end
+    return { x, y }
+end
+
+--- Take one record's rows back out of the database.
+local function Hide(entry)
+    local DB = ns.DB
+    for index = #entry.rows, 1, -1 do
+        local row = entry.rows[index]
+        DB:RemoveSource(row.item, row.source)
+        if row.item.guildOnly and #row.item.sources == 0 then DB:RemoveItem(row.item) end
+    end
+end
+
+--- Put one record's rates in the database: a row per item it dropped, where
+--- no row measured on Forever stands for the same spot.
+local function Show(record, byID)
+    local DB = ns.DB
+    local rows = {}
+    for name, entry in pairs(record.items) do
+        local corpses = type(entry) == "table" and tonumber(entry.corpses) or 0
+        local chance = corpses / record.corpses * 100
+        local nodeOnly = ns.Gathering ~= nil and ns.Gathering.IsNodeOnly(name)
+        if type(name) == "string" and name ~= "" and chance > 0 and chance <= 100 and not nodeOnly then
+            local item = DB.items[name:lower()] or (tonumber(entry.id) and byID[tonumber(entry.id)])
+            if not item then
+                item = DB:RegisterItem({ name = name, id = tonumber(entry.id) })
+                if item then item.guildOnly = true end
+            end
+            local source = item and DB:AddSource(item, {
+                name = record.mob,
+                zone = record.zone,
+                location = type(record.location) == "string" and record.location ~= "" and record.location or nil,
+                coords = Coords(record),
+                minLevel = tonumber(record.minLevel),
+                maxLevel = tonumber(record.maxLevel),
+                chance = chance,
+                provenance = "guild",
+            })
+            if source then
+                rows[#rows + 1] = { item = item, source = source }
+            elseif item and item.guildOnly and #item.sources == 0 then
+                DB:RemoveItem(item)
+            end
+        end
+    end
+    return rows
+end
+
+--- Bring the database's guild rows up to date, a few records a frame: only
+--- the records that changed since last time are touched.
+function GuildShare:Publish()
+    if not ns.DB then return end
+    if self.publishing then
+        self.publishAgain = true
+        return
+    end
+    local drops = self:On() and Drops() or {}
+    local todo = {}
+    for key, entry in pairs(self.shown) do
+        local record = drops[key]
+        if not (Usable(record) and record.corpses == entry.corpses) then todo[#todo + 1] = key end
+    end
+    for key, record in pairs(drops) do
+        if not self.shown[key] and Usable(record) then todo[#todo + 1] = key end
+    end
+    if #todo == 0 then return end
+
+    self.publishing = true
+    local index = 1
+    local function Step()
+        local byID = ns.DB:ByID()
+        local stop = math.min(#todo, index + self.PUBLISH_SLICE - 1)
+        while index <= stop do
+            local key = todo[index]
+            index = index + 1
+            local entry = self.shown[key]
+            if entry then
+                pcall(Hide, entry)
+                self.shown[key] = nil
+            end
+            local record = self:On() and Drops() and Drops()[key]
+            if Usable(record) then
+                local ok, rows = pcall(Show, record, byID)
+                self.shown[key] = { corpses = record.corpses, rows = ok and rows or {} }
+            end
+        end
+        if index <= #todo then
+            C_Timer.After(0, Step)
+            return
+        end
+        self.publishing = nil
+        if ns.UI and ns.UI.RefreshActive then pcall(ns.UI.RefreshActive, ns.UI) end
+        if ns.LootTableUI and ns.LootTableUI.Refresh then pcall(ns.LootTableUI.Refresh, ns.LootTableUI) end
+        if self.publishAgain then
+            self.publishAgain = nil
+            self:Publish()
+        end
+    end
+    Step()
+end
+
+--- Once records stop arriving for a moment.
+function GuildShare:PublishSoon()
+    if self.publishQueued then return end
+    self.publishQueued = true
+    C_Timer.After(2, function()
+        GuildShare.publishQueued = nil
+        GuildShare:Publish()
+    end)
+end
+
+--- The guild's drop rate for `itemName` off `mob`, all its places together:
+--- the percentage and how many corpses it is from, or nil below MIN_SAMPLE.
+function GuildShare:RateFor(mob, itemName)
+    if not self:On() then return nil end
+    local drops = Drops()
+    if not drops or type(mob) ~= "string" or type(itemName) ~= "string" then return nil end
+    local corpses, dropped = 0, 0
+    for _, record in pairs(drops) do
+        if type(record) == "table" and record.mob == mob and type(record.corpses) == "number" then
+            corpses = corpses + record.corpses
+            local entry = type(record.items) == "table" and record.items[itemName]
+            if type(entry) == "table" then dropped = dropped + (tonumber(entry.corpses) or 0) end
+        end
+    end
+    if corpses < self.MIN_SAMPLE then return nil end
+    return math.min(100, dropped / corpses * 100), corpses
+end
+
+--------------------------------------------------------------------------------
 -- Settings
 --------------------------------------------------------------------------------
 
@@ -269,6 +441,8 @@ function GuildShare:Apply()
         end
         self.queue, self.current = {}, nil
     end
+    -- On, the guild's rows go in; off, they come out (the data is kept).
+    self:Publish()
 end
 
 function GuildShare:SetOn(on)
@@ -276,42 +450,29 @@ function GuildShare:SetOn(on)
     Share:Apply()
 end
 
---- Take back out everything taken from the guild, and turn it off.
--- `done(records)`, or `done(nil, "busy")` while a text is being taken in or
--- out (Logic/Transfer.lua); what was not reached yet stays for a second try.
-function GuildShare:Forget(done)
+--- Delete everything taken from the guild, and turn it off. The player's
+--- own counts were never touched, so nothing of theirs changes.
+-- @return how many records were deleted
+function GuildShare:Forget()
+    local drops = Drops()
+    local count = 0
+    for _ in pairs(drops or {}) do count = count + 1 end
     self:SetOn(false)
-    local keys = {}
-    for key, held in pairs(Ledgers()) do
-        if type(held) == "table" and held.kind == "guild" then keys[#keys + 1] = key end
-    end
-    local total = 0
-    local function Step(index)
-        local key = keys[index]
-        if not key then
-            self.byId, self.bySender = {}, {}
-            return done(total)
-        end
-        ns.Transfer:RemoveLedger(key, "guild", function(count, why)
-            if why == "busy" then return done(nil, why) end
-            total = total + (count or 0)
-            Step(index + 1)
-        end)
-    end
-    Step(1)
+    ns.db.guildDrops, ns.db.guildIn = {}, {}
+    self.byId, self.bySender = {}, {}
+    self:Publish()
+    return count
 end
 
---- How many guildmates were heard this session, and records taken from the
---- guild in all.
+--- How many guildmates were heard this session, and drop records taken
+--- from the guild in all.
 function GuildShare:Counts()
     local heard = 0
     for _, state in pairs(self.byId) do
         if state.heardAt then heard = heard + 1 end
     end
     local records = 0
-    for key, held in pairs(Ledgers()) do
-        if type(held) == "table" and held.kind == "guild" then records = records + Share:CountTaken(key) end
-    end
+    for _ in pairs(Drops() or {}) do records = records + 1 end
     return heard, records
 end
 
@@ -319,7 +480,7 @@ function GuildShare:Describe()
     if not self:On() then return L["Guild sharing is off."] end
     if not InGuild() then return L["Guild sharing is on, but this character is not in a guild."] end
     local heard, records = self:Counts()
-    return L.Format("Guild sharing is on. Guildmates with Farmer heard this session: %d. Records taken from your guild: %d.",
+    return L.Format("Guild sharing is on. Guildmates with Farmer heard this session: %d. Mobs with drops from your guild: %d.",
         heard, records)
 end
 
@@ -331,16 +492,11 @@ function GuildShare:Command(text)
         ns.Print(word == "on" and L["sharing with your guild is on"] or L["sharing with your guild is off"])
     elseif word == "forget" then
         if (rest or ""):lower() ~= "confirm" then
-            ns.Print(L["This takes everything your guild gave back out of your counts and turns guild sharing off. Type /farm share guild forget confirm to do it."])
+            ns.Print(L["This deletes the drop rates your guild gave and turns guild sharing off. Your own kills and loot are not touched. Type /farm share guild forget confirm to do it."])
             return
         end
-        self:Forget(function(count)
-            if not count then
-                ns.Print(L["Data is being taken in or out right now. Guild sharing is off; try forget again in a moment."])
-                return
-            end
-            ns.Print(L.Format("Took back out what your guild gave, from %d records. Guild sharing is off.", count))
-        end)
+        local count = self:Forget()
+        ns.Print(L.Format("Deleted the drops your guild gave, from %d mobs. Guild sharing is off.", count))
     else
         ns.Print(self:Describe())
     end
@@ -349,6 +505,7 @@ end
 function GuildShare:OnEnable()
     Comm:On("G", function(...) GuildShare:OnHello(...) end)
     -- Share:OnEnable ran first (the TOC's order) and called Apply before this
-    -- module had its handler; this starts the hellos if it is on.
+    -- module had its handler; this starts the hellos and shows the guild's
+    -- rows if it is on.
     self:Apply()
 end

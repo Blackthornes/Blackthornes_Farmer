@@ -945,7 +945,7 @@ function SettingsUI:BuildSharingPage()
     pages:Section("sharing", 2, L["YOUR GUILD"])
 
     local guildRow = pages:Row("sharing", 2, L["Share with your guild"],
-        L["Sends your kill tallies, measured drop rates, gathering and fishing to guildmates who use Farmer and have this ticked, and takes theirs. Counts only: no names, goals, settings or positions. Up to 20 guildmates are kept, and /farm share guild forget confirm takes everything from your guild back out. Same as /farm share guild on and off."])
+        L["Swaps the drops you have looted with guildmates who use Farmer and have this ticked. Their drop rates show in search, marked Guild, and in a mob's loot table until you have killed it enough for your own. Your kills, loot and rankings stay yours alone. Up to 20 guildmates are kept, and /farm share guild forget confirm deletes what your guild gave. Same as /farm share guild on and off."])
     controls.shareGuild = Widgets.CreateCheckbox(guildRow, L["Sharing"], function(checked)
         ns.GuildShare:SetOn(checked)
         SettingsUI:Refresh()

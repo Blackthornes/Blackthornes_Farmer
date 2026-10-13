@@ -146,27 +146,42 @@ holds the ledger. Tested in `tools/test_share.lua`.
 ## Sharing with the guild
 
 The owner asked (2026-10-13) for Farmer to share with the guild too, off by
-default. `Logic/GuildShare.lua` reuses `Share`'s whispered conversation
-(manifest, want, records) and its counting; only how partners are found
-differs. Each side says hello on the GUILD addon channel (`G<farmer id>:<hash
-of its manifest>`) 30 s after login and every half hour, and once (at most
-a minute apart) to someone new. A hello whose hash is not the one last
-taken in full (`shareIn[...].top`) queues that guildmate; one is synced at a
-time, each at most every half hour, and a guildmate's whispers are heard
-only after their hello (`GuildShare:PartnerFor`, which `Share:PartnerFor`
-falls back to). Ledgers are by Farmer id, `shareIn["guild:<id>"]` with
-`kind = "guild"` (never rename either), so every character of an account
-shares one; a guildmate who already gave an import keeps `import:<id>`, and
-`Transfer.LedgerKey` sends a later import into the guild ledger. The other
-account named in Settings is left to account sharing. Records must also pass
-`GuildShare.Plausible` (Transfer's MAX_COUNT and MAX_PER_CORPSE), at most
-`MAX_GUILDMATES` (20) are kept, and `/farm share guild forget confirm`
-subtracts every guild ledger (`Transfer:RemoveLedger`) and turns it off;
-there is no Settings button for it, since Settings never deletes data.
-Setting `shareGuild` (account wide, never rename it), a tick box under YOUR
-GUILD on the Sharing page and `/farm share guild on|off`. Tested in
-`tools/test_guildshare.lua` (three accounts and an alt over a pretend chat).
-Not yet seen in game.
+default, and then that a guildmate's data must never raise the player's own
+counts: "you've killed 3/20 should not update", only "the data goes in".
+`Logic/GuildShare.lua` reuses `Share`'s whispered conversation (manifest,
+want, records) through hooks on the partner state (`sections`, `store`,
+`book`); only how partners are found and where counts go differ.
+
+- Finding guildmates: each side says hello on the GUILD addon channel
+  (`G<farmer id>:<hash of its drop records>`) 30 s after login and every
+  half hour, and once (at most a minute apart) to someone new. A hello whose
+  hash is not the one last taken in full (`guildIn[...].top`) queues that
+  guildmate; one is synced at a time, each at most every half hour, and a
+  guildmate's whispers are heard only after their hello
+  (`GuildShare:PartnerFor`, which `Share:PartnerFor` falls back to).
+- Only drop records ("h") go, only the sender's own, and they never join
+  the player's: they are kept in `guildDrops` (Harvest's record shape) with
+  ledgers by Farmer id in `guildIn["guild:<id>"]` (account wide; never rename
+  `shareGuild`, `guildDrops` or `guildIn`). Kill tallies, session loot,
+  Rankings, the tooltip kill count, the rank-up pop-up and every kill
+  milestone read only the player's own data and never see the guild's.
+- What shows: records from `MIN_SAMPLE` (20) corpses become database rows
+  with provenance "guild" (`DB.RANK`: forever beats guild beats classic; a
+  guild row keeps the Classic row it replaced in `replaced`, and
+  `DB:RemoveSource` puts it back), marked Guild in the search, a few records
+  a frame and only the changed ones (`GuildShare:Publish`). A mob's loot
+  table shows the guild's rate (`GuildShare:RateFor`) only for drops the
+  player has, only until their own kills reach the rate threshold, and never
+  a value off it. Turned off, the rows leave and the data stays.
+- Safety: records must pass `GuildShare.Plausible`, at most `MAX_GUILDMATES`
+  (20) are kept, the other account named in Settings is left to account
+  sharing, and `/farm share guild forget confirm` deletes `guildDrops` and
+  `guildIn` and turns it off; there is no Settings button for it, since
+  Settings never deletes data.
+
+A tick box under YOUR GUILD on the Sharing page and `/farm share guild
+on|off`. Tested in `tools/test_guildshare.lua` (three accounts and an alt
+over a pretend chat). Not yet seen in game.
 
 ## Giving data to another player
 

@@ -54,12 +54,13 @@ L["sharing is off, or no character is named"] = "Teilen ist aus, oder kein Chara
 -- Logic/GuildShare.lua
 L["Guild sharing is off."] = "Teilen mit der Gilde ist aus."
 L["Guild sharing is on, but this character is not in a guild."] = "Teilen mit der Gilde ist an, aber dieser Charakter ist in keiner Gilde."
-L["Guild sharing is on. Guildmates with Farmer heard this session: %d. Records taken from your guild: %d."] = "Teilen mit der Gilde ist an. Gildenmitglieder mit Farmer in dieser Sitzung gehört: %d. Von deiner Gilde übernommene Einträge: %d."
+L["Guild sharing is on. Guildmates with Farmer heard this session: %d. Mobs with drops from your guild: %d."] = "Teilen mit der Gilde ist an. Gildenmitglieder mit Farmer in dieser Sitzung gehört: %d. Gegner mit Beute von deiner Gilde: %d."
 L["sharing with your guild is on"] = "Teilen mit deiner Gilde ist an"
 L["sharing with your guild is off"] = "Teilen mit deiner Gilde ist aus"
-L["This takes everything your guild gave back out of your counts and turns guild sharing off. Type /farm share guild forget confirm to do it."] = "Das nimmt alles, was deine Gilde beigetragen hat, wieder aus deinen Zahlen heraus und schaltet das Teilen mit der Gilde aus. Tippe /farm share guild forget confirm, um es zu tun."
-L["Data is being taken in or out right now. Guild sharing is off; try forget again in a moment."] = "Gerade werden Daten übernommen oder herausgenommen. Teilen mit der Gilde ist aus; versuch forget gleich noch einmal."
-L["Took back out what your guild gave, from %d records. Guild sharing is off."] = "Was deine Gilde beigetragen hat, wurde aus %d Einträgen wieder herausgenommen. Teilen mit der Gilde ist aus."
+L["This deletes the drop rates your guild gave and turns guild sharing off. Your own kills and loot are not touched. Type /farm share guild forget confirm to do it."] = "Das löscht die Dropchancen, die deine Gilde beigetragen hat, und schaltet das Teilen mit der Gilde aus. Deine eigenen Kills und deine Beute bleiben unberührt. Tippe /farm share guild forget confirm, um es zu tun."
+L["Deleted the drops your guild gave, from %d mobs. Guild sharing is off."] = "Die Beute, die deine Gilde beigetragen hat, wurde gelöscht, von %d Gegnern. Teilen mit der Gilde ist aus."
+L["Guild"] = "Gilde"
+L[" Until then, the rates are your guild's."] = " Bis dahin sind die Chancen die deiner Gilde."
 
 -- Logic/Transfer.lua
 L["already making one"] = "wird schon erstellt"
@@ -292,7 +293,7 @@ L["Paste what another player gave you to add their counts to yours. You see what
 L["Paste"] = "Einfügen"
 L["YOUR GUILD"] = "DEINE GILDE"
 L["Share with your guild"] = "Mit deiner Gilde teilen"
-L["Sends your kill tallies, measured drop rates, gathering and fishing to guildmates who use Farmer and have this ticked, and takes theirs. Counts only: no names, goals, settings or positions. Up to 20 guildmates are kept, and /farm share guild forget confirm takes everything from your guild back out. Same as /farm share guild on and off."] = "Schickt deine Kill-Zähler, gemessenen Dropchancen, Gesammeltes und Geangeltes an Gildenmitglieder, die Farmer nutzen und das hier angehakt haben, und übernimmt deren. Nur Zahlen: keine Namen, Ziele, Einstellungen oder Positionen. Bis zu 20 Gildenmitglieder werden behalten, und /farm share guild forget confirm nimmt alles von deiner Gilde wieder heraus. Wie /farm share guild on und off."
+L["Swaps the drops you have looted with guildmates who use Farmer and have this ticked. Their drop rates show in search, marked Guild, and in a mob's loot table until you have killed it enough for your own. Your kills, loot and rankings stay yours alone. Up to 20 guildmates are kept, and /farm share guild forget confirm deletes what your guild gave. Same as /farm share guild on and off."] = "Tauscht die Beute, die du gelootet hast, mit Gildenmitgliedern, die Farmer nutzen und das hier angehakt haben. Ihre Dropchancen erscheinen in der Suche, markiert mit Gilde, und in der Beutetabelle eines Gegners, bis du ihn oft genug für eigene getötet hast. Deine Kills, Beute und Ranglisten bleiben nur deine. Bis zu 20 Gildenmitglieder werden behalten, und /farm share guild forget confirm löscht, was deine Gilde beigetragen hat. Wie /farm share guild on und off."
 L["HOW IT WORKS"] = "SO FUNKTIONIERT ES"
 L["WoW keeps each account's saved data apart, so this passes it over in chat whispers between two of your own characters. Both accounts add up what both counted; nothing is counted twice, and nothing is passed on to anyone else. The first sync of a big collection can take a while in the background. What is taken in becomes part of your own totals and cannot be taken back out."] = "WoW hält die gespeicherten Daten jedes Accounts getrennt, deshalb werden sie per Flüstern zwischen zwei deiner eigenen Charaktere übertragen. Beide Accounts zählen zusammen, was beide gezählt haben; nichts wird doppelt gezählt und nichts an andere weitergegeben. Der erste Abgleich einer großen Sammlung kann im Hintergrund eine Weile dauern. Was übernommen wird, gehört dann zu deinen eigenen Summen und kann nicht wieder herausgenommen werden."
 L["share sync other account second account kills drop rates gathering"] = "teilen abgleichen anderer account zweiter account kills dropchancen sammeln share sync"
