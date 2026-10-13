@@ -796,7 +796,7 @@ function SettingsUI:BuildMapPage()
 
     -- Sparkles on the node you face (the owner asked 2026-10-13).
     local sparkleRow = pages:Row("map", 1, L["Sparkle on nodes"],
-        L["The game's own icon and gold sparkles over a herb or ore node near you, one at a time, up to about 30 yards away. It turns on the game's interact target, its icon and its name over the node, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."])
+        L["The game's own icon and gold sparkles over a herb or ore node near you, one at a time, as far off as the game allows (up to 100 yards). It turns on the game's interact target, its icon and its name over the node, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."])
 
     controls.nodeSparkle = Widgets.CreateCheckbox(sparkleRow, L["Show them"], function(checked)
         ns.NodeSparkle:SetEnabled(checked)

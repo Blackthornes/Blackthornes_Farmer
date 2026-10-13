@@ -518,7 +518,7 @@ never parented, the star `Media/Frame/Sparkle.tga` from
 group) to the game's nameplate for that object
 (`C_NamePlate.GetNamePlateForUnit("softinteract")`). The nameplate only
 exists with `SoftTargetInteract` at 3 and `SoftTargetNameplateInteract` on,
-and `SoftTargetInteractRange` 30 and `SoftTargetInteractArc` 2 (all round)
+and `SoftTargetInteractRange` 100 (30 at first; the game may cap it, and the check shows what it took) and `SoftTargetInteractArc` 2 (all round)
 let it pick a node farther off (2026-10-13). The probe found no nameplate
 for a node with those alone (Peacebloom, 2026-10-13), so the game's own
 icon over the object is turned on too (`SoftTargetIconGameObject`,
