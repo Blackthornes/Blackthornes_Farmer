@@ -595,12 +595,16 @@ function SettingsUI:BuildTallyPage()
     controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local announceRow = pages:Row("tally", 1, L["Share milestones"],
-        L["A mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather: an /emote players near you see. Your chat always gets it. Same as /farm announce."])
+        L["A mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather: your chat line gets a link that /emotes it to players near you. Your chat always gets it. Same as /farm announce."])
 
     controls.announce = Widgets.CreateCheckbox(announceRow, L["Emote it"], function(checked)
         ns.db.trackerAnnounce = checked
     end, true)
     controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local announceNowRow = pages:Row("tally", 1, L["Share the last one"],
+        L["Emotes your last 20 kill, cast or gather milestone to players near you, as the link in chat does. Same as /farm announce now."])
+    controls.announceNow = CommandButton(announceNowRow, L["Emote it now"], "announce now", 120)
 
     local celebrateRow = pages:Row("tally", 1, L["Milestone fanfare"],
         L["A sound and a cheer when a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather unlocks its rates. Same as /farm celebrate."])

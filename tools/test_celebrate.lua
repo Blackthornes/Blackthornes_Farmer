@@ -62,8 +62,13 @@ suite.check("with no other addon prefix in front",
     said:find("Farmer|r |c", 1, true) == nil, said)
 suite.check("a sound plays", #played == 1 and played[1].sound == 12891, #played)
 
--- The owner: "others should see it to promote the addon".
-suite.check("players nearby see one emote", #sent == 1 and sent[1].chatType == "EMOTE",
+-- The owner: "others should see it to promote the addon". Forever blocks a
+-- chat send from a loot event ("ADDON BLOCKED" at a fishing spot's 20th
+-- cast, 2026-10-13), so the emote waits for the player's click.
+suite.check("nothing is sent from the loot itself", #sent == 0, #sent)
+suite.check("the line offers it instead", said:find("/farm announce now", 1, true) ~= nil, said)
+ns.HandleSlash("announce now")
+suite.check("players nearby see one emote once asked", #sent == 1 and sent[1].chatType == "EMOTE",
     #sent)
 suite.check("naming the mob and the addon",
     sent[1] and sent[1].text == "unlocked drop rates for Mangy Wolf after 20 kills! "
@@ -79,6 +84,7 @@ suite.check("skinning the 20th corpse does not celebrate again",
 Loot(WOLF, {})
 suite.check("nor does the 21st kill", not ChatSince(mark):find("unlocked", 1, true)
     and #played == 1)
+ns.HandleSlash("announce now")
 suite.check("and neither is said in public again", #sent == 1, #sent)
 
 -- Kept to yourself: the sound and your own line, no emote.
@@ -87,6 +93,8 @@ mark = #env.chat
 for _ = 1, 20 do Loot("Defias Thug", {}) end
 suite.check("with announce off, your own chat still gets the line",
     ChatSince(mark):find("Drop rates unlocked for", 1, true) ~= nil)
+suite.check("without the offer", not ChatSince(mark):find("announce now", 1, true), ChatSince(mark))
+ns.HandleSlash("announce now")
 suite.check("but nothing is said in public", #sent == 1, #sent)
 ns.HandleSlash("announce on")
 
@@ -96,6 +104,7 @@ _G.C_ChatInfo = { SendChatMessage = function(text, chatType)
     modern[#modern + 1] = { text = text, chatType = chatType }
 end }
 for _ = 1, 20 do Loot("Riverpaw Gnoll", {}) end
+ns.HandleSlash("announce now")
 suite.check("C_ChatInfo.SendChatMessage is used where it exists",
     #modern == 1 and modern[1].chatType == "EMOTE" and #sent == 1, #modern)
 _G.C_ChatInfo = nil
@@ -106,7 +115,10 @@ suite.check("a stray | is taken out", Tracker:Announce("a|b") and sent[#sent].te
 
 -- The client refusing the emote costs the emote, not the kill.
 _G.SendChatMessage = function() error("blocked") end
-local ok_, err_ = pcall(function() for _ = 1, 20 do Loot("Murloc Forager", {}) end end)
+local ok_, err_ = pcall(function()
+    for _ = 1, 20 do Loot("Murloc Forager", {}) end
+    ns.HandleSlash("announce now")
+end)
 suite.check("a refused emote does not break the kill", ok_, err_)
 suite.check("which still counts", Tracker:Store()["Murloc Forager"].kills == 20)
 _G.SendChatMessage = function(text, chatType)
@@ -190,7 +202,11 @@ suite.check("naming the spot and where it is",
         and said:find("in Crystal Lake, Elwynn Forest", 1, true) ~= nil, said)
 suite.check("and its best catch", said:find("Best catch: " .. SMALLFISH, 1, true) ~= nil, said)
 suite.check("a sound plays", #played == before + 1, #played - before)
-suite.check("players nearby see one emote", #sent == sentBefore + 1
+-- The report: this cast raised "ADDON BLOCKED", since the emote was sent
+-- from the loot event. Now nothing goes until the player asks.
+suite.check("nothing is sent from the cast itself", #sent == sentBefore, #sent - sentBefore)
+ns.HandleSlash("announce now")
+suite.check("players nearby see one emote once asked", #sent == sentBefore + 1
     and sent[#sent].chatType == "EMOTE"
     and sent[#sent].text == "unlocked catch rates for open water in Crystal Lake, "
         .. "Elwynn Forest after 20 casts! (Blackthornes Farmer)", sent[#sent].text)
@@ -209,6 +225,7 @@ suite.check("another spot gets its own fanfare", #played == before + 2, #played 
 ns.HandleSlash("announce off")
 sentBefore = #sent
 for _ = 1, 20 do Cast("Westfall", "The Dagger Hills") end
+ns.HandleSlash("announce now")
 suite.check("with announce off, no fishing emote", #sent == sentBefore, #sent - sentBefore)
 ns.HandleSlash("announce on")
 
@@ -218,5 +235,63 @@ for _ = 1, 20 do Cast("Westfall", "Moonbrook") end
 suite.check("with celebrate off, nothing for fishing either",
     #played == before and not ChatSince(mark):find("unlocked", 1, true))
 ns.HandleSlash("celebrate on")
+
+-- Where the client hands "addon:" chat links to EventRegistry, the line
+-- carries a link, and clicking it sends the emote.
+do
+    local callbacks = {}
+    _G.EventRegistry = { RegisterCallback = function(_, event, fn, owner)
+        callbacks[#callbacks + 1] = { event = event, fn = fn, owner = owner }
+    end }
+    ns.Tracker.linkHooked = nil
+    ns.Tracker:HookAnnounceLink()
+    ns.Tracker:HookAnnounceLink()
+    suite.check("the link is listened for once, on SetItemRef",
+        #callbacks == 1 and callbacks[1].event == "SetItemRef", #callbacks)
+
+    local before = #sent
+    local mark = #env.chat
+    for _ = 1, 20 do Loot("Rabid Dire Wolf", {}) end
+    local line = ChatSince(mark)
+    suite.check("the line ends with a link to click",
+        line:find("|Haddon:Blackthornes_Farmer:announce|h", 1, true) ~= nil, line)
+    suite.check("and nothing is sent yet", #sent == before, #sent - before)
+
+    callbacks[1].fn(nil, "addon:SomeoneElse:thing")
+    suite.check("another addon's link is left alone", #sent == before)
+
+    callbacks[1].fn(nil, "addon:Blackthornes_Farmer:announce")
+    suite.check("clicking it sends the emote", #sent == before + 1
+        and sent[#sent].text == "unlocked drop rates for Rabid Dire Wolf after 20 kills! (Blackthornes Farmer)",
+        sent[#sent] and sent[#sent].text)
+
+    callbacks[1].fn(nil, "addon:Blackthornes_Farmer:announce")
+    suite.check("a second click sends nothing more", #sent == before + 1)
+
+    _G.EventRegistry = nil
+    ns.Tracker.linkHooked = nil
+end
+
+-- An offer left too long goes, and one inside a dungeon waits.
+do
+    local realTime = _G.GetTime
+    local clock = 1000
+    _G.GetTime = function() return clock end
+    ns.Tracker:OfferAnnounce("old news")
+    clock = clock + ns.Tracker.ANNOUNCE_KEEP + 1
+    local sentOld, why = ns.Tracker:AnnounceNow()
+    suite.check("an old offer is not sent", sentOld == false and why == "old", why)
+
+    local realInstance = _G.IsInInstance
+    _G.IsInInstance = function() return true, "party" end
+    ns.Tracker:OfferAnnounce("in a dungeon")
+    local sentIn, whyIn = ns.Tracker:AnnounceNow()
+    suite.check("inside a dungeon it waits", sentIn == false and whyIn == "instance"
+        and ns.Tracker.pendingAnnounce ~= nil, whyIn)
+    _G.IsInInstance = realInstance
+    suite.check("and goes once out", ns.Tracker:AnnounceNow() == true
+        and sent[#sent].text == "in a dungeon", sent[#sent].text)
+    _G.GetTime = realTime
+end
 
 suite.done()

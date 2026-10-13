@@ -88,7 +88,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm fishing [all]` | what you have caught in this zone, or everywhere (`reset confirm` clears it) |
 | `/farm gathering [all\|check]` | herbs and ore you have gathered in this zone, or everywhere; `check` lists herbs or ore credited to a mob (`reset confirm` clears it) |
 | `/farm markers [on\|off]` | markers where you gathered herbs and ore, on the world map and minimap (on by default; `map on\|off` or `minimap on\|off` for one, `clear confirm` removes them) |
-| `/farm announce [on\|off]` | whether players near you see an emote when a mob reaches 20 kills, a fishing spot 20 casts or a node 20 gathers (on by default) |
+| `/farm announce [on\|off\|now]` | whether your chat offers an emote for players near you when a mob reaches 20 kills, a fishing spot 20 casts or a node 20 gathers (on by default); `now` sends the last one |
 | `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills, a fishing spot 20 casts or a node 20 gathers, and its rates unlock (on by default) |
 | `/farm effects [full\|subtle\|off]` | how much the addon moves: in the kill panel, glows, the value counting up and loot floating off the panel; in the windows, fading up as they open, results coming in row by row and bars growing (full by default; subtle drops the floats and the row-by-row; off stops it all) |
 | `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
@@ -301,15 +301,18 @@ filter, and the list says how many.
 
 The kill that unlocks a mob's drop rates, its 20th, plays a fanfare and
 prints "Blackthornes Farmer: Drop rates unlocked for ..." with its best drop
-in your own chat window. Players near you also see an emote: "Name unlocked
-drop rates for Mangy Wolf after 20 kills! (Blackthornes Farmer)". A fishing
-spot's 20th cast gets the same: "Catch rates unlocked for open water in Crystal
-Lake, Elwynn Forest!" in your chat, and the matching emote. So does a node's
-20th gather: "Gather rates unlocked for Copper Vein in Jasperlode Mine, Elwynn
-Forest!" in your chat, and the matching emote. That emote, once per mob,
-fishing spot or node, is the only thing the addon ever says in public.
-`/farm announce off` (or Settings > Share milestones) keeps it to yourself;
-`/farm celebrate off` turns the whole thing off.
+in your own chat window. The line ends with a "Tell players near you" link
+(or, on a client without addon links, `/farm announce now`); click it and
+players near you see an emote: "Name unlocked drop rates for Mangy Wolf after
+20 kills! (Blackthornes Farmer)". The game only lets an addon speak in chat
+when you click or type, so the emote waits for you. A fishing spot's 20th cast
+gets the same: "Catch rates unlocked for open water in Crystal Lake, Elwynn
+Forest!" in your chat, and the matching emote. So does a node's 20th gather:
+"Gather rates unlocked for Copper Vein in Jasperlode Mine, Elwynn Forest!" in
+your chat, and the matching emote. That emote, once per mob, fishing spot or
+node and only when you click for it, is the only thing the addon ever says in
+public. `/farm announce off` (or Settings > Share milestones) leaves the link
+off; `/farm celebrate off` turns the whole thing off.
 
 The panel moves when loot lands. Gathered value counts up to its new total with
 a green "+38s" beside it for a few seconds, each item looted floats off the

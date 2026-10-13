@@ -841,12 +841,13 @@ function Tracker.InInstance()
     return answer == true
 end
 
---- Say `text` as an /emote: "Blackthornez unlocked drop rates for ...".
+--- Say `text` as an /emote: "Ana Wither unlocked drop rates for ...".
 --
--- EMOTE, because the client lets an addon send it from an event. SAY and YELL
--- need a key press or click behind them outside an instance, and a loot
--- window opening is not one. Plain text only: no colours or links, and a
--- stray "|" would make the chat server drop the line.
+-- Only ever from a click or a typed command (`Tracker:AnnounceNow`). Forever
+-- blocks a chat send from a loot event, EMOTE too (a player's report,
+-- 2026-10-13: "ADDON BLOCKED" at a fishing spot's 20th cast), and the game
+-- shows that as an error a pcall cannot catch. Plain text only: no colours
+-- or links, and a stray "|" would make the chat server drop the line.
 function Tracker:Announce(text)
     -- Not inside a dungeon or raid: the client can lock chat down there, and a
     -- blocked send shows the player an "Interface action failed" message that
@@ -859,6 +860,81 @@ function Tracker:Announce(text)
     if type(send) ~= "function" then return false end
 
     return (pcall(send, text, "EMOTE"))
+end
+
+-- The milestone emote waiting for the player's click: { text, at }. It is
+-- offered for ANNOUNCE_KEEP seconds; a newer milestone takes its place.
+Tracker.pendingAnnounce = nil
+local ANNOUNCE_KEEP = 600
+Tracker.ANNOUNCE_KEEP = ANNOUNCE_KEEP
+
+-- The chat link that sends it. The client hands a click on an "addon:" link
+-- to EventRegistry's "SetItemRef" callbacks, from the click itself, so the
+-- send is the player's own action.
+local ANNOUNCE_LINK = "addon:Blackthornes_Farmer:announce"
+
+--- Keep `text` to be emoted when the player clicks for it.
+function Tracker:OfferAnnounce(text)
+    self.pendingAnnounce = { text = tostring(text), at = Now() }
+end
+
+--- Send the waiting milestone emote. Call only from a click or a typed
+--- command. True if it went; false and why not.
+function Tracker:AnnounceNow()
+    local pending = self.pendingAnnounce
+    if not pending then return false, "none" end
+
+    local now = Now()
+    if pending.at and now and now - pending.at > ANNOUNCE_KEEP then
+        self.pendingAnnounce = nil
+        return false, "old"
+    end
+    if Tracker.InInstance() then return false, "instance" end
+
+    self.pendingAnnounce = nil
+    if self:Announce(pending.text) then return true end
+    return false, "refused"
+end
+
+--- Can a click on a chat link reach us on this client?
+function Tracker.LinksWork()
+    local registry = _G.EventRegistry
+    return type(registry) == "table" and type(registry.RegisterCallback) == "function"
+end
+
+--- What ends the fanfare's line: a clickable link where the client hands
+--- addon links to us, else the command to type.
+function Tracker:AnnounceOffer()
+    if Tracker.LinksWork() and self.linkHooked then
+        return ("|H%s|h|c%s[%s]|r|h"):format(ANNOUNCE_LINK, ns.COLORS.accent,
+            L["Tell players near you"])
+    end
+    return L["/farm announce now tells players near you."]
+end
+
+--- Listen for clicks on the link, once.
+function Tracker:HookAnnounceLink()
+    if self.linkHooked or not Tracker.LinksWork() then return end
+
+    local ok = pcall(_G.EventRegistry.RegisterCallback, _G.EventRegistry, "SetItemRef",
+        function(_, link)
+            if link ~= ANNOUNCE_LINK then return end
+            Tracker:AnnounceClicked()
+        end, Tracker)
+    self.linkHooked = ok and true or nil
+end
+
+--- The link or `/farm announce now`: send it, or say why not.
+function Tracker:AnnounceClicked()
+    local sent, why = self:AnnounceNow()
+    if sent then return end
+    if why == "instance" then
+        ns.Print(L["not inside a dungeon or raid. It waits until you are out."])
+    elseif why == "refused" then
+        ns.Print(L["the game would not send the emote."])
+    else
+        ns.Print(L["no milestone waiting to share."])
+    end
 end
 
 -- Sounds to try for the fanfare, best first: the achievement toast, then the
@@ -886,13 +962,14 @@ function Tracker.PlayFile(path)
 end
 
 --- Drop rates just unlocked for `mobName`: a sound, a line in your own chat,
---- and an /emote the players around you see.
+--- and a link on it that /emotes it to the players around you.
 --
 -- Asked for (2026-09-25), and for others to see it too, to spread
 -- the word about the addon. The emote is the one public thing the addon ever
 -- says: once per mob at its 20th kill, and the same for a fishing spot's
--- 20th cast and a node's 20th gather. `/farm announce off` keeps it to
--- yourself; `/farm celebrate off` turns the whole thing off.
+-- 20th cast and a node's 20th gather, and only when the player clicks for
+-- it (see Tracker:Announce). `/farm announce off` leaves the link off;
+-- `/farm celebrate off` turns the whole thing off.
 function Tracker:Celebrate(mobName)
     if ns.db.trackerCelebrate == false then return end
 
@@ -922,6 +999,10 @@ end
 --- it too, when a spot's catch rates unlock at 20 casts or a node's gather
 --- rates at 20 gathers. The caller checks /farm celebrate.
 function Tracker:Fanfare(line, emote, banner)
+    -- The emote waits for the player's click (see Tracker:Announce), so the
+    -- line ends with the link or command that sends it.
+    local offer = emote and ns.db.trackerAnnounce ~= false and self:AnnounceOffer()
+    if offer then line = line .. " " .. offer end
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
 
     if banner and ns.TrackerFX then
@@ -929,8 +1010,10 @@ function Tracker:Fanfare(line, emote, banner)
         if not ok then ns.Debug("unlock banner:", tostring(err)) end
     end
 
+    -- An older milestone's offer never stands in for this one.
+    self.pendingAnnounce = nil
     if emote and ns.db.trackerAnnounce ~= false then
-        self:Announce(emote)
+        self:OfferAnnounce(emote)
     end
 
     if Tracker.PlayFile(Tracker.SOUNDS.unlock) then return end
@@ -953,6 +1036,7 @@ function Tracker:OnEnable()
     if not ns.Harvest:Capabilities().usable then return end
 
     ns.OnLootWindow(self, function() Tracker:OnLoot() end)
+    self:HookAnnounceLink()
 end
 
 --------------------------------------------------------------------------------
@@ -1066,9 +1150,15 @@ ns.RegisterCommand("celebrate", L["sound and cheer at a mob's 20th kill, a fishi
             or L["no fanfare when rates unlock. /farm celebrate on to bring it back."])
     end)
 
-ns.RegisterCommand("announce", L["emote your 20 kill, cast and gather milestones to players nearby (on/off)"],
+ns.RegisterCommand("announce", L["offer to emote your 20 kill, cast and gather milestones to players nearby (on/off; now: emote the last one)"],
     function(rest)
         local argument = Util.Trim(rest):lower()
+
+        -- Typed, so it is the player's own action and the game lets it out.
+        if argument == "now" then
+            Tracker:AnnounceClicked()
+            return
+        end
 
         if argument == "on" then
             ns.db.trackerAnnounce = true
@@ -1079,7 +1169,7 @@ ns.RegisterCommand("announce", L["emote your 20 kill, cast and gather milestones
         end
 
         ns.Print(ns.db.trackerAnnounce
-            and L["players near you see an emote when rates unlock. /farm announce off to stop."]
+            and L["when rates unlock, your chat offers an emote for players near you. /farm announce off to stop."]
             or L["milestones stay in your own chat. /farm announce on to share them."])
 
         if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
