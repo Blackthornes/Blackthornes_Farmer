@@ -883,8 +883,8 @@ function TrackerUI:BuildToolbar(frame)
         if GameTooltip then GameTooltip:Hide() end
     end)
 
-    -- Clear panel (2026-10-11): the panel keeps its counts between sessions
-    -- now (Logic/Session.lua), so this is how a new run starts.
+    -- Clear panel (2026-10-11): how a new run starts mid-session, or across
+    -- sessions when the panel is kept (Logic/Session.lua, `keepPanel`).
     bar.clear = TrackerUI.ClearButton(bar, CLEAR_WIDTH, 16)
     bar.clear:SetPoint("RIGHT", bar.sort, "LEFT", -4, 0)
 

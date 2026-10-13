@@ -1,4 +1,5 @@
--- The kills and loot panel kept between sessions (2026-10-11).
+-- The kills and loot panel kept between sessions (2026-10-11), a choice
+-- since 2026-10-13: by default each session starts empty, every tally kept.
 --
 -- What matters: a /reload or a relog brings back what the panel showed, for
 -- the character that did it and no other; the lifetime tallies are not
@@ -45,11 +46,47 @@ local LINEN = { name = "Linen Cloth", id = 2589, quantity = 2 }
 local MEAT = { name = "Stringy Wolf Meat", id = 2672 }
 
 --------------------------------------------------------------------------------
--- A session, then a reload
+-- By default each session starts empty
 --------------------------------------------------------------------------------
 
+local me = "Player-1-Blackthornes"
 local ns = Login(nil)
 local Tracker = ns.Tracker
+
+suite.check("keeping the panel is off by default", not ns.Session.KeepOn())
+Loot(ns, "Mangy Wolf", { MEAT })
+Loot(ns, "Mangy Wolf", { MEAT, LINEN })
+local fresh = _G.BlackthornesFarmerDB
+Fire(ns, "PLAYER_LOGOUT")
+suite.check("logging out writes no run", fresh.panelSessions == nil or fresh.panelSessions[me] == nil)
+
+ns = Login(fresh)
+suite.check("after a reload the panel starts empty", next(ns.Tracker.session) == nil
+    and next(ns.Tracker.sessionLoot) == nil)
+suite.check("but the lifetime tally is kept", ns.Tracker:Store()["Mangy Wolf"].kills == 2)
+
+-- A run kept earlier, while the box was ticked, is neither read nor removed.
+local old = { tracker = { session = { ["Defias Thug"] = 4 }, clock = 1, recent = { ["Defias Thug"] = 1 } } }
+fresh.panelSessions = { [me] = old }
+ns = Login(fresh)
+suite.check("a run saved earlier is not put back", next(ns.Tracker.session) == nil)
+Fire(ns, "PLAYER_LOGOUT")
+suite.check("and is left in the save", fresh.panelSessions[me] == old)
+
+ns.HandleSlash("tracker keep on")
+suite.check("/farm tracker keep on turns it on", ns.db.keepPanel == true and ns.Session.KeepOn())
+ns.HandleSlash("tracker keep off")
+suite.check("/farm tracker keep off turns it off", ns.db.keepPanel == false)
+ns.HandleSlash("tracker keep")
+suite.check("/farm tracker keep flips it", ns.db.keepPanel == true)
+
+--------------------------------------------------------------------------------
+-- A session, then a reload, with the panel kept
+--------------------------------------------------------------------------------
+
+ns = Login(nil)
+ns.db.keepPanel = true
+Tracker = ns.Tracker
 
 suite.check("a new character starts empty", next(Tracker.session) == nil)
 
@@ -68,7 +105,6 @@ suite.check("the session counted", Tracker.session["Mangy Wolf"] == 2 and lifeti
 
 Fire(ns, "PLAYER_LOGOUT")
 local save = _G.BlackthornesFarmerDB
-local me = "Player-1-Blackthornes"
 local kept = save.panelSessions and save.panelSessions[me]
 suite.check("logging out keeps the panel under the character's GUID", type(kept) == "table")
 suite.check("with the kills", kept.tracker.session["Mangy Wolf"] == 2)
@@ -158,7 +194,7 @@ suite.check("and only once", ns.Tracker.session["Mangy Wolf"] == 3)
 -- A bad save
 --------------------------------------------------------------------------------
 
-local bad = { panelSessions = { [me] = {
+local bad = { keepPanel = true, panelSessions = { [me] = {
     played = "lots",
     lastLoot = "dancing",
     tracker = {
@@ -247,5 +283,8 @@ button:GetScript("OnClick")(button)
 suite.check("its first click only asks", ns.Tracker.session["Mangy Wolf"] == 1)
 button:GetScript("OnClick")(button)
 suite.check("its second clears the panel", next(ns.Tracker.session) == nil)
+
+local keepBox = ns.SettingsUI.controls.keepPanel
+suite.check("Settings has the Keep it box, ticked here", keepBox ~= nil and keepBox:GetChecked())
 
 suite.done()

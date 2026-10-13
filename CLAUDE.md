@@ -170,8 +170,13 @@ game. A fix to `Core/Serialize.lua` still belongs in Tradeskills' too.
 ## The panel kept between sessions
 
 The owner asked (2026-10-11) for the kills and loot panel to stop starting
-empty after every /reload or relog, per character, with a way to clear it.
-`Logic/Session.lua`: at `PLAYER_LOGOUT` (a reload too) Tracker's, Fishing's
+empty after every /reload or relog, per character, with a way to clear it,
+then (2026-10-13) for it to start empty each session again, all data kept.
+So keeping it is now a choice, off by default: "Between sessions" on the
+Kill tally page (`keepPanel`, account wide, never rename it) and `/farm
+tracker keep [on|off]`. Unticked, `Session:Restore` reads nothing and
+logout writes nothing; a run saved while it was ticked stays in the save
+untouched. Ticked, it works as below. `Logic/Session.lua`: at `PLAYER_LOGOUT` (a reload too) Tracker's, Fishing's
 and Gathering's session counts, the order last done, coin, best streak,
 `ns.lastLoot` and the per-hour clock's play time go in the account save as
 `panelSessions[guid]` (never rename it; the GUID from `Goals:Owner`), and

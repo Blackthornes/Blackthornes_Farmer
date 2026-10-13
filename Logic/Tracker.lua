@@ -938,11 +938,24 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear: empty what it shows, tallies kept; group on/off: move it aside in a party or raid; size: small, normal, large or a percent)"], function(rest)
+ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear: empty what it shows, tallies kept; keep on/off: keep what it shows between sessions; group on/off: move it aside in a party or raid; size: small, normal, large or a percent)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
-    -- What the panel shows, kept between sessions (Logic/Session.lua). Only
-    -- the view goes; every tally stays.
+    -- What the panel shows starts empty each session unless kept
+    -- (Logic/Session.lua). Clearing empties only the view; every tally stays.
+    local keep = argument:match("^keep%s*(%a*)$")
+    if keep then
+        local on
+        if keep == "on" then on = true
+        elseif keep == "off" then on = false
+        else on = not (ns.Session and ns.Session.KeepOn()) end
+        ns.db.keepPanel = on
+        ns.Print(on
+            and L["the kill and loot panel now keeps what it shows between sessions."]
+            or L["the kill and loot panel now starts empty each session. Your kill tallies and drop rates are kept."])
+        return
+    end
+
     if argument == "clear" then
         if ns.Session then ns.Session:Clear() end
         ns.Print(L["kill and loot panel cleared. Your kill tallies and drop rates are kept."])

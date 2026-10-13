@@ -195,10 +195,12 @@ at all are left out, and a note under the top heading says how many. Once the
 session has run five minutes, the bar under the tabs says what that comes to
 per hour.
 
-**Kept between sessions.** The panel keeps each character's run through a
-`/reload` or a relog, so the kills, loot, gathered value and per hour carry
-on where you left them (per hour counts only the time you are logged in).
-The **Clear** button beside Sort starts a new run: click it twice. It only
+**A fresh panel each session.** The panel starts empty every time you log
+in or `/reload`; your tallies, drop rates and Rankings are always kept. To
+carry a run over instead, tick Settings > Kill tally > Between sessions >
+Keep it (or `/farm tracker keep on`): each character's kills, loot,
+gathered value and per hour then carry on where you left them (per hour
+counts only the time you are logged in). The **Clear** button beside Sort starts a new run: click it twice. It only
 empties the panel; your tallies, drop rates and Rankings are kept. Settings
 > Kill tally > Clear panel and `/farm tracker clear` do the same.
 

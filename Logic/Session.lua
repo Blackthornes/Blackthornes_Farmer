@@ -5,7 +5,13 @@
 -- always been saved. The panel's own view was not: the kills, loot, coin and
 -- gathered value of "this session" lived in memory, so a /reload or a relog
 -- emptied it. The owner asked (2026-10-11) for it to stay, per character,
--- until the player clears it.
+-- until the player clears it, then (2026-10-13) for the panel to start empty
+-- each session again. So the panel starts empty at every login and /reload,
+-- and keeping it is a choice: "Keep between sessions" on the Kill tally page
+-- (`keepPanel`, account wide, off unless ticked; never rename it) and
+-- `/farm tracker keep`. Unticked, nothing is read or written here, and a run
+-- saved while it was ticked is left in the save untouched; the next logout
+-- with it ticked writes over it before any login could read it.
 --
 -- So at logout (which a /reload is too) the panel's counts are put in the
 -- account save under the character's GUID, `panelSessions[guid]`, and at
@@ -73,6 +79,11 @@ local function Clock()
     if type(time) ~= "function" then return nil end
     local ok, now = pcall(time)
     return ok and type(now) == "number" and now or nil
+end
+
+--- Whether the panel is kept from one session to the next (off by default).
+function Session.KeepOn()
+    return ns.db ~= nil and ns.db.keepPanel == true
 end
 
 --- The character playing, by GUID, or nil while the client will not say.
@@ -227,6 +238,9 @@ function Session:Restore()
     if not owner then return false end
     self.restored = true
 
+    -- Each session starts empty unless the player keeps the panel.
+    if not self.KeepOn() then return true end
+
     local saved = self:Store()[owner]
     if type(saved) ~= "table" then return true end
 
@@ -317,8 +331,9 @@ function Session:OnEnable()
     end
 
     -- A reload logs out too. Not restored means the GUID was never read, so
-    -- there is nothing of this character's to write over.
+    -- there is nothing of this character's to write over. Not kept means the
+    -- save is left as it is.
     ns.RegisterEvent(self, "PLAYER_LOGOUT", function()
-        if Session.restored then Session:Save() end
+        if Session.restored and Session.KeepOn() then Session:Save() end
     end)
 end
