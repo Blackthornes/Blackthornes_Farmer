@@ -36,8 +36,8 @@ local L = ns.L
 
 local Trash = ns.NewModule("Trash")
 
--- Shows at this many free slots or fewer (Butler's number too).
-Trash.FREE = 3
+-- Shows only at this many free slots or fewer: none (Butler's number too).
+Trash.FREE = 0
 Trash.SETTLE = 0.2
 Trash.BUDGET = 40
 Trash.ART = [[Interface\AddOns\Blackthornes_Farmer\Media\Trash\TrashCan]]
