@@ -342,6 +342,12 @@ end
 suite.check("the row names count and cost", found and found:find("3 for", 1, true) and found:find("1g", 1, true), found)
 Bar:HideCheer()
 
+-- Try it (Settings, /farm xpbar try) shows the cheer, above the Settings window
+Bar:TryCheer()
+suite.check("Try it shows the cheer", Bar.cheer and Bar.cheer:IsShown())
+suite.check("the cheer sits above the dialogs", Bar.cheer and Bar.cheer:GetFrameStrata() == "FULLSCREEN_DIALOG")
+Bar:HideCheer()
+
 plan.unknown = 1
 suite.check("a cost with unpriced spells is left out", Bar.Training().cost == 0)
 plan.ready = {}
