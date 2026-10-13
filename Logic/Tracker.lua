@@ -701,6 +701,9 @@ function Tracker:LootedItems(anySource)
     local count = gotCount and ns.Harvest.ReadableNumber(lootCount) or nil
     if not count then return names, quantities, copper, haul end
 
+    -- What other corpses already counted still hold: no part of the haul.
+    local counted = anySource and {} or self:CountedShares(count)
+
     for slot = 1, count do
         local ok, slotIcon, slotName, slotQuantity, _, _, slotLocked = pcall(GetLootSlotInfo, slot)
         local text = ok and ns.Harvest.Readable(slotName) or nil
@@ -720,7 +723,7 @@ function Tracker:LootedItems(anySource)
                 own = share and ns.Harvest.ReadableNumber(share) or all
                 copper = copper + own
             end
-            haul.copper = haul.copper + math.max(0, all - own)
+            haul.copper = haul.copper + math.max(0, all - own - (counted[slot] or 0))
         elseif text then
             local own = share or whole or 1
             local locked = IsLocked(slotLocked)
@@ -737,7 +740,7 @@ function Tracker:LootedItems(anySource)
             end
 
             -- What is left of the slot came off the other corpses.
-            local rest = (whole or 1) - (name and own or 0)
+            local rest = (whole or 1) - (name and own or 0) - (counted[slot] or 0)
             if rest > 0 and not locked then
                 if not name then self:NoteLook(slot, text, slotIcon) end
                 haul.items[text] = (haul.items[text] or 0) + rest
@@ -746,6 +749,31 @@ function Tracker:LootedItems(anySource)
     end
 
     return names, quantities, copper, haul
+end
+
+--- For each loot slot, how much of it belongs to corpses other than the one
+--- opened that this session already counted: opened, or shown in an earlier
+--- window's area loot. With full bags their leftovers come round again in
+--- the next corpse's window, and the haul took them a second time. A slot
+--- whose sources will not be read has none (as before).
+function Tracker:CountedShares(count)
+    local shares = {}
+    if type(GetLootSourceInfo) ~= "function" then return shares end
+
+    local Harvest = ns.Harvest
+    local own = Harvest:CorpseID()
+
+    for slot = 1, count do
+        local ok, sources = pcall(function() return { GetLootSourceInfo(slot) } end)
+        for index = 1, ok and #sources or 0, 2 do
+            local guid = Harvest.Readable(sources[index])
+            if guid and guid ~= own and (self.corpses[guid] or self.areaLooted[guid]) then
+                shares[slot] = (shares[slot] or 0) + (Harvest.ReadableNumber(sources[index + 1]) or 0)
+            end
+        end
+    end
+
+    return shares
 end
 
 --- Is the corpse being skinned, never opened before, your own kill that
@@ -806,6 +834,13 @@ function Tracker:OnLoot()
             return self:Skinned(mobName, items, quantities, haul)
         end
     end
+
+    -- A corpse whose loot showed in another corpse's window (area loot) was
+    -- counted there: its drops went into the session's loot, and it is no
+    -- kill of its own. Full bags leave it holding what could not be taken,
+    -- and opening it after other loot counted it again as a new kill with
+    -- new drops (2026-10-13). Nothing it shows is new.
+    if guid and not self.corpses[guid] and self.areaLooted[guid] then return false end
 
     local place = Tracker.PlaceName(ns.Harvest:Where())
 
