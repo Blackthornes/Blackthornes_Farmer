@@ -513,12 +513,18 @@ The owner asked (2026-10-13) for gatherable nodes to sparkle in the world.
 The client tells addons nothing about the nodes around you, so only the one
 the interact key would pick ("softinteract", in front of you and close)
 can sparkle. `UI/NodeSparkle.lua` anchors gold sparkles (its own frame,
-never parented, `Media/Frame/Glow.tga` crossed, twinkling by an animation
+never parented, the star `Media/Frame/Sparkle.tga` from
+`tools/make_sparkle_art.py` over a soft glow, twinkling by an animation
 group) to the game's nameplate for that object
 (`C_NamePlate.GetNamePlateForUnit("softinteract")`). The nameplate only
 exists with `SoftTargetInteract` at 3 and `SoftTargetNameplateInteract` on,
 and `SoftTargetInteractRange` 30 and `SoftTargetInteractArc` 2 (all round)
-let it pick a node farther off (2026-10-13), so while "Sparkle on nodes" (`nodeSparkle`, on unless unticked, Map & goals
+let it pick a node farther off (2026-10-13). The probe found no nameplate
+for a node with those alone (Peacebloom, 2026-10-13), so the game's own
+icon over the object is turned on too (`SoftTargetIconGameObject`,
+`SoftTargetIconInteract`; the owner picked it), and the sparkles gather
+round that icon (`NodeSparkle.Icon`, the plate's `UnitFrame.SoftTargetFrame`,
+read only) when the plate lets us read it. So while "Sparkle on nodes" (`nodeSparkle`, on unless unticked, Map & goals
 page, `/farm sparkle`) is ticked Farmer raises them out of combat, keeping
 the old values in `nodeSparkleCVars` (never rename either) and putting them
 back when unticked. A node is a herb or vein the data knows, the client's
