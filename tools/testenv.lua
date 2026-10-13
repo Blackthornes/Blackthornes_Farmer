@@ -370,6 +370,7 @@ local UI_FILES = {
     "UI/GrindPins.lua",
     "UI/Arrow.lua",
     "UI/ItemTooltip.lua",
+    "UI/KillTooltip.lua",
     "UI/HideMenu.lua",
     "UI/HiddenWindow.lua",
     "UI/Settings.lua",

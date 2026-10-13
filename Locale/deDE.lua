@@ -985,3 +985,13 @@ L["a mob that climbs your top 15 shows it for a few seconds. /farm rankup off to
 L["no pop-up when a mob climbs your top 15. /farm rankup on to bring it back."] = "Kein Fenster, wenn ein Gegner in deinen Top 15 aufsteigt. /farm rankup on holt es zurück."
 L["a short chime plays when a mob climbs your top 15. /farm rankup sound off to stop."] = "Ein kurzer Glockenton erklingt, wenn ein Gegner in deinen Top 15 aufsteigt. /farm rankup sound off zum Abschalten."
 L["no chime for a climb. /farm rankup sound on to bring it back."] = "Kein Glockenton bei einem Aufstieg. /farm rankup sound on holt ihn zurück."
+
+-- The kill count on mob tooltips (UI/KillTooltip.lua).
+L["Kills: %d/%d"] = "Getötet: %d/%d"
+L["Kills: %d"] = "Getötet: %d"
+L["Kills: %1$d, worth %2$s each"] = "Getötet: %1$d, je %2$s wert"
+L["Kill count"] = "Anzahl getötet"
+L["Hover a mob to see how many you have killed: red up to 20, then your kills and what one is worth. Same as /farm killcount."] = "Zeig mit der Maus auf einen Gegner, um zu sehen, wie viele du getötet hast: rot bis 20, danach deine Anzahl und was einer wert ist. Wie /farm killcount."
+L["turn the kill count on mob tooltips on or off"] = "die Anzahl getöteter Gegner in Tooltips ein- oder ausschalten"
+L["kill count on mob tooltips on."] = "Anzahl getöteter Gegner in Tooltips an."
+L["kill count on mob tooltips off."] = "Anzahl getöteter Gegner in Tooltips aus."
