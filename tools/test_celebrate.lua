@@ -134,6 +134,37 @@ ns.HandleSlash("celebrate on")
 suite.check("/farm celebrate on turns it back on", ns.db.trackerCelebrate == true)
 
 --------------------------------------------------------------------------------
+-- The 100th kill (2026-10-13, a reward kept quiet): the champion banner and
+-- Whitemane's line, or the fanfare with voice lines off.
+--------------------------------------------------------------------------------
+
+local voiced = {}
+_G.PlaySoundFile = function(id, channel)
+    voiced[#voiced + 1] = { id = id, channel = channel }
+    return true
+end
+ns.TrackerFX.saidAt = {}
+local CHAMP = "Defias Thug"
+for _ = 1, 99 do Loot(CHAMP, {}) end
+mark = #env.chat
+voiced = {}
+Loot(CHAMP, {})
+suite.check("the 100th kill crowns you", ChatSince(mark):find("champion", 1, true) ~= nil, ChatSince(mark))
+suite.check("with Whitemane's line", #voiced == 1 and voiced[1].id == ns.TrackerFX.VOICE.champion,
+    voiced[1] and voiced[1].id)
+Loot(CHAMP, {})
+suite.check("and only the 100th", #voiced == 1 and not ChatSince(mark):find("champion.*champion"))
+
+ns.HandleSlash("voice off")
+ns.TrackerFX.saidAt = {}
+for _ = 1, 100 do Loot("Defias Bandit", {}) end
+local last = voiced[#voiced]
+suite.check("voice lines off: the fanfare instead",
+    last and last.id == Tracker.SOUNDS.unlock, last and last.id)
+ns.HandleSlash("voice on")
+_G.PlaySoundFile = nil
+
+--------------------------------------------------------------------------------
 -- Fishing: the same fanfare when a spot's catch rates unlock at 20 casts
 -- (2026-09-25: "i didn't see/hear a fanfare or emote when i hit 20
 -- fishing casts in one location").

@@ -114,9 +114,10 @@ local VOICE_QUALITY = 3
 
 -- Spoken lines the game already has, played by file ID (nothing is shipped):
 -- a goblin vendor for a blue or better drop, the orc peon's "Work complete!"
--- for a goal reached (the owner picked both, 2026-10-12). Each waits
+-- for a goal reached (the owner picked both, 2026-10-12), and Whitemane's
+-- "Arise, my champion!" for a mob's 100th kill (2026-10-13). Each waits
 -- VOICE_GAP seconds before it can play again, so it stays a treat.
-TrackerFX.VOICE = { drop = 550785, goal = 558132 }
+TrackerFX.VOICE = { drop = 550785, goal = 558132, champion = 551838 }
 local VOICE_GAP = 180
 
 -- Each row's wash, and which float labels are in the air, kept here rather
