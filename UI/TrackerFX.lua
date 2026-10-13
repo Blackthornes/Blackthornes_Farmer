@@ -89,6 +89,21 @@ local SHINE_TIME = 0.9
 local SHINE_WIDTH = 36
 local BRIGHT_GOLD = { 1, 0.906, 0.639 }   -- #FFE7A3
 
+-- A mob's 100th kill adds to the banner (2026-10-13): gold coins rain down
+-- the panel, and its rim burns red and gold for BURN_TIME seconds and then
+-- cools over BURN_FADE.
+local COINS = 24
+local COIN_ICON = [[Interface\Icons\INV_Misc_Coin_01]]
+local COIN_FALL = 1.6
+local COIN_STAGGER = 1.2
+local COIN_SIZE = 14
+local BURN_TIME = 10
+local BURN_FADE = 1.5
+local BURN_SPREAD = 16
+local BURN_INNER = 6
+local EMBERS = 16
+TrackerFX.BURN_TIME = BURN_TIME
+
 -- What the banner says when its whole title will not fit a narrow panel.
 local SHORT_TITLE = L["RATES UNLOCKED"]
 
@@ -1110,6 +1125,173 @@ function TrackerFX:Unlocked(info)
 
     self:Flare()
     self:PulseUnlocked(info)
+
+    if info.champion then
+        self:CoinRain()
+        self:Burn()
+    end
+end
+
+--- Coins tumble down the panel, a few at a time, and fade near its foot.
+function TrackerFX:CoinRain()
+    local panel = ns.TrackerUI.frame
+
+    local rain = self.rain
+    if not rain then
+        rain = CreateFrame("Frame", nil, panel)
+        rain:SetAllPoints(panel)
+        rain:SetFrameLevel(panel:GetFrameLevel() + 14)
+        rain.coins = {}
+        for index = 1, COINS do
+            local coin = rain:CreateTexture(nil, "OVERLAY")
+            coin:SetTexture(COIN_ICON)
+            -- The icon's own border trimmed away, so it reads as a coin.
+            coin:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            rain.coins[index] = coin
+        end
+        self.rain = rain
+    end
+
+    local okW, width = pcall(panel.GetWidth, panel)
+    local okH, height = pcall(panel.GetHeight, panel)
+    width = okW and tonumber(width) or 200
+    height = okH and tonumber(height) or 300
+
+    -- Where each starts, when, how big and how fast it turns.
+    for index, coin in ipairs(rain.coins) do
+        coin.x = (index - 0.5) / COINS * width + math.random(-8, 8)
+        coin.delay = math.random() * COIN_STAGGER
+        coin.size = COIN_SIZE + math.random(0, 8)
+        coin.spin = 6 + math.random() * 6
+        coin.phase = math.random() * math.pi
+        coin:SetSize(coin.size, coin.size)
+        coin:Hide()
+    end
+    rain:Show()
+
+    local total = COIN_STAGGER + COIN_FALL
+    self:Start({ slot = "coins", duration = total,
+        apply = function(p)
+            local now = p * total
+            for _, coin in ipairs(rain.coins) do
+                local t = (now - coin.delay) / COIN_FALL
+                if t < 0 or t >= 1 then
+                    coin:Hide()
+                else
+                    -- Falling faster as it goes, turning as it falls.
+                    local y = -coin.size + (height + coin.size) * t * t
+                    local turn = math.abs(math.cos(t * coin.spin + coin.phase))
+                    coin:SetWidth(math.max(2, coin.size * turn))
+                    coin:ClearAllPoints()
+                    coin:SetPoint("CENTER", rain, "TOPLEFT", coin.x, -y)
+                    coin:SetAlpha(t > 0.7 and (1 - t) / 0.3 or 1)
+                    coin:Show()
+                end
+            end
+            if p >= 1 then rain:Hide() end
+        end,
+        stop = function() rain:Hide() end })
+end
+
+--- Four bands round `frame`, bright against its edge, fading `spread`
+--- pixels out: the panel's halo, but drawn here, so the Blizzard window
+--- style (which puts halos out) still shows the burn.
+local function Rim(frame, spread)
+    local sides = {}
+    for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+        local band = frame:CreateTexture(nil, "ARTWORK")
+        pcall(band.SetBlendMode, band, "ADD")
+        if side == "TOP" or side == "BOTTOM" then
+            local out = side == "TOP" and 1 or -1
+            band:SetPoint(side .. "LEFT", frame, side .. "LEFT", -spread, out * spread)
+            band:SetPoint(side .. "RIGHT", frame, side .. "RIGHT", spread, out * spread)
+            band:SetHeight(spread)
+        else
+            local out = side == "LEFT" and -1 or 1
+            band:SetPoint("TOP" .. side, frame, "TOP" .. side, out * spread, 0)
+            band:SetPoint("BOTTOM" .. side, frame, "BOTTOM" .. side, out * spread, 0)
+            band:SetWidth(spread)
+        end
+        band.side = side
+        sides[#sides + 1] = band
+    end
+    return sides
+end
+
+local function LightRim(sides, key, alpha)
+    for _, band in ipairs(sides) do
+        if band.side == "TOP" then
+            Theme.SetGradientAlpha(band, "VERTICAL", key, alpha, 0)
+        elseif band.side == "BOTTOM" then
+            Theme.SetGradientAlpha(band, "VERTICAL", key, 0, alpha)
+        elseif band.side == "LEFT" then
+            Theme.SetGradientAlpha(band, "HORIZONTAL", key, 0, alpha)
+        else
+            Theme.SetGradientAlpha(band, "HORIZONTAL", key, alpha, 0)
+        end
+        band:SetShown(alpha > 0)
+    end
+end
+
+--- The panel's rim burns: a red glow outside, gold against the edge, both
+--- flickering, and embers rising off the top. It burns BURN_TIME seconds,
+--- then cools away.
+function TrackerFX:Burn()
+    local panel = ns.TrackerUI.frame
+
+    local burn = self.burn
+    if not burn then
+        burn = CreateFrame("Frame", nil, panel)
+        burn:SetAllPoints(panel)
+        burn:SetFrameLevel(math.max(0, panel:GetFrameLevel() - 1))
+        burn.outer = Rim(burn, BURN_SPREAD)
+        burn.inner = Rim(burn, BURN_INNER)
+        burn.embers = {}
+        for index = 1, EMBERS do
+            local ember = burn:CreateTexture(nil, "OVERLAY")
+            ember:SetColorTexture(1, 0.55 + 0.3 * (index % 3) / 2, 0.15, 1)
+            pcall(ember.SetBlendMode, ember, "ADD")
+            burn.embers[index] = ember
+        end
+        self.burn = burn
+    end
+
+    local okW, width = pcall(panel.GetWidth, panel)
+    width = okW and tonumber(width) or 200
+    for index, ember in ipairs(burn.embers) do
+        ember.x = math.random() * width
+        ember.rise = 18 + math.random() * 26
+        ember.speed = 0.6 + math.random() * 0.8
+        ember.phase = math.random()
+        local size = 2 + math.random(0, 2)
+        ember:SetSize(size, size)
+    end
+    burn:Show()
+
+    local total = BURN_TIME + BURN_FADE
+    self:Start({ slot = "burn", duration = total,
+        apply = function(p)
+            local now = p * total
+            -- In over half a second, burning, then cooling away.
+            local heat = math.min(1, now / 0.5)
+            if now > BURN_TIME then heat = math.max(0, 1 - (now - BURN_TIME) / BURN_FADE) end
+            local flicker = 0.8 + 0.12 * math.sin(now * 13) + 0.08 * math.sin(now * 29 + 1)
+
+            LightRim(burn.outer, "loss", 0.75 * heat * flicker)
+            LightRim(burn.inner, "accent", 0.9 * heat * (1.9 - flicker))
+
+            for _, ember in ipairs(burn.embers) do
+                local t = (now * ember.speed + ember.phase) % 1
+                ember:ClearAllPoints()
+                ember:SetPoint("BOTTOM", burn, "TOPLEFT", ember.x + 4 * math.sin(now * 3 + ember.x),
+                    t * ember.rise)
+                ember:SetAlpha(heat * (1 - t))
+                ember:SetShown(heat > 0)
+            end
+
+            if p >= 1 then burn:Hide() end
+        end,
+        stop = function() burn:Hide() end })
 end
 
 --- The mob's band beats gold for longer than a plain kill.

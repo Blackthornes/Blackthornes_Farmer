@@ -918,7 +918,37 @@ function Tracker:Champion(mobName)
     self:Fanfare(L.Format("%d kills of %s! You're its champion now.", summary.kills,
             Util.Colored("accent", summary.mob)),
         { title = L["CHAMPION"], subject = L.Format("%s  |  %d kills", summary.mob, summary.kills),
-            key = "mob:" .. summary.mob },
+            key = "mob:" .. summary.mob, champion = true },
+        "champion")
+end
+
+--- The 100th kill's show, played once with no kill, to try it out
+--- (2026-10-13, the owner's test): a typed word on /farm celebrate that no
+--- help or Settings names, as the reward itself is kept quiet. Nothing is
+--- counted, saved or changed; the crown shows on the panel's first mob
+--- until the next /reload, from memory alone.
+function Tracker:ChampionPreview()
+    local UI = ns.TrackerUI
+    if not (UI and UI.frame and UI.frame:IsShown()) then
+        ns.Print(L["open the kills panel first, then try again."])
+        return
+    end
+
+    local first = self:SessionMobs()[1]
+    local mobName = first and first.mob or L["Training Dummy"]
+    local kills = math.max(CHAMPION_KILLS, first and first.kills or 0)
+
+    if first then
+        UI.crownPreview = mobName
+        pcall(UI.Refresh, UI)
+    end
+    -- The voice line waits a while between plays; a test plays it now.
+    if ns.TrackerFX then ns.TrackerFX.saidAt.champion = nil end
+
+    self:Fanfare(L.Format("%d kills of %s! You're its champion now.", kills,
+            Util.Colored("accent", mobName)),
+        { title = L["CHAMPION"], subject = L.Format("%s  |  %d kills", mobName, kills),
+            key = "mob:" .. mobName, champion = true },
         "champion")
 end
 
@@ -1072,6 +1102,8 @@ end)
 ns.RegisterCommand("celebrate", L["sound and cheer at a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather (on/off)"],
     function(rest)
         local argument = Util.Trim(rest):lower()
+
+        if argument == "champion" then return Tracker:ChampionPreview() end
 
         if argument == "on" then
             ns.db.trackerCelebrate = true

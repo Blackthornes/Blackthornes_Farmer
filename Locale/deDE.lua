@@ -1004,3 +1004,5 @@ L["Gold sparkles over the herb or ore node you are facing, close enough to gathe
 L["sparkles on the herb or ore node you face on or off (check)"] = "Funkeln am Kraut oder Erzvorkommen vor dir ein- oder ausschalten (check)"
 L["sparkles on nodes on."] = "Funkeln an Vorkommen an."
 L["sparkles on nodes off."] = "Funkeln an Vorkommen aus."
+L["open the kills panel first, then try again."] = "öffne zuerst das Kill-Fenster und versuch es dann noch mal."
+L["Training Dummy"] = "Trainingsattrappe"
