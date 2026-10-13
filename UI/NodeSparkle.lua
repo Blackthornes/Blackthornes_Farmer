@@ -27,6 +27,14 @@
 -- still wants sparkle too (the owner asked 2026-10-13); a mailbox, a door
 -- or a chair does not.
 --
+-- Without a game controller the game's icon is left out of sight (the
+-- owner asked 2026-10-13): it is only there because Farmer turned it on to
+-- get the nameplate, and on a keyboard it says nothing the beacon does not.
+-- It is made see-through (SetAlpha), never hidden, and put back as it was;
+-- see NodeSparkle:VeilIcon. "Hide the game's icon" (`nodeSparkleHideIcon`,
+-- on unless unticked; never rename it). A player who had the icon on before
+-- Farmer, or who plays with a controller, keeps it.
+--
 -- Smooth play: no OnUpdate and no timer. The soft target and nameplate
 -- events say when to look again, the anchor makes it follow the node, and
 -- the twinkle is an animation the game plays, only while it shows. Every
@@ -204,6 +212,7 @@ function NodeSparkle:SetEnabled(on)
         self.applyAfterCombat = nil
         self:RestoreSettings()
         self:HideSparkle()
+        pcall(self.VeilIcon, self)
     end
 end
 
@@ -378,6 +387,79 @@ function NodeSparkle:Plate(guid)
         end
     end
     return nil
+end
+
+--------------------------------------------------------------------------------
+-- The game's icon, out of sight without a controller
+--------------------------------------------------------------------------------
+
+local ICON_CVARS = { SoftTargetIconGameObject = true, SoftTargetIconInteract = true }
+local veiled = setmetatable({}, { __mode = "k" })   -- [icon frame] = its alpha before
+
+--- Is a game controller in use?
+function NodeSparkle.Controller()
+    local enabled = Field(_G.C_GamePad, "IsEnabled")
+    if type(enabled) == "function" then
+        local ok, yes = pcall(enabled)
+        if ok and type(yes) == "boolean" and yes then return true end
+    end
+    return NodeSparkle.GetCVar("GamePadEnable") == "1"
+end
+
+--- Should the game's icon be kept out of sight? Only while Farmer is the
+--- one that turned it on, and nobody plays with a controller.
+function NodeSparkle:HidesIcon()
+    local db = ns.db
+    if not db or not self:IsEnabled() or db.nodeSparkleHideIcon == false then return false end
+    local saved = db.nodeSparkleCVars
+    if type(saved) ~= "table" then return false end
+    local ours = false
+    for name in pairs(ICON_CVARS) do
+        if saved[name] ~= nil then ours = true end
+    end
+    return ours and not self.Controller()
+end
+
+local function SetAlpha(frame, alpha)
+    return pcall(function() frame:SetAlpha(alpha) end)
+end
+
+local function Unveil(icon)
+    local alpha = veiled[icon]
+    veiled[icon] = nil
+    if alpha ~= nil then SetAlpha(icon, alpha) end
+end
+
+--- Make the game's icon on the soft target's nameplate see-through, or put
+--- it back. Only its alpha is changed, from this file's own table, never
+--- in a fight; a plate the game hands to something else gets its own back.
+-- @return true while an icon is kept out of sight
+function NodeSparkle:VeilIcon()
+    if InCombat() then return next(veiled) ~= nil end
+    local icon
+    if self:HidesIcon() then
+        local forUnit = Field(_G.C_NamePlate, "GetNamePlateForUnit")
+        if type(forUnit) == "function" then
+            local ok, plate = pcall(forUnit, UNIT)
+            if ok and type(plate) == "table" then icon = self.Icon(plate) end
+        end
+    end
+    for other in pairs(veiled) do
+        if other ~= icon then Unveil(other) end
+    end
+    if not icon then return false end
+    if veiled[icon] == nil then
+        local ok, alpha = pcall(function() return icon:GetAlpha() end)
+        veiled[icon] = (ok and type(alpha) == "number") and alpha or 1
+    end
+    -- Again each time: the game may light it up as the target changes.
+    SetAlpha(icon, 0)
+    return true
+end
+
+function NodeSparkle:SetHideIcon(hide)
+    ns.db.nodeSparkleHideIcon = hide and true or false
+    self:SafeRefresh()
 end
 
 --------------------------------------------------------------------------------
@@ -582,6 +664,7 @@ function NodeSparkle:Refresh()
 end
 
 function NodeSparkle:SafeRefresh()
+    pcall(self.VeilIcon, self)
     local ok, outcome = pcall(self.Refresh, self)
     if not ok then
         pcall(self.HideSparkle, self)
@@ -610,6 +693,14 @@ function NodeSparkle:OnEnable()
     ns.RegisterEvent(self, "PLAYER_REGEN_ENABLED", function()
         if NodeSparkle.applyAfterCombat then NodeSparkle:ApplySettings() end
         if NodeSparkle.restoreAfterCombat then NodeSparkle:RestoreSettings() end
+        NodeSparkle:SafeRefresh()
+    end)
+    -- A controller plugged in or turned on brings the game's icon back.
+    for _, event in ipairs({ "GAME_PAD_CONNECTED", "GAME_PAD_DISCONNECTED", "GAME_PAD_ACTIVE_CHANGED" }) do
+        ns.RegisterEvent(self, event, function() NodeSparkle:SafeRefresh() end)
+    end
+    ns.RegisterEvent(self, "CVAR_UPDATE", function(_, _, name)
+        if name == "GamePadEnable" then NodeSparkle:SafeRefresh() end
     end)
     ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", function()
         if NodeSparkle:IsEnabled() then NodeSparkle:ApplySettings() end
@@ -646,6 +737,8 @@ function NodeSparkle:Check()
     local plate = object and self:Plate(guid) or nil
     ns.PrintRaw(("  nameplate for it: %s"):format(object and (plate and "yes" or "no") or "-"))
     ns.PrintRaw(("  game icon on it: %s"):format(plate and (self.Icon(plate) and "yes" or "no") or "-"))
+    ns.PrintRaw(("  controller: %s, game icon hidden: %s"):format(self.Controller() and "yes" or "no",
+        self:VeilIcon() and "yes" or "no"))
     local all = Field(_G.C_NamePlate, "GetNamePlates")
     if type(all) == "function" then
         local ok, list = pcall(all)
@@ -654,11 +747,22 @@ function NodeSparkle:Check()
     ns.PrintRaw(("  sparkle: %s"):format(self:SafeRefresh()))
 end
 
-ns.RegisterCommand("sparkle", L["sparkles on the node, school, chest or quest object you face on or off (beacon, sparkles, check)"], function(rest)
+ns.RegisterCommand("sparkle", L["sparkles on the node, school, chest or quest object you face on or off (beacon, sparkles, icon, check)"], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
     if argument == "beacon" or argument == "sparkles" then
         NodeSparkle:SetStyle(argument)
         ns.Print(argument == "beacon" and L["a beacon shows the spot."] or L["sparkles show the spot."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if argument == "icon" or argument == "icon show" or argument == "icon hide" then
+        local hide
+        if argument == "icon show" then hide = false
+        elseif argument == "icon hide" then hide = true
+        else hide = ns.db.nodeSparkleHideIcon == false end
+        NodeSparkle:SetHideIcon(hide)
+        ns.Print(hide and L["the game's interact icon is hidden unless you play with a controller."]
+            or L["the game's interact icon shows."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end

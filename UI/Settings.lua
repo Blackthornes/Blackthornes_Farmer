@@ -823,6 +823,15 @@ function SettingsUI:BuildMapPage()
     ns.SettingsPages.FitStepper(controls.sparkleStyle, styleNames)
     controls.sparkleStyle:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The game's interact icon, out of sight without a controller (the
+    -- owner asked 2026-10-13).
+    local sparkleIconRow = pages:Row("map", 1, L["Game's interact icon"],
+        L["The game's own icon over the thing you face. Ticked, it stays out of sight unless you play with a controller. Same as /farm sparkle icon."])
+    controls.nodeSparkleHideIcon = Widgets.CreateCheckbox(sparkleIconRow, L["Hide it"], function(checked)
+        ns.NodeSparkle:SetHideIcon(checked)
+    end, true)
+    controls.nodeSparkleHideIcon:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- The Grind tab (a player asked, the owner agreed 2026-10-09).
     pages:Section("map", 1, L["GRINDING"])
 
@@ -1118,6 +1127,7 @@ function SettingsUI:Refresh()
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
+    controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.killTooltip:SetChecked(db.killTooltip ~= false)
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
