@@ -356,6 +356,57 @@ suite.check("a sister that raises gives nothing", Bar.Training() == nil)
 _G.BlackthornesEquipment = nil
 
 --------------------------------------------------------------------------------
+-- The star's breath and the light along the gold
+--------------------------------------------------------------------------------
+
+local function FakeGroup()
+    local group = { playing = false, anims = {} }
+    function group:Play() self.playing = true end
+    function group:Stop() self.playing = false end
+    return group
+end
+local function FakeAnim()
+    local anim = {}
+    return setmetatable(anim, { __index = function(_, key)
+        return function(self, a, b) rawset(self, "_" .. key, { a, b }) end
+    end })
+end
+Bar.breath, Bar.glowBreath, Bar.sweepGroup = FakeGroup(), FakeGroup(), FakeGroup()
+Bar.breathScale, Bar.breathDim, Bar.glowDim = FakeAnim(), FakeAnim(), FakeAnim()
+Bar.sweepMove, Bar.sweepLight = FakeAnim(), FakeAnim()
+
+local savedEffects, savedGrip = ns.db.trackerEffects, Bar.grip
+Bar.grip = nil
+ns.db.trackerEffects = "full"
+Bar:ApplyMotion()
+Bar:FitSweep(200, true)
+suite.check("full effects: the star breathes", Bar.breath.playing and Bar.glowBreath.playing)
+suite.check("full effects: the light runs", Bar.sweepGroup.playing)
+local offset = rawget(Bar.sweepMove, "_SetOffset")
+suite.check("the light crosses the whole gold", offset and offset[1] == 200 + Bar.SWEEP, offset and offset[1])
+local fullGrow = rawget(Bar.breathScale, "_SetScaleTo") or rawget(Bar.breathScale, "_SetScale")
+
+ns.db.trackerEffects = "subtle"
+Bar:Tick(0)
+local subtleGrow = rawget(Bar.breathScale, "_SetScaleTo") or rawget(Bar.breathScale, "_SetScale")
+suite.check("subtle effects: a smaller breath", subtleGrow and fullGrow and subtleGrow[1] < fullGrow[1])
+suite.check("subtle effects: still moving", Bar.breath.playing and Bar.sweepGroup.playing)
+
+Bar:FitSweep(10)
+suite.check("a sliver of gold has no light", not Bar.sweepGroup.playing)
+Bar:FitSweep(300)
+
+ns.db.trackerEffects = "off"
+Bar:Tick(0)
+suite.check("effects off: nothing moves",
+    not Bar.breath.playing and not Bar.glowBreath.playing and not Bar.sweepGroup.playing)
+Bar:FitSweep(400)
+suite.check("effects off: a new width starts nothing", not Bar.sweepGroup.playing)
+ns.db.trackerEffects = savedEffects
+Bar:Tick(0)
+Bar.grip = savedGrip
+
+--------------------------------------------------------------------------------
 -- Words
 --------------------------------------------------------------------------------
 
