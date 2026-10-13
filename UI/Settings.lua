@@ -573,10 +573,19 @@ function SettingsUI:BuildTallyPage()
 
     -- Only what the panel shows: every tally stays, so it is no reset.
     local clearRow = pages:Row("tally", 1, L["Clear panel"],
-        L["The panel keeps each character's kills and loot between sessions. Click twice to empty it and start a new run. Your kill tallies, drop rates and Rankings are kept. Same as /farm tracker clear."])
+        L["Click twice to empty the panel and start a new run. Your kill tallies, drop rates and Rankings are kept. Same as /farm tracker clear."])
 
     controls.clearPanel = ns.TrackerUI.ClearButton(clearRow, 64, 20)
     controls.clearPanel:SetPoint("TOPLEFT", CONTROL_X, 0)
+
+    -- Off by default: the panel starts empty at every login and /reload.
+    local keepRow = pages:Row("tally", 1, L["Between sessions"],
+        L["The panel starts empty each time you log in or reload. Tick this to keep each character's kills and loot until you clear it. Your kill tallies, drop rates and Rankings are always kept. Same as /farm tracker keep."])
+
+    controls.keepPanel = Widgets.CreateCheckbox(keepRow, L["Keep it"], function(checked)
+        ns.db.keepPanel = checked
+    end, false)
+    controls.keepPanel:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local groupRow = pages:Row("tally", 1, L["In a group"],
         L["Moves the panel beside the party and raid frames. Drag it in a group to pick a spot. Same as /farm tracker group."])
@@ -1042,6 +1051,7 @@ function SettingsUI:Refresh()
 
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)
+    controls.keepPanel:SetChecked(db.keepPanel == true)
     controls.report:SetChecked(db.trackerReport == true)
     controls.celebrate:SetChecked(db.trackerCelebrate ~= false)
 
