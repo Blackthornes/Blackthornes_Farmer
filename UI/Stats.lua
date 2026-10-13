@@ -219,7 +219,7 @@ function StatsUI:Build(frame)
 
     local intro = Theme.CreateLabel(view, "small", "muted")
     intro:SetPoint("TOPLEFT", left, -(top + 5))
-    intro:SetText(L["Your farming, in charts. Only what you loot yourself counts."])
+    intro:SetText(L["Your farming in charts. Only your own loot counts."])
     self.intro = intro
 
     -- This session or Overall (the owner, 2026-10-13), beside Settings.
@@ -280,9 +280,9 @@ function StatsUI:Build(frame)
     -- Days and levels are not kept by session, so these two show the same
     -- in both views and say so while This session is picked.
     self:SameInBoth(self.daysCard, L["Every day"],
-        L["This chart is about whole days, so it shows the same in This session and Overall."])
+        L["Same in This session and Overall, since it counts whole days."])
     self:SameInBoth(self.levelsCard, L["Every level"],
-        L["This chart is about your levels, so it shows the same in This session and Overall."])
+        L["Same in This session and Overall, since it counts levels."])
 
     self:BuildSessions(self.sessionsCard)
     self:BuildSources(self.sourcesCard)
@@ -295,7 +295,7 @@ function StatsUI:Build(frame)
     footer:SetPoint("BOTTOMLEFT", PADDING, 8)
     footer:SetPoint("BOTTOMRIGHT", -(PADDING + (ns.UI.VERSION_ROOM or 0)), 8)
     footer:SetWordWrap(true)
-    footer:SetText(L["Time counts while you farm: a gap of five minutes or more between loots is a break and is left out."])
+    footer:SetText(L["Breaks of five minutes or more between loots don't count as farming time."])
     self.footer = footer
 
     view:Hide()
@@ -460,8 +460,8 @@ function StatsUI:DrawSessions(card, arrive, view)
     if not shown then
         HideAll()
         Empty(card, curve == nil and view == "session"
-            and L["Loot something and the gold you make this session draws here as it grows."]
-            or L["Each session you farm for five minutes or more shows up here. Two sessions draw the line."])
+            and L["Loot something to start this chart."]
+            or L["Farm for five minutes to add a session. The line starts at two."])
         return
     end
     Empty(card, nil)
@@ -691,7 +691,7 @@ function StatsUI:DrawSources(card, arrive, view)
     card.track:SetShown(any)
     for _, row in ipairs(card.rows) do row:SetShown(any) end
     if not any then
-        Empty(card, L["Loot something, gather or fish and your gold shows up here by where it came from."])
+        Empty(card, L["Loot, gather or fish to see where your gold comes from."])
         return
     end
     Empty(card, nil)
@@ -779,9 +779,9 @@ function StatsUI:BuildMobs(card)
             if entry.seconds then
                 lines[#lines + 1] = L.Format("About %d seconds a kill", math.floor(entry.seconds + 0.5))
                 lines[#lines + 1] = entry.own and L["Your own pace for this mob."]
-                    or L.Format("Your usual pace; its own shows after %d kills close together.", ns.Stats.PACE_MIN)
+                    or L.Format("Your usual pace until %d kills in a row are timed.", ns.Stats.PACE_MIN)
             else
-                lines[#lines + 1] = L.Format("Gold an hour shows once %d kills close together are timed.",
+                lines[#lines + 1] = L.Format("Gold an hour shows after %d kills in a row.",
                     ns.Stats.PACE_MIN)
             end
             lines[#lines + 1] = L["Click for its loot table."]
@@ -803,9 +803,9 @@ function StatsUI:DrawMobs(card, arrive, view)
     if #list == 0 then
         for _, row in ipairs(card.rows) do row:Hide() end
         Empty(card, view == "session"
-            and L.Format("Mobs you kill this session show here once you have killed and looted each one %d times in all.",
+            and L.Format("A mob shows here after you loot it %d times.",
                 ns.Tracker.MIN_KILLS)
-            or L.Format("Kill a mob %d times and loot it, and it is ranked here by gold an hour.",
+            or L.Format("Loot a mob %d times to rank it by gold an hour.",
                 ns.Tracker.MIN_KILLS))
         return
     end
@@ -932,9 +932,9 @@ function StatsUI:DrawLuck(card, arrive, view)
     if not luck then
         for _, row in ipairs(card.rows) do row:Hide() end
         Empty(card, view == "session"
-            and L.Format("Loot %d kills of mobs the data has drop rates for, and this shows whether your drops beat the odds.",
+            and L.Format("After %d looted kills of mobs with known drop rates, this shows if you beat the odds.",
                 ns.Stats.LUCK_MIN_KILLS)
-            or L.Format("Once you have looted %d kills of mobs the data has drop rates for, this shows whether your drops beat the odds.",
+            or L.Format("After %d looted kills of mobs with known drop rates, this shows if you beat the odds.",
                 ns.Stats.LUCK_MIN_KILLS))
         return
     end

@@ -260,7 +260,7 @@ function GrindingUI:Build(frame)
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText(L["Click a camp to point the arrow there; the camps also show on your world map. A mob's type is learned when you target or hover one."])
+    footer:SetText(L["Click a camp to point the arrow there. Camps show on your world map too. Target or hover a mob to learn its type."])
     self.footer = footer
 
     view:Hide()
@@ -622,7 +622,7 @@ function GrindingUI:OnRowClick(data, button)
     if data.type ~= "mob" then return end
     local mob = data.mob.name
     if ns.LootTableUI and ns.LootTableUI:Show(mob) then return end
-    ns.Print(L.Format("%s: you have not killed one yet, so there is no loot table.",
+    ns.Print(L.Format("%s: no kills yet, so no loot table.",
         Util.Colored("accent", mob)))
 end
 
@@ -692,7 +692,7 @@ function GrindingUI:Rows(camps, unknown, low, high)
     end
 
     if unknown > 0 then
-        rows[#rows + 1] = { type = "note", text = L.Format("%s in this range not shown: nobody has seen their type yet. Target or hover one to learn it.",
+        rows[#rows + 1] = { type = "note", text = L.Format("%s not shown until their type is known. Target or hover one.",
             Util.Plural(unknown, L["more mob"], L["more mobs"])) }
 
     end

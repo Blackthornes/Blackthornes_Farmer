@@ -175,7 +175,7 @@ function RankingsUI:Build(frame)
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText(L.Format("A mob is measured once you have %d kills of it. Hover a mob for what makes up its worth, click it for its loot table.",
+    footer:SetText(L.Format("Ranked after %d kills. Hover a mob to see its worth, click it for its loot.",
         ns.Tracker.MIN_KILLS))
     self.footer = footer
 
@@ -591,7 +591,7 @@ function RankingsUI:OnRowClick(data, button)
     local mob = data.entry.mob
     if ns.LootTableUI and ns.LootTableUI:Show(mob) then return end
 
-    ns.Print(L.Format("%s: you have not killed one yet, so there is no loot table. Its worth is an estimate from the database.",
+    ns.Print(L.Format("%s: no kills yet, so no loot table. Its worth is a guess from the data.",
         Util.Colored("accent", mob)))
 end
 
@@ -639,7 +639,7 @@ function RankingsUI:Rows(board)
     end
 
     if not wanted or wanted == "measured" then
-        Add("measured", L.Format("Nothing yet. Kill a mob %d times to rank it from your own loot.",
+        Add("measured", L.Format("Nothing yet. Kill a mob %d times to rank it.",
             ns.Tracker.MIN_KILLS))
     end
 

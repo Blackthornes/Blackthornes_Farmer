@@ -402,7 +402,7 @@ function UI:BuildBody()
     footer:SetHeight(26)
     footer:SetWordWrap(true)
     footer:SetJustifyV("MIDDLE")
-    footer:SetText(L["Unmarked spots come from Classic data and are not confirmed on Forever yet. Click a row to print it to chat."])
+    footer:SetText(L["Unmarked spots are from Classic and not yet seen on Forever. Click a row to put it in chat."])
     self.footer = footer
 
     self:BuildEmpty()
@@ -668,7 +668,7 @@ function UI:BuildColumnHeadings()
         where = L["Closest to you first: your zone, then zones nearest your level."],
         level = L["Sort by level, lowest first."],
         drop = L["Sort by drop rate, best first. Spots with no known rate go last."],
-        value = L["Sort by what a kill is worth, best first. Your own kills' worth comes before estimates; mobs with no price go last."],
+        value = L["Sort by worth per kill, best first. Your own kills come before guesses, unpriced mobs last."],
     }, function(key, ascending)
         if ns.db then ns.db.searchSort = { key = key, ascending = ascending } end
         UI:Render()
