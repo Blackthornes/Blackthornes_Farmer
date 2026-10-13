@@ -42,6 +42,10 @@ Tracker.MIN_KILLS = MIN_KILLS
 -- fanfare with Whitemane's "Arise, my champion!".
 local CHAMPION_KILLS = 100
 Tracker.CHAMPION_KILLS = CHAMPION_KILLS
+-- The 1000th takes over the screen, and the mob is shown in legendary
+-- orange from then on (2026-10-13, kept quiet like the 100th).
+local BANE_KILLS = 1000
+Tracker.BANE_KILLS = BANE_KILLS
 
 -- This session only: kills per mob, and every corpse opened, by guid, with the
 -- items already counted from it.
@@ -237,6 +241,8 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
         self:Celebrate(mobName)
     elseif newKill and mob.kills == CHAMPION_KILLS then
         self:Champion(mobName)
+    elseif newKill and mob.kills == BANE_KILLS then
+        self:Bane(mobName)
     end
 
     -- A kill that moves the mob up your top 15 gets a pop-up, a second
@@ -918,7 +924,71 @@ function Tracker:Champion(mobName)
     self:Fanfare(L.Format("%d kills of %s! You're its champion now.", summary.kills,
             Util.Colored("accent", summary.mob)),
         { title = L["CHAMPION"], subject = L.Format("%s  |  %d kills", summary.mob, summary.kills),
-            key = "mob:" .. summary.mob },
+            key = "mob:" .. summary.mob, champion = true },
+        "champion")
+end
+
+--- The 1000th kill's show, played once with no kill, as ChampionPreview:
+--- nothing counted, saved or changed; the panel's first mob shows in
+--- legendary orange until the next /reload, from memory alone.
+function Tracker:BanePreview()
+    local UI = ns.TrackerUI
+    local first = self:SessionMobs()[1]
+    local mobName = first and first.mob or L["Training Dummy"]
+
+    if first and UI then
+        UI.banePreview = mobName
+        if UI.frame and UI.frame:IsShown() then pcall(UI.Refresh, UI) end
+    end
+    if ns.TrackerFX then ns.TrackerFX.saidAt.bane = nil end
+
+    self:Bane(mobName, true)
+end
+
+--- The 1000th kill of a mob: the screen dims behind "BANE OF THE ...",
+--- gold rays turning behind it, and Ragnaros's "DIE, INSECT!" (the fanfare's
+--- sound with voice lines off). Follows /farm celebrate, like the 20th.
+function Tracker:Bane(mobName, preview)
+    if not preview and ns.db.trackerCelebrate == false then return end
+
+    local summary = self:Summary(mobName)
+    local name = summary and summary.mob or mobName
+    local kills = math.max(BANE_KILLS, summary and summary.kills or 0)
+
+    self:Fanfare(L.Format("%d kills of %s! You're the bane of its kind now.", kills,
+            Util.Colored("accent", name)),
+        { title = L["BANE OF ITS KIND"], subject = L.Format("%s  |  %d kills", name, kills),
+            key = "mob:" .. name, bane = true, mob = name, kills = kills },
+        "bane")
+end
+
+--- The 100th kill's show, played once with no kill, to try it out
+--- (2026-10-13, the owner's test): a typed word on /farm celebrate that no
+--- help or Settings names, as the reward itself is kept quiet. Nothing is
+--- counted, saved or changed; the crown shows on the panel's first mob
+--- until the next /reload, from memory alone.
+function Tracker:ChampionPreview()
+    local UI = ns.TrackerUI
+    if not (UI and UI.frame and UI.frame:IsShown()) then
+        ns.Print(L["open the kills panel first, then try again."])
+        return
+    end
+
+    local first = self:SessionMobs()[1]
+    local mobName = first and first.mob or L["Training Dummy"]
+    local kills = math.max(CHAMPION_KILLS, first and first.kills or 0)
+
+    if first then
+        UI.crownPreview = mobName
+        pcall(UI.Refresh, UI)
+    end
+    -- The voice line waits a while between plays; a test plays it now.
+    if ns.TrackerFX then ns.TrackerFX.saidAt.champion = nil end
+
+    self:Fanfare(L.Format("%d kills of %s! You're its champion now.", kills,
+            Util.Colored("accent", mobName)),
+        { title = L["CHAMPION"], subject = L.Format("%s  |  %d kills", mobName, kills),
+            key = "mob:" .. mobName, champion = true },
         "champion")
 end
 
@@ -1072,6 +1142,9 @@ end)
 ns.RegisterCommand("celebrate", L["sound and cheer at a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather (on/off)"],
     function(rest)
         local argument = Util.Trim(rest):lower()
+
+        if argument == "champion" then return Tracker:ChampionPreview() end
+        if argument == "bane" then return Tracker:BanePreview() end
 
         if argument == "on" then
             ns.db.trackerCelebrate = true

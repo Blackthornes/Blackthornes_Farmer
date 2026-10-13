@@ -39,7 +39,7 @@
 -- It all runs off one OnUpdate on a small frame that is shown only while an
 -- effect is playing, so an idle panel costs nothing per frame.
 
-local _, ns = ...
+local ADDON, ns = ...
 local L = ns.L
 
 local TrackerFX = ns.NewModule("TrackerFX")
@@ -89,6 +89,30 @@ local SHINE_TIME = 0.9
 local SHINE_WIDTH = 36
 local BRIGHT_GOLD = { 1, 0.906, 0.639 }   -- #FFE7A3
 
+-- A mob's 100th kill adds to the banner (2026-10-13): gold coins rain down
+-- the panel, and its rim burns red and gold for BURN_TIME seconds and then
+-- cools over BURN_FADE.
+local COINS = 24
+local COIN_ICON = [[Interface\Icons\INV_Misc_Coin_01]]
+local COIN_FALL = 1.6
+local COIN_STAGGER = 1.2
+local COIN_SIZE = 14
+local BURN_TIME = 10
+local BURN_FADE = 1.5
+local BURN_SPREAD = 16
+local BURN_INNER = 6
+local EMBERS = 16
+TrackerFX.BURN_TIME = BURN_TIME
+
+-- The 1000th kill takes the screen for TAKEOVER seconds: a flash, the
+-- screen dimmed to DIM, gold rays turning behind the title, motes rising.
+local TAKEOVER = 5.2
+local DIM = 0.6
+local RAYS = 12
+local MOTES = 36
+local GLOW_ART = ([[Interface\AddOns\%s\Media\Frame\Glow]]):format(ADDON or "Blackthornes_Farmer")
+TrackerFX.TAKEOVER = TAKEOVER
+
 -- What the banner says when its whole title will not fit a narrow panel.
 local SHORT_TITLE = L["RATES UNLOCKED"]
 
@@ -117,7 +141,7 @@ local VOICE_QUALITY = 3
 -- for a goal reached (the owner picked both, 2026-10-12), and Whitemane's
 -- "Arise, my champion!" for a mob's 100th kill (2026-10-13). Each waits
 -- VOICE_GAP seconds before it can play again, so it stays a treat.
-TrackerFX.VOICE = { drop = 550785, goal = 558132, champion = 551838 }
+TrackerFX.VOICE = { drop = 550785, goal = 558132, champion = 551838, bane = 558795 }
 local VOICE_GAP = 180
 
 -- Each row's wash, and which float labels are in the air, kept here rather
@@ -1044,6 +1068,17 @@ end
 function TrackerFX:Unlocked(info)
     local level = TrackerFX.Level()
     if level == "off" then return end
+
+    -- The 1000th takes the whole screen, panel or no panel, and needs no
+    -- banner of its own on the panel.
+    if info.bane then
+        if level == "full" then self:Takeover(info) end
+        if ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown() then
+            self:Flare()
+            self:PulseUnlocked(info)
+        end
+        return
+    end
     if not (ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown()) then return end
 
     -- Subtle keeps the long gold pulse on the band and the flare round the
@@ -1110,6 +1145,342 @@ function TrackerFX:Unlocked(info)
 
     self:Flare()
     self:PulseUnlocked(info)
+
+    if info.champion then
+        self:CoinRain()
+        self:Burn()
+    end
+end
+
+--- Coins tumble down the panel, a few at a time, and fade near its foot.
+function TrackerFX:CoinRain()
+    local panel = ns.TrackerUI.frame
+
+    local rain = self.rain
+    if not rain then
+        rain = CreateFrame("Frame", nil, panel)
+        rain:SetAllPoints(panel)
+        rain:SetFrameLevel(panel:GetFrameLevel() + 14)
+        rain.coins = {}
+        for index = 1, COINS do
+            local coin = rain:CreateTexture(nil, "OVERLAY")
+            coin:SetTexture(COIN_ICON)
+            -- The icon's own border trimmed away, so it reads as a coin.
+            coin:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            rain.coins[index] = coin
+        end
+        self.rain = rain
+    end
+
+    local okW, width = pcall(panel.GetWidth, panel)
+    local okH, height = pcall(panel.GetHeight, panel)
+    width = okW and tonumber(width) or 200
+    height = okH and tonumber(height) or 300
+
+    -- Where each starts, when, how big and how fast it turns.
+    for index, coin in ipairs(rain.coins) do
+        coin.x = (index - 0.5) / COINS * width + math.random(-8, 8)
+        coin.delay = math.random() * COIN_STAGGER
+        coin.size = COIN_SIZE + math.random(0, 8)
+        coin.spin = 6 + math.random() * 6
+        coin.phase = math.random() * math.pi
+        coin:SetSize(coin.size, coin.size)
+        coin:Hide()
+    end
+    rain:Show()
+
+    local total = COIN_STAGGER + COIN_FALL
+    self:Start({ slot = "coins", duration = total,
+        apply = function(p)
+            local now = p * total
+            for _, coin in ipairs(rain.coins) do
+                local t = (now - coin.delay) / COIN_FALL
+                if t < 0 or t >= 1 then
+                    coin:Hide()
+                else
+                    -- Falling faster as it goes, turning as it falls.
+                    local y = -coin.size + (height + coin.size) * t * t
+                    local turn = math.abs(math.cos(t * coin.spin + coin.phase))
+                    coin:SetWidth(math.max(2, coin.size * turn))
+                    coin:ClearAllPoints()
+                    coin:SetPoint("CENTER", rain, "TOPLEFT", coin.x, -y)
+                    coin:SetAlpha(t > 0.7 and (1 - t) / 0.3 or 1)
+                    coin:Show()
+                end
+            end
+            if p >= 1 then rain:Hide() end
+        end,
+        stop = function() rain:Hide() end })
+end
+
+--- Four bands round `frame`, bright against its edge, fading `spread`
+--- pixels out: the panel's halo, but drawn here, so the Blizzard window
+--- style (which puts halos out) still shows the burn.
+local function Rim(frame, spread)
+    local sides = {}
+    for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+        local band = frame:CreateTexture(nil, "ARTWORK")
+        pcall(band.SetBlendMode, band, "ADD")
+        if side == "TOP" or side == "BOTTOM" then
+            local out = side == "TOP" and 1 or -1
+            band:SetPoint(side .. "LEFT", frame, side .. "LEFT", -spread, out * spread)
+            band:SetPoint(side .. "RIGHT", frame, side .. "RIGHT", spread, out * spread)
+            band:SetHeight(spread)
+        else
+            local out = side == "LEFT" and -1 or 1
+            band:SetPoint("TOP" .. side, frame, "TOP" .. side, out * spread, 0)
+            band:SetPoint("BOTTOM" .. side, frame, "BOTTOM" .. side, out * spread, 0)
+            band:SetWidth(spread)
+        end
+        band.side = side
+        sides[#sides + 1] = band
+    end
+    return sides
+end
+
+local function LightRim(sides, key, alpha)
+    for _, band in ipairs(sides) do
+        if band.side == "TOP" then
+            Theme.SetGradientAlpha(band, "VERTICAL", key, alpha, 0)
+        elseif band.side == "BOTTOM" then
+            Theme.SetGradientAlpha(band, "VERTICAL", key, 0, alpha)
+        elseif band.side == "LEFT" then
+            Theme.SetGradientAlpha(band, "HORIZONTAL", key, 0, alpha)
+        else
+            Theme.SetGradientAlpha(band, "HORIZONTAL", key, alpha, 0)
+        end
+        band:SetShown(alpha > 0)
+    end
+end
+
+--- The panel's rim burns: a red glow outside, gold against the edge, both
+--- flickering, and embers rising off the top. It burns BURN_TIME seconds,
+--- then cools away.
+function TrackerFX:Burn()
+    local panel = ns.TrackerUI.frame
+
+    local burn = self.burn
+    if not burn then
+        burn = CreateFrame("Frame", nil, panel)
+        burn:SetAllPoints(panel)
+        burn:SetFrameLevel(math.max(0, panel:GetFrameLevel() - 1))
+        burn.outer = Rim(burn, BURN_SPREAD)
+        burn.inner = Rim(burn, BURN_INNER)
+        burn.embers = {}
+        for index = 1, EMBERS do
+            local ember = burn:CreateTexture(nil, "OVERLAY")
+            ember:SetColorTexture(1, 0.55 + 0.3 * (index % 3) / 2, 0.15, 1)
+            pcall(ember.SetBlendMode, ember, "ADD")
+            burn.embers[index] = ember
+        end
+        self.burn = burn
+    end
+
+    local okW, width = pcall(panel.GetWidth, panel)
+    width = okW and tonumber(width) or 200
+    for index, ember in ipairs(burn.embers) do
+        ember.x = math.random() * width
+        ember.rise = 18 + math.random() * 26
+        ember.speed = 0.6 + math.random() * 0.8
+        ember.phase = math.random()
+        local size = 2 + math.random(0, 2)
+        ember:SetSize(size, size)
+    end
+    burn:Show()
+
+    local total = BURN_TIME + BURN_FADE
+    self:Start({ slot = "burn", duration = total,
+        apply = function(p)
+            local now = p * total
+            -- In over half a second, burning, then cooling away.
+            local heat = math.min(1, now / 0.5)
+            if now > BURN_TIME then heat = math.max(0, 1 - (now - BURN_TIME) / BURN_FADE) end
+            local flicker = 0.8 + 0.12 * math.sin(now * 13) + 0.08 * math.sin(now * 29 + 1)
+
+            LightRim(burn.outer, "loss", 0.75 * heat * flicker)
+            LightRim(burn.inner, "accent", 0.9 * heat * (1.9 - flicker))
+
+            for _, ember in ipairs(burn.embers) do
+                local t = (now * ember.speed + ember.phase) % 1
+                ember:ClearAllPoints()
+                ember:SetPoint("BOTTOM", burn, "TOPLEFT", ember.x + 4 * math.sin(now * 3 + ember.x),
+                    t * ember.rise)
+                ember:SetAlpha(heat * (1 - t))
+                ember:SetShown(heat > 0)
+            end
+
+            if p >= 1 then burn:Hide() end
+        end,
+        stop = function() burn:Hide() end })
+end
+
+--- "Witchwing Slayers", "Thieves", "Harpies": the plural the title
+--- needs, English only. Another language's client keeps the name.
+function TrackerFX.Plural(name)
+    if type(name) ~= "string" or name == "" then return "" end
+    if not (Util.EnglishClient and Util.EnglishClient()) then return name end
+    if name:find("[^aeiou]y$") then return name:sub(1, -2) .. "ies" end
+    if name:find("man$") then return name:sub(1, -4) .. "men" end
+    if name:find("fe$") then return name:sub(1, -3) .. "ves" end
+    if name:find("[^f]f$") then return name:sub(1, -2) .. "ves" end
+    if name:find("[sxz]$") or name:find("[cs]h$") then return name .. "es" end
+    return name .. "s"
+end
+
+local function Glow(parent, layer)
+    local texture = parent:CreateTexture(nil, layer or "ARTWORK")
+    texture:SetTexture(GLOW_ART)
+    pcall(texture.SetBlendMode, texture, "ADD")
+    return texture
+end
+
+--- The screen the 1000th kill takes over: its own frame over everything,
+--- taking no mouse, so play goes on under it.
+function TrackerFX:Stage()
+    if self.stage then return self.stage end
+
+    local stage = CreateFrame("Frame", nil, UIParent)
+    stage:SetAllPoints(UIParent)
+    pcall(stage.SetFrameStrata, stage, "FULLSCREEN_DIALOG")
+    stage:EnableMouse(false)
+
+    stage.dim = stage:CreateTexture(nil, "BACKGROUND")
+    stage.dim:SetAllPoints(stage)
+    stage.dim:SetColorTexture(0, 0, 0, 1)
+
+    stage.rays = {}
+    for index = 1, RAYS do
+        local ray = Glow(stage, "BORDER")
+        ray:SetSize(2600, 70)
+        ray:SetPoint("CENTER", stage, "CENTER", 0, 40)
+        ray:SetVertexColor(1, 0.75, 0.3)
+        ray.angle = (index - 1) / RAYS * math.pi
+        stage.rays[index] = ray
+    end
+
+    stage.motes = {}
+    for index = 1, MOTES do
+        local mote = Glow(stage, "ARTWORK")
+        mote:SetVertexColor(1, 0.86, 0.5)
+        stage.motes[index] = mote
+    end
+
+    local holder = CreateFrame("Frame", nil, stage)
+    holder:SetSize(1400, 260)
+    holder:SetPoint("CENTER", stage, "CENTER", 0, 40)
+    stage.holder = holder
+
+    local function Text(size, flags, r, g, b)
+        local label = holder:CreateFontString(nil, "OVERLAY")
+        pcall(label.SetFont, label, Theme.FONT, size, flags)
+        label:SetTextColor(r, g, b, 1)
+        label:SetJustifyH("CENTER")
+        return label
+    end
+
+    stage.top = Text(30, "OUTLINE", 1, 0.88, 0.6)
+    stage.top:SetPoint("BOTTOM", holder, "CENTER", 0, 44)
+    stage.big = Text(64, "THICKOUTLINE", 1, 0.8, 0.3)
+    stage.big:SetPoint("CENTER", holder, "CENTER", 0, 0)
+    stage.sub = Text(26, "OUTLINE", 1, 1, 1)
+    stage.sub:SetPoint("TOP", holder, "CENTER", 0, -46)
+
+    stage.shine = Glow(holder, "OVERLAY")
+    stage.shine:SetSize(160, 200)
+    stage.shine:SetVertexColor(1, 1, 0.9)
+
+    stage.flash = stage:CreateTexture(nil, "OVERLAY")
+    stage.flash:SetAllPoints(stage)
+    stage.flash:SetColorTexture(1, 0.94, 0.78, 1)
+    pcall(stage.flash.SetBlendMode, stage.flash, "ADD")
+
+    stage:SetScript("OnUpdate", function(_, elapsed)
+        local ok, err = pcall(TrackerFX.StepStage, TrackerFX, elapsed)
+        if not ok then
+            stage:Hide()
+            ns.Debug("bane takeover dropped:", tostring(err))
+        end
+    end)
+    stage:Hide()
+
+    self.stage = stage
+    return stage
+end
+
+--- The 1000th kill: `info` is the fanfare's, with `mob` and `kills`.
+function TrackerFX:Takeover(info)
+    local stage = self:Stage()
+    local mob = info.mob or ""
+
+    stage.top:SetText(L["BANE OF THE"])
+    stage.big:SetText(TrackerFX.Plural(mob):upper())
+    stage.sub:SetText(L.Format("%d kills", info.kills or 1000))
+
+    local okW, width = pcall(stage.GetWidth, stage)
+    local okH, height = pcall(stage.GetHeight, stage)
+    stage.width = okW and tonumber(width) or 1920
+    stage.height = okH and tonumber(height) or 1080
+    for _, mote in ipairs(stage.motes) do
+        mote.x = math.random() * stage.width
+        mote.y = math.random() * stage.height
+        mote.speed = 40 + math.random() * 90
+        mote.phase = math.random() * 6
+        local size = 6 + math.random(0, 6)
+        mote:SetSize(size, size)
+    end
+
+    stage.age = 0
+    stage:SetAlpha(1)
+    stage:Show()
+    self:StepStage(0)
+end
+
+local function Clamp(p) return math.max(0, math.min(1, p)) end
+
+function TrackerFX:StepStage(elapsed)
+    local stage = self.stage
+    if not stage then return end
+    stage.age = stage.age + (tonumber(elapsed) or 0)
+    local t = stage.age
+
+    if t >= TAKEOVER then
+        stage:Hide()
+        return
+    end
+
+    -- In over half a second, held, then out over the last second.
+    local fade = t > TAKEOVER - 1 and Clamp(TAKEOVER - t) or 1
+    local dim = EaseOut(Clamp(t / 0.5)) * fade
+
+    stage.flash:SetAlpha(0.8 * Clamp(1 - t / 0.35))
+    stage.dim:SetAlpha(DIM * dim)
+
+    for _, ray in ipairs(stage.rays) do
+        pcall(ray.SetRotation, ray, ray.angle + t * 0.25)
+        ray:SetAlpha(0.3 * dim)
+    end
+
+    for _, mote in ipairs(stage.motes) do
+        local y = (mote.y + t * mote.speed) % stage.height
+        mote:ClearAllPoints()
+        mote:SetPoint("CENTER", stage, "BOTTOMLEFT", mote.x, y)
+        mote:SetAlpha(dim * (0.5 + 0.5 * math.sin(t * 6 + mote.phase)))
+    end
+
+    -- The title lands from a little larger, then fades with the rest.
+    local land = EaseOut(Clamp((t - 0.2) / 0.6))
+    stage.holder:SetScale(1.35 - 0.35 * land)
+    stage.holder:SetAlpha(Clamp((t - 0.2) / 0.5) * (t > TAKEOVER - 1.2 and Clamp((TAKEOVER - 0.2 - t)) or 1))
+
+    -- A light crosses the letters once.
+    local sweep = (t - 1.1) / 0.9
+    if sweep >= 0 and sweep <= 1 then
+        stage.shine:ClearAllPoints()
+        stage.shine:SetPoint("CENTER", stage.holder, "LEFT", 1400 * sweep, 0)
+        stage.shine:SetAlpha(0.6 * math.sin(sweep * math.pi))
+    else
+        stage.shine:SetAlpha(0)
+    end
 end
 
 --- The mob's band beats gold for longer than a plain kill.

@@ -260,10 +260,10 @@ function RankUp:Look()
     local move = self:Compare()
     if not move then return end
 
-    -- The kill that unlocks drop rates, and the 100th, already have their
+    -- The kill that unlocks drop rates, the 100th and the 1000th have their
     -- fanfare: one sound at a time.
     local fanfare = ((move.new and move.kills == ns.Tracker.MIN_KILLS)
-            or move.kills == ns.Tracker.CHAMPION_KILLS)
+            or move.kills == ns.Tracker.CHAMPION_KILLS or move.kills == ns.Tracker.BANE_KILLS)
         and not (ns.db and ns.db.trackerCelebrate == false)
     move.sound = self.SoundOn() and not fanfare
 
