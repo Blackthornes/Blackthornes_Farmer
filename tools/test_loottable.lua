@@ -169,7 +169,7 @@ suite.check("an item with no price has no value", paw and paw.perKill == nil)
 suite.check("coin per kill appears", data.coinPerKill == 10, data.coinPerKill)
 suite.check("the whole kill is valued from the tally", data.basis == "tally" and data.worth ~= nil)
 suite.check("the window says rates are from your kills",
-    LTU.status:GetText():find("your own kills", 1, true) ~= nil, LTU.status:GetText())
+    LTU.status:GetText():find("Drop rates from your kills.", 1, true) ~= nil, LTU.status:GetText())
 
 Tracker:Reset()
 suite.check("clearing the tally closes it", not LTU:IsShown())
@@ -189,7 +189,7 @@ suite.check("an old tally has no coin per kill until it records some",
     Tracker:CoinPerKill(BOAR) == nil)
 suite.check("and its drops count one each", Tracker:StackSize(BOAR, "Boar Ribs") == 1)
 suite.check("an old tally says places start from the next kill",
-    LTU:Table(BOAR).where == "Killed at: recorded from your next kill on.", LTU:Table(BOAR).where)
+    LTU:Table(BOAR).where == "Killed at: starts with your next kill.", LTU:Table(BOAR).where)
 
 local RIBS = { name = "Boar Ribs", id = 2677, quantity = 2 }
 local SILVER = { name = "1 Silver 5 Copper", money = true }
@@ -211,7 +211,7 @@ ns.Motion:FinishAll()
 suite.check("the window shows the real coin per kill",
     LTU.coin:GetText() == ns.Value.Coins(105), LTU.coin:GetText())
 suite.check("and says how many kills it is from",
-    LTU.status:GetText():find("Coin is from your last 2 kills.", 1, true) ~= nil,
+    LTU.status:GetText():find("Coin from your last 2 kills.", 1, true) ~= nil,
     LTU.status:GetText())
 suite.check("and owns up to the kills that have no place",
     LTU.where:GetText() == "Killed at: The Sepulcher, Silverpine Forest. 40 kills with no place.",

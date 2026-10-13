@@ -954,7 +954,7 @@ function TrackerUI.ClearButton(parent, width, height)
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:AddLine(L["Clear panel"])
-        GameTooltip:AddLine(L["Empties what this panel shows and starts a new run. Your kill tallies, drop rates and Rankings are kept."], 1, 1, 1, true)
+        GameTooltip:AddLine(L["Clears the panel and starts fresh. Kill counts, drop rates and Rankings stay."], 1, 1, 1, true)
         GameTooltip:AddLine(self.armed == true and L["Click again to clear."] or L["Click twice to clear."],
             0.6, 0.6, 0.6)
         GameTooltip:Show()

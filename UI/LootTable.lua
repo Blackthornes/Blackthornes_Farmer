@@ -123,7 +123,7 @@ function LootTableUI:Table(mobName)
                 Util.Plural(loot.unplaced, L["kill"], L["kills"]))
         end
     else
-        out.where = L["Killed at: recorded from your next kill on."]
+        out.where = L["Killed at: starts with your next kill."]
     end
 
     if Value then
@@ -601,21 +601,21 @@ function LootTableUI:Render()
 
     local status
     if data.rated then
-        status = L.Format("%s, every one it has dropped. Rates are from your own kills.",
+        status = L.Format("%s. Drop rates from your kills.",
             Util.Plural(#data.rows, L["item"], L["items"]))
     else
         local items = Util.Plural(#data.rows, L["item"], L["items"])
         status = data.needed == 1
-            and L.Format("%s so far. Drop rates and values after %s more kill.", items, data.needed)
-            or L.Format("%s so far. Drop rates and values after %s more kills.", items, data.needed)
+            and L.Format("%s so far. Rates after %s more kill.", items, data.needed)
+            or L.Format("%s so far. Rates after %s more kills.", items, data.needed)
     end
 
     -- Coin started being counted after some of these kills; say how many
     -- it is from, so a short average is not mistaken for the whole tally.
     if data.coinKills < data.kills then
         status = status .. (data.coinKills > 0
-            and L.Format(" Coin is from your last %s.", Util.Plural(data.coinKills, L["kill"], L["kills"]))
-            or L[" Coin is counted from your next kill."])
+            and L.Format(" Coin from your last %s.", Util.Plural(data.coinKills, L["kill"], L["kills"]))
+            or L[" Coin counts from your next kill."])
     end
     self.status:SetText(status)
     self.where:SetText(data.where)
