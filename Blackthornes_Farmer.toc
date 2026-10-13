@@ -50,6 +50,7 @@ Logic\RankUp.lua
 Logic\Goals.lua
 Logic\Session.lua
 Logic\XP.lua
+Logic\Stats.lua
 Logic\Butler.lua
 Logic\Spots.lua
 Logic\Arrow.lua
@@ -77,6 +78,7 @@ UI\LootTable.lua
 UI\Rankings.lua
 UI\RankUp.lua
 UI\Grinding.lua
+UI\Stats.lua
 UI\MapMarkers.lua
 UI\GrindPins.lua
 UI\Arrow.lua

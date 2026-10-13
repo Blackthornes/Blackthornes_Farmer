@@ -511,6 +511,10 @@ function SettingsUI:BuildWindowsPage()
     local _, rankingsButton = CommandRow(pages, "windows", 2, L["Rankings"],
         L["Mobs ranked by what a kill is worth. Same as /farm rankings."], L["Open it"], "rankings")
     controls.rankings = rankingsButton
+
+    local _, statsButton = CommandRow(pages, "windows", 2, L["Stats"],
+        L["Your farming in charts: gold an hour by session, where it came from, your best mobs, luck, the days you farmed and your levels. Same as /farm charts."], L["Open it"], "charts")
+    controls.statsTab = statsButton
 end
 
 -- The window styles in the order the stepper steps through them.
@@ -638,6 +642,14 @@ function SettingsUI:BuildTallyPage()
         ns.db.rankUpSound = checked
     end, true)
     controls.rankUpSound:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local bestRow = pages:Row("tally", 1, L["Best session cheer"],
+        L["A line in chat and a chime when a session's gold an hour beats every one before it, once a session. Same as /farm charts cheer."])
+
+    controls.statsBestCheer = Widgets.CreateCheckbox(bestRow, L["Play it"], function(checked)
+        ns.db.statsBestCheer = checked
+    end, true)
+    controls.statsBestCheer:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local voiceRow = pages:Row("tally", 1, L["Voice lines"],
         L["A goblin cheers a blue or better drop, and a peon says \"Work complete!\" when a goal is done. The game's own voices, a few minutes apart. Same as /farm voice."])
@@ -1214,6 +1226,7 @@ function SettingsUI:Refresh()
     if ns.RankUp then
         controls.rankUp:SetChecked(ns.RankUp.On())
         controls.rankUpSound:SetChecked(ns.RankUp.SoundOn())
+        controls.statsBestCheer:SetChecked(ns.db.statsBestCheer ~= false)
     end
     controls.voice:SetChecked(ns.TrackerFX.VoiceOn())
     if ns.XPBarUI then

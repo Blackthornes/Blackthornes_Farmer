@@ -50,6 +50,7 @@ local TABS = {
     { key = "search", text = L["SEARCH"] },
     { key = "rankings", text = L["RANKINGS"] },
     { key = "grind", text = L["GRIND"] },
+    { key = "stats", text = L["STATS"] },
 }
 
 -- Column widths, left to right, at their narrowest. The source, where and
@@ -258,6 +259,9 @@ function UI:Build()
     end
     if ns.GrindingUI then
         self.grindView = ns.GrindingUI:Build(frame)
+    end
+    if ns.StatsUI then
+        self.statsView = ns.StatsUI:Build(frame)
     end
 
     self.tab = "search"
@@ -617,7 +621,7 @@ function UI:FitColumns(rows)
     self:PlaceHeadings()
 
     -- Only the search tab's own width: the others size the window themselves.
-    if self.tab ~= "rankings" and self.tab ~= "grind" then
+    if self.tab ~= "rankings" and self.tab ~= "grind" and self.tab ~= "stats" then
         self.frame:SetWidth(WIDTH + self.columns.extra)
     end
 end
@@ -1237,11 +1241,11 @@ end
 -- Tabs
 --------------------------------------------------------------------------------
 
---- Switch the window to a tab: "search", "rankings" or "grind". Remembered
---- for the next time the window opens.
+--- Switch the window to a tab: "search", "rankings", "grind" or "stats".
+--- Remembered for the next time the window opens.
 function UI:ShowTab(key)
     self:Build()
-    local views = { rankings = self.rankingsView, grind = self.grindView }
+    local views = { rankings = self.rankingsView, grind = self.grindView, stats = self.statsView }
     if not views[key] then key = "search" end
 
     self.tab = key
@@ -1252,6 +1256,11 @@ function UI:ShowTab(key)
     self.searchView:SetShown(key == "search")
     if self.rankingsView then self.rankingsView:SetShown(key == "rankings") end
     if self.grindView then self.grindView:SetShown(key == "grind") end
+    if self.statsView then self.statsView:SetShown(key == "stats") end
+
+    -- The Stats tab's charts want a taller window; every other tab has
+    -- the usual height.
+    if key ~= "stats" then self.frame:SetHeight(HEIGHT) end
 
     if key == "rankings" then
         -- A hidden search box keeping the keyboard would eat your keys.
@@ -1260,6 +1269,11 @@ function UI:ShowTab(key)
     elseif key == "grind" then
         self.searchBox:ClearFocus()
         ns.GrindingUI:Render(true)
+    elseif key == "stats" then
+        self.searchBox:ClearFocus()
+        self.frame:SetWidth(ns.StatsUI.WIDTH)
+        self.frame:SetHeight(ns.StatsUI.HEIGHT)
+        ns.StatsUI:Render(true)
     else
         self.frame:SetWidth(WIDTH + (self.columns or COLUMN).extra)
         self:DrawUnsearched()
@@ -1324,6 +1338,8 @@ function UI:Resized()
     if not (self.frame and self.frame:IsShown()) then return end
     if self.tab == "rankings" and ns.RankingsUI then
         pcall(ns.RankingsUI.Render, ns.RankingsUI)
+    elseif self.tab == "stats" and ns.StatsUI then
+        pcall(ns.StatsUI.Render, ns.StatsUI)
     elseif self.tab == "search" and self.Render then
         pcall(self.Render, self)
     end
@@ -1367,7 +1383,7 @@ function UI:Toggle()
     self:Show()
     self.searching = nil
 
-    if ns.db and (ns.db.lastTab == "rankings" or ns.db.lastTab == "grind") then
+    if ns.db and (ns.db.lastTab == "rankings" or ns.db.lastTab == "grind" or ns.db.lastTab == "stats") then
         self:ShowTab(ns.db.lastTab)
         return
     end

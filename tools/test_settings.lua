@@ -225,6 +225,7 @@ local buttons = {
     rankUpShow = "rankup show",
     xpBarTry = "xpbar try",
     xpBarReset = "xpbar reset",
+    statsTab = "charts",
     worldDropsList = "worlddrops",
 }
 local wrong = {}

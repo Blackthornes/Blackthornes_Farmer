@@ -274,6 +274,7 @@ function Fishing:Record(zone, location, school, items, quantities, skill, coords
         entry.casts = (tonumber(entry.casts) or 0) + 1
         entry.count = (tonumber(entry.count) or 0) + (quantities and quantities[name] or 1)
         self.sessionCatch[name] = (self.sessionCatch[name] or 0) + (quantities and quantities[name] or 1)
+        if ns.Stats then ns.Stats:Loot("fish", name, quantities and quantities[name] or 1) end
 
         -- Kept here as well as with the item's looks, so the export has it
         -- from the fishing record alone.

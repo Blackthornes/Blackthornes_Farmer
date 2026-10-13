@@ -680,6 +680,29 @@ release. `Logic/XP.lua` works it out; `UI/XPBar.lua` draws it.
 
 Tested in `tools/test_xpbar.lua`. Not yet seen in game.
 
+## The Stats tab
+
+The owner asked (2026-10-13) for a tab that is only charts, and picked the
+mockup (`previews/farmer-data-tab/` in the project files). `Logic/Stats.lua`
+keeps the log as you play, account wide in `farmStats` (never rename it):
+`days["YYYY-MM-DD"]` (copper by source: `drops`, `coin`, `gather`, `fish`,
+`grey`; kills, farming seconds, kills by mob), `sessions` (one a login,
+kept from the first loot) and `pace[mob]` (seconds a kill). Loot is priced
+when looted (`Value:UnitPrice`, greys at vendor); an unpriced item waits in
+`Stats.pending` and `Stats:Settle` prices it later. Only farming time
+counts: a gap over `Stats.BREAK` is a break. Hidden items stay out, and
+guild data never reaches it (it is fed only by `Tracker:Record`,
+`AddHaul`, Fishing and Gathering). Days past `KEEP_DAYS` and sessions past
+`KEEP_SESSIONS` are let go. `UI/Stats.lua` draws the tab (the window grows
+to `StatsUI.WIDTH` by `StatsUI.HEIGHT` on it only): four numbers on top,
+then gold an hour by session against your usual pace, where the gold came
+from, best mobs at your kill speed (a click opens the loot table), luck
+since login, ten weeks of days and how long each level took (the XP bar's
+`xpProgress`). Drawn only while the tab shows, again `REDRAW` seconds after
+something moved (`Stats.version`). A best gold an hour yet is cheered once
+("Best session cheer", `statsBestCheer`, on unless unticked, never rename
+it). `/farm charts [cheer on|off]`. Tested in `tools/test_stats.lua`.
+
 ## Loot inside dungeons
 
 Inside a dungeon the client hides the corpse's name and guid from addons,
