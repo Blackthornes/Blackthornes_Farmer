@@ -1410,7 +1410,7 @@ function UI:BuildMinimapButton()
     button:SetSize(31, 31)
     button:SetFrameStrata("MEDIUM")
     button:SetFrameLevel(8)
-    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
 
     local background = button:CreateTexture(nil, "BACKGROUND")
     background:SetSize(20, 20)
@@ -1496,6 +1496,8 @@ function UI:BuildMinimapButton()
     button:SetScript("OnClick", function(_, mouseButton)
         if mouseButton == "RightButton" and ns.SettingsUI then
             ns.SettingsUI:Toggle()
+        elseif mouseButton == "MiddleButton" and ns.GoalsUI then
+            ns.GoalsUI:ToggleOrHint()
         else
             UI:Toggle()
         end
@@ -1509,6 +1511,7 @@ function UI:BuildMinimapButton()
         GameTooltip:AddLine(ns.VersionLabel(), 0.5, 0.5, 0.5)
         GameTooltip:AddLine(L["Click to open"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Right-click for settings"], 0.7, 0.7, 0.7)
+        GameTooltip:AddLine(L["Middle-click to show or hide your goals"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Drag to move it round the minimap"], 0.5, 0.5, 0.5)
         GameTooltip:Show()
     end)

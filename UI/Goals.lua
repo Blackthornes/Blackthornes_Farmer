@@ -799,6 +799,16 @@ function GoalsUI:Toggle()
     end
 end
 
+-- `/farm goals` and a middle-click on the minimap button: with no goals
+-- there is no panel to show, so say how to make one.
+function GoalsUI:ToggleOrHint()
+    if #ns.Goals:List() == 0 then
+        ns.Print(L["no goals yet. /farm goal Copper Ore 40, or the Goal button on a search result."])
+        return
+    end
+    self:Toggle()
+end
+
 function GoalsUI:OnEnable()
     self:Refresh()
 end
@@ -1898,11 +1908,5 @@ ns.RegisterCommand("goals", L["show or hide the goals panel (dock puts it back u
         return
     end
 
-    if #ns.Goals:List() == 0 then
-        ns.Print(L["no goals yet. /farm goal Copper Ore 40, or the Goal button on a search result."])
-
-        return
-    end
-
-    GoalsUI:Toggle()
+    GoalsUI:ToggleOrHint()
 end)

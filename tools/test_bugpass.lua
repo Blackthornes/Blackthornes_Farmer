@@ -187,4 +187,29 @@ suite.check("one draw on opening", draws == 1, draws)
 UI.Render = baseDraw
 UI:Hide()
 
+-- 13. A middle-click on the minimap button shows or hides the goals; with
+-- none it says how to make one. Left and right clicks are unchanged.
+UI:BuildMinimapButton()
+local mini = UI.minimapButton
+local miniClick = mini and mini:GetScript("OnClick")
+local toggles, hints, opened, settings = 0, 0, 0, 0
+local baseGoalsToggle, basePrint, baseOpen = GoalsUI.Toggle, ns.Print, UI.Toggle
+local baseSettings = ns.SettingsUI.Toggle
+local baseList = ns.Goals.List
+GoalsUI.Toggle = function() toggles = toggles + 1 end
+ns.Print = function(text) if tostring(text):find("no goals yet", 1, true) then hints = hints + 1 end end
+UI.Toggle = function() opened = opened + 1 end
+ns.SettingsUI.Toggle = function() settings = settings + 1 end
+ns.Goals.List = function() return {} end
+if miniClick then miniClick(mini, "MiddleButton") end
+suite.check("no goals: a hint, nothing toggled", hints == 1 and toggles == 0, hints .. "/" .. toggles)
+ns.Goals.List = function() return { { item = "Copper Ore" } } end
+if miniClick then miniClick(mini, "MiddleButton") end
+suite.check("with a goal it toggles the panel", toggles == 1, toggles)
+if miniClick then miniClick(mini, "LeftButton") miniClick(mini, "RightButton") end
+suite.check("left opens the window, right the settings", opened == 1 and settings == 1,
+    opened .. "/" .. settings)
+GoalsUI.Toggle, ns.Print, UI.Toggle = baseGoalsToggle, basePrint, baseOpen
+ns.SettingsUI.Toggle, ns.Goals.List = baseSettings, baseList
+
 suite.done()
