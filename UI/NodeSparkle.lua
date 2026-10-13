@@ -25,7 +25,9 @@
 -- has gathered (Gathering keeps the name the client gave). A hidden source
 -- gets nothing. Fishing schools, chests and objects a quest in the log
 -- still wants sparkle too (the owner asked 2026-10-13); a mailbox, a door
--- or a chair does not.
+-- or a chair does not. A quest pickup is often named apart from what the
+-- objective counts, so its tooltip's objective line and what it gave when
+-- looted before count as well as its name.
 --
 -- Without a game controller the game's icon is left out of sight (the
 -- owner asked 2026-10-13): it is only there because Farmer turned it on to
@@ -398,16 +400,77 @@ function NodeSparkle:QuestLogChanged()
     questStale = true
 end
 
+--- Does the game's own tooltip for the interact target carry a quest
+--- objective? A quest pickup's tooltip names the quest and the objective
+--- ("9/15 Windstone Cluster") under its name, though the object itself is
+--- called something else ("Raw Windstone").
+function NodeSparkle:QuestInTooltip()
+    local get = Field(_G.C_TooltipInfo, "GetUnit")
+    if type(get) ~= "function" then return false end
+    local ok, data = pcall(get, UNIT)
+    local lines = ok and Field(data, "lines")
+    if type(lines) ~= "table" then return false end
+    local wanted = self:QuestText()
+    -- The first line is the name.
+    for index = 2, #lines do
+        local text = Readable(Field(lines[index], "leftText"))
+        if type(text) == "string" and #text >= 4 then
+            local have, need = text:match("(%d+)%s*/%s*(%d+)")
+            have, need = tonumber(have), tonumber(need)
+            if have and need and need > 0 and have < need then return true end
+            local lower = text:lower():gsub("^[%s%-]+", "")
+            if #lower >= 6 and wanted:find(lower, 1, true) then return true end
+        end
+    end
+    return false
+end
+
+-- What each gathered node gave, by node name in lower case, laid out again
+-- only when the gathered nodes change.
+local nodeItems, nodeItemsKey = nil, nil
+
+--- Has an object called `name` given the player something an objective
+--- still wants? A quest pickup Farmer recorded as a gather counts.
+function NodeSparkle:QuestByLoot(name)
+    local gathering = ns.db and ns.db.gathering
+    local nodes = type(gathering) == "table" and gathering.nodes
+    if type(nodes) ~= "table" then return false end
+    local key = GatherCount()
+    if not nodeItems or nodeItemsKey ~= key then
+        nodeItems, nodeItemsKey = {}, key
+        for _, entry in pairs(nodes) do
+            if type(entry) == "table" and type(entry.node) == "string" and type(entry.items) == "table" then
+                local list = nodeItems[entry.node:lower()] or {}
+                for item in pairs(entry.items) do
+                    if type(item) == "string" and #item >= 4 then list[#list + 1] = item:lower() end
+                end
+                nodeItems[entry.node:lower()] = list
+            end
+        end
+    end
+    local items = nodeItems[name:lower()]
+    if not items then return false end
+    local wanted = self:QuestText()
+    if wanted == "" then return false end
+    for _, item in ipairs(items) do
+        if wanted:find(item, 1, true) then return true end
+    end
+    return false
+end
+
 --- Is `name` something a quest in the log still wants? The game's own
---- answer for the interact target first, else its name in an objective.
+--- answer for the interact target first, then its tooltip, then its name
+--- in an objective, then what it gave when it was looted before.
 function NodeSparkle:IsQuestObject(name)
     local related = Field(_G.C_QuestLog, "UnitIsRelatedToActiveQuest")
     if type(related) == "function" then
         local ok, yes = pcall(related, UNIT)
         if ok and type(yes) == "boolean" and yes then return true end
     end
+    if self:QuestInTooltip() then return true end
     if type(name) ~= "string" or #name < 4 then return false end
-    return self:QuestText():find(name:lower(), 1, true) ~= nil
+    if self:QuestText():find(name:lower(), 1, true) then return true end
+    return self:QuestByLoot(name)
 end
 
 --- What kind of thing worth a sparkle the object is: "node", "school",
@@ -838,6 +901,17 @@ function NodeSparkle:Check()
     ns.PrintRaw(("  facing: %s (%s)"):format(tostring(name), tostring(kind or (guid and "?" or "nothing"))))
     ns.PrintRaw(("  a node Farmer knows: %s"):format(name and (self:IsNode(name) and "yes" or "no") or "-"))
     ns.PrintRaw(("  kind: %s"):format(name and tostring(self:Kind(name) or "none") or "-"))
+    ns.PrintRaw(("  quest: tooltip %s, looted before %s"):format(self:QuestInTooltip() and "yes" or "no",
+        name and (self:QuestByLoot(name) and "yes" or "no") or "-"))
+    local forUnit = Field(_G.C_NamePlate, "GetNamePlateForUnit")
+    if object and type(forUnit) == "function" then
+        local ok, any = pcall(forUnit, UNIT, true)
+        local found = ok and type(any) == "table"
+        local read, forbidden = false, nil
+        if found then read, forbidden = pcall(function() return any:IsForbidden() end) end
+        ns.PrintRaw(("  nameplate counting protected ones: %s"):format(
+            found and ((read and forbidden == true) and "yes, protected" or "yes") or "no"))
+    end
     local plate = object and self:Plate(guid) or nil
     ns.PrintRaw(("  nameplate for it: %s"):format(object and (plate and "yes" or "no") or "-"))
     ns.PrintRaw(("  game icon on it: %s"):format(plate and (self.Icon(plate) and "yes" or "no") or "-"))

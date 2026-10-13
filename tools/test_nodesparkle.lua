@@ -73,6 +73,34 @@ suite.check("an object a quest wants sparkles", Face("Venture Co. Documents", VE
 _G.C_QuestLog.GetQuestObjectives = function() return { { text = "Venture Co. Documents: 1/1", finished = true } } end
 NodeSparkle:QuestLogChanged()
 suite.check("not once that objective is done", Face("Venture Co. Documents", VEIN) == "notnode")
+-- A quest pickup named something other than its objective: the game's
+-- tooltip for it carries the objective's count.
+_G.C_QuestLog.GetQuestObjectives = function() return { { text = "9/15 Windstone Cluster", finished = false } } end
+NodeSparkle:QuestLogChanged()
+suite.check("a pickup named apart from its objective gets nothing without a tooltip", Face("Shiny Windstone", VEIN) == "notnode")
+local tipLines
+_G.C_TooltipInfo = { GetUnit = function(unit)
+    if unit == "softinteract" and tipLines then return { lines = tipLines } end
+    return nil
+end }
+tipLines = { { leftText = "Shiny Windstone" }, { leftText = "Harvesting Windstones" }, { leftText = " - 9/15 Windstone Cluster" } }
+suite.check("its tooltip's objective count makes it sparkle", Face("Shiny Windstone", VEIN) == "shown")
+tipLines = { { leftText = "Shiny Windstone" }, { leftText = "Windstone Cluster" } }
+suite.check("so does an objective named on its tooltip", Face("Shiny Windstone", VEIN) == "shown")
+tipLines = { { leftText = "Shiny Windstone" }, { leftText = "15/15 Windstone Cluster" } }
+suite.check("not a finished count", Face("Shiny Windstone", VEIN) == "notnode")
+tipLines = nil
+_G.C_TooltipInfo = nil
+
+-- One looted before (and kept as a gather) that gave the objective's item.
+ns.db.gathering = ns.db.gathering or {}
+ns.db.gathering.nodes = ns.db.gathering.nodes or {}
+ns.db.gathering.nodes["Zephras Isle|Thendal|Shiny Windstone"] = { node = "Shiny Windstone", kind = "quest",
+    gathers = 1, items = { ["Windstone Cluster"] = { gathers = 1, count = 1 } } }
+suite.check("an object that gave the objective's item before sparkles", Face("Shiny Windstone", VEIN) == "shown")
+_G.C_QuestLog.GetQuestObjectives = function() return { { text = "15/15 Windstone Cluster", finished = true } } end
+NodeSparkle:QuestLogChanged()
+suite.check("not once that objective is done either", Face("Shiny Windstone", VEIN) == "notnode")
 _G.C_QuestLog = nil
 suite.check("facing nothing", Face(nil, nil) == "nothing")
 
