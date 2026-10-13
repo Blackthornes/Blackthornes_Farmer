@@ -491,6 +491,27 @@ sound" (`rankUpSound`), both on unless unticked, and `rankUpScale` (its size
 grip) are account wide; never rename them. `/farm rankup [on|off|sound
 on|off|show]`. Tested in `tools/test_rankup.lua`. Not yet seen in game.
 
+## The trash can when bags are full
+
+The owner asked (2026-10-13) for a small can on the item worth the least
+when the bags are full, in Butler and Farmer both. `UI/Trash.lua`: while a
+bag window is open and the bags that take anything are down to
+`Trash.FREE` (3) free slots, a gold can (`Media/Trash/TrashCan.tga`, drawn
+by `tools/make_trash_art.py`, the same tool and art as Butler's; rerun it,
+never edit the TGA) sits on the top right of the stack worth least by
+`Value:UnitPrice` times the stack. Never a goal's item (`Goals:Find`), a
+quest item, anything soulbound above grey, gear that could be worn (only
+grey gear), a locked slot or an unpriced item. Farmer never deletes: a
+click picks the item up and says to drop it outside the bags, where the
+game's own box asks first. Its own button on UIParent anchored to the
+game's item button; the bag windows are only hooked. Hidden in combat, at
+a vendor, while the cursor holds something, and while Butler is loaded
+(`_G.BlackthornesButler.Trash`): only Butler's can shows then, so keep
+that name in Butler, or change `Trash.ButlerHasIt` here. Bags read only
+while open and nearly full, `Trash.BUDGET` slots a frame. "Trash can when
+full" on the Loot page (`trashCan`, on unless unticked, never rename it)
+and `/farm trash`. Tested in `tools/test_trash.lua`. Not yet seen in game.
+
 ## Kills on the mob tooltip
 
 The owner asked (2026-10-13) for a mob's tooltip to say how many you have

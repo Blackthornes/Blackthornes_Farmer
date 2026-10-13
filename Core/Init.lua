@@ -431,6 +431,9 @@ local DEFAULTS = {
     -- Without Tradeskills, read TradeSkillMaster's or Auctionator's prices
     -- (Value:OtherPrice; the owner asked 2026-10-12). Never rename it.
     otherPriceAddons = true,
+    -- A small can on the item worth the least while the bags are full
+    -- (UI/Trash.lua, the owner asked 2026-10-13). Never rename it.
+    trashCan = true,
 
     -- The goal arrow (UI/Arrow.lua): off until turned on, or until the
     -- first new goal turns it on (Arrow:TurnOnForGoal) while the player has

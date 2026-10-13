@@ -378,6 +378,7 @@ local UI_FILES = {
     "UI/QuestMobs.lua",
     "UI/HideMenu.lua",
     "UI/HiddenWindow.lua",
+    "UI/Trash.lua",
     "UI/Settings.lua",
 }
 
