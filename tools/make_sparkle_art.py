@@ -1,6 +1,7 @@
 """Draw Media/Frame/Sparkle.tga, the sparkle Farmer puts over the node you
 face: a four-pointed star of light with a smaller, fainter cross turned 45
-degrees and a soft glow at its heart.
+degrees and a soft glow at its heart; and Media/Frame/Beacon.tga, the
+other look: a tall beam of light, brightest at its foot, fading upward.
 
     python tools/make_sparkle_art.py
 
@@ -18,6 +19,8 @@ SAMPLES = 4
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "Media", "Frame", "Sparkle.tga")
+BEACON = os.path.join(ROOT, "Media", "Frame", "Beacon.tga")
+BEACON_W, BEACON_H = 32, 256
 
 # The long rays reach the edge; the short ones reach this far of it.
 SHORT = 0.55
@@ -50,26 +53,38 @@ def light(x, y):
     return min(1.0, value)
 
 
-def main():
+def beam(x, y):
+    """0 to 1 at a point of the beam, x from -1 to 1 across, y 0 at its
+    foot to 1 at its top."""
+    core = math.exp(-(x / 0.14) ** 2)
+    haze = 0.45 * math.exp(-(x / 0.5) ** 2)
+    rise = (1 - y) ** 1.6
+    foot = 1 if y > 0.03 else y / 0.03
+    return min(1.0, (core + haze) * rise * foot)
+
+
+def write(path, width, height, shade):
     pixels = []
-    # TGA rows run bottom up; the star is symmetric, so order does not matter.
-    for row in range(SIZE):
-        for column in range(SIZE):
+    # TGA rows run bottom up (descriptor 8), so row 0 is the foot.
+    for row in range(height):
+        for column in range(width):
             total = 0.0
             for sy in range(SAMPLES):
                 for sx in range(SAMPLES):
-                    x = (column + (sx + 0.5) / SAMPLES) / SIZE * 2 - 1
-                    y = (row + (sy + 0.5) / SAMPLES) / SIZE * 2 - 1
-                    total += light(x, y)
+                    total += shade((column + (sx + 0.5) / SAMPLES) / width, (row + (sy + 0.5) / SAMPLES) / height)
             alpha = int(round(total / (SAMPLES * SAMPLES) * 255))
             pixels.append(bytes((255, 255, 255, alpha)))
-
-    header = struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, SIZE, SIZE, 32, 8)
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    with open(OUT, "wb") as handle:
+    header = struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, width, height, 32, 8)
+    with open(path, "wb") as handle:
         handle.write(header)
         handle.write(b"".join(pixels))
-    print("wrote %s (%d bytes)" % (os.path.relpath(OUT, ROOT), os.path.getsize(OUT)))
+    print("wrote %s (%d bytes)" % (os.path.relpath(path, ROOT), os.path.getsize(path)))
+
+
+def main():
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    write(OUT, SIZE, SIZE, lambda u, v: light(u * 2 - 1, v * 2 - 1))
+    write(BEACON, BEACON_W, BEACON_H, lambda u, v: beam(u * 2 - 1, v))
 
 
 if __name__ == "__main__":

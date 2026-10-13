@@ -12,7 +12,7 @@
 -- SoftTargetIconInteract) is turned on with them; the sparkles gather round
 -- it when the nameplate lets us read where it is.
 --
--- So, while "Sparkle on nodes" is ticked (`nodeSparkle`, on unless
+-- So, while "Sparkles in the world" is ticked (`nodeSparkle`, on unless
 -- unticked; never rename it), Farmer turns on, out of combat, the two game
 -- settings that make that nameplate (SoftTargetInteract to "always",
 -- SoftTargetNameplateInteract on) and lets it look farther and all the way
@@ -23,7 +23,9 @@
 -- A node is a herb or ore the data knows (a herb's own name, a vein's
 -- source name), the client's name for that herb, or any node the player
 -- has gathered (Gathering keeps the name the client gave). A hidden source
--- gets nothing. Fishing schools, chests and quest objects get nothing.
+-- gets nothing. Fishing schools, chests and objects a quest in the log
+-- still wants sparkle too (the owner asked 2026-10-13); a mailbox, a door
+-- or a chair does not.
 --
 -- Smooth play: no OnUpdate and no timer. The soft target and nameplate
 -- events say when to look again, the anchor makes it follow the node, and
@@ -68,10 +70,36 @@ NodeSparkle.SPARKS = {
 }
 
 NodeSparkle.TWINKLE = 0.8          -- seconds to light up, and again to fade
+-- How far below the game's icon the node sits, in interface units at the
+-- nameplate's own size (measured on a Silverleaf, 2026-10-13). The icon
+-- floats above the object; the sparkles go down onto the plant. A plate
+-- the game draws smaller (farther off) moves them less.
+NodeSparkle.DROP = 75
 NodeSparkle.GOLD = { 1.0, 0.84, 0.36 }
 NodeSparkle.GLOW = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Glow"
 -- A four-pointed star, drawn by tools/make_sparkle_art.py.
 NodeSparkle.STAR = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Sparkle"
+-- The other look, a beam of light rising off the spot (the owner asked
+-- 2026-10-13): `nodeSparkleStyle`, "sparkles" or "beacon", account wide,
+-- sparkles unless picked; never rename it.
+NodeSparkle.BEAM = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Beacon"
+NodeSparkle.STYLES = { "sparkles", "beacon" }
+NodeSparkle.BEACON_WIDTH, NodeSparkle.BEACON_HEIGHT = 22, 240
+NodeSparkle.PULSE = 1.2            -- seconds for the beacon to dim, and again to brighten
+
+function NodeSparkle:Style()
+    local style = ns.db and ns.db.nodeSparkleStyle
+    if style == "beacon" then return "beacon" end
+    return "sparkles"
+end
+
+function NodeSparkle:SetStyle(style)
+    ns.db.nodeSparkleStyle = style == "beacon" and "beacon" or "sparkles"
+    if self.shownOn then
+        local plate, guid = self.shownOn, self.shownGuid
+        self:ShowSparkle(plate, guid)
+    end
+end
 
 local function Field(object, key)
     if type(object) ~= "table" then return nil end
@@ -225,6 +253,78 @@ function NodeSparkle:Names()
     return set
 end
 
+-- Chests by the endings their names share (and the German word).
+NodeSparkle.CHEST_PATTERNS = { "Chest$", "Footlocker$", "Strongbox$", "Lockbox$", "Truhe$" }
+
+-- The player's own bobber, so a bite is easy to spot (English, German).
+NodeSparkle.BOBBERS = { ["Fishing Bobber"] = true, ["Schwimmer"] = true }
+
+function NodeSparkle.IsChest(name)
+    if type(name) ~= "string" or name == "" then return false end
+    for _, pattern in ipairs(NodeSparkle.CHEST_PATTERNS) do
+        if name:find(pattern) then return true end
+    end
+    return false
+end
+
+-- The objectives still to do in the quest log, in lower case, read again
+-- only after the log changes (QUEST_LOG_UPDATE marks it stale).
+local questText, questStale = nil, true
+
+function NodeSparkle:QuestText()
+    if questText and not questStale then return questText end
+    local parts = {}
+    local log = _G.C_QuestLog
+    local count = Field(log, "GetNumQuestLogEntries")
+    local info = Field(log, "GetInfo")
+    local objectives = Field(log, "GetQuestObjectives")
+    if type(count) == "function" and type(info) == "function" and type(objectives) == "function" then
+        local ok, entries = pcall(count)
+        for index = 1, (ok and type(entries) == "number") and entries or 0 do
+            local read, entry = pcall(info, index)
+            local questID = read and type(entry) == "table" and not entry.isHeader and entry.questID
+            if questID then
+                local got, list = pcall(objectives, questID)
+                for _, objective in ipairs(got and type(list) == "table" and list or {}) do
+                    local text = type(objective) == "table" and Readable(objective.text)
+                    if type(text) == "string" and not objective.finished then parts[#parts + 1] = text:lower() end
+                end
+            end
+        end
+    end
+    questText, questStale = table.concat(parts, "\n"), false
+    return questText
+end
+
+function NodeSparkle:QuestLogChanged()
+    questStale = true
+end
+
+--- Is `name` something a quest in the log still wants? The game's own
+--- answer for the interact target first, else its name in an objective.
+function NodeSparkle:IsQuestObject(name)
+    local related = Field(_G.C_QuestLog, "UnitIsRelatedToActiveQuest")
+    if type(related) == "function" then
+        local ok, yes = pcall(related, UNIT)
+        if ok and type(yes) == "boolean" and yes then return true end
+    end
+    if type(name) ~= "string" or #name < 4 then return false end
+    return self:QuestText():find(name:lower(), 1, true) ~= nil
+end
+
+--- What kind of thing worth a sparkle the object is: "node", "school",
+--- "chest", "bobber" or "quest", or nil. A hidden source is nothing.
+function NodeSparkle:Kind(name)
+    if type(name) ~= "string" or name == "" then return nil end
+    if ns.DB and ns.DB:IsHiddenSource(name) then return nil end
+    if self:IsNode(name) then return "node" end
+    if ns.Fishing and ns.Fishing.IsSchool and ns.Fishing.IsSchool(name) then return "school" end
+    if self.IsChest(name) then return "chest" end
+    if self.BOBBERS[name] then return "bobber" end
+    if self:IsQuestObject(name) then return "quest" end
+    return nil
+end
+
 function NodeSparkle:IsNode(name)
     if type(name) ~= "string" or name == "" then return false end
     if not self:Names()[name:lower()] then return false end
@@ -322,6 +422,44 @@ local function MakeSpark(parent, spec)
     return { holder = holder, twinkle = Twinkle(holder, spec.delay) }
 end
 
+--- The beacon: a beam standing on the spot, a soft flare at its foot, and
+--- a slow pulse the game plays.
+function NodeSparkle:MakeBeacon(parent)
+    local holder = CreateFrame("Frame", nil, parent)
+    holder:SetSize(self.BEACON_WIDTH * 3, self.BEACON_HEIGHT)
+    holder:SetPoint("BOTTOM", parent, "CENTER", 0, -6)
+    local r, g, b = self.GOLD[1], self.GOLD[2], self.GOLD[3]
+
+    local beam = holder:CreateTexture(nil, "OVERLAY")
+    beam:SetTexture(self.BEAM)
+    beam:SetSize(self.BEACON_WIDTH, self.BEACON_HEIGHT)
+    beam:SetPoint("BOTTOM")
+    pcall(beam.SetBlendMode, beam, "ADD")
+    beam:SetVertexColor(r, g, b, 1)
+
+    local flare = holder:CreateTexture(nil, "OVERLAY")
+    flare:SetTexture(self.GLOW)
+    flare:SetSize(self.BEACON_WIDTH * 3, self.BEACON_WIDTH * 1.4)
+    flare:SetPoint("CENTER", holder, "BOTTOM", 0, 4)
+    pcall(flare.SetBlendMode, flare, "ADD")
+    flare:SetVertexColor(r, g, b, 0.8)
+
+    local pulse
+    local ok, group = pcall(holder.CreateAnimationGroup, holder)
+    if ok and type(group) == "table" and pcall(function()
+        group:SetLooping("BOUNCE")
+        local dim = group:CreateAnimation("Alpha")
+        dim:SetFromAlpha(1)
+        dim:SetToAlpha(0.6)
+        dim:SetDuration(self.PULSE)
+        dim:SetSmoothing("IN_OUT")
+    end) then
+        pulse = group
+    end
+    holder:Hide()
+    return { holder = holder, pulse = pulse }
+end
+
 function NodeSparkle:Build()
     if self.frame then return self.frame end
     local frame = CreateFrame("Frame", "BlackthornesFarmerNodeSparkle", UIParent)
@@ -334,6 +472,7 @@ function NodeSparkle:Build()
     for index, spec in ipairs(self.SPARKS) do
         self.sparks[index] = MakeSpark(frame, spec)
     end
+    self.beacon = self:MakeBeacon(frame)
     self.frame = frame
     return frame
 end
@@ -353,14 +492,27 @@ function NodeSparkle.Icon(plate)
     return nil
 end
 
+--- How far down from the icon to put the sparkles: DROP, scaled by how
+--- big the game draws the nameplate against the rest of the interface.
+function NodeSparkle:Drop(plate)
+    local ratio = 1
+    local okPlate, plateScale = pcall(function() return plate:GetEffectiveScale() end)
+    local okUI, uiScale = pcall(function() return UIParent:GetEffectiveScale() end)
+    if okPlate and okUI and type(plateScale) == "number" and type(uiScale) == "number" and uiScale > 0 then
+        ratio = plateScale / uiScale
+    end
+    if ratio ~= ratio or ratio <= 0 then ratio = 1 end
+    return self.DROP * math.min(2, math.max(0.25, ratio))
+end
+
 function NodeSparkle:ShowSparkle(plate, guid)
     local frame = self:Build()
     if self.shownOn ~= plate then
         frame:ClearAllPoints()
         local icon = self.Icon(plate)
         if icon then
-            -- Round the game's icon.
-            frame:SetPoint("CENTER", icon, "CENTER", 0, 0)
+            -- Under the game's icon, on the node itself.
+            frame:SetPoint("CENTER", icon, "CENTER", 0, -self:Drop(plate))
         else
             -- Just above the node, under the name the game writes there.
             frame:SetPoint("BOTTOM", plate, "BOTTOM", 0, -10)
@@ -369,9 +521,23 @@ function NodeSparkle:ShowSparkle(plate, guid)
     self.shownOn, self.shownGuid = plate, guid
 
     local moving = Moving()
+    local beacon = self.Style(self) == "beacon"
+    local light = self.beacon
+    if light then
+        light.holder:SetShown(beacon)
+        if beacon and light.pulse and moving then
+            local ok, playing = pcall(light.pulse.IsPlaying, light.pulse)
+            if not (ok and playing == true) then pcall(light.pulse.Play, light.pulse) end
+        elseif light.pulse then
+            pcall(light.pulse.Stop, light.pulse)
+        end
+    end
     for _, spark in ipairs(self.sparks) do
         local twinkle = spark.twinkle
-        if twinkle and moving then
+        spark.holder:SetShown(not beacon)
+        if beacon then
+            if twinkle then pcall(twinkle.Stop, twinkle) end
+        elseif twinkle and moving then
             spark.holder:SetAlpha(1)
             local ok, playing = pcall(twinkle.IsPlaying, twinkle)
             if not (ok and playing == true) then pcall(twinkle.Play, twinkle) end
@@ -390,6 +556,7 @@ function NodeSparkle:HideSparkle()
     for _, spark in ipairs(self.sparks or {}) do
         if spark.twinkle then pcall(spark.twinkle.Stop, spark.twinkle) end
     end
+    if self.beacon and self.beacon.pulse then pcall(self.beacon.pulse.Stop, self.beacon.pulse) end
     frame:ClearAllPoints()
     frame:Hide()
 end
@@ -400,7 +567,7 @@ function NodeSparkle:Refresh()
     if not self:IsEnabled() then self:HideSparkle(); return "off" end
     local guid, name, object = self:Facing()
     if not guid or not object then self:HideSparkle(); return "nothing" end
-    if not self:IsNode(name) then self:HideSparkle(); return "notnode" end
+    if not self:Kind(name) then self:HideSparkle(); return "notnode" end
     local plate = self:Plate(guid)
     if not plate then self:HideSparkle(); return "noplate" end
     self:ShowSparkle(plate, guid)
@@ -432,6 +599,7 @@ function NodeSparkle:OnEnable()
     ns.RegisterEvent(self, "PLAYER_SOFT_INTERACT_CHANGED", function() NodeSparkle:SafeRefresh() end)
     ns.RegisterEvent(self, "NAME_PLATE_UNIT_ADDED", function() NodeSparkle:SafeRefresh() end)
     ns.RegisterEvent(self, "NAME_PLATE_UNIT_REMOVED", function(_, _, unit) NodeSparkle:OnPlateRemoved(unit) end)
+    ns.RegisterEvent(self, "QUEST_LOG_UPDATE", function() NodeSparkle:QuestLogChanged() end)
     ns.RegisterEvent(self, "PLAYER_REGEN_ENABLED", function()
         if NodeSparkle.applyAfterCombat then NodeSparkle:ApplySettings() end
         if NodeSparkle.restoreAfterCombat then NodeSparkle:RestoreSettings() end
@@ -450,7 +618,7 @@ ns.DB.hideWatchers.nodeSparkle = function() NodeSparkle:SafeRefresh() end
 
 function NodeSparkle:Check()
     ns.Print("sparkle check (face a herb or ore node first):")
-    ns.PrintRaw(("  setting: %s"):format(self:IsEnabled() and "on" or "off"))
+    ns.PrintRaw(("  setting: %s, %s"):format(self:IsEnabled() and "on" or "off", self:Style()))
     for _, cvar in ipairs(self.CVARS) do
         ns.PrintRaw(("  %s: %s"):format(cvar.name, tostring(self.GetCVar(cvar.name))))
     end
@@ -467,6 +635,7 @@ function NodeSparkle:Check()
     local kind = type(guid) == "string" and guid:match("^(%a+)%-") or nil
     ns.PrintRaw(("  facing: %s (%s)"):format(tostring(name), tostring(kind or (guid and "?" or "nothing"))))
     ns.PrintRaw(("  a node Farmer knows: %s"):format(name and (self:IsNode(name) and "yes" or "no") or "-"))
+    ns.PrintRaw(("  kind: %s"):format(name and tostring(self:Kind(name) or "none") or "-"))
     local plate = object and self:Plate(guid) or nil
     ns.PrintRaw(("  nameplate for it: %s"):format(object and (plate and "yes" or "no") or "-"))
     ns.PrintRaw(("  game icon on it: %s"):format(plate and (self.Icon(plate) and "yes" or "no") or "-"))
@@ -478,8 +647,14 @@ function NodeSparkle:Check()
     ns.PrintRaw(("  sparkle: %s"):format(self:SafeRefresh()))
 end
 
-ns.RegisterCommand("sparkle", L["sparkles on the herb or ore node you face on or off (check)"], function(rest)
+ns.RegisterCommand("sparkle", L["sparkles on the node, school, chest or quest object you face on or off (beacon, sparkles, check)"], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
+    if argument == "beacon" or argument == "sparkles" then
+        NodeSparkle:SetStyle(argument)
+        ns.Print(argument == "beacon" and L["a beacon shows the spot."] or L["sparkles show the spot."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
     if argument == "check" then
         ns.KeepCheck("sparkle check", NodeSparkle.Check, NodeSparkle)
         return
@@ -489,6 +664,6 @@ ns.RegisterCommand("sparkle", L["sparkles on the herb or ore node you face on or
     elseif argument == "off" then on = false
     else on = not NodeSparkle:IsEnabled() end
     NodeSparkle:SetEnabled(on)
-    ns.Print(on and L["sparkles on nodes on."] or L["sparkles on nodes off."])
+    ns.Print(on and L["sparkles on."] or L["sparkles off."])
     if ns.SettingsUI then ns.SettingsUI:Refresh() end
 end)
