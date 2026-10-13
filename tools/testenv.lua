@@ -340,6 +340,7 @@ local FILES = {
     "Logic/Grinding.lua",
     "Logic/Share.lua",
     "Logic/Transfer.lua",
+    "Logic/GuildShare.lua",
     "Logic/CSV.lua",
 }
 

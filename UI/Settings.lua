@@ -941,11 +941,22 @@ function SettingsUI:BuildSharingPage()
         L["Paste what another player gave you to add their counts to yours. You see what it would add first, the same text twice adds nothing, and what you took in can be taken back out. Same as /farm take."], L["Paste"], "take")
     controls.shareTake = takeButton
 
+    -- Logic/GuildShare.lua: the same with guildmates who use Farmer.
+    pages:Section("sharing", 2, L["YOUR GUILD"])
+
+    local guildRow = pages:Row("sharing", 2, L["Share with your guild"],
+        L["Sends your kill tallies, measured drop rates, gathering and fishing to guildmates who use Farmer and have this ticked, and takes theirs. Counts only: no names, goals, settings or positions. Up to 20 guildmates are kept, and /farm share guild forget confirm takes everything from your guild back out. Same as /farm share guild on and off."])
+    controls.shareGuild = Widgets.CreateCheckbox(guildRow, L["Sharing"], function(checked)
+        ns.GuildShare:SetOn(checked)
+        SettingsUI:Refresh()
+    end, false)
+    controls.shareGuild:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     pages:Section("sharing", 2, L["HOW IT WORKS"])
 
     local block = CreateFrame("Frame", nil, pages.pages.sharing.content)
-    block:SetSize(COLUMN_WIDTH, 150)
-    block.fixedHeight = 150
+    block:SetSize(COLUMN_WIDTH, 190)
+    block.fixedHeight = 190
     pages:Place("sharing", 2, block, -4)
 
     local summary = Theme.CreateLabel(block, "small", "text")
@@ -955,7 +966,7 @@ function SettingsUI:BuildSharingPage()
     self.shareSummary = summary
 
     local about = Theme.CreateLabel(block, "tiny", "muted")
-    about:SetPoint("TOPLEFT", 0, -50)
+    about:SetPoint("TOPLEFT", 0, -90)
     about:SetWidth(COLUMN_WIDTH)
     about:SetWordWrap(true)
     about:SetText(L["WoW keeps each account's saved data apart, so this passes it over in chat whispers between two of your own characters. Both accounts add up what both counted; nothing is counted twice, and nothing is passed on to anyone else. The first sync of a big collection can take a while in the background. What is taken in becomes part of your own totals and cannot be taken back out."])
@@ -1063,7 +1074,8 @@ function SettingsUI:Refresh()
     controls.whatsNewMotion:SetChecked(ns.WhatsNew:IsMotionOn())
     controls.share:SetChecked(db.shareData == true)
     controls.shareNames:SetText(db.shareNames or "")
-    self.shareSummary:SetText(ns.Share:Describe())
+    controls.shareGuild:SetChecked(db.shareGuild == true)
+    self.shareSummary:SetText(ns.Share:Describe() .. "\n\n" .. ns.GuildShare:Describe())
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)

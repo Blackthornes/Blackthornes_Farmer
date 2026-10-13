@@ -173,6 +173,8 @@ local function Plausible(section, record)
     return true
 end
 
+Transfer.Scan, Transfer.Plausible = Scan, Plausible
+
 local function Subtract(spec, record, credit)
     for field in pairs(spec.add or {}) do
         local taken = tonumber(credit[field])
@@ -309,7 +311,14 @@ local function ShortDate(at)
     return ok and text or L["an unknown date"]
 end
 
-function Transfer.LedgerKey(id) return "import:" .. id end
+--- The ledger a source's counts are kept in. A Farmer already heard from in
+--- the guild keeps its one ledger (Logic/GuildShare.lua), so its text taken
+--- in here is not counted a second time.
+function Transfer.LedgerKey(id)
+    local guild = "guild:" .. id
+    if ns.db and type(ns.db.shareIn) == "table" and type(ns.db.shareIn[guild]) == "table" then return guild end
+    return "import:" .. id
+end
 
 --- Read, check and measure a pasted string without changing anything.
 -- `done(plan)` or `done(nil, why)`. A plan: { id, part, of, at, list, sections
@@ -436,7 +445,7 @@ function Transfer:Apply(plan, done)
 
     local state = { key = Transfer.LedgerKey(plan.id), name = "Imported " .. plan.id }
     local held = Share:Held(state)
-    held.kind = "import"
+    if held.kind == nil then held.kind = "import" end
     held.at = time()
     held.madeAt = plan.at
 
@@ -487,9 +496,14 @@ end
 -- `done(nil, "busy")`: the ledger is only deleted at the end, so a second
 -- run subtracted it twice and took the player's own counts with it.
 function Transfer:Remove(id, done)
-    local key = Transfer.LedgerKey(id)
+    return self:RemoveLedger(Transfer.LedgerKey(id), "import", done)
+end
+
+--- The same for any ledger of the given kind ("import", or "guild" for
+--- Logic/GuildShare.lua's forget).
+function Transfer:RemoveLedger(key, kind, done)
     local held = ns.db.shareIn and ns.db.shareIn[key]
-    if not (type(held) == "table" and held.kind == "import" and type(held.credit) == "table") then
+    if not (type(held) == "table" and held.kind == kind and type(held.credit) == "table") then
         return done(0)
     end
     if self.removing[key] or self.applying then return done(nil, "busy") end

@@ -143,6 +143,31 @@ second character with an id already held, or this account's own, is a
 duplicate (`state.duplicate`) and nothing is taken from it. First heard
 holds the ledger. Tested in `tools/test_share.lua`.
 
+## Sharing with the guild
+
+The owner asked (2026-10-13) for Farmer to share with the guild too, off by
+default. `Logic/GuildShare.lua` reuses `Share`'s whispered conversation
+(manifest, want, records) and its counting; only how partners are found
+differs. Each side says hello on the GUILD addon channel (`G<farmer id>:<hash
+of its manifest>`) 30 s after login and every half hour, and once (at most
+a minute apart) to someone new. A hello whose hash is not the one last
+taken in full (`shareIn[...].top`) queues that guildmate; one is synced at a
+time, each at most every half hour, and a guildmate's whispers are heard
+only after their hello (`GuildShare:PartnerFor`, which `Share:PartnerFor`
+falls back to). Ledgers are by Farmer id, `shareIn["guild:<id>"]` with
+`kind = "guild"` (never rename either), so every character of an account
+shares one; a guildmate who already gave an import keeps `import:<id>`, and
+`Transfer.LedgerKey` sends a later import into the guild ledger. The other
+account named in Settings is left to account sharing. Records must also pass
+`GuildShare.Plausible` (Transfer's MAX_COUNT and MAX_PER_CORPSE), at most
+`MAX_GUILDMATES` (20) are kept, and `/farm share guild forget confirm`
+subtracts every guild ledger (`Transfer:RemoveLedger`) and turns it off;
+there is no Settings button for it, since Settings never deletes data.
+Setting `shareGuild` (account wide, never rename it), a tick box under YOUR
+GUILD on the Sharing page and `/farm share guild on|off`. Tested in
+`tools/test_guildshare.lua` (three accounts and an alt over a pretend chat).
+Not yet seen in game.
+
 ## Giving data to another player
 
 A player asked (2026-10-11, the owner agreed) to export Farmer's data and
