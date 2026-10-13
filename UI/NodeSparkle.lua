@@ -11,7 +11,8 @@
 -- So, while "Sparkle on nodes" is ticked (`nodeSparkle`, on unless
 -- unticked; never rename it), Farmer turns on, out of combat, the two game
 -- settings that make that nameplate (SoftTargetInteract to "always",
--- SoftTargetNameplateInteract on), keeping what each was in
+-- SoftTargetNameplateInteract on) and lets it look farther and all the way
+-- round (SoftTargetInteractRange, SoftTargetInteractArc), keeping what each was in
 -- `nodeSparkleCVars` (never rename it) and putting them back when the box
 -- is unticked. Nothing is set that the player had already set that way.
 --
@@ -38,6 +39,11 @@ local UNIT = "softinteract"
 NodeSparkle.CVARS = {
     { name = "SoftTargetInteract", value = "3", atLeast = 3 },
     { name = "SoftTargetNameplateInteract", value = "1", atLeast = 1 },
+    -- How far the interact target looks, in yards (the game's own is about
+    -- 10; it keeps its own limit if 30 is past it), and how wide: 2 is all
+    -- the way round you, 1 only in front (the owner asked 2026-10-13).
+    { name = "SoftTargetInteractRange", value = "30", atLeast = 30 },
+    { name = "SoftTargetInteractArc", value = "2", atLeast = 2 },
 }
 
 -- Where each sparkle sits round the node, in pixels from the anchor, how
