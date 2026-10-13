@@ -251,6 +251,56 @@ ns.db.nodeSparkleCVars = {}
 Face("Copper Vein", VEIN)
 suite.check("an icon the player turned on themselves is left alone", iconAlpha == 0.8)
 ns.db.nodeSparkleCVars = keep
+
+-- The plate's name, bars and level, which the game draws over every NPC and
+-- object the interact key picks once Farmer turns those plates on.
+local function Piece(start)
+    local piece = { alpha = start }
+    piece.GetAlpha = function(self) return self.alpha end
+    piece.SetAlpha = function(self, a) self.alpha = a end
+    return piece
+end
+local nameText, healthBar = Piece(1), Piece(0.9)
+plate.UnitFrame = {
+    SoftTargetFrame = gameIcon,
+    GetRegions = function() return nameText end,
+    GetChildren = function() return healthBar, gameIcon end,
+}
+ns.db.nodeSparkleHideIcon = true
+Face("Copper Vein", VEIN)
+suite.check("an object's plate name and bars go see-through", nameText.alpha == 0 and healthBar.alpha == 0 and iconAlpha == 0)
+local NPC = "Creature-0-1-2-3-3346-0000000002"
+Face("Kaja", NPC)
+suite.check("so do a vendor's", nameText.alpha == 0 and healthBar.alpha == 0)
+ns.db.nodeSparkleHideIcon = false
+Face("Kaja", NPC)
+suite.check("the icon can show without the plate", iconAlpha == 0.8 and nameText.alpha == 0)
+ns.db.nodeSparkleHideIcon = true
+cvars.nameplateShowFriends = "1"
+Face("Kaja", NPC)
+suite.check("friendly nameplates on: the vendor keeps its plate", nameText.alpha == 1 and healthBar.alpha == 0.9)
+cvars.nameplateShowFriends = "0"
+local realCanAttack = _G.UnitCanAttack
+_G.UnitCanAttack = function() return true end
+Face("Kobold Vermin", NPC)
+suite.check("a mob you could fight keeps its plate", nameText.alpha == 1 and healthBar.alpha == 0.9)
+_G.UnitCanAttack = realCanAttack
+Face("Kaja", NPC)
+fighting = true
+nameText.alpha = 0.7
+Face("Kaja", NPC)
+suite.check("nothing touched in a fight either", nameText.alpha == 0.7)
+fighting = false
+nameText.alpha = 0
+Face("Kaja", NPC)
+ns.NodeSparkle:SetEnabled(false)
+suite.check("turning sparkles off gives the plate back", nameText.alpha == 1 and healthBar.alpha == 0.9)
+ns.NodeSparkle:SetEnabled(true)
+keep = ns.db.nodeSparkleCVars
+ns.db.nodeSparkleCVars = {}
+Face("Kaja", NPC)
+suite.check("plates the player turned on themselves are left alone", nameText.alpha == 1)
+ns.db.nodeSparkleCVars = keep
 plate.UnitFrame = nil
 
 -- Fishing: a cast lands past the usual reach, so the reach goes up while
