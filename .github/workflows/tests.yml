@@ -55,3 +55,6 @@ jobs:
 
       - name: The private-files check catches what it should
         run: python tools/test_check_private_files.py
+
+      - name: The PC sync script pulls only what is safe to pull
+        run: python tools/test_sync_all.py
