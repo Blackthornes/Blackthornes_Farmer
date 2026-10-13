@@ -769,6 +769,13 @@ function SettingsUI:BuildLootPage()
     local _, hiddenButton = CommandRow(pages, "loot", 2, L["Hidden"],
         L["Mobs, nodes and items you hid. Right-click one in the search, Rankings, Grind or the kills panel to hide it; the list shows each with Show again. Same as /farm hidden, /farm hide and /farm unhide."], L["Show list"], "hidden")
     controls.hidden = hiddenButton
+
+    local trashRow = pages:Row("loot", 2, L["Trash can when full"],
+        L["When your bags are down to 3 free slots or fewer, a small gold can sits on the item worth the least: never a goal's item, a quest item or gear you could wear. Click it to pick the item up, then drop it outside your bags; the game asks before anything is destroyed. With Blackthornes Butler loaded, Butler's can shows instead. Same as /farm trash."])
+    controls.trashCan = Widgets.CreateCheckbox(trashRow, L["Show it"], function(checked)
+        ns.Trash:SetEnabled(checked)
+    end, true)
+    controls.trashCan:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1133,6 +1140,7 @@ function SettingsUI:Refresh()
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
+    controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
     controls.grindPins:SetChecked(db.grindPins ~= false)
