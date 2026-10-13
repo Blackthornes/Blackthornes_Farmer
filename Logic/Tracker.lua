@@ -232,6 +232,12 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
         self:Celebrate(mobName)
     end
 
+    -- A kill that moves the mob up your top 15 gets a pop-up, a second
+    -- later and never in a fight (Logic/RankUp.lua).
+    if newKill and ns.RankUp then
+        ns.RankUp:Killed(mobName)
+    end
+
     return newKill
 end
 
@@ -855,6 +861,8 @@ local MEDIA = [[Interface\AddOns\Blackthornes_Farmer\Media\Sounds\]]
 Tracker.SOUNDS = {
     unlock = MEDIA .. "drop-rates-unlocked.ogg",
     rare = MEDIA .. "rare-drop.ogg",
+    -- A mob climbs your top 15 (2026-10-13), UI/RankUp.lua.
+    rankup = MEDIA .. "rank-up.ogg",
 }
 
 --- Play one of the addon's sound files. True if the client says it will.

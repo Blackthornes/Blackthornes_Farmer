@@ -610,6 +610,23 @@ function SettingsUI:BuildTallyPage()
     end, true)
     controls.rareSound:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    local rankUpRow = pages:Row("tally", 1, L["Rank-up pop-up"],
+        L["When a kill moves a mob up your top 15 by worth per kill, or onto it, the list pops up beside the panel for a few seconds and shows the move. Never in a fight. Same as /farm rankup."])
+
+    controls.rankUp = Widgets.CreateCheckbox(rankUpRow, L["Show it"], function(checked)
+        ns.db.rankUpPopup = checked
+        if not checked and ns.RankUpUI then ns.RankUpUI:Hide() end
+    end, true)
+    controls.rankUp:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local rankUpSoundRow = pages:Row("tally", 1, L["Rank-up sound"],
+        L["A short chime as the mob lands in its new place. Only you hear it, and never on top of the milestone fanfare. Same as /farm rankup sound."])
+
+    controls.rankUpSound = Widgets.CreateCheckbox(rankUpSoundRow, L["Play it"], function(checked)
+        ns.db.rankUpSound = checked
+    end, true)
+    controls.rankUpSound:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     local voiceRow = pages:Row("tally", 1, L["Voice lines"],
         L["A goblin cheers a blue or better drop, and a peon says \"Work complete!\" when a goal is done. The game's own voices, a few minutes apart. Same as /farm voice."])
 
@@ -632,6 +649,12 @@ function SettingsUI:BuildTallyPage()
     local _, valueButton = CommandRow(pages, "tally", 2, L["Worth per kill"],
         L["What a kill of the mob you last looted is worth, from Tradeskills' prices. Same as /farm value, or /farm value and a mob's name."], L["Work it out"], "value")
     controls.value = valueButton
+
+    pages:Section("tally", 2, L["YOUR TOP 15"])
+
+    local _, topButton = CommandRow(pages, "tally", 2, L["Your top 15"],
+        L["Shows your best mobs by worth per kill, from your own kills, the way the rank-up pop-up does. Same as /farm rankup show."], L["Show it"], "rankup show")
+    controls.rankUpShow = topButton
 end
 
 --- Loot: recording what drops, its export, fishing and gathering.
@@ -1030,6 +1053,10 @@ function SettingsUI:Refresh()
         if name == level then controls.effects:SetValue(index, true) end
     end
     controls.rareSound:SetChecked(ns.TrackerFX.RareSoundOn())
+    if ns.RankUp then
+        controls.rankUp:SetChecked(ns.RankUp.On())
+        controls.rankUpSound:SetChecked(ns.RankUp.SoundOn())
+    end
     controls.voice:SetChecked(ns.TrackerFX.VoiceOn())
     controls.textSize:Sync()
     controls.windowStyle:Sync()
