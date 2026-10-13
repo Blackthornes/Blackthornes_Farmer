@@ -82,6 +82,19 @@ suite.check("it says how many more are needed", summary.needed == 17, summary.ne
 suite.check("the harvester still records alongside it",
     ns.Harvest:CountCorpses() == 3, ns.Harvest:CountCorpses())
 
+-- A small line over the cards names their two numbers (2026-10-13).
+do
+    local columns, columnsAt, bandAt
+    for index, line in ipairs(ns.TrackerUI:Lines()) do
+        if line.style == "columns" and not columnsAt then columns, columnsAt = line, index end
+        if line.style == "mob" and not bandAt then bandAt = index end
+    end
+    suite.check("the column names sit over the first card",
+        columnsAt ~= nil and bandAt ~= nil and columnsAt < bandAt, tostring(columnsAt))
+    suite.check("and say which number is which",
+        columns and columns.badge == "This session" and columns.column == "All time")
+end
+
 -- Skin the last one: same corpse, same guid, a new item.
 local skinned = "Creature-0-1-2-3-skin"
 Loot(BOAR, { SCRAPS }, skinned)
