@@ -819,6 +819,14 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.itemTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    local killRow = pages:Row("map", 1, L["Kill count"],
+        L["Hover a mob to see how many you have killed: red up to 20, then your kills and what one is worth. Same as /farm killcount."])
+
+    controls.killTooltip = Widgets.CreateCheckbox(killRow, L["Show it"], function(checked)
+        ns.KillTooltip:SetEnabled(checked)
+    end, true)
+    controls.killTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- It needs an item's name, so the button says how to type it.
     local _, whereButton = CommandRow(pages, "map", 1, L["Places for an item"],
         L["The best places near you to farm an item, typed with its name: /farm where copper ore. The button says how."], L["How to"], "where")
@@ -1043,6 +1051,7 @@ function SettingsUI:Refresh()
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
+    controls.killTooltip:SetChecked(db.killTooltip ~= false)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)

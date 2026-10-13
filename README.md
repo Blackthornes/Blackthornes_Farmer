@@ -96,6 +96,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm where <item>` | the best places near you to farm it, nearest first |
 | `/farm arrow [on\|off]` | an arrow on screen that points to the nearest place to gather a goal (on with your first new goal, unless you have turned it off; `next` for the next place, `<goal>` to follow that goal, `check` for what the game lets it read, `tomtom` to use TomTom's arrow or not, `reset` puts it back) |
 | `/farm tooltip` | turn the "Farm:" line on material tooltips on or off (on by default) |
+| `/farm killcount` | turn the kill count on mob tooltips on or off (on by default) |
 | `/farm skinning [on\|off]` | show skinning, or leave it out and show only drops: no skinning spots, leather or hides in search, Rankings, Grind, a mob's drops or its worth (left out by default; nothing recorded is lost) |
 | `/farm hide <name>` | hide a mob, node or item from the search, Rankings, Grind and the kills panel (or right-click it there); `/farm unhide <name>` shows it again, `/farm hidden` lists what you hid |
 | `/farm goals [dock]` | show or hide the goals panel; `dock` puts it back under the kills panel |
@@ -116,6 +117,10 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm help` | the command list |
 
 `/farmer` is the same command if `/farm` is taken.
+
+Hover a mob and its tooltip says how many you have killed. Until 20 the count
+is red and runs up toward drop rates (`Kills: 7/20`); from 20 on it is your
+whole count and what one kill is worth (`Kills: 134, worth 1s 20c each`).
 
 Hover a material anywhere (your bags, the auction house, a chat link) and its
 tooltip gets one more line: the best place to farm it from where you stand,

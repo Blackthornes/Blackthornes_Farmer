@@ -440,6 +440,22 @@ sound" (`rankUpSound`), both on unless unticked, and `rankUpScale` (its size
 grip) are account wide; never rename them. `/farm rankup [on|off|sound
 on|off|show]`. Tested in `tools/test_rankup.lua`. Not yet seen in game.
 
+## Kills on the mob tooltip
+
+The owner asked (2026-10-13) for a mob's tooltip to say how many you have
+killed. `UI/KillTooltip.lua` adds one line, through the same hooks as the
+material line (`TooltipDataProcessor` for units, `OnTooltipSetUnit` too):
+below `Tracker.MIN_KILLS` "Kills: 7/20" in red, from 0/20 on a mob never
+killed; from 20 "Kills: 134, worth 1s 20c each" from `Value:ForMob` (the
+count alone when nothing it drops has a price). It reads
+`tracker.mobs[name].kills` only, never `Tracker:GetMob`, so a hover makes no
+tally. A mob you cannot attack, players, pets and critters get nothing until
+killed; a hidden mob gets nothing. Inside a dungeon the name falls back to
+the guid's mob ID (`Harvest.KnownNpcName`, else "Creature #ID"), as the
+harvest keys it. "Kill count" under Tooltips on the Map & goals page
+(`killTooltip`, on unless unticked, never rename it) and `/farm killcount`.
+Tested in `tools/test_killtooltip.lua`. Not yet seen in game.
+
 ## Loot inside dungeons
 
 Inside a dungeon the client hides the corpse's name and guid from addons,
