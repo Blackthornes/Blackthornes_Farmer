@@ -173,6 +173,8 @@ local function Plausible(section, record)
     return true
 end
 
+Transfer.Scan, Transfer.Plausible = Scan, Plausible
+
 local function Subtract(spec, record, credit)
     for field in pairs(spec.add or {}) do
         local taken = tonumber(credit[field])

@@ -813,11 +813,12 @@ function Gathering.IsNodeOnly(name)
     --
     -- Only the seed data is asked. Rows marked "forever" were written by the
     -- harvest import from the very records this check reads, so a herb once
-    -- credited to a mob would vouch for itself and never be listed.
+    -- credited to a mob would vouch for itself and never be listed; the
+    -- guild's rows are records of the same kind.
     local any = false
 
     for _, source in ipairs(item.sources or {}) do
-        if source.provenance ~= "forever" then
+        if source.provenance ~= "forever" and source.provenance ~= "guild" then
             if source.kind ~= "node" and source.kind ~= "herb" then return false end
             any = true
         end

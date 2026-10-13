@@ -28,7 +28,13 @@ DB.changes = 0
 DB.PROVENANCE = {
     classic = "from Classic data",
     forever = "confirmed on Forever",
+    guild   = "measured by your guild",
 }
+
+-- Which wins when two provenances name the same spot: looted here by this
+-- addon's own data, then measured by guildmates (Logic/GuildShare.lua),
+-- then Classic.
+DB.RANK = { classic = 1, guild = 2, forever = 3 }
 
 DB.DEFAULT_PROVENANCE = "classic"
 
@@ -193,19 +199,58 @@ function DB:AddSource(item, source)
     -- data-entry duplicate, which is not this function's problem to guess at.
     local index, existing = SameSpot(item, source)
 
+    -- A guild row is taken out again when guild sharing is turned off, so
+    -- it keeps the row it stood in for (DB:RemoveSource puts it back).
     if existing and existing.provenance ~= source.provenance then
-        if source.provenance == "forever" then
+        local rank = self.RANK[source.provenance] or 1
+        local over = self.RANK[existing.provenance] or 1
+        if rank > over then
+            if source.provenance == "guild" then source.replaced = existing end
             item.sources[index] = source
             return source
         end
 
-        if existing.provenance == "forever" then
+        if rank < over then
             return nil
         end
     end
 
     item.sources[#item.sources + 1] = source
     return source
+end
+
+--- Take back out a source added after the data loaded, putting back the
+--- row it replaced, if any.
+function DB:RemoveSource(item, source)
+    if type(item) ~= "table" or type(item.sources) ~= "table" then return false end
+    for index, existing in ipairs(item.sources) do
+        if existing == source then
+            if source.replaced then
+                item.sources[index] = source.replaced
+            else
+                table.remove(item.sources, index)
+            end
+            self.changes = (self.changes or 0) + 1
+            return true
+        end
+    end
+    return false
+end
+
+--- Take back out an item added after the data loaded.
+function DB:RemoveItem(item)
+    if type(item) ~= "table" or type(item.name) ~= "string" then return false end
+    local key = item.name:lower()
+    if self.items[key] ~= item then return false end
+    self.items[key] = nil
+    for index, name in ipairs(self.order) do
+        if name == key then
+            table.remove(self.order, index)
+            break
+        end
+    end
+    self.changes = (self.changes or 0) + 1
+    return true
 end
 
 --- The item named `name`: by the database's own (English) name, else by the

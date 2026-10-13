@@ -149,6 +149,16 @@ function LootTableUI:Table(mobName)
 
             local unit = Value and Value:UnitPrice(id)
             if unit then row.perKill = item.corpses / loot.kills * item.perCorpse * unit end
+        else
+            -- Until then, the guild's rate for it, if it has one. Only the
+            -- rate: the kills and what dropped stay the player's own.
+            local GuildShare = ns.GuildShare
+            local chance = GuildShare and GuildShare:RateFor(loot.mob, item.name)
+            if chance then
+                row.chance = chance
+                row.rate = Tracker.FormatChance(chance)
+                out.guildRates = true
+            end
         end
 
         out.rows[#out.rows + 1] = row
@@ -598,6 +608,7 @@ function LootTableUI:Render()
         status = data.needed == 1
             and L.Format("%s so far. Drop rates and values after %s more kill.", items, data.needed)
             or L.Format("%s so far. Drop rates and values after %s more kills.", items, data.needed)
+        if data.guildRates then status = status .. L[" Until then, the rates are your guild's."] end
     end
 
     -- Coin started being counted after some of these kills; say how many

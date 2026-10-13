@@ -458,6 +458,9 @@ local DEFAULTS = {
     -- heard and taken is kept in shareIn, made when first needed.
     shareData = false,
     shareNames = "",
+    -- The same with guildmates who use Farmer (Logic/GuildShare.lua, asked
+    -- 2026-10-13): off until ticked. Their ledgers are in shareIn too.
+    shareGuild = false,
 }
 
 local function LoadSavedVariables()

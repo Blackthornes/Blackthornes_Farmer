@@ -37,6 +37,11 @@
 --
 -- Smooth play: the lists are cut into frame-sized slices, nothing runs in
 -- combat, and what is sent goes out a batch at a time as the pacing allows.
+--
+-- Guildmates use the same conversation (Logic/GuildShare.lua): a state with
+-- `guild` set comes from GuildShare:PartnerFor instead of the typed names,
+-- and carries where its counts go instead of the player's own tables:
+-- `sections` (the ones shared), `store(key, create)` and `book()` (ledgers).
 
 local _, ns = ...
 local L = ns.L
@@ -346,6 +351,11 @@ function Share:Enabled()
     return ns.db ~= nil and ns.db.shareData == true and #self:GetPartners() > 0
 end
 
+--- Sharing with the other account or with the guild, either.
+function Share:Active()
+    return self:Enabled() or (ns.GuildShare ~= nil and ns.GuildShare:On())
+end
+
 --- The names typed in Settings, as { key = "ana smith", name = "Ana Smith" }.
 function Share:GetPartners()
     local list, seen = {}, {}
@@ -365,30 +375,37 @@ end
 
 --- The partner a sender is, or nil for anyone else.
 function Share:PartnerFor(sender)
-    if not self:Enabled() then return nil end
     local key = Comm.NameKey(sender)
     if not key or Comm.IsMe(sender) then return nil end
-    for _, partner in ipairs(self:GetPartners()) do
-        if partner.key == key then
-            local state = self.partners[key]
-            if not state then
-                state = { name = partner.name, key = key }
-                self.partners[key] = state
+    if self:Enabled() then
+        for _, partner in ipairs(self:GetPartners()) do
+            if partner.key == key then
+                local state = self.partners[key]
+                if not state then
+                    state = { name = partner.name, key = key }
+                    self.partners[key] = state
+                end
+                state.name = partner.name
+                return state
             end
-            state.name = partner.name
-            return state
         end
     end
-    return nil
+    -- A guildmate heard on the guild channel (Logic/GuildShare.lua).
+    return ns.GuildShare and ns.GuildShare:PartnerFor(sender) or nil
 end
 
 --- What was heard from and taken from a partner, made if new.
 function Share:Held(state)
-    if type(ns.db.shareIn) ~= "table" then ns.db.shareIn = {} end
-    local held = ns.db.shareIn[state.key]
+    -- A guildmate's ledger is kept apart (GuildShare.Book), as their counts are.
+    local book = state.book and state.book()
+    if not book then
+        if type(ns.db.shareIn) ~= "table" then ns.db.shareIn = {} end
+        book = ns.db.shareIn
+    end
+    local held = book[state.key]
     if type(held) ~= "table" then
         held = {}
-        ns.db.shareIn[state.key] = held
+        book[state.key] = held
     end
     held.name = state.name
     if type(held.hashes) ~= "table" then held.hashes = {} end
@@ -445,7 +462,7 @@ function Share:Build(state, done)
     local manifest, keys, jobs = {}, {}, {}
     for _, section in ipairs(SECTIONS) do
         manifest[section.key], keys[section.key] = {}, {}
-        local store = Share.Store(section.key)
+        local store = (not state.sections or state.sections[section.key]) and Share.Store(section.key)
         if type(store) == "table" then
             for key in pairs(store) do
                 if type(key) == "string" then jobs[#jobs + 1] = { section = section, key = key } end
@@ -498,7 +515,7 @@ function Share:SendManifest(state)
         -- Which Farmer this is, so a partner naming two characters of this
         -- account counts it once (Share:Identify).
         if ns.Transfer then manifest.i = ns.Transfer:SourceId() end
-        if self:Enabled() then Comm:SendTable("M", manifest, "WHISPER", state.name) end
+        if self:Active() then Comm:SendTable("M", manifest, "WHISPER", state.name) end
     end)
 end
 
@@ -569,11 +586,14 @@ function Share:OnManifest(sender, manifest, channel)
     -- answering each other for ever).
     if not state.manifestAt or time() - state.manifestAt > 60 then self:SendManifest(state) end
 
+    -- A guildmate's manifest must come from the Farmer its hello named.
+    if state.guild and manifest.i ~= state.id then return end
     if not self:Identify(state, manifest.i) then return end
     local held = self:Held(state)
     local want, total = {}, 0
     for _, section in ipairs(SECTIONS) do
-        local listed = type(manifest[section.key]) == "table" and manifest[section.key] or {}
+        local listed = (not state.sections or state.sections[section.key])
+            and type(manifest[section.key]) == "table" and manifest[section.key] or {}
         local mine = held.hashes[section.key]
         local asked = {}
         for short, hash in pairs(listed) do
@@ -586,6 +606,7 @@ function Share:OnManifest(sender, manifest, channel)
         if #asked > 0 then want[section.key] = asked end
     end
     if total > 0 then Comm:SendTable("W", want, "WHISPER", state.name) end
+    if state.guild and ns.GuildShare then ns.GuildShare:Compared(state, total) end
 end
 
 function Share:OnWant(sender, want, channel)
@@ -596,7 +617,7 @@ function Share:OnWant(sender, want, channel)
     local function Serve()
         local todo = {}
         for _, section in ipairs(SECTIONS) do
-            local asked = want[section.key]
+            local asked = (not state.sections or state.sections[section.key]) and want[section.key]
             local known = state.keys and state.keys[section.key]
             if type(asked) == "table" and known then
                 for _, short in ipairs(asked) do
@@ -619,7 +640,7 @@ function Share:Serve(state)
 
     local function Step()
         local todo = state.todo
-        if not todo or #todo == 0 or not self:Enabled() then
+        if not todo or #todo == 0 or not self:Active() then
             state.serving = false
             return
         end
@@ -653,6 +674,7 @@ function Share:Accept(state, entry)
     if type(entry) ~= "table" then return nil, "not a record" end
     local section = type(entry.s) == "string" and BY_KEY[entry.s]
     if not section then return nil, "unknown kind" end
+    if state.sections and not state.sections[section.key] then return nil, "not shared" end
 
     -- A record's key joins its fields with "|", so it keeps them; it must
     -- then be exactly what the record's own fields make (below).
@@ -662,8 +684,11 @@ function Share:Accept(state, entry)
     local record = CleanRecord(section.spec, entry.d)
     if not (key and hash and record) then return nil, "unreadable" end
     if KEYS[section.key](record, key) ~= key then return nil, "wrong key" end
+    -- A guildmate's counts are checked for being play (GuildShare.Plausible).
+    if state.check and not state.check(section, record) then return nil, "not plausible" end
 
-    local store = Share.Store(section.key, true)
+    local store
+    if state.store then store = state.store(section.key, true) else store = Share.Store(section.key, true) end
     if type(store) ~= "table" then return nil, "no saved data" end
 
     local held = self:Held(state)
@@ -696,7 +721,9 @@ function Share:OnRecords(sender, batch, channel)
     if taken > 0 then
         state.receivedAt = time()
         self.taken = (self.taken or 0) + taken
-        self:Changed()
+        -- A guildmate's counts are not the player's: only the guild's rates
+        -- in the database move (GuildShare:Received).
+        if state.guild and ns.GuildShare then ns.GuildShare:Received(state) else self:Changed() end
     end
 end
 
@@ -724,6 +751,7 @@ Share.Parts = {
 function Share:OnOffline(key)
     local state = self.partners[key]
     if state then state.online = false end
+    if ns.GuildShare then ns.GuildShare:OnOffline(key) end
 end
 
 --------------------------------------------------------------------------------
@@ -784,16 +812,16 @@ end
 
 --- Start or stop listening to match the settings.
 function Share:Apply()
+    if self:Active() then Comm:Start() else Comm:Stop() end
     if self:Enabled() then
-        Comm:Start()
         if not self.started then
             self.started = true
             C_Timer.After(20, function() Share:Check() end)
         end
     else
-        Comm:Stop()
         for _, state in pairs(self.partners) do state.online = false end
     end
+    if ns.GuildShare then ns.GuildShare:Apply() end
 end
 
 function Share:SetEnabled(on)
@@ -822,7 +850,7 @@ function Share:OnEnable()
     self.ticker = C_Timer.NewTicker(self.CHECK_SECONDS, function() Share:Check() end)
 end
 
-ns.RegisterCommand("share", L["share kills, drop rates and gathering with your other account: on, off, with <names>, sync"],
+ns.RegisterCommand("share", L["share kills, drop rates and gathering with your other account or guild: on, off, with <names>, sync, guild on|off"],
     function(args)
         local word, rest = (args or ""):match("^(%S*)%s*(.-)%s*$")
         word = (word or ""):lower()
@@ -836,7 +864,10 @@ ns.RegisterCommand("share", L["share kills, drop rates and gathering with your o
         elseif word == "sync" then
             Share:Check()
             ns.Print(Share:Enabled() and L["asked your other account for anything new"] or L["sharing is off, or no character is named"])
+        elseif word == "guild" then
+            ns.GuildShare:Command(rest)
         else
             ns.Print(Share:Describe())
+            ns.Print(ns.GuildShare:Describe())
         end
     end)
