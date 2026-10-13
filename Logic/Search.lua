@@ -376,8 +376,6 @@ function Search:SourceLine(source)
     -- put a label on almost every line and say nothing.
     if source.provenance == "forever" then
         line = line .. " " .. Util.Colored("good", "[Forever]")
-    elseif source.provenance == "guild" then
-        line = line .. " " .. Util.Colored("accent", "[" .. L["Guild"] .. "]")
     end
 
     if source.note then
