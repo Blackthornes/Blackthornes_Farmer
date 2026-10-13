@@ -4,6 +4,32 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.31.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- **Rank-up pop-up:** when a kill moves a mob up your top 15 by worth per
+  kill, or onto it, a "Your Top 15" card slides out beside the Kills &
+  Loot panel. The mob's row lifts out and slides to its new place while
+  the others make room, its worth counts up, and it lands with a green
+  "+3" (or NEW), a glow and a short chime of our own. It fades after a few
+  seconds (longer with the mouse over it), waits until a fight is over,
+  and a click on a row opens that mob's loot table. "Rank-up pop-up" and
+  "Rank-up sound" on the Kill tally page of Settings, a "Show it" button,
+  and `/farm rankup` turn it off and on. It follows Window effects and has
+  the size grip.
+- **Kills & Loot starts fresh again:** the panel is empty at every login
+  and `/reload`, as it used to be. Every kill tally, drop rate and Ranking
+  is kept. "Keep it" under Between sessions on the Kill tally page, or
+  `/farm tracker keep on`, brings back the old way.
+- **No more ADDON BLOCKED error on a 20th catch:** the 20th kill, cast or
+  gather plays its fanfare, prints its line in your own chat and shows its
+  banner, but no longer sends a public emote, which Forever blocks. The
+  "Share milestones" setting and `/farm announce` are gone.
+- **More Forever drop data:** the shipped [Forever] drop rates now come
+  from 2,759 corpses across 243 mobs looted on Forever.
+
 ## 0.30.1
 
 For WoW: Forever (interface 16001). No files were added, so `/reload` is
