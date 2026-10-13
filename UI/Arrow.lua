@@ -38,8 +38,7 @@ local COLUMNS = 8
 local PLATE_HEIGHT = 20
 local MIN_WIDTH = 150
 local MAX_WIDTH = 320
--- How often the arrow looks for Farmer's XP bar, and the room it leaves.
-local CLEAR_EVERY = 1
+-- The room the arrow leaves under Farmer's XP bar.
 local CLEAR_GAP = 4
 
 -- Redrawn this often, seconds: smooth to the eye, cheap to run.
@@ -189,6 +188,7 @@ function ArrowUI:Build()
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         ArrowUI:SavePosition()
+        ArrowUI:AvoidXPBar()
         -- The button coming up after a drag is not a click. The client may
         -- send OnMouseUp before this, after it, or not at all, so the drop
         -- is remembered by the moment it happened, never as a flag that
@@ -458,22 +458,11 @@ end
 function ArrowUI:Step(elapsed)
     self.since = (self.since or 0) + (elapsed or 0)
     if self.since < STEP then return end
-    local passed = self.since
     self.since = 0
 
     local ok, err = pcall(self.Draw, self)
     if not ok then ns.Debug("goal arrow:", tostring(err)) end
-    if self.frame:IsShown() then
-        pcall(self.Breathe, self, Clock())
-        -- Farmer's XP bar can come up after the arrow, so look again now
-        -- and then. Only a few rects are read, and nothing moves unless the
-        -- two overlap.
-        self.clearSince = (self.clearSince or 0) + passed
-        if self.clearSince >= CLEAR_EVERY and not self.dragging then
-            self.clearSince = 0
-            self:AvoidXPBar()
-        end
-    end
+    if self.frame:IsShown() then pcall(self.Breathe, self, Clock()) end
 end
 
 --- Show or hide it as the switch and the goals say. The driver keeps it
@@ -508,12 +497,41 @@ function ArrowUI:SavePosition()
     ns.db.arrowX, ns.db.arrowY = x, y
 end
 
+--- Farmer's XP bar can come up after the arrow, so the arrow listens for
+--- it rather than looking on a timer: the bar's own show and size change,
+--- and, while the bar is not built yet, Farmer building it.
+function ArrowUI:WatchXPBar()
+    if self.watchingBar then return end
+    pcall(function()
+        local farmer = _G.BlackthornesFarmer
+        local xp = farmer and farmer.XPBarUI
+        if not xp then return end
+        self.watchingBar = true
+        local function Watch()
+            local bar = xp.frame
+            if bar and ArrowUI.watchedBar ~= bar then
+                ArrowUI.watchedBar = bar
+                local function Check() ArrowUI:AvoidXPBar() end
+                bar:HookScript("OnShow", Check)
+                bar:HookScript("OnSizeChanged", Check)
+            end
+            if bar then ArrowUI:AvoidXPBar() end
+        end
+        if xp.frame then
+            Watch()
+        elseif hooksecurefunc and type(xp.Build) == "function" then
+            hooksecurefunc(xp, "Build", function() pcall(Watch) end)
+        end
+    end)
+end
+
 --- With Farmer's XP bar showing, an arrow that overlaps it sits just below
 --- it: the whole arrow, the plate and its close gem too. The saved spot is
 --- never changed, so it goes back when the bar is gone.
 function ArrowUI:AvoidXPBar()
     local frame = self.frame
     if not frame then return end
+    self:WatchXPBar()
     pcall(function()
         local farmer = _G.BlackthornesFarmer
         local bar = farmer and farmer.XPBarUI and farmer.XPBarUI.frame
