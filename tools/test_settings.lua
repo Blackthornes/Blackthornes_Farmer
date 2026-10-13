@@ -250,7 +250,7 @@ end
 -- above, a control that writes the same setting, or the window itself.
 local covered = {
     settings = true, minimap = true, tracker = true, report = true, celebrate = true,
-    raresound = true, voice = true, effects = true, markers = true, tooltip = true, killcount = true,
+    raresound = true, voice = true, effects = true, markers = true, tooltip = true, killcount = true, sparkle = true,
     arrow = true, grind = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end

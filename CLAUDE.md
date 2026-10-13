@@ -465,6 +465,24 @@ harvest keys it. "Kill count" under Tooltips on the Map & goals page
 (`killTooltip`, on unless unticked, never rename it) and `/farm killcount`.
 Tested in `tools/test_killtooltip.lua`. Not yet seen in game.
 
+## Sparkles on the node you face
+
+The owner asked (2026-10-13) for gatherable nodes to sparkle in the world.
+The client tells addons nothing about the nodes around you, so only the one
+the interact key would pick ("softinteract", in front of you and close)
+can sparkle. `UI/NodeSparkle.lua` anchors gold sparkles (its own frame,
+never parented, `Media/Frame/Glow.tga` crossed, twinkling by an animation
+group) to the game's nameplate for that object
+(`C_NamePlate.GetNamePlateForUnit("softinteract")`). The nameplate only
+exists with `SoftTargetInteract` at 3 and `SoftTargetNameplateInteract` on,
+so while "Sparkle on nodes" (`nodeSparkle`, on unless unticked, Map & goals
+page, `/farm sparkle`) is ticked Farmer raises them out of combat, keeping
+the old values in `nodeSparkleCVars` (never rename either) and putting them
+back when unticked. A node is a herb or vein the data knows, the client's
+herb name, or a node the player gathered; a hidden source gets nothing.
+`/farm sparkle check` (`ns.KeepCheck`) reports what the client gives.
+Tested in `tools/test_nodesparkle.lua`. Not yet seen in game.
+
 ## Loot inside dungeons
 
 Inside a dungeon the client hides the corpse's name and guid from addons,

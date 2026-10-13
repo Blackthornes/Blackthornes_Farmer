@@ -995,3 +995,10 @@ L["Hover a mob to see how many you have killed: red up to 20, then your kills an
 L["turn the kill count on mob tooltips on or off"] = "die Anzahl getöteter Gegner in Tooltips ein- oder ausschalten"
 L["kill count on mob tooltips on."] = "Anzahl getöteter Gegner in Tooltips an."
 L["kill count on mob tooltips off."] = "Anzahl getöteter Gegner in Tooltips aus."
+
+-- Sparkles on the node you face (UI/NodeSparkle.lua).
+L["Sparkle on nodes"] = "Funkeln an Vorkommen"
+L["Gold sparkles over the herb or ore node you are facing, close enough to gather. It turns on the game's interact target and its name over the node, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."] = "Goldenes Funkeln über dem Kraut oder Erzvorkommen vor dir, nah genug zum Sammeln. Dafür schaltet es das Interaktionsziel des Spiels und dessen Namen über dem Vorkommen ein und stellt beides zurück, wenn du den Haken entfernst. Wie /farm sparkle. Prüfen zeigt, was das Spiel lesen lässt (/farm sparkle check)."
+L["sparkles on the herb or ore node you face on or off (check)"] = "Funkeln am Kraut oder Erzvorkommen vor dir ein- oder ausschalten (check)"
+L["sparkles on nodes on."] = "Funkeln an Vorkommen an."
+L["sparkles on nodes off."] = "Funkeln an Vorkommen aus."
