@@ -4,6 +4,65 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.32.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game
+fully after updating (`/reload` is not enough).
+
+- **XP bar:** a bar in the house style shows your level, XP and percent,
+  with this session, finished quests and rested XP as their own bands.
+  Below it are the time to level and XP an hour (marked when you are faster
+  than usual); its card says how to finish the level: hand-ins, kills of
+  the last mob, quests under way, rested XP. It also shows a kill streak, a
+  star at the tip that breathes with a faint light along the gold, XP
+  floating off the tip, a chime on each tenth, and a level-up cheer with the
+  time the level took and the class spells waiting at your trainer. It
+  follows the cap the game gives and hides there. Options on the Kill tally
+  page of Settings (including making the game's own XP bar see-through) and
+  `/farm xpbar`.
+- **Stats tab:** a tab of charts only: gold an hour by session against your
+  usual pace, where the gold came from, best mobs at your kill speed (a
+  click opens the loot table), your luck, ten weeks of days and how long
+  each level took. A switch beside Settings picks This session or Overall.
+  A best gold an hour yet is cheered once ("Best session cheer"). Best mobs
+  for gold weighs old kills by worth per kill. `/farm charts`.
+- **Sparkles on the node you face:** the herb, vein, fishing school, chest,
+  fishing bobber or quest object you face gets sparkles or a beacon of light
+  (the beacon is the default) on it, picked from "Sparkle look". The
+  game's own interact icon is turned on to place them and kept out of
+  sight unless you play with a controller. Both are on the Map & goals page
+  and `/farm sparkle`.
+- **Quest count over mobs:** a gold "3/8" beside the name of a mob an
+  unfinished quest still needs. "Quest count", `/farm questcount`.
+- **World drop chances:** how often green, blue, purple and orange gear
+  drops, by mob level in bands of five, shown under the open mob in the
+  kills panel, as a World drops chip in Rankings, as a line on the mob's
+  tooltip and when you search "greens". "World drops", `/farm worlddrops`.
+- **Kills on the mob tooltip:** "Kills: 7/20" until drop rates unlock, then
+  the count and what one kill is worth. "Kill count", `/farm killcount`.
+- **Trash can when bags are full:** a gold, pulsing can sits on the item
+  worth the least when no bag slot is free. A click picks it up so you can
+  drop it outside the bags. It never picks a goal's item, a quest item,
+  soulbound gear or anything unpriced, and stays out of the way when
+  Blackthornes Butler is loaded. "Trash can when full", `/farm trash`.
+- **Goal arrow lies back like a compass:** the dial is drawn on the ground,
+  smaller, and sits clear below the XP bar.
+- **Share with guildmates:** kills, drop rates and gathering can be shared
+  with guildmates. It is off by default, never changes your own counts and
+  is turned on in Settings or with `/farm share guild on`.
+- **Smaller additions:** middle-click the minimap button to show or hide
+  goals. An About page in Settings and a one-time note at the top of
+  What's New, which can also carry one-time tip cards, and shows new
+  features only. The kills panel names its two counts, "This session" and
+  "All time", and an open mob card shows its Rankings place.
+- **Pearls and clams:** Iridescent Pearl now lists the clams Classic has
+  (Thick-shelled, Big-mouth and the underwater Giant Clams), and what a
+  clam, sack or lockbox gives is recorded against itself, not against the
+  corpse you were targeting.
+- **Fixes:** a corpse opened again after other loot is counted once, not as
+  a new kill. The game's interact reach is back to the 15 yards Forever
+  allows. The level-up cheer shows above the Settings window.
+
 ## 0.31.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game

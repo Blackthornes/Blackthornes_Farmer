@@ -23,6 +23,23 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.32.0
+
+- This is the largest AddOn update so far across the whole suite of Blackthornes addons.
+- A new XP bar shows how long until your next level, which quests would finish it, and cheers when you level up.
+- A new Stats tab draws your farming as charts: gold an hour, where the gold came from, your best mobs and your luck.
+- The herb, vein, chest or fishing spot you face gets sparkles or a beam of light, and mobs a quest needs show how many are left.
+- A mob's tooltip shows how many you've killed, and the kills panel shows how often green, blue and purple gear drops from it.
+- When your bags are full, a little trash can sits on the item worth the least.
+
+Fixes and changes:
+
+- Middle-click the minimap button to show or hide your goals.
+- The goal arrow now lies flat like a compass.
+- Sharing kills and drop rates with guildmates is there, and off until you turn it on.
+- Pearls and clams show where they really drop, and what you find inside them is counted.
+- A corpse you open twice is counted once.
+
 ## 0.31.0
 
 - When a kill moves a mob into or up your top 15, the list pops up beside the Kills & Loot panel and shows it climbing.
