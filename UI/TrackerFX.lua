@@ -39,7 +39,7 @@
 -- It all runs off one OnUpdate on a small frame that is shown only while an
 -- effect is playing, so an idle panel costs nothing per frame.
 
-local _, ns = ...
+local ADDON, ns = ...
 local L = ns.L
 
 local TrackerFX = ns.NewModule("TrackerFX")
@@ -104,6 +104,15 @@ local BURN_INNER = 6
 local EMBERS = 16
 TrackerFX.BURN_TIME = BURN_TIME
 
+-- The 1000th kill takes the screen for TAKEOVER seconds: a flash, the
+-- screen dimmed to DIM, gold rays turning behind the title, motes rising.
+local TAKEOVER = 5.2
+local DIM = 0.6
+local RAYS = 12
+local MOTES = 36
+local GLOW_ART = ([[Interface\AddOns\%s\Media\Frame\Glow]]):format(ADDON or "Blackthornes_Farmer")
+TrackerFX.TAKEOVER = TAKEOVER
+
 -- What the banner says when its whole title will not fit a narrow panel.
 local SHORT_TITLE = L["RATES UNLOCKED"]
 
@@ -132,7 +141,7 @@ local VOICE_QUALITY = 3
 -- for a goal reached (the owner picked both, 2026-10-12), and Whitemane's
 -- "Arise, my champion!" for a mob's 100th kill (2026-10-13). Each waits
 -- VOICE_GAP seconds before it can play again, so it stays a treat.
-TrackerFX.VOICE = { drop = 550785, goal = 558132, champion = 551838 }
+TrackerFX.VOICE = { drop = 550785, goal = 558132, champion = 551838, bane = 558795 }
 local VOICE_GAP = 180
 
 -- Each row's wash, and which float labels are in the air, kept here rather
@@ -1059,6 +1068,17 @@ end
 function TrackerFX:Unlocked(info)
     local level = TrackerFX.Level()
     if level == "off" then return end
+
+    -- The 1000th takes the whole screen, panel or no panel, and needs no
+    -- banner of its own on the panel.
+    if info.bane then
+        if level == "full" then self:Takeover(info) end
+        if ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown() then
+            self:Flare()
+            self:PulseUnlocked(info)
+        end
+        return
+    end
     if not (ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown()) then return end
 
     -- Subtle keeps the long gold pulse on the band and the flare round the
@@ -1292,6 +1312,175 @@ function TrackerFX:Burn()
             if p >= 1 then burn:Hide() end
         end,
         stop = function() burn:Hide() end })
+end
+
+--- "Witchwing Slayers", "Thieves", "Harpies": the plural the title
+--- needs, English only. Another language's client keeps the name.
+function TrackerFX.Plural(name)
+    if type(name) ~= "string" or name == "" then return "" end
+    if not (Util.EnglishClient and Util.EnglishClient()) then return name end
+    if name:find("[^aeiou]y$") then return name:sub(1, -2) .. "ies" end
+    if name:find("man$") then return name:sub(1, -4) .. "men" end
+    if name:find("fe$") then return name:sub(1, -3) .. "ves" end
+    if name:find("[^f]f$") then return name:sub(1, -2) .. "ves" end
+    if name:find("[sxz]$") or name:find("[cs]h$") then return name .. "es" end
+    return name .. "s"
+end
+
+local function Glow(parent, layer)
+    local texture = parent:CreateTexture(nil, layer or "ARTWORK")
+    texture:SetTexture(GLOW_ART)
+    pcall(texture.SetBlendMode, texture, "ADD")
+    return texture
+end
+
+--- The screen the 1000th kill takes over: its own frame over everything,
+--- taking no mouse, so play goes on under it.
+function TrackerFX:Stage()
+    if self.stage then return self.stage end
+
+    local stage = CreateFrame("Frame", nil, UIParent)
+    stage:SetAllPoints(UIParent)
+    pcall(stage.SetFrameStrata, stage, "FULLSCREEN_DIALOG")
+    stage:EnableMouse(false)
+
+    stage.dim = stage:CreateTexture(nil, "BACKGROUND")
+    stage.dim:SetAllPoints(stage)
+    stage.dim:SetColorTexture(0, 0, 0, 1)
+
+    stage.rays = {}
+    for index = 1, RAYS do
+        local ray = Glow(stage, "BORDER")
+        ray:SetSize(2600, 70)
+        ray:SetPoint("CENTER", stage, "CENTER", 0, 40)
+        ray:SetVertexColor(1, 0.75, 0.3)
+        ray.angle = (index - 1) / RAYS * math.pi
+        stage.rays[index] = ray
+    end
+
+    stage.motes = {}
+    for index = 1, MOTES do
+        local mote = Glow(stage, "ARTWORK")
+        mote:SetVertexColor(1, 0.86, 0.5)
+        stage.motes[index] = mote
+    end
+
+    local holder = CreateFrame("Frame", nil, stage)
+    holder:SetSize(1400, 260)
+    holder:SetPoint("CENTER", stage, "CENTER", 0, 40)
+    stage.holder = holder
+
+    local function Text(size, flags, r, g, b)
+        local label = holder:CreateFontString(nil, "OVERLAY")
+        pcall(label.SetFont, label, Theme.FONT, size, flags)
+        label:SetTextColor(r, g, b, 1)
+        label:SetJustifyH("CENTER")
+        return label
+    end
+
+    stage.top = Text(30, "OUTLINE", 1, 0.88, 0.6)
+    stage.top:SetPoint("BOTTOM", holder, "CENTER", 0, 44)
+    stage.big = Text(64, "THICKOUTLINE", 1, 0.8, 0.3)
+    stage.big:SetPoint("CENTER", holder, "CENTER", 0, 0)
+    stage.sub = Text(26, "OUTLINE", 1, 1, 1)
+    stage.sub:SetPoint("TOP", holder, "CENTER", 0, -46)
+
+    stage.shine = Glow(holder, "OVERLAY")
+    stage.shine:SetSize(160, 200)
+    stage.shine:SetVertexColor(1, 1, 0.9)
+
+    stage.flash = stage:CreateTexture(nil, "OVERLAY")
+    stage.flash:SetAllPoints(stage)
+    stage.flash:SetColorTexture(1, 0.94, 0.78, 1)
+    pcall(stage.flash.SetBlendMode, stage.flash, "ADD")
+
+    stage:SetScript("OnUpdate", function(_, elapsed)
+        local ok, err = pcall(TrackerFX.StepStage, TrackerFX, elapsed)
+        if not ok then
+            stage:Hide()
+            ns.Debug("bane takeover dropped:", tostring(err))
+        end
+    end)
+    stage:Hide()
+
+    self.stage = stage
+    return stage
+end
+
+--- The 1000th kill: `info` is the fanfare's, with `mob` and `kills`.
+function TrackerFX:Takeover(info)
+    local stage = self:Stage()
+    local mob = info.mob or ""
+
+    stage.top:SetText(L["BANE OF THE"])
+    stage.big:SetText(TrackerFX.Plural(mob):upper())
+    stage.sub:SetText(L.Format("%d kills", info.kills or 1000))
+
+    local okW, width = pcall(stage.GetWidth, stage)
+    local okH, height = pcall(stage.GetHeight, stage)
+    stage.width = okW and tonumber(width) or 1920
+    stage.height = okH and tonumber(height) or 1080
+    for _, mote in ipairs(stage.motes) do
+        mote.x = math.random() * stage.width
+        mote.y = math.random() * stage.height
+        mote.speed = 40 + math.random() * 90
+        mote.phase = math.random() * 6
+        local size = 6 + math.random(0, 6)
+        mote:SetSize(size, size)
+    end
+
+    stage.age = 0
+    stage:SetAlpha(1)
+    stage:Show()
+    self:StepStage(0)
+end
+
+local function Clamp(p) return math.max(0, math.min(1, p)) end
+
+function TrackerFX:StepStage(elapsed)
+    local stage = self.stage
+    if not stage then return end
+    stage.age = stage.age + (tonumber(elapsed) or 0)
+    local t = stage.age
+
+    if t >= TAKEOVER then
+        stage:Hide()
+        return
+    end
+
+    -- In over half a second, held, then out over the last second.
+    local fade = t > TAKEOVER - 1 and Clamp(TAKEOVER - t) or 1
+    local dim = EaseOut(Clamp(t / 0.5)) * fade
+
+    stage.flash:SetAlpha(0.8 * Clamp(1 - t / 0.35))
+    stage.dim:SetAlpha(DIM * dim)
+
+    for _, ray in ipairs(stage.rays) do
+        pcall(ray.SetRotation, ray, ray.angle + t * 0.25)
+        ray:SetAlpha(0.3 * dim)
+    end
+
+    for _, mote in ipairs(stage.motes) do
+        local y = (mote.y + t * mote.speed) % stage.height
+        mote:ClearAllPoints()
+        mote:SetPoint("CENTER", stage, "BOTTOMLEFT", mote.x, y)
+        mote:SetAlpha(dim * (0.5 + 0.5 * math.sin(t * 6 + mote.phase)))
+    end
+
+    -- The title lands from a little larger, then fades with the rest.
+    local land = EaseOut(Clamp((t - 0.2) / 0.6))
+    stage.holder:SetScale(1.35 - 0.35 * land)
+    stage.holder:SetAlpha(Clamp((t - 0.2) / 0.5) * (t > TAKEOVER - 1.2 and Clamp((TAKEOVER - 0.2 - t)) or 1))
+
+    -- A light crosses the letters once.
+    local sweep = (t - 1.1) / 0.9
+    if sweep >= 0 and sweep <= 1 then
+        stage.shine:ClearAllPoints()
+        stage.shine:SetPoint("CENTER", stage.holder, "LEFT", 1400 * sweep, 0)
+        stage.shine:SetAlpha(0.6 * math.sin(sweep * math.pi))
+    else
+        stage.shine:SetAlpha(0)
+    end
 end
 
 --- The mob's band beats gold for longer than a plain kill.

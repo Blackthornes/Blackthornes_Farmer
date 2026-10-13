@@ -133,6 +133,11 @@ local PLACE_ICON = [[Interface\Icons\INV_Misc_Map_01]]
 -- of it (2026-10-13): the game's party leader crown, sized to the text.
 local CROWN = [[|TInterface\GroupFrame\UI-Group-LeaderIcon:0|t]]
 TrackerUI.CROWN = CROWN
+-- From the 1000th kill the crown is tinted legendary orange and the name
+-- is drawn in it.
+local LEGENDARY_CROWN = [[|TInterface\GroupFrame\UI-Group-LeaderIcon:0:0:0:0:16:16:0:16:0:16:255:150:40|t]]
+TrackerUI.LEGENDARY_CROWN = LEGENDARY_CROWN
+local LEGENDARY = "ffff8000"
 
 --- A rate worth staying for should look different from one that is not.
 local function RateColor(chance)
@@ -1558,9 +1563,17 @@ function TrackerUI:CardLines(Add, card)
     local name = card.name
     local crowned = card.mob and ((tonumber(card.total) or 0) >= ns.Tracker.CHAMPION_KILLS
         or self.crownPreview == card.mob)
-    if crowned then name = name .. " " .. CROWN end
+    local bane = card.mob and ((tonumber(card.total) or 0) >= ns.Tracker.BANE_KILLS
+        or self.banePreview == card.mob)
+    if bane then
+        name = ("|c%s%s|r %s"):format(LEGENDARY, name, LEGENDARY_CROWN)
+        crowned = true
+    elseif crowned then
+        name = name .. " " .. CROWN
+    end
 
     local band = Add({ style = "mob", left = name, mob = card.mob, crowned = crowned or nil,
+        bane = bane or nil,
         openKey = card.key, openDefault = card.default, folded = not open,
         live = card.live and open or nil,
         right = tostring(card.total), badge = ("+%d"):format(card.session),

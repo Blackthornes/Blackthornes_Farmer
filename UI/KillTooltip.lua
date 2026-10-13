@@ -247,6 +247,10 @@ function KillTooltip:Decorate(tooltip, data)
 
     self.writing = true
     pcall(addLine, tooltip, text, r, g, b)
+    -- The 1000th kill's mark, in legendary orange.
+    if KillTooltip.Kills(name) >= ns.Tracker.BANE_KILLS then
+        pcall(addLine, tooltip, L["Bane of its kind"], 1, 0.5, 0)
+    end
     local show = Field(tooltip, "Show")
     if type(show) == "function" then pcall(show, tooltip) end
     self.writing = false

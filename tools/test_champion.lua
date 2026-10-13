@@ -86,4 +86,50 @@ suite.check("the line says champion",
 local help = ns.commandHelp and ns.commandHelp.celebrate or ""
 suite.check("its help keeps quiet", not tostring(help):lower():find("champion", 1, true))
 
+--------------------------------------------------------------------------------
+-- The 1000th: the screen taken over, Ragnaros, and legendary orange after.
+--------------------------------------------------------------------------------
+
+local voiced = {}
+_G.PlaySoundFile = function(id) voiced[#voiced + 1] = id return true end
+FX.saidAt = {}
+Tracker:Store()[MOB].kills = 998
+Loot(MOB)
+TUI:Refresh()
+suite.check("no takeover at 999", not (FX.stage and FX.stage:IsShown()))
+suite.check("nor orange yet", not BandOf(MOB).bane)
+Loot(MOB)
+TUI:Refresh()
+suite.check("the 1000th takes the screen", FX.stage and FX.stage:IsShown())
+suite.check("naming them all", FX.stage.big:GetText() == "WITCHWING SLAYERS", FX.stage.big:GetText())
+suite.check("with Ragnaros", voiced[#voiced] == FX.VOICE.bane, voiced[#voiced])
+suite.check("and the name in legendary orange", BandOf(MOB).bane
+    and BandOf(MOB).left:find("ffff8000", 1, true) ~= nil
+    and BandOf(MOB).left:find(TUI.LEGENDARY_CROWN, 1, true) ~= nil, BandOf(MOB).left)
+suite.check("the stage takes no mouse", not FX.stage:IsMouseEnabled())
+for _ = 1, 60 do FX:StepStage(0.1) end
+suite.check("and gives the screen back after a few seconds", not FX.stage:IsShown())
+Loot(MOB)
+TUI:Refresh()
+suite.check("the 1001st does not take it again", not FX.stage:IsShown())
+suite.check("the orange stays", BandOf(MOB).bane)
+
+suite.check("plurals", FX.Plural("Witchwing Slayer") == "Witchwing Slayers"
+    and FX.Plural("Defias Thief") == "Defias Thieves"
+    and FX.Plural("Bloodscalp Harpy") == "Bloodscalp Harpies"
+    and FX.Plural("Murloc Fisherman") == "Murloc Fishermen"
+    and FX.Plural("Kobold Miner") == "Kobold Miners", FX.Plural("Defias Thief"))
+
+-- The test word: the whole show, nothing changed.
+before = Snapshot()
+kills = Tracker:Store()[OTHER].kills
+ns.HandleSlash("celebrate bane")
+TUI:Refresh()
+suite.check("the bane test takes the screen", FX.stage:IsShown())
+suite.check("and colours the panel's first mob", TUI.banePreview ~= nil
+    and BandOf(TUI.banePreview) and BandOf(TUI.banePreview).bane, TUI.banePreview)
+suite.check("counting no kill", Tracker:Store()[OTHER].kills == kills)
+suite.check("saving nothing", before == nil or Snapshot() == before)
+suite.check("its help keeps quiet too", not tostring(help):lower():find("bane", 1, true))
+
 suite.done()
