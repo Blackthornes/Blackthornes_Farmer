@@ -367,7 +367,7 @@ local hang = Raw(strip, "_point")
 suite.check("the tabs hang from the window's bottom edge",
     hang and hang[1] == "TOPLEFT" and hang[2] == UI.frame and hang[3] == "BOTTOMLEFT")
 
-suite.check("What are you farming? is in gold, as every heading is",
+suite.check("Search for something to farm is in gold, as every heading is",
     Same(Raw(UI.emptyLine, "_color"), Color("accent")))
 
 ns.LootTableUI:Build()

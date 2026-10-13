@@ -15,34 +15,49 @@ the thanks line: `python tools/make_whatsnew.py` writes them into
 Core/WhatsNewText.lua for the in-game What's New window. Run it after
 writing a section; the release check refuses a tag while it is behind.
 
+The window shows new features only. Write a section's features first, then
+a "Fixes and changes:" line with the fixes and other changes under it: those
+go to Discord but stay out of the window, and a section of only fixes puts
+nothing in it. Say what each feature does in a few plain words, the way you'd
+tell a friend: no hype, no questions to the reader, no exclamation marks
+outside the thanks line, no dashes as punctuation, no "now you can". The
+tool prints a note for a shipped line that reads like an advert.
+
 ## 0.31.0
 
-- When a mob climbs into your top 15, a little card pops up and shows it moving up the list.
-- The Kills & Loot panel starts empty each time you log in again. All your data is still kept.
-- Fixed the ADDON BLOCKED error on your 20th catch.
+- When a kill moves a mob into or up your top 15, the list pops up beside the Kills & Loot panel and shows it climbing.
+
+Fixes and changes:
+
+- The Kills & Loot panel starts empty each time you log in, like it used to. All your data is kept, and Settings can keep the panel between sessions.
+- No more ADDON BLOCKED error on your 20th catch.
 
 Thanks Mimaco for the report!
 
 ## 0.30.1
 
-- The Kills & Loot panel scrolls smoothly now.
+Fixes and changes:
+
+- The Kills & Loot panel scrolls smoothly.
 - Gold per hour keeps counting after a reload.
 - Grey items are always priced at what a vendor pays.
 - Fixes for sharing, importing, map clicks and Deutsch clients.
 
 ## 0.30.0
 
-- A new What's New window shows what changed after each update.
-- Zones show their German names on a Deutsch client, and Forever's new zones are in.
-- Blue drops and finished goals now get a voice line.
-- Export your loot, kills, gathering and fishing as a spreadsheet.
-- The Kills & Loot and Goals panels got the new dark look.
+- Zones show their German names on a Deutsch client, and Forever's new zones are known.
+- Blue drops and finished goals play a voice line.
+- Export your loot, kills, gathering and fishing to a spreadsheet.
+
+Fixes and changes:
+
+- The Kills & Loot and Goals panels use the dark list look.
 
 Thanks manthieus for the spreadsheet idea!
 
 ## 0.29.0
 
-- No Tradeskills? Farmer can price your loot with TradeSkillMaster or Auctionator now.
+- Without Tradeskills, Farmer prices your loot from TradeSkillMaster or Auctionator.
 
 ## 0.28.0
 

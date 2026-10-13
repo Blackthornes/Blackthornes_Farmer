@@ -667,7 +667,7 @@ ns.RegisterCommand("data", L["where the data came from"], function()
     end
 
     ns.PrintRaw(Util.Colored("muted",
-        L["  Classic rows are leads, not gospel: Forever can differ."]))
+        L["  Classic rows are a guide only. Forever can differ."]))
 end)
 
 ns.RegisterCommand("list", L["list every item in the database"], function()

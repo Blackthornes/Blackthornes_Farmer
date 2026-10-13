@@ -1901,7 +1901,7 @@ function TrackerUI:LootLines(Add)
 
     if #items == 0 then
         Add({ style = "note", left = L["No loot yet this session."] })
-        Add({ style = "note", left = L["Everything you loot, fish or gather lands here."] })
+        Add({ style = "note", left = L["Everything you loot, fish or gather shows up here."] })
         return
     end
 

@@ -1765,7 +1765,7 @@ ns.RegisterCommand("harvest", L["what you have recorded as you played (check: wh
         if not ns.Harvest:Capabilities().usable then
             ns.Print(L["this client does not expose the loot API, so nothing is being recorded."])
         else
-            ns.Print(L["nothing recorded yet. Loot some corpses and check back."])
+            ns.Print(L["nothing recorded yet. Loot some corpses first."])
         end
         return
     end

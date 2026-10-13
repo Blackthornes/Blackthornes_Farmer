@@ -911,13 +911,13 @@ function SettingsUI:BuildSharingPage()
     controls.shareNames = names
 
     local _, syncButton = CommandRow(pages, "sharing", 1, L["Sync now"],
-        L["Asks your other account for anything new and sends what is new here. It runs by itself every ten minutes. Same as /farm share sync."], L["Sync"], "share sync")
+        L["Asks your other account for anything new and sends what is new here. It also runs every ten minutes. Same as /farm share sync."], L["Sync"], "share sync")
     controls.shareSync = syncButton
 
     pages:Section("sharing", 1, L["WITH ANOTHER PLAYER"])
 
     local _, giveButton = CommandRow(pages, "sharing", 1, L["Give my data"],
-        L["Makes your kills, drop rates, gathering and fishing into text you can select and copy, to send to another player any way you like (a big collection comes in parts). It holds counts only, no names, goals or settings. Same as /farm give."],
+        L["Makes your kills, drop rates, gathering and fishing into text you can select and copy, to send to another player (a big collection comes in parts). It holds counts only, no names, goals or settings. Same as /farm give."],
         L["Make text"], "give")
     controls.shareGive = giveButton
 
