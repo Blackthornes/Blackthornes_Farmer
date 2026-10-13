@@ -504,8 +504,8 @@ on|off|show]`. Tested in `tools/test_rankup.lua`. Not yet seen in game.
 
 The owner asked (2026-10-13) for a small can on the item worth the least
 when the bags are full, in Butler and Farmer both. `UI/Trash.lua`: while a
-bag window is open and the bags that take anything are down to
-`Trash.FREE` (3) free slots, a gold can (`Media/Trash/TrashCan.tga`, drawn
+bag window is open and the bags that take anything have no free slot
+(`Trash.FREE`, 0), a gold can (`Media/Trash/TrashCan.tga`, drawn
 by `tools/make_trash_art.py`, the same tool and art as Butler's; rerun it,
 never edit the TGA) sits on the top right of the stack worth least by
 `Value:UnitPrice` times the stack. Never a goal's item (`Goals:Find`), a

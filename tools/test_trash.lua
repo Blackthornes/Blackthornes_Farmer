@@ -109,7 +109,12 @@ bagWindow._shown = true
 Fire("BAG_UPDATE_DELAYED")
 suite.check("no can while the bags have room", not Showing())
 
-freeSlots = 2
+freeSlots = 1
+bagWindow._shown = true
+Fire("BAG_UPDATE_DELAYED")
+suite.check("one free slot is not full, no can", not Showing())
+
+freeSlots = 0
 bagWindow._shown = false
 Fire("BAG_UPDATE_DELAYED")
 suite.check("no can while no bag window is open", not Showing())

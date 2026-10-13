@@ -1079,8 +1079,8 @@ L["Throw away to make room"] = "Wegwerfen, um Platz zu schaffen"
 L["Worth %s in all, the least in your bags"] = "Insgesamt %s wert, das Wenigste in deinen Taschen"
 L["Not for a goal or a quest, and not gear you could wear."] =
     "Nicht für ein Ziel oder eine Quest und keine Ausrüstung, die du tragen könntest."
-L["Click to pick it up. Drop it outside your bags and the game asks before it is destroyed."] =
-    "Klick, um es aufzunehmen. Lass es außerhalb deiner Taschen fallen, dann fragt das Spiel nach, bevor es zerstört wird."
+L["This is the least valuable item in your bags."] =
+    "Das ist der wertloseste Gegenstand in deinen Taschen."
 L["Your cursor is already holding something. Put it down first."] =
     "Dein Mauszeiger hält schon etwas. Leg es zuerst ab."
 L["%s is on your cursor. Drop it outside your bags and the game will ask before it is destroyed, or click its bag slot to put it back."] =
