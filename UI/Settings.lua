@@ -814,7 +814,7 @@ function SettingsUI:BuildMapPage()
     -- asked 2026-10-13).
     local styleNames = { sparkles = L["Sparkles"], beacon = L["Beacon"] }
     local sparkleStyleRow = pages:Row("map", 1, L["Sparkle look"],
-        L["Sparkles twinkle round the spot. A beacon is a beam of gold light rising off it, easy to see from far off. Same as /farm sparkle beacon or /farm sparkle sparkles."])
+        L["A beacon is a beam of gold light rising off the spot, easy to see from far off. Sparkles twinkle round it instead. Same as /farm sparkle beacon or /farm sparkle sparkles."])
     controls.sparkleStyle = Widgets.CreateStepper(sparkleStyleRow, {
         min = 1, max = #ns.NodeSparkle.STYLES, step = 1, value = 1,
         format = function(index) return styleNames[ns.NodeSparkle.STYLES[index]] end,
@@ -858,6 +858,14 @@ function SettingsUI:BuildMapPage()
         ns.KillTooltip:SetEnabled(checked)
     end, true)
     controls.killTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- "3/8" beside a quest mob's name (the owner picked it 2026-10-13).
+    local questCountRow = pages:Row("map", 1, L["Quest count"],
+        L["Shows your count for a quest, like 3/8, in gold beside the name of a mob that quest still needs. Same as /farm questcount."])
+    controls.questMobCount = Widgets.CreateCheckbox(questCountRow, L["Show it"], function(checked)
+        ns.QuestMobs:SetEnabled(checked)
+    end, true)
+    controls.questMobCount:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- It needs an item's name, so the button says how to type it.
     local _, whereButton = CommandRow(pages, "map", 1, L["Places for an item"],
@@ -1109,9 +1117,10 @@ function SettingsUI:Refresh()
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
-    controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "beacon" and 2 or 1, true)
+    controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.killTooltip:SetChecked(db.killTooltip ~= false)
+    controls.questMobCount:SetChecked(db.questMobCount ~= false)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)

@@ -414,13 +414,14 @@ local DEFAULTS = {
     -- the owner asked 2026-10-13). Never rename it, or nodeSparkleCVars,
     -- the game settings it turned on, kept to put back.
     nodeSparkle = true,
-    nodeSparkleStyle = "sparkles",
+    nodeSparkleStyle = "beacon",
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,
     -- How many of a mob you have killed, on its tooltip (UI/KillTooltip.lua;
     -- the owner asked 2026-10-13). Never rename it.
     killTooltip = true,
+    questMobCount = true,
     -- Skinning spots and leather left out of what Farmer lists, drops only
     -- (DB:ShowsSkinning). The owner asked for it on by default.
     hideSkinning = true,
