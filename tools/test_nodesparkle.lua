@@ -91,7 +91,7 @@ suite.check("a secret guid costs nothing worse", Face("Copper Vein", env.Secret(
 NodeSparkle:SetEnabled(true)
 suite.check("turns on the interact target", cvars.SoftTargetInteract == "3", cvars.SoftTargetInteract)
 suite.check("and its nameplate", cvars.SoftTargetNameplateInteract == "1")
-suite.check("looks farther", cvars.SoftTargetInteractRange == "30")
+suite.check("looks farther", cvars.SoftTargetInteractRange == "100")
 suite.check("and all the way round", cvars.SoftTargetInteractArc == "2")
 suite.check("turns on the game's icon over objects", cvars.SoftTargetIconGameObject == "1" and cvars.SoftTargetIconInteract == "1")
 suite.check("keeping what they were", ns.db.nodeSparkleCVars.SoftTargetInteract == "1"
