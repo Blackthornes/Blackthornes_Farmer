@@ -59,7 +59,21 @@ suite.check("a herb the data knows sparkles", Face("Peacebloom", VEIN) == "shown
 suite.check("any case", Face("peacebloom", VEIN) == "shown")
 suite.check("a mob does not", Face("Kobold Vermin", "Creature-0-1-2-3-6-0000000001") == "nothing")
 suite.check("and the sparkle goes", not NodeSparkle.frame:IsShown())
-suite.check("a chest does not", Face("Battered Chest", VEIN) == "notnode")
+suite.check("a chest sparkles", Face("Battered Chest", VEIN) == "shown")
+suite.check("a fishing school sparkles", Face("Oily Blackmouth School", VEIN) == "shown")
+suite.check("your fishing bobber does", Face("Fishing Bobber", VEIN) == "shown")
+suite.check("a mailbox does not", Face("Mailbox", VEIN) == "notnode")
+_G.C_QuestLog = {
+    GetNumQuestLogEntries = function() return 2 end,
+    GetInfo = function(i) if i == 1 then return { isHeader = true } end return { questID = 77 } end,
+    GetQuestObjectives = function() return { { text = "Venture Co. Documents: 0/1", finished = false } } end,
+}
+NodeSparkle:QuestLogChanged()
+suite.check("an object a quest wants sparkles", Face("Venture Co. Documents", VEIN) == "shown")
+_G.C_QuestLog.GetQuestObjectives = function() return { { text = "Venture Co. Documents: 1/1", finished = true } } end
+NodeSparkle:QuestLogChanged()
+suite.check("not once that objective is done", Face("Venture Co. Documents", VEIN) == "notnode")
+_G.C_QuestLog = nil
 suite.check("facing nothing", Face(nil, nil) == "nothing")
 
 -- A node the player gathered that the data does not know (say, Forever's).
@@ -74,6 +88,10 @@ icon.GetObjectType = function() return "Frame" end
 plate.UnitFrame = { SoftTargetFrame = icon }
 NodeSparkle:HideSparkle()
 suite.check("round the game's icon", Face("Copper Vein", VEIN) == "shown" and NodeSparkle.Icon(plate) == icon)
+suite.check("down on the node, under the icon", NodeSparkle:Drop(plate) == NodeSparkle.DROP)
+plate.GetEffectiveScale = function() return 0.5 end
+suite.check("less far down for a plate drawn smaller", NodeSparkle:Drop(plate) < NodeSparkle.DROP)
+plate.GetEffectiveScale = nil
 plate.UnitFrame = nil
 suite.check("no icon to read, still a sparkle", NodeSparkle.Icon(plate) == nil)
 
@@ -136,6 +154,18 @@ box:GetScript("OnClick")(box)
 suite.check("unticking it turns it off", ns.db.nodeSparkle == false)
 box:GetScript("OnClick")(box)
 suite.check("and ticking it back on", ns.db.nodeSparkle == true)
+
+suite.check("sparkles unless a beacon is picked", NodeSparkle:Style() == "sparkles")
+Face("Copper Vein", VEIN)
+ns.HandleSlash("sparkle beacon")
+suite.check("/farm sparkle beacon picks the beacon", ns.db.nodeSparkleStyle == "beacon")
+suite.check("the beacon shows", NodeSparkle.beacon.holder:IsShown())
+suite.check("and the sparkles go", not NodeSparkle.sparks[1].holder:IsShown())
+ns.SettingsUI:Show()
+suite.check("the settings page shows the beacon", ns.SettingsUI.controls.sparkleStyle:GetValue() == 2)
+ns.SettingsUI.controls.sparkleStyle:SetValue(1)
+suite.check("stepping back to sparkles", ns.db.nodeSparkleStyle == "sparkles"
+    and NodeSparkle.sparks[1].holder:IsShown() and not NodeSparkle.beacon.holder:IsShown())
 
 ns.HandleSlash("sparkle check")
 suite.check("the check is kept for a report", ns.db.lastProbe and ns.db.lastProbe.check == "sparkle check")

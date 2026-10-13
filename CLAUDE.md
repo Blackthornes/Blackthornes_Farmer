@@ -530,7 +530,18 @@ the old values in `nodeSparkleCVars` (never rename either) and putting them
 back when unticked. A node is a herb or vein the data knows, the client's
 herb name, or a node the player gathered; a hidden source gets nothing.
 `/farm sparkle check` (`ns.KeepCheck`) reports what the client gives.
-Tested in `tools/test_nodesparkle.lua`. Not yet seen in game.
+Seen in game 2026-10-13 round the icon. Since then (the owner asked the
+same day): the sparkles sit `NodeSparkle.DROP` below the icon, on the
+node, scaled by the plate's size (`NodeSparkle:Drop`); fishing schools
+(`Fishing.IsSchool`), chests (`CHEST_PATTERNS`), the player's bobber
+(`BOBBERS`) and objects an unfinished quest objective names
+(`NodeSparkle:QuestText`, read again after `QUEST_LOG_UPDATE`, or
+`C_QuestLog.UnitIsRelatedToActiveQuest`) count too (`NodeSparkle:Kind`);
+and the look can be a beacon instead, a beam of light rising off the spot
+(`Media/Frame/Beacon.tga`, same tool; "Sparkle look" in Settings,
+`nodeSparkleStyle` "sparkles" or "beacon", account wide, never rename it;
+`/farm sparkle beacon|sparkles`). The row is "Sparkles in the world".
+Tested in `tools/test_nodesparkle.lua`.
 
 ## Loot inside dungeons
 

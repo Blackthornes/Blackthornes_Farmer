@@ -795,8 +795,8 @@ function SettingsUI:BuildMapPage()
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Sparkles on the node you face (the owner asked 2026-10-13).
-    local sparkleRow = pages:Row("map", 1, L["Sparkle on nodes"],
-        L["The game's own icon and gold sparkles over a herb or ore node near you, one at a time, as far off as the game allows (up to 100 yards). It turns on the game's interact target, its icon and its name over the node, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."])
+    local sparkleRow = pages:Row("map", 1, L["Sparkles in the world"],
+        L["Gold sparkles on the herb, ore node, fishing school, chest, quest object or fishing bobber near you, one at a time, as far off as the game allows (up to 100 yards), with the game's own icon above it. It turns on the game's interact target, its icon and its name, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."])
 
     controls.nodeSparkle = Widgets.CreateCheckbox(sparkleRow, L["Show them"], function(checked)
         ns.NodeSparkle:SetEnabled(checked)
@@ -809,6 +809,19 @@ function SettingsUI:BuildMapPage()
     end, { width = 60, height = 20 })
     sparkleCheck:SetPoint("TOPRIGHT", sparkleRow, "TOPRIGHT", 0, 0)
     controls.sparkleCheck = sparkleCheck
+
+    -- Sparkles or a beacon, a beam of light rising off the spot (the owner
+    -- asked 2026-10-13).
+    local styleNames = { sparkles = L["Sparkles"], beacon = L["Beacon"] }
+    local sparkleStyleRow = pages:Row("map", 1, L["Sparkle look"],
+        L["Sparkles twinkle round the spot. A beacon is a beam of gold light rising off it, easy to see from far off. Same as /farm sparkle beacon or /farm sparkle sparkles."])
+    controls.sparkleStyle = Widgets.CreateStepper(sparkleStyleRow, {
+        min = 1, max = #ns.NodeSparkle.STYLES, step = 1, value = 1,
+        format = function(index) return styleNames[ns.NodeSparkle.STYLES[index]] end,
+        onChange = function(index) ns.NodeSparkle:SetStyle(ns.NodeSparkle.STYLES[index]) end,
+    })
+    ns.SettingsPages.FitStepper(controls.sparkleStyle, styleNames)
+    controls.sparkleStyle:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The Grind tab (a player asked, the owner agreed 2026-10-09).
     pages:Section("map", 1, L["GRINDING"])
@@ -1096,6 +1109,7 @@ function SettingsUI:Refresh()
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
+    controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "beacon" and 2 or 1, true)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.killTooltip:SetChecked(db.killTooltip ~= false)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
