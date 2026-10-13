@@ -998,6 +998,30 @@ L["turn the kill count on mob tooltips on or off"] = "die Anzahl getöteter Gegn
 L["kill count on mob tooltips on."] = "Anzahl getöteter Gegner in Tooltips an."
 L["kill count on mob tooltips off."] = "Anzahl getöteter Gegner in Tooltips aus."
 
+-- ======================================================================
+-- About (UI/About.lua) and the note in What's New
+-- ======================================================================
+L["A few of you have asked if AI is used in the creation of my AddOns. It is."] = "Einige von euch haben gefragt, ob beim Erstellen meiner AddOns KI genutzt wird. Ja, das wird sie."
+L["I've spent 25 years developing software and working in IT, and I recommend developers today use it, but with care and intention. For me that means I decide what gets built, I set the rules the code has to follow, I review the code, and I test changes in game myself. AI helps me write the code, run the tests and track down bugs."] = "Ich entwickle seit 25 Jahren Software und arbeite in der IT, und ich empfehle Entwicklern heute, KI zu nutzen, aber mit Sorgfalt und Absicht. Für mich heißt das: Ich entscheide, was gebaut wird, ich lege die Regeln fest, an die sich der Code halten muss, ich prüfe den Code, und ich teste Änderungen selbst im Spiel. KI hilft mir, den Code zu schreiben, die Tests laufen zu lassen und Fehler aufzuspüren."
+L["Used well, it means more features, faster bug fixes and quicker turnaround on your requests. A lot of what's in these addons started as an idea or a bug report from a player."] = "Gut eingesetzt heißt das mehr Funktionen, schnellere Fehlerbehebungen und schnellere Umsetzung eurer Wünsche. Vieles in diesen Addons begann als Idee oder Fehlermeldung eines Spielers."
+L["If you have an idea or something isn't working, come find me on my Discord at discord.gg/f2geDecrw2. I read every comment and report."] = "Wenn du eine Idee hast oder etwas nicht funktioniert, schau auf meinem Discord unter discord.gg/f2geDecrw2 vorbei. Ich lese jeden Kommentar und jede Meldung."
+L["%s, version %s"] = "%s, Version %s"
+L["DISCORD"] = "DISCORD"
+L["Click the box, then press Ctrl+C to copy the link."] = "Klicke in das Feld und drücke Strg+C, um den Link zu kopieren."
+L["REPORT A BUG"] = "FEHLER MELDEN"
+L["Post it on my Discord with what you were doing when it happened. I read every comment and report."] = "Schreib es auf meinem Discord, mit dem, was du gerade gemacht hast, als es passiert ist. Ich lese jeden Kommentar und jede Meldung."
+L["THANK YOU"] = "DANKE"
+L["A lot of what's here started as a player's idea or bug report. Thank you to everyone who sent one in."] = "Vieles hier begann als Idee oder Fehlermeldung eines Spielers. Danke an alle, die eine geschickt haben."
+L["installed"] = "installiert"
+L["turned off"] = "ausgeschaltet"
+L["not installed"] = "nicht installiert"
+L["%s (%s)"] = "%s (%s)"
+L["How these addons are made"] = "Wie diese Addons entstehen"
+L["A note from Blackthornes."] = "Ein Hinweis von Blackthornes."
+L["ABOUT"] = "ÜBER"
+L["HOW THESE ADDONS ARE MADE"] = "WIE DIESE ADDONS ENTSTEHEN"
+L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Wie diese Addons entstehen, die Version, der Discord und die anderen Blackthornes-Addons"
+
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
 L["Sparkle on nodes"] = "Funkeln an Vorkommen"
 L["Gold sparkles over the herb or ore node you are facing, close enough to gather. It turns on the game's interact target and its name over the node, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."] = "Goldenes Funkeln über dem Kraut oder Erzvorkommen vor dir, nah genug zum Sammeln. Dafür schaltet es das Interaktionsziel des Spiels und dessen Namen über dem Vorkommen ein und stellt beides zurück, wenn du den Haken entfernst. Wie /farm sparkle. Prüfen zeigt, was das Spiel lesen lässt (/farm sparkle check)."
