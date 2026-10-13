@@ -3,10 +3,11 @@
     python -m pip install numpy soundfile
     python tools/make_sounds.py
 
-Both are built from sine waves here rather than taken from a sound library, so
+They are built from sine waves here rather than taken from a sound library, so
 they belong to this addon and can ship on CurseForge with it. The owner picked
 these two on 2026-09-26: rare-drop (a green-or-better item drops) and
-drop-rates-unlocked (a mob's 20th kill). Run it again only to change them;
+drop-rates-unlocked (a mob's 20th kill); rank-up (2026-10-13) when a mob climbs
+your top 15. Run it again only to change them;
 the game needs a full restart to pick up a changed file.
 """
 
@@ -93,3 +94,11 @@ for f in (523.25, 659.25, 783.99, 1046.5):
 for i, f in enumerate((2093.0, 2637.0, 3136.0, 4186.0)):
     place(buf, 0.35 * bell(f, 1.0, 0.3), 0.46 + i * 0.07)
 finish(reverb(buf, 0.4), "drop-rates-unlocked.ogg", -3)
+
+# Rank up (2026-10-13): a mob climbs your top 15. Two soft bell notes, E6 up
+# to B6, quieter than the others, since it can come every few kills.
+buf = np.zeros(int(SR * 0.9))
+soft = ((1, 1), (2.76, .35), (5.4, .18))
+place(buf, 0.7 * bell(1318.5, 0.8, 0.28, soft), 0.0)
+place(buf, bell(1975.5, 0.8, 0.28, soft), 0.09)
+finish(reverb(buf, 0.2), "rank-up.ogg", -9)

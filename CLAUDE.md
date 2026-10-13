@@ -413,6 +413,28 @@ not refuse) when this version's CHANGELOG.md or NEWS.md section says
 German without Deutsch. This rule is in every addon's notes; keep them
 the same.
 
+## The rank-up pop-up
+
+The owner asked (2026-10-13, after a mockup in
+`previews/farmer-rank-up/` in the project files) for a lift while farming:
+when a kill moves a mob up the measured board's top 15, or onto it, the top
+15 pops up beside the kills panel and shows the move, with a short sound,
+then fades. `Logic/RankUp.lua` keeps the order as it last stood (laid out a
+few mobs a frame after login, `RankUp.SLICE`; nothing saved): a kill only
+marks its mob (`RankUp:Killed`, from `Tracker:Record`), a second later
+(`SETTLE`) and never in a fight (it waits for `PLAYER_REGEN_ENABLED`)
+`RankUp:Compare` values again only mobs whose kill count moved, through
+`Rankings:Entry`, so the numbers are Rankings' own. One pop-up a look, for
+the mob that moved most. `UI/RankUp.lua` draws it: dark glass stripes by
+place, the rows sliding over them (`RankUpUI.Items`, `Step`), the climb or
+NEW chip, the glow, a hold of `HOLD` seconds while the mouse is away, then a
+fade; Window effects Subtle or Off show the new order at once. The sound is
+`Media/Sounds/rank-up.ogg` (`tools/make_sounds.py`), never on the 20th kill,
+whose fanfare plays instead. "Rank-up pop-up" (`rankUpPopup`) and "Rank-up
+sound" (`rankUpSound`), both on unless unticked, and `rankUpScale` (its size
+grip) are account wide; never rename them. `/farm rankup [on|off|sound
+on|off|show]`. Tested in `tools/test_rankup.lua`. Not yet seen in game.
+
 ## Loot inside dungeons
 
 Inside a dungeon the client hides the corpse's name and guid from addons,

@@ -91,6 +91,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm celebrate [on\|off]` | the fanfare when a mob reaches 20 kills, a fishing spot 20 casts or a node 20 gathers, and its rates unlock (on by default) |
 | `/farm effects [full\|subtle\|off]` | how much the addon moves: in the kill panel, glows, the value counting up and loot floating off the panel; in the windows, fading up as they open, results coming in row by row and bars growing (full by default; subtle drops the floats and the row-by-row; off stops it all) |
 | `/farm raresound [on\|off]` | a chime when something green or better drops (on by default) |
+| `/farm rankup [on\|off\|sound on\|sound off\|show]` | a pop-up when a kill moves a mob up your top 15 by worth per kill, or onto it, with a short chime (both on by default); `show` holds up the top 15 as it stands |
 | `/farm goal <item> <amount>` | set a gathering goal, e.g. `/farm goal Copper Ore 40`; on its own, lists your goals (`remove <item>`, `clear` for finished ones, `bank on\|off` to count your bank) |
 | `/farm where <item>` | the best places near you to farm it, nearest first |
 | `/farm arrow [on\|off]` | an arrow on screen that points to the nearest place to gather a goal (on with your first new goal, unless you have turned it off; `next` for the next place, `<goal>` to follow that goal, `check` for what the game lets it read, `tomtom` to use TomTom's arrow or not, `reset` puts it back) |
@@ -281,6 +282,17 @@ still needs, or that nothing they drop has a price yet. Hover a mob for what
 makes up its worth, click it for its loot
 table. `/farm rankings` (or `/farm rank`) opens it, and the window reopens on
 whichever tab you left it on.
+
+When a kill moves a mob up your top 15 on **Your kills**, or onto it, the top
+15 pops up beside the kills panel for a few seconds: the mob's row lifts out
+and slides up to its new place while the mobs it passes slide down, its worth
+counting up on the way, and it lands with its climb ("+3", or NEW for a mob
+new to the board) and a short chime. It waits for a fight to end, stays up
+while the mouse is over it, opens a mob's loot table on a click, and goes on
+a right-click or by itself. On a mob's 20th kill the fanfare plays instead of
+the chime. `/farm rankup off` stops it, `/farm rankup sound off` keeps it
+quiet, and `/farm rankup show` holds up the top 15 as it stands. All three
+are on Settings' Kill tally page.
 
 **Grind.** Where to level, or farm cloth, coin or leather: pick a level band
 (it follows your own level until you change it, up to 30), a creature type

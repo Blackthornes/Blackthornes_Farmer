@@ -6,3 +6,4 @@ license.
 
 - `rare-drop.ogg`: an item of green quality or better drops.
 - `drop-rates-unlocked.ogg`: a mob's 20th kill, or a fishing spot's 20th cast.
+- `rank-up.ogg`: a mob climbs your top 15, or joins it.

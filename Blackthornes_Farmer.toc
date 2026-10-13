@@ -44,6 +44,7 @@ Logic\Gathering.lua
 Logic\Respawn.lua
 Logic\Value.lua
 Logic\Rankings.lua
+Logic\RankUp.lua
 Logic\Goals.lua
 Logic\Session.lua
 Logic\Butler.lua
@@ -69,6 +70,7 @@ UI\TrackerFX.lua
 UI\Goals.lua
 UI\LootTable.lua
 UI\Rankings.lua
+UI\RankUp.lua
 UI\Grinding.lua
 UI\MapMarkers.lua
 UI\GrindPins.lua
