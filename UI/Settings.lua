@@ -859,6 +859,14 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.killTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- "3/8" beside a quest mob's name (the owner picked it 2026-10-13).
+    local questCountRow = pages:Row("map", 1, L["Quest count"],
+        L["Shows your count for a quest, like 3/8, in gold beside the name of a mob that quest still needs. Same as /farm questcount."])
+    controls.questMobCount = Widgets.CreateCheckbox(questCountRow, L["Show it"], function(checked)
+        ns.QuestMobs:SetEnabled(checked)
+    end, true)
+    controls.questMobCount:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- It needs an item's name, so the button says how to type it.
     local _, whereButton = CommandRow(pages, "map", 1, L["Places for an item"],
         L["The best places near you to farm an item, typed with its name: /farm where copper ore. The button says how."], L["How to"], "where")
@@ -1112,6 +1120,7 @@ function SettingsUI:Refresh()
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "beacon" and 2 or 1, true)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.killTooltip:SetChecked(db.killTooltip ~= false)
+    controls.questMobCount:SetChecked(db.questMobCount ~= false)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)

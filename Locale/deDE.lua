@@ -1053,3 +1053,10 @@ L["BANE OF ITS KIND"] = "GEISSEL SEINER ART"
 L["BANE OF THE"] = "GEISSEL DER"
 L["Bane of its kind"] = "Geißel seiner Art"
 L["%d kills"] = "%d Kills"
+
+-- Your quest count beside quest mobs (UI/QuestMobs.lua).
+L["Quest count"] = "Questfortschritt"
+L["Shows your count for a quest, like 3/8, in gold beside the name of a mob that quest still needs. Same as /farm questcount."] = "Zeigt deinen Stand für eine Quest, etwa 3/8, in Gold neben dem Namen eines Gegners, den die Quest noch braucht. Wie /farm questcount."
+L["your quest count beside quest mobs' names on or off"] = "deinen Questfortschritt neben den Namen von Questgegnern ein- oder ausschalten"
+L["quest count on quest mobs on."] = "Questfortschritt an Questgegnern an."
+L["quest count on quest mobs off."] = "Questfortschritt an Questgegnern aus."

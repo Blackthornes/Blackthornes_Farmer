@@ -543,6 +543,19 @@ and the look can be a beacon instead, a beam of light rising off the spot
 `/farm sparkle beacon|sparkles`). The row is "Sparkles in the world".
 Tested in `tools/test_nodesparkle.lua`.
 
+## Quest count over quest mobs
+
+The owner picked it (2026-10-13, from a mockup of three light touches):
+"3/8" in gold just right of the name over a mob an unfinished quest
+objective still needs. `UI/QuestMobs.lua` reads the count from the mob's
+tooltip lines (`C_TooltipInfo.GetUnit`), else from a quest log objective
+that names it, when a nameplate appears and again for every plate 0.3 s
+after quest log events. Its own frames on UIParent, anchored to the
+plate's name, never parented; only where the game lets addons read the
+plate (not in dungeons). "Quest count" on the Map & goals page
+(`questMobCount`, on unless unticked, never rename it) and `/farm
+questcount`. Tested in `tools/test_questmobs.lua`. Not yet seen in game.
+
 ## Loot inside dungeons
 
 Inside a dungeon the client hides the corpse's name and guid from addons,
