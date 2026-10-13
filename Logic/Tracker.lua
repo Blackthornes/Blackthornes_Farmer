@@ -176,6 +176,13 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
         mob.coinKills = mob.coinKills + 1
         self.sessionCopper = self.sessionCopper + (tonumber(copper) or 0)
 
+        -- The Stats tab's log (Logic/Stats.lua): the kill with the corpse's
+        -- own drops (skinning aside), and its coin.
+        if ns.Stats then
+            ns.Stats:Kill(mobName, not skinning and items or nil, quantities)
+            ns.Stats:Coin(copper)
+        end
+
         -- Area loot: the other corpses' part of the window is not this kill's
         -- drop, so the tally never sees it, but it is in your bags all the
         -- same, so the session's loot and coin take it.
@@ -214,6 +221,7 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
             -- win it, so the session's loot leaves it out.
             local yours = quantity - (tonumber(locked[name]) or 0)
             if yours > 0 then
+                if ns.Stats then ns.Stats:Loot("drops", name, yours) end
                 self.sessionLoot[name] = (self.sessionLoot[name] or 0) + yours
                 self.sessionFrom[name] = self.sessionFrom[name] or {}
                 self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + yours
@@ -262,12 +270,14 @@ function Tracker:AddHaul(mobName, haul)
     if type(haul) ~= "table" then return end
 
     for name, count in pairs(type(haul.items) == "table" and haul.items or {}) do
+        if ns.Stats then ns.Stats:Loot("drops", name, count) end
         self.sessionLoot[name] = (self.sessionLoot[name] or 0) + count
         self.sessionFrom[name] = self.sessionFrom[name] or {}
         self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + count
     end
 
     self.sessionCopper = self.sessionCopper + (tonumber(haul.copper) or 0)
+    if ns.Stats then ns.Stats:Coin(haul.copper) end
 end
 
 --- A corpse skinned without being opened first. What it gave is yours, so

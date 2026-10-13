@@ -422,6 +422,7 @@ function Gathering:Record(zone, location, node, kind, items, quantities, coords)
         item.id = item.id or ns.Tracker:LookOf(name).id
 
         self.sessionItems[name] = (self.sessionItems[name] or 0) + quantity
+        if ns.Stats then ns.Stats:Loot("gather", name, quantity) end
         if type(node) == "string" and node ~= "" then
             self.sessionFrom[name] = self.sessionFrom[name] or {}
             self.sessionFrom[name][node] = (self.sessionFrom[name][node] or 0) + quantity
