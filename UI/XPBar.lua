@@ -864,6 +864,16 @@ end
 local RAYS = 8
 local COINS = 10
 
+--- The cheer's words sit over the open world with nothing behind them, so
+--- they are outlined and shadowed, as the bar's own lines are.
+function XPBarUI.CheerLabel(parent, justify, colorKey)
+    local label = Theme.CreateLabel(parent, "normal", colorKey or "text", justify)
+    pcall(label.SetFont, label, Theme.FONT, Theme.sizes.normal, "OUTLINE")
+    pcall(label.SetShadowColor, label, 0, 0, 0, 1)
+    pcall(label.SetShadowOffset, label, 1, -1)
+    return label
+end
+
 function XPBarUI:BuildCheer()
     if self.cheer then return self.cheer end
     local cheer = CreateFrame("Frame", "BlackthornesFarmerLevelUp", UIParent)
@@ -871,10 +881,7 @@ function XPBarUI:BuildCheer()
     cheer:SetFrameStrata("FULLSCREEN_DIALOG")
     cheer:SetClampedToScreen(true)
     cheer:EnableMouse(true)
-    pcall(cheer.SetClipsChildren, cheer, true)
-    Theme.Fill(cheer, "window", 0.95)
-    Theme.Border(cheer, "accent")
-    Theme.Halo(cheer, 10, 0.3)
+    -- No panel behind it: the light and the words float over the world.
 
     cheer.rays = {}
     for index = 1, RAYS do
@@ -882,7 +889,7 @@ function XPBarUI:BuildCheer()
         ray:SetTexture(GLOW)
         pcall(ray.SetBlendMode, ray, "ADD")
         ray:SetVertexColor(1, 0.75, 0.3)
-        ray:SetSize(900, 40)
+        ray:SetSize(420, 40)
         ray:SetPoint("CENTER", cheer, "TOP", 0, -48)
         ray.angle = (index - 1) / RAYS * math.pi
         cheer.rays[index] = ray
@@ -902,7 +909,7 @@ function XPBarUI:BuildCheer()
     big:SetPoint("CENTER", cheer, "TOP", 0, -46)
     cheer.big = big
 
-    local sub = Theme.CreateLabel(cheer, "normal", "text", "CENTER")
+    local sub = XPBarUI.CheerLabel(cheer, "CENTER")
     sub:SetPoint("TOP", cheer, "TOP", 0, -76)
     sub:SetWidth(340)
     sub:SetWordWrap(true)
@@ -912,15 +919,9 @@ function XPBarUI:BuildCheer()
     for index = 1, 4 do
         local row = CreateFrame("Frame", nil, cheer)
         row:SetHeight(24)
-        row.stripe = Texture(row, "BACKGROUND", 0, Theme.Unpack(index % 2 == 1 and "glass" or "glassAlt", 0.92))
-        row.stripe:SetAllPoints(row)
-        row.line = Texture(row, "BORDER", 0, Theme.Unpack("border", 0.6))
-        row.line:SetPoint("BOTTOMLEFT")
-        row.line:SetPoint("BOTTOMRIGHT")
-        row.line:SetHeight(1)
-        row.left = Theme.CreateLabel(row, "normal", "text")
+        row.left = XPBarUI.CheerLabel(row)
         row.left:SetPoint("LEFT", row, "LEFT", 10, 0)
-        row.right = Theme.CreateLabel(row, "normal", "good", "RIGHT")
+        row.right = XPBarUI.CheerLabel(row, "RIGHT", "good")
         row.right:SetPoint("RIGHT", row, "RIGHT", -10, 0)
         row:Hide()
         cheer.rows[index] = row
@@ -934,11 +935,6 @@ function XPBarUI:BuildCheer()
         coin:Hide()
         cheer.coins[index] = coin
     end
-
-    local timer = Texture(cheer, "ARTWORK", 0, Theme.Unpack("accent", 0.7))
-    timer:SetPoint("BOTTOMLEFT", cheer, "BOTTOMLEFT", 2, 2)
-    timer:SetHeight(1)
-    cheer.timer = timer
 
     cheer:SetScript("OnMouseUp", function(_, button)
         if button == "RightButton" then XPBarUI:HideCheer() end
@@ -1137,7 +1133,6 @@ function XPBarUI:StepCheer(elapsed)
     if self.cheerFading or not self.cheerHold then return end
     local ok, over = pcall(function() return cheer:IsMouseOver() end)
     if not (ok and over) then self.cheerHold = self.cheerHold - elapsed end
-    cheer.timer:SetWidth(math.max(1, ((cheer:GetWidth() or 360) - 4) * math.max(0, self.cheerHold / self.HOLD)))
     if self.cheerHold <= 0 then self:FadeCheer() end
 end
 
