@@ -15,6 +15,9 @@
 -- for the mob that moved most.
 --
 -- Nothing here is saved: the order is worked out again each session.
+--
+-- The kills panel reads the same order for the rank on each card
+-- (`RankUp:RankOf`), so the order is kept up even with the pop-up off.
 
 local _, ns = ...
 local L = ns.L
@@ -127,7 +130,33 @@ function RankUp:Step(budget)
             hidden = building.hidden, list = Order(building.byMob) }
         self.building = nil
         if self.worker then self.worker:Hide() end
+        self:Changed()
     end
+end
+
+--- The order moved: the kills panel shows the ranks again.
+function RankUp:Changed()
+    local ui = ns.TrackerUI
+    if ui and ui.frame and ui.frame:IsShown() then
+        local ok, err = pcall(ui.Refresh, ui)
+        if not ok then ns.Debug("rank on the cards:", tostring(err)) end
+    end
+end
+
+--- Where `mobName` stands on your measured board, and how many are on it;
+--- nil when it is not on it or the order is not laid out yet.
+function RankUp:RankOf(mobName)
+    local snapshot = self.snapshot
+    if not snapshot then return nil end
+    if snapshot.hidden ~= (ns.DB.hiddenVersion or 0) then
+        -- What is hidden changed: the old places are wrong until it is laid
+        -- out again.
+        if not self.building then self:Build() end
+        return nil
+    end
+    local entry = snapshot.byMob[mobName]
+    if not entry then return nil end
+    return entry.rank, #snapshot.list
 end
 
 --- The order laid out at once: a look that comes before the frames are done
@@ -151,7 +180,7 @@ end
 
 --- Tracker:Record calls this on a new kill of `mobName`.
 function RankUp:Killed(mobName)
-    if not self.On() or type(mobName) ~= "string" then return end
+    if type(mobName) ~= "string" then return end
 
     self.killed = self.killed or {}
     self.killed[mobName] = true
@@ -221,6 +250,13 @@ function RankUp:Compare()
     local after = Order(byMob)
     self.snapshot = { byMob = byMob, kills = kills, hidden = snapshot.hidden, list = after }
 
+    -- The cards show ranks: redraw them only when a place moved.
+    local moved = #after ~= #snapshot.list
+    for _, entry in ipairs(after) do
+        if wasRank[entry.mob] ~= entry.rank then moved = true break end
+    end
+    if moved then self:Changed() end
+
     -- The kill that moved its mob furthest up into the top: one new to the
     -- board first, then the longest climb.
     local best
@@ -246,11 +282,6 @@ end
 --- Look at what the kills did, and show it. In a fight it waits for the
 --- fight to end.
 function RankUp:Look()
-    if not self.On() then
-        self.killed = {}
-        return
-    end
-
     if InCombat() then
         self.waiting = true
         return
@@ -258,7 +289,7 @@ function RankUp:Look()
     self.waiting = false
 
     local move = self:Compare()
-    if not move then return end
+    if not move or not self.On() then return end
 
     -- The kill that unlocks drop rates, the 100th and the 1000th have their
     -- fanfare: one sound at a time.

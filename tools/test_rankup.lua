@@ -269,6 +269,37 @@ suite.check("a click on a row opens its loot table", opened == RankUpUI.items[1]
 row:GetScript("OnClick")(row, "RightButton")
 suite.check("a right-click puts it away", not RankUpUI:IsShown())
 
+--------------------------------------------------------------------------------
+-- The rank on the kills panel's cards
+--------------------------------------------------------------------------------
+
+local function RankLine(mob)
+    local lines, inCard = ns.TrackerUI:Lines(), false
+    for _, line in ipairs(lines) do
+        if line.style == "mob" then inCard = line.mob == mob end
+        if inCard and line.style == "value" and line.left == "Rank" then return line.right end
+    end
+    return nil
+end
+
+Reset()
+Kill(Name(9), 300)
+local rank, ranked = RankUp:RankOf(Name(9))
+suite.check("a ranked mob's card shows its place", rank and RankLine(Name(9)) == ("#%d of %d"):format(rank, ranked),
+    tostring(RankLine(Name(9))))
+for _ = 1, 3 do Kill("Young Boar", 50) end
+suite.check("a mob short of 20 kills shows no rank", RankLine("Young Boar") == nil)
+
+-- With the pop-up off the order still follows the kills.
+ns.HandleSlash("rankup off")
+Kill(Name(16), 90000)
+suite.check("the rank follows a climb with the pop-up off", RankUp:RankOf(Name(16)) == 1
+    and not RankUpUI:IsShown(), RankUp:RankOf(Name(16)))
+suite.check("and the card says so", RankLine(Name(16)) and RankLine(Name(16)):find("^#1 of") ~= nil,
+    tostring(RankLine(Name(16))))
+ns.HandleSlash("rankup on")
+Settle()
+
 -- A reset clears the tallies; the order follows without a pop-up.
 Reset()
 Tracker:Reset()
