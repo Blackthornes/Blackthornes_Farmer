@@ -869,6 +869,9 @@ function UI:UpdateRow(row, data, index)
         row.heading:Show()
 
         -- "23/40" once it has a goal, so the list shows where you are.
+        -- The world drops result is no item to gather toward.
+        if data.item.worldDrops then return end
+
         local goal = ns.Goals and ns.Goals:Find(data.item.name)
         if goal and not goal.done then
             row.goal:SetText(("%d/%d"):format(goal.have or 0, goal.target or 0))
@@ -954,7 +957,7 @@ function UI:UpdateRow(row, data, index)
         end
 
         -- "<1%" for a rare drop, which "%d" showed as "0%".
-        row.drop:SetText(ns.Tracker.FormatChance(source.chance))
+        row.drop:SetText(source.dropText or ns.Tracker.FormatChance(source.chance))
         row.drop:SetTextColor(DropColor(source.chance))
         row.drop:Show()
     elseif source.requires and source.name then
@@ -986,8 +989,10 @@ function UI:OnRowClick(data, button)
             if data.type == "source" and data.source.name then
                 choices[1] = { kind = "source", name = data.source.name }
             end
-            choices[#choices + 1] = { kind = "item", name = data.item.name }
-            ns.HideMenu:Open(choices)
+            if not data.item.worldDrops then
+                choices[#choices + 1] = { kind = "item", name = data.item.name }
+            end
+            if #choices > 0 then ns.HideMenu:Open(choices) end
         end
         return
     end

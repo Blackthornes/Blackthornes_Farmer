@@ -53,9 +53,16 @@ function Search:Run(query)
     -- searched too ("leinen" finds Linen Cloth), read as they come in.
     ns.DB:LearnClientNames()
 
+    -- "greens" or "world drops" leads with the mobs best for green gear
+    -- (Logic/WorldDrops.lua), which move with every corpse.
+    local WorldDrops = ns.WorldDrops
+    local world = WorldDrops and WorldDrops:IsEnabled() and WorldDrops.IsQuery(query)
+    local harvest = world and (ns.Harvest and ns.Harvest.changes or 0) or nil
+
     local last = self.lastRun
     if last and last.query == query and last.changes == ns.DB.changes
-        and last.names == ns.DB.namesVersion and last.hidden == ns.DB.hiddenVersion then
+        and last.names == ns.DB.namesVersion and last.hidden == ns.DB.hiddenVersion
+        and last.harvest == harvest then
         self.hidHit = last.hidHit
         return last.results
     end
@@ -147,8 +154,11 @@ function Search:Run(query)
         return a.item.name < b.item.name
     end)
 
+    local worldItem = world and WorldDrops:SearchItem()
+    if worldItem then table.insert(results, 1, { item = worldItem, score = math.huge, why = "name" }) end
+
     self.lastRun = { query = query, changes = ns.DB.changes, names = ns.DB.namesVersion,
-        hidden = ns.DB.hiddenVersion, hidHit = self.hidHit, results = results }
+        hidden = ns.DB.hiddenVersion, harvest = harvest, hidHit = self.hidHit, results = results }
     return results
 end
 
@@ -160,6 +170,8 @@ function Search:SortedSources(item, sources)
     for index, source in ipairs(sources or item.sources) do
         sorted[index] = source
     end
+    -- The best mobs for green gear are already best first.
+    if item.keepOrder then return sorted end
 
     table.sort(sorted, function(a, b)
         local aLow, bLow = a.minLevel or 0, b.minLevel or 0
