@@ -103,6 +103,7 @@ local INSIDE = {
     ["Dire Maul"] = "Feralas", ["Scholomance"] = "Western Plaguelands",
     ["Stratholme"] = "Eastern Plaguelands",
 }
+Spots.INSIDE = INSIDE
 
 -- Each zone's map ID (Elwynn Forest 1429), for a client that names its
 -- zones in another language: there GetRealZoneText says "Wald von Elwynn",

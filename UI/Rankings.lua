@@ -36,12 +36,14 @@ local FILTERS = {
     { label = L["ALL"], group = false },
     { label = L["MEASURED"], group = "measured" },
     { label = L["ESTIMATES"], group = "estimate" },
+    { label = L["WORLD DROPS"], group = "worlddrops" },
 }
 
 local HEADINGS = {
     measured = { L["YOUR KILLS"], L["measured, coin included"] },
     estimate = { L["ESTIMATES"], L["database drop rates, no coin, so they run low"] },
     pending = { L["NOT RANKED YET"], L["keep killing"] },
+    worlddrops = { L["WORLD DROPS"], L["green gear and better, by mob level"] },
 }
 
 --- Column left edges and widths for the given widths.
@@ -386,6 +388,11 @@ function RankingsUI:UpdateRow(row, data, index)
         return
     end
 
+    if data.type == "band" or data.type == "rare" then
+        self:UpdateWorldRow(row, data, index)
+        return
+    end
+
     local entry = data.entry
     local texts = EntryTexts(data)
     local measured = entry.group == "measured"
@@ -452,6 +459,123 @@ function RankingsUI:UpdateRow(row, data, index)
     row.worth:SetText(texts.worth)
     row.worth:SetTextColor(Theme.Unpack(measured and "good" or "muted"))
     row.worth:Show()
+end
+
+-- The colours of green, blue, purple and orange gear.
+local QUALITY_RGB = {
+    [2] = { 0.12, 1.00, 0.00 },
+    [3] = { 0.00, 0.44, 0.87 },
+    [4] = { 0.64, 0.21, 0.93 },
+    [5] = { 1.00, 0.50, 0.00 },
+}
+RankingsUI.QUALITY_RGB = QUALITY_RGB
+
+--- A world drops row: a level band's chance of green gear, its bar against
+--- the best band, or one of the rarer colours over every measured kill.
+function RankingsUI:UpdateWorldRow(row, data, index)
+    row.mob:SetText(data.label)
+    row.mob:SetTextColor(Theme.Unpack("text"))
+    if data.quality then
+        local rgb = QUALITY_RGB[data.quality]
+        row.mob:SetTextColor(rgb[1], rgb[2], rgb[3])
+    end
+    row.mob:Show()
+
+    row.worth:SetText(data.text)
+    row.worth:SetTextColor(Theme.Unpack(data.share and "good" or "dim"))
+    row.worth:Show()
+
+    if data.share then
+        local rgb = QUALITY_RGB[2]
+        local width = math.max(1, BAR_WIDTH * data.share)
+        local fill = row.barFill
+        row.barTrack:Show()
+        fill:SetColorTexture(rgb[1], rgb[2], rgb[3], 0.9)
+        fill:Show()
+        if self.arriving and index then
+            ns.Motion:Run(row, "bar", 0.5, function(p) fill:SetWidth(math.max(1, width * p)) end,
+                { delay = 0.1 + math.min(index - 1, 14) * 0.025 })
+        else
+            ns.Motion:Stop(row, "bar")
+            fill:SetWidth(width)
+        end
+    end
+
+    -- The best band for greens glows gold, as the top of a board does.
+    if data.best then
+        local medal = MEDALS[1]
+        local ok = type(CreateColor) == "function" and pcall(row.podium.SetGradient, row.podium,
+            "HORIZONTAL", CreateColor(medal[1], medal[2], medal[3], 0.14),
+            CreateColor(medal[1], medal[2], medal[3], 0))
+        if not ok then row.podium:SetColorTexture(medal[1], medal[2], medal[3], 0.06) end
+        row.podium:Show()
+    end
+end
+
+--- The world drops rows (Logic/WorldDrops.lua): a heading, a row per level
+--- band, the rarer colours and what greens add to a kill where they drop
+--- most. Nil while it is turned off.
+function RankingsUI:WorldRows(onlyWithKills)
+    local WorldDrops = ns.WorldDrops
+    if not (WorldDrops and WorldDrops:IsEnabled()) then return nil end
+
+    local bands = WorldDrops:Bands()
+    -- Under ALL it shows once there is something to show.
+    if onlyWithKills and #bands == 0 then return nil end
+    local rows = {}
+    local total, measuredKills = 0, 0
+    local rare = { [3] = 0, [4] = 0, [5] = 0 }
+    local best, bestRate
+    for _, entry in ipairs(bands) do
+        total = total + entry.kills
+        if WorldDrops.Measured(entry) then
+            measuredKills = measuredKills + entry.kills
+            for quality in pairs(rare) do rare[quality] = rare[quality] + entry.drops[quality] end
+            local rate = entry.drops[2] / entry.kills
+            if rate > 0 and (not bestRate or rate > bestRate) then best, bestRate = entry, rate end
+        end
+    end
+
+    rows[1] = { type = "heading", group = "worlddrops",
+        note = L.Format("green gear, from %d kills", total) }
+
+    if #bands == 0 then
+        rows[2] = { type = "note", text = L["No kills with a level yet."] }
+        return rows
+    end
+
+    for _, entry in ipairs(bands) do
+        local text, share
+        if not WorldDrops.Measured(entry) then
+            text = L.Format("needs more kills (%d)", entry.kills)
+        elseif entry.drops[2] == 0 then
+            text = L.Format("none in %d", entry.kills)
+        else
+            text = L.Format("1 in %d", WorldDrops.OneIn(entry.kills, entry.drops[2]))
+            share = (entry.drops[2] / entry.kills) / bestRate
+        end
+        rows[#rows + 1] = { type = "band", label = WorldDrops.BandLabel(entry.band),
+            text = text, share = share, best = entry == best or nil, band = entry }
+    end
+
+    if measuredKills > 0 then
+        local names = { [3] = L["Blue"], [4] = L["Purple"], [5] = L["Orange"] }
+        for _, quality in ipairs({ 3, 4, 5 }) do
+            local n = rare[quality]
+            rows[#rows + 1] = { type = "rare", quality = quality, label = names[quality],
+                text = n > 0 and L.Format("%1$d in %2$d kills", n, measuredKills)
+                    or L.Format("none yet in %d kills", measuredKills) }
+        end
+    end
+
+    local worth = best and WorldDrops.GreenWorth(best)
+    if worth and worth > 0 then
+        local label = WorldDrops.BandLabel(best.band)
+        rows[#rows + 1] = { type = "note", text = L.Format("Greens add about %1$s a kill at %2$s.",
+            ns.Value.Coins(worth), label) }
+    end
+
+    return rows
 end
 
 --- A mob you have killed opens its loot table; one you have not says so.
@@ -527,6 +651,10 @@ function RankingsUI:Rows(board)
         Add("pending")
     end
 
+    if not wanted or wanted == "worlddrops" then
+        for _, row in ipairs(self:WorldRows(not wanted) or {}) do rows[#rows + 1] = row end
+    end
+
     return rows
 end
 
@@ -549,6 +677,9 @@ function RankingsUI:FitColumns(rows)
             if texts.rank then
                 widths.rank = math.max(widths.rank, Theme.TextWidth("small", texts.rank) + 8)
             end
+        elseif row.type == "band" or row.type == "rare" then
+            widths.mob = math.max(widths.mob, Theme.TextWidth("small", row.label) + 8)
+            widths.worth = math.max(widths.worth, Theme.TextWidth("small", row.text) + BAR_WIDTH + 12)
         end
     end
 

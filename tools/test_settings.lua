@@ -225,6 +225,7 @@ local buttons = {
     rankUpShow = "rankup show",
     xpBarTry = "xpbar try",
     xpBarReset = "xpbar reset",
+    worldDropsList = "worlddrops",
 }
 local wrong = {}
 for key, command in pairs(buttons) do

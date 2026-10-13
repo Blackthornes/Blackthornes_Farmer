@@ -774,6 +774,21 @@ function SettingsUI:BuildLootPage()
     end, true)
     controls.otherPriceAddons:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- How often green gear and better drops, by mob level (2026-10-13).
+    pages:Section("loot", 1, L["WORLD DROPS"])
+
+    local worldRow = pages:Row("loot", 1, L["World drops"],
+        L["The chance of green gear and better from a kill, by the mob's level, from the kills recorded: under the open mob in the kills panel, on a mob's tooltip, on Rankings and when you search for greens. Same as /farm worlddrops on or off."])
+    controls.worldDrops = Widgets.CreateCheckbox(worldRow, L["Show them"], function(checked)
+        ns.WorldDrops:SetEnabled(checked)
+    end, true)
+    controls.worldDrops:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local _, worldButton = CommandRow(pages, "loot", 1, L["Chances by level"],
+        L["Lists in chat the chance of green, blue, purple and orange gear for each band of mob levels. Same as /farm worlddrops."],
+        L["List them"], "worlddrops")
+    controls.worldDropsList = worldButton
+
     pages:Section("loot", 2, L["FISHING AND GATHERING"])
 
     local fishingRow = pages:Row("loot", 2, L["Fishing"],
@@ -1176,6 +1191,7 @@ function SettingsUI:Refresh()
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
+    controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)

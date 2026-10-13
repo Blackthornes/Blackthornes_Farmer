@@ -165,7 +165,7 @@ def published_casts(path):
     return int(match.group(1)) if match else 0
 
 
-def load_addon(lua, records, fishing=None, creature_types=None):
+def load_addon(lua, records, fishing=None, creature_types=None, tracker=None):
     """Load the addon against the stub client and hand it `records`.
 
     Restore also prunes coin entries that older versions of the addon wrote
@@ -194,6 +194,12 @@ def load_addon(lua, records, fishing=None, creature_types=None):
     # the same file for the Grind tab.
     if creature_types is not None:
         ns.db.creatureTypes = creature_types
+
+    # The kills panel keeps each item's loot link colour, which is how the
+    # world drop counts know green from blue (Logic/WorldDrops.lua). Only
+    # read; nothing from it is written but those counts.
+    if tracker is not None:
+        ns.db.tracker = tracker
 
     restored = ns.Harvest.Restore(ns.Harvest)
 
@@ -301,7 +307,8 @@ def main():
             "nothing harvested in that file yet.\n"
             "Loot some corpses, log out, and run this again.")
 
-    ns, restored = load_addon(lua, records, saved["fishing"], saved["creatureTypes"])
+    ns, restored = load_addon(lua, records, saved["fishing"], saved["creatureTypes"],
+                              saved["tracker"])
 
     if restored == 0:
         raise SystemExit("the saved harvest holds no usable records.")

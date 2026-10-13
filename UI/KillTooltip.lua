@@ -196,6 +196,19 @@ function KillTooltip:LineFor(name)
     return L.Format("Kills: %d", kills), false
 end
 
+--- "Greens: 1 in 25 kills" for a unit's level, or nil.
+function KillTooltip:GreensLine(unit)
+    local WorldDrops = ns.WorldDrops
+    if not (unit and WorldDrops and WorldDrops:IsEnabled()) or type(UnitLevel) ~= "function" then
+        return nil
+    end
+    local ok, value = pcall(UnitLevel, unit)
+    local level = ok and ns.Harvest.ReadableNumber(value) or nil
+    if not level or level < 1 then return nil end
+    local chance = WorldDrops:GreenText(level)
+    return chance and L.Format("Greens: %s", chance) or nil
+end
+
 --------------------------------------------------------------------------------
 -- Putting it on the tooltip
 --------------------------------------------------------------------------------
@@ -251,6 +264,10 @@ function KillTooltip:Decorate(tooltip, data)
     if KillTooltip.Kills(name) >= ns.Tracker.BANE_KILLS then
         pcall(addLine, tooltip, L["Bane of its kind"], 1, 0.5, 0)
     end
+    -- The chance of green gear from a mob of its level (Logic/WorldDrops.lua),
+    -- only once that level has kills enough behind it.
+    local greens = self:GreensLine(unit)
+    if greens then pcall(addLine, tooltip, greens, 0.12, 1, 0) end
     local show = Field(tooltip, "Show")
     if type(show) == "function" then pcall(show, tooltip) end
     self.writing = false

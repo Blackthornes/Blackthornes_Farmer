@@ -331,6 +331,7 @@ local FILES = {
     "Logic/Respawn.lua",
     "Logic/Value.lua",
     "Logic/Rankings.lua",
+    "Logic/WorldDrops.lua",
     "Logic/RankUp.lua",
     "Logic/Goals.lua",
     "Logic/Session.lua",
