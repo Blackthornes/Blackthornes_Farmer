@@ -223,6 +223,8 @@ local buttons = {
     hidden = "hidden",
     whatsnew = "whatsnew",
     rankUpShow = "rankup show",
+    xpBarTry = "xpbar try",
+    xpBarReset = "xpbar reset",
 }
 local wrong = {}
 for key, command in pairs(buttons) do

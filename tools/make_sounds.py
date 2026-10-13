@@ -7,7 +7,8 @@ They are built from sine waves here rather than taken from a sound library, so
 they belong to this addon and can ship on CurseForge with it. The owner picked
 these two on 2026-09-26: rare-drop (a green-or-better item drops) and
 drop-rates-unlocked (a mob's 20th kill); rank-up (2026-10-13) when a mob climbs
-your top 15. Run it again only to change them;
+your top 15; xp-tick (2026-10-13) for each tenth of a level on the XP bar.
+Run it again only to change them;
 the game needs a full restart to pick up a changed file.
 """
 
@@ -102,3 +103,11 @@ soft = ((1, 1), (2.76, .35), (5.4, .18))
 place(buf, 0.7 * bell(1318.5, 0.8, 0.28, soft), 0.0)
 place(buf, bell(1975.5, 0.8, 0.28, soft), 0.09)
 finish(reverb(buf, 0.2), "rank-up.ogg", -9)
+
+# XP tick (2026-10-13): a tenth of a level crossed on the XP bar. One soft
+# bell, G6 with a faint D7 over it, the quietest of all, since it comes
+# ten times a level.
+buf = np.zeros(int(SR * 0.8))
+place(buf, bell(1568.0, 0.7, 0.22, soft), 0.0)
+place(buf, 0.35 * bell(2349.3, 0.6, 0.2, soft), 0.03)
+finish(reverb(buf, 0.15), "xp-tick.ogg", -14)
