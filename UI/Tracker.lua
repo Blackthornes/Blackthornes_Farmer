@@ -1108,6 +1108,11 @@ function TrackerUI:CreateLine(parent, index)
     row.below = Theme.CreateLabel(row, "tiny", "good", "RIGHT")
     row.below:Hide()
 
+    -- The column names over the cards' counts ("columns" lines).
+    row.column = Theme.CreateLabel(row, "tiny", "muted", "RIGHT")
+    row.column:SetPoint("RIGHT", -PADDING, 0)
+    row.column:Hide()
+
     row.badge = Theme.CreateLabel(row, "tiny", "good", "RIGHT")
     row.badge:SetPoint("RIGHT", row.right, "LEFT", -2, 0)
     row.badge:SetWidth(BADGE_WIDTH)
@@ -1691,6 +1696,12 @@ function TrackerUI:MobLootValue(mob)
     return total
 end
 
+--- The small line over the cards that says what their two numbers are
+--- (2026-10-13): the green one is this session's, the white one all of them.
+function TrackerUI:ColumnLine(Add)
+    Add({ style = "columns", left = "", badge = L["This session"], column = L["All time"] })
+end
+
 --- This session's kills: the heading, then a card for each mob killed.
 function TrackerUI:KillLines(Add, mobs, first)
     local Tracker = ns.Tracker
@@ -1721,6 +1732,8 @@ function TrackerUI:KillLines(Add, mobs, first)
         if summary.mob ~= current then rest[#rest + 1] = summary end
     end
     for _, summary in ipairs(self:SortMobs(rest)) do ordered[#ordered + 1] = summary end
+
+    if #ordered > 0 then self:ColumnLine(Add) end
 
     for _, summary in ipairs(ordered) do
         local worth, details
@@ -1789,7 +1802,10 @@ function TrackerUI:FishingLines(Add, withTotal, first)
     -- No kills this session and this on top: the haul's total goes here.
     if withTotal then self:TotalLines(Add) end
 
-    for index, summary in ipairs(Fishing:SessionSpots()) do
+    local spots = Fishing:SessionSpots()
+    if #spots > 0 then self:ColumnLine(Add) end
+
+    for index, summary in ipairs(spots) do
         local items = {}
         for _, item in ipairs(summary.items) do
             items[#items + 1] = { name = item.name, n = item.casts, chance = item.chance }
@@ -1818,7 +1834,10 @@ function TrackerUI:GatheringLines(Add, withTotal, first)
 
     if withTotal then self:TotalLines(Add) end
 
-    for index, summary in ipairs(Gathering:SessionNodes()) do
+    local nodes = Gathering:SessionNodes()
+    if #nodes > 0 then self:ColumnLine(Add) end
+
+    for index, summary in ipairs(nodes) do
         local items = {}
         for _, item in ipairs(summary.items) do
             items[#items + 1] = { name = item.name, n = item.gathers, chance = item.chance }
@@ -1963,6 +1982,8 @@ function TrackerUI.Stripe(lines)
         local style = line.style
         if style == "heading" then
             line.glass, inCard, turn = "header", false, 0
+        elseif style == "columns" then
+            line.glass, inCard = "header", false
         elseif style == "mob" then
             inCard = not line.folded
             turn = turn + 1
@@ -2006,6 +2027,7 @@ local function ClearExtras(row)
     row.rank:Hide()
     row.live:Hide()
     row.edge:Hide()
+    if row.column then row.column:Hide() end
 end
 
 --- A quality-coloured item's colour as four numbers, text colour if none.
@@ -2174,6 +2196,18 @@ function TrackerUI:DrawLine(row, line)
         or ((line.style == "mob" or line.style == "loot") and "text" or "muted")))
     if line.live then row.right:SetTextColor(1, 1, 1, 1) end
     row.right:Show()
+
+    -- Column names: small and muted, the right one as wide as the counts
+    -- under it so both sit over their own column.
+    if line.style == "columns" then
+        local width = math.max(RIGHT_WIDTH, Theme.TextWidth("tiny", line.column) + 2)
+        row.right:SetWidth(width)
+        row.column:SetWidth(width)
+        row.column:SetText(line.column or "")
+        row.column:Show()
+        row.needs = math.max(row.needs, PADDING + width + 2 + badgeWidth + PADDING + 4)
+    end
+    row.badge:SetTextColor(Theme.Unpack(line.style == "columns" and "muted" or "good"))
 
     if line.badge then
         row.badge:SetText(line.badge)
