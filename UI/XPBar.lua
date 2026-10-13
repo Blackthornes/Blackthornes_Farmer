@@ -868,7 +868,7 @@ function XPBarUI:BuildCheer()
     if self.cheer then return self.cheer end
     local cheer = CreateFrame("Frame", "BlackthornesFarmerLevelUp", UIParent)
     cheer:SetSize(360, 150)
-    cheer:SetFrameStrata("HIGH")
+    cheer:SetFrameStrata("FULLSCREEN_DIALOG")
     cheer:SetClampedToScreen(true)
     cheer:EnableMouse(true)
     pcall(cheer.SetClipsChildren, cheer, true)
