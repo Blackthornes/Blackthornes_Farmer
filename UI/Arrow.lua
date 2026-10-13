@@ -29,15 +29,18 @@ ArrowUI.ARROW_GLOW = MEDIA .. [[Arrow\BladeGlow]]
 ArrowUI.GLOW = MEDIA .. [[Frame\Glow]]
 local CHECK = [[Interface\RaidFrame\ReadyCheck-Ready]]
 
-local RING = 100
+local RING = 84
 -- The dial lies back like a compass on the ground, so the blade cannot be
 -- turned flat: tools/make_arrow_art.py draws it at TURNS headings, COLUMNS
 -- a row, and the frame nearest the way to go is shown.
 local TURNS = 64
 local COLUMNS = 8
-local PLATE_HEIGHT = 22
-local MIN_WIDTH = 170
+local PLATE_HEIGHT = 20
+local MIN_WIDTH = 150
 local MAX_WIDTH = 320
+-- How often the arrow looks for Farmer's XP bar, and the room it leaves.
+local CLEAR_EVERY = 1
+local CLEAR_GAP = 4
 
 -- Redrawn this often, seconds: smooth to the eye, cheap to run.
 local STEP = 0.03
@@ -126,13 +129,13 @@ function ArrowUI:Build()
 
     local check = dial:CreateTexture(nil, "OVERLAY", nil, 3)
     check:SetTexture(CHECK)
-    check:SetSize(40, 40)
+    check:SetSize(34, 34)
     check:SetPoint("CENTER")
     check:Hide()
     self.check = check
 
     local mark = Theme.CreateLabel(dial, "title", "accentHi", "CENTER")
-    pcall(mark.SetFont, mark, Theme.FONT, 30, "OUTLINE")
+    pcall(mark.SetFont, mark, Theme.FONT, 26, "OUTLINE")
     mark:SetPoint("CENTER", 0, 1)
     mark:SetText("?")
     mark:Hide()
@@ -152,7 +155,7 @@ function ArrowUI:Build()
     -- goal's name: turns it off.
     if ns.Titanforged and ns.Titanforged.CloseGem then
         local close = ns.Titanforged.CloseGem(frame, function() ArrowUI:Close() end)
-        close:SetSize(20, 20)
+        close:SetSize(18, 18)
         close:ClearAllPoints()
         close:SetPoint("LEFT", plate, "RIGHT", 4, 0)
         close:SetFrameLevel(plate:GetFrameLevel() + 1)
@@ -165,7 +168,7 @@ function ArrowUI:Build()
 
     -- Under the ring: how far, where, and why.
     local distance = Theme.CreateLabel(frame, "large", "text", "CENTER")
-    pcall(distance.SetFont, distance, Theme.FONT, 15, "OUTLINE")
+    pcall(distance.SetFont, distance, Theme.FONT, 14, "OUTLINE")
     distance:SetPoint("TOP", dial, "BOTTOM", 0, -4)
     self.distance = distance
 
@@ -455,11 +458,22 @@ end
 function ArrowUI:Step(elapsed)
     self.since = (self.since or 0) + (elapsed or 0)
     if self.since < STEP then return end
+    local passed = self.since
     self.since = 0
 
     local ok, err = pcall(self.Draw, self)
     if not ok then ns.Debug("goal arrow:", tostring(err)) end
-    if self.frame:IsShown() then pcall(self.Breathe, self, Clock()) end
+    if self.frame:IsShown() then
+        pcall(self.Breathe, self, Clock())
+        -- Farmer's XP bar can come up after the arrow, so look again now
+        -- and then. Only a few rects are read, and nothing moves unless the
+        -- two overlap.
+        self.clearSince = (self.clearSince or 0) + passed
+        if self.clearSince >= CLEAR_EVERY and not self.dragging then
+            self.clearSince = 0
+            self:AvoidXPBar()
+        end
+    end
 end
 
 --- Show or hide it as the switch and the goals say. The driver keeps it
@@ -495,7 +509,8 @@ function ArrowUI:SavePosition()
 end
 
 --- With Farmer's XP bar showing, an arrow that overlaps it sits just below
---- it. The saved spot is never changed, so it goes back when the bar is gone.
+--- it: the whole arrow, the plate and its close gem too. The saved spot is
+--- never changed, so it goes back when the bar is gone.
 function ArrowUI:AvoidXPBar()
     local frame = self.frame
     if not frame then return end
@@ -504,12 +519,23 @@ function ArrowUI:AvoidXPBar()
         local bar = farmer and farmer.XPBarUI and farmer.XPBarUI.frame
         if not (bar and bar:IsShown()) then return end
         local barLeft, barBottom, barWidth, barHeight = bar:GetRect()
-        local left, bottom, width, height = frame:GetRect()
-        if not (barLeft and left) then return end
-        if left < barLeft + barWidth and left + width > barLeft
-            and bottom < barBottom + barHeight and bottom + height > barBottom then
+        if not barLeft then return end
+        local left, bottom, right, top
+        for _, part in ipairs({ frame, self.plate, self.close }) do
+            local x, y, w, h = part:GetRect()
+            if x and (part == frame or part:IsShown()) then
+                left = math.min(left or x, x)
+                bottom = math.min(bottom or y, y)
+                right = math.max(right or x + w, x + w)
+                top = math.max(top or y + h, y + h)
+            end
+        end
+        if not left then return end
+        local gap = CLEAR_GAP
+        if left < barLeft + barWidth + gap and right > barLeft - gap
+            and bottom < barBottom + barHeight + gap and top > barBottom - gap then
             frame:ClearAllPoints()
-            frame:SetPoint("TOP", bar, "BOTTOM", 0, -6)
+            frame:SetPoint("TOP", bar, "BOTTOM", 0, -(gap + 2))
         end
     end)
 end

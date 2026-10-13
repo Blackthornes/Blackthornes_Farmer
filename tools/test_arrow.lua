@@ -545,4 +545,41 @@ do
     suite.check("a click goes back to the goals", Arrow.grind == nil)
 end
 
+-- Farmer's XP bar comes up after the arrow: the arrow looks again and moves
+-- below it, plate and close gem too, and leaves a spot clear of it alone.
+do
+    local frame = ArrowUI:Build()
+    frame:Show()
+    local bar = CreateFrame("Frame")
+    bar.IsShown = function() return true end
+    bar.GetRect = function() return 600, 1000, 400, 40 end
+    local rects = {
+        [frame] = { 700, 860, 150, 130 },
+        [ArrowUI.plate] = { 700, 970, 150, 20 },
+    }
+    for part, rect in pairs(rects) do
+        part.GetRect = function() return rect[1], rect[2], rect[3], rect[4] end
+        part.IsShown = function() return true end
+    end
+    if ArrowUI.close then
+        ArrowUI.close.GetRect = function() return 854, 971, 18, 18 end
+        ArrowUI.close.IsShown = function() return true end
+    end
+    local saved = _G.BlackthornesFarmer.XPBarUI
+    _G.BlackthornesFarmer.XPBarUI = { frame = bar }
+    frame._point = { "CENTER", UIParent, "BOTTOMLEFT", 775, 925 }
+    ArrowUI.clearSince = 0
+    ArrowUI:Step(2)
+    ArrowUI:Step(2)
+    local point = frame._point
+    suite.check("a spot clear of the bar stays", point[1] == "CENTER" and point[4] == 775, point[1])
+
+    rects[ArrowUI.plate][2] = 1005
+    ArrowUI:Step(2)
+    point = frame._point
+    suite.check("only the plate on the bar is enough to move it below",
+        point[1] == "TOP" and point[2] == bar and point[3] == "BOTTOM", point[1])
+    _G.BlackthornesFarmer.XPBarUI = saved
+end
+
 suite.done()
