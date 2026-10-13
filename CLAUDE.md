@@ -592,7 +592,10 @@ node, scaled by the plate's size (`NodeSparkle:Drop`); fishing schools
 (`Fishing.IsSchool`), chests (`CHEST_PATTERNS`), the player's bobber
 (`BOBBERS`; a cast lands past the 15 yards the interact target reaches, so while the Fishing channel runs `NodeSparkle:RaiseReach` sets `SoftTargetInteractRange` to `FISHING_RANGE` and `LowerReach` puts it back when it ends, keeping the old value in `nodeSparkleFishingRange`, never rename it, put back at login if the game closed mid-cast) and objects an unfinished quest objective names
 (`NodeSparkle:QuestText`, read again after `QUEST_LOG_UPDATE`, or
-`C_QuestLog.UnitIsRelatedToActiveQuest`) count too (`NodeSparkle:Kind`);
+`C_QuestLog.UnitIsRelatedToActiveQuest`; a pickup named apart from its
+objective, such as Raw Windstone for Windstone Cluster, by an objective
+on its tooltip, `NodeSparkle:QuestInTooltip`, or by what it gave when
+looted before, `QuestByLoot`) count too (`NodeSparkle:Kind`);
 and the look can be a beacon instead, a beam of light rising off the spot
 (`Media/Frame/Beacon.tga`, same tool; "Sparkle look" in Settings,
 `nodeSparkleStyle` "sparkles" or "beacon", the beacon by default (the owner,
