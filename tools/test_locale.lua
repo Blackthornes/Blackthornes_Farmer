@@ -49,9 +49,10 @@ suite.check("a creature type shows in Deutsch, kept in English",
 suite.check("a word with no German line falls back to English",
     L["A string nobody translated"] == "A string nobody translated")
 suite.check("and formats in English", L.Format("%d kobolds, %s", 3, "grey") == "3 kobolds, grey")
+-- A line of the test's own, since no shipped one needs the order turned yet.
+L["%s after %d kills"] = "nach %2$d Kills: %1$s"
 suite.check("values named by place go where German puts them",
-    L.Format("unlocked drop rates for %s after %d kills! (Blackthornes Farmer)", "Kobold", 50)
-        == "hat nach 50 Kills die Dropchancen für Kobold freigeschaltet! (Blackthornes Farmer)")
+    L.Format("%s after %d kills", "Kobold", 50) == "nach 50 Kills: Kobold")
 suite.check("a %% stays a percent sign", L.Format("%d%%", 25) == "25%")
 
 -- Another language that has no file shows English.

@@ -92,11 +92,6 @@ suite.check("ticking it brings it back", ns.db.minimapHidden == false
 Toggle(controls.report)
 suite.check("chat report writes the /farm report setting", ns.db.trackerReport == true)
 
-suite.check("the share box starts ticked", controls.announce:GetChecked())
-Toggle(controls.announce)
-suite.check("unticking it keeps milestones to yourself", ns.db.trackerAnnounce == false)
-Toggle(controls.announce)
-suite.check("and ticking it shares them again", ns.db.trackerAnnounce == true)
 
 Toggle(controls.tracker)
 suite.check("the tally box writes the /farm tracker setting", ns.db.trackerHidden == true)
@@ -227,7 +222,6 @@ local buttons = {
     shareTake = "take",
     hidden = "hidden",
     whatsnew = "whatsnew",
-    announceNow = "announce now",
 }
 local wrong = {}
 for key, command in pairs(buttons) do
@@ -255,7 +249,7 @@ end
 -- above, a control that writes the same setting, or the window itself.
 local covered = {
     settings = true, minimap = true, tracker = true, report = true, celebrate = true,
-    announce = true, raresound = true, voice = true, effects = true, markers = true, tooltip = true,
+    raresound = true, voice = true, effects = true, markers = true, tooltip = true,
     arrow = true, grind = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
@@ -362,9 +356,6 @@ ns.HandleSlash("report off")
 suite.check("typing a command while it is open updates the page",
     controls.report:GetChecked() == false)
 
-ns.HandleSlash("announce off")
-suite.check("/farm announce updates the page", controls.announce:GetChecked() == false)
-ns.HandleSlash("announce on")
 
 ns.HandleSlash("minimap")
 suite.check("the minimap command too", controls.minimap:GetChecked() == false)

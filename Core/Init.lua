@@ -391,12 +391,14 @@ local DEFAULTS = {
 
     -- Kill tracker: whether its panel is kept out of the way, whether each
     -- kill is reported in chat (off unless asked for), whether unlocking a
-    -- mob's drop rates gets a fanfare (on) and an /emote others see (on), and
+    -- mob's drop rates gets a fanfare (on), and
     -- where it sits --
     -- down the left edge, under the player and party frames, by default.
     trackerHidden = false,
     trackerReport = false,
     trackerCelebrate = true,
+    -- No longer read: the milestone emote went (2026-10-13). Kept so a
+    -- saved value is never dropped.
     trackerAnnounce = true,
     trackerPoint = "TOPLEFT",
     trackerX = 8,
