@@ -15,6 +15,14 @@ the thanks line: `python tools/make_whatsnew.py` writes them into
 Core/WhatsNewText.lua for the in-game What's New window. Run it after
 writing a section; the release check refuses a tag while it is behind.
 
+## 0.31.0
+
+- When a mob climbs into your top 15, a little card pops up and shows it moving up the list.
+- The Kills & Loot panel starts empty each time you log in again. All your data is still kept.
+- Fixed the ADDON BLOCKED error on your 20th catch.
+
+Thanks Mimaco for the report!
+
 ## 0.30.1
 
 - The Kills & Loot panel scrolls smoothly now.

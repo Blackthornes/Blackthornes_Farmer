@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "0.31.0", lines = {
+        "When a mob climbs into your top 15, a little card pops up and shows it moving up the list.",
+        "The Kills & Loot panel starts empty each time you log in again. All your data is still kept.",
+        "Fixed the ADDON BLOCKED error on your 20th catch.",
+    } },
     { version = "0.30.1", lines = {
         "The Kills & Loot panel scrolls smoothly now.",
         "Gold per hour keeps counting after a reload.",
@@ -17,8 +22,5 @@ ns.WHATS_NEW = {
         "Blue drops and finished goals now get a voice line.",
         "Export your loot, kills, gathering and fishing as a spreadsheet.",
         "The Kills & Loot and Goals panels got the new dark look.",
-    } },
-    { version = "0.29.0", lines = {
-        "No Tradeskills? Farmer can price your loot with TradeSkillMaster or Auctionator now.",
     } },
 }
