@@ -794,6 +794,22 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Sparkles on the node you face (the owner asked 2026-10-13).
+    local sparkleRow = pages:Row("map", 1, L["Sparkle on nodes"],
+        L["Gold sparkles over the herb or ore node you are facing, close enough to gather. It turns on the game's interact target and its name over the node, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."])
+
+    controls.nodeSparkle = Widgets.CreateCheckbox(sparkleRow, L["Show them"], function(checked)
+        ns.NodeSparkle:SetEnabled(checked)
+    end, true)
+    controls.nodeSparkle:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- Through the command, so the result is kept for "read the probe".
+    local sparkleCheck = Widgets.CreateButton(sparkleRow, L["Check"], function()
+        ns.HandleSlash("sparkle check")
+    end, { width = 60, height = 20 })
+    sparkleCheck:SetPoint("TOPRIGHT", sparkleRow, "TOPRIGHT", 0, 0)
+    controls.sparkleCheck = sparkleCheck
+
     -- The Grind tab (a player asked, the owner agreed 2026-10-09).
     pages:Section("map", 1, L["GRINDING"])
 
@@ -1067,6 +1083,7 @@ function SettingsUI:Refresh()
     self.shareSummary:SetText(ns.Share:Describe())
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
+    controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.killTooltip:SetChecked(db.killTooltip ~= false)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)

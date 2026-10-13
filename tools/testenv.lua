@@ -372,6 +372,7 @@ local UI_FILES = {
     "UI/Arrow.lua",
     "UI/ItemTooltip.lua",
     "UI/KillTooltip.lua",
+    "UI/NodeSparkle.lua",
     "UI/HideMenu.lua",
     "UI/HiddenWindow.lua",
     "UI/Settings.lua",

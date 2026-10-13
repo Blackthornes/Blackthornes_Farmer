@@ -38,6 +38,11 @@ local REPORT_ITEMS = 4
 
 Tracker.MIN_KILLS = MIN_KILLS
 
+-- The kill that makes you a mob's champion (the owner, 2026-10-13): a
+-- fanfare with Whitemane's "Arise, my champion!".
+local CHAMPION_KILLS = 100
+Tracker.CHAMPION_KILLS = CHAMPION_KILLS
+
 -- This session only: kills per mob, and every corpse opened, by guid, with the
 -- items already counted from it.
 Tracker.session = {}
@@ -230,6 +235,8 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     -- The kill that unlocks drop rates gets a fanfare.
     if newKill and mob.kills == MIN_KILLS then
         self:Celebrate(mobName)
+    elseif newKill and mob.kills == CHAMPION_KILLS then
+        self:Champion(mobName)
     end
 
     -- A kill that moves the mob up your top 15 gets a pop-up, a second
@@ -899,18 +906,39 @@ function Tracker:Celebrate(mobName)
             key = "mob:" .. summary.mob })
 end
 
+--- The 100th kill of `mobName`: a line in your own chat, the banner and
+--- Whitemane's "Arise, my champion!" (the fanfare's sound with voice lines
+--- off). Follows /farm celebrate, like the 20th.
+function Tracker:Champion(mobName)
+    if ns.db.trackerCelebrate == false then return end
+
+    local summary = self:Summary(mobName)
+    if not summary then return end
+
+    self:Fanfare(L.Format("%d kills of %s! You're its champion now.", summary.kills,
+            Util.Colored("accent", summary.mob)),
+        { title = L["CHAMPION"], subject = L.Format("%s  |  %d kills", summary.mob, summary.kills),
+            key = "mob:" .. summary.mob },
+        "champion")
+end
+
 --- The fanfare itself: `line` in your own chat, the sound, and `banner`
---- ({ title, subject, key }) across the top of the panel. Fishing and
+--- ({ title, subject, key }) across the top of the panel, or `voice` (a
+--- TrackerFX.VOICE line) in place of the sound. Fishing and
 --- gathering use it too, when a spot's catch rates unlock at 20 casts or a
 --- node's gather rates at 20 gathers. The caller checks /farm celebrate.
 --- It never sends chat: Forever blocks that from a loot event.
-function Tracker:Fanfare(line, banner)
+function Tracker:Fanfare(line, banner, voice)
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
 
     if banner and ns.TrackerFX then
         local ok, err = pcall(ns.TrackerFX.Unlocked, ns.TrackerFX, banner)
         if not ok then ns.Debug("unlock banner:", tostring(err)) end
     end
+
+    -- A voice line, when one is given and voice lines are on, in place of
+    -- the sound.
+    if voice and ns.TrackerFX and ns.TrackerFX:Say(voice) then return end
 
     if Tracker.PlayFile(Tracker.SOUNDS.unlock) then return end
 

@@ -410,6 +410,10 @@ local DEFAULTS = {
     -- minimap. Each can be turned off on its own.
     markersWorld = true,
     markersMinimap = true,
+    -- Gold sparkles over the herb or ore node you face (UI/NodeSparkle.lua;
+    -- the owner asked 2026-10-13). Never rename it, or nodeSparkleCVars,
+    -- the game settings it turned on, kept to put back.
+    nodeSparkle = true,
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,
