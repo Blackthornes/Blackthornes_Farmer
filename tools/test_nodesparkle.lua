@@ -14,7 +14,8 @@ local ns = env.Load({ ui = true })
 local NodeSparkle = ns.NodeSparkle
 
 -- The game's settings.
-local cvars = { SoftTargetInteract = "1", SoftTargetNameplateInteract = "0", SoftTargetInteractRange = "10", SoftTargetInteractArc = "0" }
+local cvars = { SoftTargetInteract = "1", SoftTargetNameplateInteract = "0", SoftTargetInteractRange = "10", SoftTargetInteractArc = "0",
+    SoftTargetIconGameObject = "0", SoftTargetIconInteract = "0" }
 local sets = 0
 _G.C_CVar = {
     GetCVar = function(name) return cvars[name] end,
@@ -67,6 +68,15 @@ ns.db.gathering.nodes = ns.db.gathering.nodes or {}
 ns.db.gathering.nodes["Elwynn Forest||Silberblatt"] = { node = "Silberblatt", kind = "herb", gathers = 3, items = {} }
 suite.check("a node you gathered sparkles, in the client's language", Face("Silberblatt", VEIN) == "shown")
 
+-- With the game's icon on the nameplate, the sparkles gather round it.
+local icon = CreateFrame("Frame")
+icon.GetObjectType = function() return "Frame" end
+plate.UnitFrame = { SoftTargetFrame = icon }
+NodeSparkle:HideSparkle()
+suite.check("round the game's icon", Face("Copper Vein", VEIN) == "shown" and NodeSparkle.Icon(plate) == icon)
+plate.UnitFrame = nil
+suite.check("no icon to read, still a sparkle", NodeSparkle.Icon(plate) == nil)
+
 plateShown = false
 suite.check("no nameplate, no sparkle", Face("Copper Vein", VEIN) == "noplate")
 plateShown = true
@@ -83,6 +93,7 @@ suite.check("turns on the interact target", cvars.SoftTargetInteract == "3", cva
 suite.check("and its nameplate", cvars.SoftTargetNameplateInteract == "1")
 suite.check("looks farther", cvars.SoftTargetInteractRange == "30")
 suite.check("and all the way round", cvars.SoftTargetInteractArc == "2")
+suite.check("turns on the game's icon over objects", cvars.SoftTargetIconGameObject == "1" and cvars.SoftTargetIconInteract == "1")
 suite.check("keeping what they were", ns.db.nodeSparkleCVars.SoftTargetInteract == "1"
     and ns.db.nodeSparkleCVars.SoftTargetNameplateInteract == "0")
 
@@ -92,7 +103,8 @@ suite.check("nothing set twice", sets == before)
 
 NodeSparkle:SetEnabled(false)
 suite.check("off puts them back", cvars.SoftTargetInteract == "1" and cvars.SoftTargetNameplateInteract == "0"
-    and cvars.SoftTargetInteractRange == "10" and cvars.SoftTargetInteractArc == "0")
+    and cvars.SoftTargetInteractRange == "10" and cvars.SoftTargetInteractArc == "0"
+    and cvars.SoftTargetIconGameObject == "0" and cvars.SoftTargetIconInteract == "0")
 suite.check("and forgets them", next(ns.db.nodeSparkleCVars) == nil)
 suite.check("off shows nothing", Face("Copper Vein", VEIN) == "off")
 

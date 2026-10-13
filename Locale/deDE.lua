@@ -1036,7 +1036,7 @@ L["How these addons are made, the version, the Discord and the other Blackthorne
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
 L["Sparkle on nodes"] = "Funkeln an Vorkommen"
-L["Gold sparkles over a herb or ore node near you, one at a time, up to about 30 yards away. It turns on the game's interact target and its name over the node, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."] = "Goldenes Funkeln über einem Kraut oder Erzvorkommen in deiner Nähe, eins nach dem anderen, bis etwa 30 Meter weit. Dafür schaltet es das Interaktionsziel des Spiels und dessen Namen über dem Vorkommen ein und stellt beides zurück, wenn du den Haken entfernst. Wie /farm sparkle. Prüfen zeigt, was das Spiel lesen lässt (/farm sparkle check)."
+L["The game's own icon and gold sparkles over a herb or ore node near you, one at a time, up to about 30 yards away. It turns on the game's interact target, its icon and its name over the node, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."] = "Das Symbol des Spiels und goldenes Funkeln über einem Kraut oder Erzvorkommen in deiner Nähe, eins nach dem anderen, bis etwa 30 Meter weit. Dafür schaltet es das Interaktionsziel des Spiels, sein Symbol und seinen Namen über dem Vorkommen ein und stellt alles zurück, wenn du den Haken entfernst. Wie /farm sparkle. Prüfen zeigt, was das Spiel lesen lässt (/farm sparkle check)."
 L["sparkles on the herb or ore node you face on or off (check)"] = "Funkeln am Kraut oder Erzvorkommen vor dir ein- oder ausschalten (check)"
 L["sparkles on nodes on."] = "Funkeln an Vorkommen an."
 L["sparkles on nodes off."] = "Funkeln an Vorkommen aus."

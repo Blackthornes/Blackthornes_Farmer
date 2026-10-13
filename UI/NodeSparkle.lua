@@ -8,6 +8,10 @@
 -- nameplate is a frame that follows the node in the world, so a few
 -- sparkles anchored above it stay on the node as you move.
 --
+-- The game's own icon over the object (SoftTargetIconGameObject,
+-- SoftTargetIconInteract) is turned on with them; the sparkles gather round
+-- it when the nameplate lets us read where it is.
+--
 -- So, while "Sparkle on nodes" is ticked (`nodeSparkle`, on unless
 -- unticked; never rename it), Farmer turns on, out of combat, the two game
 -- settings that make that nameplate (SoftTargetInteract to "always",
@@ -44,6 +48,11 @@ NodeSparkle.CVARS = {
     -- the way round you, 1 only in front (the owner asked 2026-10-13).
     { name = "SoftTargetInteractRange", value = "30", atLeast = 30 },
     { name = "SoftTargetInteractArc", value = "2", atLeast = 2 },
+    -- The game's own icon over the object you face (the owner picked it
+    -- 2026-10-13, once the probe showed Forever gave no nameplate without
+    -- it). A client without one of these simply skips it.
+    { name = "SoftTargetIconGameObject", value = "1", atLeast = 1 },
+    { name = "SoftTargetIconInteract", value = "1", atLeast = 1 },
 }
 
 -- Where each sparkle sits round the node, in pixels from the anchor, how
@@ -60,6 +69,8 @@ NodeSparkle.SPARKS = {
 NodeSparkle.TWINKLE = 0.8          -- seconds to light up, and again to fade
 NodeSparkle.GOLD = { 1.0, 0.84, 0.36 }
 NodeSparkle.GLOW = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Glow"
+-- A four-pointed star, drawn by tools/make_sparkle_art.py.
+NodeSparkle.STAR = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Sparkle"
 
 local function Field(object, key)
     if type(object) ~= "table" then return nil end
@@ -287,7 +298,7 @@ local function Twinkle(texture, delay)
     return made and group or nil
 end
 
---- One sparkle: a soft glow with a thin cross of light through it.
+--- One sparkle: a soft glow behind a four-pointed star.
 local function MakeSpark(parent, spec)
     local holder = CreateFrame("Frame", nil, parent)
     holder:SetSize(spec.size * 2, spec.size * 2)
@@ -295,13 +306,12 @@ local function MakeSpark(parent, spec)
 
     local r, g, b = NodeSparkle.GOLD[1], NodeSparkle.GOLD[2], NodeSparkle.GOLD[3]
     local pieces = {
-        { w = spec.size, h = spec.size, a = 0.55 },
-        { w = spec.size * 2, h = math.max(2, spec.size / 6), a = 1 },
-        { w = math.max(2, spec.size / 6), h = spec.size * 2, a = 1 },
+        { file = NodeSparkle.GLOW, w = spec.size, h = spec.size, a = 0.45 },
+        { file = NodeSparkle.STAR, w = spec.size * 2, h = spec.size * 2, a = 1 },
     }
     for _, piece in ipairs(pieces) do
         local texture = holder:CreateTexture(nil, "OVERLAY")
-        texture:SetTexture(NodeSparkle.GLOW)
+        texture:SetTexture(piece.file)
         texture:SetSize(piece.w, piece.h)
         texture:SetPoint("CENTER")
         pcall(texture.SetBlendMode, texture, "ADD")
@@ -332,12 +342,28 @@ local function Moving()
     return level ~= "off"
 end
 
+--- The game's icon on the nameplate, when it has one we can read; the
+--- sparkles gather round it. Read only: nothing is written on it.
+function NodeSparkle.Icon(plate)
+    local icon = Field(Field(plate, "UnitFrame"), "SoftTargetFrame")
+    if type(icon) ~= "table" then return nil end
+    local ok, kind = pcall(function() return icon:GetObjectType() end)
+    if ok and type(kind) == "string" then return icon end
+    return nil
+end
+
 function NodeSparkle:ShowSparkle(plate, guid)
     local frame = self:Build()
     if self.shownOn ~= plate then
         frame:ClearAllPoints()
-        -- Just above the node, under the name the game writes there.
-        frame:SetPoint("BOTTOM", plate, "BOTTOM", 0, -10)
+        local icon = self.Icon(plate)
+        if icon then
+            -- Round the game's icon.
+            frame:SetPoint("CENTER", icon, "CENTER", 0, 0)
+        else
+            -- Just above the node, under the name the game writes there.
+            frame:SetPoint("BOTTOM", plate, "BOTTOM", 0, -10)
+        end
     end
     self.shownOn, self.shownGuid = plate, guid
 
@@ -440,7 +466,14 @@ function NodeSparkle:Check()
     local kind = type(guid) == "string" and guid:match("^(%a+)%-") or nil
     ns.PrintRaw(("  facing: %s (%s)"):format(tostring(name), tostring(kind or (guid and "?" or "nothing"))))
     ns.PrintRaw(("  a node Farmer knows: %s"):format(name and (self:IsNode(name) and "yes" or "no") or "-"))
-    ns.PrintRaw(("  nameplate for it: %s"):format(object and (self:Plate(guid) and "yes" or "no") or "-"))
+    local plate = object and self:Plate(guid) or nil
+    ns.PrintRaw(("  nameplate for it: %s"):format(object and (plate and "yes" or "no") or "-"))
+    ns.PrintRaw(("  game icon on it: %s"):format(plate and (self.Icon(plate) and "yes" or "no") or "-"))
+    local all = Field(_G.C_NamePlate, "GetNamePlates")
+    if type(all) == "function" then
+        local ok, list = pcall(all)
+        ns.PrintRaw(("  nameplates showing: %s"):format(ok and type(list) == "table" and tostring(#list) or "?"))
+    end
     ns.PrintRaw(("  sparkle: %s"):format(self:SafeRefresh()))
 end
 
