@@ -295,11 +295,20 @@ suite.check("the goal on its plate", ArrowUI.title:GetText() == "Copper Ore  12 
 suite.check("and never the words Goal arrow", ArrowUI.title:GetText() ~= "Goal arrow")
 suite.check("the distance under it", ArrowUI.distance:GetText() == "150 yd", ArrowUI.distance:GetText())
 
-local turned
-ArrowUI.arrow.SetRotation = function(_, value) turned = value end
-ArrowUI.shownTurn = nil
+local coords
+ArrowUI.arrow.SetTexCoord = function(_, ...) coords = { ... } end
+ArrowUI.shownTurn, ArrowUI.shownFrame = nil, nil
 ArrowUI:Draw(true)
-suite.check("the arrow is turned", near(turned, -math.pi / 2), turned)
+suite.check("the arrow is turned", near(ArrowUI.shownTurn, -math.pi / 2), ArrowUI.shownTurn)
+-- A quarter turn right is frame 48 of 64: row 6, column 0 of the sheet.
+suite.check("the blade shows the frame for that turn", ArrowUI.shownFrame == 48, ArrowUI.shownFrame)
+suite.check("cut from its place on the sheet", coords and near(coords[1], 0) and near(coords[2], 1 / 8)
+    and near(coords[3], 6 / 8) and near(coords[4], 7 / 8))
+suite.check("frames wrap round both ways", ArrowUI.FrameFor(0) == 0 and ArrowUI.FrameFor(2 * math.pi) == 0
+    and ArrowUI.FrameFor(-2 * math.pi / 64) == 63 and ArrowUI.FrameFor(math.pi) == 32)
+coords = nil
+ArrowUI:Turn(ArrowUI.shownTurn)
+suite.check("the same frame touches nothing", coords == nil)
 
 suite.check("wide enough for its words",
     frame:GetWidth() >= ns.Theme.TextWidth("small", ArrowUI.place:GetText()))

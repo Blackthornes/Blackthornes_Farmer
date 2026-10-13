@@ -24,12 +24,17 @@ local Theme = ns.Theme
 
 local MEDIA = ([[Interface\AddOns\%s\Media\]]):format(ADDON)
 ArrowUI.RING = MEDIA .. [[Arrow\Ring]]
-ArrowUI.ARROW = MEDIA .. [[Arrow\Arrow]]
+ArrowUI.ARROW = MEDIA .. [[Arrow\Blade]]
+ArrowUI.ARROW_GLOW = MEDIA .. [[Arrow\BladeGlow]]
 ArrowUI.GLOW = MEDIA .. [[Frame\Glow]]
 local CHECK = [[Interface\RaidFrame\ReadyCheck-Ready]]
 
-local RING = 92
-local ARROW = 50
+local RING = 100
+-- The dial lies back like a compass on the ground, so the blade cannot be
+-- turned flat: tools/make_arrow_art.py draws it at TURNS headings, COLUMNS
+-- a row, and the frame nearest the way to go is shown.
+local TURNS = 64
+local COLUMNS = 8
 local PLATE_HEIGHT = 22
 local MIN_WIDTH = 170
 local MAX_WIDTH = 320
@@ -54,6 +59,21 @@ local TINTS = {
 --------------------------------------------------------------------------------
 -- Building
 --------------------------------------------------------------------------------
+
+--- The frame of the art drawn nearest `turn` (radians, anticlockwise from
+--- straight ahead): 0 to TURNS - 1.
+function ArrowUI.FrameFor(turn)
+    return math.floor(turn / (2 * math.pi) * TURNS + 0.5) % TURNS
+end
+
+--- Show frame `index` of a sheet laid out COLUMNS a row.
+local function ShowFrame(texture, index)
+    local column = index % COLUMNS
+    local row = math.floor(index / COLUMNS)
+    local rows = TURNS / COLUMNS
+    pcall(texture.SetTexCoord, texture,
+        column / COLUMNS, (column + 1) / COLUMNS, row / rows, (row + 1) / rows)
+end
 
 local function Additive(texture)
     pcall(texture.SetBlendMode, texture, "ADD")
@@ -89,17 +109,20 @@ function ArrowUI:Build()
     ring:SetAllPoints(dial)
     self.ring = ring
 
-    local arrowGlow = Additive(dial:CreateTexture(nil, "OVERLAY", nil, 1))
-    arrowGlow:SetTexture(ArrowUI.ARROW)
-    arrowGlow:SetSize(ARROW * 1.35, ARROW * 1.35)
-    arrowGlow:SetPoint("CENTER")
-    self.arrowGlow = arrowGlow
-
-    local arrow = dial:CreateTexture(nil, "OVERLAY", nil, 2)
+    -- The blade and its glow fill the dial: each frame of the art covers
+    -- exactly the ring's square.
+    local arrow = dial:CreateTexture(nil, "OVERLAY", nil, 1)
     arrow:SetTexture(ArrowUI.ARROW)
-    arrow:SetSize(ARROW, ARROW)
-    arrow:SetPoint("CENTER")
+    arrow:SetAllPoints(dial)
     self.arrow = arrow
+
+    local arrowGlow = Additive(dial:CreateTexture(nil, "OVERLAY", nil, 2))
+    arrowGlow:SetTexture(ArrowUI.ARROW_GLOW)
+    arrowGlow:SetAllPoints(dial)
+    self.arrowGlow = arrowGlow
+    ShowFrame(arrow, 0)
+    ShowFrame(arrowGlow, 0)
+    self.shownFrame = 0
 
     local check = dial:CreateTexture(nil, "OVERLAY", nil, 3)
     check:SetTexture(CHECK)
@@ -380,7 +403,8 @@ function ArrowUI:Draw(force)
     self.mark:SetShown(not pointing and not arrived)
 
     local tint = pointing and TINTS.point or arrived and TINTS.arrived or TINTS.rest
-    self.arrow:SetVertexColor(tint[1], tint[2], tint[3])
+    -- The blade carries its own gold and light; only its glow is tinted.
+    self.arrow:SetVertexColor(1, 1, 1)
     self.arrowGlow:SetVertexColor(tint[1], tint[2], tint[3])
     self.halo:SetVertexColor(tint[1], tint[2], tint[3])
     self.mark:SetTextColor(tint[1], tint[2], tint[3])
@@ -394,7 +418,8 @@ function ArrowUI:Draw(force)
 end
 
 --- Turn the arrow toward `turn` (radians, anticlockwise). Eased on Full so
---- it swings rather than snaps; straight there otherwise.
+--- it swings rather than snaps; straight there otherwise. Only a new frame
+--- touches the textures.
 function ArrowUI:Turn(turn)
     local shown = self.shownTurn
     if shown and ns.Motion.Level() == "full" then
@@ -404,8 +429,11 @@ function ArrowUI:Turn(turn)
         turn = shown + gap * 0.35
     end
     self.shownTurn = turn
-    pcall(self.arrow.SetRotation, self.arrow, turn)
-    pcall(self.arrowGlow.SetRotation, self.arrowGlow, turn)
+    local index = ArrowUI.FrameFor(turn)
+    if index == self.shownFrame then return end
+    self.shownFrame = index
+    ShowFrame(self.arrow, index)
+    ShowFrame(self.arrowGlow, index)
 end
 
 --- The glow: breathing on Full, still otherwise, brighter once you are there.

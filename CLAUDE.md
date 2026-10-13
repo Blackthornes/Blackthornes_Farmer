@@ -362,6 +362,15 @@ and Pets' `Logic/BeastArrow.lua` and `UI/BeastArrow.lua` copy
 `Media/Arrow/*.tga`. None of them calls another for it. A fix to the dial
 or its art in one belongs in all three.
 
+The dial lies back like a compass on the ground (the owner picked it
+2026-10-13 from `previews/arrow-3d/` in the project files). A tilted view
+cannot be turned with SetRotation, so `tools/make_arrow_art.py` (numpy)
+draws `Ring.tga` once and the blade with its shadow at 64 headings in
+`Blade.tga` (8 a row, frame 0 straight ahead, then anticlockwise), its
+glow in `BladeGlow.tga`; the dial shows the nearest frame with
+SetTexCoord (`ArrowUI.FrameFor`), only when the frame changes. The blade
+carries its own gold, so only its glow is tinted. Not yet seen in game.
+
 TomTom (a player asked, the owner agreed 2026-10-09, then asked for it in
 every addon with an arrow): with TomTom installed, each arrow hands its
 place to TomTom (`Logic/TomTom.lua` in Farmer, Equipment and Pets, read
