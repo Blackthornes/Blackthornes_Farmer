@@ -63,6 +63,22 @@ local COIN = [[Interface\Icons\INV_Misc_Coin_01]]
 -- Rested XP's blue, the game's own colour for it.
 local RESTED = { 0.35, 0.71, 1.0 }
 local RESTED_HEX = "ff5ab4ff"
+-- The words around the bar sit over the open world, so they are brighter
+-- than the windows' text and outlined, to read on sand and snow too.
+local GOLD_HEX = "fff1d488"
+local GREEN_HEX = "ff6ff0a8"
+
+local function Gold(text) return ("|c%s%s|r"):format(GOLD_HEX, text) end
+local function Green(text) return ("|c%s%s|r"):format(GREEN_HEX, text) end
+
+--- A line above or below the bar: light text, a black outline and a shadow.
+local function InfoLabel(parent, justify)
+    local label = Theme.CreateLabel(parent, "small", "text", justify)
+    pcall(label.SetFont, label, Theme.FONT, Theme.sizes.small, "OUTLINE")
+    pcall(label.SetShadowColor, label, 0, 0, 0, 0.9)
+    pcall(label.SetShadowOffset, label, 1, -1)
+    return label
+end
 
 --------------------------------------------------------------------------------
 -- Settings
@@ -107,9 +123,9 @@ function XPBarUI:Build()
     frame:EnableMouse(true)
     pcall(frame.RegisterForDrag, frame, "LeftButton")
 
-    local topLeft = Theme.CreateLabel(frame, "small", "muted")
+    local topLeft = InfoLabel(frame)
     topLeft:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, 0)
-    local topRight = Theme.CreateLabel(frame, "small", "muted", "RIGHT")
+    local topRight = InfoLabel(frame, "RIGHT")
     topRight:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, 0)
 
     local bar = CreateFrame("Frame", nil, frame)
@@ -169,12 +185,14 @@ function XPBarUI:Build()
     over:SetAllPoints(bar)
     over:SetFrameLevel((bar:GetFrameLevel() or 1) + 2)
     local label = Theme.CreateLabel(over, "normal", "text", "CENTER")
-    pcall(label.SetFont, label, Theme.FONT, Theme.sizes.normal, "OUTLINE")
+    pcall(label.SetFont, label, Theme.FONT, Theme.sizes.normal, "THICKOUTLINE")
+    pcall(label.SetShadowColor, label, 0, 0, 0, 0.9)
+    pcall(label.SetShadowOffset, label, 1, -1)
     label:SetPoint("CENTER", over, "CENTER", 0, 0)
 
-    local bottomLeft = Theme.CreateLabel(frame, "small", "muted")
+    local bottomLeft = InfoLabel(frame)
     bottomLeft:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 4, 0)
-    local bottomRight = Theme.CreateLabel(frame, "small", "muted", "RIGHT")
+    local bottomRight = InfoLabel(frame, "RIGHT")
     bottomRight:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -4, 0)
 
     self.labels = { topLeft = topLeft, topRight = topRight, bar = label,
@@ -321,9 +339,9 @@ function XPBarUI:Refresh()
 
     local right = {}
     if summary.inReach then
-        right[#right + 1] = Util.Colored("good", L["Hand in your quests to level up"])
+        right[#right + 1] = Green(L["Hand in your quests to level up"])
     elseif summary.readyXP > 0 then
-        right[#right + 1] = Util.Colored("good", L.Format("Ready to hand in: %s XP", Comma(summary.readyXP)))
+        right[#right + 1] = Green(L.Format("Ready to hand in: %s XP", Comma(summary.readyXP)))
     end
     if summary.rested > 0 then
         right[#right + 1] = ("|c%s%s|r"):format(RESTED_HEX, L.Format("Rested: %s XP", Comma(summary.rested)))
@@ -337,7 +355,7 @@ function XPBarUI:Refresh()
     -- Below it.
     if summary.toLevel then
         local pace = summary.rate and L["at this session's pace"] or L["at your usual pace"]
-        labels.bottomLeft:SetText(Util.Colored("accent", L.Format("Level %d in about %s", summary.level + 1,
+        labels.bottomLeft:SetText(Gold(L.Format("Level %d in about %s", summary.level + 1,
             ns.XP.Duration(summary.toLevel))) .. " " .. pace)
     else
         labels.bottomLeft:SetText(L["Your pace shows after a few kills or quests"])
@@ -345,14 +363,14 @@ function XPBarUI:Refresh()
 
     local streak = summary.streak
     if streak and streak.count >= 3 then
-        labels.bottomRight:SetText(Util.Colored("accent", L.Format("%d kills in a row  |  +%s XP",
+        labels.bottomRight:SetText(Gold(L.Format("%d kills in a row  |  +%s XP",
             streak.count, Comma(streak.xp))))
     else
         local parts = { L.Format("This session +%s XP", Comma(summary.session.gained)) }
         if summary.rate then
             local rate = L.Format("%s XP an hour", Comma(summary.rate))
             if summary.ahead then
-                rate = Util.Colored("accent", rate .. " " .. L.Format("(up %d%%)", math.floor(summary.ahead * 100 + 0.5)))
+                rate = Gold(rate .. " " .. L.Format("(up %d%%)", math.floor(summary.ahead * 100 + 0.5)))
             end
             parts[#parts + 1] = rate
         end
@@ -583,14 +601,17 @@ function XPBarUI.CardLines(s)
     end
 
     if #s.near > 0 then
-        local xp, subs = 0, {}
+        local started = math.max(s.started or 0, #s.near)
+        local subs = {}
         for _, quest in ipairs(s.near) do
-            xp = xp + quest.xp
             subs[#subs + 1] = quest.lines[1] or quest.title
         end
-        Add({ title = Count(#s.near, L["1 quest in your log is under way"],
-                L.Format("%d quests in your log are under way", #s.near)),
-            sub = table.concat(subs, ", "), right = "+" .. Comma(xp), key = "good" })
+        if started > #s.near then
+            subs[#subs + 1] = L.Format("and %d more", started - #s.near)
+        end
+        Add({ title = Count(started, L["1 quest in your log is partly done"],
+                L.Format("%d quests in your log are partly done", started)),
+            sub = table.concat(subs, ", "), right = "+" .. Comma(s.startedXP or 0), key = "good" })
     end
 
     if s.rested > 0 then

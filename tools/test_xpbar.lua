@@ -170,6 +170,22 @@ suite.check("finished quests add up", summary.readyXP == 7000, summary.readyXP)
 suite.check("a quest under way is listed", #summary.near == 1 and summary.near[1].share == 0.5)
 suite.check("not in reach yet", summary.inReach == false)
 suite.check("kills after the hand-in", summary.mob.after == math.ceil((left - 7000) / 300), summary.mob.after)
+suite.check("one quest partly done", summary.started == 1 and summary.startedXP == 2000, summary.started)
+
+-- Every partly done quest is counted, though only the closest few are named;
+-- one with nothing done yet is not.
+for id = 21, 24 do
+    log[#log + 1] = { questID = id, title = "More " .. id, xp = 100, have = 1, need = 4 }
+end
+log[#log + 1] = { questID = 25, title = "Not Begun", xp = 900, have = 0, need = 4 }
+Fire("QUEST_LOG_UPDATE")
+summary = XP:Summary()
+suite.check("all partly done quests counted", summary.started == 5, summary.started)
+suite.check("their XP added up", summary.startedXP == 2400, summary.startedXP)
+suite.check("only a few named", #summary.near == XP.NEAR, #summary.near)
+for _ = 1, 5 do table.remove(log) end
+Fire("QUEST_LOG_UPDATE")
+summary = XP:Summary()
 
 log[1].xp = 20000
 Fire("QUEST_LOG_UPDATE")
