@@ -1558,8 +1558,8 @@ end
 -- its loot as icons. Folded, it is the band alone with its loot as small
 -- icons, so a long session still fits. `card` is:
 -- { key, name, mob, total, session, rated, target, more, place, placeMore,
---   worth, worthLabel, items = { { name, n, chance } }, noun, open, default,
---   live }
+--   worth, worthLabel, rank, ranked, items = { { name, n, chance } }, noun,
+--   open, default, live }
 function TrackerUI:CardLines(Add, card)
     local open = self:IsOpen(card.key, card.default)
 
@@ -1624,6 +1624,12 @@ function TrackerUI:CardLines(Add, card)
     if card.worth then
         Add({ style = "value", left = card.worthLabel,
             right = ns.Value.Coins(card.worth), rightColor = "good" })
+    end
+
+    -- Its place on your Rankings board (2026-10-13), once it is on it.
+    if card.rank then
+        Add({ style = "value", left = L["Rank"],
+            right = L.Format("#%d of %d", card.rank, card.ranked), rightColor = "accent" })
     end
 
     if #card.items == 0 then
@@ -1745,6 +1751,13 @@ function TrackerUI:KillLines(Add, mobs, first)
             items[#items + 1] = { name = item.name, n = item.corpses, chance = item.chance }
         end
 
+        -- Your board only: a mob is ranked from its own kills, never an
+        -- estimate.
+        local rank, ranked
+        if ns.RankUp and summary.rated and details and details.basis == "tally" then
+            rank, ranked = ns.RankUp:RankOf(summary.mob)
+        end
+
         local isCurrent = summary.mob == current
         self:CardLines(Add, {
             key = "mob:" .. summary.mob, name = summary.mob, mob = summary.mob,
@@ -1755,6 +1768,7 @@ function TrackerUI:KillLines(Add, mobs, first)
             placeMore = top and #summary.places > 1 and L.Format("+%d more", #summary.places - 1) or nil,
             worth = worth,
             worthLabel = details and details.basis == "tally" and L["Worth per kill"] or L["Worth per kill (est.)"],
+            rank = rank, ranked = ranked,
             items = items, noun = L["kills"],
             default = isCurrent, live = isCurrent and first,
         })
