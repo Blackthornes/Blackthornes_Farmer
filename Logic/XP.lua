@@ -88,8 +88,8 @@ end
 
 --- The level cap: the client's, else 60.
 function XP.MaxLevel()
-    for _, fn in ipairs({ _G.GetMaxLevelForPlayerExpansion, _G.GetMaxPlayerLevel }) do
-        local cap = Call(fn)
+    for _, name in ipairs({ "GetMaxLevelForPlayerExpansion", "GetMaxPlayerLevel" }) do
+        local cap = Call(_G[name])
         if cap and cap >= 10 and cap <= 100 then return math.floor(cap) end
     end
     local cap = XP.Number(_G.MAX_PLAYER_LEVEL)
