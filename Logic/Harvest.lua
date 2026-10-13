@@ -1055,6 +1055,9 @@ function Harvest:RecordCorpse()
         record = self:GetRecord(mob, level, zone, location)
         record.corpses = record.corpses + 1
         record.npc = record.npc or Harvest.NpcID(sourceGuid)
+        -- Moves with every corpse, so views that sum the harvest (world
+        -- drops) know when to sum it again.
+        Harvest.changes = (Harvest.changes or 0) + 1
 
         if not record.coords then
             local x, y = self:PlayerPosition()
@@ -1407,6 +1410,15 @@ function Harvest:ExportAll(opts)
         out[#out + 1] = "-- Creature types, as the game named them"
         out[#out + 1] = ""
         out[#out + 1] = types
+    end
+
+    -- Green gear and better by mob level, for the world drop chances.
+    local world = ns.WorldDrops and ns.WorldDrops:ExportBlock()
+    if world then
+        out[#out + 1] = ""
+        out[#out + 1] = "-- World drops, green and better, by mob level"
+        out[#out + 1] = ""
+        out[#out + 1] = world
     end
 
     return table.concat(out, "\n")

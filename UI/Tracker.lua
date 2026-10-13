@@ -1632,6 +1632,14 @@ function TrackerUI:CardLines(Add, card)
             right = L.Format("#%d of %d", card.rank, card.ranked), rightColor = "accent" })
     end
 
+    -- The chance of green gear at its level, and what you have had from it
+    -- (Logic/WorldDrops.lua). Only open cards get here, so only they ask.
+    local world = card.mob and ns.WorldDrops and ns.WorldDrops:CardLines(card.mob)
+    if world then
+        Add({ style = "value", left = world.label, right = world.chance, rightColor = "good" })
+        Add({ style = "value", left = L["You've had here"], right = world.had })
+    end
+
     if #card.items == 0 then
         if card.rated then Add({ style = "note", left = L["nothing dropped yet"] }) end
         return

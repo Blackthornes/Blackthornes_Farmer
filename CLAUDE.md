@@ -537,6 +537,32 @@ harvest keys it. "Kill count" under Tooltips on the Map & goals page
 (`killTooltip`, on unless unticked, never rename it) and `/farm killcount`.
 Tested in `tools/test_killtooltip.lua`. Not yet seen in game.
 
+## World drops
+
+The owner asked (2026-10-13) how often green, blue, purple and orange gear
+drops and whether it changes with the mob's level, then for it in four
+places. `Logic/WorldDrops.lua` counts it from the harvest only: gear is the
+client's item class 2 or 4 (`IsGear`, `GetItemInfoInstant`), quality the
+loot link's colour in `tracker.looks` else the client's, mobs grouped five
+levels a band (`Band`), a record in a dungeon, raid or city left out
+(`Inside`, `Spots.INSIDE`). A band says nothing under `MIN_KILLS` (200).
+The import writes the counts after the creature types
+(`if DB.WorldDrops then DB:WorldDrops(...) end`, `ExportBlock`;
+`tools/harvest_import.py` passes the save's `tracker` for the colours), and
+a band uses whichever has more kills, the player's own or those, never the
+two added. Sums are kept per record until its corpses move and per band
+until `Harvest.changes` moves (each corpse) or `KEEP_FOR` passes.
+
+It shows as "World drops, level N" and "You've had here" under the open
+mob in the kills panel (`WorldDrops:CardLines`), a WORLD DROPS chip and
+rows on Rankings (`RankingsUI:WorldRows`; under ALL only once there are
+kills), "Greens: 1 in N kills" on the mob tooltip (`KillTooltip:GreensLine`)
+and a search for "greens" or "world drops" (`WorldDrops.IsQuery`,
+`SearchItem`: a result with no Goal button or hide choice). "World drops"
+on the Loot page (`worldDrops`, account wide, on unless unticked, never
+rename it) and `/farm worlddrops [on|off]`. Tested in
+`tools/test_worlddrops.lua`.
+
 ## Sparkles on the node you face
 
 The owner asked (2026-10-13) for gatherable nodes to sparkle in the world.
