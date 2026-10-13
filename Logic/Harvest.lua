@@ -33,6 +33,11 @@ Harvest.enabled = true
 -- which items were already counted from it. See RecordCorpse.
 Harvest.opened = {}
 
+-- Every corpse whose loot showed in another corpse's window this session
+-- (area loot), by guid. Its drops went with that window, so opening it
+-- later, when full bags left something on it, is no new corpse.
+Harvest.shown = {}
+
 --------------------------------------------------------------------------------
 -- Client capabilities
 --------------------------------------------------------------------------------
@@ -308,10 +313,19 @@ function Harvest:FindCorpse()
     -- left the real kill's coin uncounted (its corpse was "already opened").
     if self:PickingPockets() then return nil end
 
-    local name, level, guid = self:UnitCorpse("target")
-    if name and self:LootIsFrom(guid) then return name, level, guid, "target" end
-
     local sources = self:LootSources()
+
+    local name, level, guid = self:UnitCorpse("target")
+    if name and self:LootIsFrom(guid) then
+        -- A target whose guid will not be read is still the corpse, but
+        -- without a guid every opening of it counted as a new kill. A window
+        -- with one corpse in it names that guid itself.
+        if not guid and #sources == 1 and Harvest.NpcID(sources[1]) then
+            guid = sources[1]
+        end
+        return name, level, guid, "target"
+    end
+
     if #sources == 0 then return nil end
 
     local listed = {}
@@ -323,6 +337,12 @@ function Harvest:FindCorpse()
             return unitName, unitLevel, unitGuid, unit
         end
     end
+
+    -- Past this point nothing says which corpse was clicked. A corpse never
+    -- seen before is tried first: one already opened, or shown in another
+    -- corpse's area loot, has been counted, and picking it could pass over
+    -- the one that is new (2026-10-13, bags full).
+    sources = self:NewSourcesFirst(sources)
 
     for _, source in ipairs(sources) do
         local known = self:KnownUnit(source)
@@ -341,6 +361,34 @@ function Harvest:FindCorpse()
     end
 
     return nil
+end
+
+--- Every other corpse the open window names is marked shown, unless it
+--- was opened itself. Read before the corpse is judged, so the corpse
+--- being opened is never marked by its own window.
+function Harvest:NoteShown(guid)
+    -- Without the corpse's own guid it could be any of them.
+    if not guid then return end
+    for _, source in ipairs(self:LootSources()) do
+        if source ~= guid and not self.opened[source] and Harvest.NpcID(source) then
+            self.shown[source] = true
+        end
+    end
+end
+
+--- `sources` with every corpse not yet opened or shown this session first,
+--- the rest after, each part in the window's order.
+function Harvest:NewSourcesFirst(sources)
+    local fresh, seen = {}, {}
+    for _, source in ipairs(sources) do
+        if self.opened[source] or self.shown[source] then
+            seen[#seen + 1] = source
+        else
+            fresh[#fresh + 1] = source
+        end
+    end
+    for _, source in ipairs(seen) do fresh[#fresh + 1] = source end
+    return fresh
 end
 
 -- Units a living mob the loot window names could be: one picked from by
@@ -979,12 +1027,23 @@ function Harvest:RecordCorpse()
     -- Your own kill that dropped nothing is the exception, as in the kill
     -- tally (Tracker:EmptyOwnKill): it opens no window until the skin, and a
     -- rate has to count the corpses that held nothing.
+    --
+    -- A corpse whose loot already showed in another corpse's window (area
+    -- loot) went with that window. With full bags it keeps what you could
+    -- not take, and opening it later, after other loot, counted it as a
+    -- second corpse holding its leftovers (2026-10-13). It is no sample.
     local guid = self:CorpseID()
     local corpse = guid and self.opened[guid]
     local record
 
+    -- What else this window shows was looted with it, whichever way it goes.
+    self:NoteShown(guid)
+
     if corpse then
         record = corpse.record
+    elseif guid and self.shown[guid] then
+        self.skipped = (self.skipped or 0) + 1
+        return
     elseif ns.Gathering ~= nil and ns.Gathering:IsSkinning()
         and not (guid and guid == sourceGuid and ns.Tracker
             and ns.Tracker:EmptyOwnKill(guid, unit)) then
@@ -1186,6 +1245,7 @@ end
 function Harvest:Reset()
     self.records = {}
     self.opened = {}
+    self.shown = {}
     self.skipped = 0
     self.dirty = true
     self.changes = (self.changes or 0) + 1
