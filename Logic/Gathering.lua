@@ -457,7 +457,7 @@ function Gathering:Celebrate(key)
     if not summary then return end
 
     local where = summary.place and L.Format(" in %s", summary.place) or ""
-    local line = L.Format("Gather rates unlocked for %s%s! %d gathers in.",
+    local line = L.Format("Gather rates unlocked for %s%s after %d gathers.",
         Util.Colored("accent", summary.name), where, summary.gathers)
 
     ns.Tracker:Fanfare(line,

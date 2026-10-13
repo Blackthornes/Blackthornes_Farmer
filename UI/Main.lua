@@ -430,7 +430,7 @@ function UI:BuildEmpty()
     -- In gold, as every heading in the house is.
     local line = Theme.CreateLabel(empty, "large", "accent", "CENTER")
     line:SetPoint("TOP", icon, "BOTTOM", 0, -14)
-    line:SetText(L["What are you farming?"])
+    line:SetText(L["Search for something to farm"])
     self.emptyLine = line
 
     local hint = Theme.CreateLabel(empty, "small", "muted", "CENTER")

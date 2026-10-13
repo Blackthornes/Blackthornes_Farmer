@@ -317,7 +317,7 @@ function Fishing:Celebrate(key)
     if not summary then return end
 
     local where = summary.place and L.Format(" in %s", summary.place) or ""
-    local line = L.Format("Catch rates unlocked for %s%s! %d casts in.",
+    local line = L.Format("Catch rates unlocked for %s%s after %d casts.",
         Util.Colored("accent", Shown(summary.name)), where, summary.casts)
 
     local best = summary.items[1]

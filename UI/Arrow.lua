@@ -295,7 +295,7 @@ function ArrowUI.Words(state)
         return L["Can't see you here"], L["The game won't say where you are"], "/farm arrow check", "muted"
     end
     if mode == "nowhere" then
-        return L["No places known"], L["Farm it once and it learns"], "", "muted"
+        return L["No places known"], L["Farm it once to learn a place"], "", "muted"
     end
     return state.distance or "", state.place or "", state.note or "", state.noteColor or "muted"
 end

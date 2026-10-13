@@ -883,7 +883,7 @@ function Tracker:Celebrate(mobName)
     local summary = self:Summary(mobName)
     if not summary then return end
 
-    local line = L.Format("Drop rates unlocked for %s! %d kills in.",
+    local line = L.Format("Drop rates unlocked for %s after %d kills.",
         Util.Colored("accent", summary.mob), summary.kills)
 
     local best = summary.items[1]
