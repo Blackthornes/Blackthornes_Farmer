@@ -215,10 +215,75 @@ function NodeSparkle:SetEnabled(on)
         self:Refresh()
     else
         self.applyAfterCombat = nil
+        self:LowerReach()
         self:RestoreSettings()
         self:HideSparkle()
         pcall(self.VeilIcon, self)
     end
+end
+
+--------------------------------------------------------------------------------
+-- Reaching the bobber while fishing
+--------------------------------------------------------------------------------
+
+--- Is this channel the Fishing spell? By its ID, else by its name.
+function NodeSparkle.IsFishingCast(spellID)
+    if type(spellID) == "number" and NodeSparkle.FISHING_SPELLS[spellID] then return true end
+    if type(UnitChannelInfo) ~= "function" then return false end
+    local ok, name = pcall(UnitChannelInfo, "player")
+    name = ok and Readable(name) or nil
+    if not name then return false end
+    local names = ns.Gathering and ns.Gathering.ClientNames and ns.Gathering.ClientNames("Fishing")
+    return type(names) == "table" and names[name] == true or name == "Fishing"
+end
+
+--- Let the interact target reach as far as a cast lands. Only out of a
+--- fight, only when it reaches less now, and what it was is kept.
+function NodeSparkle:RaiseReach()
+    if not ns.db or not self:IsEnabled() or InCombat() then return false end
+    local now = self.GetCVar("SoftTargetInteractRange")
+    if now == nil or (tonumber(now) or 0) >= self.FISHING_RANGE then return false end
+    if ns.db.nodeSparkleFishingRange == nil then ns.db.nodeSparkleFishingRange = now end
+    return self.SetCVar("SoftTargetInteractRange", tostring(self.FISHING_RANGE))
+end
+
+--- Put the reach back as it was before the cast. In a fight it waits.
+function NodeSparkle:LowerReach()
+    local kept = ns.db and ns.db.nodeSparkleFishingRange
+    if kept == nil then return true end
+    if InCombat() then
+        self.lowerAfterCombat = true
+        return false
+    end
+    self.lowerAfterCombat = nil
+    if self.SetCVar("SoftTargetInteractRange", kept) then ns.db.nodeSparkleFishingRange = nil end
+    return true
+end
+
+local function After(seconds, fn)
+    if type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+        pcall(C_Timer.After, seconds, fn)
+    end
+end
+
+function NodeSparkle:FishingStarted(spellID)
+    if not self.IsFishingCast(spellID) then return end
+    self.fishing = true
+    if not self:IsEnabled() then return end
+    self:RaiseReach()
+    self:SafeRefresh()
+    for _, seconds in ipairs(self.FISHING_LOOKS) do
+        After(seconds, function()
+            if NodeSparkle.fishing then NodeSparkle:SafeRefresh() end
+        end)
+    end
+end
+
+function NodeSparkle:FishingStopped()
+    if not self.fishing then return end
+    self.fishing = nil
+    self:LowerReach()
+    self:SafeRefresh()
 end
 
 --------------------------------------------------------------------------------
@@ -279,6 +344,18 @@ NodeSparkle.CHEST_PATTERNS = { "Chest$", "Footlocker$", "Strongbox$", "Lockbox$"
 
 -- The player's own bobber, so a bite is easy to spot (English, German).
 NodeSparkle.BOBBERS = { ["Fishing Bobber"] = true, ["Schwimmer"] = true }
+-- While fishing, any object with one of these in its name is the bobber.
+NodeSparkle.BOBBER_WORDS = { "bobber", "schwimmer" }
+
+-- A cast lands farther out than the interact target looks the rest of the
+-- time (15 yards), so it never picked the bobber (the owner, 2026-10-13).
+-- While the Fishing channel runs, the reach goes up to this and comes back
+-- when it ends. What it was waits in `nodeSparkleFishingRange` (never
+-- rename it) in case the game closes mid-cast, and is put back at login.
+NodeSparkle.FISHING_RANGE = 35
+NodeSparkle.FISHING_SPELLS = { [7620] = true, [7731] = true, [7732] = true, [18248] = true }
+-- The bobber appears a moment after the cast starts: look again then.
+NodeSparkle.FISHING_LOOKS = { 0.3, 1.0, 2.5 }
 
 function NodeSparkle.IsChest(name)
     if type(name) ~= "string" or name == "" then return false end
@@ -341,9 +418,20 @@ function NodeSparkle:Kind(name)
     if self:IsNode(name) then return "node" end
     if ns.Fishing and ns.Fishing.IsSchool and ns.Fishing.IsSchool(name) then return "school" end
     if self.IsChest(name) then return "chest" end
-    if self.BOBBERS[name] then return "bobber" end
+    if self:IsBobber(name) then return "bobber" end
     if self:IsQuestObject(name) then return "quest" end
     return nil
+end
+
+function NodeSparkle:IsBobber(name)
+    if type(name) ~= "string" or name == "" then return false end
+    if self.BOBBERS[name] then return true end
+    if not self.fishing then return false end
+    local lower = name:lower()
+    for _, word in ipairs(self.BOBBER_WORDS) do
+        if lower:find(word, 1, true) then return true end
+    end
+    return false
 end
 
 function NodeSparkle:IsNode(name)
@@ -698,6 +786,7 @@ function NodeSparkle:OnEnable()
     ns.RegisterEvent(self, "PLAYER_REGEN_ENABLED", function()
         if NodeSparkle.applyAfterCombat then NodeSparkle:ApplySettings() end
         if NodeSparkle.restoreAfterCombat then NodeSparkle:RestoreSettings() end
+        if NodeSparkle.lowerAfterCombat and not NodeSparkle.fishing then NodeSparkle:LowerReach() end
         NodeSparkle:SafeRefresh()
     end)
     -- A controller plugged in or turned on brings the game's icon back.
@@ -708,7 +797,15 @@ function NodeSparkle:OnEnable()
         if name == "GamePadEnable" then NodeSparkle:SafeRefresh() end
     end)
     ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", function()
+        -- A cast the game closed on keeps a raised reach: put it back first.
+        if not NodeSparkle.fishing then NodeSparkle:LowerReach() end
         if NodeSparkle:IsEnabled() then NodeSparkle:ApplySettings() end
+    end)
+    ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_CHANNEL_START", function(_, _, unit, _, spellID)
+        if Readable(unit) == "player" then NodeSparkle:FishingStarted(spellID) end
+    end)
+    ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_CHANNEL_STOP", function(_, _, unit)
+        if Readable(unit) == "player" then NodeSparkle:FishingStopped() end
     end)
 end
 
@@ -720,7 +817,7 @@ ns.DB.hideWatchers.nodeSparkle = function() NodeSparkle:SafeRefresh() end
 --------------------------------------------------------------------------------
 
 function NodeSparkle:Check()
-    ns.Print("sparkle check (face a herb or ore node first):")
+    ns.Print("sparkle check (face a herb or ore node first, or run it while your bobber is out):")
     ns.PrintRaw(("  setting: %s, %s"):format(self:IsEnabled() and "on" or "off", self:Style()))
     for _, cvar in ipairs(self.CVARS) do
         ns.PrintRaw(("  %s: %s"):format(cvar.name, tostring(self.GetCVar(cvar.name))))
@@ -731,6 +828,8 @@ function NodeSparkle:Check()
             ns.PrintRaw(("  kept to put back: %s = %s"):format(name, tostring(value)))
         end
     end
+    ns.PrintRaw(("  fishing: %s, reach raised from: %s"):format(self.fishing and "yes" or "no",
+        tostring(ns.db and ns.db.nodeSparkleFishingRange or "-")))
     ns.PrintRaw(("  C_NamePlate.GetNamePlateForUnit: %s"):format(
         type(Field(_G.C_NamePlate, "GetNamePlateForUnit")) == "function" and "yes" or "no"))
 

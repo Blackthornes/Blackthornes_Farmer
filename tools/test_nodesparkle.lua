@@ -225,6 +225,49 @@ suite.check("an icon the player turned on themselves is left alone", iconAlpha =
 ns.db.nodeSparkleCVars = keep
 plate.UnitFrame = nil
 
+-- Fishing: a cast lands past the usual reach, so the reach goes up while
+-- the Fishing channel runs, and comes back when it ends.
+NodeSparkle:SetEnabled(true)
+cvars.SoftTargetInteractRange = "15"
+ns.db.nodeSparkleFishingRange = nil
+NodeSparkle:FishingStarted(12345)
+suite.check("another channel leaves the reach alone", cvars.SoftTargetInteractRange == "15" and not NodeSparkle.fishing)
+NodeSparkle:FishingStarted(7620)
+suite.check("fishing reaches as far as the bobber lands",
+    cvars.SoftTargetInteractRange == tostring(NodeSparkle.FISHING_RANGE), cvars.SoftTargetInteractRange)
+suite.check("keeping what it was", ns.db.nodeSparkleFishingRange == "15")
+suite.check("the bobber far out shows", Face("Fishing Bobber", VEIN) == "shown")
+suite.check("a bobber named a little differently too", Face("Fishing Bobber (Forever)", VEIN) == "shown")
+NodeSparkle:FishingStopped()
+suite.check("the reach comes back after the cast", cvars.SoftTargetInteractRange == "15" and ns.db.nodeSparkleFishingRange == nil)
+suite.check("and the bobber goes with the cast", Face("Fishing Bobber (Forever)", VEIN) == "notnode")
+cvars.SoftTargetInteractRange = "50"
+NodeSparkle:FishingStarted(7620)
+suite.check("a reach already farther is left alone", cvars.SoftTargetInteractRange == "50" and ns.db.nodeSparkleFishingRange == nil)
+NodeSparkle:FishingStopped()
+cvars.SoftTargetInteractRange = "15"
+fighting = true
+NodeSparkle:FishingStarted(7620)
+suite.check("nothing set in a fight", cvars.SoftTargetInteractRange == "15")
+NodeSparkle:FishingStopped()
+fighting = false
+NodeSparkle:FishingStarted(7620)
+fighting = true
+NodeSparkle:FishingStopped()
+suite.check("a fight ending the cast waits to put it back", cvars.SoftTargetInteractRange == tostring(NodeSparkle.FISHING_RANGE))
+fighting = false
+NodeSparkle:LowerReach()
+suite.check("and puts it back after", cvars.SoftTargetInteractRange == "15")
+NodeSparkle:FishingStarted(7620)
+NodeSparkle:SetEnabled(false)
+suite.check("turning it off mid-cast puts the reach back", ns.db.nodeSparkleFishingRange == nil)
+NodeSparkle:FishingStopped()
+NodeSparkle:SetEnabled(true)
+NodeSparkle:FishingStarted(7620)
+NodeSparkle.fishing = nil   -- the game closed mid-cast
+NodeSparkle:LowerReach()
+suite.check("a reach left raised is put back at the next login", cvars.SoftTargetInteractRange == "15")
+
 ns.HandleSlash("sparkle check")
 suite.check("the check is kept for a report", ns.db.lastProbe and ns.db.lastProbe.check == "sparkle check")
 

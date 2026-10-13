@@ -590,7 +590,7 @@ Seen in game 2026-10-13 round the icon. Since then (the owner asked the
 same day): the sparkles sit `NodeSparkle.DROP` below the icon, on the
 node, scaled by the plate's size (`NodeSparkle:Drop`); fishing schools
 (`Fishing.IsSchool`), chests (`CHEST_PATTERNS`), the player's bobber
-(`BOBBERS`) and objects an unfinished quest objective names
+(`BOBBERS`; a cast lands past the 15 yards the interact target reaches, so while the Fishing channel runs `NodeSparkle:RaiseReach` sets `SoftTargetInteractRange` to `FISHING_RANGE` and `LowerReach` puts it back when it ends, keeping the old value in `nodeSparkleFishingRange`, never rename it, put back at login if the game closed mid-cast) and objects an unfinished quest objective names
 (`NodeSparkle:QuestText`, read again after `QUEST_LOG_UPDATE`, or
 `C_QuestLog.UnitIsRelatedToActiveQuest`) count too (`NodeSparkle:Kind`);
 and the look can be a beacon instead, a beam of light rising off the spot
