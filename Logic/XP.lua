@@ -51,7 +51,7 @@ XP.AHEAD = 1.15
 XP.RESUME = 15 * 60
 -- Seconds after a burst of quest log events before the log is read.
 XP.SETTLE = 0.5
--- Quests under way shown on the hover card.
+-- Partly done quests named on the hover card (all of them are counted).
 XP.NEAR = 3
 
 XP.session = nil
@@ -500,13 +500,14 @@ local function RewardXP(questID)
     return Call(_G.GetQuestLogRewardXP, questID) or 0
 end
 
---- Finished quests (ready to hand in) and quests under way, with their XP.
+--- Finished quests (ready to hand in) and partly done ones, with their XP.
+--- A quest counts as partly done once one of its objectives has moved.
 --- Read only when the log moved since the last read.
 function XP:Quests()
     if self.quests and not self.questsStale then return self.quests end
     self.questsStale = false
 
-    local found = { ready = {}, readyXP = 0, near = {} }
+    local found = { ready = {}, readyXP = 0, near = {}, started = 0, startedXP = 0 }
     self.quests = found
 
     local log = _G.C_QuestLog
@@ -543,6 +544,7 @@ function XP:Quests()
                 end
                 if need > 0 and have > 0 then
                     found.near[#found.near + 1] = { title = title, xp = xp, share = have / need, lines = lines }
+                    found.started, found.startedXP = found.started + 1, found.startedXP + xp
                 end
             end
         end
@@ -588,6 +590,7 @@ function XP:Summary()
         left = left, share = state.xp / state.max, cap = XP.MaxLevel(),
         session = session, rate = self:Rate(), usual = self:UsualRate(), ahead = self:Ahead(),
         ready = quests.ready, readyXP = quests.readyXP, near = quests.near,
+        started = quests.started, startedXP = quests.startedXP,
         streak = self:Streak(),
     }
     out.inReach = left > 0 and quests.readyXP >= left

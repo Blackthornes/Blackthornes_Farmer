@@ -601,14 +601,17 @@ function XPBarUI.CardLines(s)
     end
 
     if #s.near > 0 then
-        local xp, subs = 0, {}
+        local started = math.max(s.started or 0, #s.near)
+        local subs = {}
         for _, quest in ipairs(s.near) do
-            xp = xp + quest.xp
             subs[#subs + 1] = quest.lines[1] or quest.title
         end
-        Add({ title = Count(#s.near, L["1 quest in your log is under way"],
-                L.Format("%d quests in your log are under way", #s.near)),
-            sub = table.concat(subs, ", "), right = "+" .. Comma(xp), key = "good" })
+        if started > #s.near then
+            subs[#subs + 1] = L.Format("and %d more", started - #s.near)
+        end
+        Add({ title = Count(started, L["1 quest in your log is partly done"],
+                L.Format("%d quests in your log are partly done", started)),
+            sub = table.concat(subs, ", "), right = "+" .. Comma(s.startedXP or 0), key = "good" })
     end
 
     if s.rested > 0 then
