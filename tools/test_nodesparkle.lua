@@ -109,7 +109,7 @@ suite.check("a secret guid costs nothing worse", Face("Copper Vein", env.Secret(
 NodeSparkle:SetEnabled(true)
 suite.check("turns on the interact target", cvars.SoftTargetInteract == "3", cvars.SoftTargetInteract)
 suite.check("and its nameplate", cvars.SoftTargetNameplateInteract == "1")
-suite.check("looks farther", cvars.SoftTargetInteractRange == "100")
+suite.check("looks farther", cvars.SoftTargetInteractRange == "15")
 suite.check("and all the way round", cvars.SoftTargetInteractArc == "2")
 suite.check("turns on the game's icon over objects", cvars.SoftTargetIconGameObject == "1" and cvars.SoftTargetIconInteract == "1")
 suite.check("keeping what they were", ns.db.nodeSparkleCVars.SoftTargetInteract == "1"
@@ -118,6 +118,11 @@ suite.check("keeping what they were", ns.db.nodeSparkleCVars.SoftTargetInteract 
 local before = sets
 NodeSparkle:ApplySettings()
 suite.check("nothing set twice", sets == before)
+
+cvars.SoftTargetInteractRange = "100"
+NodeSparkle:ApplySettings()
+suite.check("a reach Farmer set to 100 comes back down", cvars.SoftTargetInteractRange == "15")
+suite.check("still keeping the player's own", ns.db.nodeSparkleCVars.SoftTargetInteractRange == "10")
 
 NodeSparkle:SetEnabled(false)
 suite.check("off puts them back", cvars.SoftTargetInteract == "1" and cvars.SoftTargetNameplateInteract == "0"
