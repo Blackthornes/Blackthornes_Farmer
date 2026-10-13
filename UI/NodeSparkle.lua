@@ -54,10 +54,11 @@ NodeSparkle.CVARS = {
     { name = "SoftTargetInteract", value = "3", atLeast = 3 },
     { name = "SoftTargetNameplateInteract", value = "1", atLeast = 1 },
     -- How far the interact target looks, in yards (the game's own is about
-    -- 10; it keeps its own limit if 100 is past it, and the check says what
-    -- it took), and how wide: 2 is all the way round you, 1 only in front
-    -- (the owner asked 2026-10-13 for 30, then for far more).
-    { name = "SoftTargetInteractRange", value = "100", atLeast = 100 },
+    -- 10), and how wide: 2 is all the way round you, 1 only in front. The
+    -- owner asked 2026-10-13 for 30, then 100, then back to 15 once he saw
+    -- in game that about 15 is as far as Forever lets it reach. `lower`
+    -- brings a save Farmer set to 100 back down.
+    { name = "SoftTargetInteractRange", value = "15", atLeast = 15, lower = true },
     { name = "SoftTargetInteractArc", value = "2", atLeast = 2 },
     -- The game's own icon over the object you face (the owner picked it
     -- 2026-10-13, once the probe showed Forever gave no nameplate without
@@ -179,6 +180,10 @@ function NodeSparkle:ApplySettings()
         local now = self.GetCVar(cvar.name)
         if now ~= nil and (tonumber(now) or 0) < cvar.atLeast then
             if saved[cvar.name] == nil then saved[cvar.name] = now end
+            self.SetCVar(cvar.name, cvar.value)
+        end
+        -- Farmer set it higher before: bring it to what it sets now.
+        if now ~= nil and cvar.lower and saved[cvar.name] ~= nil and (tonumber(now) or 0) > cvar.atLeast then
             self.SetCVar(cvar.name, cvar.value)
         end
     end
