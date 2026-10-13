@@ -212,6 +212,15 @@ suite.check("best mobs are by gold an hour, not per kill",
 suite.check("gold an hour is worth per kill times kills an hour",
     math.abs(best[1].rate - best[1].perKill * 3600 / best[1].seconds) < 0.01)
 
+-- Kills from before the Stats tab carry no timing: the mobs are still
+-- ranked, by worth per kill, until a kill speed is timed.
+local timed = store.pace
+store.pace = {}
+local byWorth, byKill = Stats:BestMobs(5)
+suite.check("with no kill speed yet, mobs are still ranked", #byWorth >= 2 and byKill == true, #byWorth)
+suite.check("by worth per kill", byWorth[1].mob == "Slow Bear" and byWorth[1].rate == nil, byWorth[1].mob)
+store.pace = timed
+
 --------------------------------------------------------------------------------
 -- Luck
 --------------------------------------------------------------------------------
@@ -237,6 +246,57 @@ suite.check("words for it", StatsUI.LuckWords(100) == "100% luckier" and StatsUI
     and StatsUI.LuckWords(2) == "Right on the odds")
 
 --------------------------------------------------------------------------------
+-- This session and Overall
+--------------------------------------------------------------------------------
+
+suite.check("the view is This session until picked", Stats:View() == "session")
+Stats:SetView("overall")
+suite.check("Overall is kept in the account save", Stats:View() == "overall" and ns.db.statsView == "overall")
+Stats:SetView("session")
+
+-- This session's gold by source adds up to the session's copper.
+local sessionList, sessionTotal = Stats:SessionSources()
+suite.check("this session's sources come in their order", sessionList[1].key == "drops" and #sessionList == 5)
+suite.check("and add up to what the session made", sessionTotal > 0, sessionTotal)
+
+-- Overall's sources are every day kept, with the first day farmed.
+local _, allTotal, first = Stats:AllSources()
+local sum = 0
+for _, day in pairs(store.days) do sum = sum + Stats.DayCopper(day) end
+suite.check("overall sources are every day kept", allTotal == sum, allTotal .. " vs " .. sum)
+suite.check("from the first day farmed", first == Stats.DayBack(8), first)
+
+-- How this session's gold grew.
+local curve = Stats:Curve(10)
+suite.check("this session's gold draws as a curve", curve and #curve == 10, curve and #curve)
+suite.check("starting from nothing", curve and curve[1].copper == 0 and curve[1].seconds == 0)
+local rising = true
+for index = 2, #(curve or {}) do
+    if curve[index].copper < curve[index - 1].copper then rising = false end
+end
+suite.check("and only rising", rising)
+suite.check("ending at what the session made so far",
+    curve and curve[#curve].copper == Stats.curve[#Stats.curve][2])
+
+-- The mobs killed this session only.
+local sessionBest = Stats:BestMobs(5, "session")
+suite.check("This session ranks only the mobs killed since login",
+    #sessionBest == 1 and sessionBest[1].mob == "Charm Gnoll" and sessionBest[1].sessionKills == 20,
+    sessionBest[1] and sessionBest[1].mob)
+suite.check("Overall ranks every mob measured", #Stats:BestMobs(5, "overall") >= 3)
+
+-- Luck over the whole kill tally.
+local overallLuck = Stats:Luck("overall")
+suite.check("overall luck reads the kill tally", overallLuck and overallLuck.kills == 20
+    and math.abs(overallLuck.percent - 100) < 0.01, overallLuck and overallLuck.percent)
+local summaryNow = Stats:Summary()
+local tallied = 0
+for _, mob in pairs(Tracker:Store()) do tallied = tallied + (mob.kills or 0) end
+suite.check("overall kills are the whole kill tally", summaryNow.allKills == tallied, summaryNow.allKills)
+suite.check("this session's most killed mob", summaryNow.topMob == "Charm Gnoll" and summaryNow.topKills == 20,
+    summaryNow.topMob)
+
+--------------------------------------------------------------------------------
 -- Levels
 --------------------------------------------------------------------------------
 
@@ -252,6 +312,7 @@ suite.check("the fastest is marked", levels[2].fastest == true and not levels[1]
 -- The tab
 --------------------------------------------------------------------------------
 
+ns.db.statsView = "overall"
 UI:Build()
 suite.check("the window has a Stats tab", UI.tabs.stats ~= nil)
 UI:Show()
@@ -272,6 +333,28 @@ suite.check("the luck card says how lucky", StatsUI.luckCard.headline:GetText() 
 suite.check("the levels card names the fastest", StatsUI.levelsCard.headline:GetText():find("level 6", 1, true) ~= nil,
     StatsUI.levelsCard.headline:GetText())
 suite.check("the top shows days in a row", StatsUI.tiles[4].value:GetText() == tostring(Stats:Streak()))
+
+suite.check("the switch shows Overall", StatsUI.switch.selected == "overall")
+suite.check("Overall days carry no note", not StatsUI.daysCard.sameTag:IsShown())
+
+-- The switch to This session.
+local sessionTab
+for _, button in ipairs(StatsUI.switch.tabs) do
+    if button.key == "session" then sessionTab = button end
+end
+sessionTab:GetScript("OnClick")(sessionTab)
+ns.Motion:FinishAll()
+suite.check("picking This session is remembered", ns.db.statsView == "session")
+suite.check("the gold card follows it", StatsUI.sessionsCard.title:GetText() == "Gold this session"
+    and StatsUI.sessionsCard.plot:IsShown())
+suite.check("the mobs card lists this session's mobs", StatsUI.mobsCard.rows[1].name:GetText() == "Charm Gnoll"
+    and not StatsUI.mobsCard.rows[2]:IsShown(), StatsUI.mobsCard.rows[1].name:GetText())
+suite.check("the top shows this session's most killed", StatsUI.tiles[4].value:GetText() == "Charm Gnoll",
+    StatsUI.tiles[4].value:GetText())
+suite.check("days and levels say they are the same in both",
+    StatsUI.daysCard.sameTag:IsShown() and StatsUI.levelsCard.sameTag:IsShown())
+ns.db.statsView = "overall"
+StatsUI:Render()
 
 -- A click on a mob opens its loot table.
 local opened
@@ -301,19 +384,26 @@ StatsUI.Render = realRender
 -- Empty, every card says what to do rather than drawing nothing.
 ns.XP.Record = function() return { levels = {} } end
 ns.db.farmStats = nil
-Stats.current, Stats.luck = nil, nil
+Stats.current, Stats.luck, Stats.curve = nil, nil, nil
+ns.db.statsView = "session"
 UI:ShowTab("stats")
 ns.Motion:FinishAll()
 suite.check("an empty log explains the sessions card", StatsUI.sessionsCard.empty:IsShown())
 suite.check("and the sources card", StatsUI.sourcesCard.empty:IsShown())
 suite.check("and the luck card", StatsUI.luckCard.empty:IsShown())
 suite.check("and the levels card", StatsUI.levelsCard.empty:IsShown())
+suite.check("and the top says what shows when", StatsUI.tiles[2].note:GetText() == "nothing farmed yet",
+    StatsUI.tiles[2].note:GetText())
 ns.XP.Record = realRecord
 
 -- The command.
 UI:ShowTab("search")
 ns.HandleSlash("charts")
 suite.check("/farm charts opens the tab", UI.tab == "stats")
+ns.HandleSlash("charts session")
+suite.check("/farm charts session picks This session", Stats:View() == "session")
+ns.HandleSlash("charts overall")
+suite.check("/farm charts overall picks Overall", Stats:View() == "overall")
 ns.HandleSlash("charts cheer off")
 suite.check("/farm charts cheer off turns the cheer off", ns.db.statsBestCheer == false)
 ns.HandleSlash("charts cheer on")

@@ -701,7 +701,15 @@ since login, ten weeks of days and how long each level took (the XP bar's
 `xpProgress`). Drawn only while the tab shows, again `REDRAW` seconds after
 something moved (`Stats.version`). A best gold an hour yet is cheered once
 ("Best session cheer", `statsBestCheer`, on unless unticked, never rename
-it). `/farm charts [cheer on|off]`. Tested in `tools/test_stats.lua`.
+it). A switch beside Settings picks This session or Overall (the owner
+asked the same day; `statsView`, account wide, "session" by default, never
+rename it; `/farm charts session|overall`): This session draws this
+login's numbers, how its gold grew (`Stats:Curve`, kept in memory),
+its sources (each session's `sources`), the mobs killed in it and its
+luck; Overall every session, every day kept, and the whole kill tally
+(kills, luck by `Stats:Luck("overall")`, kept `LUCK_KEEP` seconds). Days
+and levels are the same in both and say so. `/farm charts [cheer on|off]`.
+Tested in `tools/test_stats.lua`.
 
 ## Loot inside dungeons
 
