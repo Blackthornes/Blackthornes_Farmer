@@ -168,11 +168,13 @@ want, records) through hooks on the partner state (`sections`, `store`,
 - What shows: records from `MIN_SAMPLE` (20) corpses become database rows
   with provenance "guild" (`DB.RANK`: forever beats guild beats classic; a
   guild row keeps the Classic row it replaced in `replaced`, and
-  `DB:RemoveSource` puts it back), marked Guild in the search, a few records
+  `DB:RemoveSource` puts it back), a few records
   a frame and only the changed ones (`GuildShare:Publish`). A mob's loot
   table shows the guild's rate (`GuildShare:RateFor`) only for drops the
   player has, only until their own kills reach the rate threshold, and never
-  a value off it. Turned off, the rows leave and the data stays.
+  a value off it. Nothing in the windows says "guild" (the owner, 2026-10-13:
+  "The UI should be all about the player"): no tag, no note; only Settings
+  and `/farm share` name it. Turned off, the rows leave and the data stays.
 - Safety: records must pass `GuildShare.Plausible`, at most `MAX_GUILDMATES`
   (20) are kept, the other account named in Settings is left to account
   sharing, and `/farm share guild forget confirm` deletes `guildDrops` and

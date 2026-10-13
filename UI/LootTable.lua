@@ -608,7 +608,6 @@ function LootTableUI:Render()
         status = data.needed == 1
             and L.Format("%s so far. Drop rates and values after %s more kill.", items, data.needed)
             or L.Format("%s so far. Drop rates and values after %s more kills.", items, data.needed)
-        if data.guildRates then status = status .. L[" Until then, the rates are your guild's."] end
     end
 
     -- Coin started being counted after some of these kills; say how many
