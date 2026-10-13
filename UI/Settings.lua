@@ -55,6 +55,8 @@ local PAGES = {
       tip = L["Share kills, drop rates and gathering with your other account"] },
     { key = "advanced", text = L["ADVANCED"],
       tip = L["Debug output, the data loaded and the list of commands"] },
+    { key = "about", text = L["ABOUT"],
+      tip = L["How these addons are made, the version, the Discord and the other Blackthornes addons"] },
 }
 
 --------------------------------------------------------------------------------
@@ -322,6 +324,7 @@ function SettingsUI:Build()
     self:BuildMapPage()
     self:BuildSharingPage()
     self:BuildAdvancedPage()
+    self:BuildAboutPage()
     self.pages:Fit()
 
     -- The house size grip under the bottom right corner
@@ -947,6 +950,20 @@ function SettingsUI:BuildSharingPage()
 end
 
 --- Advanced: debug output, the data the addon carries, and the commands.
+--- About (UI/About.lua): the note on how the addons are made, then the
+--- version, the Discord and the other Blackthornes addons.
+function SettingsUI:BuildAboutPage()
+    local pages = self.pages
+    local About = ns.About
+    if not About then return end
+    pages:Section("about", 1, L["HOW THESE ADDONS ARE MADE"])
+    local note = pages:Place("about", 1, About:Note(pages.pages.about.content, COLUMN_WIDTH))
+    pages:Searchable("about", note, note.words)
+    pages:Section("about", 2, L["ABOUT"])
+    local info = pages:Place("about", 2, About:Info(pages.pages.about.content, COLUMN_WIDTH))
+    pages:Searchable("about", info, info.words)
+end
+
 function SettingsUI:BuildAdvancedPage()
     local controls = self.controls
     local pages = self.pages

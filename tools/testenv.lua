@@ -354,6 +354,7 @@ local UI_FILES = {
     "UI/BlizzardLook.lua",
     "UI/Widgets.lua",
     "UI/Titanforged.lua",
+    "UI/About.lua",
     "UI/WhatsNew.lua",
     "UI/SettingsPages.lua",
     "UI/Main.lua",
