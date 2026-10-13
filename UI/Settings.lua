@@ -814,7 +814,7 @@ function SettingsUI:BuildMapPage()
     -- asked 2026-10-13).
     local styleNames = { sparkles = L["Sparkles"], beacon = L["Beacon"] }
     local sparkleStyleRow = pages:Row("map", 1, L["Sparkle look"],
-        L["Sparkles twinkle round the spot. A beacon is a beam of gold light rising off it, easy to see from far off. Same as /farm sparkle beacon or /farm sparkle sparkles."])
+        L["A beacon is a beam of gold light rising off the spot, easy to see from far off. Sparkles twinkle round it instead. Same as /farm sparkle beacon or /farm sparkle sparkles."])
     controls.sparkleStyle = Widgets.CreateStepper(sparkleStyleRow, {
         min = 1, max = #ns.NodeSparkle.STYLES, step = 1, value = 1,
         format = function(index) return styleNames[ns.NodeSparkle.STYLES[index]] end,
@@ -1117,7 +1117,7 @@ function SettingsUI:Refresh()
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
-    controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "beacon" and 2 or 1, true)
+    controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.killTooltip:SetChecked(db.killTooltip ~= false)
     controls.questMobCount:SetChecked(db.questMobCount ~= false)

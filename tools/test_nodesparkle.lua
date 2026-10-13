@@ -155,7 +155,11 @@ suite.check("unticking it turns it off", ns.db.nodeSparkle == false)
 box:GetScript("OnClick")(box)
 suite.check("and ticking it back on", ns.db.nodeSparkle == true)
 
-suite.check("sparkles unless a beacon is picked", NodeSparkle:Style() == "sparkles")
+suite.check("a beacon unless sparkles are picked", NodeSparkle:Style() == "beacon")
+ns.db.nodeSparkleStyle, ns.db.nodeSparkleStylePicked = "sparkles", nil
+suite.check("the first default's sparkles become the beacon", NodeSparkle:Style() == "beacon")
+ns.HandleSlash("sparkle sparkles")
+suite.check("sparkles picked stay sparkles", NodeSparkle:Style() == "sparkles")
 Face("Copper Vein", VEIN)
 ns.HandleSlash("sparkle beacon")
 suite.check("/farm sparkle beacon picks the beacon", ns.db.nodeSparkleStyle == "beacon")

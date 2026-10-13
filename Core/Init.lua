@@ -414,7 +414,7 @@ local DEFAULTS = {
     -- the owner asked 2026-10-13). Never rename it, or nodeSparkleCVars,
     -- the game settings it turned on, kept to put back.
     nodeSparkle = true,
-    nodeSparkleStyle = "sparkles",
+    nodeSparkleStyle = "beacon",
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,

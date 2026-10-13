@@ -539,7 +539,9 @@ node, scaled by the plate's size (`NodeSparkle:Drop`); fishing schools
 `C_QuestLog.UnitIsRelatedToActiveQuest`) count too (`NodeSparkle:Kind`);
 and the look can be a beacon instead, a beam of light rising off the spot
 (`Media/Frame/Beacon.tga`, same tool; "Sparkle look" in Settings,
-`nodeSparkleStyle` "sparkles" or "beacon", account wide, never rename it;
+`nodeSparkleStyle` "sparkles" or "beacon", the beacon by default (the owner,
+the same day), account wide, never rename it, nor `nodeSparkleStylePicked`,
+which turns the first default's "sparkles" into the beacon until picked;
 `/farm sparkle beacon|sparkles`). The row is "Sparkles in the world".
 Tested in `tools/test_nodesparkle.lua`.
 

@@ -81,20 +81,27 @@ NodeSparkle.GLOW = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Glow"
 NodeSparkle.STAR = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Sparkle"
 -- The other look, a beam of light rising off the spot (the owner asked
 -- 2026-10-13): `nodeSparkleStyle`, "sparkles" or "beacon", account wide,
--- sparkles unless picked; never rename it.
+-- the beacon unless sparkles are picked (the owner, the same day); never
+-- rename it. `nodeSparkleStylePicked` says the player picked it, so the
+-- "sparkles" the first default wrote into a save becomes the beacon.
 NodeSparkle.BEAM = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Beacon"
 NodeSparkle.STYLES = { "sparkles", "beacon" }
 NodeSparkle.BEACON_WIDTH, NodeSparkle.BEACON_HEIGHT = 22, 240
 NodeSparkle.PULSE = 1.2            -- seconds for the beacon to dim, and again to brighten
 
 function NodeSparkle:Style()
-    local style = ns.db and ns.db.nodeSparkleStyle
-    if style == "beacon" then return "beacon" end
-    return "sparkles"
+    local db = ns.db
+    if not db then return "beacon" end
+    if db.nodeSparkleStyle == "sparkles" and db.nodeSparkleStylePicked ~= true then
+        db.nodeSparkleStyle = "beacon"
+    end
+    if db.nodeSparkleStyle == "sparkles" then return "sparkles" end
+    return "beacon"
 end
 
 function NodeSparkle:SetStyle(style)
-    ns.db.nodeSparkleStyle = style == "beacon" and "beacon" or "sparkles"
+    ns.db.nodeSparkleStyle = style == "sparkles" and "sparkles" or "beacon"
+    ns.db.nodeSparkleStylePicked = true
     if self.shownOn then
         local plate, guid = self.shownOn, self.shownGuid
         self:ShowSparkle(plate, guid)
