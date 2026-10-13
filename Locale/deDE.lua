@@ -1037,7 +1037,11 @@ L["How these addons are made, the version, the Discord and the other Blackthorne
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
 L["Sparkles in the world"] = "Funkeln in der Welt"
 L["Gold sparkles on the herb, ore node, fishing school, chest, quest object or fishing bobber near you, one at a time, as far off as the game allows (up to 100 yards), with the game's own icon above it. It turns on the game's interact target, its icon and its name, and puts them back when unticked. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."] = "Goldenes Funkeln am Kraut, Erzvorkommen, Fischschwarm, an der Truhe, am Questobjekt oder am Schwimmer in deiner Nähe, eins nach dem anderen, so weit, wie das Spiel es erlaubt (bis 100 Meter), mit dem Symbol des Spiels darüber. Dafür schaltet es das Interaktionsziel des Spiels, sein Symbol und seinen Namen ein und stellt alles zurück, wenn du den Haken entfernst. Wie /farm sparkle. Prüfen zeigt, was das Spiel lesen lässt (/farm sparkle check)."
-L["sparkles on the node, school, chest or quest object you face on or off (beacon, sparkles, check)"] = "Funkeln an Vorkommen, Fischschwarm, Truhe oder Questobjekt vor dir ein- oder ausschalten (beacon, sparkles, check)"
+L["sparkles on the node, school, chest or quest object you face on or off (beacon, sparkles, icon, check)"] = "Funkeln an Vorkommen, Fischschwarm, Truhe oder Questobjekt vor dir ein- oder ausschalten (beacon, sparkles, icon, check)"
+L["the game's interact icon is hidden unless you play with a controller."] = "Das Interaktionssymbol des Spiels bleibt verborgen, außer du spielst mit einem Controller."
+L["the game's interact icon shows."] = "Das Interaktionssymbol des Spiels wird angezeigt."
+L["Game's interact icon"] = "Interaktionssymbol des Spiels"
+L["The game's own icon over the thing you face. Ticked, it stays out of sight unless you play with a controller. Same as /farm sparkle icon."] = "Das Symbol des Spiels über dem, was vor dir ist. Angehakt bleibt es verborgen, außer du spielst mit einem Controller. Wie /farm sparkle icon."
 L["a beacon shows the spot."] = "Ein Leuchtfeuer zeigt die Stelle."
 L["sparkles show the spot."] = "Funkeln zeigt die Stelle."
 L["Sparkles"] = "Funkeln"

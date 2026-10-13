@@ -415,6 +415,9 @@ local DEFAULTS = {
     -- the game settings it turned on, kept to put back.
     nodeSparkle = true,
     nodeSparkleStyle = "beacon",
+    -- The game's interact icon kept out of sight without a controller (the
+    -- owner asked 2026-10-13). Never rename it.
+    nodeSparkleHideIcon = true,
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,

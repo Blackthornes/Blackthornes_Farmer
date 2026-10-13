@@ -543,6 +543,13 @@ and the look can be a beacon instead, a beam of light rising off the spot
 the same day), account wide, never rename it, nor `nodeSparkleStylePicked`,
 which turns the first default's "sparkles" into the beacon until picked;
 `/farm sparkle beacon|sparkles`). The row is "Sparkles in the world".
+Without a controller (`C_GamePad.IsEnabled`, else `GamePadEnable`) the
+game's icon is kept out of sight (the owner, the same day), only while
+Farmer is the one that turned its CVars on: `NodeSparkle:VeilIcon` sets its
+alpha to 0 from Farmer's own table (never Hide), never in a fight, and puts
+it back when a controller comes on or the box is unticked. "Game's
+interact icon" (`nodeSparkleHideIcon`, on unless unticked, never rename
+it) and `/farm sparkle icon [show|hide]`.
 Tested in `tools/test_nodesparkle.lua`.
 
 ## Quest count over quest mobs

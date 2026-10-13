@@ -171,6 +171,55 @@ ns.SettingsUI.controls.sparkleStyle:SetValue(1)
 suite.check("stepping back to sparkles", ns.db.nodeSparkleStyle == "sparkles"
     and NodeSparkle.sparks[1].holder:IsShown() and not NodeSparkle.beacon.holder:IsShown())
 
+-- The game's icon, out of sight without a controller.
+local gameIcon = CreateFrame("Frame")
+gameIcon.GetObjectType = function() return "Frame" end
+local iconAlpha = 0.8
+gameIcon.GetAlpha = function() return iconAlpha end
+gameIcon.SetAlpha = function(_, a) iconAlpha = a end
+plate.UnitFrame = { SoftTargetFrame = gameIcon }
+ns.HandleSlash("sparkle on")
+suite.check("hidden by default", ns.DEFAULTS.nodeSparkleHideIcon == true)
+Face("Copper Vein", VEIN)
+suite.check("no controller: the game's icon goes see-through", iconAlpha == 0)
+Face("Mailbox", VEIN)
+suite.check("on anything the interact key picks", iconAlpha == 0)
+cvars.GamePadEnable = "1"
+Face("Copper Vein", VEIN)
+suite.check("a controller brings it back as it was", iconAlpha == 0.8)
+cvars.GamePadEnable = "0"
+_G.C_GamePad = { IsEnabled = function() return true end }
+Face("Copper Vein", VEIN)
+suite.check("a controller the game reports does too", iconAlpha == 0.8)
+_G.C_GamePad = nil
+Face("Copper Vein", VEIN)
+suite.check("hidden again without it", iconAlpha == 0)
+fighting = true
+iconAlpha = 0.5
+Face("Copper Vein", VEIN)
+suite.check("nothing touched in a fight", iconAlpha == 0.5)
+fighting = false
+Face("Copper Vein", VEIN)
+ns.HandleSlash("sparkle icon")
+suite.check("/farm sparkle icon shows it", ns.db.nodeSparkleHideIcon == false and iconAlpha == 0.8)
+ns.HandleSlash("sparkle icon hide")
+suite.check("/farm sparkle icon hide hides it", ns.db.nodeSparkleHideIcon == true and iconAlpha == 0)
+ns.SettingsUI:Show()
+local iconBox = ns.SettingsUI.controls.nodeSparkleHideIcon
+suite.check("the settings box shows it ticked", iconBox:GetChecked())
+iconBox:GetScript("OnClick")(iconBox)
+suite.check("unticking shows the icon", ns.db.nodeSparkleHideIcon == false and iconAlpha == 0.8)
+iconBox:GetScript("OnClick")(iconBox)
+ns.NodeSparkle:SetEnabled(false)
+suite.check("turning sparkles off gives the icon back", iconAlpha == 0.8)
+ns.NodeSparkle:SetEnabled(true)
+local keep = ns.db.nodeSparkleCVars
+ns.db.nodeSparkleCVars = {}
+Face("Copper Vein", VEIN)
+suite.check("an icon the player turned on themselves is left alone", iconAlpha == 0.8)
+ns.db.nodeSparkleCVars = keep
+plate.UnitFrame = nil
+
 ns.HandleSlash("sparkle check")
 suite.check("the check is kept for a report", ns.db.lastProbe and ns.db.lastProbe.check == "sparkle check")
 
