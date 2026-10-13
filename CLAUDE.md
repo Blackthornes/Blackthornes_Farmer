@@ -634,8 +634,14 @@ release. `Logic/XP.lua` works it out; `UI/XPBar.lua` draws it.
   "Put it back". Place and size: `xpBarPoint`, `xpBarRelPoint`, `xpBarX`,
   `xpBarY`, `xpBarScale`. All account wide; never rename them. `/farm
   xpbar [on|off|cheer on|off|chime on|off|game show|hide|reset|try]`.
-- The client does not tell addons which spells a trainer has, so the
-  cheer says nothing about training.
+- Class spells to train: Farmer has no spell list, so the cheer asks
+  Butler, else Equipment, `TRAIN_DELAY` seconds after the level, inside a
+  pcall and read only: `_G.BlackthornesButler.ClassTraining:IsOn()` and
+  `:Plan()` (`ready`, `cost`, `unknown`; their `Logic/ClassTraining.lua`,
+  the same file in both, which learns prices the first time a class
+  trainer is opened). "New spells at your trainer", with the cost only
+  when every spell is priced. Neither loaded, or nothing to train, no row.
+  If `Plan` changes there, change `XPBarUI.Training` here.
 
 Tested in `tools/test_xpbar.lua`. Not yet seen in game.
 

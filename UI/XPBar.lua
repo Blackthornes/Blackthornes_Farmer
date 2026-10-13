@@ -721,7 +721,7 @@ function XPBarUI:BuildCheer()
     cheer.sub = sub
 
     cheer.rows = {}
-    for index = 1, 3 do
+    for index = 1, 4 do
         local row = CreateFrame("Frame", nil, cheer)
         row:SetHeight(24)
         row.stripe = Texture(row, "BACKGROUND", 0, Theme.Unpack(index % 2 == 1 and "glass" or "glassAlt", 0.92))
@@ -774,6 +774,14 @@ function XPBarUI.CheerLines(info)
         lines[#lines + 1] = { Util.Plural(info.talents, L["1 new talent point"],
             L.Format("%d new talent points", info.talents)), "" }
     end
+    if info.training then
+        local training = info.training
+        local right = tostring(training.count)
+        if training.cost > 0 then
+            right = L.Format("%d for %s", training.count, ns.Value.Coins(training.cost))
+        end
+        lines[#lines + 1] = { L["New spells at your trainer"], right }
+    end
     if info.upgrade then
         lines[#lines + 1] = { L["Gear in your bags you can wear now"], info.upgrade }
     end
@@ -823,6 +831,52 @@ function XPBarUI:Cheer(info)
     if info.milestone and ns.Tracker then ns.Tracker.PlayFile(ns.Tracker.SOUNDS.unlock) end
 
     if not info.cap then self:FindUpgrade() end
+    if C_Timer and C_Timer.After then
+        local shown = info
+        C_Timer.After(self.TRAIN_DELAY, function() XPBarUI:AddTraining(shown) end)
+    end
+end
+
+--- Class spells to train come from Blackthornes Butler or Equipment, when
+--- either is loaded and has class training (their Logic/ClassTraining.lua,
+--- the same file in both): read only, inside a pcall. Farmer has no spell
+--- list of its own, so without them the cheer says nothing about training.
+XPBarUI.TRAIN_DELAY = 2
+XPBarUI.TRAINING_FROM = { "BlackthornesButler", "BlackthornesEquipment" }
+
+--- { count, cost } of the spells the character can train now, or nil.
+function XPBarUI.Training()
+    for _, name in ipairs(XPBarUI.TRAINING_FROM) do
+        local addon = rawget(_G, name)
+        local training = type(addon) == "table" and rawget(addon, "ClassTraining")
+        if type(training) == "table" and type(training.Plan) == "function" then
+            local ok, on = true, true
+            if type(training.IsOn) == "function" then ok, on = pcall(training.IsOn, training) end
+            if ok and on ~= false then
+                local got, plan = pcall(training.Plan, training)
+                if got and type(plan) == "table" and type(plan.ready) == "table" then
+                    local count = #plan.ready
+                    if count == 0 then return nil end
+                    local cost = ns.XP.Number(plan.cost) or 0
+                    local unknown = ns.XP.Number(plan.unknown) or 0
+                    -- A cost with spells left unpriced would read as the whole.
+                    if unknown > 0 then cost = 0 end
+                    return { count = count, cost = cost }
+                end
+            end
+        end
+    end
+    return nil
+end
+
+--- A moment after the level (the sisters wait for the client to list the
+--- new spells), the training row joins the cheer still showing it.
+function XPBarUI:AddTraining(info)
+    if self.cheerInfo ~= info or not (self.cheer and self.cheer:IsShown()) then return end
+    local training = XPBarUI.Training()
+    if not training then return end
+    info.training = training
+    self:LayCheerRows(info)
 end
 
 function XPBarUI:LayCheerRows(info)

@@ -302,6 +302,44 @@ suite.check("a long break starts a new session", XP.session.gained == 0, XP.sess
 suite.check("played time comes back without asking the game", XP:Played() ~= nil)
 
 --------------------------------------------------------------------------------
+-- Spells at the trainer, from Butler or Equipment
+--------------------------------------------------------------------------------
+
+suite.check("no sister, no training", Bar.Training() == nil)
+
+local plan = { ready = { {}, {}, {} }, cost = 12000, unknown = 0 }
+_G.BlackthornesEquipment = { ClassTraining = {
+    IsOn = function() return true end,
+    Plan = function() return plan end,
+} }
+local training = Bar.Training()
+suite.check("Equipment's plan is read", training and training.count == 3 and training.cost == 12000)
+
+local shown = { level = 23 }
+Bar:Cheer(shown)
+suite.check("the cheer gets the training row", shown.training and shown.training.count == 3)
+local rows = Bar.CheerLines(shown)
+local found
+for _, row in ipairs(rows) do
+    if row[1] == "New spells at your trainer" then found = row[2] end
+end
+suite.check("the row names count and cost", found and found:find("3 for", 1, true) and found:find("1g", 1, true), found)
+Bar:HideCheer()
+
+plan.unknown = 1
+suite.check("a cost with unpriced spells is left out", Bar.Training().cost == 0)
+plan.ready = {}
+suite.check("nothing to train, no row", Bar.Training() == nil)
+
+_G.BlackthornesEquipment.ClassTraining.IsOn = function() return false end
+plan.ready = { {} }
+suite.check("class training turned off there, no row", Bar.Training() == nil)
+
+_G.BlackthornesEquipment = { ClassTraining = { Plan = function() error("broken") end } }
+suite.check("a sister that raises gives nothing", Bar.Training() == nil)
+_G.BlackthornesEquipment = nil
+
+--------------------------------------------------------------------------------
 -- Words
 --------------------------------------------------------------------------------
 
