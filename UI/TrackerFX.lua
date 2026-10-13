@@ -99,8 +99,8 @@ local COIN_STAGGER = 1.2
 local COIN_SIZE = 14
 local BURN_TIME = 10
 local BURN_FADE = 1.5
-local BURN_SPREAD = 16
-local BURN_INNER = 6
+local BURN_SPREAD = 26
+local BURN_INNER = 10
 local EMBERS = 16
 TrackerFX.BURN_TIME = BURN_TIME
 
@@ -1213,49 +1213,54 @@ function TrackerFX:CoinRain()
         stop = function() rain:Hide() end })
 end
 
---- Four bands round `frame`, bright against its edge, fading `spread`
---- pixels out: the panel's halo, but drawn here, so the Blizzard window
---- style (which puts halos out) still shows the burn.
-local function Rim(frame, spread)
-    local sides = {}
-    for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
-        local band = frame:CreateTexture(nil, "ARTWORK")
-        pcall(band.SetBlendMode, band, "ADD")
-        if side == "TOP" or side == "BOTTOM" then
-            local out = side == "TOP" and 1 or -1
-            band:SetPoint(side .. "LEFT", frame, side .. "LEFT", -spread, out * spread)
-            band:SetPoint(side .. "RIGHT", frame, side .. "RIGHT", spread, out * spread)
-            band:SetHeight(spread)
+--- A soft ring of light round `frame`, `spread` pixels out: the glow art
+--- cut in nine, its quarters rounding the corners and its middle stretched
+--- along the sides, so the light falls off the same way all round with no
+--- seams or square corners. Drawn here rather than as the panel's halo, so
+--- the Blizzard window style (which puts halos out) still shows the burn.
+local RIM_PIECES = {
+    -- point on the piece, point on the frame, texture coordinates
+    { "BOTTOMRIGHT", "TOPLEFT", 0, 0.5, 0, 0.5, corner = true },
+    { "BOTTOMLEFT", "TOPRIGHT", 0.5, 1, 0, 0.5, corner = true },
+    { "TOPRIGHT", "BOTTOMLEFT", 0, 0.5, 0.5, 1, corner = true },
+    { "TOPLEFT", "BOTTOMRIGHT", 0.5, 1, 0.5, 1, corner = true },
+    { "BOTTOMLEFT", "TOPLEFT", 0.49, 0.51, 0, 0.5, to = { "BOTTOMRIGHT", "TOPRIGHT" } },
+    { "TOPLEFT", "BOTTOMLEFT", 0.49, 0.51, 0.5, 1, to = { "TOPRIGHT", "BOTTOMRIGHT" } },
+    { "TOPRIGHT", "TOPLEFT", 0, 0.5, 0.49, 0.51, to = { "BOTTOMRIGHT", "BOTTOMLEFT" } },
+    { "TOPLEFT", "TOPRIGHT", 0.5, 1, 0.49, 0.51, to = { "BOTTOMLEFT", "BOTTOMRIGHT" } },
+}
+
+local function Rim(frame, spread, r, g, b)
+    local pieces = {}
+    for index, piece in ipairs(RIM_PIECES) do
+        local texture = frame:CreateTexture(nil, "ARTWORK")
+        texture:SetTexture(GLOW_ART)
+        pcall(texture.SetBlendMode, texture, "ADD")
+        pcall(texture.SetTexCoord, texture, piece[3], piece[4], piece[5], piece[6])
+        pcall(texture.SetVertexColor, texture, r, g, b)
+        texture:SetPoint(piece[1], frame, piece[2], 0, 0)
+        if piece.corner then
+            texture:SetSize(spread, spread)
         else
-            local out = side == "LEFT" and -1 or 1
-            band:SetPoint("TOP" .. side, frame, "TOP" .. side, out * spread, 0)
-            band:SetPoint("BOTTOM" .. side, frame, "BOTTOM" .. side, out * spread, 0)
-            band:SetWidth(spread)
+            texture:SetPoint(piece.to[1], frame, piece.to[2], 0, 0)
+            if index <= 6 then texture:SetHeight(spread) else texture:SetWidth(spread) end
         end
-        band.side = side
-        sides[#sides + 1] = band
+        pieces[index] = texture
     end
-    return sides
+    return pieces
 end
 
-local function LightRim(sides, key, alpha)
-    for _, band in ipairs(sides) do
-        if band.side == "TOP" then
-            Theme.SetGradientAlpha(band, "VERTICAL", key, alpha, 0)
-        elseif band.side == "BOTTOM" then
-            Theme.SetGradientAlpha(band, "VERTICAL", key, 0, alpha)
-        elseif band.side == "LEFT" then
-            Theme.SetGradientAlpha(band, "HORIZONTAL", key, 0, alpha)
-        else
-            Theme.SetGradientAlpha(band, "HORIZONTAL", key, alpha, 0)
-        end
-        band:SetShown(alpha > 0)
+local function LightRim(pieces, alpha)
+    alpha = math.max(0, math.min(1, alpha))
+    for _, texture in ipairs(pieces) do
+        texture:SetAlpha(alpha)
+        texture:SetShown(alpha > 0)
     end
 end
 
---- The panel's rim burns: a red glow outside, gold against the edge, both
---- flickering, and embers rising off the top. It burns BURN_TIME seconds,
---- then cools away.
+--- The panel's rim burns: a red glow outside, gold against the edge,
+--- breathing slowly, and embers drifting up off the top. It burns
+--- BURN_TIME seconds, then cools away.
 function TrackerFX:Burn()
     local panel = ns.TrackerUI.frame
 
@@ -1264,13 +1269,14 @@ function TrackerFX:Burn()
         burn = CreateFrame("Frame", nil, panel)
         burn:SetAllPoints(panel)
         burn:SetFrameLevel(math.max(0, panel:GetFrameLevel() - 1))
-        burn.outer = Rim(burn, BURN_SPREAD)
-        burn.inner = Rim(burn, BURN_INNER)
+        burn.outer = Rim(burn, BURN_SPREAD, 1, 0.22, 0.06)
+        burn.inner = Rim(burn, BURN_INNER, 1, 0.72, 0.28)
         burn.embers = {}
         for index = 1, EMBERS do
             local ember = burn:CreateTexture(nil, "OVERLAY")
-            ember:SetColorTexture(1, 0.55 + 0.3 * (index % 3) / 2, 0.15, 1)
+            ember:SetTexture(GLOW_ART)
             pcall(ember.SetBlendMode, ember, "ADD")
+            pcall(ember.SetVertexColor, ember, 1, 0.45 + 0.3 * (index % 3) / 2, 0.12)
             burn.embers[index] = ember
         end
         self.burn = burn
@@ -1278,12 +1284,13 @@ function TrackerFX:Burn()
 
     local okW, width = pcall(panel.GetWidth, panel)
     width = okW and tonumber(width) or 200
-    for index, ember in ipairs(burn.embers) do
+    for _, ember in ipairs(burn.embers) do
         ember.x = math.random() * width
-        ember.rise = 18 + math.random() * 26
-        ember.speed = 0.6 + math.random() * 0.8
+        ember.rise = 24 + math.random() * 30
+        ember.speed = 0.35 + math.random() * 0.4
         ember.phase = math.random()
-        local size = 2 + math.random(0, 2)
+        ember.sway = math.random() * 6.28
+        local size = 6 + math.random() * 5
         ember:SetSize(size, size)
     end
     burn:Show()
@@ -1292,20 +1299,23 @@ function TrackerFX:Burn()
     self:Start({ slot = "burn", duration = total,
         apply = function(p)
             local now = p * total
-            -- In over half a second, burning, then cooling away.
-            local heat = math.min(1, now / 0.5)
+            -- In over a second, burning, then cooling away, eased both ways.
+            local heat = math.min(1, now / 1)
             if now > BURN_TIME then heat = math.max(0, 1 - (now - BURN_TIME) / BURN_FADE) end
-            local flicker = 0.8 + 0.12 * math.sin(now * 13) + 0.08 * math.sin(now * 29 + 1)
+            heat = heat * heat * (3 - 2 * heat)
+            -- A slow breath with a faint shimmer, never a strobe.
+            local breath = 0.86 + 0.1 * math.sin(now * 2.2) + 0.04 * math.sin(now * 5.3 + 1)
 
-            LightRim(burn.outer, "loss", 0.75 * heat * flicker)
-            LightRim(burn.inner, "accent", 0.9 * heat * (1.9 - flicker))
+            LightRim(burn.outer, 0.85 * heat * breath)
+            LightRim(burn.inner, 0.7 * heat * (0.92 + 0.08 * math.sin(now * 2.2 + 1.4)))
 
             for _, ember in ipairs(burn.embers) do
                 local t = (now * ember.speed + ember.phase) % 1
                 ember:ClearAllPoints()
-                ember:SetPoint("BOTTOM", burn, "TOPLEFT", ember.x + 4 * math.sin(now * 3 + ember.x),
+                ember:SetPoint("CENTER", burn, "TOPLEFT", ember.x + 5 * math.sin(now * 1.6 + ember.sway),
                     t * ember.rise)
-                ember:SetAlpha(heat * (1 - t))
+                -- Fades in off the rim and out as it rises.
+                ember:SetAlpha(heat * math.min(1, t * 5) * (1 - t))
                 ember:SetShown(heat > 0)
             end
 
