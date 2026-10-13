@@ -19,7 +19,9 @@ _G.PlaySound = function(sound, channel)
     return not refuse[sound]
 end
 
--- What the addon says in public, and on which chat type.
+-- Anything the addon tries to say in public. It never should: Forever
+-- blocks a chat send from a loot event ("ADDON BLOCKED" at a fishing spot's
+-- 20th cast, 2026-10-13), and the owner had the emote taken out.
 local sent = {}
 _G.SendChatMessage = function(text, chatType)
     sent[#sent + 1] = { text = text, chatType = chatType }
@@ -62,13 +64,7 @@ suite.check("with no other addon prefix in front",
     said:find("Farmer|r |c", 1, true) == nil, said)
 suite.check("a sound plays", #played == 1 and played[1].sound == 12891, #played)
 
--- The owner: "others should see it to promote the addon".
-suite.check("players nearby see one emote", #sent == 1 and sent[1].chatType == "EMOTE",
-    #sent)
-suite.check("naming the mob and the addon",
-    sent[1] and sent[1].text == "unlocked drop rates for Mangy Wolf after 20 kills! "
-        .. "(Blackthornes Farmer)", sent[1] and sent[1].text)
-suite.check("in plain text, with no colour codes", sent[1] and not sent[1].text:find("|", 1, true))
+suite.check("nothing is said in public", #sent == 0, #sent)
 
 -- A second window on the 20th corpse is not another kill.
 mark = #env.chat
@@ -79,39 +75,15 @@ suite.check("skinning the 20th corpse does not celebrate again",
 Loot(WOLF, {})
 suite.check("nor does the 21st kill", not ChatSince(mark):find("unlocked", 1, true)
     and #played == 1)
-suite.check("and neither is said in public again", #sent == 1, #sent)
 
--- Kept to yourself: the sound and your own line, no emote.
-ns.HandleSlash("announce off")
-mark = #env.chat
-for _ = 1, 20 do Loot("Defias Thug", {}) end
-suite.check("with announce off, your own chat still gets the line",
-    ChatSince(mark):find("Drop rates unlocked for", 1, true) ~= nil)
-suite.check("but nothing is said in public", #sent == 1, #sent)
-ns.HandleSlash("announce on")
-
--- The newest clients keep SendChatMessage under C_ChatInfo.
+-- Nor through the newer chat call.
 local modern = {}
 _G.C_ChatInfo = { SendChatMessage = function(text, chatType)
     modern[#modern + 1] = { text = text, chatType = chatType }
 end }
 for _ = 1, 20 do Loot("Riverpaw Gnoll", {}) end
-suite.check("C_ChatInfo.SendChatMessage is used where it exists",
-    #modern == 1 and modern[1].chatType == "EMOTE" and #sent == 1, #modern)
+suite.check("C_ChatInfo.SendChatMessage is never called", #modern == 0, #modern)
 _G.C_ChatInfo = nil
-
--- A mob name that would break a chat line is cleaned first.
-suite.check("a stray | is taken out", Tracker:Announce("a|b") and sent[#sent].text == "ab",
-    sent[#sent].text)
-
--- The client refusing the emote costs the emote, not the kill.
-_G.SendChatMessage = function() error("blocked") end
-local ok_, err_ = pcall(function() for _ = 1, 20 do Loot("Murloc Forager", {}) end end)
-suite.check("a refused emote does not break the kill", ok_, err_)
-suite.check("which still counts", Tracker:Store()["Murloc Forager"].kills == 20)
-_G.SendChatMessage = function(text, chatType)
-    sent[#sent + 1] = { text = text, chatType = chatType }
-end
 
 -- A client that will not play the first sound gets the plainer one.
 refuse[12891] = true
@@ -190,15 +162,15 @@ suite.check("naming the spot and where it is",
         and said:find("in Crystal Lake, Elwynn Forest", 1, true) ~= nil, said)
 suite.check("and its best catch", said:find("Best catch: " .. SMALLFISH, 1, true) ~= nil, said)
 suite.check("a sound plays", #played == before + 1, #played - before)
-suite.check("players nearby see one emote", #sent == sentBefore + 1
-    and sent[#sent].chatType == "EMOTE"
-    and sent[#sent].text == "unlocked catch rates for open water in Crystal Lake, "
-        .. "Elwynn Forest after 20 casts! (Blackthornes Farmer)", sent[#sent].text)
+-- The report: this cast raised "ADDON BLOCKED", since an emote was sent
+-- from it. Now nothing is.
+suite.check("nothing is said in public at a fishing spot either", #sent == sentBefore,
+    #sent - sentBefore)
 
 mark = #env.chat
 Cast("Elwynn Forest", "Crystal Lake")
 suite.check("the 21st cast does not celebrate again",
-    #played == before + 1 and #sent == sentBefore + 1
+    #played == before + 1 and #sent == sentBefore
         and not ChatSince(mark):find("unlocked", 1, true))
 
 -- Each spot unlocks on its own.
@@ -206,12 +178,6 @@ for _ = 1, 20 do Cast("Elwynn Forest", "Stone Cairn Lake") end
 suite.check("another spot gets its own fanfare", #played == before + 2, #played - before)
 
 -- The same switches as kills.
-ns.HandleSlash("announce off")
-sentBefore = #sent
-for _ = 1, 20 do Cast("Westfall", "The Dagger Hills") end
-suite.check("with announce off, no fishing emote", #sent == sentBefore, #sent - sentBefore)
-ns.HandleSlash("announce on")
-
 ns.HandleSlash("celebrate off")
 before, mark = #played, #env.chat
 for _ = 1, 20 do Cast("Westfall", "Moonbrook") end

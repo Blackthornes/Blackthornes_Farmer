@@ -3,7 +3,7 @@
 -- What matters: hovering a mob whose name is secret never errors and still
 -- counts as "a unit is under the mouse"; a fishing flag the client will not
 -- let us read is not taken as fishing, so the corpse is still recorded; and
--- the unlock /emote is never sent from inside an instance.
+-- whether we are inside reads safely.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("dungeon")
@@ -39,24 +39,17 @@ suite.check("an unreadable fishing flag does not raise", okNode, node)
 suite.check("and is not taken for fishing", okNode and node == false, node)
 _G.IsFishingLoot = real
 
--- The unlock emote.
-local sent = {}
-_G.SendChatMessage = function(text, chatType)
-    sent[#sent + 1] = { text = text, chatType = chatType }
-end
-
+-- Inside or not (the arrow asks).
 _G.IsInInstance = function() return false, "none" end
-suite.check("outside an instance the emote goes out",
-    ns.Tracker:Announce("hello") and #sent == 1, #sent)
+suite.check("outside an instance reads as outside", ns.Tracker.InInstance() == false)
 
 _G.IsInInstance = function() return true, "party" end
-suite.check("inside a dungeon it is not sent",
-    ns.Tracker:Announce("hello") == false and #sent == 1, #sent)
+suite.check("inside a dungeon reads as inside", ns.Tracker.InInstance() == true)
 
 _G.IsInInstance = function() error("refused") end
-local okSecret, result = pcall(ns.Tracker.Announce, ns.Tracker, "hello")
+local okSecret, result = pcall(ns.Tracker.InInstance)
 suite.check("a client that will not say counts as inside, without raising",
-    okSecret and result == false and #sent == 1, result)
+    okSecret and result == true, result)
 
 _G.IsInInstance = nil
 suite.done()

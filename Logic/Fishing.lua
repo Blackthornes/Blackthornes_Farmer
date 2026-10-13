@@ -309,7 +309,7 @@ function Fishing:Record(zone, location, school, items, quantities, skill, coords
 end
 
 --- Catch rates just unlocked at a spot: the kill tally's fanfare, with the
---- same /farm celebrate and /farm announce switches.
+--- same /farm celebrate switch.
 function Fishing:Celebrate(key)
     if ns.db.trackerCelebrate == false then return end
 
@@ -326,8 +326,7 @@ function Fishing:Celebrate(key)
             Util.Colored("good", ns.Tracker.FormatChance(best.chance)))
     end
 
-    ns.Tracker:Fanfare(line, L.Format("unlocked catch rates for %s%s after %d casts! (Blackthornes Farmer)",
-            Shown(summary.name), where, summary.casts),
+    ns.Tracker:Fanfare(line,
         { title = L["CATCH RATES UNLOCKED"], subject = L.Format("%s  |  %d casts",
             (Shown(summary.name):gsub("^%l", string.upper)), summary.casts), key = "spot:" .. tostring(key) })
 end

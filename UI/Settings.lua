@@ -594,14 +594,6 @@ function SettingsUI:BuildTallyPage()
     end, false)
     controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local announceRow = pages:Row("tally", 1, L["Share milestones"],
-        L["A mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather: an /emote players near you see. Your chat always gets it. Same as /farm announce."])
-
-    controls.announce = Widgets.CreateCheckbox(announceRow, L["Emote it"], function(checked)
-        ns.db.trackerAnnounce = checked
-    end, true)
-    controls.announce:SetPoint("TOPLEFT", CONTROL_X, -2)
-
     local celebrateRow = pages:Row("tally", 1, L["Milestone fanfare"],
         L["A sound and a cheer when a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather unlocks its rates. Same as /farm celebrate."])
 
@@ -1028,7 +1020,6 @@ function SettingsUI:Refresh()
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)
     controls.report:SetChecked(db.trackerReport == true)
-    controls.announce:SetChecked(db.trackerAnnounce ~= false)
     controls.celebrate:SetChecked(db.trackerCelebrate ~= false)
 
     local ok, bank = pcall(function() return ns.Goals:CountsBank() end)

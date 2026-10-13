@@ -460,8 +460,7 @@ function Gathering:Celebrate(key)
     local line = L.Format("Gather rates unlocked for %s%s! %d gathers in.",
         Util.Colored("accent", summary.name), where, summary.gathers)
 
-    ns.Tracker:Fanfare(line, L.Format("unlocked gather rates for %s%s after %d gathers! (Blackthornes Farmer)",
-            summary.name, where, summary.gathers),
+    ns.Tracker:Fanfare(line,
         { title = L["GATHER RATES UNLOCKED"], subject = L.Format("%s  |  %d gathers", summary.name, summary.gathers),
             key = "node:" .. tostring(key) })
 end

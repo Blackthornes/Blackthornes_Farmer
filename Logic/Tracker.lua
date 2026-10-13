@@ -831,7 +831,7 @@ function Tracker:Report(mobName)
 end
 
 --- Inside a dungeon, raid, battleground or arena? Read like any other client
--- value; when the client will not say, assume yes, so nothing public is sent.
+-- value; when the client will not say, assume yes.
 function Tracker.InInstance()
     if type(IsInInstance) ~= "function" then return false end
     local ok, inside = pcall(IsInInstance)
@@ -839,26 +839,6 @@ function Tracker.InInstance()
     local readable, answer = pcall(function() return inside == true or inside == 1 end)
     if not readable then return true end
     return answer == true
-end
-
---- Say `text` as an /emote: "Blackthornez unlocked drop rates for ...".
---
--- EMOTE, because the client lets an addon send it from an event. SAY and YELL
--- need a key press or click behind them outside an instance, and a loot
--- window opening is not one. Plain text only: no colours or links, and a
--- stray "|" would make the chat server drop the line.
-function Tracker:Announce(text)
-    -- Not inside a dungeon or raid: the client can lock chat down there, and a
-    -- blocked send shows the player an "Interface action failed" message that
-    -- a pcall cannot catch. The celebration still plays for you.
-    if Tracker.InInstance() then return false end
-
-    text = tostring(text):gsub("|", "")
-
-    local send = (C_ChatInfo and C_ChatInfo.SendChatMessage) or _G.SendChatMessage
-    if type(send) ~= "function" then return false end
-
-    return (pcall(send, text, "EMOTE"))
 end
 
 -- Sounds to try for the fanfare, best first: the achievement toast, then the
@@ -885,14 +865,10 @@ function Tracker.PlayFile(path)
     return (ok and willPlay) and true or false
 end
 
---- Drop rates just unlocked for `mobName`: a sound, a line in your own chat,
---- and an /emote the players around you see.
---
--- Asked for (2026-09-25), and for others to see it too, to spread
--- the word about the addon. The emote is the one public thing the addon ever
--- says: once per mob at its 20th kill, and the same for a fishing spot's
--- 20th cast and a node's 20th gather. `/farm announce off` keeps it to
--- yourself; `/farm celebrate off` turns the whole thing off.
+--- Drop rates just unlocked for `mobName`: a sound, a line in your own chat
+--- and the banner. Nothing is said in public: the /emote it once sent went
+--- (the owner, 2026-10-13), after Forever blocked it as "ADDON BLOCKED" at a
+--- fishing spot's 20th cast. `/farm celebrate off` turns it all off.
 function Tracker:Celebrate(mobName)
     if ns.db.trackerCelebrate == false then return end
 
@@ -910,27 +886,22 @@ function Tracker:Celebrate(mobName)
         line = line .. L[" Nothing has dropped yet."]
     end
 
-    self:Fanfare(line, L.Format("unlocked drop rates for %s after %d kills! (Blackthornes Farmer)",
-            summary.mob, summary.kills),
+    self:Fanfare(line,
         { title = L["DROP RATES UNLOCKED"], subject = L.Format("%s  |  %d kills", summary.mob, summary.kills),
             key = "mob:" .. summary.mob })
 end
 
---- The fanfare itself: `line` in your own chat, `emote` to the players near
---- you (unless /farm announce is off), the sound, and `banner` ({ title,
---- subject, key }) across the top of the panel. Fishing and gathering use
---- it too, when a spot's catch rates unlock at 20 casts or a node's gather
---- rates at 20 gathers. The caller checks /farm celebrate.
-function Tracker:Fanfare(line, emote, banner)
+--- The fanfare itself: `line` in your own chat, the sound, and `banner`
+--- ({ title, subject, key }) across the top of the panel. Fishing and
+--- gathering use it too, when a spot's catch rates unlock at 20 casts or a
+--- node's gather rates at 20 gathers. The caller checks /farm celebrate.
+--- It never sends chat: Forever blocks that from a loot event.
+function Tracker:Fanfare(line, banner)
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
 
     if banner and ns.TrackerFX then
         local ok, err = pcall(ns.TrackerFX.Unlocked, ns.TrackerFX, banner)
         if not ok then ns.Debug("unlock banner:", tostring(err)) end
-    end
-
-    if emote and ns.db.trackerAnnounce ~= false then
-        self:Announce(emote)
     end
 
     if Tracker.PlayFile(Tracker.SOUNDS.unlock) then return end
@@ -1064,25 +1035,6 @@ ns.RegisterCommand("celebrate", L["sound and cheer at a mob's 20th kill, a fishi
         ns.Print(ns.db.trackerCelebrate
             and L["a fanfare when rates unlock at 20 kills, casts or gathers. /farm celebrate off to stop."]
             or L["no fanfare when rates unlock. /farm celebrate on to bring it back."])
-    end)
-
-ns.RegisterCommand("announce", L["emote your 20 kill, cast and gather milestones to players nearby (on/off)"],
-    function(rest)
-        local argument = Util.Trim(rest):lower()
-
-        if argument == "on" then
-            ns.db.trackerAnnounce = true
-        elseif argument == "off" then
-            ns.db.trackerAnnounce = false
-        else
-            ns.db.trackerAnnounce = ns.db.trackerAnnounce == false
-        end
-
-        ns.Print(ns.db.trackerAnnounce
-            and L["players near you see an emote when rates unlock. /farm announce off to stop."]
-            or L["milestones stay in your own chat. /farm announce on to share them."])
-
-        if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
     end)
 
 ns.RegisterCommand("kills", L["a mob's kill tally and drop rates"], function(rest)
