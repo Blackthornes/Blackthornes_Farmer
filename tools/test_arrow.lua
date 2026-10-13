@@ -545,4 +545,62 @@ do
     suite.check("a click goes back to the goals", Arrow.grind == nil)
 end
 
+-- Farmer's XP bar comes up after the arrow: the arrow hears it being built
+-- and shown (no timer), moves below it, plate and close gem too, and leaves
+-- a spot clear of it alone.
+do
+    local frame = ArrowUI:Build()
+    frame:Show()
+    local rects = {
+        [frame] = { 700, 860, 150, 130 },
+        [ArrowUI.plate] = { 700, 970, 150, 20 },
+    }
+    for part, rect in pairs(rects) do
+        part.GetRect = function() return rect[1], rect[2], rect[3], rect[4] end
+        part.IsShown = function() return true end
+    end
+    if ArrowUI.close then
+        ArrowUI.close.GetRect = function() return 854, 971, 18, 18 end
+        ArrowUI.close.IsShown = function() return true end
+    end
+
+    local hooksBefore = _G.hooksecurefunc
+    _G.hooksecurefunc = function(t, name, fn)
+        local original = t[name]
+        t[name] = function(...)
+            local a, b = original(...)
+            fn(...)
+            return a, b
+        end
+    end
+    local scripts = {}
+    local bar = CreateFrame("Frame")
+    bar.IsShown = function() return true end
+    bar.GetRect = function() return 600, 1000, 400, 40 end
+    bar.HookScript = function(_, script, fn) scripts[script] = fn end
+    local xp = {}
+    function xp:Build() self.frame = bar; return bar end
+    local saved = _G.BlackthornesFarmer.XPBarUI
+    _G.BlackthornesFarmer.XPBarUI = xp
+    ArrowUI.watchingBar, ArrowUI.watchedBar = nil, nil
+    frame._point = { "CENTER", UIParent, "BOTTOMLEFT", 775, 925 }
+
+    ArrowUI:AvoidXPBar()
+    suite.check("with no bar yet the arrow waits for Farmer to build one", xp.frame == nil)
+    xp:Build()
+    suite.check("then it listens to the bar", scripts.OnShow ~= nil and scripts.OnSizeChanged ~= nil)
+    local point = frame._point
+    suite.check("a spot clear of the bar stays", point[1] == "CENTER" and point[4] == 775, point[1])
+
+    rects[ArrowUI.plate][2] = 1005
+    scripts.OnSizeChanged(bar)
+    point = frame._point
+    suite.check("only the plate on the bar is enough to move it below",
+        point[1] == "TOP" and point[2] == bar and point[3] == "BOTTOM", point[1])
+
+    _G.BlackthornesFarmer.XPBarUI = saved
+    _G.hooksecurefunc = hooksBefore
+    ArrowUI.watchingBar, ArrowUI.watchedBar = nil, nil
+end
+
 suite.done()
