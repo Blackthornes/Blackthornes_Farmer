@@ -446,7 +446,7 @@ function Trash:ShowTooltip(owner)
             1, 1, 1, true)
         GameTooltip:AddLine(L["Not for a goal or a quest, and not gear you could wear."], 0.8, 0.8, 0.8, true)
         GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(L["Click to pick it up. Drop it outside your bags and the game asks before it is destroyed."],
+        GameTooltip:AddLine(L["This is the least valuable item in your bags."],
             0.2, 1, 0.2, true)
         GameTooltip:Show()
     end)
