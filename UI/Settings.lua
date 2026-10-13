@@ -667,6 +667,42 @@ function SettingsUI:BuildTallyPage()
     local _, topButton = CommandRow(pages, "tally", 2, L["Your top 15"],
         L["Shows your best mobs by worth per kill, from your own kills, the way the rank-up pop-up does. Same as /farm rankup show."], L["Show it"], "rankup show")
     controls.rankUpShow = topButton
+
+    -- The XP bar (UI/XPBar.lua, the owner asked 2026-10-13).
+    pages:Section("tally", 2, L["XP BAR"])
+
+    local xpRow = pages:Row("tally", 2, L["XP bar"],
+        L["A bar that shows your level, what finished quests and rested XP are worth, and when you reach the next level at your pace. Hover it for how to finish the level; drag it to move it. Same as /farm xpbar."])
+    controls.xpBar = Widgets.CreateCheckbox(xpRow, L["Show it"], function(checked)
+        ns.XPBarUI:SetOn(checked)
+    end, true)
+    controls.xpBar:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local cheerRow = pages:Row("tally", 2, L["Level-up cheer"],
+        L["A card that says how long the level took when you level up, bigger every tenth level. Same as /farm xpbar cheer."])
+    controls.xpBarCheer = Widgets.CreateCheckbox(cheerRow, L["Show it"], function(checked)
+        ns.db.xpBarCheer = checked
+    end, true)
+    controls.xpBarCheer:SetPoint("TOPLEFT", CONTROL_X, -2)
+    controls.xpBarTry = CommandButton(cheerRow, L["Try it"], "xpbar try", 60, CONTROL_X + 70)
+
+    local chimeRow = pages:Row("tally", 2, L["Chime every tenth"],
+        L["A soft chime as the bar crosses each tenth of the level. Same as /farm xpbar chime."])
+    controls.xpBarChime = Widgets.CreateCheckbox(chimeRow, L["Play it"], function(checked)
+        ns.db.xpBarChime = checked
+    end, true)
+    controls.xpBarChime:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local gameRow = pages:Row("tally", 2, L["Game's XP bar"],
+        L["Makes the game's own XP bar see-through while yours shows (a reputation bar beside it too). Unticked, it is back as it was. Same as /farm xpbar game."])
+    controls.xpBarHideGame = Widgets.CreateCheckbox(gameRow, L["Hide it"], function(checked)
+        ns.XPBarUI:SetHideGame(checked)
+    end, false)
+    controls.xpBarHideGame:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local _, resetButton = CommandRow(pages, "tally", 2, L["XP bar place"],
+        L["Puts the XP bar back at the top of the screen, at its normal size. Same as /farm xpbar reset."], L["Put it back"], "xpbar reset")
+    controls.xpBarReset = resetButton
 end
 
 --- Loot: recording what drops, its export, fishing and gathering.
@@ -1164,6 +1200,12 @@ function SettingsUI:Refresh()
         controls.rankUpSound:SetChecked(ns.RankUp.SoundOn())
     end
     controls.voice:SetChecked(ns.TrackerFX.VoiceOn())
+    if ns.XPBarUI then
+        controls.xpBar:SetChecked(ns.XPBarUI.On())
+        controls.xpBarCheer:SetChecked(ns.XPBarUI.CheerOn())
+        controls.xpBarChime:SetChecked(ns.XPBarUI.ChimeOn())
+        controls.xpBarHideGame:SetChecked(ns.XPBarUI.HidesGame())
+    end
     controls.textSize:Sync()
     controls.windowStyle:Sync()
 

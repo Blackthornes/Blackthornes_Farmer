@@ -334,6 +334,7 @@ local FILES = {
     "Logic/RankUp.lua",
     "Logic/Goals.lua",
     "Logic/Session.lua",
+    "Logic/XP.lua",
     "Logic/Butler.lua",
     "Logic/Spots.lua",
     "Logic/Arrow.lua",
@@ -379,6 +380,8 @@ local UI_FILES = {
     "UI/HideMenu.lua",
     "UI/HiddenWindow.lua",
     "UI/Trash.lua",
+    "UI/Veil.lua",
+    "UI/XPBar.lua",
     "UI/Settings.lua",
 }
 

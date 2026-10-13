@@ -586,6 +586,65 @@ plate (not in dungeons). "Quest count" on the Map & goals page
 (`questMobCount`, on unless unticked, never rename it) and `/farm
 questcount`. Tested in `tools/test_questmobs.lua`. Not yet seen in game.
 
+## The XP bar
+
+The owner asked (2026-10-13) for an XP bar in the house style that does
+more than show a number, picked the mockup (`previews/xp-bar/` in the
+project files) with its small rewards, and said leveling goes to 60 at
+release. `Logic/XP.lua` works it out; `UI/XPBar.lua` draws it.
+
+- The cap is the client's (`GetMaxLevelForPlayerExpansion`, then
+  `GetMaxPlayerLevel`, then `MAX_PLAYER_LEVEL`), else `XP.CAP` (60). Never
+  hard-code Forever's beta cap of 30. The bar hides at the cap and while XP
+  is turned off (`XP.Earning`). Levels past the one you are on are
+  Classic's (`XP.TABLE`) scaled by this client's number for your level.
+- What it reads: XP from `PLAYER_XP_UPDATE` (gains counted across a
+  level-up), a kill's XP from the game's own chat format
+  (`COMBATLOG_XPGAIN_FIRSTPERSON` through `XP.Pattern`, so a German line
+  in another order reads too), quest XP from `QUEST_TURNED_IN`, and the
+  quest log (`C_QuestLog`, `GetQuestLogRewardXP`) only after it moved
+  (`XP.SETTLE`). Mob XP is kept for the session only.
+- Saved per character by GUID in `xpProgress[guid]` (never rename it):
+  played time and time on this level as last read, how long each level
+  took (`levels[n]`), past sessions' XP and time (`paceXP`,
+  `paceSeconds`, for "your usual pace") and the session at logout, picked
+  up again within `XP.RESUME` (a /reload). The game is asked for played
+  time (`RequestTimePlayed`, which prints in chat) only when nothing is
+  kept for this level.
+- The bar: played and level time, finished quests' XP and rested above;
+  level, XP and percent on it, with this session, the quests and rested as
+  their own bands; time to level and XP an hour below (gold "(up N%)" when
+  `XP.AHEAD` faster than usual); a kill streak of 3 or more. The hover card
+  says how to finish the level (hand in, kills of the last mob, quests
+  under way, rested, the cap at your usual pace).
+- Small rewards (Window effects Full only for motion): XP floats off the
+  tip, a light runs along it for a quest, each tenth chimes
+  (`Media/Sounds/xp-tick.ogg`, `tools/make_sounds.py`), a green glow while
+  finished quests would level you, and the level-up cheer (`Cheer`: the
+  time it took, fastest since, coins on every tenth level and the cap). The
+  cheer looks through the bags a few slots a frame for gear Equipment
+  calls an upgrade, inside a pcall, read only:
+  `_G.BlackthornesEquipment.Compare:IsUpgrade(link)`.
+- The game's XP bar is never hidden: "Game's XP bar" makes it see-through
+  through `ns.Veil` (`UI/Veil.lua`, Equipment's file; a fix to it belongs
+  in both) and puts it back; a fight makes it wait.
+- Settings, Kill tally page, XP BAR: "XP bar" (`xpBar`), "Level-up cheer"
+  (`xpBarCheer`) with Try it, "Chime every tenth" (`xpBarChime`), all on
+  unless unticked; "Game's XP bar" (`xpBarHideGame`, off unless ticked);
+  "Put it back". Place and size: `xpBarPoint`, `xpBarRelPoint`, `xpBarX`,
+  `xpBarY`, `xpBarScale`. All account wide; never rename them. `/farm
+  xpbar [on|off|cheer on|off|chime on|off|game show|hide|reset|try]`.
+- Class spells to train: Farmer has no spell list, so the cheer asks
+  Butler, else Equipment, `TRAIN_DELAY` seconds after the level, inside a
+  pcall and read only: `_G.BlackthornesButler.ClassTraining:IsOn()` and
+  `:Plan()` (`ready`, `cost`, `unknown`; their `Logic/ClassTraining.lua`,
+  the same file in both, which learns prices the first time a class
+  trainer is opened). "New spells at your trainer", with the cost only
+  when every spell is priced. Neither loaded, or nothing to train, no row.
+  If `Plan` changes there, change `XPBarUI.Training` here.
+
+Tested in `tools/test_xpbar.lua`. Not yet seen in game.
+
 ## Loot inside dungeons
 
 Inside a dungeon the client hides the corpse's name and guid from addons,
