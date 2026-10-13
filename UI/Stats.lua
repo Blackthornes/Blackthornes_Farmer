@@ -776,9 +776,14 @@ function StatsUI:BuildMobs(card)
                 lines[#lines + 1] = L.Format("Killed this session: %d", entry.sessionKills)
             end
             lines[#lines + 1] = L.Format("Worth per kill: %s", ns.Value.Coins(entry.perKill))
-            lines[#lines + 1] = L.Format("About %d seconds a kill", math.floor(entry.seconds + 0.5))
-            lines[#lines + 1] = entry.own and L["Your own pace for this mob."]
-                or L.Format("Your usual pace; its own shows after %d kills close together.", ns.Stats.PACE_MIN)
+            if entry.seconds then
+                lines[#lines + 1] = L.Format("About %d seconds a kill", math.floor(entry.seconds + 0.5))
+                lines[#lines + 1] = entry.own and L["Your own pace for this mob."]
+                    or L.Format("Your usual pace; its own shows after %d kills close together.", ns.Stats.PACE_MIN)
+            else
+                lines[#lines + 1] = L.Format("Gold an hour shows once %d kills close together are timed.",
+                    ns.Stats.PACE_MIN)
+            end
             lines[#lines + 1] = L["Click for its loot table."]
             Tip(self, entry.mob, lines)
         end
@@ -787,9 +792,14 @@ function StatsUI:BuildMobs(card)
 end
 
 function StatsUI:DrawMobs(card, arrive, view)
-    local list = ns.Stats:BestMobs(MOB_ROWS, view)
-    card.subtitle:SetText(view == "session" and L["the mobs you killed this session"]
-        or L["gold an hour at your kill speed"])
+    local list, byKill = ns.Stats:BestMobs(MOB_ROWS, view)
+    card.byKill = byKill
+    if byKill then
+        card.subtitle:SetText(L["worth per kill until your kill speed is timed"])
+    else
+        card.subtitle:SetText(view == "session" and L["the mobs you killed this session"]
+            or L["gold an hour at your kill speed"])
+    end
     if #list == 0 then
         for _, row in ipairs(card.rows) do row:Hide() end
         Empty(card, view == "session"
@@ -801,7 +811,7 @@ function StatsUI:DrawMobs(card, arrive, view)
     end
     Empty(card, nil)
 
-    local top = list[1].rate
+    local top = list[1].rate or list[1].perKill
     for index, row in ipairs(card.rows) do
         local entry = list[index]
         row.entry = entry
@@ -811,8 +821,10 @@ function StatsUI:DrawMobs(card, arrive, view)
             Stripe(row, index, index == 1)
             row.name:SetText(entry.mob)
             row.name:SetTextColor(Theme.Unpack(index == 1 and "accentHi" or "text"))
-            row.value:SetText(ns.Value.Coins(entry.rate))
-            row.share = top > 0 and entry.rate / top or 0
+            local value = entry.rate or entry.perKill
+            row.value:SetText(entry.rate and ns.Value.Coins(value)
+                or L.Format("%s a kill", ns.Value.Coins(value)))
+            row.share = top > 0 and value / top or 0
         end
     end
 

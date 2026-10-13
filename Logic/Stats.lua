@@ -694,7 +694,8 @@ end
 
 --- Mobs you have killed enough to measure, by gold an hour at your kill
 --- speed: { { mob, rate, perKill, seconds, own } }, best first, at most
---- `count`.
+--- `count`. Second value: true while no kill speed is known yet, and the
+--- list is by worth per kill (rate and seconds nil).
 function Stats:BestMobs(count, view)
     local list = {}
     local Tracker, Value = ns.Tracker, ns.Value
@@ -708,19 +709,24 @@ function Stats:BestMobs(count, view)
             and not (ns.DB and ns.DB:IsHiddenSource(name)) then
             local perKill = Value:FromTally(name)
             local seconds, own = self:SecondsPerKill(name)
-            if perKill and perKill > 0 and seconds then
+            -- Until any kill speed is known (it is timed only from the
+            -- Stats tab on), mobs are ranked by worth per kill instead.
+            if perKill and perKill > 0 then
                 list[#list + 1] = { mob = name, perKill = perKill, seconds = seconds, own = own,
-                    rate = perKill * 3600 / seconds, sessionKills = only and only[name].kills or nil }
+                    rate = seconds and perKill * 3600 / seconds or nil,
+                    sessionKills = only and only[name].kills or nil }
             end
         end
     end
+    local byKill = list[1] ~= nil and list[1].rate == nil
     table.sort(list, function(a, b)
-        if a.rate ~= b.rate then return a.rate > b.rate end
+        local x, y = a.rate or a.perKill, b.rate or b.perKill
+        if x ~= y then return x > y end
         return a.mob < b.mob
     end)
     count = count or 5
     while #list > count do table.remove(list) end
-    return list
+    return list, byKill
 end
 
 --------------------------------------------------------------------------------

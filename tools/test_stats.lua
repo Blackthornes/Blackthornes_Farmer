@@ -212,6 +212,15 @@ suite.check("best mobs are by gold an hour, not per kill",
 suite.check("gold an hour is worth per kill times kills an hour",
     math.abs(best[1].rate - best[1].perKill * 3600 / best[1].seconds) < 0.01)
 
+-- Kills from before the Stats tab carry no timing: the mobs are still
+-- ranked, by worth per kill, until a kill speed is timed.
+local timed = store.pace
+store.pace = {}
+local byWorth, byKill = Stats:BestMobs(5)
+suite.check("with no kill speed yet, mobs are still ranked", #byWorth >= 2 and byKill == true, #byWorth)
+suite.check("by worth per kill", byWorth[1].mob == "Slow Bear" and byWorth[1].rate == nil, byWorth[1].mob)
+store.pace = timed
+
 --------------------------------------------------------------------------------
 -- Luck
 --------------------------------------------------------------------------------
