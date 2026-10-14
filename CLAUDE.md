@@ -26,7 +26,9 @@ inside a pcall and read only:
 _G.BlackthornesTS.Prices:GetValue(itemID)   -- Tradeskills' smoothed market value, in copper
 ```
 
-Nothing is copied, nothing is written back, and there is no TOC dependency.
+Since 2026-10-14 Farmer also asks, in a pcall, to hear when a scan
+finishes (`_G.BlackthornesTS.Prices:WatchScans(fn)`, see "Your top 15
+after an auction scan"). Nothing is copied, nothing is written back, and there is no TOC dependency.
 Tradeskills itself fills gaps from TradeSkillMaster, then Auctionator
 (2026-10-12; the owner allowed naming both in public). Without Tradeskills,
 Farmer reads them itself (`Value:OtherPrice`: `TSM_API.GetCustomPriceValue
@@ -525,6 +527,30 @@ whose fanfare plays instead. "Rank-up pop-up" (`rankUpPopup`) and "Rank-up
 sound" (`rankUpSound`), both on unless unticked, and `rankUpScale` (its size
 grip) are account wide; never rename them. `/farm rankup [on|off|sound
 on|off|show]`. Tested in `tools/test_rankup.lua`. Not yet seen in game.
+
+## Your top 15 after an auction scan
+
+The owner asked (2026-10-14): an alert after an auction scan when there is
+a new top farm, based on your verified kills only, and the board shuffling
+when other places change too. `Logic/TopFarm.lua` asks Tradeskills to say
+when a scan finishes (`_G.BlackthornesTS.Prices:WatchScans(fn)`, in a
+pcall; Tradeskills' `Prices:ScanFinished` calls it after a scan that wrote
+prices); without that call it looks when the auction house closes.
+`SETTLE` seconds later, never in a fight, `RankUp:Build(true, done)`
+values the measured board again a few mobs a frame, keeping the old order
+readable until the new one is done, and `TopFarm.Moves(old, new)` says
+what moved. A different mob first, worth `LEAD` (10%) more a kill than the
+old leader at the new prices and not called the top farm in `QUIET` (a
+day; `topFarmTold[mob]`, account wide, never rename it), is NEW TOP FARM
+with TOP on it and `Media/Sounds/top-farm.ogg` (`tools/make_sounds.py
+top-farm.ogg`); any other change in the top 15 is a shuffle with the
+rank-up chime. Either way `UI/RankUp.lua` draws it: every row slides from
+its old place, every worth counts (`RankUpUI.counting`), climbers show
+"+N". Only mobs with `MIN_KILLS` kills of your own; guild data never
+reaches it. "After an auction scan" on the Kill tally page (`topFarmAlert`,
+on unless unticked, never rename it) with Try it, and `/farm topfarm
+[on|off|test]`; the sound follows "Rank-up sound". Tested in
+`tools/test_topfarm.lua`. Not yet seen in game.
 
 ## The trash can when bags are full
 

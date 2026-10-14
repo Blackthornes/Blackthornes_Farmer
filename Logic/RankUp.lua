@@ -84,14 +84,22 @@ local function Top(list, count)
     return out
 end
 
+-- Logic/TopFarm.lua lays the order out again after an auction scan.
+RankUp.Order = Order
+RankUp.Top = Top
+
 --------------------------------------------------------------------------------
 -- Laying out the order
 --------------------------------------------------------------------------------
 
 --- Start laying out the order over frames, from the tallies as they are.
-function RankUp:Build()
-    self.snapshot = nil
-    self.building = { byMob = {}, kills = {}, hidden = ns.DB.hiddenVersion or 0, queue = {} }
+--- With `keep` the old order stays readable until the new one is done (an
+--- auction scan moved the prices); `done(old, new)` is called then.
+function RankUp:Build(keep, done)
+    local old = self.snapshot
+    if not keep then self.snapshot = nil end
+    self.building = { byMob = {}, kills = {}, hidden = ns.DB.hiddenVersion or 0, queue = {},
+        old = old, done = done }
 
     for name, record in pairs(ns.Tracker:Store()) do
         if type(name) == "string" and KillsOf(record) >= ns.Tracker.MIN_KILLS then
@@ -131,6 +139,10 @@ function RankUp:Step(budget)
         self.building = nil
         if self.worker then self.worker:Hide() end
         self:Changed()
+        if building.done then
+            local ok, err = pcall(building.done, building.old, self.snapshot)
+            if not ok then ns.Debug("rank order laid out:", tostring(err)) end
+        end
     end
 end
 

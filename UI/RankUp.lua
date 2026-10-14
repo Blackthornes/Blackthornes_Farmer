@@ -87,6 +87,7 @@ function RankUpUI:Build()
     local note = Theme.CreateLabel(header, "small", "muted")
     note:SetPoint("LEFT", title, "RIGHT", 8, 0)
     note:SetText(L["measured, coin included"])
+    frame.note = note
 
     -- Column names under the header.
     local columns = {}
@@ -393,11 +394,17 @@ local function Glow(row, p)
     if p > 0 then row.glow:SetColorTexture(Theme.Unpack("accent", 0.28 * p)) end
 end
 
---- The chip after the picked mob's name: "+5" in green, or NEW in gold.
-local function SetChip(row, move)
+--- The chip after the picked mob's name: "+5" in green, NEW in gold, or
+--- TOP in gold for a new top farm. `climb` alone: "+N" on another row an
+--- auction scan moved up.
+local function SetChip(row, move, climb)
     local chip = row.chip
     local text, key
-    if move.new then
+    if climb then
+        text, key = "+" .. tostring(climb), "good"
+    elseif move.newTop then
+        text, key = L["TOP"], "accentHi"
+    elseif move.new then
         text, key = L["NEW"], "accentHi"
     else
         text, key = "+" .. tostring(move.from - move.to), "good"
@@ -481,6 +488,7 @@ function RankUpUI:Show(move)
     self:ApplyLayout(self:Fit(items), shown)
 
     local picked
+    self.chipped = {}
     for index, item in ipairs(items) do
         local row = self:Row(index)
         item.row = row
@@ -488,12 +496,38 @@ function RankUpUI:Show(move)
         if item.picked then
             picked = item
             SetChip(row, move)
+        elseif move.climbs and move.climbs[item.mob] and (item.to or 0) < ns.RankUp.TOP then
+            -- After a scan every climber shows how far it went.
+            SetChip(row, move, move.climbs[item.mob])
+            self.chipped[#self.chipped + 1] = row
         end
     end
     for index = #items + 1, #self.rows do self.rows[index]:Hide() end
     self.items = items
 
-    if not move.mob then
+    -- After an auction scan every worth moves, so every row counts.
+    self.counting = move.scan and true or false
+
+    local title, note = L["YOUR TOP 15"], L["measured, coin included"]
+    if move.newTop then
+        title, note = L["NEW TOP FARM"], L["after your auction scan"]
+    elseif move.scan then
+        note = L["after your auction scan"]
+    end
+    frame.title:SetText(title)
+    frame.note:SetText(note)
+
+    if move.newTop then
+        if move.lead then
+            self.foot:SetText(L.Format("%s is your best farm now: %s a kill, %d%% more than %s.", move.mob,
+                ns.Value.Coins(picked and picked.value or 0), math.floor(move.lead * 100 + 0.5), move.passed or ""))
+        else
+            self.foot:SetText(L.Format("%s is your best farm now: %s a kill.", move.mob,
+                ns.Value.Coins(picked and picked.value or 0)))
+        end
+    elseif move.scan then
+        self.foot:SetText(L["New prices from your auction scan moved your best mobs."])
+    elseif not move.mob then
         self.foot:SetText("")
     elseif move.new then
         self.foot:SetText(L.Format("%s is on your board now: %s a kill.", move.mob,
@@ -551,8 +585,10 @@ function RankUpUI:Step(p)
             alpha = p
         end
 
-        if item.picked then
+        if item.picked or self.counting then
             value = item.fromValue + (item.value - item.fromValue) * p
+        end
+        if item.picked then
             if item.slideIn then value = item.value end
             -- Lifted a little to the right while it climbs.
             if not item.slideIn and p > 0 and p < 1 then dx = 4 end
@@ -588,8 +624,21 @@ function RankUpUI:Land()
         end
     end
 
-    if landing.move.sound and ns.Tracker and ns.Tracker.SOUNDS.rankup then
-        ns.Tracker.PlayFile(ns.Tracker.SOUNDS.rankup)
+    -- The rows an auction scan moved up show how far, popping in a
+    -- little after one another.
+    for index, row in ipairs(self.chipped or {}) do
+        row.chip:Show()
+        if Level() == "full" then
+            row.chip:SetScale(0.01)
+            ns.Motion:Run(row.chip, "pop", self.POP, function(p) row.chip:SetScale(math.max(0.01, p)) end,
+                { ease = ns.Motion.EaseOutBack, delay = 0.06 * index })
+        end
+    end
+
+    local sounds = ns.Tracker and ns.Tracker.SOUNDS
+    local sound = sounds and (landing.move.newTop and sounds.topfarm or sounds.rankup)
+    if landing.move.sound and sound then
+        ns.Tracker.PlayFile(sound)
     end
 
     self:Hold()

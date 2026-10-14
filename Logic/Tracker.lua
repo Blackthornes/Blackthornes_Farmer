@@ -936,6 +936,8 @@ Tracker.SOUNDS = {
     rare = MEDIA .. "rare-drop.ogg",
     -- A mob climbs your top 15 (2026-10-13), UI/RankUp.lua.
     rankup = MEDIA .. "rank-up.ogg",
+    -- An auction scan puts a new mob first (2026-10-14), Logic/TopFarm.lua.
+    topfarm = MEDIA .. "top-farm.ogg",
 }
 
 --- Play one of the addon's sound files. True if the client says it will.
