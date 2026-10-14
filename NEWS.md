@@ -31,10 +31,7 @@ tool prints a note for a shipped line that reads like an advert.
 Fixes and changes:
 
 - The Grind arrow points at the spots nearest you.
-- The trash can leaves goal items alone and stays out of fights.
-- The Stats tab no longer counts a late-priced loot twice.
-- The game's XP bar comes back when yours hides at the cap.
-- A mob known only by a number is counted once when you share.
+- Several bug fixes for the trash can, Stats tab, XP bar and sharing.
 
 ## 0.32.2
 
