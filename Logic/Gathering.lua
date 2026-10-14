@@ -433,8 +433,9 @@ function Gathering:Record(zone, location, node, kind, items, quantities, coords)
         entry.coords = { coords[1], coords[2] }
     end
 
-    -- How long it took, for the Grind tab's worth an hour.
-    if ns.GrindGather then ns.GrindGather:NoteGather(zone, node, items, quantities) end
+    -- How long it took, for the Grind tab's worth an hour. Only herbs and
+    -- veins: a chest opened between two herbs is not part of their pace.
+    if ns.GrindGather and (kind == "herb" or kind == "ore") then ns.GrindGather:NoteGather(zone, node, items, quantities) end
 
     self.session[key] = (self.session[key] or 0) + 1
     self.sessionGathers = self.sessionGathers + 1

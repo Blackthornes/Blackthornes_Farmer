@@ -136,6 +136,15 @@ GrindGather:NoteGather(ZONE, "Test Vein", { "Test Ore" }, { ["Test Ore"] = 2 }, 
 GrindGather:NoteGather(ZONE, "Test Vein", { "Test Ore" }, { ["Test Ore"] = 2 }, 2000)
 GrindGather:NoteGather("Other Place", "Test Vein", { "Test Ore" }, { ["Test Ore"] = 2 }, 2050)
 GrindGather:NoteGather(ZONE, "Test Vein", { "Test Ore" }, { ["Test Ore"] = 2 }, 2100)
+-- A chest is not a herb or a vein: it keeps no pace.
+local noted = 0
+local note0 = GrindGather.NoteGather
+GrindGather.NoteGather = function() noted = noted + 1 end
+ns.Gathering:Record("Chest Vale", "Somewhere", "Battered Chest", "container", { "Test Ore" }, { ["Test Ore"] = 1 })
+check("a chest keeps no gathering pace", noted == 0)
+ns.Gathering:Record("Chest Vale", "Somewhere", "Chest Vein", "ore", { "Test Ore" }, { ["Test Ore"] = 1 })
+check("a vein does", noted == 1)
+GrindGather.NoteGather = note0
 local pace = ns.db.gathering.pace["Test Vale|Test Vein"]
 check("only the time between gathers counts", pace.seconds == 100, pace.seconds)
 check("every gather's yield", pace.items["Test Ore"] == 8 and pace.gathers == 4)
@@ -206,6 +215,21 @@ ns.Print = function() end
 GrindingUI:OnRowClick(veinRow)
 check("a click points the arrow at its spots", aimed and #aimed.mobs == 2 and aimed.mobs[1].coords[1] == 50)
 ns.Arrow.Grind, ns.Print = grind0, print0
+
+-- With more spots than the arrow takes, the ones nearest you go to it.
+local many = { name = "Test Vein", zone = ZONE, spotList = {} }
+for index = 1, GrindGather.MAX_SPOTS + 4 do
+    many.spotList[index] = { index * 5, 10, map = 99901 }
+end
+many.spotList[#many.spotList + 1] = { 90, 90, map = 99901 }
+local position0 = ns.Harvest.PlayerMapPosition
+ns.Harvest.PlayerMapPosition = function() return 99901, 0.9, 0.88 end
+local near = GrindGather.NodeCamp(many)
+check("the arrow gets the spot beside you", near.mobs[1].coords[1] == 90 and #near.mobs == GrindGather.MAX_SPOTS,
+    near.mobs[1].coords[1])
+ns.Harvest.PlayerMapPosition = function() return nil end
+check("without your position, the first ones", GrindGather.NodeCamp(many).mobs[1].coords[1] == 5)
+ns.Harvest.PlayerMapPosition = position0
 
 ns.db.grindColumns = { key = "count", ascending = false }
 GrindingUI:Render()

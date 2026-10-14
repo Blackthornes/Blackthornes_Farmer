@@ -346,8 +346,7 @@ function KillTooltip:Decorate(tooltip, data)
     if KillTooltip.Kills(name) >= ns.Tracker.BANE_KILLS then
         pcall(addLine, tooltip, L["Bane of its kind"], 1, 0.5, 0)
     end
-    -- The chance of green gear from a mob of its level (Logic/WorldDrops.lua),
-    -- only once that level has kills enough behind it.
+    -- The drops that add most to a kill.
     if self:DropsEnabled() then
         local drops, estimate = self:Drops(name, KillTooltip.Kills(name))
         local addDouble = Field(tooltip, "AddDoubleLine")
@@ -359,6 +358,8 @@ function KillTooltip:Decorate(tooltip, data)
             end
         end
     end
+    -- The chance of green gear from a mob of its level (Logic/WorldDrops.lua),
+    -- only once that level has kills enough behind it.
     local greens = self:GreensLine(unit)
     if greens then pcall(addLine, tooltip, greens, 0.12, 1, 0) end
     local show = Field(tooltip, "Show")
