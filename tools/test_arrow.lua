@@ -160,7 +160,7 @@ local resting
 for _, target in ipairs(Arrow.targets) do
     if target.resting then resting = target end
 end
-suite.check("and says why", resting and Arrow.Note(resting, wall):find("may not be back", 1, true) ~= nil)
+suite.check("and says why", resting and Arrow.Note(resting, wall):find("might not have grown back", 1, true) ~= nil)
 
 -- The Where? ranking lists the vein too, at the spot you first took it:
 -- that copy is your spot again, not a second place that never rests.

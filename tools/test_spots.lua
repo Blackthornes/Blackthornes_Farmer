@@ -266,7 +266,7 @@ _G.GetRealZoneText = function() return env.Secret("zone") end
 panel:Hide()
 local ok = pcall(GUI.OpenSpots, GUI, "Copper Ore")
 suite.check("a secret zone does not raise", ok)
-suite.check("and says why it is not by distance", panel.from:GetText():find("could not be read") ~= nil)
+suite.check("and says why it is not by distance", panel.from:GetText():find("which zone you're in") ~= nil)
 
 --------------------------------------------------------------------------------
 -- Gathering skill (2026-10-11): send the player only where they can gather

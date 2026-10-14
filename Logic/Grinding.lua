@@ -309,7 +309,7 @@ Grinding.SORTS = {
     { key = "nearest", label = L["Nearest"], tip = L["Camps closest to you first."] },
     { key = "level", label = L["Level"], tip = L["The lowest level camps first."] },
     { key = "levelnear", label = L["Level, then nearest"],
-      tip = L["The lowest level camps first; camps of the same level, the nearest first."] },
+      tip = L["The lowest level camps first, and the nearest first when levels match."] },
 }
 
 local function KnownSort(key)

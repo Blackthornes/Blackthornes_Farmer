@@ -1098,7 +1098,7 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear: empty what it shows, tallies kept; keep on/off: keep what it shows between sessions; group on/off: move it aside in a party or raid; size: small, normal, large or a percent)"], function(rest)
+ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear empties it and keeps your tallies, keep on/off keeps it between sessions, group on/off moves it aside in a party or raid, size takes small, normal, large or a percent)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     -- What the panel shows starts empty each session unless kept

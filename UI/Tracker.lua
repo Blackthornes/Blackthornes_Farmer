@@ -503,9 +503,9 @@ function TrackerUI:BuildSizeGrip(frame)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(TrackerUI.ScaleText(ScaleOf(frame) * 100), Theme.Unpack("accentHi"))
         GameTooltip:AddLine(L["Drag to make the whole panel bigger or smaller, text and all."], 1, 1, 1, true)
-        GameTooltip:AddLine(L["Right-click: back to the normal size."], 1, 1, 1, true)
+        GameTooltip:AddLine(L["Right-click to go back to the normal size."], 1, 1, 1, true)
         GameTooltip:AddLine(L["The small grip inside the corner changes how much it shows instead."], 1, 1, 1, true)
-        GameTooltip:AddLine(L["Also Kill tally size in Settings, and /farm tracker size."], Theme.Unpack("accent"))
+        GameTooltip:AddLine(L["You can also use Kill tally size in Settings, or /farm tracker size."], Theme.Unpack("accent"))
         GameTooltip:Show()
     end)
     grip:SetScript("OnLeave", function()
@@ -1836,7 +1836,7 @@ function TrackerUI:TotalLines(Add)
 
     local missing = #details.unpriced
     if missing > 0 then
-        Add({ style = "note", left = L.Format("%s with no price not counted",
+        Add({ style = "note", left = L.Format("%s with no price left out",
             Util.Plural(missing, L["item"], L["items"])) })
     end
 end
@@ -2726,7 +2726,7 @@ function TrackerUI:Arrange(effects)
     self:DrawTabs(counts)
 
     if below > 0 then
-        self.moreLabel:SetText(L.Format("%d more below, scroll", below))
+        self.moreLabel:SetText(L.Format("%d more below, scroll down", below))
         self.moreLabel:Show()
     else
         self.moreLabel:Hide()

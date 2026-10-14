@@ -308,7 +308,7 @@ Grinding:SetType("Humanoid")
 GrindingUI:Render()
 local note
 for _, row in ipairs(GrindingUI.list.data) do
-    if row.type == "note" and row.text:find("until their type is known") then note = row end
+    if row.type == "note" and row.text:find("until Farmer learns their type") then note = row end
 end
 check("mobs left out by type are counted in the list", note ~= nil)
 check("its chip is lit, and only it", (function()

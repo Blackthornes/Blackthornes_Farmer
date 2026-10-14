@@ -327,7 +327,7 @@ local six = { "Tin Ore", "Silverleaf", "Peacebloom", "Linen Cloth", "Wool Cloth"
 for _, item in ipairs(six) do Goals:Set(item, 500) end
 suite.check("six of its own", #Goals:List() == 6, #Goals:List())
 local seventh, why = Goals:Set("Mageweave Cloth", 500)
-suite.check("and no seventh", seventh == nil and tostring(why):find("most at once") ~= nil, why)
+suite.check("and no seventh", seventh == nil and tostring(why):find("goals at once") ~= nil, why)
 for _, item in ipairs(six) do Goals:Remove(item) end
 
 env.chat = {}

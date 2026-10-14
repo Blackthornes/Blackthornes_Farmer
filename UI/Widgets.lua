@@ -1823,7 +1823,7 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
                 if GameTooltip then
                     GameTooltip:SetOwner(self, "ANCHOR_TOP")
                     GameTooltip:AddLine(tips[key], 1, 1, 1, true)
-                    GameTooltip:AddLine(L["Click again to turn it round, a third time for the usual order."],
+                    GameTooltip:AddLine(L["Click again to reverse it, and a third time for the usual order."],
                         Theme.Unpack("muted"))
                     GameTooltip:Show()
                 end
@@ -2060,7 +2060,7 @@ function Widgets.CreateSizeGrip(frame, opts)
         GameTooltip:SetText(Widgets.SizeText(ScaleOf(frame) * 100), Theme.Unpack("accentHi"))
         GameTooltip:AddLine(GRIP_TIPS[name] or L.Format("Drag to make the %s bigger or smaller, text and all.", name),
             1, 1, 1, true)
-        GameTooltip:AddLine(L["Right-click: back to the normal size."], 1, 1, 1, true)
+        GameTooltip:AddLine(L["Right-click to go back to the normal size."], 1, 1, 1, true)
         GameTooltip:Show()
     end)
     grip:SetScript("OnLeave", function()

@@ -344,7 +344,7 @@ function UI:BuildBody()
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine(L["Group each item's spots by zone"], 1, 1, 1)
-        GameTooltip:AddLine(L["Zones come in the order of their best spot, by whichever column you sorted on."],
+        GameTooltip:AddLine(L["Zones are ordered by their best spot, using whichever column you sorted by."],
             Theme.Unpack("muted"))
         GameTooltip:Show()
     end)
@@ -668,7 +668,7 @@ function UI:BuildColumnHeadings()
         where = L["Closest to you first: your zone, then zones nearest your level."],
         level = L["Sort by level, lowest first."],
         drop = L["Sort by drop rate, best first. Spots with no known rate go last."],
-        value = L["Sort by worth per kill, best first. Your own kills come before guesses, unpriced mobs last."],
+        value = L["Sort by worth per kill, best first. Your own kills come before estimates, and mobs with no price go last."],
     }, function(key, ascending)
         if ns.db then ns.db.searchSort = { key = key, ascending = ascending } end
         UI:Render()
@@ -731,7 +731,7 @@ function UI:ShowMobTooltip(owner, mobName)
 
     GameTooltip:AddLine(details.basis == "tally"
         and L.Format("From your %d kills, %s.", details.kills, ns.Value:PriceNote(details))
-        or L.Format("Estimate from %s. Coin not counted.", ns.Value:PriceNote(details)),
+        or L.Format("Estimated from %s, without coin.", ns.Value:PriceNote(details)),
         Theme.Unpack("muted"))
     GameTooltip:Show()
 end
@@ -1135,7 +1135,7 @@ function UI:Render()
     if total == 0 then
         -- Said when hiding (skinning, the hide list) is what emptied it.
         self.summary:SetText(Util.Colored("muted", ns.Search.hidHit
-            and L["nothing found, the matches are hidden"] or L["nothing found"]))
+            and L["nothing found, because the matches are hidden"] or L["nothing found"]))
     else
         self.summary:SetText(L.Format("%s matching", Util.Plural(total, L["item"], L["items"])))
     end

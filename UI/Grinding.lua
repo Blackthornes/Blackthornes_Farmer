@@ -543,7 +543,7 @@ end
 
 -- The gives chips' tooltips.
 GrindingUI.GIVES_TIPS = {
-    cloth = { L["Drops cloth"], L["Mobs the data has dropping cloth. Click again for any."] },
+    cloth = { L["Drops cloth"], L["Mobs known to drop cloth. Click again for any."] },
     skinning = { L["Leather"], L["Beasts to skin, with the Skinning each needs. Click again for any."] },
     ore = { L["Ore"], L["Zones with mining nodes, and what yours were worth. Click again for mobs."] },
     herbs = { L["Herbs"], L["Zones with herbs, and what yours were worth. Click again for mobs."] },
@@ -725,9 +725,9 @@ end
 function GrindingUI.FooterText(layout)
     local hint
     if layout == "nodes" then
-        hint = L["Click a node to point the arrow at its spots you marked. Levels are the zone's."]
+        hint = L["Click a node to point the arrow at the spots you marked for it. Levels are the zone's levels."]
     elseif layout == "leather" then
-        hint = L["Click a camp to point the arrow there. The Skinning a mob needs is worked out from its level."]
+        hint = L["Click a camp to point the arrow there. The Skinning a mob needs comes from its level."]
     else
         return L["Click a camp to point the arrow there. Camps show on your world map too. Target or hover a mob to learn its type."]
     end
@@ -1016,15 +1016,15 @@ function GrindingUI:Rows(camps, unknown, low, high)
         if Grinding:Type() then
             local what = Grinding.TypeLabel(Grinding:Type())
             if Util.EnglishClient() then what = what:lower() end
-            text = L.Format("No %s mobs from level %d to %d that Farmer has seen yet.", what, low, high)
+            text = L.Format("Farmer hasn't seen any %s mobs from level %d to %d yet.", what, low, high)
         else
-            text = L.Format("No mobs from level %d to %d that Farmer has seen yet.", low, high)
+            text = L.Format("Farmer hasn't seen any mobs from level %d to %d yet.", low, high)
         end
         rows[#rows + 1] = { type = "note", text = text }
     end
 
     if unknown > 0 then
-        rows[#rows + 1] = { type = "note", text = L.Format("%s not shown until their type is known. Target or hover one.",
+        rows[#rows + 1] = { type = "note", text = L.Format("%s not shown until Farmer learns their type. Target or hover one.",
             Util.Plural(unknown, L["more mob"], L["more mobs"])) }
 
     end
@@ -1043,8 +1043,8 @@ function GrindingUI:NodeRows(zones, low, high)
     end
     if #zones == 0 then
         local text = ns.Grinding:Gives() == "herbs"
-            and L.Format("No herbs from level %d to %d that Farmer knows yet.", low, high)
-            or L.Format("No mining nodes from level %d to %d that Farmer knows yet.", low, high)
+            and L.Format("Farmer doesn't know any herbs from level %d to %d yet.", low, high)
+            or L.Format("Farmer doesn't know any mining nodes from level %d to %d yet.", low, high)
         rows[#rows + 1] = { type = "note", text = text }
     end
     return rows

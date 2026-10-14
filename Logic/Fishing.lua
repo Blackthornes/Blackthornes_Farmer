@@ -689,7 +689,7 @@ local function PrintSpot(summary)
     end
 end
 
-ns.RegisterCommand("fishing", L["what you have caught in this zone (all: everywhere)"], function(rest)
+ns.RegisterCommand("fishing", L["what you've caught in this zone (all for everywhere)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "reset" then
@@ -700,7 +700,7 @@ ns.RegisterCommand("fishing", L["what you have caught in this zone (all: everywh
 
     if argument == "reset confirm" then
         Fishing:Reset()
-        ns.Print(L["fishing record cleared."])
+        ns.Print(L["your fishing counts are cleared."])
         return
     end
 
