@@ -546,7 +546,10 @@ with TOP on it and `Media/Sounds/top-farm.ogg` (`tools/make_sounds.py
 top-farm.ogg`); any other change in the top 15 is a shuffle with the
 rank-up chime. Either way `UI/RankUp.lua` draws it: every row slides from
 its old place, every worth counts (`RankUpUI.counting`), climbers show
-"+N". Only mobs with `MIN_KILLS` kills of your own; guild data never
+"+N". It waits, sound and all, until the auction house and the game's
+own panels (`GetUIPanel`) are closed and no fight is on (`TopFarm:Busy`,
+the owner 2026-10-14: the sound played behind the auction house); a scan
+before then folds into the one held. Only mobs with `MIN_KILLS` kills of your own; guild data never
 reaches it. "After an auction scan" on the Kill tally page (`topFarmAlert`,
 on unless unticked, never rename it) with Try it, and `/farm topfarm
 [on|off|test]`; the sound follows "Rank-up sound". Tested in
