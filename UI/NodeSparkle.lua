@@ -614,10 +614,19 @@ function NodeSparkle:PlateShownAnyway(guid)
     return self.GetCVar("nameplateShowFriends") == "1"
 end
 
+--- Is this piece of a plate its name? The game hides a creature's own name
+--- over its head while it has a plate, so the plate's name stands in for it.
+function NodeSparkle.IsPlateName(body, piece)
+    if piece == Field(body, "name") then return true end
+    local ok, kind = pcall(function() return piece:GetObjectType() end)
+    return ok and kind == "FontString"
+end
+
 --- The pieces of a plate the game draws for the interact target, its name,
 --- bars and level, but not its icon: what the game shows only because
---- Farmer turned these plates on.
-function NodeSparkle.PlatePieces(plate)
+--- Farmer turned these plates on. With `keepName` (a creature) its name is
+--- left out, since the game takes the creature's own name away for it.
+function NodeSparkle.PlatePieces(plate, keepName)
     local body = Field(plate, "UnitFrame")
     if type(body) ~= "table" then return {} end
     local icon = NodeSparkle.Icon(plate)
@@ -625,15 +634,19 @@ function NodeSparkle.PlatePieces(plate)
     for _, method in ipairs({ "GetRegions", "GetChildren" }) do
         local ok, list = pcall(function() return { body[method](body) } end)
         for _, piece in ipairs(ok and list or {}) do
-            if type(piece) == "table" and piece ~= icon then pieces[#pieces + 1] = piece end
+            if type(piece) == "table" and piece ~= icon
+                and not (keepName and NodeSparkle.IsPlateName(body, piece)) then
+                pieces[#pieces + 1] = piece
+            end
         end
     end
     return pieces
 end
 
 --- Keep out of sight what Farmer's settings made the game draw over the
---- thing the interact key picks: the plate's name, bars and level always
---- (unless the player would see that plate anyway), and its icon without a
+--- thing the interact key picks: the plate's bars and level always, and an
+--- object's name (unless the player would see that plate anyway; a
+--- creature keeps its name, which the game moves onto the plate), and its icon without a
 --- controller. Only alpha is changed, from this file's own table, never in
 --- a fight; a plate the game hands to something else gets its own back.
 -- @return true while anything is kept out of sight
@@ -654,7 +667,8 @@ function NodeSparkle:VeilIcon()
         if self:OwnsPlates() then
             local guid = self:Facing()
             if not self:PlateShownAnyway(guid) then
-                for _, piece in ipairs(self.PlatePieces(plate)) do want[piece] = true end
+                local creature = type(guid) == "string" and not guid:find("^GameObject%-")
+                for _, piece in ipairs(self.PlatePieces(plate, creature)) do want[piece] = true end
             end
         end
     end

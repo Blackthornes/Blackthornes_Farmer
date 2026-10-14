@@ -615,7 +615,10 @@ owner saw them on a vendor, 2026-10-13). While Farmer turned those CVars on
 (`NodeSparkle:OwnsPlates`), the plate's pieces other than the icon
 (`NodeSparkle.PlatePieces`) are see-through the same way, whatever the icon
 setting, unless the player would see that plate anyway (a creature they
-could attack, or friendly nameplates on: `PlateShownAnyway`); looked at
+could attack, or friendly nameplates on: `PlateShownAnyway`). A creature's
+plate keeps its name (`NodeSparkle.IsPlateName`): the game takes the name
+off a creature's head while it has a plate, so veiling it left NPCs
+nameless up close (2026-10-14); looked at
 again `VEIL_AGAIN` after each event, since the game sets a plate up after
 telling us.
 Tested in `tools/test_nodesparkle.lua`.
