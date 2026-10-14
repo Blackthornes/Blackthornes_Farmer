@@ -219,7 +219,7 @@ function StatsUI:Build(frame)
 
     local intro = Theme.CreateLabel(view, "small", "muted")
     intro:SetPoint("TOPLEFT", left, -(top + 5))
-    intro:SetText(L["Your farming in charts. Only your own loot counts."])
+    intro:SetText(L["Your farming at a glance."])
     self.intro = intro
 
     -- This session or Overall (the owner, 2026-10-13), beside Settings.
