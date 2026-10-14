@@ -441,7 +441,7 @@ end
 -- Prices or "Hide skinning" moved: the kept worth was worked out before.
 ns.DB.hideWatchers.killTooltip = function() KillTooltip.ForgetKept() end
 
-ns.RegisterCommand("killcount", L["turn the kill count on mob tooltips on or off; drops [on|off] for the best drops under it"], function(rest)
+ns.RegisterCommand("killcount", L["turn the kill count on mob tooltips on or off (drops [on|off] shows the best drops under it)"], function(rest)
     local word, choice = (rest or ""):lower():match("^%s*(%S*)%s*(%S*)")
     if word == "drops" then
         local on

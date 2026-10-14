@@ -342,7 +342,7 @@ function Goals:Set(name, target)
             end
         end
         if #self:List() >= Goals.MAX then
-            return nil, L.Format("%d goals is the most at once", Goals.MAX)
+            return nil, L.Format("you can have up to %d goals at once", Goals.MAX)
         end
 
         goal = { item = name }
@@ -752,7 +752,7 @@ ns.RegisterCommand("goal", L["set a gathering goal: /farm goal Copper Ore 40 (re
 
     local goal, why = Goals:Set(name, amount)
     if not goal then
-        ns.Print(L.Format("no goal set: %s.", why))
+        ns.Print(L.Format("couldn't set that goal: %s.", why))
         return
     end
 

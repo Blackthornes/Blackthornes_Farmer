@@ -84,7 +84,7 @@ Loot("Mangy Wolf", { COINS, ROCK }, "W-2")
 total, details = Value:Session()
 suite.check("an unpriced item is not guessed", total == 112 + 12, total)
 suite.check("but is listed", details.unpriced[1] == "Odd Rock", details.unpriced[1])
-suite.check("and noted on the panel", Line("1 item with no price not counted") ~= nil)
+suite.check("and noted on the panel", Line("1 item with no price left out") ~= nil)
 
 -- Fishing adds its catches to the same total (the database knows the fish's id).
 Fishing:Record("Elwynn Forest", nil, nil, { "Raw Brilliant Smallfish" },

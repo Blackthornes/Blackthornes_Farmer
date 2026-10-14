@@ -1720,7 +1720,7 @@ function Harvest:OnInitialize()
     end
 
     if (self.carriedOver or 0) > 0 then
-        ns.Print(L.Format("added %d corpses harvested before saved data worked. /farm harvest shows the total.",
+        ns.Print(L.Format("added %d corpses you looted before saving worked. /farm harvest shows the total.",
             self.carriedOver))
     end
 end
@@ -1973,7 +1973,7 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("harvest", L["what you have recorded as you played (check: what the next loot window lets it read)"], function(rest)
+ns.RegisterCommand("harvest", L["what you've looted as you played (check shows what the next loot window lets Farmer read)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     -- The harvest is the whole history now, not one session, and a reset is
@@ -1986,27 +1986,27 @@ ns.RegisterCommand("harvest", L["what you have recorded as you played (check: wh
 
     if argument == "reset confirm" then
         ns.Harvest:Reset()
-        ns.Print(L["harvest cleared."])
+        ns.Print(L["your loot counts are cleared."])
         return
     end
 
     if argument == "check" then
         ns.Harvest.checkArmed = true
-        ns.Print(L["loot check ready: loot a corpse and it runs on that loot window."])
+        ns.Print(L["loot check ready. Loot a corpse and it runs on that loot window."])
         return
     end
 
     if argument == "off" then
         ns.Harvest.enabled = false
         ns.db.harvestPaused = true
-        ns.Print(L["harvesting paused. /farm harvest on to resume."])
+        ns.Print(L["loot recording paused. /farm harvest on starts it again."])
         return
     end
 
     if argument == "on" then
         ns.db.harvestPaused = false
         ns.Harvest.enabled = ns.Harvest:Capabilities().usable and true or false
-        ns.Print(L["harvesting on."])
+        ns.Print(L["loot recording on."])
         return
     end
 
@@ -2014,7 +2014,7 @@ ns.RegisterCommand("harvest", L["what you have recorded as you played (check: wh
 
     if corpses == 0 then
         if not ns.Harvest:Capabilities().usable then
-            ns.Print(L["this client does not expose the loot API, so nothing is being recorded."])
+            ns.Print(L["this game client doesn't let addons read loot, so nothing is being recorded."])
         else
             ns.Print(L["nothing recorded yet. Loot some corpses first."])
         end
@@ -2041,7 +2041,7 @@ ns.RegisterCommand("harvest", L["what you have recorded as you played (check: wh
     ns.PrintRaw(Util.Colored("muted", L["  /farm export to get it as a data file."]))
 end)
 
-ns.RegisterCommand("export", L["hand back what you harvested, ready to paste"], function(rest)
+ns.RegisterCommand("export", L["everything you've looted, as text ready to paste"], function(rest)
     local wanted = ns.Util.Trim(rest or "")
 
     -- "/farm export csv [loot|kills|gathering|fishing]": the spreadsheet
@@ -2058,7 +2058,7 @@ ns.RegisterCommand("export", L["hand back what you harvested, ready to paste"], 
     end
 
     if wanted == "" then
-        ns.UI:ShowExport(ns.Harvest:ExportAll(), L["Export: everything harvested"])
+        ns.UI:ShowExport(ns.Harvest:ExportAll(), L["Export: everything you looted"])
         return
     end
 
@@ -2079,12 +2079,12 @@ ns.RegisterCommand("export", L["hand back what you harvested, ready to paste"], 
     end
 
     if nodeOnly then
-        ns.Print(L.Format("%s comes from nodes, not mobs, so it is never exported.", name))
+        ns.Print(L.Format("%s comes from nodes, not mobs, so it isn't in the export.", name))
         return
     end
 
     if not block then
-        ns.Print(L.Format("nothing harvested for %s yet.", wanted))
+        ns.Print(L.Format("nothing looted for %s yet.", wanted))
         return
     end
 

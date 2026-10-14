@@ -123,7 +123,7 @@ function LootTableUI:Table(mobName)
                 Util.Plural(loot.unplaced, L["kill"], L["kills"]))
         end
     else
-        out.where = L["Killed at: starts with your next kill."]
+        out.where = L["Killed at: shows from your next kill."]
     end
 
     if Value then

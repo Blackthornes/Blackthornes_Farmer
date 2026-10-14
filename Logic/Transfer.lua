@@ -320,16 +320,16 @@ function Transfer:Parse(text, done)
     if type(text) ~= "string" then return done(nil, L["Nothing pasted."]) end
     text = text:gsub("%s+", "")
     if text == "" then return done(nil, L["Nothing pasted."]) end
-    if #text > Transfer.MAX_TEXT then return done(nil, L["That is too long to be one of ours."]) end
+    if #text > Transfer.MAX_TEXT then return done(nil, L["That's too long to be Farmer data."]) end
 
     local id, n, of, sum, body = text:match("^" .. Transfer.PREFIX .. ":(%x+):(%d+)/(%d+):(%w+):([A-Za-z0-9+/=]+)$")
-    if not id then return done(nil, L["That does not look like a Farmer data string. Copy the whole line, from BFR1 to the end."]) end
+    if not id then return done(nil, L["That doesn't look like Farmer data. Copy the whole line, from BFR1 to the end."]) end
     n, of = tonumber(n), tonumber(of)
     if #id < 6 or #id > 16 or not (n and of and n >= 1 and n <= of and of <= 100) then
-        return done(nil, L["That string is damaged."])
+        return done(nil, L["That text is damaged."])
     end
     if id == self:SourceId() then
-        return done(nil, L["That is your own data. There is nothing to take."])
+        return done(nil, L["That's your own data, so there's nothing to take."])
     end
 
     -- Checksum first: a half-copied string stops here.
@@ -339,14 +339,14 @@ function Transfer:Parse(text, done)
         pos = pos + Transfer.STEP
     end, function()
         if Comm.ToBase36(hash) ~= sum then
-            return done(nil, L["Part of the string was lost in copying. Copy it again, the whole line."])
+            return done(nil, L["Part of the text got lost in copying. Copy the whole line again."])
         end
         Decode64(body, function(raw)
-            if not raw then return done(nil, L["That string is damaged."]) end
+            if not raw then return done(nil, L["That text is damaged."]) end
             local ok, payload = Serialize.Decode(raw)
             if not (ok and type(payload) == "table" and payload.v == 1 and payload.id == id
                 and type(payload.s) == "table") then
-                return done(nil, L["That string is from a version of Farmer this one cannot read."])
+                return done(nil, L["That text is from a version of Farmer this one can't read."])
             end
             self:Measure(payload, id, n, of, done)
         end)
@@ -412,7 +412,7 @@ function Transfer.Describe(plan)
         local t = plan.sections[section.key]
         if t and t.records > 0 then
             total = total + t.rise
-            local records = t.records == 1 and L.Format("%d record", t.records) or L.Format("%d records", t.records)
+            local records = t.records == 1 and L.Format("%d entry", t.records) or L.Format("%d entries", t.records)
             local counts = t.rise == 1 and L.Format("%d count", t.rise) or L.Format("%d counts", t.rise)
             lines[#lines + 1] = L.Format("%s: %s (%d new), %s to add", section.label or section.what, records, t.new, counts)
         end
@@ -424,8 +424,8 @@ function Transfer.Describe(plan)
     if total == 0 and #plan.list == 0 then lines[#lines + 1] = L["You already have all of this. Nothing new to add."] end
     if plan.skipped > 0 then
         lines[#lines + 1] = plan.skipped == 1
-            and L.Format("%d record did not look right and will be left out.", plan.skipped)
-            or L.Format("%d records did not look right and will be left out.", plan.skipped)
+            and L.Format("%d entry didn't look right, so it's left out.", plan.skipped)
+            or L.Format("%d entries didn't look right, so they're left out.", plan.skipped)
     end
     return head .. "\n" .. table.concat(lines, "\n"), total
 end
@@ -527,7 +527,7 @@ end
 --- Make the strings and show them, selected and ready to copy.
 function Transfer:Give()
     if not ns.UI then return end
-    ns.Print(L["making your data string..."])
+    ns.Print(L["making your text..."])
     self:Make(function(parts, why)
         if not parts then ns.Print(why or L["could not make one"]) return end
         local index = 1

@@ -641,7 +641,7 @@ ns.RegisterCommand("markers", L["gathered herb and ore markers on the maps (on, 
     end
 
     if argument == "clear" then
-        ns.Print(L.Format("this removes all %s from your maps, for good. Your gathering record stays. Type /farm markers clear confirm to do it.",
+        ns.Print(L.Format("this removes all %s from your maps, for good. Your gathering counts stay. Type /farm markers clear confirm to do it.",
             Util.Plural(#ns.Gathering:Spots(), L["marker"], L["markers"])))
         return
     end

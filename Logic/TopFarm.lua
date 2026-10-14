@@ -338,7 +338,7 @@ function TopFarm:SetOn(on)
     end
 end
 
-ns.RegisterCommand("topfarm", L["your top 15 again after an auction scan, with a new top farm called out (on/off, test)"], function(rest)
+ns.RegisterCommand("topfarm", L["show your top 15 after an auction scan and call out a new top farm (on/off, test)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "test" then
@@ -354,7 +354,7 @@ ns.RegisterCommand("topfarm", L["your top 15 again after an auction scan, with a
         TopFarm:SetOn(not TopFarm.On())
     end
     ns.Print(TopFarm.On()
-        and L["after an auction scan your top 15 shows its new order, and a new top farm is called out. /farm topfarm off to stop."]
+        and L["after an auction scan, your top 15 shows its new order and calls out a new top farm. /farm topfarm off to stop."]
         or L["nothing shows after an auction scan. /farm topfarm on to bring it back."])
 
     if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end

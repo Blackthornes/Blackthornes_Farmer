@@ -597,7 +597,7 @@ ns.RegisterCommand("value", L["what a mob is worth per kill, from Tradeskills pr
                 and L.Format("%s: 1 more kill before it has a value.", mobName)
                 or L.Format("%s: %d more kills before it has a value.", mobName, summary.needed))
         else
-            ns.Print(L.Format("%s: no drop rates with prices to value it by yet.", mobName))
+            ns.Print(L.Format("%s: none of its drops have both a rate and a price yet.", mobName))
         end
         return
     end

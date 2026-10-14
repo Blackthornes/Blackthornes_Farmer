@@ -492,11 +492,11 @@ function GuildShare:Command(text)
         ns.Print(word == "on" and L["sharing with your guild is on"] or L["sharing with your guild is off"])
     elseif word == "forget" then
         if (rest or ""):lower() ~= "confirm" then
-            ns.Print(L["This deletes the drop rates your guild gave and turns guild sharing off. Your own kills and loot are not touched. Type /farm share guild forget confirm to do it."])
+            ns.Print(L["This deletes the drop rates your guild gave and turns guild sharing off. Your own kills and loot stay as they are. Type /farm share guild forget confirm to do it."])
             return
         end
         local count = self:Forget()
-        ns.Print(L.Format("Deleted the drops your guild gave, from %d mobs. Guild sharing is off.", count))
+        ns.Print(L.Format("Deleted your guild's drops for %d mobs. Guild sharing is off.", count))
     else
         ns.Print(self:Describe())
     end

@@ -96,7 +96,7 @@ end
 function Arrow:TurnOnForGoal()
     if not ns.db or self.IsOn() or ns.db.arrowTurnedOff then return false end
     self:SetOn(true)
-    ns.Print(L["goal arrow on: it points to the nearest place to gather. Its close button puts it away."])
+    ns.Print(L["goal arrow on. It points to the nearest place to gather. Click its close button to put it away."])
     if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
     return true
 end
@@ -158,7 +158,7 @@ function Arrow:Aim(item, spot)
     end
     if not Arrow.IsOn() then
         self:SetOn(true)
-        ns.Print(L["goal arrow on. /farm arrow off, or the settings page, hides it."])
+        ns.Print(L["goal arrow on. To hide it, type /farm arrow off or use the settings page."])
     end
     self:Changed(true)
     return true
@@ -180,7 +180,7 @@ function Arrow:Grind(camp)
     if ns.ArrowUI and ns.ArrowUI.Claim then ns.ArrowUI:Claim() end
     if not Arrow.IsOn() then
         self:SetOn(true)
-        ns.Print(L["arrow on. /farm arrow off, or the settings page, hides it."])
+        ns.Print(L["arrow on. To hide it, type /farm arrow off or use the settings page."])
     end
     self:Changed(true)
     return true
@@ -494,7 +494,7 @@ function Arrow:SpotTarget(spot, here, rank)
             return target, "exact"
         end
         -- On this continent, only not measurable from here yet: "somewhere
-        -- in" it, never "other continent: take the boat or zeppelin".
+        -- in" it, never "on another continent, so take the boat or zeppelin".
         target.area = true
         return target, "area"
     elseif mapID and here and zone == ns.Spots.ZoneOf(here.zone) then
@@ -661,16 +661,16 @@ end
 function Arrow.Note(target, now)
     if target.yours and target.gathers then
         if target.resting and target.last and now then
-            return L.Format("picked %s, may not be back yet", Ago(now - target.last)), "muted"
+            return L.Format("picked %s, might not have grown back yet", Ago(now - target.last)), "muted"
         end
         return target.gathers == 1 and L["your own spot"] or
             L.Format("your own spot, gathered %d times", target.gathers), "good"
     end
     if target.far then
         return target.travel == "by boat" and L["take the boat"]
-            or L["other continent: take the boat or zeppelin"], "muted"
+            or L["on another continent, so take the boat or zeppelin"], "muted"
     end
-    if target.here then return L["about this zone, no one spot"], "accent" end
+    if target.here then return L["somewhere in this zone, no exact spot"], "accent" end
     if target.area then return L.Format("somewhere in %s", ns.Spots.Show(target.zone) or L["this zone"]), "accent" end
 
     local rate = target.measured or target.chance
@@ -885,11 +885,11 @@ ns.RegisterCommand("arrow", L["an arrow to the nearest place to gather a goal (o
         local TomTom = ns.TomTom
         if word == "tomtom" then TomTom:SetOn(not TomTom.IsOn()) else TomTom:SetOn(word == "tomtom on") end
         if not TomTom.IsOn() then
-            ns.Print(L["TomTom not used: the goal arrow shows its own dial."])
+            ns.Print(L["TomTom is off, so the goal arrow uses its own dial."])
         elseif TomTom.Installed() then
-            ns.Print(L["TomTom used: its arrow shows the goal arrow's place."])
+            ns.Print(L["TomTom is on, so its arrow shows the way to your goal."])
         else
-            ns.Print(L["TomTom will be used once it is installed."])
+            ns.Print(L["TomTom takes over once you install it."])
         end
         if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
     elseif word == "reset" then

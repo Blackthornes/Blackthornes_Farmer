@@ -883,21 +883,21 @@ function Share:Describe()
     if not ns.db then return "" end
     local partners = self:GetPartners()
     if ns.db.shareData ~= true then return L["Sharing is off."] end
-    if #partners == 0 then return L["Sharing is on, but no character of your other account is named."] end
+    if #partners == 0 then return L["Sharing is on, but you haven't named a character on your other account yet."] end
 
     local parts = {}
     for _, partner in ipairs(partners) do
         local state = self.partners[partner.key] or {}
         local total = self:CountTaken(partner.key)
         if state.duplicate then
-            parts[#parts + 1] = L.Format("%s: the same account as %s, so nothing is taken from it twice",
+            parts[#parts + 1] = L.Format("%s: the same account as %s, so nothing is counted twice",
                 partner.name, tostring(state.sameAs))
         else
             local heard = state.online and L["online"] or L["not heard from this session"]
             if total == 1 then
-                parts[#parts + 1] = L.Format("%s: %s, %d record taken", partner.name, heard, total)
+                parts[#parts + 1] = L.Format("%s: %s, %d entry taken in", partner.name, heard, total)
             else
-                parts[#parts + 1] = L.Format("%s: %s, %d records taken", partner.name, heard, total)
+                parts[#parts + 1] = L.Format("%s: %s, %d entries taken in", partner.name, heard, total)
             end
         end
     end
@@ -966,10 +966,10 @@ ns.RegisterCommand("share", L["share kills, drop rates and gathering with your o
             ns.Print(word == "on" and L["sharing with your other account is on"] or L["sharing with your other account is off"])
         elseif word == "with" then
             Share:SetNames(rest)
-            ns.Print(rest ~= "" and L.Format("sharing with: %s", rest) or L["no character named to share with"])
+            ns.Print(rest ~= "" and L.Format("sharing with: %s", rest) or L["you haven't named anyone to share with"])
         elseif word == "sync" then
             Share:Check()
-            ns.Print(Share:Enabled() and L["asked your other account for anything new"] or L["sharing is off, or no character is named"])
+            ns.Print(Share:Enabled() and L["asked your other account for anything new"] or L["sharing is off, or you haven't named a character yet"])
         elseif word == "guild" then
             ns.GuildShare:Command(rest)
         else

@@ -176,7 +176,7 @@ local function Parse(rest)
     return ns.DB:GetItem(text) and "item" or "source", text
 end
 
-ns.RegisterCommand("hide", L["hide a mob, node or item from the lists: /farm hide <name>, or alone to see what is hidden"], function(rest)
+ns.RegisterCommand("hide", L["hide a mob, node or item from the lists: /farm hide <name>, or on its own to see what's hidden"], function(rest)
     local kind, name = Parse(rest)
     if not kind then
         HiddenUI:Toggle()

@@ -430,7 +430,7 @@ function Moments:Pace()
     if not session.paceCheered then
         session.paceCheered = true
         ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent,
-            L.Format("Ahead of your usual pace: %s an hour against %s.",
+            L.Format("Ahead of your usual pace: %s an hour, when you usually make %s.",
                 ns.Value.Coins(kept.rate), ns.Value.Coins(kept.usual))))
         self.paceFloat = true
     end

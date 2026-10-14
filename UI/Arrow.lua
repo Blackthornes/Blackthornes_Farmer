@@ -238,7 +238,7 @@ end
 --- The close gem: the arrow off until turned on again.
 function ArrowUI:Close()
     ns.Arrow:SetOn(false)
-    ns.Print(L["goal arrow off. /farm arrow, or the settings page, brings it back."])
+    ns.Print(L["goal arrow off. To bring it back, type /farm arrow or use the settings page."])
     if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
 end
 

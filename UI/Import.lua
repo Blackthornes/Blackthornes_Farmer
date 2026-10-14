@@ -73,7 +73,7 @@ function UI:BuildImport()
     hint:SetPoint("TOPLEFT", PADDING, -42)
     hint:SetPoint("TOPRIGHT", -PADDING, -42)
     hint:SetWordWrap(true)
-    hint:SetText(L["Click the box, press Ctrl+V to paste what another player sent you (the whole line, starting BFR1). Nothing is added until you press Apply."])
+    hint:SetText(L["Click the box and press Ctrl+V to paste what another player sent you (the whole line, starting BFR1). Nothing is added until you press Apply."])
 
     -- The paste box.
     local panel = Theme.CreatePanel(frame, "panel", "border")
@@ -145,7 +145,7 @@ function UI:BuildImport()
     more:SetPoint("TOPLEFT", PADDING, -316 - ROWS * 26)
     more:SetPoint("TOPRIGHT", -PADDING, -316 - ROWS * 26)
     more:SetWordWrap(true)
-    more:SetText(L["Remove takes back exactly what that string added. Counts you gathered yourself are never touched."])
+    more:SetText(L["Remove takes back exactly what that text added. Your own counts are never touched."])
 
     -- Footer.
     local apply = Widgets.CreateButton(frame, L["Apply"], function() UI:ImportApply() end,
@@ -217,8 +217,8 @@ function UI:ImportApply()
             UI:ImportChanged()
         else
             UI.importPreview:SetText(taken == 1
-                and L.Format("Done. %d record added to your own. Paste the next part if there is one.", taken)
-                or L.Format("Done. %d records added to your own. Paste the next part if there is one.", taken))
+                and L.Format("Done. %d entry added to your own. If there's another part, paste it next.", taken)
+                or L.Format("Done. %d entries added to your own. If there's another part, paste it next.", taken))
             UI.importEdit:SetText("")
         end
         UI:ImportList()
@@ -249,8 +249,8 @@ function UI:ImportRemove(row)
                 return
             end
             UI.importPreview:SetText(count == 1
-                and L.Format("Took back what that string added (%d record).", count)
-                or L.Format("Took back what that string added (%d records).", count))
+                and L.Format("Took back what that text added (%d entry).", count)
+                or L.Format("Took back what that text added (%d entries).", count))
             UI:ImportList()
         end)
         return
@@ -276,8 +276,8 @@ function UI:ImportList()
             row.remove:SetText(L["Remove"])
             local when = item.at > 0 and date("%d %b", item.at) or L["earlier"]
             row.label:SetText(item.records == 1
-                and L.Format("Source %s, taken %s, %d record", item.id:sub(1, 6), when, item.records)
-                or L.Format("Source %s, taken %s, %d records", item.id:sub(1, 6), when, item.records))
+                and L.Format("From %s, taken in %s, %d entry", item.id:sub(1, 6), when, item.records)
+                or L.Format("From %s, taken in %s, %d entries", item.id:sub(1, 6), when, item.records))
             row:Show()
         else
             row.importId = nil

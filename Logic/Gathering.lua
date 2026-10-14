@@ -949,7 +949,7 @@ local function PrintSuspects()
     end
 end
 
-ns.RegisterCommand("gathering", L["herbs and ore gathered in this zone (all: everywhere; check)"], function(rest)
+ns.RegisterCommand("gathering", L["herbs and ore you've gathered in this zone (all for everywhere, check for odd gathers)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     if argument == "check" then
@@ -965,7 +965,7 @@ ns.RegisterCommand("gathering", L["herbs and ore gathered in this zone (all: eve
 
     if argument == "reset confirm" then
         Gathering:Reset()
-        ns.Print(L["gathering record cleared."])
+        ns.Print(L["your gathering counts are cleared."])
         return
     end
 

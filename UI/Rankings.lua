@@ -41,7 +41,7 @@ local FILTERS = {
 
 local HEADINGS = {
     measured = { L["YOUR KILLS"], L["measured, coin included"] },
-    estimate = { L["ESTIMATES"], L["database drop rates, no coin, so they run low"] },
+    estimate = { L["ESTIMATES"], L["from the usual drop rates without coin, so they run low"] },
     pending = { L["NOT RANKED YET"], L["keep killing"] },
     worlddrops = { L["WORLD DROPS"], L["green gear and better, by mob level"] },
 }
@@ -611,7 +611,7 @@ function RankingsUI:OnRowClick(data, button)
     local mob = data.entry.mob
     if ns.LootTableUI and ns.LootTableUI:Show(mob) then return end
 
-    ns.Print(L.Format("%s: no kills yet, so no loot table. Its worth is a guess from the data.",
+    ns.Print(L.Format("%s: no kills yet, so no loot table. Its worth is an estimate from the usual drop rates.",
         Util.Colored("accent", mob)))
 end
 
@@ -664,7 +664,7 @@ function RankingsUI:Rows(board)
     end
 
     if not wanted or wanted == "estimate" then
-        Add("estimate", L["No database drop rate has a price yet."])
+        Add("estimate", L["None of the usual drop rates has a price yet."])
     end
 
     if not wanted or wanted == "measured" then

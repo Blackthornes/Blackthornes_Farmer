@@ -1402,7 +1402,7 @@ function GoalsUI:BuildSpots()
     local hint = Theme.CreateLabel(panel, "tiny", "dim")
     hint:SetPoint("BOTTOMLEFT", 12, 6)
     hint:SetPoint("BOTTOMRIGHT", -10, 6)
-    hint:SetText(L["Click a place to print it to chat, pinned on your map when it is in this zone. Shift-click points the goal arrow there."])
+    hint:SetText(L["Click a place to put it in chat. If it's in this zone, it gets a pin on your map too. Shift-click points the goal arrow there."])
     hint:SetWordWrap(true)
     panel.hint = hint
 
@@ -1508,7 +1508,7 @@ function GoalsUI:OpenSpots(item, anchor)
     elseif player.zone then
         panel.from:SetText(L.Format("Nearest first, from %s", ns.Spots.Show(player.zone)))
     else
-        panel.from:SetText(L["Your zone could not be read here, so these are by level and rate"])
+        panel.from:SetText(L["The game won't say which zone you're in, so these are sorted by level and rate"])
     end
 
     for index, spot in ipairs(spots) do

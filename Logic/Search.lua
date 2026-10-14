@@ -656,7 +656,7 @@ ns.RegisterCommand("skinning", L["show skinning, or leave it out and show only d
     end
     ns.DB:SetShowSkinning(on)
     ns.Print(on and L["skinning is shown again."]
-        or L["skinning is left out: only drops are shown. /farm skinning puts it back."])
+        or L["skinning is hidden, so you only see drops. /farm skinning brings it back."])
     if ns.SettingsUI then ns.SettingsUI:Refresh() end
 end)
 
@@ -679,11 +679,11 @@ ns.RegisterCommand("data", L["where the data came from"], function()
     end
 
     ns.PrintRaw(Util.Colored("muted",
-        L["  Classic rows are a guide only. Forever can differ."]))
+        L["  Classic spots are only a guide. Forever can be different."]))
 end)
 
 ns.RegisterCommand("list", L["list every item in the database"], function()
-    ns.Print(L.Format("database holds %s:", Util.Plural(ns.DB:CountItems(), L["item"], L["items"])))
+    ns.Print(L.Format("Farmer knows %s:", Util.Plural(ns.DB:CountItems(), L["item"], L["items"])))
 
     local row = {}
     for item in ns.DB:Iterate() do

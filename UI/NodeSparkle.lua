@@ -1046,7 +1046,7 @@ function NodeSparkle:Check()
     ns.PrintRaw(("  sparkle: %s"):format(self:SafeRefresh()))
 end
 
-ns.RegisterCommand("sparkle", L["sparkles on the node, school, chest or quest object you face on or off (beacon, sparkles, icon, check)"], function(rest)
+ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, icon, check)"], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
     if argument == "beacon" or argument == "sparkles" then
         NodeSparkle:SetStyle(argument)
