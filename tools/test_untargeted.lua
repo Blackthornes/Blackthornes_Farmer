@@ -63,7 +63,7 @@ units.mouseover = nil
 
 -- 3. A dead mob under the mouse that is not this window's source is not it.
 units.mouseover = { name = "Kobold Vermin", dead = true, guid = "Creature-0-1-2-3-50-K" }
-Window("Creature-0-1-2-3-50-C", { FANG })
+Window("Creature-0-1-2-3-51-C", { FANG })
 fire(ns.eventFrame, "LOOT_OPENED")
 suite.check("a corpse the window does not name is not counted",
     Tracker:Store()["Kobold Vermin"] == nil and Kills(WOLF) == 2)

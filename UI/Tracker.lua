@@ -1565,7 +1565,7 @@ function TrackerUI:CardLines(Add, card)
 
     -- A crown for a mob you are champion of, and for the one a preview
     -- crowned (held in memory only, never saved).
-    local name = card.name
+    local name = ns.Harvest.ShowName(card.name)
     local crowned = card.mob and ((tonumber(card.total) or 0) >= ns.Tracker.CHAMPION_KILLS
         or self.crownPreview == card.mob)
     local bane = card.mob and ((tonumber(card.total) or 0) >= ns.Tracker.BANE_KILLS

@@ -782,6 +782,18 @@ import's "Creature #ID" record goes under the name this side knows
 (`Share.Canonical`, not for the guild), and a partner with a ledger under
 both keys keeps the larger while what was taken twice comes off
 (`Share.Combine`, `Share.Subtract`; `tools/test_unnamedshare.lua`). This works the same in every dungeon and raid.
+Names for mobs Forever added (a player's Ruins of Lordaeron kills showed
+as numbers, 2026-10-14): whenever the client lets a creature's name and
+guid both be read (target and mouse, also off their tooltip, nameplates,
+the soft targets, any unit tooltip), `Harvest:KeepName` keeps it in
+`npcNames`, only for an ID neither Classic's list nor an earlier answer
+names, so no record already named changes key (`Harvest:LearnName`,
+`NoteUnit`, `KillTooltip:Learn`). The kills panel shows the name at once
+(`Harvest.ShowName`, for showing only) and `NameUnnamed` moves the kept
+data at the next login. If the game hides every name in that dungeon too,
+it stays a number until the mob is met where it does not; `/farm harvest
+check` now says whether the tooltip gives a name and how many names were
+learned. Tested in `tools/test_learnnames.lua`.
 `/farm harvest check` reports what a dungeon lets the addon read.
 
 ## What's New
