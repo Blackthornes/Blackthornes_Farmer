@@ -14,6 +14,12 @@ local suite = env.NewSuite("namemob")
 local ns = env.Load({ ui = true })
 local Harvest = ns.Harvest
 
+-- The shipped names name the Ruins mobs for everyone.
+suite.check("the Ruins' Tarantula is named", Harvest.KnownNpcName(250488) == "Tarantula")
+suite.check("so the panel shows it", Harvest.ShowName("Creature #250488") == "Tarantula")
+-- The rest of this suite plays a mob nobody has named yet.
+ns.FOREVER_NPC_NAMES = {}
+
 -- Cleaning what was typed.
 suite.check("spaces are trimmed", Harvest.CleanName("  Lordaeron   Ghoul ") == "Lordaeron Ghoul")
 suite.check("an empty name is refused", Harvest.CleanName("   ") == nil)

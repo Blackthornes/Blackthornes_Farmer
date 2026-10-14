@@ -12,6 +12,8 @@ local suite = env.NewSuite("learnnames")
 
 local ns = env.Load({ ui = true })
 local Harvest = ns.Harvest
+-- A mob the shipped names do not name yet.
+ns.FOREVER_NPC_NAMES = {}
 
 local GHOUL = "Creature-0-4621-2999-76516-250488-0000CB0C4B"
 local TROGG = "Creature-0-4621-389-76516-11318-000CCB0C4B"
