@@ -103,6 +103,26 @@ function RankingsUI:Build(frame)
         self.chips[index] = chip
     end
 
+    -- Mobs found only in dungeons and raids left out (the owner, 2026-10-14),
+    -- after the chips. Off unless ticked; Rankings:SetOutsideOnly redraws.
+    local outside = Widgets.CreateCheckbox(filters, L["Outside dungeons only"], function(checked)
+        ns.Rankings:SetOutsideOnly(checked)
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+    end, ns.Rankings.OutsideOnly())
+    outside:SetPoint("LEFT", filters, "LEFT", offset + 8, 0)
+    outside:HookScript("OnEnter", function(box)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(box, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:SetText(L["Outside dungeons only"])
+        GameTooltip:AddLine(L["Leaves out mobs you found only in dungeons and raids. Same as /farm rankings outside."],
+            1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    outside:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    self.outside = outside
+    offset = offset + 8 + outside:GetWidth()
+    self.headOffset = offset
+
     -- Where the prices come from, on the right of the chips.
     local summary = Theme.CreateLabel(view, "small", "muted", "RIGHT")
     summary:SetPoint("LEFT", filters, "LEFT", offset + 8, 0)
@@ -717,6 +737,16 @@ function RankingsUI:FitColumns(rows)
     return self.columns.total + CHROME
 end
 
+--- How wide the window must be for the top row: the chips, the tick box
+--- and the price note beside them, clear of the Settings button. German
+--- runs longer, and the note would end in "..." otherwise.
+function RankingsUI:HeadWidth()
+    local button = ns.UI and ns.UI.settingsButton
+    local right = (button and button:GetWidth() or 0) + 8 + PADDING
+    return (ns.UI.HEAD_LEFT or PADDING) + (self.headOffset or 0) + 8
+        + Theme.TextWidth("small", self:PriceText()) + 6 + right
+end
+
 function RankingsUI:PriceText()
     local source = ns.Value:PriceSource()
     if source == "tradeskills" then
@@ -732,7 +762,7 @@ end
 function RankingsUI:Resort()
     if not (self.view and self.view:IsShown() and self.board) then return end
     local rows = self:Rows(self.board)
-    local width = self:FitColumns(rows)
+    local width = math.max(self:FitColumns(rows), self:HeadWidth())
     self.list:SetData(rows)
     if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then
         ns.UI.frame:SetWidth(math.max(ns.UI.BASE_WIDTH or 0, width))
@@ -746,12 +776,13 @@ function RankingsUI:Render(arrive)
     for _, chip in ipairs(self.chips) do
         chip:SetSelected(chip:GetFilterKind() == self.group)
     end
+    if self.outside then self.outside:SetChecked(ns.Rankings.OutsideOnly()) end
 
     local board = ns.Rankings:Build()
     local rows = self:Rows(board)
     self.board = board
 
-    local width = self:FitColumns(rows)
+    local width = math.max(self:FitColumns(rows), self:HeadWidth())
 
     -- The board comes in row by row when the tab is opened or the filter
     -- changes; a kill that redraws it while you look just redraws.
