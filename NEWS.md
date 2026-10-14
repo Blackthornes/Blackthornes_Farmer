@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.32.1
+
+Fixes and changes:
+
+- The beam of light now shows on quest pickups that are named differently from the quest goal.
+- The level-up cheer floats over the screen with no box behind it.
+- Sparkles no longer put names and health bars over vendors and objects.
+
 ## 0.32.0
 
 - This is the largest AddOn update so far across the whole suite of Blackthornes addons.

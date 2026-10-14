@@ -4,6 +4,17 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.32.1
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Quest pickups:** the beacon also shows over a quest pickup whose name
+  differs from the objective's, such as Raw Windstone for Windstone Cluster.
+- **Level-up cheer:** it floats over the screen with no box behind it.
+- **Sparkles on the node you face:** turning them on no longer makes the game
+  draw a name, health bar and level over every vendor and object the
+  interact key picks. A creature you could attack still shows its plate.
+
 ## 0.32.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game
