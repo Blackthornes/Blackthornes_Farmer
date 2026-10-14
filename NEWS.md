@@ -23,6 +23,19 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.33.0
+
+- The Grind tab now shows Leather, Ore and Herbs too, with what each is worth and which nodes you can gather.
+- A mob's tooltip lists the three drops that add the most to a kill.
+
+Fixes and changes:
+
+- The Grind arrow points at the spots nearest you.
+- The trash can leaves goal items alone and stays out of fights.
+- The Stats tab no longer counts a late-priced loot twice.
+- The game's XP bar comes back when yours hides at the cap.
+- A mob known only by a number is counted once when you share.
+
 ## 0.32.2
 
 Fixes and changes:

@@ -4,6 +4,36 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.33.0
+
+For WoW: Forever (interface 16001). A file was added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Grind tab:** it also gives Leather, Ore and Herbs beside Cloth. Leather
+  lists mobs with the skill needed to skin them and what one skin is worth;
+  it shows while you know Skinning, even with Hide skinning ticked. Ore and
+  Herbs list zones and their nodes with what a gather is worth and, from
+  your own gathering, what an hour is worth. A node your skill does not
+  reach is greyed with the skill it needs and yours. Clicking a node or zone
+  aims the goal arrow at your mapped spots.
+- **Best drops on the mob tooltip:** under the kill count, the three drops
+  that add the most to a kill, each with its chance and what it adds in coin
+  colours ("est." while the numbers come from known drop rates). "Best
+  drops" on the Map & goals page and `/farm killcount drops [on|off]` turn
+  it off.
+- **Grind arrow:** with many marked spots, a click aims at the spots nearest
+  you. Only herbs and veins count toward gathering pace.
+- **Trash can:** it leaves the item of a goal alone and stays away during
+  fights and at vendors.
+- **Sparkles:** a plate piece they faded comes back when a fight starts.
+- **Stats:** a loot priced late is counted once.
+- **XP bar:** the game's XP bar comes back when ours hides at the cap, and
+  the goal arrow returns to its spot.
+- **Resets:** a reset also clears the share and import ledgers for what it
+  reset, so removing an import later takes only what the import added.
+- **Sharing:** a mob only known as "Creature #ID" is counted once from a
+  partner or an import, whichever account learns its name first.
+
 ## 0.32.2
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
