@@ -265,24 +265,24 @@ function StatsUI:Build(frame)
     local y2 = cardsTop + rowHeight + GAP
 
     self.sessionsCard = self:Card(view, xs[1], cardsTop, ws[1], rowHeight,
-        L["Gold an hour, your last sessions"], L["what you looted and the coin, by time spent farming"])
+        L["Gold an hour, your last sessions"], L["loot and coin for each hour you farmed"])
     self.sourcesCard = self:Card(view, xs[2], cardsTop, ws[2], rowHeight,
         L["Where your gold came from"], L["the last 7 days"])
     self.mobsCard = self:Card(view, xs[3], cardsTop, ws[3], rowHeight,
         L["Your best mobs for gold"], L["gold an hour at your kill speed"])
     self.luckCard = self:Card(view, xs[1], y2, ws[1], rowHeight,
-        L["Luck since you logged in"], L["what dropped against what the drop rates say"])
+        L["Luck since you logged in"], L["your drops next to the usual odds"])
     self.daysCard = self:Card(view, xs[2], y2, ws[2], rowHeight,
-        L["Days you farmed"], L["the last 10 weeks, brighter is more gold"])
+        L["Days you farmed"], L["the last 10 weeks, brighter means more gold"])
     self.levelsCard = self:Card(view, xs[3], y2, ws[3], rowHeight,
         L["How long each level took"], L["this character, in played time"])
 
     -- Days and levels are not kept by session, so these two show the same
     -- in both views and say so while This session is picked.
     self:SameInBoth(self.daysCard, L["Every day"],
-        L["Same in This session and Overall, since it counts whole days."])
+        L["This one counts whole days, so it looks the same in both views."])
     self:SameInBoth(self.levelsCard, L["Every level"],
-        L["Same in This session and Overall, since it counts levels."])
+        L["This one counts levels, so it looks the same in both views."])
 
     self:BuildSessions(self.sessionsCard)
     self:BuildSources(self.sourcesCard)
@@ -295,7 +295,7 @@ function StatsUI:Build(frame)
     footer:SetPoint("BOTTOMLEFT", PADDING, 8)
     footer:SetPoint("BOTTOMRIGHT", -(PADDING + (ns.UI.VERSION_ROOM or 0)), 8)
     footer:SetWordWrap(true)
-    footer:SetText(L["Breaks of five minutes or more between loots don't count as farming time."])
+    footer:SetText(L["If you go five minutes without looting, that break doesn't count as farming time."])
     self.footer = footer
 
     view:Hide()
@@ -461,7 +461,7 @@ function StatsUI:DrawSessions(card, arrive, view)
         HideAll()
         Empty(card, curve == nil and view == "session"
             and L["Loot something to start this chart."]
-            or L["Farm for five minutes to add a session. The line starts at two."])
+            or L["Farm for five minutes to start a session. The line shows once you have two."])
         return
     end
     Empty(card, nil)
@@ -778,8 +778,8 @@ function StatsUI:BuildMobs(card)
             lines[#lines + 1] = L.Format("Worth per kill: %s", ns.Value.Coins(entry.perKill))
             if entry.seconds then
                 lines[#lines + 1] = L.Format("About %d seconds a kill", math.floor(entry.seconds + 0.5))
-                lines[#lines + 1] = entry.own and L["Your own pace for this mob."]
-                    or L.Format("Your usual pace until %d kills in a row are timed.", ns.Stats.PACE_MIN)
+                lines[#lines + 1] = entry.own and L["This is how fast you kill this one."]
+                    or L.Format("Your average pace for now. This mob gets its own after %d kills in a row.", ns.Stats.PACE_MIN)
             else
                 lines[#lines + 1] = L.Format("Gold an hour shows after %d kills in a row.",
                     ns.Stats.PACE_MIN)
@@ -795,7 +795,7 @@ function StatsUI:DrawMobs(card, arrive, view)
     local list, byKill = ns.Stats:BestMobs(MOB_ROWS, view)
     card.byKill = byKill
     if byKill then
-        card.subtitle:SetText(L["worth per kill until your kill speed is timed"])
+        card.subtitle:SetText(L["worth per kill until your kill speed is known"])
     else
         card.subtitle:SetText(view == "session" and L["the mobs you killed this session"]
             or L["gold an hour at your kill speed"])
@@ -925,16 +925,16 @@ end
 function StatsUI:DrawLuck(card, arrive, view)
     local luck = ns.Stats:Luck(view)
     card.title:SetText(view == "session" and L["Luck since you logged in"] or L["Luck over every kill"])
-    card.subtitle:SetText(view == "session" and L["what dropped against what the drop rates say"]
-        or L["your whole kill tally against the drop rates"])
+    card.subtitle:SetText(view == "session" and L["your drops next to the usual odds"]
+        or L["all your kills, next to the usual odds"])
     local parts = { card.headline, card.sub, card.meter, card.lowLabel, card.highLabel }
     for _, part in ipairs(parts) do part:SetShown(luck ~= nil) end
     if not luck then
         for _, row in ipairs(card.rows) do row:Hide() end
         Empty(card, view == "session"
-            and L.Format("After %d looted kills of mobs with known drop rates, this shows if you beat the odds.",
+            and L.Format("Loot %d kills from mobs with known drop rates and you'll see if luck is on your side.",
                 ns.Stats.LUCK_MIN_KILLS)
-            or L.Format("After %d looted kills of mobs with known drop rates, this shows if you beat the odds.",
+            or L.Format("Loot %d kills from mobs with known drop rates and you'll see if luck is on your side.",
                 ns.Stats.LUCK_MIN_KILLS))
         return
     end
@@ -943,7 +943,7 @@ function StatsUI:DrawLuck(card, arrive, view)
     local words, color = StatsUI.LuckWords(luck.percent)
     card.headline:SetText(words)
     card.headline:SetTextColor(Theme.Unpack(color))
-    card.sub:SetText(L.Format("than the drop rates say, over %d kills", luck.kills))
+    card.sub:SetText(L.Format("than the usual odds, over %d kills", luck.kills))
 
     for index, row in ipairs(card.rows) do
         local entry = luck.rows[index]
@@ -1095,7 +1095,7 @@ function StatsUI:DrawDays(card, arrive)
         card.streak:SetText(ns.Util.Plural(streak, L["day in a row"], L["days in a row"]))
         card.streak:SetTextColor(Theme.Unpack("good"))
     else
-        card.streak:SetText(L["Farm today to start a run"])
+        card.streak:SetText(L["Farm today to start a streak"])
         card.streak:SetTextColor(Theme.Unpack("muted"))
     end
     card.longest:SetText(L.Format("Your longest: %d", longest))
@@ -1164,7 +1164,7 @@ function StatsUI:DrawLevels(card, arrive)
             bar.label:Hide()
             bar.light:Hide()
         end
-        Empty(card, L["Level up with the XP bar on and the time each level took shows here."])
+        Empty(card, L["Keep the XP bar on and each level's time shows up here after you level."])
         return
     end
     Empty(card, nil)
@@ -1281,7 +1281,7 @@ function StatsUI:DrawTiles(arrive, view)
                     Note(rate, L.Format("%d%% below your usual", whole))
                 end
             else
-                Note(rate, L["your first session to compare"])
+                Note(rate, L["nothing to compare with yet"])
             end
         else
             NoValue(rate)
@@ -1356,10 +1356,10 @@ function StatsUI:Render(arrive)
     local sessions = self.sessionsCard
     if view == "session" then
         sessions.title:SetText(L["Gold this session"])
-        sessions.subtitle:SetText(L["how it grew while you farmed, against your usual pace"])
+        sessions.subtitle:SetText(L["how your gold added up, next to your usual pace"])
     else
         sessions.title:SetText(L["Gold an hour, your last sessions"])
-        sessions.subtitle:SetText(L["what you looted and the coin, by time spent farming"])
+        sessions.subtitle:SetText(L["loot and coin for each hour you farmed"])
     end
 
     local steps = {
