@@ -609,6 +609,15 @@ alpha to 0 from Farmer's own table (never Hide), never in a fight, and puts
 it back when a controller comes on or the box is unticked. "Game's
 interact icon" (`nodeSparkleHideIcon`, on unless unticked, never rename
 it) and `/farm sparkle icon [show|hide]`.
+The plates are Farmer's doing too: with them on, the game draws a name,
+bars and a level over every NPC and object the interact key picks (the
+owner saw them on a vendor, 2026-10-13). While Farmer turned those CVars on
+(`NodeSparkle:OwnsPlates`), the plate's pieces other than the icon
+(`NodeSparkle.PlatePieces`) are see-through the same way, whatever the icon
+setting, unless the player would see that plate anyway (a creature they
+could attack, or friendly nameplates on: `PlateShownAnyway`); looked at
+again `VEIL_AGAIN` after each event, since the game sets a plate up after
+telling us.
 Tested in `tools/test_nodesparkle.lua`.
 
 ## Quest count over quest mobs

@@ -37,6 +37,13 @@
 -- on unless unticked; never rename it). A player who had the icon on before
 -- Farmer, or who plays with a controller, keeps it.
 --
+-- The nameplates themselves are Farmer's doing too: with them on, the game
+-- puts a name, a health bar and a level over every NPC and object the
+-- interact key picks. While Farmer is the one that turned them on, the
+-- plate's pieces other than the icon are see-through the same way (a
+-- creature you could attack, or any with friendly nameplates on, keeps its
+-- plate). The beacon is anchored to the plate, not parented, so it shows.
+--
 -- Smooth play: no OnUpdate and no timer. The soft target and nameplate
 -- events say when to look again, the anchor makes it follow the node, and
 -- the twinkle is an animation the game plays, only while it shows. Every
@@ -580,36 +587,89 @@ local function SetAlpha(frame, alpha)
     return pcall(function() frame:SetAlpha(alpha) end)
 end
 
-local function Unveil(icon)
-    local alpha = veiled[icon]
-    veiled[icon] = nil
-    if alpha ~= nil then SetAlpha(icon, alpha) end
+local function Unveil(frame)
+    local alpha = veiled[frame]
+    veiled[frame] = nil
+    if alpha ~= nil then SetAlpha(frame, alpha) end
 end
 
---- Make the game's icon on the soft target's nameplate see-through, or put
---- it back. Only its alpha is changed, from this file's own table, never
---- in a fight; a plate the game hands to something else gets its own back.
--- @return true while an icon is kept out of sight
+--- Did Farmer turn on the game's nameplate for what the interact key
+--- picks? Only then are those plates its own doing to keep out of sight.
+function NodeSparkle:OwnsPlates()
+    local db = ns.db
+    if not db or not self:IsEnabled() then return false end
+    local saved = db.nodeSparkleCVars
+    return type(saved) == "table"
+        and (saved.SoftTargetNameplateInteract ~= nil or saved.SoftTargetInteract ~= nil)
+end
+
+--- Would the player see this plate without Farmer? A creature's plate
+--- shows anyway when it can be attacked, or when friendly nameplates are on.
+function NodeSparkle:PlateShownAnyway(guid)
+    if type(guid) ~= "string" or guid:find("^GameObject%-") then return false end
+    if type(UnitCanAttack) == "function" then
+        local ok, yes = pcall(UnitCanAttack, "player", UNIT)
+        if ok and type(yes) == "boolean" and yes then return true end
+    end
+    return self.GetCVar("nameplateShowFriends") == "1"
+end
+
+--- The pieces of a plate the game draws for the interact target, its name,
+--- bars and level, but not its icon: what the game shows only because
+--- Farmer turned these plates on.
+function NodeSparkle.PlatePieces(plate)
+    local body = Field(plate, "UnitFrame")
+    if type(body) ~= "table" then return {} end
+    local icon = NodeSparkle.Icon(plate)
+    local pieces = {}
+    for _, method in ipairs({ "GetRegions", "GetChildren" }) do
+        local ok, list = pcall(function() return { body[method](body) } end)
+        for _, piece in ipairs(ok and list or {}) do
+            if type(piece) == "table" and piece ~= icon then pieces[#pieces + 1] = piece end
+        end
+    end
+    return pieces
+end
+
+--- Keep out of sight what Farmer's settings made the game draw over the
+--- thing the interact key picks: the plate's name, bars and level always
+--- (unless the player would see that plate anyway), and its icon without a
+--- controller. Only alpha is changed, from this file's own table, never in
+--- a fight; a plate the game hands to something else gets its own back.
+-- @return true while anything is kept out of sight
 function NodeSparkle:VeilIcon()
     if InCombat() then return next(veiled) ~= nil end
-    local icon
-    if self:HidesIcon() then
-        local forUnit = Field(_G.C_NamePlate, "GetNamePlateForUnit")
-        if type(forUnit) == "function" then
-            local ok, plate = pcall(forUnit, UNIT)
-            if ok and type(plate) == "table" then icon = self.Icon(plate) end
+    local want = {}
+    local plate
+    local forUnit = Field(_G.C_NamePlate, "GetNamePlateForUnit")
+    if type(forUnit) == "function" and (self:HidesIcon() or self:OwnsPlates()) then
+        local ok, found = pcall(forUnit, UNIT)
+        if ok and type(found) == "table" then plate = found end
+    end
+    if plate then
+        if self:HidesIcon() then
+            local icon = self.Icon(plate)
+            if icon then want[icon] = true end
+        end
+        if self:OwnsPlates() then
+            local guid = self:Facing()
+            if not self:PlateShownAnyway(guid) then
+                for _, piece in ipairs(self.PlatePieces(plate)) do want[piece] = true end
+            end
         end
     end
     for other in pairs(veiled) do
-        if other ~= icon then Unveil(other) end
+        if not want[other] then Unveil(other) end
     end
-    if not icon then return false end
-    if veiled[icon] == nil then
-        local ok, alpha = pcall(function() return icon:GetAlpha() end)
-        veiled[icon] = (ok and type(alpha) == "number") and alpha or 1
+    if next(want) == nil then return false end
+    for frame in pairs(want) do
+        if veiled[frame] == nil then
+            local ok, alpha = pcall(function() return frame:GetAlpha() end)
+            veiled[frame] = (ok and type(alpha) == "number") and alpha or 1
+        end
+        -- Again each time: the game may light it up as the target changes.
+        SetAlpha(frame, 0)
     end
-    -- Again each time: the game may light it up as the target changes.
-    SetAlpha(icon, 0)
     return true
 end
 
@@ -819,8 +879,19 @@ function NodeSparkle:Refresh()
     return "shown"
 end
 
+-- The game sets up a plate after the events that tell us about it, and may
+-- light its pieces again then: look once more a moment later.
+NodeSparkle.VEIL_AGAIN = 0.1
+
 function NodeSparkle:SafeRefresh()
     pcall(self.VeilIcon, self)
+    if not self.veilAgain then
+        self.veilAgain = true
+        After(self.VEIL_AGAIN, function()
+            NodeSparkle.veilAgain = nil
+            pcall(NodeSparkle.VeilIcon, NodeSparkle)
+        end)
+    end
     local ok, outcome = pcall(self.Refresh, self)
     if not ok then
         pcall(self.HideSparkle, self)
