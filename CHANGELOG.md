@@ -27,8 +27,7 @@ restart the game fully after updating (`/reload` is not enough).
   fights and at vendors.
 - **Sparkles:** a plate piece they faded comes back when a fight starts.
 - **Stats:** a loot priced late is counted once.
-- **XP bar:** the game's XP bar comes back when ours hides at the cap, and
-  the goal arrow returns to its spot.
+- **XP bar:** the game's XP bar comes back when ours hides at the cap.
 - **Resets:** a reset also clears the share and import ledgers for what it
   reset, so removing an import later takes only what the import added.
 - **Sharing:** a mob only known as "Creature #ID" is counted once from a
