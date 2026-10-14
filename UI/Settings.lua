@@ -680,6 +680,15 @@ function SettingsUI:BuildTallyPage()
         L["Shows your best mobs by worth per kill, from your own kills, the way the rank-up pop-up does. Same as /farm rankup show."], L["Show it"], "rankup show")
     controls.rankUpShow = topButton
 
+    -- After an auction scan (Logic/TopFarm.lua, the owner asked 2026-10-14).
+    local topFarmRow = pages:Row("tally", 2, L["After an auction scan"],
+        L["When new auction prices change the order of your top 15, it pops up and shuffles to the new order. A different mob in first place, worth at least 10% more a kill, is called out as your new top farm. Only mobs you have killed 20 times count. Plays the rank-up sound when that is on. Same as /farm topfarm."])
+    controls.topFarm = Widgets.CreateCheckbox(topFarmRow, L["Show it"], function(checked)
+        ns.TopFarm:SetOn(checked)
+    end, true)
+    controls.topFarm:SetPoint("TOPLEFT", CONTROL_X, -2)
+    controls.topFarmTry = CommandButton(topFarmRow, L["Try it"], "topfarm test", 60, CONTROL_X + 70)
+
     -- The XP bar (UI/XPBar.lua, the owner asked 2026-10-13).
     pages:Section("tally", 2, L["XP BAR"])
 
@@ -1235,6 +1244,7 @@ function SettingsUI:Refresh()
     if ns.RankUp then
         controls.rankUp:SetChecked(ns.RankUp.On())
         controls.rankUpSound:SetChecked(ns.RankUp.SoundOn())
+        controls.topFarm:SetChecked(ns.TopFarm.On())
         controls.statsBestCheer:SetChecked(ns.db.statsBestCheer ~= false)
     end
     controls.voice:SetChecked(ns.TrackerFX.VoiceOn())
