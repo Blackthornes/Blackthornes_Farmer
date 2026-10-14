@@ -23,15 +23,8 @@ restart the game fully after updating (`/reload` is not enough).
   it off.
 - **Grind arrow:** with many marked spots, a click aims at the spots nearest
   you. Only herbs and veins count toward gathering pace.
-- **Trash can:** it leaves the item of a goal alone and stays away during
-  fights and at vendors.
-- **Sparkles:** a plate piece they faded comes back when a fight starts.
-- **Stats:** a loot priced late is counted once.
-- **XP bar:** the game's XP bar comes back when ours hides at the cap.
-- **Resets:** a reset also clears the share and import ledgers for what it
-  reset, so removing an import later takes only what the import added.
-- **Sharing:** a mob only known as "Creature #ID" is counted once from a
-  partner or an import, whichever account learns its name first.
+- **Bug fixes:** several fixes for the trash can, sparkles, Stats tab, XP
+  bar, resets and sharing.
 
 ## 0.32.2
 
