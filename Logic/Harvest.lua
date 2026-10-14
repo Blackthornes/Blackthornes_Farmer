@@ -807,16 +807,37 @@ end
 --- What partners and handouts gave under `from` (shareIn's ledgers, by
 --- record key) follows the record to `to`. Left under the old key, the
 --- ledger no longer matched: a partner's counts were sent back to them as
---- this side's own, and a handout could not be taken back out.
+--- this side's own, and a handout could not be taken back out. A partner
+--- with a ledger under both keys sent the same mob twice, before and after
+--- it had a name, so the ledger keeps the larger and what own counts took
+--- twice is handed back, for the caller to take off (UndoTwice).
 local function MoveCredit(section, from, to)
+    local twice = {}
+    local share = ns.Share
+    local spec = share and share.Parts and share.Parts.BY_KEY[section] and share.Parts.BY_KEY[section].spec
     for _, held in pairs(type(ns.db) == "table" and type(ns.db.shareIn) == "table" and ns.db.shareIn or {}) do
         local credit = type(held) == "table" and type(held.credit) == "table" and held.credit[section]
         local taken = type(credit) == "table" and credit[from]
         if type(taken) == "table" then
             credit[from] = nil
-            if type(credit[to]) == "table" then AddCounts(credit[to], taken) else credit[to] = taken end
+            if type(credit[to]) ~= "table" then
+                credit[to] = taken
+            elseif spec and share.Combine then
+                local hi, lo = share.Combine(spec, credit[to], taken)
+                credit[to] = hi
+                twice[#twice + 1] = lo
+            else
+                AddCounts(credit[to], taken)
+            end
         end
     end
+    return twice, spec
+end
+
+--- Takes what MoveCredit found counted twice off the merged record.
+local function UndoTwice(record, twice, spec)
+    if not (spec and ns.Share and ns.Share.Subtract) then return end
+    for _, lo in ipairs(twice) do ns.Share.Subtract(spec, record, lo) end
 end
 
 --- Puts names on what was kept as "Creature #ID" once the name is known,
@@ -837,11 +858,12 @@ function Harvest:NameUnnamed()
         local key = RecordKey(move.name, old.zone, old.location)
         local into = self.records[key]
         self.records[move.key] = nil
-        MoveCredit("h", move.key, key)
+        local twice, spec = MoveCredit("h", move.key, key)
 
         if not into then
             old.mob = move.name
             self.records[key] = old
+            UndoTwice(old, twice, spec)
         else
             into.corpses = (into.corpses or 0) + (old.corpses or 0)
             into.npc = into.npc or old.npc
@@ -858,6 +880,7 @@ function Harvest:NameUnnamed()
                     into.items[itemName] = entry
                 end
             end
+            UndoTwice(into, twice, spec)
         end
     end
 
@@ -872,7 +895,7 @@ function Harvest:NameUnnamed()
         for _, rename in ipairs(renames) do
             local tally = tracker[rename.mob]
             tracker[rename.mob] = nil
-            MoveCredit("k", rename.mob, rename.name)
+            local twice, spec = MoveCredit("k", rename.mob, rename.name)
             if type(tracker[rename.name]) == "table" then
                 -- A tally from before coin was counted over kills is set
                 -- aside first, or its old coin was split over the new kills.
@@ -881,6 +904,7 @@ function Harvest:NameUnnamed()
             else
                 tracker[rename.name] = tally
             end
+            UndoTwice(tracker[rename.name], twice, spec)
         end
     end
 end
