@@ -820,6 +820,8 @@ function Tracker:OnLoot()
     -- What a skin gives is noted as skinned, so "Hide skinning" leaves it
     -- out even where the data lists it only as a drop.
     if skinning and ns.DB and ns.DB.NoteSkinned then ns.DB:NoteSkinned(items) end
+    -- And kept by mob, for what a skin is worth on the Grind tab.
+    if skinning and ns.GrindGather then ns.GrindGather:NoteSkin(mobName, guid, items, quantities) end
 
     -- With area loot this window took the other corpses' drops too. Each of
     -- them is remembered, so skinning one later is not taken for a kill
