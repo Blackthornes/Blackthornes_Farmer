@@ -334,6 +334,7 @@ local FILES = {
     "Logic/Rankings.lua",
     "Logic/WorldDrops.lua",
     "Logic/RankUp.lua",
+    "Logic/TopFarm.lua",
     "Logic/Goals.lua",
     "Logic/Session.lua",
     "Logic/XP.lua",

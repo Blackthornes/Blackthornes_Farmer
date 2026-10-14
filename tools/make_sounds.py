@@ -7,12 +7,15 @@ They are built from sine waves here rather than taken from a sound library, so
 they belong to this addon and can ship on CurseForge with it. The owner picked
 these two on 2026-09-26: rare-drop (a green-or-better item drops) and
 drop-rates-unlocked (a mob's 20th kill); rank-up (2026-10-13) when a mob climbs
-your top 15; xp-tick (2026-10-13) for each tenth of a level on the XP bar.
-Run it again only to change them;
+your top 15; xp-tick (2026-10-13) for each tenth of a level on the XP bar;
+top-farm (2026-10-14) when an auction scan puts a new mob first on your board.
+Run it again only to change them (name files to write only those:
+python tools/make_sounds.py top-farm.ogg);
 the game needs a full restart to pick up a changed file.
 """
 
 import os
+import sys
 
 import numpy as np
 import soundfile as sf
@@ -66,7 +69,12 @@ def reverb(x, mix=0.25):
     return out
 
 
+ONLY = set(sys.argv[1:])
+
+
 def finish(x, name, peak_db):
+    if ONLY and name not in ONLY:
+        return
     x = x - np.mean(x)
     # trim trailing silence
     thresh = np.max(np.abs(x)) * 10 ** (-60 / 20)
@@ -111,3 +119,14 @@ buf = np.zeros(int(SR * 0.8))
 place(buf, bell(1568.0, 0.7, 0.22, soft), 0.0)
 place(buf, 0.35 * bell(2349.3, 0.6, 0.2, soft), 0.03)
 finish(reverb(buf, 0.15), "xp-tick.ogg", -14)
+
+# Top farm (2026-10-14): an auction scan put a new mob first on your board.
+# A run of coin bells climbing to a held chord, brighter than a rank-up,
+# since it comes once a scan at most.
+buf = np.zeros(int(SR * 2.2))
+for i, f in enumerate((1318.5, 1568.0, 1975.5, 2637.0)):
+    place(buf, (0.55 + 0.08 * i) * bell(f, 0.9, 0.25, soft), i * 0.07)
+for f in (659.25, 783.99, 987.77, 1318.5):
+    place(buf, 0.22 * brass(f, 1.1, 0.03, 0.7), 0.3)
+place(buf, 0.45 * bell(3136.0, 1.0, 0.3), 0.34)
+finish(reverb(buf, 0.3), "top-farm.ogg", -6)
