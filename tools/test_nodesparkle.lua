@@ -296,6 +296,10 @@ Face("Kaja", NPC)
 ns.NodeSparkle:SetEnabled(false)
 suite.check("turning sparkles off gives the plate back", nameText.alpha == 1 and healthBar.alpha == 0.9)
 ns.NodeSparkle:SetEnabled(true)
+Face("Kaja", NPC)
+ns.NodeSparkle:UnveilAll()
+suite.check("a fight starting gives the plate back, so a mob it goes to keeps its bars",
+    nameText.alpha == 1 and healthBar.alpha == 0.9)
 keep = ns.db.nodeSparkleCVars
 ns.db.nodeSparkleCVars = {}
 Face("Kaja", NPC)

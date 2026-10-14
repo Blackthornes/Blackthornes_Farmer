@@ -292,6 +292,12 @@ run("xpbar game hide")
 suite.check("game hide writes the setting", ns.db.xpBarHideGame == true)
 suite.check("the game's bar is see-through", game._alpha == 0, game._alpha)
 suite.check("it is never hidden", hidden == false)
+_G.IsXPUserDisabled = function() return true end
+Bar:Refresh()
+suite.check("our bar going mid-session gives the game's bar back", game._alpha == 1, game._alpha)
+_G.IsXPUserDisabled = nil
+Bar:Refresh()
+suite.check("and it is see-through again when ours comes back", game._alpha == 0, game._alpha)
 run("xpbar game show")
 suite.check("game show puts it back", game._alpha == 1 and ns.db.xpBarHideGame == false, game._alpha)
 _G.MainStatusTrackingBarContainer = nil

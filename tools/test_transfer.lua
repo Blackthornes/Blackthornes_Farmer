@@ -265,6 +265,18 @@ do
     suite.check("the same string can be taken again afterwards", bob.records[WOLF].corpses == 50, bob.records[WOLF].corpses)
 end
 
+-- A reset, then his own play, then Remove: his new counts are never touched.
+Switch(bob)
+do
+    ns.Harvest:Reset()
+    bob.records = ns.Harvest.records
+    bob.records[WOLF] = Wolf(30, 8)
+    local list = Transfer:List()
+    if list[1] then Transfer:Remove(list[1].id, function() end) end
+    suite.check("removing an import after a reset leaves his own new counts",
+        bob.records[WOLF] and bob.records[WOLF].corpses == 30, bob.records[WOLF] and bob.records[WOLF].corpses)
+end
+
 --------------------------------------------------------------------------------
 -- A big collection comes in parts
 --------------------------------------------------------------------------------

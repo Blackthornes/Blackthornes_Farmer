@@ -286,6 +286,7 @@ function GrindGather:Zones(view, low, high)
     -- Your map spots, and how long each node takes to grow back.
     local spots = Gathering and ns.db and type(ns.db.gathering) == "table"
         and type(ns.db.gathering.spots) == "table" and ns.db.gathering.spots or {}
+    local asked = {}
     for _, spot in ipairs(spots) do
         local zoneName = type(spot) == "table" and ns.Spots.MAP_ZONES[spot.map]
         local zone = zoneName and byZone[zoneName]
@@ -293,9 +294,12 @@ function GrindGather:Zones(view, low, high)
         if node and (spot.kind == nil or spot.kind == spec.gathering) then
             node.spots = node.spots + 1
             if tonumber(spot.x) and tonumber(spot.y) then
-                node.spotList[#node.spotList + 1] = { spot.x * 100, spot.y * 100 }
+                node.spotList[#node.spotList + 1] = { spot.x * 100, spot.y * 100, map = spot.map }
             end
-            if node.respawn == nil and ns.Respawn then
+            -- One estimate a map and node, however many spots share them.
+            local learnKey = tostring(spot.map) .. "|" .. spot.node
+            if node.respawn == nil and ns.Respawn and not asked[learnKey] then
+                asked[learnKey] = true
                 local estimate = ns.Respawn:Estimate(spot.map, spot.node)
                 if estimate.seconds then node.respawn = estimate.seconds end
             end
@@ -368,10 +372,33 @@ function GrindGather:Zones(view, low, high)
     return shown
 end
 
---- A node as a camp the arrow follows: its spots, nearest first.
+--- A node as a camp the arrow follows: its spots, nearest first. Only
+--- MAX_SPOTS go to the arrow, so with more than that the ones on the map
+--- you stand on are taken by distance (the oldest ones first used to win,
+--- and could leave out the spot beside you).
 function GrindGather.NodeCamp(node)
+    local list = {}
+    for index, coords in ipairs(node.spotList or {}) do list[index] = coords end
+    if #list > GrindGather.MAX_SPOTS and ns.Harvest and ns.Harvest.PlayerMapPosition then
+        local ok, mapID, x, y = pcall(ns.Harvest.PlayerMapPosition, ns.Harvest)
+        if ok and mapID and x and y then
+            local px, py = x * 100, y * 100
+            local function Far(coords)
+                if coords.map ~= mapID then return math.huge end
+                local dx, dy = coords[1] - px, coords[2] - py
+                return dx * dx + dy * dy
+            end
+            for index, coords in ipairs(list) do list[index] = { coords = coords, far = Far(coords), at = index } end
+            table.sort(list, function(a, b)
+                if a.far ~= b.far then return a.far < b.far end
+                return a.at < b.at
+            end)
+            for index, entry in ipairs(list) do list[index] = entry.coords end
+        end
+    end
+
     local mobs = {}
-    for index, coords in ipairs(node.spotList or {}) do
+    for index, coords in ipairs(list) do
         if index > GrindGather.MAX_SPOTS then break end
         mobs[#mobs + 1] = { name = node.name, zone = node.zone, coords = coords }
     end

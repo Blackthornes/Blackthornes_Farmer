@@ -210,4 +210,7 @@ local said = table.concat(printed, "\n")
 suite.check("/farm worlddrops lists the bands", said:find("Levels 15-19: green gear 1 in 92 kills", 1, true),
     said)
 
+ns.WorldDrops.Forget()
+suite.check("forgetting writes no global", rawget(_G, "mobInfo") == nil)
+
 suite.done()

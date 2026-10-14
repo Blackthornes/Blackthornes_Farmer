@@ -289,13 +289,29 @@ end
 
 --- Items that were waiting for a price, priced now if they can be.
 function Stats:Settle()
-    if not self.pending then return end
-    for key, entry in pairs(self.pending) do
-        if self:Price(entry.kind, entry.name, entry.count, entry.day) then
-            self.pending[key] = nil
+    -- Taken off first: pricing can cheer a best session, which draws the tab
+    -- again and settles again, and must never price the same loot twice.
+    local pending = self.pending
+    if not pending then return end
+    self.pending = nil
+    local left = {}
+    for key, entry in pairs(pending) do
+        if not self:Price(entry.kind, entry.name, entry.count, entry.day) then
+            left[key] = entry
         end
     end
-    if not next(self.pending) then self.pending = nil end
+    -- Anything still waiting, and anything looted meanwhile, waits on.
+    for key, entry in pairs(self.pending or {}) do
+        local kept = left[key]
+        if not kept then
+            left[key] = entry
+        elseif kept.day == entry.day then
+            kept.count = kept.count + entry.count
+        else
+            left[key .. "\0" .. tostring(entry.day)] = entry
+        end
+    end
+    self.pending = next(left) and left or nil
 end
 
 --- Coin off a corpse.

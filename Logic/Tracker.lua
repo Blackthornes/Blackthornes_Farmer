@@ -515,6 +515,8 @@ function Tracker:ResolveMob(text)
 end
 
 function Tracker:Reset()
+    -- Shared and imported counts went with the records: their ledgers too.
+    if ns.Share and ns.Share.ForgetSection then ns.Share:ForgetSection("k") end
     -- The kills go; what each item looks like (its id, colour and icon, read
     -- off loot links) stays. Prices, grey detection and the fishing and
     -- gathering values all lean on it, and none of it is a tally.

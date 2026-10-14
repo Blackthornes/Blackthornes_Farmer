@@ -598,6 +598,15 @@ do
     suite.check("only the plate on the bar is enough to move it below",
         point[1] == "TOP" and point[2] == bar and point[3] == "BOTTOM", point[1])
 
+    bar.IsShown = function() return false end
+    local savedX, savedY = ns.db.arrowX, ns.db.arrowY
+    ns.db.arrowX, ns.db.arrowY = 775, 925
+    scripts.OnHide(bar)
+    point = frame._point
+    suite.check("the bar hiding puts the arrow back on its saved spot",
+        point[1] == "CENTER" and point[4] == 775 and point[5] == 925, point[1])
+    ns.db.arrowX, ns.db.arrowY = savedX, savedY
+
     _G.BlackthornesFarmer.XPBarUI = saved
     _G.hooksecurefunc = hooksBefore
     ArrowUI.watchingBar, ArrowUI.watchedBar = nil, nil

@@ -436,6 +436,8 @@ function Fishing:WorthPerCast(key)
 end
 
 function Fishing:Reset()
+    -- Shared and imported counts went with the records: their ledgers too.
+    if ns.Share and ns.Share.ForgetSection then ns.Share:ForgetSection("f") end
     ns.db.fishing = nil
     self.session = {}
     self.sessionCatch = {}

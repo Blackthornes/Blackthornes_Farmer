@@ -276,6 +276,10 @@ function WorldDrops:Bands()
     return list, byBand
 end
 
+-- [mob] = { changes, level, had }, so an open card asks once per kill.
+-- Declared before Forget, which empties it (it wrote a global before).
+local mobInfo = {}
+
 function WorldDrops.Forget()
     kept = nil
     mobInfo = {}
@@ -350,8 +354,6 @@ function WorldDrops:Had(mob)
     return had
 end
 
--- [mob] = { changes, level, had }, so an open card asks once per kill.
-local mobInfo = {}
 
 --- A mob's level and what you have had from it, kept until the next corpse.
 function WorldDrops:MobInfo(mob)
