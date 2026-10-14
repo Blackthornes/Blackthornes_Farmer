@@ -618,7 +618,11 @@ setting, unless the player would see that plate anyway (a creature they
 could attack, or friendly nameplates on: `PlateShownAnyway`). A creature's
 plate keeps its name (`NodeSparkle.IsPlateName`): the game takes the name
 off a creature's head while it has a plate, so veiling it left NPCs
-nameless up close (2026-10-14); looked at
+nameless up close (2026-10-14). That name is white and cut short, though,
+so while the interact key picks a creature `NodeSparkle:FitPlateToTarget`
+puts `SoftTargetNameplateInteract` back to the player's own value (kept in
+`nodeSparkleCVars`), and an object or nothing turns it on again; never in a
+fight. Looked at
 again `VEIL_AGAIN` after each event, since the game sets a plate up after
 telling us.
 Tested in `tools/test_nodesparkle.lua`.
