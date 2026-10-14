@@ -183,6 +183,13 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
             ns.Stats:Coin(copper)
         end
 
+        -- Small cheers (Logic/Moments.lua): a lucky or long-awaited drop,
+        -- or the best corpse of this mob yet. Never allowed to cost a kill.
+        if ns.Moments and not skinning then
+            local ok, err = pcall(ns.Moments.Kill, ns.Moments, mobName, mob, items, quantities, copper)
+            if not ok then ns.Debug("moments:", tostring(err)) end
+        end
+
         -- Area loot: the other corpses' part of the window is not this kill's
         -- drop, so the tally never sees it, but it is in your bags all the
         -- same, so the session's loot and coin take it.
@@ -523,6 +530,10 @@ function Tracker:Reset()
     local old = ns.db.tracker
     local looks = type(old) == "table" and type(old.looks) == "table" and old.looks or nil
     ns.db.tracker = looks and { looks = looks } or nil
+    -- Kills since each drop and each mob's best corpse go with the kills.
+    ns.db.dropWaits = nil
+    ns.db.bestCorpses = nil
+    if ns.Moments then ns.Moments.bestDrop = nil end
     self.session = {}
     self.corpses = {}
     self.areaLooted = {}
