@@ -266,6 +266,89 @@ Share.Merge = Merge
 --- The record to take counts into, made if it is new. A kill tally goes
 --- through the tracker, which sets a tally from before coin was counted
 --- over kills aside first, so merged kills never skew an old average.
+--- Two ledgers one partner holds for the same record (a mob kept as
+--- "Creature #ID" and under its name, before and after a name was learned):
+--- both are that partner's counts at two times, so the larger holds the
+--- smaller. `hi` is the ledger to keep, `lo` what own counts took twice.
+local function Combine(spec, a, b)
+    local hi, lo = {}, {}
+    for field in pairs(spec.add or {}) do
+        local x, y = tonumber(a[field]), tonumber(b[field])
+        if x and y then hi[field], lo[field] = math.max(x, y), math.min(x, y)
+        else hi[field] = x or y end
+    end
+    for field, sub in pairs(spec.maps or {}) do
+        local ma = type(a[field]) == "table" and a[field] or {}
+        local mb = type(b[field]) == "table" and b[field] or {}
+        if type(a[field]) == "table" or type(b[field]) == "table" then
+            hi[field], lo[field] = {}, {}
+            local names = {}
+            for name in pairs(ma) do names[name] = true end
+            for name in pairs(mb) do names[name] = true end
+            for name in pairs(names) do
+                local x, y = ma[name], mb[name]
+                if sub == "count" then
+                    x, y = tonumber(x), tonumber(y)
+                    if x and y then hi[field][name], lo[field][name] = math.max(x, y), math.min(x, y)
+                    else hi[field][name] = x or y end
+                elseif type(x) == "table" and type(y) == "table" then
+                    hi[field][name], lo[field][name] = Combine(sub, x, y)
+                else
+                    hi[field][name] = type(x) == "table" and x or y
+                end
+            end
+        end
+    end
+    return hi, lo
+end
+Share.Combine = Combine
+
+--- Takes `lo` (from Combine) back off a record's counts, never below 0.
+local function Subtract(spec, own, lo)
+    if type(own) ~= "table" or type(lo) ~= "table" then return end
+    for field in pairs(spec.add or {}) do
+        local value = tonumber(lo[field])
+        if value and tonumber(own[field]) then own[field] = math.max(0, own[field] - value) end
+    end
+    for field, sub in pairs(spec.maps or {}) do
+        local map, taken = own[field], lo[field]
+        if type(map) == "table" and type(taken) == "table" then
+            for name, value in pairs(taken) do
+                if sub == "count" then
+                    if tonumber(value) and tonumber(map[name]) then map[name] = math.max(0, map[name] - value) end
+                else
+                    Subtract(sub, map[name], value)
+                end
+            end
+        end
+    end
+end
+Share.Subtract = Subtract
+
+--- A partner's or an import's record for a mob kept as "Creature #ID" goes
+--- under the name this side knows for it, so it meets this side's own
+--- record and ledger (Harvest:NameUnnamed moved those to the name). Left
+--- under the old key, the same counts were taken a second time.
+-- @return the key to keep it under, and the record
+function Share.Canonical(sectionKey, key, record)
+    local harvest = ns.Harvest
+    if not (harvest and harvest.KnownNpcName) then return key, record end
+    if sectionKey == "h" and harvest.Unnamed and harvest.Unnamed(record) then
+        local npcID = tonumber(record.npc) or tonumber(record.mob:match("%d+"))
+        local name = npcID and harvest.KnownNpcName(npcID)
+        if type(name) == "string" and name ~= "" then
+            record.mob = name
+            record.npc = record.npc or npcID
+            return KEYS.h(record), record
+        end
+    elseif sectionKey == "k" then
+        local npcID = tonumber(key:match("^Creature #(%d+)$"))
+        local name = npcID and harvest.KnownNpcName(npcID)
+        if type(name) == "string" and name ~= "" then return name, record end
+    end
+    return key, record
+end
+
 local function OwnRecord(section, store, key, record)
     local own = store[key]
     if section.key == "k" and ns.Tracker then
@@ -691,6 +774,12 @@ function Share:Accept(state, entry)
     if state.store then store = state.store(section.key, true) else store = Share.Store(section.key, true) end
     if type(store) ~= "table" then return nil, "no saved data" end
 
+    -- The hash stays under the key the partner sent, which their manifest
+    -- names; the counts go under this side's name for the mob. A guildmate's
+    -- records live apart (guildDrops) and keep the key they came with.
+    local sentKey = key
+    if not state.guild then key, record = Share.Canonical(section.key, key, record) end
+
     local held = self:Held(state)
     local credit = held.credit[section.key]
     if credit[key] == nil then
@@ -702,7 +791,7 @@ function Share:Accept(state, entry)
 
     local own = OwnRecord(section, store, key, record)
     Merge(section.spec, own, record, credit[key])
-    held.hashes[section.key][Comm.Hash(key)] = hash
+    held.hashes[section.key][Comm.Hash(sentKey)] = hash
     held.at = time()
     return true
 end

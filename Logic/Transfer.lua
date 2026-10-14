@@ -387,6 +387,7 @@ function Transfer:Measure(payload, id, n, of, done)
             and Plausible(section, record)
         local rise, biggest
         if good then
+            key, record = Share.Canonical(section.key, key, record)
             local sectionCredit = type(credit[section.key]) == "table" and credit[section.key] or {}
             rise, biggest = Scan(section.spec, record, sectionCredit[key])
             good = biggest <= Transfer.MAX_COUNT
