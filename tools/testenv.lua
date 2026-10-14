@@ -342,6 +342,7 @@ local FILES = {
     "Logic/Arrow.lua",
     "Logic/TomTom.lua",
     "Logic/Grinding.lua",
+    "Logic/GrindGather.lua",
     "Logic/Share.lua",
     "Logic/Transfer.lua",
     "Logic/GuildShare.lua",

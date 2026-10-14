@@ -209,6 +209,30 @@ empty) and deletes it. Everything is worked a few records a frame. Tested in
 `tools/test_transfer.lua` and `tools/test_importwindow.lua`. Not yet seen in
 game. A fix to `Core/Serialize.lua` still belongs in Tradeskills' too.
 
+## Grind: Leather, Ore and Herbs
+
+The owner said yes (2026-10-14, from a mockup) to the Grind tab giving
+Leather, Ore and Herbs beside Cloth (`grindGives`: "cloth", "skinning" for
+Leather, "ore", "herbs"; never rename it or its values). Leather lists mobs
+as Cloth does, with the skill to skin them (Classic's rule,
+`Grinding.SkinSkill`, a mob's own `requires` first; not yet seen in game)
+and what one skin is worth. It is offered while the character knows
+Skinning even with "Hide skinning" ticked (`Grinding.OffersLeather`).
+Ore and Herbs (`Logic/GrindGather.lua`) list zones and their nodes, not
+mobs: the type chips hide, the footer says your skill, and a node your
+skill does not reach is greyed with "125, you have 87". A click aims the
+arrow at your mapped spots (`GrindGather:NodeCamp`, `Arrow:Grind`).
+
+Two new records, the player's own play only, account wide, never renamed:
+`skinLog[mob]` (skins by guid, once each, and their items, for worth a
+skin; `GrindGather:NoteSkin` from `Tracker`) and `gathering.pace[zone|node]`
+(seconds between gathers in one zone under `GrindGather.BREAK`, gathers and
+items, for worth an hour once `MIN_SECONDS` is reached;
+`GrindGather:NoteGather` from `Gathering:Record`). Guild data never feeds
+any of it. The data rows are kept until `DB.hiddenVersion` or the counts
+move (`GrindGather:DataRows`). Tested in `tools/test_grindgather.lua`.
+Not yet seen in game.
+
 ## The panel kept between sessions
 
 The owner asked (2026-10-11) for the kills and loot panel to stop starting
@@ -246,7 +270,9 @@ search, `DB:ByName` (Rankings, worth estimates), `Value:FromTally`,
 follow it, and so does the session (the Loot tab, its looted count, a
 mob's loot worth, the session's worth and gold per hour, `Value:Session`,
 `Tracker.Counts`); recorded data is never changed, and goals and their
-arrow still follow a goal for leather. Every item a skinning window gives
+arrow still follow a goal for leather. The Grind tab's Leather view is the
+one exception: it shows while the character knows Skinning, ticked or not
+(see "Grind: Leather, Ore and Herbs"). Every item a skinning window gives
 is noted account wide in `skinnedItems` (`DB:NoteSkinned`,
 `DB:WasSkinned`; never rename it), so a skin the data lists only as a drop,
 or one Forever added, counts as skinning too. `DB:SetShowSkinning` moves `DB.hiddenVersion`

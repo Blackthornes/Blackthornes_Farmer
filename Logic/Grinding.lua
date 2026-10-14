@@ -48,11 +48,42 @@ Grinding.NEAR = 6
 Grinding.TYPES = { "Humanoid", "Beast", "Undead", "Demon", "Elemental" }
 Grinding.OTHER = "Other"
 
--- What a mob gives, as facts in the data.
+-- What a mob gives, as facts in the data; Ore and Herbs list nodes rather
+-- than mobs (Logic/GrindGather.lua). The leather view keeps the key
+-- "skinning", as saved in grindGives before it was called Leather.
 Grinding.GIVES = {
     { key = "cloth", label = L["Cloth"] },
-    { key = "skinning", label = L["Skinning"] },
+    { key = "skinning", label = L["Leather"] },
+    { key = "ore", label = L["Ore"] },
+    { key = "herbs", label = L["Herbs"] },
 }
+
+--- Does the Grind tab list nodes, not mobs, for `gives`?
+function Grinding.IsNodeView(gives)
+    return gives == "ore" or gives == "herbs"
+end
+
+--- Your Skinning skill, or nil when you lack it or the client will not say.
+function Grinding.SkinningSkill()
+    local skills = ns.Spots and ns.Spots.Skills()
+    return type(skills) == "table" and skills.Skinning or nil
+end
+
+--- The Leather view is offered while skinning shows, or while you know
+--- Skinning even with "Hide skinning" ticked: picking it asks for leather.
+function Grinding.OffersLeather()
+    return ns.DB:ShowsSkinning() or Grinding.SkinningSkill() ~= nil
+end
+
+--- The Skinning a mob of `level` needs, by Classic's rule (not yet checked
+--- on Forever): 1 to level 10, then ten a level to 20, then five a level.
+function Grinding.SkinSkill(level)
+    level = tonumber(level)
+    if not level then return nil end
+    if level <= 10 then return math.max(1, (level - 10) * 10) end
+    if level <= 20 then return (level - 10) * 10 end
+    return level * 5
+end
 
 -- Sources whose `name` is a creature.
 local CREATURE_KINDS = { mob = true, skinning = true }
@@ -251,11 +282,13 @@ function Grinding:SetType(kind)
     ns.db.grindType = kind
 end
 
---- What the mobs must give, "cloth", "skinning", or nil for anything.
+--- What the list shows: "cloth" or "skinning" (Leather) mobs, "ore" or
+--- "herbs" nodes, or nil for any mob.
 function Grinding:Gives()
     local gives = ns.db and ns.db.grindGives
-    -- Skinning left out (DB:ShowsSkinning) lets a picked Skinning go too.
-    if gives == "skinning" and not ns.DB:ShowsSkinning() then return nil end
+    -- Skinning left out (DB:ShowsSkinning) lets a picked Leather go too,
+    -- unless you know Skinning.
+    if gives == "skinning" and not Grinding.OffersLeather() then return nil end
     for _, entry in ipairs(Grinding.GIVES) do
         if entry.key == gives then return gives end
     end
@@ -328,15 +361,16 @@ end
 
 --- What the list is built from changed: the data, the harvest, the types.
 local function Stamp()
-    return ("%d:%d:%d:%d"):format(ns.DB:CountSources(),
+    return ("%d:%d:%d:%d:%s"):format(ns.DB:CountSources(),
         ns.Harvest and ns.Harvest:CountCorpses() or 0, Grinding.typesVersion or 0,
-        ns.DB.hiddenVersion or 0)
+        ns.DB.hiddenVersion or 0, Grinding.OffersLeather() and "skin" or "")
 end
 
 --- Every mob spot known, one per mob, zone and place in the zone:
 --- { all = { [key] = mob } }. Each mob is { name, zone, location, coords,
 --- minLevel, maxLevel, forever, cloth, skinning, drops = { [item] = rate },
---- corpses }.
+--- corpses, leathers = { [item] = true }, skinSkill, dropSpot }. dropSpot
+--- is a spot something other than skinning names.
 function Grinding:Mobs()
     local stamp = Stamp()
     if self.cache and self.cacheStamp == stamp then return self.cache end
@@ -347,7 +381,7 @@ function Grinding:Mobs()
         local key = Key(name, zone, location)
         local mob = all[key]
         if not mob then
-            mob = { name = name, zone = zone, location = location, drops = {} }
+            mob = { name = name, zone = zone, location = location, drops = {}, leathers = {} }
             all[key] = mob
         end
         return mob
@@ -376,7 +410,9 @@ function Grinding:Mobs()
     -- With skinning left out ("Hide skinning", DB:HidesItem), a skinning
     -- spot is no camp and leather is no mob's drop; the mob a looted hide
     -- was recorded on is still a spot.
-    local skinning = ns.DB:ShowsSkinning()
+    -- With Leather offered (you know Skinning), skinning spots are kept
+    -- for it, marked, and only the Leather view lists them (Camps).
+    local skinning = Grinding.OffersLeather()
     for item in ns.DB:Iterate() do
         local cloth = item.category == "Cloth"
         local itemHidden = ns.DB:HidesItem(item)
@@ -386,7 +422,14 @@ function Grinding:Mobs()
                 and not ns.DB:IsHiddenSource(source.name) then
                 local mob = Spot(source.name, source.zone, source.location)
                 Note(mob, source.provenance == "forever", source.minLevel, source.maxLevel, source.coords)
-                if source.kind == "skinning" then mob.skinning = true end
+                if source.kind == "skinning" then
+                    mob.skinning = true
+                    mob.leathers[item.name] = true
+                    local need = ns.GrindGather and ns.GrindGather.SkillNumber(source.requires)
+                    if need then mob.skinSkill = math.min(mob.skinSkill or need, need) end
+                else
+                    mob.dropSpot = true
+                end
                 if cloth then mob.cloth = true end
                 if source.kind ~= "skinning" and not itemHidden then
                     mob.drops[item.name] = math.max(mob.drops[item.name] or 0, source.chance or 0)
@@ -405,9 +448,15 @@ function Grinding:Mobs()
             local mob = Spot(record.mob, ns.Spots.English(record.zone), record.location)
             Note(mob, true, tonumber(record.minLevel), tonumber(record.maxLevel), record.coords)
             mob.corpses = (mob.corpses or 0) + (tonumber(record.corpses) or 0)
+            mob.dropSpot = true
             for name in pairs(type(record.items) == "table" and record.items or {}) do
                 local item = ns.DB:GetItem(name)
                 if item and item.category == "Cloth" then mob.cloth = true end
+                -- A skin you took on it: leather it gives.
+                if ns.DB:FromSkinning(item or name) then
+                    mob.leathers[item and item.name or name] = true
+                    if skinning then mob.skinning = true end
+                end
             end
         end
     end
@@ -417,6 +466,16 @@ function Grinding:Mobs()
     local confirmed = {}
     for _, mob in pairs(all) do
         if mob.forever then confirmed[Key(mob.name, mob.zone)] = true end
+    end
+
+    -- Skins you took yourself.
+    local skins = skinning and ns.db and type(ns.db.skinLog) == "table" and ns.db.skinLog or {}
+    for _, mob in pairs(all) do
+        local entry = skins[mob.name]
+        if type(entry) == "table" and type(entry.items) == "table" then
+            mob.skinning = true
+            for name in pairs(entry.items) do mob.leathers[name] = true end
+        end
     end
 
     for key, mob in pairs(all) do
@@ -501,6 +560,11 @@ function Grinding:Camps(filter)
     local camps, byKey, loose = {}, {}, {}
     local unknownTotal = 0
 
+    -- Ore and Herbs are nodes, never camps of mobs.
+    if Grinding.IsNodeView(gives) then return camps, 0, low, high end
+    -- A spot only skinning names is the Leather view's, unless skinning shows.
+    local skinOnlyShown = gives == "skinning" or ns.DB:ShowsSkinning()
+
     local function Camp(key, zone, location, coords)
         local camp = byKey[key]
         if not camp then
@@ -539,7 +603,8 @@ function Grinding:Camps(filter)
     end)
 
     for _, mob in ipairs(list) do
-        if Grinding.InRange(mob, low, high) and Grinding.GivesWhat(mob, gives) then
+        if Grinding.InRange(mob, low, high) and Grinding.GivesWhat(mob, gives)
+            and (mob.dropSpot or skinOnlyShown) then
             local mobType = Grinding.TypeOf(mob.name)
             if not kind or Grinding.Chip(mobType) == kind then
                 local camp = Place(mob)
@@ -632,7 +697,7 @@ local function Open()
     end
 end
 
---- /farm grind [low high] [type] [cloth|skinning|any], "sort <order>", or "pins on|off".
+--- /farm grind [low high] [type] [cloth|leather|ore|herbs|any], "sort <order>", or "pins on|off".
 function Grinding:Command(rest)
     local words = {}
     for word in Util.Trim(rest or ""):lower():gmatch("%S+") do words[#words + 1] = word end
@@ -675,8 +740,10 @@ function Grinding:Command(rest)
         elseif word == "any" or word == "all" then
             self:SetType(nil)
             self:SetGives(nil)
-        elseif word == "cloth" or word == "skinning" or word == "skin" then
-            self:SetGives(word == "skin" and "skinning" or word)
+        elseif word == "cloth" or word == "skinning" or word == "skin" or word == "leather" then
+            self:SetGives(word == "cloth" and "cloth" or "skinning")
+        elseif word == "ore" or word == "mining" or word == "herbs" or word == "herb" or word == "herbalism" then
+            self:SetGives((word == "ore" or word == "mining") and "ore" or "herbs")
         else
             local typed = word:gsub("s$", "")
             for _, kind in ipairs(Grinding.TYPES) do
@@ -691,7 +758,7 @@ function Grinding:Command(rest)
     Open()
 end
 
-ns.RegisterCommand("grind", L["where mobs of a level and type gather: /farm grind 15-20 humanoid"], function(rest)
+ns.RegisterCommand("grind", L["where mobs of a level and type gather, or ore and herbs: /farm grind 15-20 humanoid, /farm grind ore"], function(rest)
 
     Grinding:Command(rest)
 end)

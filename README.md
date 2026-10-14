@@ -103,7 +103,7 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm loot [mob]` | open a mob's full loot table in its own window |
 | `/farm value <mob>` | what a kill of that mob is worth, priced by Blackthornes Tradeskills |
 | `/farm rankings` | open the Rankings tab: mobs by what a kill is worth (`rank` works too) |
-| `/farm grind [levels] [type] [cloth\|skinning]` | open the Grind tab: where mobs of a level band and type gather, e.g. `/farm grind 15-20 humanoid cloth` (`me` follows your level, `any` clears the filters, `sort busiest\|nearest\|level\|level nearest` orders the camps, `pins on\|off` for its world map pins) |
+| `/farm grind [levels] [type] [cloth\|leather\|ore\|herbs]` | open the Grind tab: where mobs of a level band and type gather, or ore and herbs, e.g. `/farm grind 15-20 humanoid cloth` (`me` follows your level, `any` clears the filters, `sort busiest\|nearest\|level\|level nearest` orders the camps, `pins on\|off` for its world map pins) |
 | `/farm report` | report every kill's tally in chat, on or off (off to start) |
 | `/farm chat <text>` | print the results to chat instead |
 | `/farm data` | where the loaded data came from |
@@ -304,9 +304,16 @@ are on Settings' Kill tally page.
 **Grind.** Where to level, or farm cloth, coin or leather: pick a level band
 (it follows your own level until you change it, up to 30), a creature type
 (Humanoid, Beast, Undead, Demon, Elemental or Other) and, if you like, what
-the mobs give (Cloth or Skinning). The list shows each camp where such mobs
+the mobs give (Cloth or Leather). The list shows each camp where such mobs
 gather, with its mobs under it: type, level, what they give and what a kill
-is worth. The **Sort** menu orders the camps (Busiest, Nearest, Level, or
+is worth. **Leather** shows beasts to skin with the Skinning each needs,
+the leather and hides they give, how many you skinned and what a skin was
+worth; it shows while you know Skinning, even with skinning hidden.
+**Ore** and **Herbs** list zones and their nodes instead: the skill each
+needs (greyed when yours is short), what it gives, how often you gathered
+it, the spots you marked, how long it takes to grow back, what a gather
+was worth and, after ten minutes of gathering, what an hour is worth.
+Click a node to point the arrow at its spots. The **Sort** menu orders the camps (Busiest, Nearest, Level, or
 Level then nearest), and the column headings sort the mobs in each camp;
 both are remembered. Click a camp to point the
 goal arrow there (right-click the arrow for the camp's next mob, click it to
