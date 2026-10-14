@@ -370,9 +370,29 @@ function KillTooltip:Decorate(tooltip, data)
     return "added"
 end
 
+--- Keeps the name of a creature the data cannot name, from the tooltip:
+--- the unit's name, else the tooltip's first line, with the guid it shows.
+function KillTooltip:Learn(tooltip, data)
+    local unit, guid = self:UnitFor(tooltip, data)
+    local npcID = ns.Harvest.NpcID(guid)
+    if not npcID or ns.Harvest.KnownNpcName(npcID) then return end
+    local name
+    if unit and type(UnitName) == "function" then
+        local ok, value = pcall(UnitName, unit)
+        name = ok and ns.Harvest.Readable(value) or nil
+    end
+    if not name then
+        local ok, line = pcall(function() return data.lines[1].leftText end)
+        name = ok and ns.Harvest.Readable(line) or nil
+    end
+    if name then ns.Harvest:KeepName(npcID, name) end
+end
+
 --- Every hook comes through here, so one odd unit costs its line and never a
 --- Lua error on hover.
 function KillTooltip:OnTooltip(tooltip, data)
+    -- A mob Forever added gets its name kept from the tooltip, line or not.
+    pcall(self.Learn, self, tooltip, data)
     local ok, outcome = pcall(self.Decorate, self, tooltip, data)
     if not ok then
         self.writing = false

@@ -497,6 +497,71 @@ function Harvest:NpcName(npcID, guid)
     return Harvest.KnownNpcName(npcID) or ("Creature #%d"):format(npcID)
 end
 
+--- Keeps what the game called a mob ID the data does not know (one Forever
+--- added), in npcNames, so a mob looted where the game hides names (a
+--- dungeon) is named by it, and what was kept as "Creature #ID" is named at
+--- the next login (NameUnnamed). An ID Classic's list or an earlier answer
+--- already names is left alone, so its records keep the name they have.
+function Harvest:KeepName(npcID, name)
+    local db = ns.db
+    if type(npcID) ~= "number" or type(name) ~= "string" or name == "" or type(db) ~= "table" then
+        return false
+    end
+    if name:match("^Creature #") or name == _G.UNKNOWNOBJECT or name == "Unknown" then return false end
+    if Harvest.KnownNpcName(npcID) then return false end
+    if type(db.npcNames) ~= "table" then db.npcNames = {} end
+    db.npcNames[npcID] = name
+    self.namesLearned = (self.namesLearned or 0) + 1
+    return true
+end
+
+--- The name shown for a mob kept as "Creature #ID" once that ID has one;
+--- any other name as it is. For showing only: what is kept moves to the
+--- name at the next login.
+function Harvest.ShowName(mob)
+    if type(mob) ~= "string" then return mob end
+    local npcID = tonumber(mob:match("^Creature #(%d+)$"))
+    return npcID and Harvest.KnownNpcName(npcID) or mob
+end
+
+--- A unit's name and guid off the tooltip the game builds for it, for when
+--- UnitName or UnitGUID will not say. Either can be nil.
+function Harvest.TooltipUnit(unit)
+    local info = C_TooltipInfo
+    if type(info) ~= "table" or type(info.GetUnit) ~= "function" then return nil end
+    local ok, data = pcall(info.GetUnit, unit)
+    if not ok or type(data) ~= "table" then return nil end
+    local gotGuid, guid = pcall(function() return data.guid end)
+    local gotLine, line = pcall(function() return data.lines[1].leftText end)
+    return gotLine and Readable(line) or nil, gotGuid and Readable(guid) or nil
+end
+
+--- Learns the name of the creature in `unit` whenever the client lets its
+--- name and its guid both be read. `deep` also asks the unit's tooltip,
+--- which costs more, so only for a target or the mob under the mouse.
+function Harvest:LearnName(unit, deep)
+    if type(unit) ~= "string" then return false end
+    local name, guid
+    if UnitGUID then
+        local ok, value = pcall(UnitGUID, unit)
+        guid = ok and Readable(value) or nil
+    end
+    -- Only a creature the data cannot name is worth more reading.
+    local npcID = Harvest.NpcID(guid)
+    if npcID and Harvest.KnownNpcName(npcID) then return false end
+    if UnitName then
+        local ok, value = pcall(UnitName, unit)
+        name = ok and Readable(value) or nil
+    end
+    if deep and not (name and guid) then
+        local tipName, tipGuid = Harvest.TooltipUnit(unit)
+        name, guid = name or tipName, guid or tipGuid
+        npcID = Harvest.NpcID(guid)
+    end
+    if not (npcID and name) then return false end
+    return self:KeepName(npcID, name)
+end
+
 --- The name the game's tooltip gives for a creature guid's unit link, or nil.
 function Harvest.NameFromLink(guid)
     local info = C_TooltipInfo
@@ -590,6 +655,10 @@ function Harvest:NoteUnit(unit)
     local gotName, unitName = pcall(UnitName, unit)
     local name = gotName and Readable(unitName) or nil
     if not name then return end
+
+    -- A mob Forever added: its name, for where the game hides it.
+    local npcID = Harvest.NpcID(guid)
+    if npcID then self:KeepName(npcID, name) end
 
     local level
     if UnitLevel then
@@ -1641,9 +1710,13 @@ function Harvest:OnEnable()
     -- The mobs you meet, so a corpse looted untargeted is still known.
     ns.RegisterEvent(self, "PLAYER_TARGET_CHANGED", function()
         Harvest:NoteUnit("target")
+        Harvest:LearnName("target", true)
         Harvest:NotePicked()
     end)
-    ns.RegisterEvent(self, "UPDATE_MOUSEOVER_UNIT", function() Harvest:NoteUnit("mouseover") end)
+    ns.RegisterEvent(self, "UPDATE_MOUSEOVER_UNIT", function()
+        Harvest:NoteUnit("mouseover")
+        Harvest:LearnName("mouseover", true)
+    end)
     -- Pick Pocket's window is a living mob's, never a kill: SENT where the
     -- client says it first, SUCCEEDED where it does not.
     ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_SENT", function(_, _, unit, _, _, spellID)
@@ -1735,6 +1808,9 @@ local function DescribeUnit(unit)
     Line(unit .. " level", Call("UnitLevel", unit))
     Line(unit .. " dead", Call("UnitIsDead", unit))
     Line(unit .. " type", Call("UnitCreatureType", unit))
+    local tipName, tipGuid = Harvest.TooltipUnit(unit)
+    Line(unit .. " tooltip", ("%s, %s"):format(tipName and "name read" or "no name",
+        tipGuid and "guid read" or "no guid"))
 end
 
 function Harvest:LootCheck()
@@ -1790,6 +1866,7 @@ function Harvest:LootCheck()
     local zone, location = self:Where()
     Line("harvest place", ("%s / %s"):format(zone or "none", location or "none"))
     Line("mobs seen alive", tostring(self.seenCount or 0))
+    Line("names learned this session", tostring(self.namesLearned or 0))
     -- Picked is when the target last changed; the same unit since then.
     local picked = self.picked
     Line("target name when picked", picked and picked
