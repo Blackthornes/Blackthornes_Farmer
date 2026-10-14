@@ -1771,6 +1771,9 @@ function Harvest:OnEnable()
     -- ns.db.harvest already is the live table, so this only matters if
     -- something replaced one or the other. Cheap insurance at the one moment
     -- the client is certain to save.
+    ns.RegisterEvent(self, "CHAT_MSG_COMBAT_XP_GAIN", function(_, _, message)
+        Harvest:NoteKillLine(message)
+    end)
     ns.RegisterEvent(self, "PLAYER_LOGOUT", function() Harvest:Persist() end)
 end
 
@@ -1904,6 +1907,12 @@ function Harvest:LootCheck()
     Line("harvest place", ("%s / %s"):format(zone or "none", location or "none"))
     Line("mobs seen alive", tostring(self.seenCount or 0))
     Line("names learned this session", tostring(self.namesLearned or 0))
+    local kill = self.killLine
+    local gotNow, now = pcall(GetTime or error)
+    local ago = kill and kill.at and gotNow and type(now) == "number"
+        and (" %d s ago"):format(math.floor(now - kill.at)) or ""
+    Line("kill chat line", kill and (kill.state .. (kill.name and (": " .. kill.name) or "") .. ago)
+        or "none seen this session")
     -- Picked is when the target last changed; the same unit since then.
     local picked = self.picked
     Line("target name when picked", picked and picked
@@ -1924,6 +1933,33 @@ function Harvest:NotePicked()
     else
         self.picked = nil
     end
+end
+
+--- The last kill line in chat ("Broodling dies, you gain 45 experience."),
+--- for the loot check: whether a dungeon hides the mob's name there too.
+--- Only what it looked like is kept, for this session; nothing is learned
+--- from it yet.
+function Harvest:NoteKillLine(message)
+    local state, name
+    local isSecret = _G.issecretvalue
+    if type(isSecret) == "function" then
+        local ok, secret = pcall(isSecret, message)
+        if ok and secret == true then state = "secret" end
+    end
+    if not state then
+        local parse = ns.XP and ns.XP.ParseKill
+        local ok, found = pcall(parse or error, message)
+        name = ok and Readable(found) or nil
+        if name then
+            state = "name read"
+        elseif type(message) ~= "nil" and not Readable(message) then
+            state = "secret"
+        else
+            state = "not understood"
+        end
+    end
+    local gotTime, now = pcall(GetTime or error)
+    self.killLine = { state = state, name = name, at = gotTime and now or nil }
 end
 
 --- Runs the check on this loot window if one was asked for.

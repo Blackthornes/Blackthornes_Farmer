@@ -51,6 +51,31 @@ check("a shipped name is never changed", names.get(250503) == "Shipped Broodling
 check("only npcNames is read", 1 not in names)
 check("lua output escapes quotes", tool.lua_string('a"b') == 'a\\"b')
 
+
+def record(npc, name, female=b""):
+    import struct
+    text = name + (b"\0" + female if female else b"")
+    body = b"\0" * 4 + struct.pack("<I", len(text) + 1) + b"\0" * 7 + text + b"\0" * 20
+    return struct.pack("<II", npc, len(body)) + body
+
+
+def cache(locale):
+    import struct
+    head = b"BOMW" + struct.pack("<I", 70374) + locale + struct.pack("<III", 688, 4, 0)
+    return head + record(250488, b"Tarantula") + record(268622, b"Encroaching Soldier", b"Soldier Woman") \
+        + record(11318, b"Ragefire Trogg") + record(250500, b"12345")
+
+
+read = tool.read_cache(cache(b"SUne"))
+check("the cache gives each creature's name", read.get(250488) == "Tarantula")
+check("only the first form of a name", read.get(268622) == "Encroaching Soldier")
+check("a German cache is not read", tool.read_cache(cache(b"EDed")) == {})
+check("not a cache is not read", tool.read_cache(b"nothing here") == {})
+added = tool.add_cache({250488: "Shipped"}, read, {11318: "Ragefire Trogg"})
+check("the cache never changes a shipped name", added[250488] == "Shipped")
+check("the cache leaves Classic's IDs alone", 11318 not in added)
+check("the cache's junk is dropped", 250500 not in added and added.get(268622) == "Encroaching Soldier")
+
 if failures:
     sys.exit("%d failure(s)" % failures)
 print("all passed")

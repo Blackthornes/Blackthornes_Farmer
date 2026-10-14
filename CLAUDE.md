@@ -803,9 +803,14 @@ kills panel's right-click on a "Creature #ID" mob offers "Name this mob"
 names; `Harvest.CleanName` refuses numbers and junk). Names everyone gets
 are `Data/ForeverNpcNames.lua` (`ns.FOREVER_NPC_NAMES`, read by
 `KnownNpcName` after `npcNames`, before Classic's), written by
-`tools/forever_npc_names.py <Farmer save>` from the owner's `npcNames`
-only, at each release with the other fold-ins, never by hand and never
-announced. Tested in `tools/test_namemob.lua` and
+`tools/forever_npc_names.py <Farmer save> [creaturecache.wdb]` from the
+owner's `npcNames` and the game's English creature cache on his PC
+(`Cache\WDB\enUS\creaturecache.wdb` beside `WTF`, read only, only IDs and
+names; it holds every creature name the game has shown, Ruins mobs too,
+2026-10-14), at each release with the other fold-ins, never by hand and
+never announced. Never commit the cache or name it in public. `/farm
+harvest check` also says whether the kill line in chat names the mob
+(`Harvest:NoteKillLine`). Tested in `tools/test_namemob.lua` and
 `tools/test_forever_npc_names.py`.
 `/farm harvest check` reports what a dungeon lets the addon read.
 
