@@ -23,6 +23,15 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.33.0
+
+- The Grind tab now shows Leather, Ore and Herbs too, with what each is worth and which nodes you can gather.
+- A mob's tooltip lists the three drops that add the most to a kill.
+
+Fixes and changes:
+
+- Several bug fixes for the Grind arrow, trash can, Stats tab, XP bar and sharing.
+
 ## 0.32.2
 
 Fixes and changes:

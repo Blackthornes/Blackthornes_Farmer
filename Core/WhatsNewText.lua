@@ -5,6 +5,10 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "0.33.0", lines = {
+        "The Grind tab now shows Leather, Ore and Herbs too, with what each is worth and which nodes you can gather.",
+        "A mob's tooltip lists the three drops that add the most to a kill.",
+    } },
     { version = "0.32.0", lines = {
         "This is the largest AddOn update so far across the whole suite of Blackthornes addons.",
         "A new XP bar shows how long until your next level, which quests would finish it, and cheers when you level up.",
@@ -15,10 +19,5 @@ ns.WHATS_NEW = {
     } },
     { version = "0.31.0", lines = {
         "When a kill moves a mob into or up your top 15, the list pops up beside the Kills & Loot panel and shows it climbing.",
-    } },
-    { version = "0.30.0", lines = {
-        "Zones show their German names on a Deutsch client, and Forever's new zones are known.",
-        "Blue drops and finished goals play a voice line.",
-        "Export your loot, kills, gathering and fishing to a spreadsheet.",
     } },
 }
