@@ -23,6 +23,16 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.34.0
+
+- After an auction house scan, your top 15 farms pop up and show how they moved. A new best farm gets its own sound.
+- Mobs in Forever's new dungeons get their names, and you can name any that are still numbers.
+- The Rankings tab has a box that hides mobs found only in dungeons.
+
+Fixes and changes:
+
+- Several bug fixes for the Grind window.
+
 ## 0.33.0
 
 - The Grind tab now shows Leather, Ore and Herbs too, with what each is worth and which nodes you can gather.

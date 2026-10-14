@@ -4,6 +4,30 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.34.0
+
+For WoW: Forever (interface 16001). Files were added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Top 15 after an auction scan:** when a scan finishes, the top 15 pops up
+  beside the kills panel with the board as it now stands at the new prices.
+  A different mob that earns at least 10% more a kill than the old leader is
+  called out as the new top farm, with its own sound. It counts only mobs you
+  have killed 20 times, waits until the auction house and your other windows
+  are closed and you are out of combat, and follows the Outside dungeons only
+  box. "After an auction scan" on the Kill tally page of Settings, and
+  `/farm topfarm [on|off|test]`.
+- **Names for Forever's new mobs:** a mob the game hides the name of inside a
+  dungeon no longer stays a "Creature #ID" for long. Farmer keeps the name
+  whenever the game lets it be read, and ships names for many of Forever's
+  new mobs. Right-click a numbered mob in the kills panel for Name this
+  mob and type the name yourself.
+- **Rankings, outside dungeons only:** a box after the chips leaves out
+  mobs found only in dungeons. A mob killed both inside and out stays. It is
+  off until you tick it, with a row on the Windows page of Settings and
+  `/farm rankings outside [on|off]`.
+- **Bug fixes:** several fixes for the Grind window.
+
 ## 0.33.0
 
 For WoW: Forever (interface 16001). A file was added and the TOC changed, so
