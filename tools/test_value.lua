@@ -131,7 +131,7 @@ ns.TrackerUI:Refresh()
 
 local valueLine
 for _, line in ipairs(ns.TrackerUI.shown) do
-    if line.style == "value" then valueLine = line end
+    if line.style == "value" and tostring(line.left):find("^Worth per kill") then valueLine = line end
 end
 suite.check("the panel shows a value under the mob", valueLine ~= nil)
 suite.check("from the tally, not an estimate",

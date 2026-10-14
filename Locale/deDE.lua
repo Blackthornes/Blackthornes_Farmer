@@ -1376,6 +1376,24 @@ L["What is Creature #%d called? Hover or target it and type the name its tooltip
 L["That name can't be used. Type the name the tooltip shows."] = "Diesen Namen kann ich nicht nehmen. Gib den Namen ein, den der Tooltip zeigt."
 L["Creature #%d is now %s. Its kills and loot move to that name the next time you log in."] = "Creature #%d heißt jetzt %s. Kills und Beute wandern beim nächsten Einloggen zu diesem Namen."
 
+-- Small cheers while farming (Logic/Moments.lua, UI/Recap.lua)
+L["Lucky! %s drops 1 in %d. You got it in %d kills."] = "Glück gehabt! %s fällt 1 von %d. Du hattest es nach %d Kills."
+L["Lucky! 1 in %d"] = "Glück gehabt! 1 von %d"
+L["Finally! %s after %d kills. It drops 1 in %d."] = "Endlich! %s nach %d Kills. Es fällt 1 von %d."
+L["Finally! %d kills"] = "Endlich! %d Kills"
+L["Best loot yet from %s: %s."] = "Beste Beute bisher von %s: %s."
+L["Best loot yet: %s"] = "Beste Beute bisher: %s"
+L["Since your last %s"] = "Seit deinem letzten %s"
+L["Waiting on %s"] = "Warten auf %s"
+L["Ahead of your usual pace: %s an hour against %s."] = "Schneller als sonst: %s pro Stunde statt %s."
+L["Ahead of your usual pace!"] = "Schneller als sonst!"
+L["YOUR RUN"] = "DEINE RUNDE"
+L["LAST TIME"] = "LETZTES MAL"
+L["Gold"] = "Gold"
+L["Time farming"] = "Zeit beim Farmen"
+L["Best drop"] = "Beste Beute"
+L["(usual %s)"] = "(sonst %s)"
+
 -- Your top 15 after an auction scan (Logic/TopFarm.lua, 2026-10-14)
 L["NEW TOP FARM"] = "NEUER BESTER FARMPLATZ"
 L["TOP"] = "TOP"

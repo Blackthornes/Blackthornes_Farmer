@@ -978,9 +978,22 @@ function TrackerUI:DrawToolbar()
     else
         local hour = self:PerHour()
         text = hour and L.Format("Per hour  %s", ns.Value.Coins(hour)) or L["This session"]
+        -- Ahead of your usual pace (Logic/Moments.lua), in green.
+        local pace = hour and ns.Moments and ns.Moments:Pace()
+        if pace then text = text .. "  " .. Util.Colored("good", L.Format("(up %d%%)", pace)) end
     end
 
     bar.left:SetText(text)
+
+    -- The first time a session passes your usual, a cheer floats off it.
+    local Moments = ns.Moments
+    if Moments and Moments.paceFloat then
+        Moments.paceFloat = false
+        local FX = ns.TrackerFX
+        if FX and FX.Level() == "full" and self.frame and self.frame:IsShown() then
+            pcall(FX.FloatText, FX, Util.Colored("good", L["Ahead of your usual pace!"]), bar.left, 0.3, 14)
+        end
+    end
 
     local sortWidth = tonumber(bar.sort:GetWidth()) or 60
     local clearWidth = bar.clear and (tonumber(bar.clear:GetWidth()) or CLEAR_WIDTH) + 4 or 0
@@ -1637,6 +1650,13 @@ function TrackerUI:CardLines(Add, card)
     if card.rank then
         Add({ style = "value", left = L["Rank"],
             right = L.Format("#%d of %d", card.rank, card.ranked), rightColor = "accent" })
+    end
+
+    -- Your kills since its best drop last fell (Logic/Moments.lua).
+    local since = card.mob and ns.Moments and ns.Moments:SinceLine(card.mob)
+    if since then
+        Add({ style = "value", left = since.label,
+            right = Util.Plural(since.kills, L["kill"], L["kills"]), rightColor = "accent" })
     end
 
     -- The chance of green gear at its level, and what you have had from it
