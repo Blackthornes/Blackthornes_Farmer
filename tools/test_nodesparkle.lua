@@ -263,6 +263,7 @@ end
 local nameText, healthBar = Piece(1), Piece(0.9)
 plate.UnitFrame = {
     SoftTargetFrame = gameIcon,
+    name = nameText,
     GetRegions = function() return nameText end,
     GetChildren = function() return healthBar, gameIcon end,
 }
@@ -271,10 +272,10 @@ Face("Copper Vein", VEIN)
 suite.check("an object's plate name and bars go see-through", nameText.alpha == 0 and healthBar.alpha == 0 and iconAlpha == 0)
 local NPC = "Creature-0-1-2-3-3346-0000000002"
 Face("Kaja", NPC)
-suite.check("so do a vendor's", nameText.alpha == 0 and healthBar.alpha == 0)
+suite.check("a vendor's bars do, but its name stays", nameText.alpha == 1 and healthBar.alpha == 0)
 ns.db.nodeSparkleHideIcon = false
 Face("Kaja", NPC)
-suite.check("the icon can show without the plate", iconAlpha == 0.8 and nameText.alpha == 0)
+suite.check("the icon can show without the plate", iconAlpha == 0.8 and healthBar.alpha == 0 and nameText.alpha == 1)
 ns.db.nodeSparkleHideIcon = true
 cvars.nameplateShowFriends = "1"
 Face("Kaja", NPC)
@@ -287,11 +288,10 @@ suite.check("a mob you could fight keeps its plate", nameText.alpha == 1 and hea
 _G.UnitCanAttack = realCanAttack
 Face("Kaja", NPC)
 fighting = true
-nameText.alpha = 0.7
+healthBar.alpha = 0.7
 Face("Kaja", NPC)
-suite.check("nothing touched in a fight either", nameText.alpha == 0.7)
+suite.check("nothing touched in a fight either", healthBar.alpha == 0.7)
 fighting = false
-nameText.alpha = 0
 Face("Kaja", NPC)
 ns.NodeSparkle:SetEnabled(false)
 suite.check("turning sparkles off gives the plate back", nameText.alpha == 1 and healthBar.alpha == 0.9)
