@@ -535,6 +535,13 @@ killed; a hidden mob gets nothing. Inside a dungeon the name falls back to
 the guid's mob ID (`Harvest.KnownNpcName`, else "Creature #ID"), as the
 harvest keys it. "Kill count" under Tooltips on the Map & goals page
 (`killTooltip`, on unless unticked, never rename it) and `/farm killcount`.
+Under it, "Best drops" (the owner asked 2026-10-14): the three drops that
+add most to a kill, chance times price, straight from `Value:ForMob`'s
+sorted `priced` list (each entry carries `chance`), kept with the worth in
+`KillTooltip:Read`, so a hover adds no work; "(est.)" from the database's
+rates. A drop under half a copper a kill is left out. "Best drops" on the
+Map & goals page (`killTooltipDrops`, on unless unticked, never rename it)
+and `/farm killcount drops [on|off]`.
 Tested in `tools/test_killtooltip.lua`. Not yet seen in game.
 
 ## World drops

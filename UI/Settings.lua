@@ -938,6 +938,14 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.killTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The three drops worth most a kill, under the count (2026-10-14).
+    local dropsRow = pages:Row("map", 1, L["Best drops"],
+        L["Under the kill count, the three drops that add most to what a kill is worth, with how often each drops. Same as /farm killcount drops."])
+    controls.killTooltipDrops = Widgets.CreateCheckbox(dropsRow, L["Show it"], function(checked)
+        ns.KillTooltip:SetDropsEnabled(checked)
+    end, true)
+    controls.killTooltipDrops:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- "3/8" beside a quest mob's name (the owner picked it 2026-10-13).
     local questCountRow = pages:Row("map", 1, L["Quest count"],
         L["Shows your count for a quest, like 3/8, in gold beside the name of a mob that quest still needs. Same as /farm questcount."])
@@ -1200,6 +1208,7 @@ function SettingsUI:Refresh()
     controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
     controls.killTooltip:SetChecked(db.killTooltip ~= false)
+    controls.killTooltipDrops:SetChecked(db.killTooltipDrops ~= false)
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)

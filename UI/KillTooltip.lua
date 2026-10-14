@@ -4,6 +4,14 @@
 --   Kills: 7/20                         (red, until drop rates unlock)
 --   Kills: 134, worth 1s 20c each       (from 20 kills on)
 --
+--   Best drops                          (gold; "Best drops (est.)" from
+--   Linen Cloth 41%              52c     the database's rates)
+--
+-- Under it, the three drops that add most to a kill's worth: how often each
+-- drops times its price, the same entries Value:ForMob adds up, so they come
+-- for nothing once the worth is kept. "Best drops" (killTooltipDrops) turns
+-- them off.
+--
 -- Below Tracker.MIN_KILLS the count runs up toward it in red, from 0/20 on a
 -- mob never killed. From there it is the whole count and what a kill is
 -- worth, the same number the kills panel and Rankings give (Value:ForMob).
@@ -30,10 +38,15 @@ local TOOLTIP_NAMES = { "GameTooltip", "ItemRefTooltip" }
 -- a mob's worth is kept this long, as long as its kill count stays the same.
 local KEEP_FOR = 10
 
+-- How many drops the tooltip names, and the muted grey of their chance.
+KillTooltip.TOP_DROPS = 3
+local MUTED = "ff9aa0ab"
+
 -- The red of the count below 20, and the plain text of the rest, when the
 -- theme is not loaded (the tests).
 local RED = { 0.898, 0.376, 0.310 }
 local WHITE = { 0.902, 0.910, 0.925 }
+local GOLD = { 1, 0.82, 0 }
 
 local function Field(object, key)
     if type(object) ~= "table" then return nil end
@@ -62,6 +75,16 @@ end
 
 function KillTooltip:SetEnabled(on)
     ns.db.killTooltip = on and true or false
+    KillTooltip.ForgetKept()
+end
+
+--- Are the best drops shown under the count? Never while the count is off.
+function KillTooltip:DropsEnabled()
+    return self:IsEnabled() and not (ns.db and ns.db.killTooltipDrops == false)
+end
+
+function KillTooltip:SetDropsEnabled(on)
+    ns.db.killTooltipDrops = on and true or false
     KillTooltip.ForgetKept()
 end
 
@@ -160,26 +183,85 @@ function KillTooltip.ForgetKept()
     kept = {}
 end
 
---- "1s 20c" in coin colours, "1s 20c (est.)" from the database's rates, or
---- nil when nothing it drops has a price.
-function KillTooltip:Worth(name, kills)
+--- "73%", "2%", "0.4%": how often a drop comes, in a few characters.
+function KillTooltip.Chance(percent)
+    percent = tonumber(percent) or 0
+    if percent >= 1 then return ("%d%%"):format(math.floor(percent + 0.5)) end
+    if percent >= 0.1 then return ("%.1f%%"):format(percent) end
+    return "<0.1%"
+end
+
+--- An item's colour and icon: as it looked when you looted it, else as the
+--- client says. Only for the few drops a tooltip names, and kept with them.
+local function ItemLook(name, id)
+    local look = ns.Tracker and ns.Tracker:LookOf(name) or {}
+    local color, icon = look.color, look.icon
+    id = id or look.id or (ns.Value.ItemID and ns.Value:ItemID(name))
+
+    if (not color or not icon) and id then
+        local getInfo = Field(_G.C_Item, "GetItemInfo") or _G.GetItemInfo
+        if type(getInfo) == "function" then
+            local ok, _, _, quality, _, _, _, _, _, _, texture = pcall(getInfo, id)
+            if ok then
+                quality = ns.Harvest.ReadableNumber(quality)
+                color = color or (quality and ns.Tracker.QUALITY[quality])
+                icon = icon or ns.Harvest.ReadableNumber(texture) or ns.Harvest.Readable(texture)
+            end
+        end
+    end
+    return color or ns.Tracker.QUALITY[1], icon
+end
+
+--- The left and right text of one best drop's line.
+function KillTooltip.DropLine(entry)
+    local color, icon = ItemLook(entry.name, entry.id)
+    local left = ("|c%s%s|r |c%s%s|r"):format(color, entry.name, MUTED, KillTooltip.Chance(entry.chance))
+    if icon then left = ("|T%s:14:14|t %s"):format(tostring(icon), left) end
+    return left, ns.Value.Coins(entry.perKill)
+end
+
+--- What a mob is worth and its best drops, worked out once a while:
+--- { text, drops = { { left, right } }, estimate }.
+function KillTooltip:Read(name, kills)
     local entry = kept[name]
     local now = Now()
     if entry and entry.kills == kills and now - entry.at < KEEP_FOR then
-        return entry.text or nil
+        return entry
     end
 
-    local text
+    entry = { kills = kills, at = now, drops = {} }
     local ok, value, details = pcall(ns.Value.ForMob, ns.Value, name)
     if ok and type(value) == "number" and value > 0 then
-        text = ns.Value.Coins(value)
-        if type(details) == "table" and details.basis == "database" then
-            text = text .. L[" (est.)"]
+        entry.estimate = type(details) == "table" and details.basis == "database"
+        entry.text = ns.Value.Coins(value)
+        if entry.estimate then entry.text = entry.text .. L[" (est.)"] end
+
+        -- Already sorted by what each adds to a kill. A drop worth under
+        -- half a copper a kill is not one of the best, whatever its place.
+        local priced = type(details) == "table" and details.priced or {}
+        for _, drop in ipairs(priced) do
+            if #entry.drops >= KillTooltip.TOP_DROPS then break end
+            if (tonumber(drop.perKill) or 0) >= 0.5 then
+                local made, left, right = pcall(KillTooltip.DropLine, drop)
+                if made then entry.drops[#entry.drops + 1] = { left, right } end
+            end
         end
     end
 
-    kept[name] = { kills = kills, at = now, text = text or false }
-    return text
+    kept[name] = entry
+    return entry
+end
+
+--- "1s 20c" in coin colours, "1s 20c (est.)" from the database's rates, or
+--- nil when nothing it drops has a price.
+function KillTooltip:Worth(name, kills)
+    return self:Read(name, kills).text
+end
+
+--- The best drops' lines and whether they come from the database's rates.
+function KillTooltip:Drops(name, kills)
+    local entry = self:Read(name, kills)
+    return entry.drops, entry.estimate
 end
 
 --- The line's text and whether it is the red count, or nil.
@@ -266,6 +348,17 @@ function KillTooltip:Decorate(tooltip, data)
     end
     -- The chance of green gear from a mob of its level (Logic/WorldDrops.lua),
     -- only once that level has kills enough behind it.
+    if self:DropsEnabled() then
+        local drops, estimate = self:Drops(name, KillTooltip.Kills(name))
+        local addDouble = Field(tooltip, "AddDoubleLine")
+        if #drops > 0 and type(addDouble) == "function" then
+            local gr, gg, gb = Color("accentHi", GOLD)
+            pcall(addLine, tooltip, estimate and L["Best drops (est.)"] or L["Best drops"], gr, gg, gb)
+            for _, drop in ipairs(drops) do
+                pcall(addDouble, tooltip, drop[1], drop[2], 1, 1, 1, 1, 1, 1)
+            end
+        end
+    end
     local greens = self:GreensLine(unit)
     if greens then pcall(addLine, tooltip, greens, 0.12, 1, 0) end
     local show = Field(tooltip, "Show")
@@ -327,7 +420,18 @@ end
 -- Prices or "Hide skinning" moved: the kept worth was worked out before.
 ns.DB.hideWatchers.killTooltip = function() KillTooltip.ForgetKept() end
 
-ns.RegisterCommand("killcount", L["turn the kill count on mob tooltips on or off"], function()
+ns.RegisterCommand("killcount", L["turn the kill count on mob tooltips on or off; drops [on|off] for the best drops under it"], function(rest)
+    local word, choice = (rest or ""):lower():match("^%s*(%S*)%s*(%S*)")
+    if word == "drops" then
+        local on
+        if choice == "on" then on = true elseif choice == "off" then on = false
+        else on = ns.db.killTooltipDrops == false end
+        KillTooltip:SetDropsEnabled(on)
+        ns.Print(on and L["best drops on mob tooltips on."]
+            or L["best drops on mob tooltips off. /farm killcount drops brings them back."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
     KillTooltip:SetEnabled(not KillTooltip:IsEnabled())
     ns.Print(KillTooltip:IsEnabled() and L["kill count on mob tooltips on."]
         or L["kill count on mob tooltips off."])

@@ -123,6 +123,92 @@ suite.check("with nothing priced it is the count alone", line == "Kills: 21", li
 ns.Value.UnitPrice = unitPrice
 
 --------------------------------------------------------------------------------
+-- Best drops
+--------------------------------------------------------------------------------
+
+-- A tooltip that takes two-sided lines, as the game's does.
+local function DropsTip()
+    local tip = Tooltip()
+    tip._right = {}
+    tip.AddDoubleLine = function(self, left, right)
+        self._lines[#self._lines + 1] = left
+        self._right[#self._lines] = right
+    end
+    return tip
+end
+
+local function HoverDrops(mob)
+    hovered = mob
+    serial = serial + 1
+    mob.guid = mob.guid or ("Creature-0-1-2-3-%d-%08d"):format(1234, serial)
+    local tip = DropsTip()
+    KillTooltip:OnTooltip(tip, { guid = mob.guid })
+    return tip
+end
+
+-- Gnoll Brutes drop four things, each its own worth.
+local prices = { ["Linen Cloth"] = 120, ["Malachite"] = 600, ["Brute Tooth"] = 30, ["Ruined Pelt"] = 4 }
+ns.Value.UnitPrice = function(_, id)
+    for name, copper in pairs(prices) do
+        if ns.Value:ItemID(name) == id then return copper, "vendor" end
+    end
+    return nil
+end
+local itemID = ns.Value.ItemID
+local ids = { ["Linen Cloth"] = 2589, ["Malachite"] = 774, ["Brute Tooth"] = 9001, ["Ruined Pelt"] = 9002 }
+ns.Value.ItemID = function(_, name) return ids[name] end
+
+for i = 1, 20 do
+    corpses = corpses + 1
+    env.world.target = { name = "Gnoll Brute", level = 10, dead = true, guid = "Creature-0-1-2-3-77-G" .. corpses }
+    local loot = { { name = "Linen Cloth", id = 2589 } }
+    if i <= 2 then loot[#loot + 1] = { name = "Malachite", id = 774 } end
+    if i <= 10 then loot[#loot + 1] = { name = "Brute Tooth", id = 9001 } end
+    if i <= 1 then loot[#loot + 1] = { name = "Ruined Pelt", id = 9002 } end
+    env.world.loot = loot
+    ns.Tracker:OnLoot()
+end
+KillTooltip.ForgetKept()
+
+local tip = HoverDrops({ name = "Gnoll Brute" })
+suite.check("under the count comes Best drops", tip._lines[2] == "Best drops", tip._lines[2])
+suite.check("the best first: linen every kill", (tip._lines[3] or ""):find("Linen Cloth", 1, true) ~= nil, tip._lines[3])
+suite.check("with how often it drops", (tip._lines[3] or ""):find("100%", 1, true) ~= nil, tip._lines[3])
+suite.check("and what it adds to a kill", tip._right[3] == ns.Value.Coins(120), tip._right[3])
+suite.check("then malachite, 10% of 6s", (tip._lines[4] or ""):find("Malachite", 1, true) ~= nil
+    and tip._right[4] == ns.Value.Coins(60), tip._lines[4])
+suite.check("then the tooth", (tip._lines[5] or ""):find("Brute Tooth", 1, true) ~= nil, tip._lines[5])
+suite.check("three at most", #tip._lines == 5, #tip._lines)
+
+local drops = KillTooltip:Drops("Gnoll Brute", 20)
+suite.check("the drops are kept with the worth", #drops == 3)
+
+ns.HandleSlash("killcount drops off")
+suite.check("/farm killcount drops off turns them off", ns.db.killTooltipDrops == false)
+tip = HoverDrops({ name = "Gnoll Brute" })
+suite.check("and only the count is left", #tip._lines == 1, #tip._lines)
+suite.check("the count itself stays on", ns.db.killTooltip == true)
+ns.HandleSlash("killcount drops on")
+suite.check("and on again", ns.db.killTooltipDrops == true)
+
+ns.SettingsUI:Show()
+local box = ns.SettingsUI.controls.killTooltipDrops
+suite.check("the settings page shows Best drops on", box:GetChecked())
+box:GetScript("OnClick")(box)
+suite.check("unticking it turns them off", ns.db.killTooltipDrops == false)
+box:GetScript("OnClick")(box)
+suite.check("ticking it brings them back", ns.db.killTooltipDrops == true)
+ns.SettingsUI:Hide()
+suite.check("on by default", ns.DEFAULTS.killTooltipDrops == true)
+
+suite.check("a chance under 1% keeps a decimal", KillTooltip.Chance(0.4) == "0.4%", KillTooltip.Chance(0.4))
+suite.check("a tiny one says so", KillTooltip.Chance(0.01) == "<0.1%")
+
+ns.Value.UnitPrice = unitPrice
+ns.Value.ItemID = itemID
+KillTooltip.ForgetKept()
+
+--------------------------------------------------------------------------------
 -- Who gets nothing
 --------------------------------------------------------------------------------
 
