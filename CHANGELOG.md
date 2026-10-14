@@ -21,10 +21,8 @@ restart the game fully after updating (`/reload` is not enough).
   colours ("est." while the numbers come from known drop rates). "Best
   drops" on the Map & goals page and `/farm killcount drops [on|off]` turn
   it off.
-- **Grind arrow:** with many marked spots, a click aims at the spots nearest
-  you. Only herbs and veins count toward gathering pace.
-- **Bug fixes:** several fixes for the trash can, sparkles, Stats tab, XP
-  bar, resets and sharing.
+- **Bug fixes:** several fixes for the Grind arrow, trash can, sparkles, Stats
+  tab, XP bar, resets and sharing.
 
 ## 0.32.2
 

@@ -30,8 +30,7 @@ tool prints a note for a shipped line that reads like an advert.
 
 Fixes and changes:
 
-- The Grind arrow points at the spots nearest you.
-- Several bug fixes for the trash can, Stats tab, XP bar and sharing.
+- Several bug fixes for the Grind arrow, trash can, Stats tab, XP bar and sharing.
 
 ## 0.32.2
 
