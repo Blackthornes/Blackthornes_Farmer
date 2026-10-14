@@ -794,6 +794,19 @@ data at the next login. If the game hides every name in that dungeon too,
 it stays a number until the mob is met where it does not; `/farm harvest
 check` now says whether the tooltip gives a name and how many names were
 learned. Tested in `tools/test_learnnames.lua`.
+Inside Ruins of Lordaeron the probe (2026-10-14) found every name, guid
+and tooltip line hidden, alive or dead, and the client's tables have no
+names for Forever's new mobs, so there a player names them by hand: the
+kills panel's right-click on a "Creature #ID" mob offers "Name this mob"
+(`UI/NamePrompt.lua`, `namePromptScale`, never rename it), and
+`Harvest:NameByHand` keeps the name in `npcNames` (only for an ID nothing
+names; `Harvest.CleanName` refuses numbers and junk). Names everyone gets
+are `Data/ForeverNpcNames.lua` (`ns.FOREVER_NPC_NAMES`, read by
+`KnownNpcName` after `npcNames`, before Classic's), written by
+`tools/forever_npc_names.py <Farmer save>` from the owner's `npcNames`
+only, at each release with the other fold-ins, never by hand and never
+announced. Tested in `tools/test_namemob.lua` and
+`tools/test_forever_npc_names.py`.
 `/farm harvest check` reports what a dungeon lets the addon read.
 
 ## What's New

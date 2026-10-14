@@ -85,7 +85,7 @@ function HideMenu:Open(choices)
         local name = choice and choice.name
         if type(name) == "string" and name ~= "" and #kept < MOST then
             local hidden = choice.kind == "item" and ns.DB:IsHiddenItem(name)
-                or choice.kind ~= "item" and ns.DB:IsHiddenSource(name)
+                or choice.kind == "source" and ns.DB:IsHiddenSource(name)
             if not hidden then kept[#kept + 1] = choice end
         end
     end
@@ -97,7 +97,11 @@ function HideMenu:Open(choices)
         local choice = kept[index]
         if choice then
             line.choice = choice
-            line.label:SetText(L.Format("Hide %s", choice.name))
+            if choice.kind == "name" then
+                line.label:SetText(L["Name this mob"])
+            else
+                line.label:SetText(L.Format("Hide %s", choice.name))
+            end
             local w = Theme.TextWidth("tiny", line.label:GetText())
             local ok, drawn = pcall(line.label.GetStringWidth, line.label)
             if ok and type(drawn) == "number" and drawn > w then w = drawn end
@@ -145,6 +149,10 @@ end
 function HideMenu:Pick(choice)
     if self.frame then self.frame:Hide() end
     if not choice then return end
+    if choice.kind == "name" then
+        if ns.NamePrompt then ns.NamePrompt:Open(choice.npcID) end
+        return
+    end
     local name = ns.DB:Hide(choice.kind, choice.name)
     if not name then return end
     -- A mob or a node is a "source".

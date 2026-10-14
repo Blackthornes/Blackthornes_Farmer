@@ -473,8 +473,45 @@ function Harvest.KnownNpcName(npcID)
     if type(names) == "table" and type(names[npcID]) == "string" then
         return names[npcID]
     end
+    -- Forever's own mobs, named by players where the game names none
+    -- (Data/ForeverNpcNames.lua, folded in before each release).
+    local forever = ns.FOREVER_NPC_NAMES
+    if type(forever) == "table" and type(forever[npcID]) == "string" then
+        return forever[npcID]
+    end
     local shipped = ns.NPC_NAMES
     return type(shipped) == "table" and shipped[npcID] or nil
+end
+
+-- The longest name a player can give a mob.
+Harvest.NAME_MOST = 60
+
+--- A name as a player typed it, made safe to keep: trimmed, one line, no
+--- colour or link codes, not a number, not too long. Nil when nothing is
+--- left.
+function Harvest.CleanName(text)
+    if type(text) ~= "string" then return nil end
+    text = text:gsub("|", ""):gsub("[%c]", " "):gsub("%s+", " ")
+    text = text:match("^%s*(.-)%s*$")
+    if text == "" or text:match("^Creature #") or text:match("^%d+$") then return nil end
+    if #text > Harvest.NAME_MOST then return nil end
+    return text
+end
+
+--- A player names a mob the game will not name (the kills panel's
+--- right-click, "Name this mob"). Only a mob still known by its number:
+--- one the data or the game already names is left as it is. The panel
+--- shows the name at once; the kills and loot kept under the number move to
+--- it at the next login (NameUnnamed). Returns the name kept, or nil.
+function Harvest:NameByHand(npcID, text)
+    npcID = tonumber(npcID)
+    local name = Harvest.CleanName(text)
+    if not (npcID and name) or Harvest.KnownNpcName(npcID) then return nil end
+    local db = ns.db
+    if type(db) ~= "table" then return nil end
+    if type(db.npcNames) ~= "table" then db.npcNames = {} end
+    db.npcNames[npcID] = name
+    return name
 end
 
 --- What a mob ID is called. The game's own answer, through the unit link

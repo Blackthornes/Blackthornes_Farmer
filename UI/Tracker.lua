@@ -1243,7 +1243,14 @@ function TrackerUI:CreateLine(parent, index)
         -- Right-click offers to hide the mob, or the Loot tab's item.
         if button == "RightButton" and line and ns.HideMenu then
             if line.mob then
-                ns.HideMenu:Open({ { kind = "source", name = line.mob } })
+                -- A mob known only by its number can be named here first.
+                local choices = {}
+                local npcID = tonumber(line.mob:match("^Creature #(%d+)$"))
+                if npcID and not ns.Harvest.KnownNpcName(npcID) then
+                    choices[1] = { kind = "name", name = line.mob, npcID = npcID }
+                end
+                choices[#choices + 1] = { kind = "source", name = line.mob }
+                ns.HideMenu:Open(choices)
             elseif line.style == "loot" and line.item then
                 ns.HideMenu:Open({ { kind = "item", name = line.item } })
             end
