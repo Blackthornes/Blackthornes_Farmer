@@ -86,4 +86,14 @@ local tally = ns.db.tracker.mobs["Lordaeron Skulker"]
 suite.check("the kill tally too", tally and tally.kills == 3
     and ns.db.tracker.mobs["Creature #250486"] == nil)
 
+-- The kill line in chat is noted for the loot check, secret or not.
+_G.COMBATLOG_XPGAIN_FIRSTPERSON = "%s dies, you gain %d experience."
+Harvest:NoteKillLine("Broodling dies, you gain 45 experience.")
+suite.check("a readable kill line keeps the name", Harvest.killLine.state == "name read"
+    and Harvest.killLine.name == "Broodling")
+Harvest:NoteKillLine(env.Secret("string"))
+suite.check("a secret one says so", Harvest.killLine.state == "secret" and Harvest.killLine.name == nil)
+Harvest:NoteKillLine("Something else entirely")
+suite.check("an odd one is not understood", Harvest.killLine.state == "not understood")
+
 suite.done()
