@@ -348,7 +348,12 @@ end
 
 --- Draw the bar again from what XP knows. Cheap: a few words and widths.
 function XPBarUI:Refresh()
-    if not self:Wanted() then
+    -- The bar coming or going mid-session (the level cap, XP turned off at
+    -- a trainer) gives the game's bar back, or veils it again.
+    local wanted = self:Wanted() and true or false
+    if self.wasWanted ~= nil and self.wasWanted ~= wanted then self:ApplyGameBar() end
+    self.wasWanted = wanted
+    if not wanted then
         if self.frame then self.frame:Hide() end
         self:HideCard()
         return

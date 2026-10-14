@@ -572,6 +572,8 @@ function Gathering:WorthPerGather(key)
 end
 
 function Gathering:Reset()
+    -- Shared and imported counts went with the records: their ledgers too.
+    if ns.Share and ns.Share.ForgetSection then ns.Share:ForgetSection("g") end
     -- The record only. The map markers live in the same table and have their
     -- own clear (/farm markers clear), so they stay.
     if type(ns.db.gathering) == "table" then ns.db.gathering.nodes = nil end

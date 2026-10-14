@@ -95,6 +95,22 @@ later[77777] = 40
 Stats:Settle()
 suite.check("and counts once it has a price", today.drops == 60 + 40, today.drops)
 
+-- Pricing it can draw the tab again, which settles again: still counted once.
+later[77777] = nil
+Loot("Mangy Wolf", { ODD })
+later[77777] = 40
+local price0 = Stats.Price
+local inner = false
+Stats.Price = function(self, ...)
+    local done = price0(self, ...)
+    if not inner then inner = true; Stats:Settle() end
+    return done
+end
+local ok = pcall(Stats.Settle, Stats)
+Stats.Price = price0
+suite.check("a settle inside a settle prices the drop once", ok and today.drops == 60 + 80 and Stats.pending == nil,
+    today.drops)
+
 -- Hidden items never count.
 ns.DB:Hide("item", "Large Fang")
 local before = today.drops

@@ -204,14 +204,18 @@ function Trash:Scan(space, done)
             local info = Container("GetContainerItemInfo", bag, slot)
             if type(info) == "table" then
                 local okKey, key = pcall(function()
-                    return ("%s:%s:%s"):format(tostring(info.hyperlink or info.itemID),
-                        tostring(info.stackCount), info.isLocked and "l" or "")
+                    -- A goal set or removed changes what may go.
+                    return ("%s:%s:%s:%s"):format(tostring(info.hyperlink or info.itemID),
+                        tostring(info.stackCount), info.isLocked and "l" or "",
+                        tostring(ns.Goals and ns.Goals.version or 0))
                 end)
                 key = okKey and key or nil
                 seen[place] = true
                 local old = Trash.slots[place]
                 if not (old and key and old.key == key) then
-                    local worth, unit, itemID, link, count = Trash:Worth(bag, slot, info)
+                    -- One odd item costs its slot, never the can until /reload.
+                    local fine, worth, unit, itemID, link, count = pcall(Trash.Worth, Trash, bag, slot, info)
+                    if not fine then worth, unit, itemID, link, count = nil, nil, nil, nil, nil end
                     Trash.slots[place] = { bag = bag, slot = slot, key = key, worth = worth, unit = unit,
                         itemID = itemID, link = link, count = count }
                 end
@@ -382,6 +386,8 @@ end
 function Trash:Place(frames)
     self.waiting = false
     if self.stale then return self:Changed() end
+    -- A fight or a vendor may have come while the bags were read.
+    if self:IsOff() or Holding() then return self:Hide() end
     local pick = self:Pick()
     local button = pick and self:FindButton(frames, pick.bag, pick.slot)
     if not button then return self:Hide() end
@@ -402,6 +408,10 @@ end
 
 local function Off(self)
     return not self:Enabled() or self.ButlerHasIt() or InCombat() or self.atVendor
+end
+
+function Trash:IsOff()
+    return Off(self)
 end
 
 --- Look again once the burst is over.
@@ -463,6 +473,9 @@ function Trash:Take()
             error("moved")
         end
     end)
+    -- A goal set since the can was placed: that item stays.
+    local name = Name(pick.link)
+    if same and name and ns.Goals and ns.Goals:Find(name) then same = false end
     if not same then
         self:Changed()
         return false

@@ -157,6 +157,17 @@ holding = nil
 Fire("CURSOR_CHANGED")
 suite.check("and comes back once it is put down", Showing())
 
+-- A goal set since the can was placed keeps that item.
+ns.Goals:Set("Ruined Pelt", 5)
+local beforeGoal = #picked
+Trash:Take()
+suite.check("an item that became a goal is not picked up", #picked == beforeGoal)
+Fire("BAG_UPDATE_DELAYED")
+suite.check("and the can moves off it", not (Trash.pick and Trash.pick.itemID == 702))
+ns.Goals:Remove("Ruined Pelt")
+Fire("BAG_UPDATE_DELAYED")
+suite.check("removing the goal puts it back", Trash.pick and Trash.pick.itemID == 702)
+
 -- 5. The slot changed under the can.
 local pelt = bag[2]
 bag[2] = { id = 706, name = "Pristine Pelt", quality = 1, price = 500 }

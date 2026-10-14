@@ -1246,6 +1246,8 @@ function Harvest:Items()
 end
 
 function Harvest:Reset()
+    -- Shared and imported counts went with the records: their ledgers too.
+    if ns.Share and ns.Share.ForgetSection then ns.Share:ForgetSection("h") end
     self.records = {}
     self.opened = {}
     self.shown = {}

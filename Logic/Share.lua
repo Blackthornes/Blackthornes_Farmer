@@ -748,6 +748,23 @@ Share.Parts = {
     CleanRecord = CleanRecord,
 }
 
+--- A section's records were reset (a typed reset confirm): what was taken
+--- into them from another account or an import is gone with them, so their
+--- ledgers for it are emptied too. Kept, a later Remove of an import took the
+--- old amount off the player's own new counts, and export left those new
+--- counts out until they passed the old credit. The guild's ledgers
+--- (guildIn) keep their own records apart and are not touched.
+function Share:ForgetSection(sectionKey)
+    local book = ns.db and ns.db.shareIn
+    if type(book) ~= "table" or not BY_KEY[sectionKey] then return end
+    for _, held in pairs(book) do
+        if type(held) == "table" then
+            if type(held.credit) == "table" then held.credit[sectionKey] = {} end
+            if type(held.hashes) == "table" then held.hashes[sectionKey] = {} end
+        end
+    end
+end
+
 function Share:OnOffline(key)
     local state = self.partners[key]
     if state then state.online = false end

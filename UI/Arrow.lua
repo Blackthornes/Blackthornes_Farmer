@@ -514,6 +514,8 @@ function ArrowUI:WatchXPBar()
                 local function Check() ArrowUI:AvoidXPBar() end
                 bar:HookScript("OnShow", Check)
                 bar:HookScript("OnSizeChanged", Check)
+                -- The bar gone (the level cap, XP off): back to the saved spot.
+                bar:HookScript("OnHide", function() ArrowUI:RestorePosition() end)
             end
             if bar then ArrowUI:AvoidXPBar() end
         end

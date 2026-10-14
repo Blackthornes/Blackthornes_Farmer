@@ -690,6 +690,13 @@ function NodeSparkle:VeilIcon()
     return true
 end
 
+--- Put back everything kept out of sight.
+function NodeSparkle:UnveilAll()
+    local frames = {}
+    for frame in pairs(veiled) do frames[#frames + 1] = frame end
+    for _, frame in ipairs(frames) do Unveil(frame) end
+end
+
 function NodeSparkle:SetHideIcon(hide)
     ns.db.nodeSparkleHideIcon = hide and true or false
     self:SafeRefresh()
@@ -956,6 +963,10 @@ function NodeSparkle:OnEnable()
     ns.RegisterEvent(self, "NAME_PLATE_UNIT_ADDED", function() NodeSparkle:SafeRefresh() end)
     ns.RegisterEvent(self, "NAME_PLATE_UNIT_REMOVED", function(_, _, unit) NodeSparkle:OnPlateRemoved(unit) end)
     ns.RegisterEvent(self, "QUEST_LOG_UPDATE", function() NodeSparkle:QuestLogChanged() end)
+    -- A fight: everything kept out of sight comes back first, while the
+    -- game still lets it. The plate may go to the mob attacking you, whose
+    -- bars must show; nothing is veiled again until the fight ends.
+    ns.RegisterEvent(self, "PLAYER_REGEN_DISABLED", function() NodeSparkle:UnveilAll() end)
     ns.RegisterEvent(self, "PLAYER_REGEN_ENABLED", function()
         if NodeSparkle.applyAfterCombat then NodeSparkle:ApplySettings() end
         if NodeSparkle.restoreAfterCombat then NodeSparkle:RestoreSettings() end
