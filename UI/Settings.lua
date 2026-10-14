@@ -512,6 +512,14 @@ function SettingsUI:BuildWindowsPage()
         L["Mobs ranked by what a kill is worth. Same as /farm rankings."], L["Open it"], "rankings")
     controls.rankings = rankingsButton
 
+    -- The owner, 2026-10-14: Rankings without the mobs found only in dungeons.
+    local outsideRow = pages:Row("windows", 2, L["Outside dungeons only"],
+        L["Rankings leave out mobs you found only in dungeons and raids, and so do the rank-up pop-up and the top 15 after an auction scan. The same tick box is on the Rankings tab. Same as /farm rankings outside."])
+    controls.rankingsOutside = Widgets.CreateCheckbox(outsideRow, L["Leave them out"], function(checked)
+        ns.Rankings:SetOutsideOnly(checked)
+    end, false)
+    controls.rankingsOutside:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     local _, statsButton = CommandRow(pages, "windows", 2, L["Stats"],
         L["Your farming in charts: gold an hour by session, where it came from, your best mobs, luck, the days you farmed and your levels. Same as /farm charts."], L["Open it"], "charts")
     controls.statsTab = statsButton
@@ -1222,6 +1230,7 @@ function SettingsUI:Refresh()
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
+    controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)

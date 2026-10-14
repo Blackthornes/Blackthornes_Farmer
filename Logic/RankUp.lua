@@ -44,10 +44,18 @@ function RankUp.SoundOn()
     return not (ns.db and ns.db.rankUpSound == false)
 end
 
+--- What decides who is on the board besides kills and prices: the hide list
+--- and Rankings' "Outside dungeons only". An order laid out under another
+--- stamp is laid out again.
+local function Stamp()
+    return ("%d:%d"):format(ns.DB.hiddenVersion or 0, ns.Rankings.outsideVersion or 0)
+end
+RankUp.Stamp = Stamp
+
 --- Measured or nothing: Rankings' own entry for the mob, so the pop-up and
 --- the Rankings tab never disagree on a number.
 local function Measured(name)
-    if ns.DB:IsHiddenSource(name) then return nil end
+    if ns.Rankings:LeftOut(name) then return nil end
     local ok, entry = pcall(ns.Rankings.Entry, ns.Rankings, name)
     if ok and entry and entry.group == "measured" then
         return { mob = name, value = entry.value, kills = entry.kills }
@@ -98,7 +106,7 @@ RankUp.Top = Top
 function RankUp:Build(keep, done)
     local old = self.snapshot
     if not keep then self.snapshot = nil end
-    self.building = { byMob = {}, kills = {}, hidden = ns.DB.hiddenVersion or 0, queue = {},
+    self.building = { byMob = {}, kills = {}, hidden = Stamp(), queue = {},
         old = old, done = done }
 
     for name, record in pairs(ns.Tracker:Store()) do
@@ -160,9 +168,9 @@ end
 function RankUp:RankOf(mobName)
     local snapshot = self.snapshot
     if not snapshot then return nil end
-    if snapshot.hidden ~= (ns.DB.hiddenVersion or 0) then
-        -- What is hidden changed: the old places are wrong until it is laid
-        -- out again.
+    if snapshot.hidden ~= Stamp() then
+        -- What is hidden (or the dungeon tick box) changed: the old places
+        -- are wrong until it is laid out again.
         if not self.building then self:Build() end
         return nil
     end
@@ -221,7 +229,7 @@ function RankUp:Compare()
     self.killed = {}
 
     local snapshot = self.snapshot
-    if not snapshot or snapshot.hidden ~= (ns.DB.hiddenVersion or 0) then
+    if not snapshot or snapshot.hidden ~= Stamp() then
         -- No order to compare with yet, or what is hidden changed: lay it
         -- out again, and say nothing this time.
         if not self.building then self:Build() end

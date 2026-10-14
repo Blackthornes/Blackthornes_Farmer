@@ -374,7 +374,7 @@ L["  no price yet: %s"] = "  noch kein Preis: %s"
 L["  No auction prices are loaded, so these are vendor prices."] = "  Es sind keine Auktionspreise geladen, das sind also Händlerpreise."
 
 -- Logic/Rankings.lua
-L["mobs ranked by what a kill is worth"] = "Gegner nach dem Wert eines Kills geordnet"
+L["mobs ranked by what a kill is worth, or only those outside dungeons"] = "Gegner nach dem Wert eines Kills geordnet, oder nur die außerhalb von Dungeons"
 
 -- Logic/Search.lua
 L["%d of %d spots"] = "%d von %d Fundorten"
@@ -1407,3 +1407,11 @@ L["after an auction scan your top 15 shows its new order, and a new top farm is 
 L["nothing shows after an auction scan. /farm topfarm on to bring it back."] = "nach einem Auktionshaus-Scan erscheint nichts. /farm topfarm on schaltet es wieder ein."
 L["you need two mobs with %d kills each on your board to see it."] = "du brauchst zwei Gegner mit je %d Kills in deiner Rangliste, um es zu sehen."
 L["your top 15 again after an auction scan, with a new top farm called out (on/off, test)"] = "deine Top 15 nach einem Auktionshaus-Scan, mit dem neuen besten Farmplatz (on/off, test)"
+
+-- Rankings: outside dungeons only (2026-10-14)
+L["Outside dungeons only"] = "Nur außerhalb von Dungeons"
+L["Leaves out mobs you found only in dungeons and raids. Same as /farm rankings outside."] = "Lässt Gegner weg, die du nur in Dungeons und Schlachtzügen gefunden hast. Wie /farm rankings outside."
+L["Rankings show only mobs outside dungeons."] = "Die Ranglisten zeigen nur Gegner außerhalb von Dungeons."
+L["Rankings show mobs from dungeons too."] = "Die Ranglisten zeigen auch Gegner aus Dungeons."
+L["Leave them out"] = "Weglassen"
+L["Rankings leave out mobs you found only in dungeons and raids, and so do the rank-up pop-up and the top 15 after an auction scan. The same tick box is on the Rankings tab. Same as /farm rankings outside."] = "Die Ranglisten lassen Gegner weg, die du nur in Dungeons und Schlachtzügen gefunden hast, ebenso das Aufstiegs-Fenster und die Top 15 nach einem Auktionsscan. Dasselbe Kästchen ist auf dem Reiter Ranglisten. Wie /farm rankings outside."

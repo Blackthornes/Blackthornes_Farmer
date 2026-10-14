@@ -528,6 +528,26 @@ sound" (`rankUpSound`), both on unless unticked, and `rankUpScale` (its size
 grip) are account wide; never rename them. `/farm rankup [on|off|sound
 on|off|show]`. Tested in `tools/test_rankup.lua`. Not yet seen in game.
 
+## Rankings outside dungeons only
+
+The owner asked (2026-10-14) for a tick box on the Rankings tab that leaves out
+mobs found only in dungeons. "Outside dungeons only" sits after the chips
+(`RankingsUI.outside`), with a row on the Windows page of Settings and
+`/farm rankings outside [on|off]`; off unless ticked, `rankingsOutside`,
+account wide, never rename it. `Rankings:InDungeon` says by where your
+kills were (the zone part of each `tracker.mobs[mob].places` key, which
+inside an instance is the instance), else by the database's rows (a
+Classic row's subzone naming a dungeon, or any row's zone), else outside.
+A mob killed inside and out stays. `Spots.IsInstance` knows Forever's own
+instances from `ns.ZONE_DATA.instances` (written by `tools/make_zones.py`;
+a name that is also an open world zone, such as Deadwind Pass, is left
+out) and the dungeons of `Spots.INSIDE`; capitals are no dungeon.
+`Rankings:LeftOut` (hidden, or a dungeon's while ticked) is what
+`Rankings:Build` and the rank-up order (`RankUp`'s `Measured`) both ask, so
+the rank-up pop-up and the top farm alert follow the tick box; `RankUp.Stamp`
+lays the order out again when it moves (`Rankings.outsideVersion`). Tested
+in `tools/test_rankingsoutside.lua`. Not yet seen in game.
+
 ## Your top 15 after an auction scan
 
 The owner asked (2026-10-14): an alert after an auction scan when there is

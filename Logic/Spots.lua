@@ -198,6 +198,24 @@ function Spots.Show(zone)
     return ZONE_DATA.names[locale][Spots.English(zone)] or zone
 end
 
+-- The capitals in INSIDE: a place inside a zone, but no dungeon.
+local CAPITALS = {
+    ["Stormwind City"] = true, ["Ironforge"] = true, ["Undercity"] = true,
+    ["Orgrimmar"] = true, ["Thunder Bluff"] = true, ["Darnassus"] = true,
+}
+
+--- Is `place` a dungeon or raid? By its English name (or the client's,
+--- read back through Spots.English): Forever's own instances from the
+--- client's game tables (Data/Zones.lua, Ruins of Lordaeron among them),
+--- and the dungeons of INSIDE. A capital is no dungeon.
+function Spots.IsInstance(place)
+    if type(place) ~= "string" or place == "" then return false end
+    place = Spots.English(place)
+    if CAPITALS[place] then return false end
+    if (ZONE_DATA.instances or {})[place] then return true end
+    return INSIDE[place] ~= nil
+end
+
 --- Is `zone` a place the map knows by its English name?
 function Spots.Known(zone)
     return BORDERS[zone] ~= nil or INSIDE[zone] ~= nil
