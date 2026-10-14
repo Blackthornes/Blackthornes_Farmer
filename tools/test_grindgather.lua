@@ -203,7 +203,8 @@ check("the columns are the node view's", GrindingUI.columns.layout == "nodes"
     and GrindingUI.columns.hour and not GrindingUI.columns.type)
 check("its headings", GrindingUI.headings.hour:IsShown() and not GrindingUI.headings.type:IsShown()
     and GrindingUI.headings.mob:GetText() == "NODE")
-check("no creature types for nodes", not GrindingUI.typeChips[1]:IsShown())
+check("no creature types for nodes: greyed in place, not clickable",
+    GrindingUI.typeChips[1]:IsShown() and GrindingUI.typeChips[1].resting)
 check("the footer gives your skill", GrindingUI.footer:GetText():find("Your Mining: 87") ~= nil,
     GrindingUI.footer:GetText())
 
@@ -245,7 +246,7 @@ check("/farm grind herbs", Grinding:Gives() == "herbs" and GrindingUI.headings.m
 
 ns.HandleSlash("grind 14-26 leather")
 check("/farm grind leather", Grinding:Gives() == "skinning" and GrindingUI.columns.layout == "leather")
-check("the creature types are back", GrindingUI.typeChips[1]:IsShown())
+check("the creature types are back", GrindingUI.typeChips[1]:IsShown() and not GrindingUI.typeChips[1].resting)
 local wolfRow
 for _, row in ipairs(GrindingUI.list.data) do
     if row.type == "mob" and row.mob.name == "Vale Wolf" then wolfRow = row end
@@ -264,6 +265,30 @@ for _, row in ipairs(GrindingUI.list.data) do
         check("no Leather in what a mob gives while skinning is hidden: " .. row.mob.name,
             not GrindingUI.GivesText(row.mob):find("Leather"))
     end
+end
+
+-- One window size for every view, and the Cloth/Leather/Ore/Herbs chips
+-- stay put (2026-10-14: the window moved with each click and Herbs wrapped).
+do
+    UI:ShowTab("grind")
+    local widths, spots, lines = {}, {}, {}
+    for _, word in ipairs({ "cloth", "leather", "ore", "herbs" }) do
+        ns.HandleSlash("grind " .. word)
+        widths[#widths + 1] = UI.frame:GetWidth()
+        local point = GrindingUI.givesChips[1]._point
+        spots[#spots + 1] = point and (point[4] .. "," .. point[5]) or "?"
+        lines[#lines + 1] = GrindingUI.chipLines
+    end
+    local same, still, oneLine = true, true, true
+    for i = 2, #widths do
+        if widths[i] ~= widths[1] then same = false end
+        if spots[i] ~= spots[1] then still = false end
+        if lines[i] ~= lines[1] then oneLine = false end
+    end
+    check("the window keeps one width", same, table.concat(widths, " "))
+    check("and the window is the grind width", widths[1] == GrindingUI.TargetWidth(), widths[1])
+    check("the Cloth chip stays in place", still, table.concat(spots, " "))
+    check("the chips keep their rows", oneLine, table.concat(lines, " "))
 end
 
 suite.done()
