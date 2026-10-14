@@ -1340,6 +1340,8 @@ function UI:Resized()
         pcall(ns.RankingsUI.Render, ns.RankingsUI)
     elseif self.tab == "stats" and ns.StatsUI then
         pcall(ns.StatsUI.Render, ns.StatsUI)
+    elseif self.tab == "grind" and ns.GrindingUI then
+        pcall(ns.GrindingUI.Render, ns.GrindingUI)
     elseif self.tab == "search" and self.Render then
         pcall(self.Render, self)
     end

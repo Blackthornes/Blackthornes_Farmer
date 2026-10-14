@@ -53,6 +53,12 @@ local BASE_WIDTH = { type = 74, mob = 190, level = 46, gives = 110, worth = 90, 
 local MAX_WIDTH = { type = 110, mob = 320, gives = 240, worth = 160, skill = 160, count = 90,
     respawn = 110, hour = 120 }
 
+-- One window width for every view (Cloth, Leather, Ore, Herbs), so a
+-- click on one never resizes or shifts the window (2026-10-14: it moved
+-- with each, and Herbs wrapped onto a second row). The columns fit it:
+-- spare room goes to the mob and what it gives, and long words give way.
+GrindingUI.WIDTH = 980
+
 local BADGE_TEXT = "Forever"
 local INDENT = "     "
 
@@ -384,11 +390,15 @@ function GrindingUI:LayoutChips()
     end
 
     local chips = {}
-    -- Ore and Herbs are nodes: no creature types.
+    -- Ore and Herbs are nodes: no creature types. Their chips stay in
+    -- place, greyed and not clickable, so the chips after them never move.
     local nodes = ns.Grinding.IsNodeView(ns.Grinding:Gives())
     for _, chip in ipairs(self.typeChips) do
-        chip:SetShown(not nodes)
-        if not nodes then chips[#chips + 1] = { chip, 0 } end
+        chip:Show()
+        chip.resting = nodes
+        chip:SetAlpha(nodes and 0.35 or 1)
+        chip:EnableMouse(not nodes)
+        chips[#chips + 1] = { chip, 0 }
     end
     -- The Leather chip goes while skinning is left out (DB:ShowsSkinning)
     -- and you do not know Skinning.
@@ -398,7 +408,7 @@ function GrindingUI:LayoutChips()
             chip:Hide()
         else
             chip:Show()
-            chips[#chips + 1] = { chip, (index == 1 and not nodes) and GROUP_GAP or 0 }
+            chips[#chips + 1] = { chip, index == 1 and GROUP_GAP or 0 }
         end
     end
 
@@ -1070,15 +1080,25 @@ function GrindingUI:FitColumns(rows, layout)
         widths[key] = math.min(most, math.ceil(widths[key]))
     end
 
-    local room = ns.UI and ns.UI.ScreenRoom and ns.UI:ScreenRoom()
-    if room then
-        local over = Columns(widths, layout).total + CHROME - room
+    -- Fit the one width every view shares: narrower columns than that
+    -- widen the mob and what it gives; wider ones give way, as they did
+    -- for a small screen.
+    local target = GrindingUI.TargetWidth()
+    local over = Columns(widths, layout).total + CHROME - target
+    if over < 0 then
+        local spare = -over
+        local mobShare = math.floor(spare / 2)
+        widths.mob = widths.mob + mobShare
+        widths.gives = widths.gives + (spare - mobShare)
+    else
         for _, key in ipairs({ "mob", "gives", "worth", "type" }) do
             if over <= 0 then break end
-            local give = math.min(over, widths[key] - BASE_WIDTH[key])
-            if give > 0 then
-                widths[key] = widths[key] - give
-                over = over - give
+            if widths[key] then
+                local give = math.min(over, widths[key] - BASE_WIDTH[key])
+                if give > 0 then
+                    widths[key] = widths[key] - give
+                    over = over - give
+                end
             end
         end
     end
@@ -1093,7 +1113,17 @@ function GrindingUI:FitColumns(rows, layout)
         self:PlaceHeadings()
     end
 
-    return self.columns.total + CHROME
+    return math.max(target, self.columns.total + CHROME)
+end
+
+--- The window width the tab keeps for every view: GrindingUI.WIDTH, never
+--- narrower than the window's usual width, and no wider than the screen.
+function GrindingUI.TargetWidth()
+    local base = ns.UI and ns.UI.BASE_WIDTH or 724
+    local width = math.max(GrindingUI.WIDTH, base)
+    local room = ns.UI and ns.UI.ScreenRoom and ns.UI:ScreenRoom()
+    if room then width = math.max(base, math.min(width, room)) end
+    return width
 end
 
 --- Put the controls in step with what is saved.
@@ -1148,6 +1178,11 @@ function GrindingUI:Render(arrive)
         rows = self:Rows(camps, unknown, low, high)
     end
     self.camps = camps
+    -- The window takes its width before the chips are laid out, so they
+    -- measure the row they will sit in, not the last tab's.
+    if ns.UI and ns.UI.frame and ns.UI.tab == "grind" then
+        ns.UI.frame:SetWidth(GrindingUI.TargetWidth())
+    end
     self:PaintControls(low, high)
     self.footer:SetText(GrindingUI.FooterText(layout))
 
