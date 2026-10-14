@@ -212,6 +212,58 @@ suite.check("without Tradeskills the auction house closing looks", RankUpUI:IsSh
 Settle()
 _G.BlackthornesTS = savedTS
 
+--------------------------------------------------------------------------------
+-- 8. It waits for the auction house and the game's windows to close
+--------------------------------------------------------------------------------
+
+Reset()
+events(ns.eventFrame, "AUCTION_HOUSE_SHOW")
+factor[Name(5)] = 20
+Scan()
+RankUp:Step(math.huge)
+suite.check("at the auction house it waits", not RankUpUI:IsShown() and TopFarm:Holding())
+suite.check("and so does the sound", #played == 0, #played)
+suite.check("looking again while it waits", TopFarm.ticker ~= nil)
+
+-- A second scan before it closes folds into the first.
+factor[Name(4)] = 40
+Scan()
+RankUp:Step(math.huge)
+suite.check("a second scan still waits", not RankUpUI:IsShown())
+
+events(ns.eventFrame, "AUCTION_HOUSE_CLOSED")
+suite.check("it shows when the auction house closes", RankUpUI:IsShown() and not TopFarm:Holding())
+suite.check("from the order before the first scan to after the last",
+    ItemOf(Name(4)) and ItemOf(Name(4)).to == 0 and ItemOf(Name(5)) and ItemOf(Name(5)).to == 1)
+suite.check("no longer looking", TopFarm.ticker == nil)
+Settle()
+suite.check("with its sound", #played == 1, #played)
+
+-- Any of the game's own panels holds it too.
+Reset()
+local panel = { name = "a panel" }
+_G.GetUIPanel = function(key) return key == "left" and panel or nil end
+factor[Name(2)] = 200
+Scan()
+RankUp:Step(math.huge)
+suite.check("a game window open holds it", not RankUpUI:IsShown() and TopFarm:Holding())
+_G.GetUIPanel = function() return nil end
+TopFarm:TryShow()
+suite.check("and it shows once that closes", RankUpUI:IsShown())
+Settle()
+_G.GetUIPanel = nil
+
+-- Turned off while it waits: nothing is held.
+Reset()
+events(ns.eventFrame, "AUCTION_HOUSE_SHOW")
+factor[Name(1)] = 500
+Scan()
+RankUp:Step(math.huge)
+ns.commands.topfarm.fn("off")
+events(ns.eventFrame, "AUCTION_HOUSE_CLOSED")
+suite.check("off while it waits lets it go", not RankUpUI:IsShown() and not TopFarm:Holding())
+ns.commands.topfarm.fn("on")
+
 -- Try it: the second mob rises to the top.
 Reset()
 ns.commands.topfarm.fn("test")

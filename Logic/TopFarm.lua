@@ -23,6 +23,9 @@
 --   a shuffle       otherwise, when places in the top moved: the board
 --                   shuffles with the rank-up chime.
 --
+-- Either waits, sound and all, until the auction house and the game's
+-- other windows are closed and no fight is on (TopFarm:Busy).
+--
 -- Smooth play: nothing happens until SETTLE seconds after the scan, never
 -- in a fight, and the board is valued again a few mobs a frame
 -- (RankUp:Build with the old order kept until the new one is done).
@@ -181,8 +184,67 @@ function TopFarm.Moves(old, new, now)
 end
 
 --- The new order is laid out: show what moved.
+--- The new order is laid out. What moved is kept until the auction house
+--- and the game's other windows are closed (the owner, 2026-10-14: the
+--- sound played behind the auction house), then shown, sound and all.
+--- A second scan before then folds into the first: the board shows the
+--- move from the order before the first to the order after the last.
 function TopFarm:Compare(old, new)
     if not self.On() then return end
+    if not self.heldOld then self.heldOld = old end
+    self.heldNew = new
+    self:TryShow()
+end
+
+--- The game windows that would cover the pop-up, one at a time: the
+--- auction house, then any of the game's own panels (bags and the like
+--- are not panels, so they never hold it).
+local PANELS = { "left", "center", "right", "doublewide", "fullscreen" }
+
+function TopFarm:Busy()
+    if self.atAuction or InCombat() then return true end
+
+    for _, name in ipairs({ "AuctionHouseFrame", "AuctionFrame" }) do
+        local frame = rawget(_G, name)
+        if type(frame) == "table" then
+            local ok, shown = pcall(frame.IsShown, frame)
+            if ok and shown then return true end
+        end
+    end
+
+    local getPanel = rawget(_G, "GetUIPanel")
+    if type(getPanel) == "function" then
+        for _, key in ipairs(PANELS) do
+            local ok, panel = pcall(getPanel, key)
+            if ok and panel then return true end
+        end
+    end
+    return false
+end
+
+--- Show what is held now if nothing covers it; else look again every
+--- WAIT_TICK seconds, and at once when the auction house closes or a
+--- fight ends. Only while something is held.
+TopFarm.WAIT_TICK = 1
+
+function TopFarm:TryShow()
+    if not self.heldNew then return self:StopWaiting() end
+    if not self.On() then
+        self.heldOld, self.heldNew = nil, nil
+        return self:StopWaiting()
+    end
+
+    if self:Busy() then
+        if not self.ticker and C_Timer and C_Timer.NewTicker then
+            self.ticker = C_Timer.NewTicker(self.WAIT_TICK, function() TopFarm:TryShow() end)
+        end
+        return
+    end
+    self:StopWaiting()
+
+    local old, new = self.heldOld, self.heldNew
+    self.heldOld, self.heldNew = nil, nil
+
     local move = TopFarm.Moves(old, new, time())
     if not move then return end
 
@@ -193,6 +255,18 @@ function TopFarm:Compare(old, new)
         local ok, err = pcall(ns.RankUpUI.Show, ns.RankUpUI, move)
         if not ok then ns.Debug("top farm pop-up:", tostring(err)) end
     end
+end
+
+function TopFarm:StopWaiting()
+    if self.ticker then
+        pcall(self.ticker.Cancel, self.ticker)
+        self.ticker = nil
+    end
+end
+
+--- True while a pop-up waits for the windows to close.
+function TopFarm:Holding()
+    return self.heldNew ~= nil
 end
 
 --- The pop-up as a scan would show it, from the board as it stands: the
@@ -236,12 +310,18 @@ function TopFarm:OnEnable()
     -- At PLAYER_LOGIN, so Tradeskills has loaded whichever comes first.
     self:Watch()
 
+    ns.RegisterEvent(self, "AUCTION_HOUSE_SHOW", function()
+        TopFarm.atAuction = true
+    end)
     ns.RegisterEvent(self, "AUCTION_HOUSE_CLOSED", function()
+        TopFarm.atAuction = false
         if not TopFarm:Watch() then TopFarm:ScanFinished() end
+        TopFarm:TryShow()
     end)
 
     ns.RegisterEvent(self, "PLAYER_REGEN_ENABLED", function()
         if TopFarm.waiting then TopFarm:Look() end
+        TopFarm:TryShow()
     end)
 end
 
@@ -251,7 +331,11 @@ end
 
 function TopFarm:SetOn(on)
     if ns.db then ns.db.topFarmAlert = on and true or false end
-    if not on then self.waiting = false end
+    if not on then
+        self.waiting = false
+        self.heldOld, self.heldNew = nil, nil
+        self:StopWaiting()
+    end
 end
 
 ns.RegisterCommand("topfarm", L["your top 15 again after an auction scan, with a new top farm called out (on/off, test)"], function(rest)
