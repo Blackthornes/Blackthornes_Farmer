@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.32.2
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Sparkles on the node you face:** NPCs keep their own name over their
+  head while sparkles are on. Turning them on had made the game swap the
+  name for a white, cut-short one on the interact plate; that plate is now
+  only used for objects.
+
 ## 0.32.1
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
