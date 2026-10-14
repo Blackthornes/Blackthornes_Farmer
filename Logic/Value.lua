@@ -361,7 +361,8 @@ end
 
 --- Copper per kill from your own tally, or nil below MIN_KILLS.
 -- Returns value, details: { basis = "tally", kills, copper, priced = {...},
--- unpriced = {...} } where each priced entry is { name, perKill, unit, from }.
+-- unpriced = {...} } where each priced entry is { name, perKill, unit, from,
+-- chance } (chance in percent of kills).
 function Value:FromTally(mobName)
     local Tracker = ns.Tracker
     local mob = Tracker and Tracker:Store()[mobName]
@@ -393,8 +394,8 @@ function Value:FromTally(mobName)
         elseif unit then
             local perKill = (tonumber(corpses) or 0) / kills * perCorpse * unit
             total = total + perKill
-            details.priced[#details.priced + 1] =
-                { name = name, perKill = perKill, unit = unit, from = from }
+            details.priced[#details.priced + 1] = { name = name, perKill = perKill, unit = unit,
+                from = from, chance = (tonumber(corpses) or 0) / kills * 100 }
         else
             details.unpriced[#details.unpriced + 1] = name
         end
@@ -427,8 +428,8 @@ function Value:FromDatabase(mobName)
             if unit then
                 local perKill = source.chance / 100 * unit
                 total = total + perKill
-                details.priced[#details.priced + 1] =
-                    { name = item.name, perKill = perKill, unit = unit, from = from }
+                details.priced[#details.priced + 1] = { name = item.name, perKill = perKill,
+                    unit = unit, from = from, chance = source.chance, id = item.id }
             else
                 details.unpriced[#details.unpriced + 1] = item.name
             end
