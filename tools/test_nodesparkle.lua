@@ -303,6 +303,36 @@ suite.check("plates the player turned on themselves are left alone", nameText.al
 ns.db.nodeSparkleCVars = keep
 plate.UnitFrame = nil
 
+-- The interact plate is only for objects: on an NPC the game moves its
+-- name onto the plate, white and cut short, so the setting goes back to the
+-- player's own while a creature is picked, and on again for an object.
+ns.NodeSparkle:SetEnabled(true)
+suite.check("an object keeps the interact plate on", Face("Copper Vein", VEIN) and cvars.SoftTargetNameplateInteract == "1")
+Face("Kaja", NPC)
+suite.check("an NPC gets the player's own setting back", cvars.SoftTargetNameplateInteract == "0")
+suite.check("and the player's value is still kept", ns.db.nodeSparkleCVars.SoftTargetNameplateInteract == "0")
+Face(nil, nil)
+suite.check("facing nothing turns it on again for the next node", cvars.SoftTargetNameplateInteract == "1")
+Face("Kaja", NPC)
+fighting = true
+Face("Copper Vein", VEIN)
+suite.check("never changed in a fight", cvars.SoftTargetNameplateInteract == "0")
+fighting = false
+Face("Copper Vein", VEIN)
+suite.check("back on for an object after the fight", cvars.SoftTargetNameplateInteract == "1")
+Face("Kaja", NPC)
+ns.NodeSparkle:SetEnabled(false)
+suite.check("turning sparkles off leaves the player's own", cvars.SoftTargetNameplateInteract == "0")
+Face("Copper Vein", VEIN)
+suite.check("and nothing raises it while off", cvars.SoftTargetNameplateInteract == "0")
+ns.NodeSparkle:SetEnabled(true)
+keep = ns.db.nodeSparkleCVars
+ns.db.nodeSparkleCVars = {}
+cvars.SoftTargetNameplateInteract = "1"
+Face("Kaja", NPC)
+suite.check("a plate the player turned on is left alone", cvars.SoftTargetNameplateInteract == "1")
+ns.db.nodeSparkleCVars = keep
+
 -- Fishing: a cast lands past the usual reach, so the reach goes up while
 -- the Fishing channel runs, and comes back when it ends.
 NodeSparkle:SetEnabled(true)

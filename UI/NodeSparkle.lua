@@ -39,7 +39,10 @@
 --
 -- The nameplates themselves are Farmer's doing too: with them on, the game
 -- puts a name, a health bar and a level over every NPC and object the
--- interact key picks. While Farmer is the one that turned them on, the
+-- interact key picks. On an NPC the game then takes the name off its head
+-- for a white, cut-short one on the plate, so while the interact key picks
+-- a creature that setting goes back to the player's own
+-- (NodeSparkle:FitPlateToTarget). While Farmer is the one that turned them on, the
 -- plate's pieces other than the icon are see-through the same way (a
 -- creature you could attack, or any with friendly nameplates on, keeps its
 -- plate). The beacon is anchored to the plate, not parented, so it shows.
@@ -893,11 +896,33 @@ function NodeSparkle:Refresh()
     return "shown"
 end
 
+--- The interact nameplate is only wanted for objects. On a creature the
+--- game moves its name off its head onto that plate, where it is drawn
+--- white and cut short, so while the interact key picks a creature the
+--- setting goes back to what the player had (an object or nothing puts it
+--- on again). Only when Farmer turned it on, never in a fight, and the
+--- player's own value stays kept for when sparkles go off.
+-- @return the value the setting should have now, or nil when left alone
+function NodeSparkle:FitPlateToTarget()
+    local db = ns.db
+    if not db or not self:IsEnabled() or InCombat() then return nil end
+    local saved = db.nodeSparkleCVars
+    local own = type(saved) == "table" and saved.SoftTargetNameplateInteract or nil
+    if own == nil then return nil end
+    local guid, _, object = self:Facing()
+    local want = (guid and not object) and own or "1"
+    if self.GetCVar("SoftTargetNameplateInteract") ~= want then
+        self.SetCVar("SoftTargetNameplateInteract", want)
+    end
+    return want
+end
+
 -- The game sets up a plate after the events that tell us about it, and may
 -- light its pieces again then: look once more a moment later.
 NodeSparkle.VEIL_AGAIN = 0.1
 
 function NodeSparkle:SafeRefresh()
+    pcall(self.FitPlateToTarget, self)
     pcall(self.VeilIcon, self)
     if not self.veilAgain then
         self.veilAgain = true
