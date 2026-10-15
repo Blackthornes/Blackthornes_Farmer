@@ -537,7 +537,6 @@ function SettingsUI:WindowStyleControl(row)
         if ReloadUI then ReloadUI() end
     end, { width = 60, height = 20 })
     ns.SettingsPages.ReloadUnder(row, stepper, reload)
-    Explain(reload, L["Reload"], L["Reload the interface so the new window style shows (/reload)."])
     reload:Hide()
     stepper.reload = reload
 
@@ -593,7 +592,7 @@ function SettingsUI:BuildTallyPage()
     controls.dodgeGroup:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local reportRow = pages:Row("tally", 1, L["Kills in Chat:"],
-        L["Adds a line to your chat for each kill. Only you see it."])
+        L["Adds a line to your chat for each kill."])
 
     controls.report = Widgets.CreateCheckbox(reportRow, L["On"], function(checked)
         ns.db.trackerReport = checked

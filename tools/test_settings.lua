@@ -157,7 +157,7 @@ GameTooltip._lines = {}
 reportRow:GetScript("OnEnter")(reportRow)
 suite.check("a row lights under the mouse", reportRow.hover:IsShown())
 suite.check("and says what it does in a tooltip", GameTooltip._lines[1] ~= nil
-    and GameTooltip._lines[1]:find("Only you see it", 1, true) ~= nil, GameTooltip._lines[1])
+    and GameTooltip._lines[1]:find("for each kill", 1, true) ~= nil, GameTooltip._lines[1])
 local before = SettingsUI.frame:GetHeight()
 pages.describe:GetScript("OnClick")(pages.describe)
 suite.check("Show descriptions is saved", ns.db.settingsDescriptions == true)
