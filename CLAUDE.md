@@ -725,7 +725,12 @@ tally. A mob you cannot attack, players, pets and critters get nothing until
 killed; a hidden mob gets nothing. Inside a dungeon the name falls back to
 the guid's mob ID (`Harvest.KnownNpcName`, else "Creature #ID"), as the
 harvest keys it. "Kill count" under Tooltips on the Map & goals page
-(`killTooltip`, on unless unticked, never rename it) and `/farm killcount`.
+(`killTooltip`, never rename it) and `/farm killcount`. Off unless ticked
+since 2026-10-15 (the owner: players found Farmer growing too many big
+features): a save that had it on from the old default is turned off once
+(`killTooltipOffOnce` in `LoadSavedVariables`, never rename it), and a
+What's New card (`ns.WHATS_NEW_TIPS`, key `killTooltip`) offers it back
+once with a Turn it on button.
 Under it, "Best drops" (the owner asked 2026-10-14): the three drops that
 add most to a kill, chance times price, straight from `Value:ForMob`'s
 sorted `priced` list (each entry carries `chance`), kept with the worth in
@@ -898,8 +903,9 @@ release. `Logic/XP.lua` works it out; `UI/XPBar.lua` draws it.
 - The game's XP bar is never hidden: "Game's XP bar" makes it see-through
   through `ns.Veil` (`UI/Veil.lua`, Equipment's file; a fix to it belongs
   in both) and puts it back; a fight makes it wait.
-- Settings, Kill tally page, XP BAR: "XP bar" (`xpBar`), "Level-up cheer"
-  (`xpBarCheer`) with Try it, "Chime every tenth" (`xpBarChime`), all on
+- Settings, Kill tally page, XP BAR: "XP bar" (`xpBar`, off unless ticked
+  since 2026-10-15; the cheer waits for it too), "Level-up cheer"
+  (`xpBarCheer`) with Try it, "Chime every tenth" (`xpBarChime`), on
   unless unticked; "Game's XP bar" (`xpBarHideGame`, off unless ticked);
   "Put it back". Place and size: `xpBarPoint`, `xpBarRelPoint`, `xpBarX`,
   `xpBarY`, `xpBarScale`. All account wide; never rename them. `/farm

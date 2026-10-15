@@ -1589,3 +1589,9 @@ L["clams, sacks and lockboxes open after you loot."] = "Muscheln, Säcke und Kas
 L["nothing opens by itself."] = "nichts geht mehr von selbst auf."
 L["the Open button shows on the Kills & Loot panel while you carry a clam, sack or lockbox."] = "der Öffnen-Knopf erscheint auf der Leiste Kills & Beute, solange du eine Muschel, einen Sack oder eine Kassette dabeihast."
 L["the Open button is hidden."] = "der Öffnen-Knopf ist ausgeblendet."
+
+-- What's New card for the kill count on mob tooltips (2026-10-15).
+L["Kill count on mob tooltips"] = "Anzahl getötet im Tooltip von Gegnern"
+L["Farmer can show how many of a mob you've killed on its tooltip, with what a kill is worth and its best drops. It's off until you turn it on."] = "Farmer kann im Tooltip eines Gegners zeigen, wie viele du davon getötet hast, was ein Kill wert ist und seine beste Beute. Es ist aus, bis du es einschaltest."
+L["You can also find it in Farmer's Settings on the Map & goals page, or type /farm killcount."] = "Du findest es auch in Farmers Einstellungen auf der Seite Karte & Ziele, oder tippe /farm killcount."
+L["Turn it on"] = "Einschalten"

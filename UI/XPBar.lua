@@ -23,7 +23,8 @@
 -- "Game's XP bar" in Settings only makes it see-through (ns.Veil, SetAlpha
 -- and the mouse calls, which run no game code), and puts it back.
 --
--- Saved, account wide, never renamed: `xpBar`, `xpBarCheer`, `xpBarChime`
+-- Saved, account wide, never renamed: `xpBar` (off unless ticked, since
+-- 2026-10-15; the cheer waits for it too), `xpBarCheer`, `xpBarChime`
 -- (on unless unticked), `xpBarHideGame` (off unless ticked), `xpBarScale`
 -- and the bar's place (`xpBarPoint`, `xpBarRelPoint`, `xpBarX`, `xpBarY`).
 
@@ -92,7 +93,7 @@ end
 -- Settings
 --------------------------------------------------------------------------------
 
-function XPBarUI.On() return not (ns.db and ns.db.xpBar == false) end
+function XPBarUI.On() return ns.db ~= nil and ns.db.xpBar == true end
 function XPBarUI.CheerOn() return not (ns.db and ns.db.xpBarCheer == false) end
 function XPBarUI.ChimeOn() return not (ns.db and ns.db.xpBarChime == false) end
 function XPBarUI.HidesGame() return ns.db ~= nil and ns.db.xpBarHideGame == true end
@@ -650,7 +651,7 @@ end
 function XPBarUI:Changed(kind, amount, extra)
     if kind == "level" then
         self:Refresh()
-        if XPBarUI.CheerOn() then self:Cheer(extra) end
+        if XPBarUI.On() and XPBarUI.CheerOn() then self:Cheer(extra) end
         return
     end
     self:Refresh()
