@@ -149,17 +149,9 @@ function LootTableUI:Table(mobName)
 
             local unit = Value and Value:WorthOf(item.name, id)
             if unit then row.perKill = item.corpses / loot.kills * item.perCorpse * unit end
-        else
-            -- Until then, the guild's rate for it, if it has one. Only the
-            -- rate: the kills and what dropped stay the player's own.
-            local GuildShare = ns.GuildShare
-            local chance = GuildShare and GuildShare:RateFor(loot.mob, item.name)
-            if chance then
-                row.chance = chance
-                row.rate = Tracker.FormatChance(chance)
-                out.guildRates = true
-            end
         end
+        -- Until then no rate shows, not even the guild's or the shipped
+        -- data's: finding them is the player's own (the owner, 2026-10-15).
 
         out.rows[#out.rows + 1] = row
     end
