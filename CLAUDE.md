@@ -649,7 +649,7 @@ clam itself. An opening is caught by the bag click (`UseContainerItem`),
 else by the loot window's `Item-` source guid matched to a bag slot
 (`Containers:FromSource`, `C_Item.GetItemGUID`), since none had been
 recorded in game. Tested in `tools/test_containerworth.lua` and
-`tools/test_containers.lua`. Not yet seen in game.
+`tools/test_containers.lua`.
 
 ## Kills on the mob tooltip
 
