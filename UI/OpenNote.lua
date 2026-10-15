@@ -25,8 +25,9 @@ local OpenNote = ns.NewModule("OpenNote")
 OpenNote.HOLD = 3
 OpenNote.FADE = 0.35
 
--- Where it sits: down from the top of the screen.
-OpenNote.TOP = -150
+-- Where it sits: down from the top of the screen, under the bags full
+-- notice (UI/BagsFull.lua, at -150), so the two never cover each other.
+OpenNote.TOP = -210
 
 local ICON = 22
 local PAD = 8

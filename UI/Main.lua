@@ -873,8 +873,9 @@ function UI:UpdateRow(row, data, index)
         row.heading:Show()
 
         -- "23/40" once it has a goal, so the list shows where you are.
-        -- The world drops result is no item to gather toward.
-        if data.item.worldDrops then return end
+        -- The world drops result is no item to gather toward, and a find
+        -- the data does not know (Search:FoundItems) is no goal's item.
+        if data.item.worldDrops or data.item.found then return end
 
         local goal = ns.Goals and ns.Goals:Find(data.item.name)
         if goal and not goal.done then

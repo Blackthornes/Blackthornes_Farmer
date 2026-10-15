@@ -443,6 +443,9 @@ local DEFAULTS = {
     -- A note on screen each time a clam or sack is opened and counted
     -- (UI/OpenNote.lua, the owner asked 2026-10-15). Never rename it.
     openNote = true,
+    -- A notice on screen when the bags fill up (UI/BagsFull.lua, the owner
+    -- asked 2026-10-15). Never rename it.
+    bagsFullNotice = true,
 
     -- The goal arrow (UI/Arrow.lua): off until turned on, or until the
     -- first new goal turns it on (Arrow:TurnOnForGoal) while the player has

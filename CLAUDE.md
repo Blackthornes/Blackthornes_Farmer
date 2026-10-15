@@ -294,6 +294,24 @@ second click within `CLEAR_ARMED` seconds; `/farm tracker clear`) empties
 the view only: every tally stays, so it is allowed on the Settings page.
 Tested in `tools/test_panelkeep.lua`. Not yet seen in game.
 
+## Search finds your own loot
+
+A player searched "crates" and saw only what the data ships (2026-10-15):
+the search read only the database (shipped data, folded in from the owner's
+play at each release, and the guild's rows), so anything a player looted,
+gathered or fished that the data does not know never showed.
+`Search:FoundItems` now adds every item in the player's own harvest,
+gathering and fishing records that `DB:GetItem` does not know as a result of
+its own ("Your finds", the spots it came from, a rate once
+`FOUND_SAMPLE` (20) are behind it, provenance "forever"). Nothing is added
+to the database, so Rankings, the tooltips and the Grind tab are unchanged;
+nothing is saved; guild data never reaches it. Built only when a search
+runs and the records moved, at most every `FOUND_GAP` seconds. Found items
+have no Goal button (`Goals:Set` knows only database items). A plural
+query also matches names by its singular (`Search.Singular`: "crates" finds
+Crate), names only, never zones or mobs. Tested in
+`tools/test_searchfinds.lua`.
+
 ## Drops only
 
 A player asked (2026-10-11, the owner agreed) for Farmer to leave skinning
@@ -632,6 +650,21 @@ that name in Butler, or change `Trash.ButlerHasIt` here. Bags read only
 while open and nearly full, `Trash.BUDGET` slots a frame. "Trash can when
 full" on the Loot page (`trashCan`, on unless unticked, never rename it)
 and `/farm trash`. Tested in `tools/test_trash.lua`. Not yet seen in game.
+
+## Bags full notice
+
+The owner asked (2026-10-15) for a notice on screen when the bags are
+full. `UI/BagsFull.lua` shows "Your bags are full." near the top of the
+screen once each time the bags that take anything (`Trash.Space`) go from
+room to none, then fades; it comes back only after a slot frees. The bags
+as they are at login are only noted; a fill in a fight waits for
+`PLAYER_REGEN_ENABLED` (nothing if a slot freed); a fill at a vendor, the
+bank, a mailbox, the auction house or a trade shows nothing. Its own frame
+on UIParent, no mouse, no sound, independent of Butler. "Bags full
+notice" on the Loot page (`bagsFullNotice`, on unless unticked, never
+rename it) with Try it, and `/farm bagsfull [on|off|test]`. Tested in
+`tools/test_bagsfull.lua` (also listed in `tools/testenv.lua`'s
+`UI_FILES`). Not yet seen in game.
 
 ## Clams and sacks worth what's inside
 

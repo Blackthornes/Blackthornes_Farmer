@@ -863,6 +863,13 @@ function SettingsUI:BuildLootPage()
         ns.OpenNote:SetEnabled(checked)
     end, true)
     controls.openNote:SetPoint("TOPLEFT", CONTROL_X, -2)
+    local bagsFullRow = pages:Row("loot", 2, L["Bags full notice"],
+        L["A short notice on screen when your bags fill up. It shows once each time they fill, not on every loot, and waits until a fight is over. Same as /farm bagsfull."])
+    controls.bagsFull = Widgets.CreateCheckbox(bagsFullRow, L["Show it"], function(checked)
+        ns.BagsFull:SetEnabled(checked)
+    end, true)
+    controls.bagsFull:SetPoint("TOPLEFT", CONTROL_X, -2)
+    controls.bagsFullTry = CommandButton(bagsFullRow, L["Try it"], "bagsfull test", 60, CONTROL_X + 70)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1250,6 +1257,7 @@ function SettingsUI:Refresh()
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.openNote:SetChecked(db.openNote ~= false)
+    controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
     controls.grindPins:SetChecked(db.grindPins ~= false)
