@@ -4,6 +4,7 @@
 --   7/20 [Plainstrider]           (red, until drop rates unlock at 20)
 --   134 [Plainstrider]            (your kills from 20 on)
 --   134  1s 20c [Plainstrider]    (with "Worth on nameplates" ticked)
+--   134 (crown) [Plainstrider]    (from 100 kills, the kills panel's mark)
 --
 -- A player asked, the owner said build it (2026-10-15). The numbers are
 -- the tooltip's own (KillTooltip.Kills, KillTooltip:Worth), so the two
@@ -72,6 +73,9 @@ function KillPlates:TextFor(name)
             text = text .. "  " .. entry.text
         end
     end
+    -- The crown you earned on this mob, next to its name.
+    local crown = Tooltip.Crown(kills)
+    if crown then text = text .. " " .. crown end
     return text
 end
 

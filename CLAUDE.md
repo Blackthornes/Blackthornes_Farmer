@@ -873,6 +873,10 @@ on nameplates" (`killPlates`, on unless unticked) and "Worth on
 nameplates" (`killPlatesWorth`, off unless ticked) on the Map & goals
 page, account wide, never rename either; `/farm plates [on|off|worth
 on|off]`. Tested in `tools/test_killplates.lua`.
+The crown the kills panel puts after a mob's name (`TrackerUI.MarkFor`,
+through `KillTooltip.Crown`) follows the count on its plate and on the
+tooltip's kill line too (the owner asked 2026-10-15); no setting of its
+own, and like the other kill marks it is never announced.
 
 ## The XP bar
 
