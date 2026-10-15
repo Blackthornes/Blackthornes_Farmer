@@ -114,7 +114,7 @@ function RankingsUI:Build(frame)
         if not GameTooltip then return end
         GameTooltip:SetOwner(box, "ANCHOR_BOTTOMLEFT")
         GameTooltip:SetText(L["Outside dungeons only"])
-        GameTooltip:AddLine(L["Leaves out mobs you found only in dungeons and raids. Same as /farm rankings outside."],
+        GameTooltip:AddLine(L["Skips mobs you only found in dungeons and raids. Same as /farm rankings outside."],
             1, 1, 1, true)
         GameTooltip:Show()
     end)

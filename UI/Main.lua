@@ -344,7 +344,7 @@ function UI:BuildBody()
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine(L["Group each item's spots by zone"], 1, 1, 1)
-        GameTooltip:AddLine(L["Zones are ordered by their best spot, using whichever column you sorted by."],
+        GameTooltip:AddLine(L["Zones go in order of their best spot, by the column you sorted on."],
             Theme.Unpack("muted"))
         GameTooltip:Show()
     end)
