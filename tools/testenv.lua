@@ -391,6 +391,7 @@ local UI_FILES = {
     "UI/NamePrompt.lua",
     "UI/HiddenWindow.lua",
     "UI/Trash.lua",
+    "UI/OpenNote.lua",
     "UI/BagsFull.lua",
     "UI/Veil.lua",
     "UI/XPBar.lua",

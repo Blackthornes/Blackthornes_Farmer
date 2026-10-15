@@ -256,7 +256,7 @@ end
 local covered = {
     settings = true, minimap = true, tracker = true, report = true, celebrate = true,
     raresound = true, voice = true, effects = true, markers = true, tooltip = true, killcount = true, sparkle = true, questcount = true, plates = true,
-    arrow = true, grind = true, trash = true, bagsfull = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
+    arrow = true, grind = true, trash = true, opennote = true, bagsfull = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
 local missing = {}
