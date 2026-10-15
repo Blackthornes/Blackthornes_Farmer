@@ -23,6 +23,24 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.35.0
+
+- Thanks Manthieus, seancool_com and their communities for the ideas and feedback! Catch their streams at twitch.tv/Manthieus and twitch.tv/seancool_com.
+- An Open button on the kills panel opens your clams, sacks and lockboxes. Turn on Open after loot in Settings to open them as you go.
+- Clams and sacks count for what's inside them, and a small note shows each one you open.
+- A notice shows when your bags are full.
+- Search finds items you looted, gathered or fished yourself, and plurals like "crates" work.
+- Mobs show your kill count beside their nameplate.
+- Material tooltips say when crafting pays more than selling.
+- Tooltips and Settings descriptions are shorter and easier to read.
+
+Fixes and changes:
+
+- The XP bar is off until you turn it on in Settings.
+- Various fixes to Farmer.
+
+Thanks Manthieus, seancool_com and their communities for the ideas and feedback! Catch their streams at twitch.tv/Manthieus and twitch.tv/seancool_com.
+
 ## 0.34.0
 
 - After an auction house scan, your top 15 farms pop up and show how they moved. A new best farm gets its own sound.

@@ -4,6 +4,32 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.35.0
+
+For WoW: Forever (interface 16001). Files were added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Open button:** a button on the Kills & Loot panel opens clams, sacks and
+  lockboxes. It leaves shut anything a goal, quest or craft needs, and
+  lockboxes that are still locked. "Open after loot" (off until ticked) opens
+  the next one after each loot. `/farm openbutton`.
+- **Clams and sacks:** after 10 openings, what comes out counts toward the
+  mob that drops them, in Rankings, the tooltip, the loot table and gold an
+  hour. A small note shows each opening. `/farm opennote`.
+- **Bags full notice:** "Your bags are full." shows on screen when the last
+  free slot goes. `/farm bagsfull`.
+- **Search:** finds items you looted, gathered or fished yourself, with the
+  places they came from, and a plural finds its item. Skinning items stay
+  searchable with Hide skinning on.
+- **Nameplate kill count:** your kill count shows to the left of a mob's
+  nameplate. "Kill count on nameplates" and "Worth on nameplates" (off until
+  ticked) on the Map & goals page. `/farm plates`.
+- **Craft or sell:** with Tradeskills, material tooltips say when crafting
+  pays more than selling.
+- **Tooltips and Settings:** descriptions are shorter and easier to read.
+- **XP bar:** off until you tick it in Settings.
+- **Bug fixes:** various fixes to Farmer.
+
 ## 0.34.0
 
 For WoW: Forever (interface 16001). Files were added and the TOC changed, so
