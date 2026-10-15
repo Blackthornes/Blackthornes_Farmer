@@ -494,7 +494,7 @@ function SettingsUI:BuildWindowsPage()
     -- the windows matched the rest of their screen. Read at login, so it
     -- waits for /reload as Text size does. See UI/BlizzardLook.lua.
     local styleRow = pages:Row("windows", 2, L["Window style"],
-        L["Titanforged is the house look, with a gold rim and glowing edges. Blizzard uses the game's own frames, red buttons, tabs and tick boxes. Takes effect after /reload."])
+        L["Titanforged has a gold rim and glowing edges. Blizzard looks like the game's own windows. Type /reload to see the change."])
     controls.windowStyle = SettingsUI:WindowStyleControl(styleRow)
 
     pages:Section("windows", 2, L["OPEN"])
