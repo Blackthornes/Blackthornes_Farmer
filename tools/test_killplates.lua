@@ -67,12 +67,12 @@ Kills("Plainstrider", 7)
 suite.check("it counts up", Plain(Mob("nameplate1", "Plainstrider")) == "7/20")
 suite.check("it shows over the plate", Plain(KillPlates:Shown(plates.nameplate1)) == "7/20")
 
-Kills("Plainstrider", 134)
-suite.check("from 20 it's the whole count", Plain(Mob("nameplate1", "Plainstrider")) == "134")
+Kills("Plainstrider", 64)
+suite.check("from 20 it's the whole count", Plain(Mob("nameplate1", "Plainstrider")) == "64")
 
 ns.db.killPlatesWorth = true
 local withWorth = Plain(Mob("nameplate1", "Plainstrider")) or ""
-suite.check("with the worth ticked, the worth follows", withWorth:find("^134  ") ~= nil and #withWorth > 5, withWorth)
+suite.check("with the worth ticked, the worth follows", withWorth:find("^64  ") ~= nil and #withWorth > 5, withWorth)
 local before = reads
 Mob("nameplate2", "Plainstrider")
 suite.check("a second plate uses the kept worth", reads == before, reads - before)
@@ -93,14 +93,32 @@ ns.DB:Unhide("source", "Kodo")
 suite.check("and comes back when shown again", Plain(KillPlates:Shown(plates.nameplate3)) == "40")
 
 -- A kill: only plates of that mob are read again.
-Kills("Plainstrider", 135)
+Kills("Plainstrider", 65)
 local updated = {}
 local realUpdate = KillPlates.Update
 KillPlates.Update = function(self, unit) updated[#updated + 1] = unit; return realUpdate(self, unit) end
 KillPlates:Killed("Plainstrider")
 KillPlates.Update = realUpdate
 suite.check("a kill reads only that mob's plates", #updated == 2, #updated)
-suite.check("and they show the new count", Plain(KillPlates:Shown(plates.nameplate2)) == "135")
+suite.check("and they show the new count", Plain(KillPlates:Shown(plates.nameplate2)) == "65")
+
+-- The crown Farmer gave you on a mob shows beside its name too.
+Kills("Plainstrider", 99)
+suite.check("no crown before the 100th kill", Plain(Mob("nameplate1", "Plainstrider")) == "99")
+Kills("Plainstrider", 100)
+KillPlates:Killed("Plainstrider")
+local crowned = KillPlates:Shown(plates.nameplate1) or ""
+suite.check("the 100th kill puts the crown on its plate",
+    crowned:find(ns.TrackerUI.CROWN, 1, true) ~= nil, crowned)
+suite.check("after the count, next to the name", crowned:sub(-#ns.TrackerUI.CROWN) == ns.TrackerUI.CROWN, crowned)
+Kills("Plainstrider", 250)
+local laurel = Mob("nameplate1", "Plainstrider") or ""
+suite.check("the laurel comes with it from 250", laurel:find("Laurel", 1, true) ~= nil, laurel)
+Kills("Plainstrider", 1000)
+local bane = Mob("nameplate1", "Plainstrider") or ""
+suite.check("the legendary crown at 1000", bane:find(ns.TrackerUI.LEGENDARY_CROWN, 1, true) ~= nil, bane)
+Kills("Plainstrider", 65)
+Mob("nameplate1", "Plainstrider")
 
 KillPlates:Removed("nameplate2")
 suite.check("a plate going away takes its count", KillPlates:Shown(plates.nameplate2) == nil)

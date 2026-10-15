@@ -256,4 +256,20 @@ ns.SettingsUI.controls.killTooltip:GetScript("OnClick")(ns.SettingsUI.controls.k
 suite.check("and ticking it back on", ns.db.killTooltip == true)
 ns.SettingsUI:Hide()
 
+-- The crown Farmer gave you on a mob shows on its kill line.
+ns.db.tracker.mobs["Crowned Boar"] = { kills = 99, items = {} }
+KillTooltip.ForgetKept()
+local _, plainLine = Hover({ name = "Crowned Boar" })
+suite.check("no crown before the 100th kill", (plainLine or ""):find("UI-Group-LeaderIcon", 1, true) == nil, plainLine)
+ns.db.tracker.mobs["Crowned Boar"].kills = 100
+KillTooltip.ForgetKept()
+local _, crownLine = Hover({ name = "Crowned Boar" })
+suite.check("from the 100th the kill line wears the crown",
+    (crownLine or ""):find(ns.TrackerUI.CROWN, 1, true) ~= nil, crownLine)
+ns.db.tracker.mobs["Crowned Boar"].kills = 500
+KillTooltip.ForgetKept()
+local _, laurelLine = Hover({ name = "Crowned Boar" })
+suite.check("and its laurel from 250", (laurelLine or ""):find("Laurel", 1, true) ~= nil, laurelLine)
+ns.db.tracker.mobs["Crowned Boar"] = nil
+
 suite.done()

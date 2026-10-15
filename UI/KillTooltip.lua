@@ -80,6 +80,17 @@ function KillTooltip.MarkLine(kills)
     return nil
 end
 
+--- The crown (and laurel) Farmer gave you for this many kills of a mob,
+--- the same mark the kills panel puts after its name, or nil below the
+--- 100th. Shown on the tooltip's kill line and beside its nameplate.
+function KillTooltip.Crown(kills)
+    local TrackerUI = ns.TrackerUI
+    if not (TrackerUI and TrackerUI.MarkFor) then return nil end
+    local ok, mark = pcall(TrackerUI.MarkFor, kills)
+    if ok and type(mark) == "string" then return mark end
+    return nil
+end
+
 --- A unit that is alive, as far as the client will say. A dead one, or one
 --- it will not say, is not.
 function KillTooltip.Alive(unit)
@@ -360,6 +371,9 @@ function KillTooltip:Decorate(tooltip, data)
 
     local r, g, b
     if red then r, g, b = Color("loss", RED) else r, g, b = Color("text", WHITE) end
+
+    local crown = KillTooltip.Crown(KillTooltip.Kills(name))
+    if crown then text = text .. " " .. crown end
 
     self.writing = true
     pcall(addLine, tooltip, text, r, g, b)
