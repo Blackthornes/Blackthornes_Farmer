@@ -8,7 +8,8 @@ they belong to this addon and can ship on CurseForge with it. The owner picked
 these two on 2026-09-26: rare-drop (a green-or-better item drops) and
 drop-rates-unlocked (a mob's 20th kill); rank-up (2026-10-13) when a mob climbs
 your top 15; xp-tick (2026-10-13) for each tenth of a level on the XP bar;
-top-farm (2026-10-14) when an auction scan puts a new mob first on your board.
+top-farm (2026-10-14) when an auction scan puts a new mob first on your board;
+cute, laurel, slayer, beast and fear (2026-10-15) for kill milestones.
 Run it again only to change them (name files to write only those:
 python tools/make_sounds.py top-farm.ogg);
 the game needs a full restart to pick up a changed file.
@@ -45,6 +46,38 @@ def brass(freq, sec, attack=0.04, release=0.35):
     a = np.clip(x / attack, 0, 1)
     r = np.clip((sec - x) / release, 0, 1)
     return out * a * r
+
+
+def sweep(f0, f1, sec, decay=0.12):
+    """A sine sliding from f0 to f1: a soft little boop."""
+    x = t(sec)
+    freq = f0 + (f1 - f0) * (x / sec)
+    phase = 2 * np.pi * np.cumsum(freq) / SR
+    return np.sin(phase) * np.exp(-x / decay) * np.clip(x / 0.004, 0, 1)
+
+
+def drum(freq, sec, decay=0.35):
+    """A deep drum: a thump whose pitch falls as it rings, and a slap."""
+    x = t(sec)
+    pitch = freq * (1 + 1.6 * np.exp(-x * 28))
+    body = np.sin(2 * np.pi * np.cumsum(pitch) / SR) * np.exp(-x / decay)
+    rng = np.random.default_rng(int(freq))
+    slap = rng.standard_normal(len(x)) * np.exp(-x * 45)
+    slap = np.convolve(slap, np.ones(24) / 24, mode="same")
+    return body + 0.6 * slap
+
+
+def drone(freq, sec, attack=0.3, release=0.8):
+    """A low, dark hum, two voices a little apart so it wavers."""
+    x = t(sec)
+    out = np.zeros_like(x)
+    for detune in (1.0, 1.012):
+        for h in range(1, 7):
+            out += np.sin(2 * np.pi * freq * detune * h * x) / h ** 1.6
+    shiver = 0.75 + 0.25 * np.sin(2 * np.pi * 5.5 * x)
+    a = np.clip(x / attack, 0, 1)
+    r = np.clip((sec - x) / release, 0, 1)
+    return out * shiver * a * r
 
 
 def place(buf, clip, at):
@@ -130,3 +163,41 @@ for f in (659.25, 783.99, 987.77, 1318.5):
     place(buf, 0.22 * brass(f, 1.1, 0.03, 0.7), 0.3)
 place(buf, 0.45 * bell(3136.0, 1.0, 0.3), 0.34)
 finish(reverb(buf, 0.3), "top-farm.ogg", -6)
+
+# Milestones (2026-10-15). Cute: two soft boops, up then up again, for a
+# moment of baby talk.
+buf = np.zeros(int(SR * 0.9))
+place(buf, sweep(880, 1320, 0.22), 0.0)
+place(buf, 0.9 * sweep(1100, 1760, 0.26), 0.17)
+place(buf, 0.35 * bell(2637.0, 0.6, 0.2, soft), 0.36)
+finish(reverb(buf, 0.25), "cute.ogg", -8)
+
+# Laurel: a gentle silver chime, three high bells falling into place.
+buf = np.zeros(int(SR * 1.8))
+for i, f in enumerate((2349.3, 1975.5, 2637.0)):
+    place(buf, (0.7 + 0.1 * i) * bell(f, 1.4, 0.45, soft), i * 0.12)
+place(buf, 0.2 * brass(1174.7, 1.0, 0.1, 0.8), 0.24)
+finish(reverb(buf, 0.45), "laurel.ogg", -7)
+
+# Slayer: a heavy war drum, two beats and a big one, and a horn on top.
+buf = np.zeros(int(SR * 3.0))
+place(buf, 0.7 * drum(62, 0.9), 0.0)
+place(buf, 0.7 * drum(62, 0.9), 0.32)
+place(buf, drum(55, 1.6, 0.6), 0.64)
+for f in (196.0, 293.66, 392.0):
+    place(buf, 0.18 * brass(f, 1.6, 0.06, 1.0), 0.66)
+finish(reverb(buf, 0.35), "slayer.ogg", -3)
+
+# Beast: a low, dark swell with a deep drum under it (played when the
+# game's own voice line will not).
+buf = np.zeros(int(SR * 2.2))
+place(buf, drone(55.0, 2.0, 0.4, 1.0), 0.0)
+place(buf, 0.6 * drum(45, 1.4, 0.7), 0.05)
+finish(reverb(buf, 0.3), "beast.ogg", -5)
+
+# Fear: a slow heartbeat, two pairs of thumps, under a quiet hum.
+buf = np.zeros(int(SR * 2.4))
+for at in (0.0, 0.22, 1.0, 1.22):
+    place(buf, (0.9 if at in (0.0, 1.0) else 0.65) * drum(48, 0.5, 0.15), at)
+place(buf, 0.25 * drone(73.4, 2.2, 0.5, 1.0), 0.0)
+finish(reverb(buf, 0.2), "fear.ogg", -7)

@@ -46,6 +46,20 @@ Tracker.CHAMPION_KILLS = CHAMPION_KILLS
 -- orange from then on (2026-10-13, kept quiet like the 100th).
 local BANE_KILLS = 1000
 Tracker.BANE_KILLS = BANE_KILLS
+-- On the way between them (2026-10-15, kept quiet the same way): a moment
+-- of baby talk at 200, a silver laurel round the crown at 250, Slayer at
+-- 500 with the laurel turning gold, a dark laugh at a beast's 666th, and
+-- at 750 the mob trembles when you hover it.
+local CUTE_KILLS = 200
+local LAUREL_KILLS = 250
+local SLAYER_KILLS = 500
+local BEAST_KILLS = 666
+local FEAR_KILLS = 750
+Tracker.CUTE_KILLS = CUTE_KILLS
+Tracker.LAUREL_KILLS = LAUREL_KILLS
+Tracker.SLAYER_KILLS = SLAYER_KILLS
+Tracker.BEAST_KILLS = BEAST_KILLS
+Tracker.FEAR_KILLS = FEAR_KILLS
 
 -- This session only: kills per mob, and every corpse opened, by guid, with the
 -- items already counted from it.
@@ -258,6 +272,8 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
         self:Champion(mobName)
     elseif newKill and mob.kills == BANE_KILLS then
         self:Bane(mobName)
+    elseif newKill and Tracker.IsMilestone(mob.kills, mobName) then
+        self:Milestone(mobName, mob.kills)
     end
 
     -- A kill that moves the mob up your top 15 gets a pop-up, a second
@@ -942,6 +958,12 @@ Tracker.SOUNDS = {
     rankup = MEDIA .. "rank-up.ogg",
     -- An auction scan puts a new mob first (2026-10-14), Logic/TopFarm.lua.
     topfarm = MEDIA .. "top-farm.ogg",
+    -- Kill milestones between the 100th and the 1000th (2026-10-15).
+    cute = MEDIA .. "cute.ogg",
+    laurel = MEDIA .. "laurel.ogg",
+    slayer = MEDIA .. "slayer.ogg",
+    beast = MEDIA .. "beast.ogg",
+    fear = MEDIA .. "fear.ogg",
 }
 
 --- Play one of the addon's sound files. True if the client says it will.
@@ -1028,6 +1050,110 @@ function Tracker:Bane(mobName, preview)
         "bane")
 end
 
+--- A beast, by its type as seen in game or in the data. Nil until known.
+function Tracker.IsBeast(mobName)
+    local Grinding = ns.Grinding
+    if not (Grinding and Grinding.TypeOf) then return false end
+    local ok, kind = pcall(Grinding.TypeOf, mobName)
+    return ok and kind == "Beast"
+end
+
+--- The kills between the 100th and the 1000th that have a show of their
+--- own. The 666th only for a beast.
+function Tracker.IsMilestone(kills, mobName)
+    if kills == CUTE_KILLS or kills == LAUREL_KILLS or kills == SLAYER_KILLS
+        or kills == FEAR_KILLS then
+        return true
+    end
+    return kills == BEAST_KILLS and Tracker.IsBeast(mobName)
+end
+
+--- Any kill with a fanfare of its own, so nothing else plays a sound over it.
+function Tracker.HasFanfare(kills, mobName)
+    return kills == MIN_KILLS or kills == CHAMPION_KILLS or kills == BANE_KILLS
+        or Tracker.IsMilestone(kills, mobName)
+end
+
+--- "Kobolds" as baby talk: "Kobowds". English only; another language's
+--- client keeps the name.
+function Tracker.BabyTalk(text)
+    if type(text) ~= "string" then return "" end
+    if not (Util.EnglishClient and Util.EnglishClient()) then return text end
+    return (text:gsub("[rl]", "w"):gsub("[RL]", "W"))
+end
+
+--- The words, banner and sound for each milestone kill.
+local function MilestoneShow(kind, name, kills)
+    local colored = Util.Colored("accent", name)
+    local subject = L.Format("%s  |  %d kills", name, kills)
+    local key = "mob:" .. name
+
+    if kind == CUTE_KILLS then
+        local plural = ns.TrackerFX and ns.TrackerFX.Plural(name) or name
+        return L.Format("You squished %d %s! OwO", kills, Tracker.BabyTalk(plural)),
+            { title = L["UwU"], subject = L.Format("%s  |  %d kills", Tracker.BabyTalk(name), kills),
+                key = key, cute = true, own = true },
+            nil, "cute"
+    elseif kind == LAUREL_KILLS then
+        return L.Format("%d kills of %s. They know your name now.", kills, colored),
+            { title = L["SILVER LAUREL"], subject = subject, key = key, laurel = true, own = true },
+            nil, "laurel"
+    elseif kind == SLAYER_KILLS then
+        return L.Format("%d kills of %s! You're a slayer of its kind now.", kills, colored),
+            { title = L["SLAYER"], subject = subject, key = key, slayer = true, own = true,
+                mob = name, kills = kills },
+            nil, "slayer"
+    elseif kind == BEAST_KILLS then
+        return L.Format("%d kills of %s. Something dark is watching.", kills, colored),
+            { key = key, beast = true },
+            "beast", "beast"
+    elseif kind == FEAR_KILLS then
+        return L.Format("%d kills of %s. They tremble when they see you.", kills, colored),
+            { title = L["THEY FEAR YOU"], subject = subject, key = key, fear = true, own = true },
+            nil, "fear"
+    end
+end
+
+--- A milestone kill between the 100th and the 1000th: the line in your own
+--- chat, its banner and its sound. Follows /farm celebrate, like the 20th.
+function Tracker:Milestone(mobName, kills, preview)
+    if not preview and ns.db.trackerCelebrate == false then return end
+
+    local summary = self:Summary(mobName)
+    local name = summary and summary.mob or mobName
+    local line, banner, voice, sound = MilestoneShow(kills, name, kills)
+    if not line then return end
+
+    self:Fanfare(line, banner, voice, sound and Tracker.SOUNDS[sound])
+end
+
+-- The typed words that play each milestone's show to try it out, never
+-- named in help or Settings.
+local PREVIEWS = { uwu = CUTE_KILLS, laurel = LAUREL_KILLS, slayer = SLAYER_KILLS,
+    beast = BEAST_KILLS, fear = FEAR_KILLS }
+Tracker.PREVIEWS = PREVIEWS
+
+--- A milestone's show, played once with no kill: nothing counted, saved or
+--- changed. The panel's first mob wears that milestone's mark until the
+--- next /reload, from memory alone.
+function Tracker:MilestonePreview(word)
+    local kills = PREVIEWS[word]
+    if not kills then return false end
+
+    local UI = ns.TrackerUI
+    local first = self:SessionMobs()[1]
+    local mobName = first and first.mob or L["Training Dummy"]
+
+    if first and UI then
+        UI.markPreview = { mob = mobName, kills = kills }
+        if UI.frame and UI.frame:IsShown() then pcall(UI.Refresh, UI) end
+    end
+    if ns.TrackerFX then ns.TrackerFX.saidAt.beast = nil end
+
+    self:Milestone(mobName, kills, true)
+    return true
+end
+
 --- The 100th kill's show, played once with no kill, to try it out
 --- (2026-10-13, the owner's test): a typed word on /farm celebrate that no
 --- help or Settings names, as the reward itself is kept quiet. Nothing is
@@ -1064,7 +1190,7 @@ end
 --- gathering use it too, when a spot's catch rates unlock at 20 casts or a
 --- node's gather rates at 20 gathers. The caller checks /farm celebrate.
 --- It never sends chat: Forever blocks that from a loot event.
-function Tracker:Fanfare(line, banner, voice)
+function Tracker:Fanfare(line, banner, voice, sound)
     ns.PrintRaw(("|c%sBlackthornes Farmer:|r %s"):format(ns.COLORS.accent, line))
 
     if banner and ns.TrackerFX then
@@ -1076,6 +1202,8 @@ function Tracker:Fanfare(line, banner, voice)
     -- the sound.
     if voice and ns.TrackerFX and ns.TrackerFX:Say(voice) then return end
 
+    -- A milestone's own sound, else the fanfare's.
+    if sound and Tracker.PlayFile(sound) then return end
     if Tracker.PlayFile(Tracker.SOUNDS.unlock) then return end
 
     if type(PlaySound) == "function" then
@@ -1211,6 +1339,7 @@ ns.RegisterCommand("celebrate", L["sound and cheer at a mob's 20th kill, a fishi
 
         if argument == "champion" then return Tracker:ChampionPreview() end
         if argument == "bane" then return Tracker:BanePreview() end
+        if Tracker:MilestonePreview(argument) then return end
 
         if argument == "on" then
             ns.db.trackerCelebrate = true
