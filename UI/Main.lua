@@ -544,7 +544,8 @@ local function SourceTexts(source)
 
     return source.name or source.requires or ns.DB:KindLabel(source.kind),
         where and (ns.Spots.Show(source.zone) .. Util.Colored("dim", " / ") .. where) or ns.Spots.Show(source.zone),
-        (not source.chance and source.requires and source.name) and source.requires or nil
+        not source.chance and (source.dropText
+            or (source.requires and source.name and source.requires)) or nil
 end
 
 --- Widen the columns, and the window, to fit these rows; never narrower
@@ -965,6 +966,12 @@ function UI:UpdateRow(row, data, index)
         row.drop:SetText(source.dropText or ns.Tracker.FormatChance(source.chance))
         row.drop:SetTextColor(DropColor(source.chance))
         row.drop:Show()
+    elseif source.dropText then
+        -- One of your own finds with too few behind it for a rate yet:
+        -- how many it came from ("7 in 12").
+        row.drop:SetTextColor(Theme.Unpack("muted"))
+        row.drop:SetText(source.dropText)
+        row.drop:Show()
     elseif source.requires and source.name then
         -- Nothing to say about a drop rate, but the skill gate matters.
         row.drop:SetTextColor(Theme.Unpack("dim"))
@@ -1020,6 +1027,8 @@ function UI:OnRowClick(data, button)
 
     if source.chance then
         parts[#parts + 1] = ns.Search:ChanceText(source.chance)
+    elseif source.dropText then
+        parts[#parts + 1] = source.dropText
     end
 
     ns.Print(("%s: %s"):format(

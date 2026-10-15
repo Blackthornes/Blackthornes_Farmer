@@ -180,11 +180,14 @@ function Search:Run(query)
         end
     end
 
-    for item in ns.DB:Iterate() do Consider(item) end
+    -- An item the data knows also lists the spots you found it that the
+    -- data does not have yet (Search:FoundItems' `extra`).
+    local foundItems = self:FoundItems()
+    for item in ns.DB:Iterate() do Consider(self:WithYourSpots(item)) end
 
     -- What you looted, gathered or fished that the data has never heard of
     -- (Search:FoundItems): found the same way.
-    for _, item in ipairs(self:FoundItems()) do Consider(item) end
+    for _, item in ipairs(foundItems) do Consider(item) end
 
     table.sort(results, function(a, b)
         if a.score ~= b.score then return a.score > b.score end
@@ -209,8 +212,11 @@ end
 -- Forever added, a drop off a new mob) was in their records but no search
 -- found it. So every item in the player's own harvest, gathering and
 -- fishing records that the database does not know becomes a result of its
--- own, with the spots it came from. Built only when a search runs and the
--- records moved, at most every FOUND_GAP seconds; nothing is saved and
+-- own, with the spots it came from. An item the data does know keeps its
+-- rows and gains the spots you found it that the data does not list (a
+-- player looted clams off a mob the data never named for them). Built only
+-- when a search runs and the records moved, at most every FOUND_GAP
+-- seconds; nothing is saved and
 -- nothing is added to the database, so Rankings, the tooltips and the Grind
 -- tab never see it. Guild data never reaches it.
 --------------------------------------------------------------------------------
@@ -245,6 +251,14 @@ local function Rate(part, whole)
     return math.min(100, part / whole * 100)
 end
 
+-- Under FOUND_SAMPLE there is no rate yet, so the drop column says how
+-- many it came from instead ("7 in 12"), as the World drops rows do.
+local function Count(part, whole)
+    part, whole = tonumber(part), tonumber(whole)
+    if not (part and whole and part > 0 and whole > 0) or whole >= Search.FOUND_SAMPLE then return nil end
+    return L.Format("%1$d in %2$d", part, whole)
+end
+
 local function Coords(coords)
     if type(coords) ~= "table" then return nil end
     local x, y = tonumber(coords[1]), tonumber(coords[2])
@@ -264,15 +278,44 @@ function Search:FoundItems()
     if built and built.key == key then return built.items end
 
     local items, byName = {}, {}
+    -- [the data's name] = { known item, spots the data already has, extra spots }
+    local extra, knownOf = {}, {}
     local DB = ns.DB
     local Harvest = ns.Harvest
+
+    local function SpotKey(kind, name, zone)
+        return ("%s|%s|%s"):format(kind or "", (name or ""):lower(), (zone or ""):lower())
+    end
+
+    local function AddKnown(known, source)
+        local entry = extra[known.name]
+        if not entry then
+            entry = { item = known, has = {}, sources = {} }
+            for _, have in ipairs(type(known.sources) == "table" and known.sources or {}) do
+                if type(have) == "table" then
+                    entry.has[SpotKey(have.kind, have.name, have.zone)] = true
+                end
+            end
+            extra[known.name] = entry
+        end
+        local key = SpotKey(source.kind, source.name, source.zone)
+        if entry.has[key] then return end
+        entry.has[key] = true
+        source.provenance = "forever"
+        entry.sources[#entry.sources + 1] = source
+    end
 
     local function Add(name, id, source)
         if type(name) ~= "string" or name == "" or type(source.zone) ~= "string" then return end
         local item = byName[name]
         if item == nil then
             local known = DB:GetItem(name)
-            if known or (Harvest and Harvest.NameLooksLikeMoney and Harvest:NameLooksLikeMoney(name)) then
+            if known then
+                byName[name] = false
+                knownOf[name] = known
+                return AddKnown(known, source)
+            end
+            if Harvest and Harvest.NameLooksLikeMoney and Harvest:NameLooksLikeMoney(name) then
                 byName[name] = false
                 return
             end
@@ -281,6 +324,8 @@ function Search:FoundItems()
             byName[name] = item
             items[#items + 1] = item
         elseif item == false then
+            local known = knownOf[name]
+            if known then AddKnown(known, source) end
             return
         end
         item.id = item.id or tonumber(id)
@@ -298,7 +343,8 @@ function Search:FoundItems()
                     Add(name, entry.id, { kind = "mob", name = Text(mob), zone = Text(record.zone),
                         location = Text(record.location), coords = Coords(record.coords),
                         minLevel = tonumber(record.minLevel), maxLevel = tonumber(record.maxLevel),
-                        chance = Rate(entry.corpses, record.corpses) })
+                        chance = Rate(entry.corpses, record.corpses),
+                        dropText = Count(entry.corpses, record.corpses) })
                 end
             end
         end
@@ -312,7 +358,8 @@ function Search:FoundItems()
                     Add(name, entry.id, { kind = GATHER_KIND[node.kind] or "container",
                         name = Text(node.node), zone = Text(node.zone),
                         location = Text(node.location), coords = Coords(node.coords),
-                        chance = Rate(entry.gathers, node.gathers) })
+                        chance = Rate(entry.gathers, node.gathers),
+                        dropText = Count(entry.gathers, node.gathers) })
                 end
             end
         end
@@ -326,15 +373,37 @@ function Search:FoundItems()
                 if type(entry) == "table" then
                     Add(name, entry.id, { kind = "fishing", name = Text(school), zone = Text(spot.zone),
                         location = Text(spot.location), coords = Coords(spot.coords),
-                        chance = Rate(entry.casts, spot.casts) })
+                        chance = Rate(entry.casts, spot.casts),
+                        dropText = Count(entry.casts, spot.casts) })
                 end
             end
         end
     end
 
     table.sort(items, function(a, b) return a.name < b.name end)
-    self.found = { key = key, at = GetTime and GetTime() or 0, items = items }
+    self.found = { key = key, at = GetTime and GetTime() or 0, items = items,
+        extra = extra, merged = {} }
     return items
+end
+
+--- `item` as the search shows it: the data's item, or, when you found it
+--- somewhere the data does not list, a copy with those spots added after
+--- the data's own. The database item itself is never changed. Reads what
+--- the last Search:FoundItems built.
+function Search:WithYourSpots(item)
+    local built = self.found
+    local entry = built and built.extra and built.extra[item.name]
+    if not (entry and entry.item == item and #entry.sources > 0) then return item end
+    local copy = built.merged[item.name]
+    if copy then return copy end
+    copy = {}
+    for k, v in pairs(item) do copy[k] = v end
+    local sources = {}
+    for _, source in ipairs(item.sources or {}) do sources[#sources + 1] = source end
+    for _, source in ipairs(entry.sources) do sources[#sources + 1] = source end
+    copy.sources = sources
+    built.merged[item.name] = copy
+    return copy
 end
 
 --- An item's sources (or only `sources`, some of them), lowest level first,
@@ -543,6 +612,8 @@ function Search:SourceLine(source)
 
     if source.chance then
         detail = ("%s, %s"):format(detail, self:ChanceText(source.chance))
+    elseif source.dropText then
+        detail = ("%s, %s"):format(detail, source.dropText)
     end
 
     local line = ("%s %s"):format(
