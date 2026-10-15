@@ -57,6 +57,9 @@ OpenButton.AUTO_DELAY = 1.0
 -- loot before the next one opens (using one while they still are gives the
 -- game's internal bag error).
 OpenButton.BAG_WAIT = 2
+-- How many times Open after loot looks again while the next one's slot is
+-- still locked from the last opening, AUTO_DELAY apart.
+OpenButton.RETRIES = 6
 -- Tries in a row that stay shut before Open after loot leaves an item alone.
 OpenButton.STRIKES = 3
 -- How long the test waits for a loot window.
@@ -279,7 +282,7 @@ function OpenButton:Scan(done)
         end
     end
 
-    local found, index = {}, 0
+    local found, index, locked = {}, 0, false
     local function Step()
         local stop = math.min(#places, index + OpenButton.BUDGET)
         for i = index + 1, stop do
@@ -287,6 +290,9 @@ function OpenButton:Scan(done)
             -- Only a slot with loot is looked at further.
             if entry and entry.loot and OpenButton.Openable(entry) then
                 found[#found + 1] = entry
+            elseif entry and entry.loot and entry.locked then
+                -- Locked for a moment, as the one just opened is.
+                locked = true
             end
         end
         index = stop
@@ -298,6 +304,7 @@ function OpenButton:Scan(done)
         local total = 0
         for _, entry in ipairs(found) do total = total + entry.count end
         OpenButton.queue, OpenButton.total = found, total
+        OpenButton.lockedLoot = locked
         OpenButton.scanning = false
         if OpenButton.again then
             OpenButton.again = false
@@ -494,12 +501,14 @@ function OpenButton:Settle()
     end
 end
 
---- A loot window closed: note what the last try did, then open the next
---- once the bags have taken the loot (BAG_UPDATE_DELAYED), or `BAG_WAIT`
+--- A loot window closed: once the bags have taken the loot, note what the
+--- last try did and open the next (BAG_UPDATE_DELAYED), or `BAG_WAIT`
 --- later when nothing came.
 function OpenButton:LootClosed()
-    self:Settle()
-    if not (self:AutoOn() and self:TestResult() == "works") then return end
+    if not (self:AutoOn() and self:TestResult() == "works") then
+        self:Settle()
+        return
+    end
     local token = {}
     self.waitBags = token
     C_Timer.After(self.BAG_WAIT, function() OpenButton:BagsTook(token) end)
@@ -509,6 +518,10 @@ end
 function OpenButton:BagsTook(token)
     if not self.waitBags or (token and self.waitBags ~= token) then return end
     self.waitBags = nil
+    -- Judged once the bags show it: at LOOT_CLOSED the stack can still read
+    -- as before, which counted a clam that opened as one that stayed shut.
+    self:Settle()
+    self.retries = 0
     C_Timer.After(self.AUTO_DELAY, function() OpenButton:OpenNext() end)
 end
 
@@ -545,7 +558,16 @@ function OpenButton:OpenNext()
     self:Scan(function()
         if InCombat() or OpenButton.Busy() or OpenButton.lootOpen then return end
         local item = OpenButton:Next(true)
-        if not item then return end
+        if not item then
+            -- The next one's slot can still be locked from the last opening:
+            -- look again shortly rather than stop.
+            if OpenButton.lockedLoot and (OpenButton.retries or 0) < OpenButton.RETRIES then
+                OpenButton.retries = (OpenButton.retries or 0) + 1
+                C_Timer.After(OpenButton.AUTO_DELAY, function() OpenButton:OpenNext() end)
+            end
+            return
+        end
+        OpenButton.retries = 0
         local last = { bag = item.bag, slot = item.slot, itemID = item.itemID, count = item.count }
         OpenButton.last = last
         if not pcall(use, item.bag, item.slot) then

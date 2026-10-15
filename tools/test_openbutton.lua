@@ -248,6 +248,25 @@ Fire("LOOT_CLOSED")
 timers = {}
 _G.GetNumLootItems, _G.LootSlot, _G.GetCVarBool = nil, nil, nil
 
+-- The next clam's slot still locked from the last opening: it looks again.
+Open.tried = {}
+used = {}
+bag[1].locked = true
+bag[3] = nil
+Fire("LOOT_CLOSED")
+RunTimers()
+Fire("BAG_UPDATE_DELAYED")
+RunTimers()
+RunTimers()
+suite.check("a locked slot is not opened yet", #used == 0, tostring(used[1]))
+bag[1].locked = nil
+RunTimers()
+RunTimers()
+suite.check("and is opened once it unlocks", used[1] == "0:1", tostring(used[1]))
+bag[3] = { id = 5523, name = "Small Barnacled Clam", loot = true }
+timers = {}
+Open.last = nil
+
 -- A click on the button lets Open after loot try it again.
 button._scripts.PreClick(button)
 button._scripts.PostClick(button)
