@@ -421,6 +421,7 @@ L["mobs ranked by what a kill is worth, or only those outside dungeons"] = "Gegn
 L["%d of %d spots"] = "%d von %d Fundorten"
 L["spot"] = "Fundort"
 L["spots"] = "Fundorte"
+L["Your finds"] = "Deine Funde"
 L["%s, needs %s"] = "%s, benötigt %s"
 L["... and %d more. Narrow the search to see them."] = "... und %d weitere. Grenze die Suche ein, um sie zu sehen."
 L["and %d more items. Narrow the search to see them."] = "und %d weitere Gegenstände. Grenze die Suche ein, um sie zu sehen."
