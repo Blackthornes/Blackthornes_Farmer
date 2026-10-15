@@ -4,7 +4,7 @@
 -- update anything on screen").
 --
 -- Before Value.MIN_OPENS it says how far along the count is ("Small
--- Barnacled Clam: 3 of 20 opened"); from then on, what one opening is worth
+-- Barnacled Clam: 3 of 10 opened"); from then on, what one opening is worth
 -- on average (Value:Contents). Nothing about guild data or anyone else:
 -- only the player's own openings (Containers).
 --
@@ -43,7 +43,7 @@ end
 
 --- The note's words for `name` after its `opens`th opening.
 function OpenNote.Text(name, opens)
-    local need = ns.Value.MIN_OPENS or 20
+    local need = ns.Value.MIN_OPENS or 10
     if opens < need then
         return L.Format("%s: %d of %d opened", name, opens, need)
     end

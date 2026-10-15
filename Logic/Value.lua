@@ -361,8 +361,9 @@ end
 
 -- A clam, a sack or a lockbox you opened from your bags is worth what came
 -- out of it, once you've opened enough to say (Containers keeps them by
--- name). The same as a mob's rates: 20, or it says nothing.
-Value.MIN_OPENS = 20
+-- name). 10 openings, or it says nothing (the owner picked 10 over 20,
+-- 2026-10-15, so it shows sooner).
+Value.MIN_OPENS = 10
 
 --- What one opening of `name` gives, in copper, or nil under MIN_OPENS or
 --- with nothing in it priced. Returns worth, details { opens, priced =

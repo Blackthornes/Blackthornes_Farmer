@@ -1,6 +1,6 @@
 -- The note on screen when a clam or sack from the bags is opened.
 --
--- What matters: it says how many are opened out of 20 until then, and what
+-- What matters: it says how many are opened out of 10 until then, and what
 -- one is worth after; it shows when Containers counts an opening; it goes
 -- after a few seconds; unticked, it never shows.
 
@@ -20,8 +20,8 @@ _G.C_Item = { GetItemInfo = function(id)
 end }
 
 suite.check("on unless unticked", OpenNote:Enabled())
-suite.check("under 20 it counts up",
-    OpenNote.Text(CLAM.name, 3) == "Small Barnacled Clam: 3 of 20 opened", OpenNote.Text(CLAM.name, 3))
+suite.check("under 10 it counts up",
+    OpenNote.Text(CLAM.name, 3) == "Small Barnacled Clam: 3 of 10 opened", OpenNote.Text(CLAM.name, 3))
 
 -- Opened from the bags, as the loot window sees it.
 local function OpenOne()
@@ -34,22 +34,22 @@ end
 OpenOne()
 local frame = OpenNote.frame
 suite.check("an opening shows the note", frame ~= nil and frame:IsShown())
-suite.check("with the count", frame.label:GetText() == "Small Barnacled Clam: 1 of 20 opened",
+suite.check("with the count", frame.label:GetText() == "Small Barnacled Clam: 1 of 10 opened",
     frame and frame.label:GetText())
 
 OpenNote:Tick(OpenNote.HOLD + OpenNote.FADE * 2 + 0.1)
 suite.check("it goes after a few seconds", not frame:IsShown())
 
-for _ = 2, 20 do OpenOne() end
+for _ = 2, 10 do OpenOne() end
 local text = frame.label:GetText()
-suite.check("at 20 it says what one is worth", text:find("20 opened, about", 1, true) ~= nil, text)
+suite.check("at 10 it says what one is worth", text:find("10 opened, about", 1, true) ~= nil, text)
 suite.check("in coins", text:find("25c", 1, true) ~= nil, text)
 
 OpenNote:Hide()
 OpenNote:SetEnabled(false)
 OpenOne()
 suite.check("unticked, nothing shows", not frame:IsShown())
-suite.check("but the opening still counts", Containers:Store()[CLAM.name].opens == 21)
+suite.check("but the opening still counts", Containers:Store()[CLAM.name].opens == 11)
 OpenNote:SetEnabled(true)
 
 ns.HandleSlash("opennote")

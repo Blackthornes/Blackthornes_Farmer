@@ -690,7 +690,7 @@ The owner asked (2026-10-15) for what comes out of a clam, sack or lockbox
 a mob drops to count toward the mob. `Logic/Containers.lua` keeps each
 opening by the item's name (`containers.opened`, account wide, never rename
 it); not by mob, since clams stack and give the same whoever dropped them.
-`Value:Contents(name)` is one opening's average worth once `MIN_OPENS` (20)
+`Value:Contents(name)` is one opening's average worth once `MIN_OPENS` (10; 20 until the owner picked 10, 2026-10-15)
 are behind it (hidden items left out), and `Value:WorthOf(name, id)` takes
 it over `UnitPrice` when it pays more, so `FromTally`, `FromDatabase`
 (Rankings, the tooltip, rank-up) and the loot table's per kill follow; the
@@ -706,7 +706,7 @@ recorded in game. Tested in `tools/test_containerworth.lua` and
 `tools/test_containers.lua`.
 
 Each counted opening shows a small note near the top of the screen
-(`UI/OpenNote.lua`, the owner asked 2026-10-15): "3 of 20 opened", then
+(`UI/OpenNote.lua`, the owner asked 2026-10-15): "3 of 10 opened", then
 what one is worth; "Clams and sacks" on the Loot page (`openNote`, on
 unless unticked, never rename it) and `/farm opennote`. Tested in
 `tools/test_opennote.lua`.

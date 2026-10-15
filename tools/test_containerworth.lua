@@ -56,14 +56,14 @@ end
 -- Too few opened: the clam's own price
 --------------------------------------------------------------------------------
 
-Open(19)
-suite.check("19 opened says nothing about what's inside", Value:Contents(CLAM.name) == nil)
+Open(9)
+suite.check("9 opened says nothing about what's inside", Value:Contents(CLAM.name) == nil)
 local unit, from = Value:WorthOf(CLAM.name, CLAM.id)
-suite.check("19 opened: the clam's own price", unit == 1 and from == "vendor", tostring(unit) .. " " .. tostring(from))
+suite.check("9 opened: the clam's own price", unit == 1 and from == "vendor", tostring(unit) .. " " .. tostring(from))
 
 local lines = ns.LootTableUI:ContentsLines(CLAM.name)
 suite.check("tooltip says how many opened so far",
-    lines[2] and lines[2][1]:find("19 of 20", 1, true) ~= nil, lines[2] and lines[2][1])
+    lines[2] and lines[2][1]:find("9 of 10", 1, true) ~= nil, lines[2] and lines[2][1])
 suite.check("nothing for an item never opened", #ns.LootTableUI:ContentsLines(MEAT.name) == 0)
 
 local before = Value:FromTally("Saltspittle Oracle")
@@ -74,28 +74,28 @@ local before = Value:FromTally("Saltspittle Oracle")
 
 Open(1)
 local worth, details = Value:Contents(CLAM.name)
--- 20 opens: 25 meat (10c) and 2 pearls (900c) = 250 + 1800 = 2050 / 20.
-suite.check("20 opened: the average opening", worth and math.abs(worth - 102.5) < 0.01, tostring(worth))
+-- 10 opens: 12 meat (10c) and 1 pearl (900c) = 120 + 900 = 1020 / 10.
+suite.check("10 opened: the average opening", worth and math.abs(worth - 102) < 0.01, tostring(worth))
 suite.check("pearl listed first, at 1 in 10", details and details.priced[1].name == PEARL.name
     and math.abs(details.priced[1].chance - 10) < 0.01)
-suite.check("meat counts how many came out", details and math.abs(details.priced[2].each - 1.25) < 0.01)
+suite.check("meat counts how many came out", details and math.abs(details.priced[2].each - 1.2) < 0.01)
 
 unit, from = Value:WorthOf(CLAM.name, CLAM.id)
-suite.check("the clam is worth its contents", from == "contents" and math.abs(unit - 102.5) < 0.01)
+suite.check("the clam is worth its contents", from == "contents" and math.abs(unit - 102) < 0.01)
 
 local after, tally = Value:FromTally("Saltspittle Oracle")
 suite.check("the mob's worth a kill rises with it",
-    before and after and math.abs(after - 102.5 / 2) < 0.01 and after > before,
+    before and after and math.abs(after - 102 / 2) < 0.01 and after > before,
     tostring(before) .. " -> " .. tostring(after))
 suite.check("the drop says where its price came from", tally.priced[1].from == "contents")
 
 local table_ = ns.LootTableUI:Table("Saltspittle Oracle")
 suite.check("the loot table's per kill counts the contents",
-    table_ and math.abs(table_.rows[1].perKill - 102.5 / 2) < 0.01)
+    table_ and math.abs(table_.rows[1].perKill - 102 / 2) < 0.01)
 
 lines = ns.LootTableUI:ContentsLines(CLAM.name)
 suite.check("tooltip heads with what it opens to",
-    lines[2] and lines[2][1]:find("Opens to (20 opened)", 1, true) ~= nil, lines[2] and lines[2][1])
+    lines[2] and lines[2][1]:find("Opens to (10 opened)", 1, true) ~= nil, lines[2] and lines[2][1])
 suite.check("tooltip lists the pearl", lines[3] and lines[3][1]:find(PEARL.name, 1, true) ~= nil)
 suite.check("tooltip says how many each time", lines[4] and lines[4][1]:find("1.2 each", 1, true) ~= nil,
     lines[4] and lines[4][1])
@@ -106,7 +106,7 @@ suite.check("tooltip says how many each time", lines[4] and lines[4][1]:find("1.
 
 ns.DB:Hide("item", PEARL.name)
 worth = Value:Contents(CLAM.name)
-suite.check("a hidden item is left out", worth and math.abs(worth - 12.5) < 0.01, tostring(worth))
+suite.check("a hidden item is left out", worth and math.abs(worth - 12) < 0.01, tostring(worth))
 ns.DB:Unhide("item", PEARL.name)
 
 VENDOR[5524] = 5000
@@ -122,7 +122,7 @@ local savedLoot, savedCopper = Tracker.sessionLoot, Tracker.sessionCopper
 Tracker.sessionLoot, Tracker.sessionCopper = { [CLAM.name] = 2 }, 0
 local sessionWorth = Value:Session()
 suite.check("the session counts a clam by what's inside",
-    sessionWorth and math.abs(sessionWorth - 205) < 0.01, tostring(sessionWorth))
+    sessionWorth and math.abs(sessionWorth - 204) < 0.01, tostring(sessionWorth))
 Tracker.sessionLoot, Tracker.sessionCopper = savedLoot, savedCopper
 
 _G.BlackthornesTS = nil
