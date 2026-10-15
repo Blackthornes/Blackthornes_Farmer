@@ -994,6 +994,21 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.questMobCount:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Your kills beside a mob's nameplate (2026-10-15).
+    local platesRow = pages:Row("map", 1, L["Kill count on nameplates"],
+        L["Shows how many of a mob you've killed to the left of its nameplate. It's red until 20, then shows your kills. Same as /farm plates."])
+    controls.killPlates = Widgets.CreateCheckbox(platesRow, L["Show it"], function(checked)
+        ns.KillPlates:SetEnabled(checked)
+    end, true)
+    controls.killPlates:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local platesWorthRow = pages:Row("map", 1, L["Worth on nameplates"],
+        L["Adds what one kill is worth after the count, once you have 20 kills. Same as /farm plates worth."])
+    controls.killPlatesWorth = Widgets.CreateCheckbox(platesWorthRow, L["Show it"], function(checked)
+        ns.KillPlates:SetWorthEnabled(checked)
+    end, true)
+    controls.killPlatesWorth:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- It needs an item's name, so the button says how to type it.
     local _, whereButton = CommandRow(pages, "map", 1, L["Places for an item"],
         L["The best places near you to farm an item. Type /farm where and its name, like /farm where copper ore. The button shows you how."], L["How to"], "where")
@@ -1251,6 +1266,8 @@ function SettingsUI:Refresh()
     controls.killTooltip:SetChecked(db.killTooltip ~= false)
     controls.killTooltipDrops:SetChecked(db.killTooltipDrops ~= false)
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
+    controls.killPlates:SetChecked(db.killPlates ~= false)
+    controls.killPlatesWorth:SetChecked(db.killPlatesWorth == true)
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
     controls.worldDrops:SetChecked(db.worldDrops ~= false)

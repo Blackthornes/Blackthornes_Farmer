@@ -265,6 +265,10 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     if newKill and ns.RankUp then
         ns.RankUp:Killed(mobName)
     end
+    -- Plates of the same mob show the new count (UI/KillPlates.lua).
+    if newKill and ns.KillPlates then
+        pcall(ns.KillPlates.Killed, ns.KillPlates, mobName)
+    end
 
     return newKill
 end
