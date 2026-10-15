@@ -396,7 +396,7 @@ function SettingsUI:BuildWindowsPage()
     controls.minimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local windowScaleRow = pages:Row("windows", 1, L["Search window size"],
-        L["Bigger for a high-resolution screen, smaller for a laptop. You can also drag the gold corner under its bottom right, and right-click it for the normal size."])
+        L["Make it bigger for a big screen or smaller for a laptop. You can also drag the gold corner at its bottom right. Right-click the corner for the normal size."])
 
     -- Any percent the window's grip can drag to, one dragged to shown as it is.
     controls.windowScale = Widgets.CreateStepper(windowScaleRow, {
@@ -417,7 +417,7 @@ function SettingsUI:BuildWindowsPage()
     -- Small, Normal and Large under it, the one in use lit green.
     local TrackerUI = ns.TrackerUI
     local trackerScaleRow = pages:Row("windows", 1, L["Kill tally size"],
-        L["Sizes the kills and loot panel on its own. You can also drag the gold corner beside its bottom right, and right-click it for Normal. Same as /farm tracker size."])
+        L["Sets the size of the kills and loot panel. You can also drag the gold corner by its bottom right. Right-click the corner for Normal. Same as /farm tracker size."])
 
     controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
         min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
@@ -451,7 +451,7 @@ function SettingsUI:BuildWindowsPage()
             button:SetPoint("TOPRIGHT", controls.trackerScale, "BOTTOMRIGHT", 0, -4)
         end
         Explain(button, L.Format("%s kill tally", size.text),
-            L.Format("Draws the kills and loot panel at %d%%, text and all. Same as /farm tracker size %s.",
+            L.Format("Makes the kills and loot panel %d%% of its normal size, text and all. Same as /farm tracker size %s.",
                 size.percent, size.key))
         button.percent = size.percent
         controls.trackerSizes[index] = button
@@ -487,7 +487,7 @@ function SettingsUI:BuildWindowsPage()
     -- Bigger letters in the same windows, as Tradeskills has. Every size
     -- is read as text is drawn, so it waits for /reload.
     local textRow = pages:Row("windows", 2, L["Text size"],
-        L["Large and Larger make all of Farmer's text a little bigger. Takes effect after /reload."])
+        L["Large and Larger make all of Farmer's text a bit bigger. Type /reload to see it."])
     controls.textSize = ns.SettingsPages.TextSizeControl(textRow, CONTROL_X, function() return ns.db end)
 
     -- Asked 2026-10-10: the game's own look for players who would rather
@@ -514,7 +514,7 @@ function SettingsUI:BuildWindowsPage()
 
     -- The owner, 2026-10-14: Rankings without the mobs found only in dungeons.
     local outsideRow = pages:Row("windows", 2, L["Outside dungeons only"],
-        L["Rankings leave out mobs you found only in dungeons and raids, and so do the rank-up pop-up and the top 15 after an auction scan. The same tick box is on the Rankings tab. Same as /farm rankings outside."])
+        L["Rankings skip mobs you only found in dungeons and raids. So do the rank-up pop-up and your top 15 after an auction scan. The Rankings tab has the same tick box. Same as /farm rankings outside."])
     controls.rankingsOutside = Widgets.CreateCheckbox(outsideRow, L["Leave them out"], function(checked)
         ns.Rankings:SetOutsideOnly(checked)
     end, false)
@@ -742,7 +742,7 @@ function SettingsUI:BuildLootPage()
     pages:Section("loot", 1, L["LOOT RECORDING"])
 
     local recordRow = pages:Row("loot", 1, L["Record what drops"],
-        L["Counts what every corpse held, so drop rates come from Forever itself. It all stays on this computer. Same as /farm harvest on and off."])
+        L["Counts what each corpse held, so drop rates come from your own play on Forever. It all stays on this computer. Same as /farm harvest on and off."])
 
     controls.record = Widgets.CreateCheckbox(recordRow, L["Recording"], function(checked)
         SettingsUI:SetRecording(checked)
@@ -788,7 +788,7 @@ function SettingsUI:BuildLootPage()
     controls.harvest = harvestButton
 
     local _, lootCheckButton = CommandRow(pages, "loot", 1, L["Loot check"],
-        L["Sets up a check for the next corpse you loot. It lists in chat what the game lets Farmer read there, which helps when a dungeon records nothing. It only reads. Same as /farm harvest check."],
+        L["Checks the next corpse you loot and lists in chat what the game lets Farmer read. It helps when a dungeon records nothing. It changes nothing. Same as /farm harvest check."],
         L["Ready"], "harvest check")
     controls.harvestCheck = lootCheckButton
 
@@ -796,7 +796,7 @@ function SettingsUI:BuildLootPage()
     pages:Section("loot", 1, L["PRICES"])
 
     local otherRow = pages:Row("loot", 1, L["TSM and Auctionator"],
-        L["When Blackthornes Tradeskills isn't loaded, Farmer prices drops with TradeSkillMaster's or Auctionator's auction prices, if either is loaded. Tradeskills always comes first when it is."])
+        L["Without Blackthornes Tradeskills, Farmer prices your drops with TradeSkillMaster or Auctionator, if you have one of them. Tradeskills always comes first when it's loaded."])
 
     controls.otherPriceAddons = Widgets.CreateCheckbox(otherRow, L["Use them"], function(checked)
         ns.Value:SetUsesOtherAddons(checked)
@@ -807,7 +807,7 @@ function SettingsUI:BuildLootPage()
     pages:Section("loot", 1, L["WORLD DROPS"])
 
     local worldRow = pages:Row("loot", 1, L["World drops"],
-        L["How often a kill drops green gear or better, by the mob's level, from the kills Farmer has recorded. It shows under the open mob in the kills panel, on a mob's tooltip, on Rankings and when you search for greens. Same as /farm worlddrops on or off."])
+        L["How often a kill drops green gear or better, by the mob's level. It counts the kills Farmer recorded. You'll see it under the open mob in the kills panel, on a mob's tooltip, on Rankings and when you search for greens. Same as /farm worlddrops on or off."])
     controls.worldDrops = Widgets.CreateCheckbox(worldRow, L["Show them"], function(checked)
         ns.WorldDrops:SetEnabled(checked)
     end, true)
@@ -851,7 +851,7 @@ function SettingsUI:BuildLootPage()
     controls.hidden = hiddenButton
 
     local trashRow = pages:Row("loot", 2, L["Trash can when full"],
-        L["When your bags are full, a small gold can sits on the item worth the least. It's never a goal's item, a quest item or gear you could wear. Click it to pick the item up, then drop it outside your bags, and the game asks before anything is destroyed. With Blackthornes Butler loaded, Butler's can shows instead. Same as /farm trash."])
+        L["When your bags are full, a small gold can shows on the item worth the least. It skips goal items, quest items and gear you could wear. Click it to pick the item up, then drop it outside your bags. The game asks before anything is destroyed. If Butler is loaded, Butler's can shows instead. Same as /farm trash."])
     controls.trashCan = Widgets.CreateCheckbox(trashRow, L["Show it"], function(checked)
         ns.Trash:SetEnabled(checked)
     end, true)
@@ -871,14 +871,14 @@ function SettingsUI:BuildLootPage()
     controls.bagsFull:SetPoint("TOPLEFT", CONTROL_X, -2)
     controls.bagsFullTry = CommandButton(bagsFullRow, L["Try it"], "bagsfull test", 60, CONTROL_X + 70)
     local openButtonRow = pages:Row("loot", 2, L["Open button"],
-        L["A small button on the Kills & Loot panel opens your clams, sacks and lockboxes, one a click. It leaves alone anything a goal, quest or craft needs, anything Butler keeps and locked lockboxes. Test it checks whether the game lets Farmer open them by itself. Same as /farm openbutton."])
+        L["A small button on the Kills & Loot panel opens your clams, sacks and lockboxes, one per click. It skips locked lockboxes and anything a goal, quest, craft or Butler needs. Test it checks if the game lets Farmer open them for you. Same as /farm openbutton."])
     controls.openButton = Widgets.CreateCheckbox(openButtonRow, L["Show it"], function(checked)
         ns.OpenButton:SetEnabled(checked)
     end, true)
     controls.openButton:SetPoint("TOPLEFT", CONTROL_X, -2)
     controls.openTest = CommandButton(openButtonRow, L["Test it"], "openbutton test", 60, CONTROL_X + 70)
     local autoOpenRow = pages:Row("loot", 2, L["Open after loot"],
-        L["Each time you close a loot window, the next clam, sack or lockbox opens by itself, never in a fight or at a vendor, bank or mailbox. Works once Test it says the game allows it. Same as /farm openbutton auto."])
+        L["Each time you close a loot window, the next clam, sack or lockbox opens by itself. Never in a fight or at a vendor, bank or mailbox. It only works once Test it says the game allows it. Same as /farm openbutton auto."])
     controls.autoOpen = Widgets.CreateCheckbox(autoOpenRow, L["Open them"], function(checked)
         ns.OpenButton:SetAuto(checked)
     end, false)
@@ -910,7 +910,7 @@ function SettingsUI:BuildMapPage()
 
     -- Sparkles on the node you face (the owner asked 2026-10-13).
     local sparkleRow = pages:Row("map", 1, L["Sparkles in the world"],
-        L["Gold sparkles on the herb, ore node, fishing school, chest, quest object or fishing bobber near you, one at a time, up to 15 yards away, with the game's own icon above it. To do this it turns on the game's interact target, icon and name, and puts them back when you untick it. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."])
+        L["Gold sparkles on the herb, ore, fishing school, chest, quest object or bobber in front of you, up to 15 yards away, one at a time. The game's own icon shows above it. To do this, Farmer turns on the game's interact target, icon and name, and sets them back when you untick it. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."])
 
     controls.nodeSparkle = Widgets.CreateCheckbox(sparkleRow, L["Show them"], function(checked)
         ns.NodeSparkle:SetEnabled(checked)
@@ -950,7 +950,7 @@ function SettingsUI:BuildMapPage()
     pages:Section("map", 1, L["GRINDING"])
 
     local grindRow = pages:Row("map", 1, L["Grinding camps"],
-        L["Where mobs of a level and type gather, on the window's Grind tab and the world map. Same as /farm grind and /farm grind pins."])
+        L["Shows where mobs of one level and type hang out, on the Grind tab and the world map. Same as /farm grind and /farm grind pins."])
 
     controls.grindPins = Widgets.CreateCheckbox(grindRow, L["On map"], function(checked)
         ns.GrindPins:SetOn(checked)
@@ -977,7 +977,7 @@ function SettingsUI:BuildMapPage()
     -- What crafting a material pays for your time, from Tradeskills
     -- (the owner said yes, 2026-10-15).
     local craftRow = pages:Row("map", 1, L["Craft or sell"],
-        L["With Blackthornes Tradeskills, a material you farm shows what an hour of farming it pays sold as it is, and as the craft of yours that pays most. Same as /farm tooltip craft."])
+        L["With Blackthornes Tradeskills, a material you farm shows what an hour of farming it pays two ways: sold as it is, and made into your best paying craft. Same as /farm tooltip craft."])
     controls.itemTooltipCraft = Widgets.CreateCheckbox(craftRow, L["Show it"], function(checked)
         ns.ItemTooltip:SetCraftEnabled(checked)
     end, true)
@@ -993,7 +993,7 @@ function SettingsUI:BuildMapPage()
 
     -- The three drops worth most a kill, under the count (2026-10-14).
     local dropsRow = pages:Row("map", 1, L["Best drops"],
-        L["Under the kill count, the three drops that add most to what a kill is worth, with how often each drops. Same as /farm killcount drops."])
+        L["Under the kill count, the three drops worth the most to a kill, and how often each one drops. Same as /farm killcount drops."])
     controls.killTooltipDrops = Widgets.CreateCheckbox(dropsRow, L["Show it"], function(checked)
         ns.KillTooltip:SetDropsEnabled(checked)
     end, true)
@@ -1094,7 +1094,7 @@ function SettingsUI:BuildSharingPage()
     controls.share:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local namesRow = pages:Row("sharing", 1, L["Its characters"],
-        L["Characters on your other account, first and last name, with commas between them. Name one of yours in Farmer on that account too. Sharing starts once each side names the other. Same as /farm share with."])
+        L["Type the characters on your other account, first and last name, with commas between them. On that account, name one of your characters here in Farmer too. Sharing starts once each side names the other. Same as /farm share with."])
     GrowRow(namesRow, 26)
     local names = Widgets.CreateSearchBox(namesRow, L["Ana Smith, Bob Jones"], nil, function(text)
         ns.Share:SetNames(text)
@@ -1106,7 +1106,7 @@ function SettingsUI:BuildSharingPage()
     controls.shareNames = names
 
     local _, syncButton = CommandRow(pages, "sharing", 1, L["Sync now"],
-        L["Asks your other account for anything new and sends what is new here. It also runs every ten minutes. Same as /farm share sync."], L["Sync"], "share sync")
+        L["Swaps anything new with your other account right now. It also does this every ten minutes. Same as /farm share sync."], L["Sync"], "share sync")
     controls.shareSync = syncButton
 
     pages:Section("sharing", 1, L["WITH ANOTHER PLAYER"])
@@ -1117,14 +1117,14 @@ function SettingsUI:BuildSharingPage()
     controls.shareGive = giveButton
 
     local _, takeButton = CommandRow(pages, "sharing", 1, L["Take someone's data"],
-        L["Paste what another player gave you to add their counts to yours. You see what it adds before anything changes, the same text twice adds nothing, and you can take it back out later. Same as /farm take."], L["Paste"], "take")
+        L["Paste what another player gave you to add their counts to yours. You'll see what it adds before anything changes. The same text twice adds nothing, and you can take it back out later. Same as /farm take."], L["Paste"], "take")
     controls.shareTake = takeButton
 
     -- Logic/GuildShare.lua: the same with guildmates who use Farmer.
     pages:Section("sharing", 2, L["YOUR GUILD"])
 
     local guildRow = pages:Row("sharing", 2, L["Share with your guild"],
-        L["Swaps the drops you've looted with guildmates who use Farmer and have this ticked. Their drop rates fill in the search and a mob's loot table until you've killed it enough for your own. Your kills, loot and rankings stay yours alone. Farmer keeps up to 20 guildmates, and /farm share guild forget confirm deletes what your guild gave. Same as /farm share guild on and off."])
+        L["Swaps the drops you've looted with guildmates who use Farmer and have this ticked. Their drop rates fill in the search and a mob's loot table until you've killed it enough to have your own. Your kills, loot and rankings stay yours. Farmer keeps up to 20 guildmates. /farm share guild forget confirm deletes what your guild gave. Same as /farm share guild on and off."])
     controls.shareGuild = Widgets.CreateCheckbox(guildRow, L["Sharing"], function(checked)
         ns.GuildShare:SetOn(checked)
         SettingsUI:Refresh()
@@ -1148,7 +1148,7 @@ function SettingsUI:BuildSharingPage()
     about:SetPoint("TOPLEFT", 0, -90)
     about:SetWidth(COLUMN_WIDTH)
     about:SetWordWrap(true)
-    about:SetText(L["WoW keeps each account's saved data apart, so Farmer sends it in whispers between two of your own characters. Both accounts end up with what both counted. Nothing is counted twice, and nothing goes to anyone else. The first sync of a big collection can take a while in the background. What comes in joins your own totals and can't be taken back out."])
+    about:SetText(L["WoW keeps each account's data apart, so Farmer sends it in whispers between two of your own characters. Both accounts end up with what both counted. Nothing is counted twice, and nothing goes to anyone else. If you have a lot, the first sync can take a while. It runs in the background. What comes in joins your own totals and can't be taken back out."])
     pages:Searchable("sharing", block, L["share sync other account second account kills drop rates gathering"])
 end
 

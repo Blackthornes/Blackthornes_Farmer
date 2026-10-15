@@ -169,13 +169,13 @@ L["Minimap button"] = "Minikarten-Button"
 L["Left-click it to search, right-click for this page. Drag it round the edge to move it. Same as /farm minimap."] = "Linksklick zum Suchen, Rechtsklick für diese Seite. Zieh ihn am Rand entlang, um ihn zu verschieben. Wie /farm minimap."
 L["Show it"] = "Anzeigen"
 L["Search window size"] = "Größe des Suchfensters"
-L["Bigger for a high-resolution screen, smaller for a laptop. You can also drag the gold corner under its bottom right, and right-click it for the normal size."] =
-    "Größer für einen hochauflösenden Bildschirm, kleiner für einen Laptop. Du kannst auch die goldene Ecke unten rechts ziehen und für die normale Größe darauf rechtsklicken."
+L["Make it bigger for a big screen or smaller for a laptop. You can also drag the gold corner at its bottom right. Right-click the corner for the normal size."] =
+    "Größer für einen großen Bildschirm, kleiner für einen Laptop. Du kannst auch die goldene Ecke unten rechts ziehen. Rechtsklick auf die Ecke bringt die normale Größe."
 L["Kill tally size"] = "Größe des Kill-Zählers"
-L["Sizes the kills and loot panel on its own. You can also drag the gold corner beside its bottom right, and right-click it for Normal. Same as /farm tracker size."] =
-    "Stellt die Größe des Kills-&-Beute-Fensters für sich allein ein. Du kannst auch die goldene Ecke neben unten rechts ziehen und für Normal darauf rechtsklicken. Wie /farm tracker size."
+L["Sets the size of the kills and loot panel. You can also drag the gold corner by its bottom right. Right-click the corner for Normal. Same as /farm tracker size."] =
+    "Stellt die Größe des Kills-&-Beute-Fensters ein. Du kannst auch die goldene Ecke unten rechts ziehen. Rechtsklick auf die Ecke bringt Normal. Wie /farm tracker size."
 L["%s kill tally"] = "Kill-Zähler: %s"
-L["Draws the kills and loot panel at %d%%, text and all. Same as /farm tracker size %s."] = "Zeigt das Kills-&-Beute-Fenster in %d%%, samt Text. Wie /farm tracker size %s."
+L["Makes the kills and loot panel %d%% of its normal size, text and all. Same as /farm tracker size %s."] = "Macht das Kills-&-Beute-Fenster %d%% so groß wie normal, samt Text. Wie /farm tracker size %s."
 L["Window positions"] = "Fensterpositionen"
 L["Moves every Farmer window back to where it started, if one ends up off screen."] = "Setzt jedes Farmer-Fenster an seinen Anfangsplatz zurück, falls eines außerhalb des Bildschirms landet."
 L["Put them back"] = "Zurücksetzen"
@@ -184,8 +184,8 @@ L["LOOK"] = "AUSSEHEN"
 L["Window effects"] = "Fenstereffekte"
 L["Full: windows fade up and glow, and loot floats off the kill panel. Subtle: shorter fades, and nothing floats. Off: no movement at all. Same as /farm effects."] = "Voll: Fenster blenden ein und leuchten, und Beute schwebt aus dem Kill-Fenster. Dezent: kürzere Übergänge, nichts schwebt. Aus: gar keine Bewegung. Wie /farm effects."
 L["Text size"] = "Textgröße"
-L["Large and Larger make all of Farmer's text a little bigger. Takes effect after /reload."] =
-    "Groß und Größer machen den ganzen Text von Farmer etwas größer. Wirkt nach /reload."
+L["Large and Larger make all of Farmer's text a bit bigger. Type /reload to see it."] =
+    "Groß und Größer machen den ganzen Text von Farmer etwas größer. Gib /reload ein, um es zu sehen."
 L["Window style"] = "Fensterstil"
 L["Titanforged has a gold rim and glowing edges. Blizzard looks like the game's own windows. Type /reload to see the change."] = "Titanforged hat einen goldenen Rand und leuchtende Kanten. Blizzard sieht aus wie die Fenster des Spiels. Tipp /reload, um die Änderung zu sehen."
 L["OPEN"] = "ÖFFNEN"
@@ -234,8 +234,8 @@ L["What a kill of the mob you last looted is worth, from Tradeskills' prices. Sa
 L["Work it out"] = "Berechnen"
 L["LOOT RECORDING"] = "BEUTE AUFZEICHNEN"
 L["Record what drops"] = "Drops aufzeichnen"
-L["Counts what every corpse held, so drop rates come from Forever itself. It all stays on this computer. Same as /farm harvest on and off."] =
-    "Zählt, was jede Leiche hatte, damit die Dropchancen von Forever selbst stammen. Alles bleibt auf diesem Computer. Wie /farm harvest on und off."
+L["Counts what each corpse held, so drop rates come from your own play on Forever. It all stays on this computer. Same as /farm harvest on and off."] =
+    "Zählt, was jede Leiche hatte, damit die Dropchancen aus deinem eigenen Spiel auf Forever kommen. Alles bleibt auf diesem Computer. Wie /farm harvest on und off."
 L["Recording"] = "Aufzeichnen"
 L["Export: everything you looted"] = "Export: alles, was du geplündert hast"
 L["Your recorded loot, as a data file. Same as /farm export."] = "Deine aufgezeichnete Beute als Datendatei. Wie /farm export."
@@ -244,8 +244,8 @@ L["What you recorded"] = "Was du aufgezeichnet hast"
 L["Lists in chat the items you have looted most, and from how many corpses. Same as /farm harvest."] = "Zeigt im Chat die Gegenstände, die du am häufigsten geplündert hast, und von wie vielen Leichen. Wie /farm harvest."
 L["List it"] = "Auflisten"
 L["Loot check"] = "Beute-Prüfung"
-L["Sets up a check for the next corpse you loot. It lists in chat what the game lets Farmer read there, which helps when a dungeon records nothing. It only reads. Same as /farm harvest check."] =
-    "Bereitet eine Prüfung für die nächste Leiche vor, die du plünderst. Sie zeigt im Chat, was das Spiel Farmer dort lesen lässt, was hilft, wenn in einem Dungeon nichts aufgezeichnet wird. Sie liest nur. Wie /farm harvest check."
+L["Checks the next corpse you loot and lists in chat what the game lets Farmer read. It helps when a dungeon records nothing. It changes nothing. Same as /farm harvest check."] =
+    "Prüft die nächste Leiche, die du lootest, und zeigt im Chat, was das Spiel Farmer lesen lässt. Das hilft, wenn in einem Dungeon nichts aufgezeichnet wird. Es ändert nichts. Wie /farm harvest check."
 L["Ready"] = "Vorbereiten"
 L["FISHING AND GATHERING"] = "ANGELN UND SAMMELN"
 L["Fishing"] = "Angeln"
@@ -275,7 +275,7 @@ L["Minimap"] = "Minikarte"
 L["The same markers around you. Hover one to see when you gathered it."] = "Dieselben Markierungen um dich herum. Fahr mit der Maus darüber, um zu sehen, wann du dort gesammelt hast."
 L["GRINDING"] = "GRINDEN"
 L["Grinding camps"] = "Grind-Lager"
-L["Where mobs of a level and type gather, on the window's Grind tab and the world map. Same as /farm grind and /farm grind pins."] = "Wo sich Gegner einer Stufe und Art sammeln, im Reiter Grinden des Fensters und auf der Weltkarte. Wie /farm grind und /farm grind pins."
+L["Shows where mobs of one level and type hang out, on the Grind tab and the world map. Same as /farm grind and /farm grind pins."] = "Zeigt, wo sich Gegner einer Stufe und Art sammeln, im Grind-Reiter und auf der Weltkarte. Wie /farm grind und /farm grind pins."
 L["On map"] = "Karte"
 L["Open"] = "Öffnen"
 L["TOOLTIPS"] = "TOOLTIPS"
@@ -312,27 +312,27 @@ L["Sends your kill tallies, drop rates, gathering and fishing to your other acco
     "Schickt deine Kill-Zähler, Dropchancen, Gesammeltes und Geangeltes an deinen anderen Account und übernimmt dessen, solange beide eingeloggt sind. Es gehen nur Zahlen, nie Ziele, Einstellungen oder Positionen. Wie /farm share on und off."
 L["Sharing"] = "Teilen"
 L["Its characters"] = "Seine Charaktere"
-L["Characters on your other account, first and last name, with commas between them. Name one of yours in Farmer on that account too. Sharing starts once each side names the other. Same as /farm share with."] =
-    "Charaktere auf deinem anderen Account, mit Vor- und Nachname, mit Kommas getrennt. Trag in Farmer auf jenem Account auch einen von deinen ein. Das Teilen beginnt, sobald beide Seiten sich gegenseitig nennen. Wie /farm share with."
+L["Type the characters on your other account, first and last name, with commas between them. On that account, name one of your characters here in Farmer too. Sharing starts once each side names the other. Same as /farm share with."] =
+    "Trag die Charaktere auf deinem anderen Account ein, mit Vor- und Nachname und Kommas dazwischen. Trag auf jenem Account in Farmer auch einen deiner Charaktere von hier ein. Das Teilen beginnt, sobald beide Seiten sich gegenseitig nennen. Wie /farm share with."
 L["Ana Smith, Bob Jones"] = "Anna Schmidt, Bernd Jung"
 L["Sync now"] = "Jetzt abgleichen"
-L["Asks your other account for anything new and sends what is new here. It also runs every ten minutes. Same as /farm share sync."] = "Fragt deinen anderen Account nach Neuem und schickt, was hier neu ist. Läuft außerdem alle zehn Minuten. Wie /farm share sync."
+L["Swaps anything new with your other account right now. It also does this every ten minutes. Same as /farm share sync."] = "Tauscht jetzt gleich alles Neue mit deinem anderen Account. Das passiert auch alle zehn Minuten von selbst. Wie /farm share sync."
 L["Sync"] = "Abgleichen"
 L["WITH ANOTHER PLAYER"] = "MIT EINEM ANDEREN SPIELER"
 L["Turns your kills, drop rates, gathering and fishing into text you can copy and send to another player. A big collection comes in parts. It only holds counts, never names, goals or settings. Same as /farm give."] =
     "Macht aus deinen Kills, Dropchancen, Gesammeltem und Geangeltem Text, den du kopieren und einem anderen Spieler schicken kannst. Eine große Sammlung kommt in Teilen. Er enthält nur Zahlen, nie Namen, Ziele oder Einstellungen. Wie /farm give."
 L["Make text"] = "Text erstellen"
 L["Take someone's data"] = "Daten übernehmen"
-L["Paste what another player gave you to add their counts to yours. You see what it adds before anything changes, the same text twice adds nothing, and you can take it back out later. Same as /farm take."] =
-    "Füg ein, was dir ein anderer Spieler gegeben hat, um seine Zahlen zu deinen zu addieren. Du siehst, was dazukommt, bevor sich etwas ändert, derselbe Text zweimal fügt nichts hinzu, und du kannst es später wieder herausnehmen. Wie /farm take."
+L["Paste what another player gave you to add their counts to yours. You'll see what it adds before anything changes. The same text twice adds nothing, and you can take it back out later. Same as /farm take."] =
+    "Füg ein, was dir ein anderer Spieler gegeben hat, um seine Zahlen zu deinen zu zählen. Du siehst, was dazukommt, bevor sich etwas ändert. Derselbe Text zweimal bringt nichts dazu, und du kannst es später wieder herausnehmen. Wie /farm take."
 L["Paste"] = "Einfügen"
 L["YOUR GUILD"] = "DEINE GILDE"
 L["Share with your guild"] = "Mit deiner Gilde teilen"
-L["Swaps the drops you've looted with guildmates who use Farmer and have this ticked. Their drop rates fill in the search and a mob's loot table until you've killed it enough for your own. Your kills, loot and rankings stay yours alone. Farmer keeps up to 20 guildmates, and /farm share guild forget confirm deletes what your guild gave. Same as /farm share guild on and off."] =
-    "Tauscht die Beute, die du gelootet hast, mit Gildenmitgliedern, die Farmer nutzen und das hier angehakt haben. Ihre Dropchancen ergänzen die Suche und die Beutetabelle eines Gegners, bis du ihn oft genug für eigene getötet hast. Deine Kills, Beute und Ranglisten bleiben nur deine. Farmer behält bis zu 20 Gildenmitglieder, und /farm share guild forget confirm löscht, was deine Gilde beigetragen hat. Wie /farm share guild on und off."
+L["Swaps the drops you've looted with guildmates who use Farmer and have this ticked. Their drop rates fill in the search and a mob's loot table until you've killed it enough to have your own. Your kills, loot and rankings stay yours. Farmer keeps up to 20 guildmates. /farm share guild forget confirm deletes what your guild gave. Same as /farm share guild on and off."] =
+    "Tauscht die Beute, die du gelootet hast, mit Gildenmitgliedern, die Farmer nutzen und das hier angehakt haben. Ihre Dropchancen füllen die Suche und die Beutetabelle eines Gegners, bis du ihn oft genug für eigene getötet hast. Deine Kills, Beute und Ranglisten bleiben deine. Farmer behält bis zu 20 Gildenmitglieder. /farm share guild forget confirm löscht, was deine Gilde beigetragen hat. Wie /farm share guild on und off."
 L["HOW IT WORKS"] = "SO FUNKTIONIERT ES"
-L["WoW keeps each account's saved data apart, so Farmer sends it in whispers between two of your own characters. Both accounts end up with what both counted. Nothing is counted twice, and nothing goes to anyone else. The first sync of a big collection can take a while in the background. What comes in joins your own totals and can't be taken back out."] =
-    "WoW hält die gespeicherten Daten jedes Accounts getrennt, deshalb schickt Farmer sie per Flüstern zwischen zwei deiner eigenen Charaktere. Am Ende haben beide Accounts, was beide gezählt haben. Nichts wird doppelt gezählt und nichts geht an andere. Der erste Abgleich einer großen Sammlung kann im Hintergrund eine Weile dauern. Was hereinkommt, gehört dann zu deinen eigenen Summen und lässt sich nicht wieder herausnehmen."
+L["WoW keeps each account's data apart, so Farmer sends it in whispers between two of your own characters. Both accounts end up with what both counted. Nothing is counted twice, and nothing goes to anyone else. If you have a lot, the first sync can take a while. It runs in the background. What comes in joins your own totals and can't be taken back out."] =
+    "WoW hält die Daten jedes Accounts getrennt, also schickt Farmer sie per Flüstern zwischen zwei deiner eigenen Charaktere. Am Ende haben beide Accounts, was beide gezählt haben. Nichts wird doppelt gezählt, und nichts geht an jemand anderen. Wenn du viel hast, kann der erste Abgleich eine Weile dauern. Er läuft im Hintergrund. Was ankommt, zählt zu deinen eigenen Summen und lässt sich nicht wieder herausnehmen."
 L["share sync other account second account kills drop rates gathering"] = "teilen abgleichen anderer account zweiter account kills dropchancen sammeln share sync"
 L["Debug output"] = "Debug-Ausgabe"
 L["Extra messages in chat, to help track down a problem."] = "Zusätzliche Meldungen im Chat, um einem Problem auf die Spur zu kommen."
@@ -716,7 +716,7 @@ L["TSM or Auctionator auction prices"] = "Auktionspreise aus TSM oder Auctionato
 L["Prices: TSM or Auctionator market value, or the vendor price if higher."] = "Preise: Marktwert aus TSM oder Auctionator, oder der Händlerpreis, wenn er höher ist."
 L["PRICES"] = "PREISE"
 L["TSM and Auctionator"] = "TSM und Auctionator"
-L["When Blackthornes Tradeskills isn't loaded, Farmer prices drops with TradeSkillMaster's or Auctionator's auction prices, if either is loaded. Tradeskills always comes first when it is."] = "Wenn Blackthornes Tradeskills nicht geladen ist, bepreist Farmer Beute mit den Auktionspreisen von TradeSkillMaster oder Auctionator, wenn eines davon geladen ist. Tradeskills kommt immer zuerst, wenn es geladen ist."
+L["Without Blackthornes Tradeskills, Farmer prices your drops with TradeSkillMaster or Auctionator, if you have one of them. Tradeskills always comes first when it's loaded."] = "Ohne Blackthornes Tradeskills nimmt Farmer für deine Beute die Preise von TradeSkillMaster oder Auctionator, wenn du eins davon hast. Tradeskills geht immer vor, wenn es geladen ist."
 L["Use them"] = "Nutzen"
 L["vendor prices, Tradeskills not loaded"] = "Händlerpreise, Tradeskills nicht geladen"
 
@@ -958,8 +958,8 @@ L["%d spots"] = "%d Fundorte"
 L["an item, a zone, a mob, or a place"] = "einen Gegenstand, ein Gebiet, einen Gegner oder einen Ort"
 L["BY ZONE"] = "NACH GEBIET"
 L["Group each item's spots by zone"] = "Fundorte jedes Gegenstands nach Gebiet gruppieren"
-L["Zones are ordered by their best spot, using whichever column you sorted by."] =
-    "Gebiete sind nach ihrem besten Fundort geordnet, nach der Spalte, nach der du sortiert hast."
+L["Zones go in order of their best spot, by the column you sorted on."] =
+    "Gebiete stehen nach ihrem besten Fundort, nach der Spalte, nach der du sortiert hast."
 L["Unmarked spots are from Classic and not yet seen on Forever. Click a row to put it in chat."] = "Nicht markierte Fundorte stammen aus Classic und wurden auf Forever noch nicht gesehen. Klick eine Zeile, um sie in den Chat zu setzen."
 L["Search for something to farm"] = "Such etwas zum Farmen"
 L["Type an item, a zone, a mob or a place."] = "Gib einen Gegenstand, ein Gebiet, einen Gegner oder einen Ort ein."
@@ -1093,7 +1093,7 @@ L["turn the kill count on mob tooltips on or off (drops [on|off] shows the best 
     "die Anzahl getöteter Gegner in Tooltips ein- oder ausschalten (drops [on|off] zeigt die beste Beute darunter)"
 L["Best drops"] = "Beste Beute"
 L["Best drops (est.)"] = "Beste Beute (geschätzt)"
-L["Under the kill count, the three drops that add most to what a kill is worth, with how often each drops. Same as /farm killcount drops."] = "Unter der Anzahl getöteter Gegner die drei Beutestücke, die am meisten zum Wert eines Kills beitragen, mit ihrer Chance. Wie /farm killcount drops."
+L["Under the kill count, the three drops worth the most to a kill, and how often each one drops. Same as /farm killcount drops."] = "Unter der Kill-Zahl die drei Drops, die einem Kill am meisten wert sind, und wie oft jeder droppt. Wie /farm killcount drops."
 L["best drops on mob tooltips on."] = "Beste Beute in Gegner-Tooltips an."
 L["best drops on mob tooltips off. /farm killcount drops brings them back."] = "Beste Beute in Gegner-Tooltips aus. /farm killcount drops holt sie zurück."
 L["kill count on mob tooltips on."] = "Anzahl getöteter Gegner in Tooltips an."
@@ -1125,8 +1125,8 @@ L["How these addons are made, the version, the Discord and the other Blackthorne
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
 L["Sparkles in the world"] = "Funkeln in der Welt"
-L["Gold sparkles on the herb, ore node, fishing school, chest, quest object or fishing bobber near you, one at a time, up to 15 yards away, with the game's own icon above it. To do this it turns on the game's interact target, icon and name, and puts them back when you untick it. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."] =
-    "Goldenes Funkeln am Kraut, Erzvorkommen, Fischschwarm, an der Truhe, am Questobjekt oder am Schwimmer in deiner Nähe, eins nach dem anderen, bis 15 Meter weit, mit dem Symbol des Spiels darüber. Dafür schaltet es das Interaktionsziel des Spiels, sein Symbol und seinen Namen ein und stellt alles zurück, wenn du den Haken entfernst. Wie /farm sparkle. Prüfen zeigt, was das Spiel lesen lässt (/farm sparkle check)."
+L["Gold sparkles on the herb, ore, fishing school, chest, quest object or bobber in front of you, up to 15 yards away, one at a time. The game's own icon shows above it. To do this, Farmer turns on the game's interact target, icon and name, and sets them back when you untick it. Same as /farm sparkle. Check lists what the game lets it read (/farm sparkle check)."] =
+    "Goldenes Funkeln am Kraut, Erz, Fischschwarm, an der Truhe, am Questobjekt oder am Schwimmer vor dir, bis 15 Meter weit, eins nach dem anderen. Das Symbol des Spiels zeigt sich darüber. Dafür schaltet Farmer das Interaktionsziel des Spiels, sein Symbol und seinen Namen ein und stellt alles zurück, wenn du den Haken entfernst. Wie /farm sparkle. Prüfen zeigt, was das Spiel lesen lässt (/farm sparkle check)."
 L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, icon, check)"] =
     "Funkeln an Vorkommen, Fischschwarm, Truhe oder Questobjekt vor dir ein- oder ausschalten (beacon, sparkles, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "Das Interaktionssymbol des Spiels bleibt verborgen, außer du spielst mit einem Controller."
@@ -1183,8 +1183,8 @@ L["worth on nameplates off."] = "Wert an Namensplaketten aus."
 
 -- The trash can on the item worth the least (UI/Trash.lua).
 L["Trash can when full"] = "Mülleimer bei vollen Taschen"
-L["When your bags are full, a small gold can sits on the item worth the least. It's never a goal's item, a quest item or gear you could wear. Click it to pick the item up, then drop it outside your bags, and the game asks before anything is destroyed. With Blackthornes Butler loaded, Butler's can shows instead. Same as /farm trash."] =
-    "Sind deine Taschen voll, liegt ein kleiner goldener Mülleimer auf dem Gegenstand mit dem geringsten Wert. Nie auf etwas für ein Ziel, einem Questgegenstand oder Ausrüstung, die du tragen könntest. Klick darauf, um ihn aufzunehmen, und lass ihn außerhalb deiner Taschen fallen, dann fragt das Spiel nach, bevor etwas zerstört wird. Ist Blackthornes Butler geladen, zeigt Butler seinen Mülleimer. Wie /farm trash."
+L["When your bags are full, a small gold can shows on the item worth the least. It skips goal items, quest items and gear you could wear. Click it to pick the item up, then drop it outside your bags. The game asks before anything is destroyed. If Butler is loaded, Butler's can shows instead. Same as /farm trash."] =
+    "Wenn deine Taschen voll sind, liegt ein kleiner goldener Mülleimer auf dem Gegenstand mit dem geringsten Wert. Gegenstände für ein Ziel, Questgegenstände und Ausrüstung, die du tragen könntest, lässt er aus. Klick darauf, um den Gegenstand aufzunehmen, und lass ihn dann außerhalb deiner Taschen fallen. Das Spiel fragt, bevor etwas zerstört wird. Ist Butler geladen, zeigt sich stattdessen Butlers Mülleimer. Wie /farm trash."
 L["Throw away to make room"] = "Wegwerfen, um Platz zu schaffen"
 L["Worth %s in all, the least in your bags"] = "Insgesamt %s wert, das Wenigste in deinen Taschen"
 L["Not for a goal or a quest, and not gear you could wear."] =
@@ -1390,8 +1390,8 @@ L["Greens: %s"] = "Grüne: %s"
 L["Levels %d-%d"] = "Stufen %d-%d"
 L["Lists in chat the chance of green, blue, purple and orange gear for each band of mob levels. Same as /farm worlddrops."] = "Listet im Chat die Chance auf grüne, blaue, lila und orange Ausrüstung für jeden Stufenbereich der Gegner. Wie /farm worlddrops."
 L["No kills with a level yet."] = "Noch keine Kills mit einer Stufe."
-L["How often a kill drops green gear or better, by the mob's level, from the kills Farmer has recorded. It shows under the open mob in the kills panel, on a mob's tooltip, on Rankings and when you search for greens. Same as /farm worlddrops on or off."] =
-    "Wie oft ein Kill grüne Ausrüstung oder besser bringt, nach Stufe des Gegners, aus den Kills, die Farmer aufgezeichnet hat. Steht unter dem offenen Gegner im Kills-&-Beute-Fenster, im Tooltip eines Gegners, in den Ranglisten und wenn du nach Grünen suchst. Wie /farm worlddrops on oder off."
+L["How often a kill drops green gear or better, by the mob's level. It counts the kills Farmer recorded. You'll see it under the open mob in the kills panel, on a mob's tooltip, on Rankings and when you search for greens. Same as /farm worlddrops on or off."] =
+    "Wie oft ein Kill grüne Ausrüstung oder besser bringt, nach Stufe des Gegners. Es zählt die Kills, die Farmer aufgezeichnet hat. Du siehst es unter dem offenen Gegner im Kills-Fenster, im Tooltip eines Gegners, in den Ranglisten und wenn du nach Grünen suchst. Wie /farm worlddrops on oder off."
 L["WORLD DROPS"] = "WELTDROPS"
 L["World drops"] = "Weltdrops"
 L["World drops, green gear and better, by mob level:"] = "Weltdrops, grüne Ausrüstung und besser, nach Stufe des Gegners:"
@@ -1541,16 +1541,16 @@ L["show your top 15 after an auction scan and call out a new top farm (on/off, t
 
 -- Rankings: outside dungeons only (2026-10-14)
 L["Outside dungeons only"] = "Nur außerhalb von Dungeons"
-L["Leaves out mobs you found only in dungeons and raids. Same as /farm rankings outside."] = "Lässt Gegner weg, die du nur in Dungeons und Schlachtzügen gefunden hast. Wie /farm rankings outside."
+L["Skips mobs you only found in dungeons and raids. Same as /farm rankings outside."] = "Lässt Gegner weg, die du nur in Dungeons und Schlachtzügen gefunden hast. Wie /farm rankings outside."
 L["Rankings show only mobs outside dungeons."] = "Die Ranglisten zeigen nur Gegner außerhalb von Dungeons."
 L["Rankings show mobs from dungeons too."] = "Die Ranglisten zeigen auch Gegner aus Dungeons."
 L["Leave them out"] = "Weglassen"
-L["Rankings leave out mobs you found only in dungeons and raids, and so do the rank-up pop-up and the top 15 after an auction scan. The same tick box is on the Rankings tab. Same as /farm rankings outside."] = "Die Ranglisten lassen Gegner weg, die du nur in Dungeons und Schlachtzügen gefunden hast, ebenso das Aufstiegs-Fenster und die Top 15 nach einem Auktionsscan. Dasselbe Kästchen ist auf dem Reiter Ranglisten. Wie /farm rankings outside."
+L["Rankings skip mobs you only found in dungeons and raids. So do the rank-up pop-up and your top 15 after an auction scan. The Rankings tab has the same tick box. Same as /farm rankings outside."] = "Die Ranglisten lassen Gegner weg, die du nur in Dungeons und Schlachtzügen gefunden hast. Das Aufstiegsfenster und deine Top 15 nach einem Auktionsscan auch. Der Ranglisten-Reiter hat denselben Haken. Wie /farm rankings outside."
 L["%s an hour"] = "%s pro Stunde"
 L["As %s"] = "Als %s"
 L["Sold as it is"] = "So verkauft"
 L["Craft or sell"] = "Herstellen oder verkaufen"
-L["With Blackthornes Tradeskills, a material you farm shows what an hour of farming it pays sold as it is, and as the craft of yours that pays most. Same as /farm tooltip craft."] = "Mit Blackthornes Tradeskills zeigt ein Material, das du farmst, was eine Stunde Farmen bringt, so verkauft und als deine Herstellung, die am meisten bringt. Wie /farm tooltip craft."
+L["With Blackthornes Tradeskills, a material you farm shows what an hour of farming it pays two ways: sold as it is, and made into your best paying craft. Same as /farm tooltip craft."] = "Mit Blackthornes Tradeskills zeigt ein Material, das du farmst, was eine Stunde Farmen auf zwei Arten bringt: so verkauft, und als deine Herstellung, die am meisten bringt. Wie /farm tooltip craft."
 L["craft or sell on material tooltips on."] = "Herstellen oder verkaufen im Material-Tooltip an."
 L["craft or sell on material tooltips off. /farm tooltip craft brings it back."] = "Herstellen oder verkaufen im Material-Tooltip aus. /farm tooltip craft holt es zurück."
 L["You've opened %d of %d."] = "Du hast %d von %d geöffnet."
@@ -1574,8 +1574,8 @@ L["Open button"] = "Öffnen-Knopf"
 L["Open after loot"] = "Nach dem Plündern öffnen"
 L["Open them"] = "Öffnen"
 L["Test it"] = "Testen"
-L["A small button on the Kills & Loot panel opens your clams, sacks and lockboxes, one a click. It leaves alone anything a goal, quest or craft needs, anything Butler keeps and locked lockboxes. Test it checks whether the game lets Farmer open them by itself. Same as /farm openbutton."] = "Ein kleiner Knopf auf der Leiste Kills & Beute öffnet deine Muscheln, Säcke und Kassetten, eine pro Klick. Was ein Ziel, eine Quest oder ein Rezept braucht, was Butler behält und verschlossene Kassetten lässt er in Ruhe. Testen schaut, ob das Spiel Farmer sie von selbst öffnen lässt. Wie /farm openbutton."
-L["Each time you close a loot window, the next clam, sack or lockbox opens by itself, never in a fight or at a vendor, bank or mailbox. Works once Test it says the game allows it. Same as /farm openbutton auto."] = "Jedes Mal, wenn du ein Beutefenster schließt, geht die nächste Muschel, der nächste Sack oder die nächste Kassette von selbst auf, nie im Kampf und nie bei Händler, Bank oder Briefkasten. Klappt, sobald Testen sagt, dass das Spiel es erlaubt. Wie /farm openbutton auto."
+L["A small button on the Kills & Loot panel opens your clams, sacks and lockboxes, one per click. It skips locked lockboxes and anything a goal, quest, craft or Butler needs. Test it checks if the game lets Farmer open them for you. Same as /farm openbutton."] = "Ein kleiner Knopf auf der Leiste Kills & Beute öffnet deine Muscheln, Säcke und Kassetten, eine pro Klick. Er lässt verschlossene Kassetten aus und alles, was ein Ziel, eine Quest, eine Herstellung oder Butler braucht. Testen prüft, ob das Spiel Farmer sie für dich öffnen lässt. Wie /farm openbutton."
+L["Each time you close a loot window, the next clam, sack or lockbox opens by itself. Never in a fight or at a vendor, bank or mailbox. It only works once Test it says the game allows it. Same as /farm openbutton auto."] = "Jedes Mal, wenn du ein Beutefenster schließt, öffnet sich die nächste Muschel, der nächste Sack oder die nächste Kassette von selbst. Nie im Kampf und nie bei einem Händler, der Bank oder dem Briefkasten. Das geht erst, wenn Testen sagt, dass das Spiel es erlaubt. Wie /farm openbutton auto."
 L["not in a fight. Try again after it."] = "nicht im Kampf. Versuch es danach noch mal."
 L["step away from vendors, the bank and the mailbox first, or the test would sell, bank or mail the item."] = "geh zuerst weg von Händlern, Bank und Briefkasten, sonst würde der Test den Gegenstand verkaufen, einlagern oder verschicken."
 L["this version of the game can't open items from addon code."] = "diese Version des Spiels kann keine Gegenstände aus einem Addon öffnen."
