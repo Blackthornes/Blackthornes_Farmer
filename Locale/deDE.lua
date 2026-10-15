@@ -1179,6 +1179,18 @@ L["the trash can no longer shows when your bags are full."] =
 L["%s x%d"] = "%s x%d"
 L["item %s"] = "Gegenstand %s"
 
+-- The notice when the bags fill up (UI/BagsFull.lua).
+L["Your bags are full."] = "Deine Taschen sind voll."
+L["Bags full notice"] = "Hinweis bei vollen Taschen"
+L["A short notice on screen when your bags fill up. It shows once each time they fill, not on every loot, and waits until a fight is over. Same as /farm bagsfull."] =
+    "Ein kurzer Hinweis auf dem Bildschirm, wenn deine Taschen voll werden. Er kommt einmal, wenn sie voll werden, nicht bei jeder Beute, und wartet, bis ein Kampf vorbei ist. Wie /farm bagsfull."
+L["show a notice on screen when your bags fill up (on/off, test)"] =
+    "Hinweis auf dem Bildschirm, wenn deine Taschen voll werden (on/off, test)"
+L["a notice shows on screen when your bags fill up."] =
+    "Ein Hinweis erscheint auf dem Bildschirm, wenn deine Taschen voll werden."
+L["no notice shows when your bags fill up."] =
+    "Kein Hinweis mehr, wenn deine Taschen voll werden."
+
 -- ======================================================================
 -- The XP bar (UI/XPBar.lua, Logic/XP.lua)
 -- ======================================================================

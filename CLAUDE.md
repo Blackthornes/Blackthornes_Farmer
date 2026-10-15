@@ -633,6 +633,21 @@ while open and nearly full, `Trash.BUDGET` slots a frame. "Trash can when
 full" on the Loot page (`trashCan`, on unless unticked, never rename it)
 and `/farm trash`. Tested in `tools/test_trash.lua`. Not yet seen in game.
 
+## Bags full notice
+
+The owner asked (2026-10-15) for a notice on screen when the bags are
+full. `UI/BagsFull.lua` shows "Your bags are full." near the top of the
+screen once each time the bags that take anything (`Trash.Space`) go from
+room to none, then fades; it comes back only after a slot frees. The bags
+as they are at login are only noted; a fill in a fight waits for
+`PLAYER_REGEN_ENABLED` (nothing if a slot freed); a fill at a vendor, the
+bank, a mailbox, the auction house or a trade shows nothing. Its own frame
+on UIParent, no mouse, no sound, independent of Butler. "Bags full
+notice" on the Loot page (`bagsFullNotice`, on unless unticked, never
+rename it) with Try it, and `/farm bagsfull [on|off|test]`. Tested in
+`tools/test_bagsfull.lua` (also listed in `tools/testenv.lua`'s
+`UI_FILES`). Not yet seen in game.
+
 ## Clams and sacks worth what's inside
 
 The owner asked (2026-10-15) for what comes out of a clam, sack or lockbox
