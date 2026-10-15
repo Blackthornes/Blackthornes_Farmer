@@ -147,7 +147,7 @@ function LootTableUI:Table(mobName)
             row.chance = item.chance
             row.rate = Tracker.FormatChance(item.chance)
 
-            local unit = Value and Value:UnitPrice(id)
+            local unit = Value and Value:WorthOf(item.name, id)
             if unit then row.perKill = item.corpses / loot.kills * item.perCorpse * unit end
         else
             -- Until then, the guild's rate for it, if it has one. Only the
@@ -260,6 +260,51 @@ local function CreateRow(row)
     row.fill:SetHeight(2)
 end
 
+-- How many of a clam's contents the tooltip lists.
+local CONTENTS_SHOWN = 6
+
+--- The lines a clam, sack or lockbox you opened adds to its row's tooltip:
+--- { left, right, color }. None for anything you never opened.
+function LootTableUI:ContentsLines(name)
+    local lines = {}
+    local Value, Containers = ns.Value, ns.Containers
+    if not (Value and Containers and name) then return lines end
+
+    local ok, store = pcall(Containers.Store, Containers)
+    local entry = ok and type(store) == "table" and store[name]
+    local opens = type(entry) == "table" and tonumber(entry.opens) or 0
+    if opens <= 0 then return lines end
+
+    lines[#lines + 1] = { " " }
+
+    local worth, details = Value:Contents(name)
+    if not worth then
+        if opens < Value.MIN_OPENS then
+            lines[#lines + 1] = { L.Format("You've opened %d of %d.", opens, Value.MIN_OPENS), nil, "muted" }
+            lines[#lines + 1] = { L["What's inside counts toward its worth from then on."], nil, "muted" }
+        else
+            lines[#lines + 1] = { L.Format("You've opened %d. Nothing inside has a price yet.", opens),
+                nil, "muted" }
+        end
+        return lines
+    end
+
+    lines[#lines + 1] = { L.Format("Opens to (%d opened)", opens), Value.Coins(worth), "accentHi" }
+    for index = 1, math.min(#details.priced, CONTENTS_SHOWN) do
+        local item = details.priced[index]
+        local rate = ns.Tracker.FormatChance(item.chance)
+        if item.each >= 1.05 then
+            rate = L.Format("%s, %s each", rate, ("%.1f"):format(item.each))
+        end
+        lines[#lines + 1] = { ("  %s  %s"):format(item.name, rate), Value.Coins(item.perOpen) }
+    end
+    if #details.unpriced > 0 then
+        lines[#lines + 1] = { L.Format("  %d more with no price", #details.unpriced), nil, "muted" }
+    end
+
+    return lines
+end
+
 local function ShowItemTooltip(row)
     local data = row.data
     if not (data and GameTooltip) then return end
@@ -268,6 +313,11 @@ local function ShowItemTooltip(row)
 
     local shown = data.id and pcall(GameTooltip.SetItemByID, GameTooltip, data.id)
     if not shown then GameTooltip:AddLine(data.name) end
+
+    for _, line in ipairs(LootTableUI:ContentsLines(data.name)) do
+        local r, g, b = Theme.Unpack(line[3] or "text")
+        GameTooltip:AddDoubleLine(line[1], line[2] or "", r, g, b, 1, 1, 1)
+    end
 
     GameTooltip:Show()
 end

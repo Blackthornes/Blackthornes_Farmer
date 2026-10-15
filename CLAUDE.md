@@ -633,6 +633,24 @@ while open and nearly full, `Trash.BUDGET` slots a frame. "Trash can when
 full" on the Loot page (`trashCan`, on unless unticked, never rename it)
 and `/farm trash`. Tested in `tools/test_trash.lua`. Not yet seen in game.
 
+## Clams and sacks worth what's inside
+
+The owner asked (2026-10-15) for what comes out of a clam, sack or lockbox
+a mob drops to count toward the mob. `Logic/Containers.lua` keeps each
+opening by the item's name (`containers.opened`, account wide, never rename
+it); not by mob, since clams stack and give the same whoever dropped them.
+`Value:Contents(name)` is one opening's average worth once `MIN_OPENS` (20)
+are behind it (hidden items left out), and `Value:WorthOf(name, id)` takes
+it over `UnitPrice` when it pays more, so `FromTally`, `FromDatabase`
+(Rankings, the tooltip, rank-up) and the loot table's per kill follow; the
+loot table's item tooltip lists what it opens to
+(`LootTableUI:ContentsLines`). The session haul and Stats still price the
+clam itself. An opening is caught by the bag click (`UseContainerItem`),
+else by the loot window's `Item-` source guid matched to a bag slot
+(`Containers:FromSource`, `C_Item.GetItemGUID`), since none had been
+recorded in game. Tested in `tools/test_containerworth.lua` and
+`tools/test_containers.lua`. Not yet seen in game.
+
 ## Kills on the mob tooltip
 
 The owner asked (2026-10-13) for a mob's tooltip to say how many you have
