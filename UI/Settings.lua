@@ -870,6 +870,19 @@ function SettingsUI:BuildLootPage()
     end, true)
     controls.bagsFull:SetPoint("TOPLEFT", CONTROL_X, -2)
     controls.bagsFullTry = CommandButton(bagsFullRow, L["Try it"], "bagsfull test", 60, CONTROL_X + 70)
+    local openButtonRow = pages:Row("loot", 2, L["Open button"],
+        L["A small button on the Kills & Loot panel opens your clams, sacks and lockboxes, one a click. It leaves alone anything a goal, quest or craft needs, anything Butler keeps and locked lockboxes. Test it checks whether the game lets Farmer open them by itself. Same as /farm openbutton."])
+    controls.openButton = Widgets.CreateCheckbox(openButtonRow, L["Show it"], function(checked)
+        ns.OpenButton:SetEnabled(checked)
+    end, true)
+    controls.openButton:SetPoint("TOPLEFT", CONTROL_X, -2)
+    controls.openTest = CommandButton(openButtonRow, L["Test it"], "openbutton test", 60, CONTROL_X + 70)
+    local autoOpenRow = pages:Row("loot", 2, L["Open after loot"],
+        L["Each time you close a loot window, the next clam, sack or lockbox opens by itself, never in a fight or at a vendor, bank or mailbox. Works once Test it says the game allows it. Same as /farm openbutton auto."])
+    controls.autoOpen = Widgets.CreateCheckbox(autoOpenRow, L["Open them"], function(checked)
+        ns.OpenButton:SetAuto(checked)
+    end, false)
+    controls.autoOpen:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1275,6 +1288,8 @@ function SettingsUI:Refresh()
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.openNote:SetChecked(db.openNote ~= false)
     controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)
+    controls.openButton:SetChecked(db.openButton ~= false)
+    controls.autoOpen:SetChecked(db.autoOpen == true)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
     controls.grindPins:SetChecked(db.grindPins ~= false)
