@@ -595,7 +595,7 @@ function SettingsUI:BuildTallyPage()
 
     -- Off by default: the panel starts empty at every login and /reload.
     local keepRow = pages:Row("tally", 1, L["Between sessions"],
-        L["The panel starts empty each time you log in or reload. Tick this to keep each character's kills and loot until you clear it. Your kill tallies, drop rates and Rankings are always kept. Same as /farm tracker keep."])
+        L["The panel starts empty each time you log in. Tick this to keep your kills and loot until you clear it. Your kill counts and Rankings are always saved. Same as /farm tracker keep."])
 
     controls.keepPanel = Widgets.CreateCheckbox(keepRow, L["Keep it"], function(checked)
         ns.db.keepPanel = checked
@@ -619,7 +619,7 @@ function SettingsUI:BuildTallyPage()
     controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local celebrateRow = pages:Row("tally", 1, L["Milestone fanfare"],
-        L["A sound and a cheer when a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather unlocks its rates. Same as /farm celebrate."])
+        L["A sound and a cheer when a mob reaches 20 kills, a fishing spot 20 casts or a node 20 gathers, and its rates show up. Same as /farm celebrate."])
 
     controls.celebrate = Widgets.CreateCheckbox(celebrateRow, L["Play it"], function(checked)
         ns.db.trackerCelebrate = checked
@@ -635,7 +635,7 @@ function SettingsUI:BuildTallyPage()
     controls.rareSound:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local rankUpRow = pages:Row("tally", 1, L["Rank-up pop-up"],
-        L["When a kill moves a mob onto your top 15 by worth per kill, or up it, the list pops up beside the panel for a few seconds to show the move. It never shows during a fight. Same as /farm rankup."])
+        L["When a kill puts a mob on your top 15 or moves it up, the list pops up for a few seconds to show it. Never during a fight. Same as /farm rankup."])
 
     controls.rankUp = Widgets.CreateCheckbox(rankUpRow, L["Show it"], function(checked)
         ns.db.rankUpPopup = checked
@@ -652,7 +652,7 @@ function SettingsUI:BuildTallyPage()
     controls.rankUpSound:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local bestRow = pages:Row("tally", 1, L["Best session cheer"],
-        L["A line in chat and a chime when a session's gold an hour beats every one before it, once a session. Same as /farm charts cheer."])
+        L["A chime and a chat line when you beat your best gold an hour. Once a session. Same as /farm charts cheer."])
 
     controls.statsBestCheer = Widgets.CreateCheckbox(bestRow, L["Play it"], function(checked)
         ns.db.statsBestCheer = checked
@@ -690,7 +690,7 @@ function SettingsUI:BuildTallyPage()
 
     -- After an auction scan (Logic/TopFarm.lua, the owner asked 2026-10-14).
     local topFarmRow = pages:Row("tally", 2, L["After an auction scan"],
-        L["When new auction prices change the order of your top 15, it pops up and shuffles to the new order. If a different mob takes first place and is worth at least 10% more a kill, it's called out as your new top farm. Only mobs you've killed 20 times count. It plays the rank-up sound if that's on. Same as /farm topfarm."])
+        L["After an auction scan, your top 15 pops up and moves to match the new prices. If a new mob takes first place, Farmer tells you. Only mobs you've killed 20 times count. Same as /farm topfarm."])
     controls.topFarm = Widgets.CreateCheckbox(topFarmRow, L["Show it"], function(checked)
         ns.TopFarm:SetOn(checked)
     end, true)
@@ -701,7 +701,7 @@ function SettingsUI:BuildTallyPage()
     pages:Section("tally", 2, L["XP BAR"])
 
     local xpRow = pages:Row("tally", 2, L["XP bar"],
-        L["A bar that shows your level, what finished quests and rested XP are worth, and when you reach the next level at your pace. Hover it to see how to finish the level, and drag it to move it. Same as /farm xpbar."])
+        L["A bar with your level, your quest and rested XP, and about when you'll level up. Hover it for tips to finish the level. Drag it to move it. Same as /farm xpbar."])
     controls.xpBar = Widgets.CreateCheckbox(xpRow, L["Show it"], function(checked)
         ns.XPBarUI:SetOn(checked)
     end, true)
@@ -723,7 +723,7 @@ function SettingsUI:BuildTallyPage()
     controls.xpBarChime:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local gameRow = pages:Row("tally", 2, L["Game's XP bar"],
-        L["Makes the game's own XP bar, and a reputation bar beside it, see-through while yours shows. Untick it to bring them back as they were. Same as /farm xpbar game."])
+        L["Hides the game's own XP and reputation bars while yours shows. Untick it to bring them back. Same as /farm xpbar game."])
     controls.xpBarHideGame = Widgets.CreateCheckbox(gameRow, L["Hide it"], function(checked)
         ns.XPBarUI:SetHideGame(checked)
     end, false)
