@@ -291,7 +291,9 @@ function Search:FoundItems()
     for _, record in pairs(Harvest and Harvest.records or {}) do
         if type(record) == "table" and type(record.items) == "table" then
             local mob = Harvest.ShowName and Harvest.ShowName(record.mob) or record.mob
-            for name, entry in pairs(record.items) do
+            -- An item's random suffixes count as the item (Harvest:GroupedItems).
+            local grouped = Harvest.GroupedItems and Harvest:GroupedItems(record) or record.items
+            for name, entry in pairs(grouped) do
                 if type(entry) == "table" then
                     Add(name, entry.id, { kind = "mob", name = Text(mob), zone = Text(record.zone),
                         location = Text(record.location), coords = Coords(record.coords),

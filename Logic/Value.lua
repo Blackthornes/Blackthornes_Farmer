@@ -471,10 +471,38 @@ function Value:FromTally(mobName)
     -- Nothing priced and no coin is not "worth nothing": it is unknown.
     if #details.priced == 0 and coin == 0 then return nil end
 
+    details.priced = Value.FoldSuffixes(details.priced)
     table.sort(details.priced, function(a, b) return a.perKill > b.perKill end)
     table.sort(details.unpriced)
 
     return total, details
+end
+
+--- Priced drops with an item's random suffixes ("of the Monkey") put
+--- together under the item's own name, so the best drops name the item
+--- once. The worth is the same either way.
+function Value.FoldSuffixes(priced)
+    local Harvest, Tracker = ns.Harvest, ns.Tracker
+    if not (Harvest and Harvest.RollBase and Tracker) then return priced end
+
+    local out, byName = {}, {}
+    for _, entry in ipairs(priced) do
+        local base = Harvest.RollBase(entry.name, Tracker:LookOf(entry.name).id)
+        local into = base and byName[base]
+        if base and not into then
+            into = { name = base, perKill = 0, chance = 0, from = entry.from }
+            byName[base] = into
+            out[#out + 1] = into
+        end
+        if into then
+            into.perKill = into.perKill + entry.perKill
+            into.chance = into.chance + (entry.chance or 0)
+            into.unit = into.chance > 0 and into.perKill / (into.chance / 100) or entry.unit
+        else
+            out[#out + 1] = entry
+        end
+    end
+    return out
 end
 
 --- Copper per kill from the database's drop rates for this mob, or nil when

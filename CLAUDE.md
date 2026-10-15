@@ -312,6 +312,24 @@ query also matches names by its singular (`Search.Singular`: "crates" finds
 Crate), names only, never zones or mobs. Tested in
 `tools/test_searchfinds.lua`.
 
+## Random suffixes count as their item
+
+A player asked (2026-10-15, the owner said build it): gear with a random
+suffix drops under its whole name ("Lead Band of the Monkey", "... of the
+Owl"), so one green was spread over its suffixes and took far longer to
+reach a rate. The saved records are never rewritten (each suffix stays
+under its own name); the readers put them together under the item's own
+name. `Harvest.RollBase(name, id)` names the item from the client
+(`C_Item.GetItemNameByID`), else the data, else Classic's ten two-stat
+animal suffixes off the name (for the export tool, which has no client).
+`Harvest:GroupedItems(record)` (kept per record until its corpses move) is
+read by `ForItem`, `Items` (so the export and the shipped data name the item
+once), `Search:FoundItems`; `Tracker:Summary` groups the tally the same way
+(the kills panel, the loot table), with a suffix's look standing in
+(`Tracker.rollLooks`), and `Value.FoldSuffixes` names the item once in the
+best drops. Worth per kill is the same either way. Tested in
+`tools/test_suffixdrops.lua`. Not yet seen in game.
+
 ## Drops only
 
 A player asked (2026-10-11, the owner agreed) for Farmer to leave skinning
