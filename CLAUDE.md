@@ -724,8 +724,8 @@ fight it hides and goes back to UIParent, so the panel can still move;
 hidden at a vendor, bank, mailbox, auction house or trade. "Open after
 loot" (`autoOpen`, off unless ticked) opens the next one each
 `LOOT_CLOSED`, out of combat, with a free slot, only once `/farm
-openbutton test` saved `openTest.result = "works"`; one that stayed shut is
-left for the session (`OpenButton.tried`). `openButton` (on unless
+openbutton test` saved `openTest.result = "works"`; one the game refuses (its "internal loot error", with no loot window) is tried again, and left for the session only after `OpenButton.STRIKES` (3) tries in a row stay shut (`OpenButton.tried`, counted; a click on the button or one that opens starts it again).
+`openButton` (on unless
 unticked), `autoOpen` and `openTest` are account wide; never rename them.
 Loot page; `/farm openbutton [on|off|test|auto on|off]`. Tested in
 `tools/test_openbutton.lua`. Not yet seen in game.
