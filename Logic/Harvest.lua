@@ -1898,6 +1898,27 @@ function Harvest:LootCheck()
         end
     end
 
+    -- A clam or sack opened from the bags: what Containers saw of it.
+    local Containers = ns.Containers
+    if Containers then
+        local opening = Containers.opening
+        local gotNowEarly, nowEarly = pcall(GetTime or error)
+        local clickAgo = opening and opening.at and gotNowEarly and type(nowEarly) == "number"
+            and (" %.1f s ago"):format(nowEarly - opening.at) or ""
+        Line("bag click", opening and ("%s, holds loot %s%s"):format(tostring(opening.name),
+            opening.unsure and "unsure" or "yes", clickAgo) or "none seen")
+        Line("item guid call", (type(C_Item) == "table" and type(C_Item.GetItemGUID) == "function"
+            and type(ItemLocation) == "table") and "yes" or "no")
+        local itemGuid
+        for _, source in ipairs(self:LootSources()) do
+            if type(source) == "string" and source:match("^Item%-") then itemGuid = source break end
+        end
+        local _, bagName = itemGuid and Containers.ItemByGuid(itemGuid)
+        Line("source item in bags", itemGuid and (bagName or "not found") or "no item source")
+        local gotOpening, counted = pcall(Containers.Opening, Containers)
+        Line("counts as opened", gotOpening and (counted and counted.name or "no") or "raised")
+    end
+
     -- What the harvest itself makes of it, which is the answer that matters.
     local name, level, guid, unit = self:Corpse()
     Line("harvest corpse", name and ("%s, level %s, %s, via %s"):format(
