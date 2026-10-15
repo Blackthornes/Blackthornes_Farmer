@@ -256,7 +256,7 @@ function ArrowUI:ShowTooltip(owner)
         GameTooltip:AddLine(L["Click for the next goal."], 0.9, 0.9, 0.9)
     end
     GameTooltip:AddLine(L["Right-click for the next place."], 0.9, 0.9, 0.9)
-    GameTooltip:AddLine(L["Drag to move it. The red gem closes it."], 0.9, 0.9, 0.9)
+    GameTooltip:AddLine(L["Drag to move it."], 0.9, 0.9, 0.9)
     GameTooltip:Show()
 end
 

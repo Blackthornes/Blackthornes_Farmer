@@ -344,8 +344,6 @@ function UI:BuildBody()
         if not GameTooltip then return end
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:AddLine(L["Group each item's spots by zone"], 1, 1, 1)
-        GameTooltip:AddLine(L["Zones go in order of their best spot, by the column you sorted on."],
-            Theme.Unpack("muted"))
         GameTooltip:Show()
     end)
     byZone:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
@@ -665,11 +663,11 @@ function UI:BuildColumnHeadings()
     -- the next session in `searchSort`.
     local saved = ns.db and type(ns.db.searchSort) == "table" and ns.db.searchSort or {}
     self.sorter = Widgets.SortableHeadings(self.headings, {
-        name = L["Sort by source name, A to Z."],
+        name = L["Sort by name, A to Z."],
         where = L["Closest to you first: your zone, then zones nearest your level."],
         level = L["Sort by level, lowest first."],
-        drop = L["Sort by drop rate, best first. Spots with no known rate go last."],
-        value = L["Sort by worth per kill, best first. Your own kills come before estimates, and mobs with no price go last."],
+        drop = L["Sort by drop rate, best first."],
+        value = L["Sort by worth per kill, best first."],
     }, function(key, ascending)
         if ns.db then ns.db.searchSort = { key = key, ascending = ascending } end
         UI:Render()
