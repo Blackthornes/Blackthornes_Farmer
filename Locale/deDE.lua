@@ -721,7 +721,7 @@ L["vendor prices, Tradeskills not loaded"] = "Händlerpreise, Tradeskills nicht 
 
 -- ItemTooltip.lua
 L["Farm: "] = "Farmen: "
-L["turn the farming line on material tooltips on or off"] = "die Farm-Zeile in Material-Tooltips ein- oder ausschalten"
+L["turn the farming line on material tooltips on or off (craft [on|off] shows what crafting it pays)"] = "die Farm-Zeile in Material-Tooltips ein- oder ausschalten (craft [on|off] zeigt, was Herstellen bringt)"
 L["farming line on material tooltips on."] = "Farm-Zeile in Material-Tooltips an."
 L["farming line on material tooltips off."] = "Farm-Zeile in Material-Tooltips aus."
 
@@ -1509,3 +1509,10 @@ L["Rankings show only mobs outside dungeons."] = "Die Ranglisten zeigen nur Gegn
 L["Rankings show mobs from dungeons too."] = "Die Ranglisten zeigen auch Gegner aus Dungeons."
 L["Leave them out"] = "Weglassen"
 L["Rankings leave out mobs you found only in dungeons and raids, and so do the rank-up pop-up and the top 15 after an auction scan. The same tick box is on the Rankings tab. Same as /farm rankings outside."] = "Die Ranglisten lassen Gegner weg, die du nur in Dungeons und Schlachtzügen gefunden hast, ebenso das Aufstiegs-Fenster und die Top 15 nach einem Auktionsscan. Dasselbe Kästchen ist auf dem Reiter Ranglisten. Wie /farm rankings outside."
+L["%s an hour"] = "%s pro Stunde"
+L["As %s"] = "Als %s"
+L["Sold as it is"] = "So verkauft"
+L["Craft or sell"] = "Herstellen oder verkaufen"
+L["With Blackthornes Tradeskills, a material you farm shows what an hour of farming it pays sold as it is, and as the craft of yours that pays most. Same as /farm tooltip craft."] = "Mit Blackthornes Tradeskills zeigt ein Material, das du farmst, was eine Stunde Farmen bringt, so verkauft und als deine Herstellung, die am meisten bringt. Wie /farm tooltip craft."
+L["craft or sell on material tooltips on."] = "Herstellen oder verkaufen im Material-Tooltip an."
+L["craft or sell on material tooltips off. /farm tooltip craft brings it back."] = "Herstellen oder verkaufen im Material-Tooltip aus. /farm tooltip craft holt es zurück."

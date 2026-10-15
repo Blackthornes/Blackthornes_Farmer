@@ -144,4 +144,56 @@ suite.check("and follows the saved value", not ns.SettingsUI.controls.itemToolti
 ns.db.itemTooltip = true
 ns.SettingsUI:Hide()
 
+--------------------------------------------------------------------------------
+-- Craft or sell, from Tradeskills
+--------------------------------------------------------------------------------
+
+local function Doubles()
+    local tooltip = Tooltip()
+    tooltip._doubles = {}
+    tooltip.AddDoubleLine = function(self, left, right)
+        self._doubles[#self._doubles + 1] = { left, right }
+        self._lines[#self._lines + 1] = left
+    end
+    return tooltip
+end
+
+suite.check("without Tradeskills, no craft lines", ItemTooltip:CraftLines(2770) == nil)
+
+local asked
+_G.BlackthornesTS = { CraftOrFarm = { ForMaterial = function(_, id)
+    asked = id
+    if id == 2770 then
+        return { name = "Copper Bar", recipeID = 2657, perHour = 20000, rawPerHour = 15000 }
+    end
+end } }
+ItemTooltip.ForgetKept()
+tooltip = Doubles()
+Hover(tooltip, 2770)
+suite.check("Tradeskills is asked by item", asked == 2770)
+suite.check("sold as it is, an hour", tooltip._doubles[1] and tooltip._doubles[1][1] == "Sold as it is"
+    and tooltip._doubles[1][2]:find("an hour", 1, true) ~= nil, tooltip._doubles[1] and tooltip._doubles[1][2])
+suite.check("then the craft", tooltip._doubles[2] and tooltip._doubles[2][1] == "As Copper Bar")
+suite.check("under the farming line", (tooltip._lines[1] or ""):find("Farm: ", 1, true) ~= nil)
+
+ns.db.itemTooltip = false
+tooltip = Doubles()
+Hover(tooltip, 2770)
+suite.check("the craft lines show with the farming line off", #tooltip._doubles == 2 and #tooltip._lines == 2)
+ns.db.itemTooltip = true
+
+ns.HandleSlash("tooltip craft off")
+suite.check("/farm tooltip craft off", ns.db.itemTooltipCraft == false)
+tooltip = Doubles()
+Hover(tooltip, 2770)
+suite.check("then no craft lines", #tooltip._doubles == 0)
+ns.HandleSlash("tooltip craft")
+suite.check("and on again", ns.db.itemTooltipCraft == true)
+suite.check("on by default too", ns.DEFAULTS.itemTooltipCraft == true)
+
+_G.BlackthornesTS = { CraftOrFarm = { ForMaterial = function() error("boom") end } }
+tooltip = Doubles()
+suite.check("a raising Tradeskills costs only its lines", Hover(tooltip, 2770) == "added" and #tooltip._doubles == 0)
+_G.BlackthornesTS = nil
+
 suite.done()

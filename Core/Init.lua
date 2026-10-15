@@ -421,6 +421,9 @@ local DEFAULTS = {
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,
+    -- What crafting a material pays an hour, from Tradeskills, under that
+    -- line (the owner said yes, 2026-10-15). Never rename it.
+    itemTooltipCraft = true,
     -- How many of a mob you have killed, on its tooltip (UI/KillTooltip.lua;
     -- the owner asked 2026-10-13). Never rename it.
     killTooltip = true,
