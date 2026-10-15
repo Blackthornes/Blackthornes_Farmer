@@ -294,6 +294,24 @@ second click within `CLEAR_ARMED` seconds; `/farm tracker clear`) empties
 the view only: every tally stays, so it is allowed on the Settings page.
 Tested in `tools/test_panelkeep.lua`. Not yet seen in game.
 
+## Search finds your own loot
+
+A player searched "crates" and saw only what the data ships (2026-10-15):
+the search read only the database (shipped data, folded in from the owner's
+play at each release, and the guild's rows), so anything a player looted,
+gathered or fished that the data does not know never showed.
+`Search:FoundItems` now adds every item in the player's own harvest,
+gathering and fishing records that `DB:GetItem` does not know as a result of
+its own ("Your finds", the spots it came from, a rate once
+`FOUND_SAMPLE` (20) are behind it, provenance "forever"). Nothing is added
+to the database, so Rankings, the tooltips and the Grind tab are unchanged;
+nothing is saved; guild data never reaches it. Built only when a search
+runs and the records moved, at most every `FOUND_GAP` seconds. Found items
+have no Goal button (`Goals:Set` knows only database items). A plural
+query also matches names by its singular (`Search.Singular`: "crates" finds
+Crate), names only, never zones or mobs. Tested in
+`tools/test_searchfinds.lua`.
+
 ## Drops only
 
 A player asked (2026-10-11, the owner agreed) for Farmer to leave skinning

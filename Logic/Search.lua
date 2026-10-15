@@ -35,6 +35,30 @@ local function MatchScore(haystack, needle)
     return 0
 end
 
+--- "crates" as "crate", "boxes" as "box": the query with a plural ending
+--- taken off, or nil when it has none. Short words are left alone.
+function Search.Singular(query)
+    if type(query) ~= "string" or #query < 4 then return nil end
+    local single = query:match("^(.-[^aeiou])es$") and query:match("^(.-)es$")
+    if single and (single:match("[sx]$") or single:match("[cs]h$") or single:match("z$")) then
+        return single
+    end
+    single = query:match("^(.-[^s])s$")
+    return single
+end
+
+--- A name's score for the query, or for its singular when that is better.
+local function NameScore(name, query, single)
+    if type(name) ~= "string" then return 0 end
+    local lower = name:lower()
+    local score = MatchScore(lower, query)
+    if single then
+        local other = MatchScore(lower, single)
+        if other > score then score = other end
+    end
+    return score
+end
+
 --- Ranked search. Returns an array of { item, score, why, sources }.
 --
 -- `sources` is set when the item was found through some of its sources (a
@@ -59,8 +83,11 @@ function Search:Run(query)
     local world = WorldDrops and WorldDrops:IsEnabled() and WorldDrops.IsQuery(query)
     local harvest = world and (ns.Harvest and ns.Harvest.changes or 0) or nil
 
+    local found = self:FoundVersion()
+
     local last = self.lastRun
     if last and last.query == query and last.changes == ns.DB.changes
+        and last.found == found
         and last.names == ns.DB.namesVersion and last.hidden == ns.DB.hiddenVersion
         and last.harvest == harvest then
         self.hidHit = last.hidHit
@@ -75,12 +102,16 @@ function Search:Run(query)
     self.hidHit = false
     local hidesSources = ns.DB:HidesAny("source")
 
-    for item in ns.DB:Iterate() do
-        local score, why = MatchScore(item.name:lower(), query), "name"
+    -- "crates" finds Crate too. Only names are matched the shorter way: a
+    -- zone or a mob would turn "crates" into Un'Goro Crater.
+    local single = Search.Singular(query)
+
+    local function Consider(item)
+        local score, why = NameScore(item.name, query, single), "name"
         local matched
 
         for _, alias in ipairs(item.aliases) do
-            local aliasScore = MatchScore(alias:lower(), query)
+            local aliasScore = NameScore(alias, query, single)
             if aliasScore > score then
                 score, why = aliasScore, "name"
             end
@@ -88,7 +119,7 @@ function Search:Run(query)
 
         local clientName = ns.DB:ClientName(item)
         if clientName then
-            local clientScore = MatchScore(clientName:lower(), query)
+            local clientScore = NameScore(clientName, query, single)
             if clientScore > score then score, why = clientScore, "name" end
         end
 
@@ -149,6 +180,12 @@ function Search:Run(query)
         end
     end
 
+    for item in ns.DB:Iterate() do Consider(item) end
+
+    -- What you looted, gathered or fished that the data has never heard of
+    -- (Search:FoundItems): found the same way.
+    for _, item in ipairs(self:FoundItems()) do Consider(item) end
+
     table.sort(results, function(a, b)
         if a.score ~= b.score then return a.score > b.score end
         return a.item.name < b.item.name
@@ -158,8 +195,144 @@ function Search:Run(query)
     if worldItem then table.insert(results, 1, { item = worldItem, score = math.huge, why = "name" }) end
 
     self.lastRun = { query = query, changes = ns.DB.changes, names = ns.DB.namesVersion,
-        hidden = ns.DB.hiddenVersion, harvest = harvest, hidHit = self.hidHit, results = results }
+        hidden = ns.DB.hiddenVersion, harvest = harvest, found = found, hidHit = self.hidHit,
+        results = results }
     return results
+end
+
+--------------------------------------------------------------------------------
+-- Your own finds
+--
+-- The search reads the database: what ships with the addon, folded in from
+-- the owner's own play at each release, and the guild's rows. Anything a
+-- player loots, gathers or fishes that the data has never heard of (a crate
+-- Forever added, a drop off a new mob) was in their records but no search
+-- found it. So every item in the player's own harvest, gathering and
+-- fishing records that the database does not know becomes a result of its
+-- own, with the spots it came from. Built only when a search runs and the
+-- records moved, at most every FOUND_GAP seconds; nothing is saved and
+-- nothing is added to the database, so Rankings, the tooltips and the Grind
+-- tab never see it. Guild data never reaches it.
+--------------------------------------------------------------------------------
+
+Search.FOUND_GAP = 5
+-- A rate shows once this many corpses, gathers or casts are behind it, as
+-- the harvest's own export has it.
+Search.FOUND_SAMPLE = 20
+
+--- What the found items are built from: moves when a corpse, a gather or
+--- a cast is recorded, or the data or the client's names change.
+function Search:FoundVersion()
+    local key = ("%d:%d:%d:%d:%d"):format(
+        ns.Harvest and ns.Harvest.changes or 0,
+        ns.Gathering and ns.Gathering.clock or 0,
+        ns.Fishing and ns.Fishing.clock or 0,
+        ns.DB.changes or 0, ns.DB.namesVersion or 0)
+    local now = GetTime and GetTime() or 0
+    local built = self.found
+    if built and built.key ~= key and now - built.at < self.FOUND_GAP then
+        return built.key
+    end
+    return key
+end
+
+-- Gathering's kinds as the database names them.
+local GATHER_KIND = { herb = "herb", ore = "node" }
+
+local function Rate(part, whole)
+    part, whole = tonumber(part), tonumber(whole)
+    if not (part and whole and whole >= Search.FOUND_SAMPLE and part > 0) then return nil end
+    return math.min(100, part / whole * 100)
+end
+
+local function Coords(coords)
+    if type(coords) ~= "table" then return nil end
+    local x, y = tonumber(coords[1]), tonumber(coords[2])
+    if not (x and y and x >= 0 and x <= 100 and y >= 0 and y <= 100) then return nil end
+    return { x, y }
+end
+
+local function Text(value)
+    return type(value) == "string" and value ~= "" and value or nil
+end
+
+--- Every item in your own records the database does not know, as search
+--- items: { name, id, category, aliases, sources, found = true }.
+function Search:FoundItems()
+    local key = self:FoundVersion()
+    local built = self.found
+    if built and built.key == key then return built.items end
+
+    local items, byName = {}, {}
+    local DB = ns.DB
+    local Harvest = ns.Harvest
+
+    local function Add(name, id, source)
+        if type(name) ~= "string" or name == "" or type(source.zone) ~= "string" then return end
+        local item = byName[name]
+        if item == nil then
+            local known = DB:GetItem(name)
+            if known or (Harvest and Harvest.NameLooksLikeMoney and Harvest:NameLooksLikeMoney(name)) then
+                byName[name] = false
+                return
+            end
+            item = { name = name, id = tonumber(id), category = L["Your finds"],
+                aliases = {}, sources = {}, found = true }
+            byName[name] = item
+            items[#items + 1] = item
+        elseif item == false then
+            return
+        end
+        item.id = item.id or tonumber(id)
+        source.provenance = "forever"
+        item.sources[#item.sources + 1] = source
+    end
+
+    for _, record in pairs(Harvest and Harvest.records or {}) do
+        if type(record) == "table" and type(record.items) == "table" then
+            local mob = Harvest.ShowName and Harvest.ShowName(record.mob) or record.mob
+            for name, entry in pairs(record.items) do
+                if type(entry) == "table" then
+                    Add(name, entry.id, { kind = "mob", name = Text(mob), zone = Text(record.zone),
+                        location = Text(record.location), coords = Coords(record.coords),
+                        minLevel = tonumber(record.minLevel), maxLevel = tonumber(record.maxLevel),
+                        chance = Rate(entry.corpses, record.corpses) })
+                end
+            end
+        end
+    end
+
+    local gathering = ns.db and type(ns.db.gathering) == "table" and ns.db.gathering.nodes
+    for _, node in pairs(type(gathering) == "table" and gathering or {}) do
+        if type(node) == "table" and type(node.items) == "table" then
+            for name, entry in pairs(node.items) do
+                if type(entry) == "table" then
+                    Add(name, entry.id, { kind = GATHER_KIND[node.kind] or "container",
+                        name = Text(node.node), zone = Text(node.zone),
+                        location = Text(node.location), coords = Coords(node.coords),
+                        chance = Rate(entry.gathers, node.gathers) })
+                end
+            end
+        end
+    end
+
+    local fishing = ns.db and type(ns.db.fishing) == "table" and ns.db.fishing.spots
+    for _, spot in pairs(type(fishing) == "table" and fishing or {}) do
+        if type(spot) == "table" and type(spot.items) == "table" then
+            local school = ns.Fishing and ns.Fishing.SpotName and ns.Fishing.SpotName(spot) or spot.school
+            for name, entry in pairs(spot.items) do
+                if type(entry) == "table" then
+                    Add(name, entry.id, { kind = "fishing", name = Text(school), zone = Text(spot.zone),
+                        location = Text(spot.location), coords = Coords(spot.coords),
+                        chance = Rate(entry.casts, spot.casts) })
+                end
+            end
+        end
+    end
+
+    table.sort(items, function(a, b) return a.name < b.name end)
+    self.found = { key = key, at = GetTime and GetTime() or 0, items = items }
+    return items
 end
 
 --- An item's sources (or only `sources`, some of them), lowest level first,
