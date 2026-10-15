@@ -201,7 +201,7 @@ L["Shows what you have killed and what dropped. Same as /farm tracker."] = "Zeig
 L["Clear panel"] = "Fenster leeren"
 L["Click twice to empty the panel and start a new run. Your kill tallies, drop rates and Rankings are kept. Same as /farm tracker clear."] = "Klick zweimal, um das Fenster zu leeren und neu anzufangen. Deine Kill-Zähler, Dropchancen und Ranglisten bleiben. Wie /farm tracker clear."
 L["Between sessions"] = "Zwischen Sitzungen"
-L["The panel starts empty each time you log in or reload. Tick this to keep each character's kills and loot until you clear it. Your kill tallies, drop rates and Rankings are always kept. Same as /farm tracker keep."] = "Das Fenster startet bei jedem Einloggen oder Neuladen leer. Hak das an, um die Kills und Beute jedes Charakters zu behalten, bis du es leerst. Deine Kill-Zähler, Dropchancen und Ranglisten bleiben immer. Wie /farm tracker keep."
+L["The panel starts empty each time you log in. Tick this to keep your kills and loot until you clear it. Your kill counts and Rankings are always saved. Same as /farm tracker keep."] = "Das Fenster startet bei jedem Einloggen leer. Hak das an, um deine Kills und Beute zu behalten, bis du es leerst. Deine Kill-Zähler und Ranglisten bleiben immer gespeichert. Wie /farm tracker keep."
 L["Keep it"] = "Behalten"
 L["In a group"] = "In einer Gruppe"
 L["Moves the panel out of the way of the party and raid frames. Drag it while you're in a group to pick its spot. Same as /farm tracker group."] =
@@ -211,7 +211,7 @@ L["Chat report"] = "Chat-Bericht"
 L["One line per kill in your own chat window. Nobody else can see it. Same as /farm report."] = "Eine Zeile pro Kill in deinem eigenen Chatfenster. Niemand sonst sieht sie. Wie /farm report."
 L["Report kills"] = "Kills melden"
 L["Milestone fanfare"] = "Meilenstein-Fanfare"
-L["A sound and a cheer when a mob's 20th kill, a fishing spot's 20th cast or a node's 20th gather unlocks its rates. Same as /farm celebrate."] = "Ein Klang und Jubel, wenn der 20. Kill eines Gegners, der 20. Wurf an einem Angelplatz oder das 20. Sammeln an einem Vorkommen seine Chancen freischaltet. Wie /farm celebrate."
+L["A sound and a cheer when a mob reaches 20 kills, a fishing spot 20 casts or a node 20 gathers, and its rates show up. Same as /farm celebrate."] = "Ein Klang und Jubel, wenn ein Gegner 20 Kills, ein Angelplatz 20 Würfe oder ein Vorkommen 20 Sammelvorgänge erreicht und seine Chancen erscheinen. Wie /farm celebrate."
 L["Play it"] = "Abspielen"
 L["Rare drop sound"] = "Klang bei seltenem Drop"
 L["Voice lines"] = "Sprachzeilen"
@@ -1072,8 +1072,8 @@ L["Your best mobs by worth per kill, from your own kills."] = "Deine besten Gegn
 L["nothing on your board yet. Kill a mob %d times to rank it from your own loot."] = "noch nichts in deiner Rangliste. Töte einen Gegner %d Mal, um ihn nach deiner eigenen Beute einzustufen."
 L["Rank-up pop-up"] = "Aufstiegs-Fenster"
 L["Rank-up sound"] = "Aufstiegs-Klang"
-L["When a kill moves a mob onto your top 15 by worth per kill, or up it, the list pops up beside the panel for a few seconds to show the move. It never shows during a fight. Same as /farm rankup."] =
-    "Wenn ein Kill einen Gegner neu in deine Top 15 nach Wert pro Kill bringt oder darin aufsteigen lässt, erscheint die Liste ein paar Sekunden neben dem Fenster und zeigt den Aufstieg. Im Kampf erscheint sie nie. Wie /farm rankup."
+L["When a kill puts a mob on your top 15 or moves it up, the list pops up for a few seconds to show it. Never during a fight. Same as /farm rankup."] =
+    "Kommt ein Gegner durch einen Kill in deine Top 15 oder steigt darin auf, erscheint die Liste ein paar Sekunden und zeigt es. Nie im Kampf. Wie /farm rankup."
 L["A short chime as the mob lands in its new place. Only you hear it, and never on top of the milestone fanfare. Same as /farm rankup sound."] = "Ein kurzer Glockenton, wenn der Gegner an seinem neuen Platz landet. Nur du hörst ihn, und nie zugleich mit der Meilenstein-Fanfare. Wie /farm rankup sound."
 L["Shows your best mobs by worth per kill, from your own kills, the way the rank-up pop-up does. Same as /farm rankup show."] = "Zeigt deine besten Gegner nach Wert pro Kill, aus deinen eigenen Kills, so wie das Aufstiegs-Fenster. Wie /farm rankup show."
 L["a pop-up when a mob climbs your top 15 (on/off, sound on/off, show)"] = "ein Fenster, wenn ein Gegner in deinen Top 15 aufsteigt (on/off, sound on/off, show)"
@@ -1282,8 +1282,8 @@ L["the XP bar is back in its place, at its normal size."] = "die EP-Leiste ist w
 L["XP bar %s."] = "EP-Leiste %s."
 L["XP BAR"] = "EP-LEISTE"
 L["XP bar"] = "EP-Leiste"
-L["A bar that shows your level, what finished quests and rested XP are worth, and when you reach the next level at your pace. Hover it to see how to finish the level, and drag it to move it. Same as /farm xpbar."] =
-    "Eine Leiste mit deiner Stufe, was fertige Quests und Ausgeruht-EP wert sind und wann du bei deinem Tempo die nächste Stufe erreichst. Fahr mit der Maus darüber, um zu sehen, wie du die Stufe schaffst, und zieh sie, um sie zu verschieben. Wie /farm xpbar."
+L["A bar with your level, your quest and rested XP, and about when you'll level up. Hover it for tips to finish the level. Drag it to move it. Same as /farm xpbar."] =
+    "Eine Leiste mit deiner Stufe, deinen Quest- und Ausgeruht-EP und wann du etwa aufsteigst. Fahr mit der Maus darüber für Tipps zur Stufe. Zieh sie, um sie zu verschieben. Wie /farm xpbar."
 L["Level-up cheer"] = "Jubel beim Aufstieg"
 L["When you level up, a card shows how long the level took. Every tenth level gets a bigger one. Same as /farm xpbar cheer."] =
     "Beim Stufenaufstieg zeigt eine Karte, wie lange die Stufe gedauert hat. Jede zehnte Stufe bekommt eine größere. Wie /farm xpbar cheer."
@@ -1291,8 +1291,8 @@ L["Try it"] = "Ausprobieren"
 L["Chime every tenth"] = "Glöckchen je Zehntel"
 L["A soft chime as the bar crosses each tenth of the level. Same as /farm xpbar chime."] = "Ein leises Glöckchen, wenn die Leiste ein Zehntel der Stufe überschreitet. Wie /farm xpbar chime."
 L["Game's XP bar"] = "EP-Leiste des Spiels"
-L["Makes the game's own XP bar, and a reputation bar beside it, see-through while yours shows. Untick it to bring them back as they were. Same as /farm xpbar game."] =
-    "Macht die EP-Leiste des Spiels und eine Rufleiste daneben durchsichtig, solange deine zu sehen ist. Nimm den Haken weg, um sie wieder wie vorher zu zeigen. Wie /farm xpbar game."
+L["Hides the game's own XP and reputation bars while yours shows. Untick it to bring them back. Same as /farm xpbar game."] =
+    "Blendet die EP- und Rufleiste des Spiels aus, solange deine zu sehen ist. Nimm den Haken weg, um sie zurückzuholen. Wie /farm xpbar game."
 L["XP bar place"] = "Platz der EP-Leiste"
 L["Put it back"] = "Zurücksetzen"
 L["Puts the XP bar back at the top of the screen, at its normal size. Same as /farm xpbar reset."] = "Setzt die EP-Leiste oben auf den Bildschirm zurück, in normaler Größe. Wie /farm xpbar reset."
@@ -1305,7 +1305,7 @@ L["Best session cheer is on."] = "Jubel für die beste Sitzung ist an."
 L["Best session cheer is off."] = "Jubel für die beste Sitzung ist aus."
 L["Your best gold an hour yet: %s."] = "Dein bestes Gold pro Stunde bisher: %s."
 L["Best session cheer"] = "Jubel für die beste Sitzung"
-L["A line in chat and a chime when a session's gold an hour beats every one before it, once a session. Same as /farm charts cheer."] = "Eine Zeile im Chat und ein Klang, wenn das Gold pro Stunde einer Sitzung jede frühere schlägt, einmal pro Sitzung. Wie /farm charts cheer."
+L["A chime and a chat line when you beat your best gold an hour. Once a session. Same as /farm charts cheer."] = "Ein Klang und eine Chatzeile, wenn du dein bestes Gold pro Stunde schlägst. Einmal pro Sitzung. Wie /farm charts cheer."
 L["Your farming in charts: gold an hour by session, where it came from, your best mobs, luck, the days you farmed and your levels. Same as /farm charts."] = "Dein Farmen in Diagrammen: Gold pro Stunde je Sitzung, woher es kam, deine besten Gegner, Glück, die Tage, an denen du gefarmt hast, und deine Stufen. Wie /farm charts."
 L["Your farming at a glance."] = "Dein Farmen auf einen Blick."
 L["If you go five minutes without looting, that break doesn't count as farming time."] = "Wenn du fünf Minuten nichts plünderst, zählt diese Pause nicht als Farmzeit."
@@ -1530,8 +1530,8 @@ L["%s is your best farm now: %s a kill, %d%% more than %s."] = "%s ist jetzt dei
 L["%s is your best farm now: %s a kill."] = "%s ist jetzt dein bester Farmplatz: %s pro Kill."
 L["New prices from your auction scan moved your best mobs."] = "Neue Preise aus deinem Auktionshaus-Scan haben deine besten Gegner verschoben."
 L["After an auction scan"] = "Nach einem Auktionshaus-Scan"
-L["When new auction prices change the order of your top 15, it pops up and shuffles to the new order. If a different mob takes first place and is worth at least 10% more a kill, it's called out as your new top farm. Only mobs you've killed 20 times count. It plays the rank-up sound if that's on. Same as /farm topfarm."] =
-    "Wenn neue Auktionshauspreise die Reihenfolge deiner Top 15 ändern, erscheint die Liste und ordnet sich neu. Steht ein anderer Gegner vorn und bringt mindestens 10% mehr pro Kill, wird er als dein neuer bester Farmplatz gemeldet. Es zählen nur Gegner, die du 20 Mal getötet hast. Ist der Aufstiegston an, spielt er auch. Wie /farm topfarm."
+L["After an auction scan, your top 15 pops up and moves to match the new prices. If a new mob takes first place, Farmer tells you. Only mobs you've killed 20 times count. Same as /farm topfarm."] =
+    "Nach einem Auktionsscan erscheinen deine Top 15 und ordnen sich nach den neuen Preisen. Steht ein neuer Gegner vorn, sagt Farmer es dir. Es zählen nur Gegner, die du 20 Mal getötet hast. Wie /farm topfarm."
 L["after an auction scan, your top 15 shows its new order and calls out a new top farm. /farm topfarm off to stop."] =
     "nach einem Auktionshaus-Scan zeigen deine Top 15 ihre neue Reihenfolge und melden einen neuen besten Farmplatz. /farm topfarm off zum Abschalten."
 L["nothing shows after an auction scan. /farm topfarm on to bring it back."] = "nach einem Auktionshaus-Scan erscheint nichts. /farm topfarm on schaltet es wieder ein."
