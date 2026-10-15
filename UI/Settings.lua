@@ -947,6 +947,15 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.itemTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- What crafting a material pays for your time, from Tradeskills
+    -- (the owner said yes, 2026-10-15).
+    local craftRow = pages:Row("map", 1, L["Craft or sell"],
+        L["With Blackthornes Tradeskills, a material you farm shows what an hour of farming it pays sold as it is, and as the craft of yours that pays most. Same as /farm tooltip craft."])
+    controls.itemTooltipCraft = Widgets.CreateCheckbox(craftRow, L["Show it"], function(checked)
+        ns.ItemTooltip:SetCraftEnabled(checked)
+    end, true)
+    controls.itemTooltipCraft:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     local killRow = pages:Row("map", 1, L["Kill count"],
         L["Hover a mob to see how many you've killed. It's red until 20, then shows your kills and what one is worth. Same as /farm killcount."])
 
@@ -1224,6 +1233,7 @@ function SettingsUI:Refresh()
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
     controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)
     controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
+    controls.itemTooltipCraft:SetChecked(db.itemTooltipCraft ~= false)
     controls.killTooltip:SetChecked(db.killTooltip ~= false)
     controls.killTooltipDrops:SetChecked(db.killTooltipDrops ~= false)
     controls.questMobCount:SetChecked(db.questMobCount ~= false)

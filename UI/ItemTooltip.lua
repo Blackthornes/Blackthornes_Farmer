@@ -9,6 +9,20 @@
 -- your own loot added). Gear, greys and potions a mob happened to drop are
 -- left alone, since "farm it here" means nothing for them.
 --
+-- Under it, when Blackthornes Tradeskills knows a craft of yours that pays
+-- more for your time than selling the material (the owner said yes,
+-- 2026-10-15, from the craft or farm mockup), two lines from its Your time
+-- view, asked inside a pcall and read only:
+--
+--   Sold as it is                  7g 21s an hour
+--   As Greater Healing Potion     10g 94s an hour
+--
+--     _G.BlackthornesTS.CraftOrFarm:ForMaterial(itemID)
+--       -- { name, recipeID, perHour, rawPerHour }, or nil
+--
+-- Both are gold an hour of your own farming (Logic/Pace.lua). "Craft or
+-- sell" (itemTooltipCraft, on unless unticked, never rename it).
+--
 -- Hooked the way Tradeskills' and Equipment's tooltips are: retail's
 -- TooltipDataProcessor is what fires on Forever, the older OnTooltipSetItem
 -- script is hooked too in case, and a guard stops the line going on twice.
@@ -46,6 +60,14 @@ end
 
 function ItemTooltip:IsEnabled()
     return not (ns.db and ns.db.itemTooltip == false)
+end
+
+function ItemTooltip:CraftEnabled()
+    return not (ns.db and ns.db.itemTooltipCraft == false)
+end
+
+function ItemTooltip:SetCraftEnabled(on)
+    ns.db.itemTooltipCraft = on and true or false
 end
 
 --- Is this one of the tooltips the line belongs on?
@@ -163,6 +185,33 @@ function ItemTooltip:LineFor(item, player)
     return Util.Colored("accent", L["Farm: "]) .. Util.Colored("text", table.concat(parts, ", "))
 end
 
+--- Tradeskills' answer for a material: the craft that pays most an hour
+--- from farming it, when that beats selling it. Nil without Tradeskills.
+function ItemTooltip:CraftFor(itemID)
+    if not self:CraftEnabled() then return nil end
+    local ts = rawget(_G, "BlackthornesTS")
+    local craftOrFarm = type(ts) == "table" and Field(ts, "CraftOrFarm")
+    local ask = Field(craftOrFarm, "ForMaterial")
+    if type(ask) ~= "function" then return nil end
+    local ok, answer = pcall(ask, craftOrFarm, itemID)
+    if not ok or type(answer) ~= "table" then return nil end
+    if type(answer.name) ~= "string" or type(answer.perHour) ~= "number" then return nil end
+    return answer
+end
+
+--- The two lines under the farming line: { left, right, gold } each.
+function ItemTooltip:CraftLines(itemID)
+    local answer = self:CraftFor(itemID)
+    if not answer then return nil end
+    local lines = {}
+    if type(answer.rawPerHour) == "number" and answer.rawPerHour > 0 then
+        lines[#lines + 1] = { L["Sold as it is"], L.Format("%s an hour", ns.Value.Coins(answer.rawPerHour)) }
+    end
+    lines[#lines + 1] = { L.Format("As %s", answer.name),
+        L.Format("%s an hour", ns.Value.Coins(answer.perHour)), true }
+    return lines
+end
+
 -- Answers already worked out: [item name] = { line, at, zone }.
 local kept = {}
 
@@ -207,7 +256,7 @@ end
 --- Put the line on a tooltip.
 -- @return "added", "quiet" (nothing to say), "duplicate" or "noitem"
 function ItemTooltip:Decorate(tooltip, data)
-    if not self:IsEnabled() then return "quiet" end
+    if not self:IsEnabled() and not self:CraftEnabled() then return "quiet" end
     if not self:Wanted(tooltip) then return "quiet" end
     if self.writing then return "duplicate" end
 
@@ -223,15 +272,26 @@ function ItemTooltip:Decorate(tooltip, data)
     local item = self:Material(itemID)
     if not item then return "quiet" end
 
-    local line = self:CachedLine(item)
-    if not line then return "quiet" end
+    local line = self:IsEnabled() and self:CachedLine(item) or nil
+    local craft = not ns.DB:HidesItem(item) and self:CraftLines(itemID) or nil
+    if not line and not craft then return "quiet" end
 
     local addLine = Field(tooltip, "AddLine")
     if type(addLine) ~= "function" then return "noitem" end
 
     self.writing = true
     -- Wrapped, so a long zone name folds rather than stretching the tooltip.
-    pcall(addLine, tooltip, line, nil, nil, nil, true)
+    if line then pcall(addLine, tooltip, line, nil, nil, nil, true) end
+    local addDouble = Field(tooltip, "AddDoubleLine")
+    for _, pair in ipairs(craft or {}) do
+        local r, g, b = 0.8, 0.8, 0.8
+        if pair[3] then r, g, b = 1, 0.82, 0 end
+        if type(addDouble) == "function" then
+            pcall(addDouble, tooltip, pair[1], pair[2], r, g, b, r, g, b)
+        else
+            pcall(addLine, tooltip, pair[1] .. "  " .. pair[2], r, g, b, true)
+        end
+    end
     local show = Field(tooltip, "Show")
     if type(show) == "function" then pcall(show, tooltip) end
     self.writing = false
@@ -291,7 +351,18 @@ end
 -- "Hide skinning" moved: the kept lines were worked out under the other one.
 ns.DB.hideWatchers.tooltip = function() ItemTooltip.ForgetKept() end
 
-ns.RegisterCommand("tooltip", L["turn the farming line on material tooltips on or off"], function()
+ns.RegisterCommand("tooltip", L["turn the farming line on material tooltips on or off (craft [on|off] shows what crafting it pays)"], function(rest)
+    local word, choice = (rest or ""):lower():match("^%s*(%S*)%s*(%S*)")
+    if word == "craft" then
+        local on
+        if choice == "on" then on = true elseif choice == "off" then on = false
+        else on = not ItemTooltip:CraftEnabled() end
+        ItemTooltip:SetCraftEnabled(on)
+        ns.Print(on and L["craft or sell on material tooltips on."]
+            or L["craft or sell on material tooltips off. /farm tooltip craft brings it back."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
     ns.db.itemTooltip = not ItemTooltip:IsEnabled()
     ItemTooltip.ForgetKept()
     ns.Print(ItemTooltip:IsEnabled() and L["farming line on material tooltips on."]

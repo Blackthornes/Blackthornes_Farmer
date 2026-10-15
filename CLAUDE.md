@@ -72,6 +72,43 @@ it), since a goal counts one character's bags, so `Find` and `Set` act on
 the character playing. A goal saved before owners existed shows on every
 character until one gathers toward it or changes it.
 
+## Craft or farm (Tradeskills' Your time view)
+
+The owner said yes (2026-10-15, from a mockup) to weighing a craft's
+materials farmed against sold as they are and against bought. Tradeskills
+works it out (its `Logic/CraftOrFarm.lua`, the Profit tab's YOUR TIME
+view) and asks Farmer how long you take to farm one of a material, inside
+a pcall, read only:
+
+```lua
+_G.BlackthornesFarmer.Pace:ForItem(item)   -- item ID or name
+  -- { seconds, kind ("kill", "skin", "gather"), source, zone, samples,
+  --   perAction }, or nil and { samples } while too little is behind it
+```
+
+`Logic/Pace.lua` reads only the player's own play: kills at the mob's own
+pace (`Stats:SecondsPerKill`, never the average over every mob), skins
+(`skinLog`) at that pace, and gathers (`gathering.pace`), each source only
+once `MIN_SAMPLE` (20) are behind it; the fastest wins. Never a database
+rate and never guild data. Hidden items and sources are left out. Laid
+out once as a lookup by name, kept `KEEP` seconds. Tested in
+`tools/test_pace.lua`. Keep the call and fields stable; if one changes,
+change Tradeskills' `Logic/CraftOrFarm.lua` too.
+
+Back the other way, the material tooltip (`UI/ItemTooltip.lua`) adds
+"Sold as it is" and "As CRAFT", each gold an hour, under the farming line
+when Tradeskills names a craft that pays more for your time:
+
+```lua
+_G.BlackthornesTS.CraftOrFarm:ForMaterial(itemID)
+  -- { name, recipeID, perHour, rawPerHour }, or nil
+```
+
+"Craft or sell" under Tooltips on the Map & goals page
+(`itemTooltipCraft`, on unless unticked, never rename it) and `/farm
+tooltip craft [on|off]`. Tested in `tools/test_itemtooltip.lua`. Not yet
+seen in game.
+
 ## What Butler calls here
 
 Blackthornes Butler (`Blackthornes/Blackthornes_Butler`, 2026-10-10) tells

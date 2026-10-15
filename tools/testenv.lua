@@ -341,6 +341,7 @@ local FILES = {
     "Logic/Stats.lua",
     "Logic/Moments.lua",
     "Logic/Butler.lua",
+    "Logic/Pace.lua",
     "Logic/Spots.lua",
     "Logic/Arrow.lua",
     "Logic/TomTom.lua",
