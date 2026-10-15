@@ -33,8 +33,10 @@
 -- Open after loot (`autoOpen`, off unless ticked) opens the next one from
 -- addon code each time a loot window closes, out of combat, away from those
 -- places, with a free bag slot, and only once the test (/farm openbutton
--- test) found the game allows it (`openTest`). One it tried that stayed shut
--- is left for the session.
+-- test) found the game allows it (`openTest`). One that stays shut is tried
+-- again (the game can refuse one while a loot window is still closing) and
+-- left for the session only after `STRIKES` tries in a row; one that opens,
+-- or a click on the button, starts the count again.
 --
 -- "Open button" on the Loot page (`openButton`, on unless unticked) and
 -- /farm openbutton. Never rename `openButton`, `autoOpen` or `openTest`.
@@ -50,7 +52,9 @@ OpenButton.BUDGET = 40
 -- After the last bag event, how long before the bags are read.
 OpenButton.SETTLE = 0.3
 -- After a loot window closes, how long before the next one opens by itself.
-OpenButton.AUTO_DELAY = 0.4
+OpenButton.AUTO_DELAY = 1.0
+-- Tries in a row that stay shut before Open after loot leaves an item alone.
+OpenButton.STRIKES = 3
 -- How long the test waits for a loot window.
 OpenButton.TEST_WAIT = 1.5
 
@@ -58,7 +62,8 @@ OpenButton.TEST_WAIT = 1.5
 -- bag order, and how many items that is.
 OpenButton.queue = {}
 OpenButton.total = 0
--- Items Open after loot tried that stayed shut, this session.
+-- Items Open after loot tried that stayed shut, this session: [itemID] =
+-- tries in a row.
 OpenButton.tried = {}
 
 --------------------------------------------------------------------------------
@@ -302,12 +307,22 @@ function OpenButton:Scan(done)
     Step()
 end
 
+--- Open after loot has tried this one `STRIKES` times in a row and it stayed shut.
+function OpenButton:GaveUp(itemID)
+    return (self.tried[itemID] or 0) >= self.STRIKES
+end
+
+--- One more try that stayed shut.
+function OpenButton:Strike(itemID)
+    self.tried[itemID] = (self.tried[itemID] or 0) + 1
+end
+
 --- The next slot that still holds something to open, read again now, or nil.
 --- `skipTried` leaves out what Open after loot tried and could not open.
 function OpenButton:Next(skipTried)
     for _, item in ipairs(self.queue) do
         local entry = OpenButton.ReadSlot(item.bag, item.slot)
-        if entry and entry.itemID == item.itemID and not (skipTried and self.tried[entry.itemID])
+        if entry and entry.itemID == item.itemID and not (skipTried and OpenButton:GaveUp(entry.itemID))
             and OpenButton.Openable(entry) then
             return entry
         end
@@ -366,6 +381,8 @@ function OpenButton:Create()
             Clear(frame)
             return
         end
+        -- Opened by hand, so the game allows it: Open after loot tries again.
+        OpenButton.tried = {}
         frame:SetAttribute("type", "macro")
         frame:SetAttribute("macrotext", ("/use %d %d"):format(item.bag, item.slot))
     end)
@@ -459,17 +476,23 @@ function OpenButton:Test()
     end)
 end
 
---- A loot window closed: note what the last try did, then open the next.
-function OpenButton:LootClosed()
+--- Whether the last try opened: a strike when it stayed shut, a fresh count
+--- when it opened.
+function OpenButton:Settle()
     local last = self.last
     self.last = nil
-    if last then
-        local still = OpenButton.ReadSlot(last.bag, last.slot)
-        if still and still.itemID == last.itemID and still.count >= last.count then
-            -- It stayed shut, or its loot was left in it: not again by itself.
-            self.tried[last.itemID] = true
-        end
+    if not last then return end
+    local still = OpenButton.ReadSlot(last.bag, last.slot)
+    if still and still.itemID == last.itemID and still.count >= last.count then
+        self:Strike(last.itemID)
+    else
+        self.tried[last.itemID] = nil
     end
+end
+
+--- A loot window closed: note what the last try did, then open the next.
+function OpenButton:LootClosed()
+    self:Settle()
     if not (self:AutoOn() and self:TestResult() == "works") then return end
     C_Timer.After(self.AUTO_DELAY, function() OpenButton:OpenNext() end)
 end
@@ -487,11 +510,20 @@ function OpenButton:OpenNext()
         if InCombat() or OpenButton.Busy() or OpenButton.lootOpen then return end
         local item = OpenButton:Next(true)
         if not item then return end
-        OpenButton.last = { bag = item.bag, slot = item.slot, itemID = item.itemID, count = item.count }
+        local last = { bag = item.bag, slot = item.slot, itemID = item.itemID, count = item.count }
+        OpenButton.last = last
         if not pcall(use, item.bag, item.slot) then
-            OpenButton.tried[item.itemID] = true
+            OpenButton:Strike(item.itemID)
             OpenButton.last = nil
+            return
         end
+        -- The game can refuse it with no loot window at all ("internal loot
+        -- error"), and then no LOOT_CLOSED comes: look again a little later.
+        C_Timer.After(OpenButton.TEST_WAIT, function()
+            if OpenButton.last ~= last or OpenButton.lootOpen then return end
+            OpenButton:Settle()
+            OpenButton:OpenNext()
+        end)
     end)
     return true
 end

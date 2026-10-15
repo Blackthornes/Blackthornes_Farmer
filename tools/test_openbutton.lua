@@ -8,7 +8,8 @@
 --      aimed at one slot just before the click and at nothing after.
 --   3. Never in a fight (and off the panel then), nor at a vendor.
 --   4. Opening after loot runs only when ticked and the test said it works,
---      and leaves alone one that stayed shut.
+--      tries again one the game refused, and leaves alone one that stayed
+--      shut STRIKES times.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("openbutton")
@@ -179,14 +180,49 @@ Fire("LOOT_CLOSED")
 suite.check("never in a fight", #used == 0)
 _G.InCombatLockdown = nil
 
--- One that stays shut is left for the session.
+-- One that stays shut is tried again, and left only after STRIKES tries.
+-- Timers wait here until run, as the game's would.
+local timers = {}
+local realAfter = _G.C_Timer.After
+_G.C_Timer.After = function(_, fn) timers[#timers + 1] = fn end
+local function RunTimers()
+    local now = timers
+    timers = {}
+    for _, fn in ipairs(now) do fn() end
+end
 _G.C_Container.UseContainerItem = function(b, slot) used[#used + 1] = b .. ":" .. slot end
+bag[1] = { id = 7973, name = "Big-mouth Clam", count = 3, loot = true }
+bag[3] = { id = 5523, name = "Small Barnacled Clam", loot = true }
+Fire("BAG_UPDATE_DELAYED")
 used = {}
 Open.last = nil
+Open.tried = {}
 Fire("LOOT_CLOSED")
+RunTimers()
 suite.check("it tries the next", used[1] == "0:1", tostring(used[1]))
-Fire("LOOT_CLOSED")
-suite.check("one that stayed shut is left, the next is tried", used[2] == "0:3", tostring(used[2]))
+RunTimers()
+suite.check("no loot window came (the game's loot error): it looks again and tries once more",
+    used[2] == "0:1", tostring(used[2]))
+RunTimers()
+suite.check("a third time", used[3] == "0:1", tostring(used[3]))
+RunTimers()
+suite.check("then that one is left and the next is tried", used[4] == "0:3", tostring(used[4]))
+suite.check("having stayed shut three times", Open:GaveUp(7973))
+
+-- A click on the button lets Open after loot try it again.
+button._scripts.PreClick(button)
+button._scripts.PostClick(button)
+suite.check("opened by hand, it is tried again", not Open:GaveUp(7973))
+
+-- One that opens starts the count again.
+Open.tried = { [7973] = 2 }
+Open.last = { bag = 0, slot = 1, itemID = 7973, count = 3 }
+bag[1].count = 2
+Open:Settle()
+suite.check("one that opened clears its count", Open.tried[7973] == nil)
+bag[1].count = 3
+timers = {}
+_G.C_Timer.After = realAfter
 
 ns.db.openTest = { result = "blocked" }
 used = {}
