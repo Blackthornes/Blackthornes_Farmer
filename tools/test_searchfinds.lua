@@ -85,6 +85,47 @@ suite.check("an item the data knows is not listed twice", (function()
     return count == 1
 end)())
 
+-- A known item keeps its rows and gains the spots you found it.
+local linen = ns.DB:GetItem("Linen Cloth")
+local shipped = #linen.sources
+local linenResult
+for _, result in ipairs(Search:Run("linen cloth")) do
+    if result.item.name == "Linen Cloth" then linenResult = result.item end
+end
+local ghoul
+for _, source in ipairs(linenResult and linenResult.sources or {}) do
+    if source.name == "Ruin Ghoul" then ghoul = source end
+end
+suite.check("your own spot is added to an item the data knows", ghoul ~= nil)
+suite.check("with its rate", ghoul and math.abs(ghoul.chance - 30) < 0.01, ghoul and ghoul.chance)
+suite.check("the data's spots are all still there", linenResult and #linenResult.sources == shipped + 1,
+    linenResult and #linenResult.sources)
+suite.check("the database item is not changed", #linen.sources == shipped)
+suite.check("it keeps its Goal button", linenResult and not linenResult.found)
+
+-- A spot the data already lists is not listed twice.
+local first = linen.sources[1]
+ns.Harvest.records["dupe"] = {
+    mob = first.name, zone = first.zone, corpses = 30,
+    items = { ["Linen Cloth"] = { corpses = 3, count = 3, id = 2589 } },
+}
+ns.Harvest.changes = ns.Harvest.changes + 1
+Search.found = nil
+local twice = 0
+for _, result in ipairs(Search:Run("linen cloth")) do
+    if result.item.name == "Linen Cloth" then
+        for _, source in ipairs(result.item.sources) do
+            if source.kind == first.kind and source.name == first.name and source.zone == first.zone then
+                twice = twice + 1
+            end
+        end
+    end
+end
+suite.check("a spot the data has is listed once", twice == 1, twice)
+ns.Harvest.records["dupe"] = nil
+ns.Harvest.changes = ns.Harvest.changes + 1
+Search.found = nil
+
 suite.check("nothing is added to the database", ns.DB:GetItem("Sealed Supply Crate") == nil)
 
 suite.check("a find's mob finds it too", (function()
