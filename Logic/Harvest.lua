@@ -1257,6 +1257,140 @@ function Harvest:RecordCorpse()
 end
 
 --------------------------------------------------------------------------------
+-- Random suffixes
+--------------------------------------------------------------------------------
+
+-- Gear with a random suffix drops under its whole name, "Lead Band of the
+-- Monkey", "Lead Band of the Owl", so one green spread over its suffixes
+-- took far longer to reach a rate. A player asked (2026-10-15) for them to
+-- count as one item. The saved records are never rewritten: each suffix
+-- stays under its own name, and the readers below put them together under
+-- the item's own name (Harvest:GroupedItems, Tracker:Summary).
+
+-- When nothing else names the item (a tool reading the save, with no
+-- client): Classic's two-stat suffixes, the only ones a name alone can be
+-- trusted to end with.
+Harvest.ROLL_ANIMALS = {
+    Bear = true, Boar = true, Eagle = true, Falcon = true, Gorilla = true,
+    Monkey = true, Owl = true, Tiger = true, Whale = true, Wolf = true,
+}
+
+-- name -> the item's own name, or false for a name that is the item's own.
+Harvest.rollBase = {}
+
+--- The item's own name as the client gives it, or nil while it is not
+--- loaded; and as the data has it.
+local function OwnNames(id)
+    local client
+    local api = _G.C_Item
+    for _, get in ipairs({ type(api) == "table" and api.GetItemNameByID,
+        type(api) == "table" and api.GetItemInfo, _G.GetItemInfo }) do
+        if not client and type(get) == "function" then
+            local ok, name = pcall(get, id)
+            if ok and type(name) == "string" and name ~= "" then client = name .. "" end
+        end
+    end
+    local DB = ns.DB
+    local byID = DB and DB.ByID and DB:ByID()
+    local item = type(byID) == "table" and byID[id]
+    local data = type(item) == "table" and type(item.name) == "string" and item.name or nil
+    return client, data
+end
+
+-- A suffix follows the item's own name, in any language.
+local function Prefixes(own, name)
+    return type(own) == "string" and #own < #name and name:sub(1, #own + 1) == own .. " "
+end
+
+--- The item's own name when `name` is one of its random suffixes ("Lead
+--- Band" for "Lead Band of the Monkey"), else nil. `id` is the item ID the
+--- loot link gave. Kept per name once known.
+function Harvest.RollBase(name, id)
+    if type(name) ~= "string" then return nil end
+    local known = Harvest.rollBase[name]
+    if known ~= nil then return known or nil end
+
+    id = tonumber(id)
+    if not id then return nil end
+
+    local client, data = OwnNames(id)
+    local base
+    if client == name then
+        Harvest.rollBase[name] = false
+        return nil
+    elseif Prefixes(client, name) then
+        base = client
+    elseif Prefixes(data, name) then
+        base = data
+    else
+        -- The data can name the item by one of its suffixes (what was
+        -- harvested before), so only these two stats are read off the name.
+        local stem, animal = name:match("^(.+) of the (%a+)$")
+        if stem and Harvest.ROLL_ANIMALS[animal] then base = stem end
+    end
+
+    -- Only an answer is kept: an item the client has not loaded yet may
+    -- still name itself on the next look.
+    if base then
+        Harvest.rollBase[name] = base
+    elseif client then
+        Harvest.rollBase[name] = false
+    end
+    return base
+end
+
+-- Per record: its items with each item's suffixes put together, kept until
+-- the record's corpses move.
+local groupedCache = setmetatable({}, { __mode = "k" })
+
+--- A record's items with random suffixes counted as their item, as
+--- `record.items` is shaped ({ [name] = { name, id, count, corpses } }).
+--- The record's own table when it holds no suffix. Nothing is written.
+function Harvest:GroupedItems(record)
+    local items = type(record) == "table" and record.items
+    if type(items) ~= "table" then return {} end
+
+    local kept = groupedCache[record]
+    if kept and kept.corpses == record.corpses and kept.items == items then return kept.grouped end
+
+    local grouped, folded = nil, false
+    for name, entry in pairs(items) do
+        local base = type(entry) == "table" and Harvest.RollBase(name, entry.id)
+        if base then folded = true break end
+    end
+
+    if not folded then
+        grouped = items
+    else
+        grouped = {}
+        for name, entry in pairs(items) do
+            if type(entry) == "table" then
+                local key = Harvest.RollBase(name, entry.id) or name
+                local into = grouped[key]
+                if not into then
+                    into = { name = key, id = entry.id, count = 0, corpses = 0 }
+                    grouped[key] = into
+                end
+                into.id = into.id or entry.id
+                into.count = into.count + (tonumber(entry.count) or 0)
+                -- A corpse holds one suffix of an item, so corpses add up.
+                into.corpses = into.corpses + (tonumber(entry.corpses) or 0)
+                if key ~= name then into.suffixes = (into.suffixes or 0) + 1 end
+            end
+        end
+        -- A suffix and the item seen under its own name on one corpse
+        -- would count it twice; never more corpses than the record has.
+        for _, into in pairs(grouped) do
+            local most = tonumber(record.corpses)
+            if most and into.corpses > most then into.corpses = most end
+        end
+    end
+
+    groupedCache[record] = { corpses = record.corpses, items = items, grouped = grouped }
+    return grouped
+end
+
+--------------------------------------------------------------------------------
 -- Reading it back
 --------------------------------------------------------------------------------
 
@@ -1286,7 +1420,7 @@ function Harvest:ForItem(itemName)
     local rows = {}
 
     for _, record in pairs(self.records) do
-        local entry = record.items[itemName]
+        local entry = self:GroupedItems(record)[itemName]
 
         if entry then
             -- Not rounded: one in 300 is a third of a percent, not 0. Shown
@@ -1356,7 +1490,7 @@ function Harvest:Items()
     local items, order = {}, {}
 
     for _, record in pairs(self.records) do
-        for name, entry in pairs(record.items) do
+        for name, entry in pairs(self:GroupedItems(record)) do
             if not items[name] then
                 items[name] = { name = name, corpses = 0, count = 0 }
                 order[#order + 1] = items[name]

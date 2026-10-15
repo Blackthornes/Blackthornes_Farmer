@@ -344,15 +344,30 @@ function Tracker:Summary(mobName)
     -- (DB:HidesItem) are not among the drops shown. They stay in the tally.
     local DB = ns.DB
 
+    -- An item's random suffixes ("of the Monkey") count as the item
+    -- (Harvest.RollBase); the tally itself keeps each under its own name.
+    local byName = {}
     for name, corpses in pairs(type(mob.items) == "table" and mob.items or {}) do
         corpses = tonumber(corpses) or 0
-        if not (DB and DB:HidesItem(name)) then
-            items[#items + 1] = {
-                name = name,
-                corpses = corpses,
-                chance = kills > 0 and math.min(100, corpses / kills * 100) or 0,
-            }
+        local base = ns.Harvest and ns.Harvest.RollBase and ns.Harvest.RollBase(name, self:LookOf(name).id)
+        local key = base or name
+        if not (DB and (DB:HidesItem(key) or DB:HidesItem(name))) then
+            local item = byName[key]
+            if not item then
+                item = { name = key, corpses = 0 }
+                byName[key] = item
+                items[#items + 1] = item
+            end
+            item.corpses = item.corpses + corpses
+            if base then
+                item.suffixes = (item.suffixes or 0) + 1
+                Tracker.rollLooks[key] = Tracker.rollLooks[key] or name
+            end
         end
+    end
+    for _, item in ipairs(items) do
+        item.corpses = math.min(item.corpses, math.max(kills, 0))
+        item.chance = kills > 0 and math.min(100, item.corpses / kills * 100) or 0
     end
 
     table.sort(items, function(a, b)
@@ -693,9 +708,18 @@ function Tracker:NoteLook(slot, name, icon)
     end
 end
 
+-- An item's own name -> one of its random suffixes seen, whose look (icon,
+-- colour, ID) stands in for it (Tracker:Summary). In memory only.
+Tracker.rollLooks = {}
+
 function Tracker:LookOf(name)
-    local look = self:Looks()[name]
-    if type(look) ~= "table" then return {} end
+    local looks = self:Looks()
+    local look = looks[name]
+    if type(look) ~= "table" then
+        local suffix = name and Tracker.rollLooks[name]
+        look = suffix and looks[suffix]
+        if type(look) ~= "table" then return {} end
+    end
     return look
 end
 
