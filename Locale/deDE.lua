@@ -187,7 +187,7 @@ L["Text size"] = "Textgröße"
 L["Large and Larger make all of Farmer's text a little bigger. Takes effect after /reload."] =
     "Groß und Größer machen den ganzen Text von Farmer etwas größer. Wirkt nach /reload."
 L["Window style"] = "Fensterstil"
-L["Titanforged is the house look, with a gold rim and glowing edges. Blizzard uses the game's own frames, red buttons, tabs and tick boxes. Takes effect after /reload."] = "Titanforged ist der Hausstil, mit goldenem Rahmen und leuchtenden Kanten. Blizzard nutzt die spieleigenen Rahmen, roten Buttons, Reiter und Kästchen. Wirkt nach /reload."
+L["Titanforged has a gold rim and glowing edges. Blizzard looks like the game's own windows. Type /reload to see the change."] = "Titanforged hat einen goldenen Rand und leuchtende Kanten. Blizzard sieht aus wie die Fenster des Spiels. Tipp /reload, um die Änderung zu sehen."
 L["OPEN"] = "ÖFFNEN"
 L["Search window"] = "Suchfenster"
 L["Search for something to farm and see where it drops. Same as /farm on its own, or /farm and what you are after."] = "Such etwas zum Farmen und sieh, wo es droppt. Wie /farm allein, oder /farm und das, was du suchst."
