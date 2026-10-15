@@ -199,6 +199,10 @@ Open.last = nil
 Open.tried = {}
 Fire("LOOT_CLOSED")
 RunTimers()
+suite.check("it waits for the bags to take the loot first", #used == 0, tostring(used[1]))
+Fire("BAG_UPDATE_DELAYED")
+RunTimers()
+RunTimers()
 suite.check("it tries the next", used[1] == "0:1", tostring(used[1]))
 RunTimers()
 suite.check("no loot window came (the game's loot error): it looks again and tries once more",
@@ -208,6 +212,41 @@ suite.check("a third time", used[3] == "0:1", tostring(used[3]))
 RunTimers()
 suite.check("then that one is left and the next is tried", used[4] == "0:3", tostring(used[4]))
 suite.check("having stayed shut three times", Open:GaveUp(7973))
+
+-- With nothing for the bags to take, it goes on after BAG_WAIT.
+Open.tried = {}
+used = {}
+Fire("LOOT_CLOSED")
+RunTimers()
+RunTimers()
+suite.check("no bag update: it still goes on", used[1] == "0:1", tostring(used[1]))
+timers = {}
+Open.last = nil
+
+-- A window it opened is looted when the game's Auto Loot is on.
+local looted = {}
+_G.GetNumLootItems = function() return 2 end
+_G.LootSlot = function(slot) looted[#looted + 1] = slot end
+_G.GetCVarBool = function(name) return name == "autoLootDefault" end
+Open.last = { bag = 0, slot = 1, itemID = 7973, count = 3 }
+Fire("LOOT_OPENED")
+RunTimers()
+suite.check("it takes what the clam gave", #looted == 2, #looted)
+looted = {}
+Open.last = nil
+Fire("LOOT_CLOSED")
+Fire("LOOT_OPENED")
+RunTimers()
+suite.check("a window the player opened is left to them", #looted == 0, #looted)
+_G.GetCVarBool = function() return false end
+Open.last = { bag = 0, slot = 1, itemID = 7973, count = 3 }
+Fire("LOOT_OPENED")
+RunTimers()
+suite.check("and with Auto Loot off, nothing is taken", #looted == 0, #looted)
+Open.last = nil
+Fire("LOOT_CLOSED")
+timers = {}
+_G.GetNumLootItems, _G.LootSlot, _G.GetCVarBool = nil, nil, nil
 
 -- A click on the button lets Open after loot try it again.
 button._scripts.PreClick(button)
