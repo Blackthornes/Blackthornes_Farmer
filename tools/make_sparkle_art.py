@@ -2,6 +2,9 @@
 face: a four-pointed star of light with a smaller, fainter cross turned 45
 degrees and a soft glow at its heart; and Media/Frame/Beacon.tga, the
 other look: a tall beam of light, brightest at its foot, fading upward.
+Also two small marks the kills panel and its banners use: Heart.tga, a
+soft heart that floats up the panel, and Laurel.tga, a laurel branch on
+each side (left half, right half) that sits round a crown.
 
     python tools/make_sparkle_art.py
 
@@ -21,6 +24,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "Media", "Frame", "Sparkle.tga")
 BEACON = os.path.join(ROOT, "Media", "Frame", "Beacon.tga")
 BEACON_W, BEACON_H = 32, 256
+HEART = os.path.join(ROOT, "Media", "Frame", "Heart.tga")
+LAUREL = os.path.join(ROOT, "Media", "Frame", "Laurel.tga")
+LAUREL_W, LAUREL_H = 128, 64
 
 # The long rays reach the edge; the short ones reach this far of it.
 SHORT = 0.55
@@ -63,6 +69,68 @@ def beam(x, y):
     return min(1.0, (core + haze) * rise * foot)
 
 
+def heart(x, y):
+    """0 to 1 at a point of the heart, x and y from -1 to 1, point down."""
+    x, y = x * 1.35, y * 1.35 - 0.12
+    inside = (x * x + y * y - 1) ** 3 - x * x * y ** 3
+    if inside > 0:
+        return 0.0
+    # A little lighter in the middle, so the game's tint reads as glossy.
+    return min(1.0, 0.85 + 0.15 * math.exp(-((x + 0.35) ** 2 + (y - 0.35) ** 2) / 0.08))
+
+
+def leaf(x, y, cx, cy, angle, length, width):
+    """1 inside a pointed leaf centred on (cx, cy), lying along `angle`."""
+    dx, dy = x - cx, y - cy
+    u = dx * math.cos(angle) + dy * math.sin(angle)
+    v = -dx * math.sin(angle) + dy * math.cos(angle)
+    along = u / length
+    if abs(along) >= 1:
+        return 0.0
+    half = width * (1 - along * along)
+    return 1.0 if abs(v) < half else 0.0
+
+
+def branch(x, y):
+    """0 to 1 at a point of the left branch, x and y from 0 to 1, y up: a
+    stem curving up the left side from the foot, leaves along it."""
+    cx, cy, rx, ry = 1.0, 0.53, 0.7, 0.37
+    low, high = -1.75, -4.25
+
+    def at(ang):
+        return cx + rx * math.cos(ang), cy + ry * math.sin(ang)
+
+    value = 0.0
+    # The stem, by its nearest point.
+    for i in range(41):
+        px, py = at(low + (high - low) * i / 40)
+        if math.hypot(x - px, y - py) < 0.03:
+            value = 1.0
+            break
+    # Leaves on both sides of it, bigger near the foot.
+    steps = 6
+    for i in range(steps):
+        t = i / (steps - 1)
+        ang = low + (high - low) * t
+        px, py = at(ang)
+        tangent = math.atan2(ry * math.cos(ang), -rx * math.sin(ang))
+        normal = tangent - math.pi / 2
+        size = 0.14 - 0.035 * t
+        for side in (-1, 1):
+            lx = px + side * 0.075 * math.cos(normal)
+            ly = py + side * 0.075 * math.sin(normal)
+            value = max(value, leaf(x, y, lx, ly, tangent + math.pi + side * 0.55, size, size * 0.42))
+    return value
+
+
+def laurel(u, v):
+    """The two branches side by side: the left in the left half, the right
+    its mirror in the right half."""
+    if u < 0.5:
+        return branch(u * 2, v)
+    return branch((1 - u) * 2, v)
+
+
 def write(path, width, height, shade):
     pixels = []
     # TGA rows run bottom up (descriptor 8), so row 0 is the foot.
@@ -85,6 +153,8 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     write(OUT, SIZE, SIZE, lambda u, v: light(u * 2 - 1, v * 2 - 1))
     write(BEACON, BEACON_W, BEACON_H, lambda u, v: beam(u * 2 - 1, v))
+    write(HEART, SIZE, SIZE, lambda u, v: heart(u * 2 - 1, v * 2 - 1))
+    write(LAUREL, LAUREL_W, LAUREL_H, laurel)
 
 
 if __name__ == "__main__":

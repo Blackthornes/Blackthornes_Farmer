@@ -69,6 +69,27 @@ local function Color(key, fallback)
     return fallback[1], fallback[2], fallback[3]
 end
 
+--- The tooltip's line for a mob with `kills` of yours, and its colour.
+--- Nil below the 250th.
+function KillTooltip.MarkLine(kills)
+    kills = tonumber(kills) or 0
+    local T = ns.Tracker
+    if kills >= T.BANE_KILLS then return L["Bane of its kind"], 1, 0.5, 0 end
+    if kills >= T.SLAYER_KILLS then return L["Slayer of its kind"], 1, 0.8, 0.27 end
+    if kills >= T.LAUREL_KILLS then return L["They know your name."], 0.8, 0.84, 0.9 end
+    return nil
+end
+
+--- A unit that is alive, as far as the client will say. A dead one, or one
+--- it will not say, is not.
+function KillTooltip.Alive(unit)
+    if not unit or type(UnitIsDead) ~= "function" then return false end
+    local ok, dead = pcall(UnitIsDead, unit)
+    if not ok then return false end
+    local readable, answer = pcall(function() return dead == false or dead == nil end)
+    return readable and answer or false
+end
+
 function KillTooltip:IsEnabled()
     return not (ns.db and ns.db.killTooltip == false)
 end
@@ -342,9 +363,12 @@ function KillTooltip:Decorate(tooltip, data)
 
     self.writing = true
     pcall(addLine, tooltip, text, r, g, b)
-    -- The 1000th kill's mark, in legendary orange.
-    if KillTooltip.Kills(name) >= ns.Tracker.BANE_KILLS then
-        pcall(addLine, tooltip, L["Bane of its kind"], 1, 0.5, 0)
+    -- The marks of the milestones: its name known at 250, Slayer at 500,
+    -- Bane at 1000 in legendary orange; from 750 a live one trembles.
+    local mark, mr, mg, mb = KillTooltip.MarkLine(KillTooltip.Kills(name))
+    if mark then pcall(addLine, tooltip, mark, mr, mg, mb) end
+    if KillTooltip.Kills(name) >= ns.Tracker.FEAR_KILLS and KillTooltip.Alive(unit) then
+        pcall(addLine, tooltip, L["It trembles at the sight of you."], 0.8, 0.6, 0.95)
     end
     -- The drops that add most to a kill.
     if self:DropsEnabled() then

@@ -9,3 +9,5 @@ license.
 - `rank-up.ogg`: a mob climbs your top 15, or joins it.
 - `xp-tick.ogg`: each tenth of a level crossed on the XP bar.
 - `top-farm.ogg`: an auction scan puts a new mob first on your board.
+- `cute.ogg`, `laurel.ogg`, `slayer.ogg`, `beast.ogg`, `fear.ogg`: small
+  surprises along the way while you farm.

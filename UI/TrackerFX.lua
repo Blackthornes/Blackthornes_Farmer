@@ -113,6 +113,24 @@ local MOTES = 36
 local GLOW_ART = ([[Interface\AddOns\%s\Media\Frame\Glow]]):format(ADDON or "Blackthornes_Farmer")
 TrackerFX.TAKEOVER = TAKEOVER
 
+-- Kill milestones between the 100th and the 1000th (2026-10-15): hearts
+-- floating up the panel at 200, the Slayer sweep across the screen at 500
+-- and the screen's edge flickering red at a beast's 666th.
+local HEARTS = 14
+local HEART_ART = ([[Interface\AddOns\%s\Media\Frame\Heart]]):format(ADDON or "Blackthornes_Farmer")
+local HEART_RISE = 2.2
+local HEART_STAGGER = 1.4
+local HEART_PINK = { 1, 0.55, 0.75 }
+local SPARK_ART = ([[Interface\AddOns\%s\Media\Frame\Sparkle]]):format(ADDON or "Blackthornes_Farmer")
+local SPARKS_OUT = 18
+local SPARK_TIME = 1.3
+local SLAYER_TIME = 4.2
+local SLAYER_DIM = 0.3
+local EDGE_TIME = 1.2
+local EDGE_SIZE = 180
+TrackerFX.SLAYER_TIME = SLAYER_TIME
+TrackerFX.EDGE_TIME = EDGE_TIME
+
 -- What the banner says when its whole title will not fit a narrow panel.
 local SHORT_TITLE = L["RATES UNLOCKED"]
 
@@ -123,6 +141,9 @@ local FLARE_TIME = 1.4
 
 -- A streak floats a cheer at every this many kills.
 local STREAK_CHEER = 5
+
+-- The soft glow art on a texture of `parent`; defined below, with the takeover.
+local Glow
 
 -- What a float says ahead of a drop's name, by quality.
 local CHEERS = { [2] = L["Nice!"], [3] = L["Rare!"], [4] = L["Epic!"], [5] = L["Legendary!"] }
@@ -141,7 +162,9 @@ local VOICE_QUALITY = 3
 -- for a goal reached (the owner picked both, 2026-10-12), and Whitemane's
 -- "Arise, my champion!" for a mob's 100th kill (2026-10-13). Each waits
 -- VOICE_GAP seconds before it can play again, so it stays a treat.
-TrackerFX.VOICE = { drop = 550785, goal = 558132, champion = 551838, bane = 558795 }
+-- A beast's 666th kill gets a low, dark laugh (2026-10-15).
+TrackerFX.VOICE = { drop = 550785, goal = 558132, champion = 551838, bane = 558795,
+    beast = 542595 }
 local VOICE_GAP = 180
 
 -- Each row's wash, and which float labels are in the air, kept here rather
@@ -1036,9 +1059,10 @@ end
 --- it at: whole and large if it fits, else whole a size down, else the
 --- short "RATES UNLOCKED". "GATHER RATES UNLOCKED" in large outlined
 --- capitals needs more room than a narrow panel has, and ended in "...".
-function TrackerFX.FitTitle(title, room)
+function TrackerFX.FitTitle(title, room, short)
+    short = short or SHORT_TITLE
     local tries = { { title, "large" }, { title, "normal" },
-        { SHORT_TITLE, "large" }, { SHORT_TITLE, "normal" } }
+        { short, "large" }, { short, "normal" }, { short, "small" } }
 
     for _, try in ipairs(tries) do
         -- The outline takes a pixel each side.
@@ -1046,7 +1070,7 @@ function TrackerFX.FitTitle(title, room)
             return try[1], Theme.sizes[try[2]]
         end
     end
-    return SHORT_TITLE, Theme.sizes.normal
+    return short, Theme.sizes.small or Theme.sizes.normal
 end
 
 --- The glow round the panel flares and settles back, the way a window's
@@ -1071,13 +1095,21 @@ function TrackerFX:Unlocked(info)
 
     -- The 1000th takes the whole screen, panel or no panel, and needs no
     -- banner of its own on the panel.
-    if info.bane then
-        if level == "full" then self:Takeover(info) end
-        if ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown() then
-            self:Flare()
-            self:PulseUnlocked(info)
-        end
+    -- A beast's 666th: no banner, only the screen's edge, panel or none.
+    if info.beast then
+        if level == "full" then self:RedEdge() end
         return
+    end
+
+    if info.bane or info.slayer then
+        if level == "full" then self:Takeover(info) end
+        if info.bane then
+            if ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown() then
+                self:Flare()
+                self:PulseUnlocked(info)
+            end
+            return
+        end
     end
     if not (ns.TrackerUI and ns.TrackerUI.frame and ns.TrackerUI.frame:IsShown()) then return end
 
@@ -1098,7 +1130,10 @@ function TrackerFX:Unlocked(info)
     width = ok and tonumber(width) or 200
 
     -- Its labels run 6 pixels in from each side.
-    local title, size = TrackerFX.FitTitle(info.title or SHORT_TITLE, width - 12)
+    -- A milestone's title never turns into "RATES UNLOCKED": it goes a size
+    -- down instead.
+    local title, size = TrackerFX.FitTitle(info.title or SHORT_TITLE, width - 12,
+        info.own and info.title or nil)
     pcall(banner.title.SetFont, banner.title, Theme.FONT, size, "OUTLINE")
     banner.title:SetText(title)
     banner.subject:SetText(TrackerFX.FitSubject(info.subject or "", width - 12))
@@ -1150,6 +1185,178 @@ function TrackerFX:Unlocked(info)
         self:CoinRain()
         self:Burn()
     end
+    if info.cute then self:Hearts() end
+    if info.slayer then self:SparkBurst() end
+end
+
+--- Pink hearts float up the panel from its foot, swaying, and fade.
+function TrackerFX:Hearts()
+    local panel = ns.TrackerUI.frame
+
+    local hearts = self.hearts
+    if not hearts then
+        hearts = CreateFrame("Frame", nil, panel)
+        hearts:SetAllPoints(panel)
+        hearts:SetFrameLevel(panel:GetFrameLevel() + 14)
+        hearts.list = {}
+        for index = 1, HEARTS do
+            local heart = hearts:CreateTexture(nil, "OVERLAY")
+            heart:SetTexture(HEART_ART)
+            pcall(heart.SetVertexColor, heart, HEART_PINK[1], HEART_PINK[2], HEART_PINK[3])
+            hearts.list[index] = heart
+        end
+        self.hearts = hearts
+    end
+
+    local okW, width = pcall(panel.GetWidth, panel)
+    local okH, height = pcall(panel.GetHeight, panel)
+    width = okW and tonumber(width) or 200
+    height = okH and tonumber(height) or 300
+
+    for index, heart in ipairs(hearts.list) do
+        heart.x = (index - 0.5) / HEARTS * width + math.random(-10, 10)
+        heart.delay = math.random() * HEART_STAGGER
+        heart.size = 10 + math.random(0, 8)
+        heart.sway = math.random() * 6.28
+        heart:SetSize(heart.size, heart.size)
+        heart:Hide()
+    end
+    hearts:Show()
+
+    local total = HEART_STAGGER + HEART_RISE
+    self:Start({ slot = "hearts", duration = total,
+        apply = function(p)
+            local now = p * total
+            for _, heart in ipairs(hearts.list) do
+                local t = (now - heart.delay) / HEART_RISE
+                if t < 0 or t >= 1 then
+                    heart:Hide()
+                else
+                    local y = height * 0.15 + height * 0.7 * t
+                    heart:ClearAllPoints()
+                    heart:SetPoint("CENTER", hearts, "BOTTOMLEFT",
+                        heart.x + 8 * math.sin(t * 6 + heart.sway), y)
+                    -- A little pop as it appears, then up and away.
+                    local grow = t < 0.12 and t / 0.12 or 1
+                    heart:SetSize(heart.size * grow, heart.size * grow)
+                    heart:SetAlpha(t > 0.6 and (1 - t) / 0.4 or 1)
+                    heart:Show()
+                end
+            end
+            if p >= 1 then hearts:Hide() end
+        end,
+        stop = function() hearts:Hide() end })
+end
+
+--- Gold sparks burst out of the panel's middle in every direction and fade.
+function TrackerFX:SparkBurst()
+    local panel = ns.TrackerUI.frame
+
+    local burst = self.burst
+    if not burst then
+        burst = CreateFrame("Frame", nil, panel)
+        burst:SetAllPoints(panel)
+        burst:SetFrameLevel(panel:GetFrameLevel() + 14)
+        burst.list = {}
+        for index = 1, SPARKS_OUT do
+            local spark = burst:CreateTexture(nil, "OVERLAY")
+            spark:SetTexture(SPARK_ART)
+            pcall(spark.SetBlendMode, spark, "ADD")
+            pcall(spark.SetVertexColor, spark, BRIGHT_GOLD[1], BRIGHT_GOLD[2], BRIGHT_GOLD[3])
+            burst.list[index] = spark
+        end
+        self.burst = burst
+    end
+
+    local okW, width = pcall(panel.GetWidth, panel)
+    local okH, height = pcall(panel.GetHeight, panel)
+    width = okW and tonumber(width) or 200
+    height = okH and tonumber(height) or 300
+
+    for index, spark in ipairs(burst.list) do
+        spark.angle = (index - 1) / SPARKS_OUT * 2 * math.pi + math.random() * 0.3
+        spark.reach = 0.6 + math.random() * 0.6
+        spark.size = 14 + math.random(0, 10)
+        spark:Hide()
+    end
+    burst:Show()
+
+    self:Start({ slot = "burst", duration = SPARK_TIME,
+        apply = function(p)
+            local out = EaseOut(p)
+            for _, spark in ipairs(burst.list) do
+                local dx = math.cos(spark.angle) * width * 0.6 * spark.reach * out
+                local dy = math.sin(spark.angle) * height * 0.35 * spark.reach * out
+                spark:ClearAllPoints()
+                spark:SetPoint("CENTER", burst, "CENTER", dx, dy)
+                spark:SetSize(spark.size * (1 - 0.5 * p), spark.size * (1 - 0.5 * p))
+                spark:SetAlpha(1 - p)
+                spark:Show()
+            end
+            if p >= 1 then burst:Hide() end
+        end,
+        stop = function() burst:Hide() end })
+end
+
+--- A beast's 666th kill: the edges of the screen flicker red for a moment.
+--- Its own frame over everything, taking no mouse.
+function TrackerFX:RedEdge()
+    local edge = self.edge
+    if not edge then
+        edge = CreateFrame("Frame", nil, UIParent)
+        edge:SetAllPoints(UIParent)
+        pcall(edge.SetFrameStrata, edge, "FULLSCREEN_DIALOG")
+        edge:EnableMouse(false)
+
+        -- Each side a strip of the soft glow, brightest at the screen's edge.
+        local sides = {
+            { "TOPLEFT", "TOPRIGHT", 0.49, 0.51, 0.5, 1, height = true },
+            { "BOTTOMLEFT", "BOTTOMRIGHT", 0.49, 0.51, 0, 0.5, height = true },
+            { "TOPLEFT", "BOTTOMLEFT", 0.5, 1, 0.49, 0.51 },
+            { "TOPRIGHT", "BOTTOMRIGHT", 0, 0.5, 0.49, 0.51 },
+        }
+        edge.strips = {}
+        for index, side in ipairs(sides) do
+            local strip = Glow(edge, "ARTWORK")
+            pcall(strip.SetTexCoord, strip, side[3], side[4], side[5], side[6])
+            strip:SetVertexColor(0.9, 0.05, 0.05)
+            strip:SetPoint(side[1], edge, side[1], 0, 0)
+            strip:SetPoint(side[2], edge, side[2], 0, 0)
+            if side.height then strip:SetHeight(EDGE_SIZE) else strip:SetWidth(EDGE_SIZE) end
+            edge.strips[index] = strip
+        end
+
+        edge:SetScript("OnUpdate", function(frame, elapsed)
+            local ok, err = pcall(TrackerFX.StepEdge, TrackerFX, elapsed)
+            if not ok then
+                frame:Hide()
+                ns.Debug("red edge dropped:", tostring(err))
+            end
+        end)
+        edge:Hide()
+        self.edge = edge
+    end
+
+    edge.age = 0
+    edge:Show()
+    self:StepEdge(0)
+end
+
+function TrackerFX:StepEdge(elapsed)
+    local edge = self.edge
+    if not edge then return end
+    edge.age = edge.age + (tonumber(elapsed) or 0)
+    local t = edge.age
+
+    if t >= EDGE_TIME then
+        edge:Hide()
+        return
+    end
+
+    -- Three quick flickers, each a little weaker, never a hard strobe.
+    local beat = math.abs(math.sin(t / EDGE_TIME * 3 * math.pi))
+    local alpha = 0.75 * beat * (1 - 0.5 * t / EDGE_TIME)
+    for _, strip in ipairs(edge.strips) do strip:SetAlpha(alpha) end
 end
 
 --- Coins tumble down the panel, a few at a time, and fade near its foot.
@@ -1337,7 +1544,7 @@ function TrackerFX.Plural(name)
     return name .. "s"
 end
 
-local function Glow(parent, layer)
+Glow = function(parent, layer)
     local texture = parent:CreateTexture(nil, layer or "ARTWORK")
     texture:SetTexture(GLOW_ART)
     pcall(texture.SetBlendMode, texture, "ADD")
@@ -1417,14 +1624,18 @@ function TrackerFX:Stage()
     return stage
 end
 
---- The 1000th kill: `info` is the fanfare's, with `mob` and `kills`.
+--- The 1000th kill: `info` is the fanfare's, with `mob` and `kills`. The
+--- 500th (`info.slayer`) borrows the same stage, lighter: the screen only
+--- a little dimmed, no rays or motes, and the words sweep in from the left.
 function TrackerFX:Takeover(info)
     local stage = self:Stage()
     local mob = info.mob or ""
 
-    stage.top:SetText(L["BANE OF THE"])
+    stage.slayer = info.slayer and true or false
+    stage.length = stage.slayer and SLAYER_TIME or TAKEOVER
+    stage.top:SetText(stage.slayer and L["SLAYER OF"] or L["BANE OF THE"])
     stage.big:SetText(TrackerFX.Plural(mob):upper())
-    stage.sub:SetText(L.Format("%d kills", info.kills or 1000))
+    stage.sub:SetText(L.Format("%d kills", info.kills or (stage.slayer and 500 or 1000)))
 
     local okW, width = pcall(stage.GetWidth, stage)
     local okH, height = pcall(stage.GetHeight, stage)
@@ -1452,35 +1663,45 @@ function TrackerFX:StepStage(elapsed)
     if not stage then return end
     stage.age = stage.age + (tonumber(elapsed) or 0)
     local t = stage.age
+    local length = stage.length or TAKEOVER
+    local slayer = stage.slayer
 
-    if t >= TAKEOVER then
+    if t >= length then
         stage:Hide()
         return
     end
 
     -- In over half a second, held, then out over the last second.
-    local fade = t > TAKEOVER - 1 and Clamp(TAKEOVER - t) or 1
+    local fade = t > length - 1 and Clamp(length - t) or 1
     local dim = EaseOut(Clamp(t / 0.5)) * fade
 
-    stage.flash:SetAlpha(0.8 * Clamp(1 - t / 0.35))
-    stage.dim:SetAlpha(DIM * dim)
+    stage.flash:SetAlpha((slayer and 0.35 or 0.8) * Clamp(1 - t / 0.35))
+    stage.dim:SetAlpha((slayer and SLAYER_DIM or DIM) * dim)
 
     for _, ray in ipairs(stage.rays) do
         pcall(ray.SetRotation, ray, ray.angle + t * 0.25)
-        ray:SetAlpha(0.3 * dim)
+        ray:SetAlpha(slayer and 0 or 0.3 * dim)
     end
 
     for _, mote in ipairs(stage.motes) do
         local y = (mote.y + t * mote.speed) % stage.height
         mote:ClearAllPoints()
         mote:SetPoint("CENTER", stage, "BOTTOMLEFT", mote.x, y)
-        mote:SetAlpha(dim * (0.5 + 0.5 * math.sin(t * 6 + mote.phase)))
+        mote:SetAlpha(slayer and 0 or dim * (0.5 + 0.5 * math.sin(t * 6 + mote.phase)))
     end
 
-    -- The title lands from a little larger, then fades with the rest.
     local land = EaseOut(Clamp((t - 0.2) / 0.6))
-    stage.holder:SetScale(1.35 - 0.35 * land)
-    stage.holder:SetAlpha(Clamp((t - 0.2) / 0.5) * (t > TAKEOVER - 1.2 and Clamp((TAKEOVER - 0.2 - t)) or 1))
+    stage.holder:ClearAllPoints()
+    if slayer then
+        -- The words sweep in from the left and settle in the middle.
+        stage.holder:SetScale(1)
+        stage.holder:SetPoint("CENTER", stage, "CENTER", -(stage.width or 1920) * (1 - land), 40)
+    else
+        -- The title lands from a little larger, then fades with the rest.
+        stage.holder:SetScale(1.35 - 0.35 * land)
+        stage.holder:SetPoint("CENTER", stage, "CENTER", 0, 40)
+    end
+    stage.holder:SetAlpha(Clamp((t - 0.2) / 0.5) * (t > length - 1.2 and Clamp((length - 0.2 - t)) or 1))
 
     -- A light crosses the letters once.
     local sweep = (t - 1.1) / 0.9

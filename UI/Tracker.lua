@@ -24,7 +24,7 @@
 -- session to the next. Drag it if the left edge is busy. In a party or raid it
 -- steps aside from the group frames (see "In a group" at the bottom).
 
-local _, ns = ...
+local ADDON, ns = ...
 local L = ns.L
 
 local TrackerUI = ns.NewModule("TrackerUI")
@@ -138,6 +138,39 @@ TrackerUI.CROWN = CROWN
 local LEGENDARY_CROWN = [[|TInterface\GroupFrame\UI-Group-LeaderIcon:0:0:0:0:16:16:0:16:0:16:255:150:40|t]]
 TrackerUI.LEGENDARY_CROWN = LEGENDARY_CROWN
 local LEGENDARY = "ffff8000"
+-- On the way (2026-10-15): from 250 kills a laurel branch each side of the
+-- crown, silver, gold from 500; from 750 the crown warms toward orange; at
+-- 1000 the laurel turns legendary with it. Our own art, tinted here.
+local LAUREL_ART = ([[Interface\AddOns\%s\Media\Frame\Laurel]]):format(ADDON or "Blackthornes_Farmer")
+local function LaurelSide(left, r, g, b)
+    return ("|T%s:0:0:0:0:128:64:%d:%d:0:64:%d:%d:%d|t"):format(LAUREL_ART,
+        left and 0 or 64, left and 64 or 128, r, g, b)
+end
+local SILVER = { 205, 215, 230 }
+local GOLD = { 255, 205, 70 }
+local ORANGE = { 255, 150, 40 }
+local WARM_CROWN = [[|TInterface\GroupFrame\UI-Group-LeaderIcon:0:0:0:0:16:16:0:16:0:16:255:200:110|t]]
+TrackerUI.WARM_CROWN = WARM_CROWN
+
+--- The crown and laurel after a mob's name for `kills` of it, and whether
+--- the name is drawn in legendary orange. Nil below the 100th.
+function TrackerUI.MarkFor(kills)
+    kills = tonumber(kills) or 0
+    local T = ns.Tracker
+    if kills < T.CHAMPION_KILLS then return nil end
+    if kills < T.LAUREL_KILLS then return CROWN end
+
+    local tint, crown, legendary = SILVER, CROWN, false
+    if kills >= T.BANE_KILLS then
+        tint, crown, legendary = ORANGE, LEGENDARY_CROWN, true
+    elseif kills >= T.FEAR_KILLS then
+        tint, crown = GOLD, WARM_CROWN
+    elseif kills >= T.SLAYER_KILLS then
+        tint = GOLD
+    end
+    return LaurelSide(true, tint[1], tint[2], tint[3]) .. crown
+        .. LaurelSide(false, tint[1], tint[2], tint[3]), legendary
+end
 
 --- A rate worth staying for should look different from one that is not.
 local function RateColor(chance)
@@ -1586,15 +1619,21 @@ function TrackerUI:CardLines(Add, card)
     -- A crown for a mob you are champion of, and for the one a preview
     -- crowned (held in memory only, never saved).
     local name = ns.Harvest.ShowName(card.name)
-    local crowned = card.mob and ((tonumber(card.total) or 0) >= ns.Tracker.CHAMPION_KILLS
-        or self.crownPreview == card.mob)
-    local bane = card.mob and ((tonumber(card.total) or 0) >= ns.Tracker.BANE_KILLS
-        or self.banePreview == card.mob)
-    if bane then
-        name = ("|c%s%s|r %s"):format(LEGENDARY, name, LEGENDARY_CROWN)
-        crowned = true
-    elseif crowned then
-        name = name .. " " .. CROWN
+    local kills = card.mob and (tonumber(card.total) or 0) or 0
+    -- A preview's kills, for its mark alone.
+    if card.mob and self.banePreview == card.mob then
+        kills = math.max(kills, ns.Tracker.BANE_KILLS)
+    elseif card.mob and self.markPreview and self.markPreview.mob == card.mob then
+        kills = math.max(kills, self.markPreview.kills)
+    elseif card.mob and self.crownPreview == card.mob then
+        kills = math.max(kills, ns.Tracker.CHAMPION_KILLS)
+    end
+    local mark, legendary = nil, false
+    if card.mob then mark, legendary = TrackerUI.MarkFor(kills) end
+    local crowned = mark ~= nil
+    local bane = legendary and true or false
+    if mark then
+        name = legendary and ("|c%s%s|r %s"):format(LEGENDARY, name, mark) or (name .. " " .. mark)
     end
 
     local band = Add({ style = "mob", left = name, mob = card.mob, crowned = crowned or nil,

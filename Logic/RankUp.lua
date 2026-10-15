@@ -314,7 +314,7 @@ function RankUp:Look()
     -- The kill that unlocks drop rates, the 100th and the 1000th have their
     -- fanfare: one sound at a time.
     local fanfare = ((move.new and move.kills == ns.Tracker.MIN_KILLS)
-            or move.kills == ns.Tracker.CHAMPION_KILLS or move.kills == ns.Tracker.BANE_KILLS)
+            or (move.kills ~= ns.Tracker.MIN_KILLS and ns.Tracker.HasFanfare(move.kills, move.mob)))
         and not (ns.db and ns.db.trackerCelebrate == false)
     move.sound = self.SoundOn() and not fanfare
 
