@@ -725,12 +725,7 @@ tally. A mob you cannot attack, players, pets and critters get nothing until
 killed; a hidden mob gets nothing. Inside a dungeon the name falls back to
 the guid's mob ID (`Harvest.KnownNpcName`, else "Creature #ID"), as the
 harvest keys it. "Kill count" under Tooltips on the Map & goals page
-(`killTooltip`, never rename it) and `/farm killcount`. Off unless ticked
-since 2026-10-15 (the owner: players found Farmer growing too many big
-features): a save that had it on from the old default is turned off once
-(`killTooltipOffOnce` in `LoadSavedVariables`, never rename it), and a
-What's New card (`ns.WHATS_NEW_TIPS`, key `killTooltip`) offers it back
-once with a Turn it on button.
+(`killTooltip`, on unless unticked, never rename it) and `/farm killcount`.
 Under it, "Best drops" (the owner asked 2026-10-14): the three drops that
 add most to a kill, chance times price, straight from `Value:ForMob`'s
 sorted `priced` list (each entry carries `chance`), kept with the worth in

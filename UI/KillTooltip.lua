@@ -91,7 +91,7 @@ function KillTooltip.Alive(unit)
 end
 
 function KillTooltip:IsEnabled()
-    return ns.db ~= nil and ns.db.killTooltip == true
+    return not (ns.db and ns.db.killTooltip == false)
 end
 
 function KillTooltip:SetEnabled(on)
@@ -461,23 +461,6 @@ function KillTooltip:OnEnable()
         OnTooltipSetUnit = self:InstallScriptHooks(),
     }
 end
-
--- Off unless ticked (2026-10-15): the next What's New offers it once.
-ns.WHATS_NEW_TIPS = ns.WHATS_NEW_TIPS or {}
-table.insert(ns.WHATS_NEW_TIPS, {
-    key = "killTooltip",
-    title = L["Kill count on mob tooltips"],
-    paragraphs = {
-        L["Farmer can show how many of a mob you've killed on its tooltip, with what a kill is worth and its best drops. It's off until you turn it on."],
-    },
-    hint = L["You can also find it in Farmer's Settings on the Map & goals page, or type /farm killcount."],
-    button = L["Turn it on"],
-    due = function() return not KillTooltip:IsEnabled() end,
-    run = function()
-        KillTooltip:SetEnabled(true)
-        if ns.SettingsUI then ns.SettingsUI:Refresh() end
-    end,
-})
 
 -- Prices or "Hide skinning" moved: the kept worth was worked out before.
 ns.DB.hideWatchers.killTooltip = function() KillTooltip.ForgetKept() end

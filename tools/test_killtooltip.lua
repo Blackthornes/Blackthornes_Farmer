@@ -13,31 +13,6 @@ local suite = env.NewSuite("killtooltip")
 local ns = env.Load({ ui = true })
 local KillTooltip = ns.KillTooltip
 
--- Off unless ticked (2026-10-15), with a What's New card that offers it.
-suite.check("off by default", ns.DEFAULTS.killTooltip == false and not KillTooltip:IsEnabled())
-local card
-for _, tip in ipairs(ns.WHATS_NEW_TIPS or {}) do
-    if tip.key == "killTooltip" then card = tip end
-end
-suite.check("What's New has a card for it", card ~= nil and type(card.paragraphs) == "table")
-suite.check("the card is due while it is off", card and card.due() == true)
-card.run()
-suite.check("its button turns it on", ns.db.killTooltip == true and KillTooltip:IsEnabled())
-suite.check("and then the card is not due", card.due() == false)
-
--- A save that had it on from the old default is turned off once, and a
--- choice made after that is left alone.
-local saved = BlackthornesFarmerDB
-BlackthornesFarmerDB = { killTooltip = true }
-ns.LoadSavedVariables()
-suite.check("an old save's default on goes off once", ns.db.killTooltip == false and ns.db.killTooltipOffOnce == true)
-ns.db.killTooltip = true
-ns.LoadSavedVariables()
-suite.check("and is left on once ticked again", ns.db.killTooltip == true)
-BlackthornesFarmerDB = saved
-ns.LoadSavedVariables()
-suite.check("back on for the rest of the tests", KillTooltip:IsEnabled())
-
 local now = 1000
 _G.GetTime = function() return now end
 
@@ -266,6 +241,7 @@ suite.check("a secret guid never raises",
 -- The setting
 --------------------------------------------------------------------------------
 
+suite.check("on by default", ns.DEFAULTS.killTooltip == true)
 ns.HandleSlash("killcount")
 suite.check("/farm killcount turns it off", ns.db.killTooltip == false)
 suite.check("and nothing is added", Hover({ name = "Kobold Miner" }) == "quiet")

@@ -425,9 +425,8 @@ local DEFAULTS = {
     -- line (the owner said yes, 2026-10-15). Never rename it.
     itemTooltipCraft = true,
     -- How many of a mob you have killed, on its tooltip (UI/KillTooltip.lua;
-    -- the owner asked 2026-10-13), off unless ticked since 2026-10-15, with
-    -- a What's New card that offers it once. Never rename it.
-    killTooltip = false,
+    -- the owner asked 2026-10-13). Never rename it.
+    killTooltip = true,
     -- The three drops worth most a kill under that count (the owner asked
     -- 2026-10-14). Never rename it.
     killTooltipDrops = true,
@@ -504,15 +503,6 @@ local function LoadSavedVariables()
         if BlackthornesFarmerDB[key] == nil then
             BlackthornesFarmerDB[key] = value
         end
-    end
-
-    -- The kill count on mob tooltips was on for everyone until 2026-10-15,
-    -- when the owner asked for it off unless ticked. A save that had it from
-    -- the old default is turned off once (killTooltipOffOnce, never rename
-    -- it); What's New then offers it back once (UI/KillTooltip.lua).
-    if BlackthornesFarmerDB.killTooltipOffOnce == nil then
-        BlackthornesFarmerDB.killTooltip = false
-        BlackthornesFarmerDB.killTooltipOffOnce = true
     end
 
     ns.db = BlackthornesFarmerDB
