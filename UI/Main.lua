@@ -1153,11 +1153,10 @@ end
 
 --- "Hide skinning" moved (DB:SetShowSkinning): the chips and the rows are
 --- the search's again, drawn now while the Search tab shows, else marked
---- stale for when it does. A Skinning chip picked goes, since nothing is
---- left under it.
+--- stale for when it does. The search always lists skinning, so a
+--- Skinning chip picked stays; only the worth beside its rows moves.
 function UI:SkinningChanged()
     if not (self.frame and self.list) then return end
-    if self.filterKind == "skinning" then self.filterKind = nil end
     if self.lastQuery == nil then return end
     if self.frame:IsShown() and self.tab == "search" then
         self:BuildChips(self.lastQuery)

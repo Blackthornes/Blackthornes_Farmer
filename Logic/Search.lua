@@ -94,11 +94,12 @@ function Search:Run(query)
         return last.results
     end
 
-    -- With skinning left out, an item that comes from skinning is no
-    -- result at all ("Hide skinning", DB:HidesItem), and neither is an item
-    -- on the hide list; a mob or node on it is not among an item's spots,
-    -- and an item left with none is no result. `hidHit` says something
-    -- matched and was hidden, for what an empty search says.
+    -- An item on the hide list is no result; a mob or node on it is not
+    -- among an item's spots, and an item left with none is no result.
+    -- "Hide skinning" leaves skinning out of a mob's worth and the other
+    -- lists, never out of the search: leather is still something you can
+    -- look up (the owner, 2026-10-15). `hidHit` says something matched and
+    -- was hidden, for what an empty search says.
     self.hidHit = false
     local hidesSources = ns.DB:HidesAny("source")
 
@@ -173,7 +174,7 @@ function Search:Run(query)
             end
         end
 
-        if score > 0 and ns.DB:HidesItem(item) then
+        if score > 0 and ns.DB:IsHiddenItem(item) then
             self.hidHit = true
         elseif score > 0 then
             results[#results + 1] = { item = item, score = score, why = why, sources = matched }
@@ -651,12 +652,11 @@ function Search:ItemHeader(item, shown)
             item.category, self:SpotsText(shown or #item.sources, #item.sources))))
 end
 
---- What an empty search says. When hiding (skinning, or the hide list) is
---- what emptied it, it says so, rather than that nothing is known.
+--- What an empty search says. When the hide list is what emptied it, it
+--- says so, rather than that nothing is known.
 function Search:NothingFoundText(query)
     if self.hidHit then
-        return L.Format('Everything that matches "%s" is hidden: skinning is left out (Hide skinning, in Settings under Loot) or it is on your hide list (/farm hidden).',
-            query)
+        return L.Format("Everything that matches \"%s\" is on your hide list (/farm hidden).", query)
     end
     return L.Format('Nothing found for "%s". Try part of a name, a zone, or a category.', query)
 end
