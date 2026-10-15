@@ -690,20 +690,23 @@ The owner asked (2026-10-15) for what comes out of a clam, sack or lockbox
 a mob drops to count toward the mob. `Logic/Containers.lua` keeps each
 opening by the item's name (`containers.opened`, account wide, never rename
 it); not by mob, since clams stack and give the same whoever dropped them.
-`Value:Contents(name)` is one opening's average worth once `MIN_OPENS` (20)
+`Value:Contents(name)` is one opening's average worth once `MIN_OPENS` (10; 20 until the owner picked 10, 2026-10-15)
 are behind it (hidden items left out), and `Value:WorthOf(name, id)` takes
 it over `UnitPrice` when it pays more, so `FromTally`, `FromDatabase`
 (Rankings, the tooltip, rank-up) and the loot table's per kill follow; the
 loot table's item tooltip lists what it opens to
-(`LootTableUI:ContentsLines`). The session haul and Stats still price the
-clam itself. An opening is caught by the bag click (`UseContainerItem`),
+(`LootTableUI:ContentsLines`). The session haul follows it too (the
+owner, 2026-10-15: `Value:Session`, the Loot tab, a mob's loot worth and
+the panel's slot tooltip use `WorthOf`); opened loot never joins
+`Tracker.sessionLoot`, so nothing counts twice. Stats still prices the
+clam when looted. An opening is caught by the bag click (`UseContainerItem`),
 else by the loot window's `Item-` source guid matched to a bag slot
 (`Containers:FromSource`, `C_Item.GetItemGUID`), since none had been
 recorded in game. Tested in `tools/test_containerworth.lua` and
 `tools/test_containers.lua`.
 
 Each counted opening shows a small note near the top of the screen
-(`UI/OpenNote.lua`, the owner asked 2026-10-15): "3 of 20 opened", then
+(`UI/OpenNote.lua`, the owner asked 2026-10-15): "3 of 10 opened", then
 what one is worth; "Clams and sacks" on the Loot page (`openNote`, on
 unless unticked, never rename it) and `/farm opennote`. Tested in
 `tools/test_opennote.lua`.
