@@ -30,7 +30,7 @@ ns.UI:Show()
 suite.check("the search window in English", ns.UI.emptyLine:GetText() == "Search for something to farm",
     ns.UI.emptyLine:GetText())
 local labels = SettingsLabels(ns)
-suite.check("the settings rows in English", labels["Hide skinning"] == true)
+suite.check("the settings rows in English", labels["Hide Skinning:"] == true)
 suite.check("a creature type shows in English", ns.Grinding.TypeLabel("Beast") == "Beast")
 
 -- A German client.
@@ -40,8 +40,8 @@ ns.UI:Show()
 suite.check("the search window speaks Deutsch", ns.UI.emptyLine:GetText() == "Such etwas zum Farmen",
     ns.UI.emptyLine:GetText())
 labels = SettingsLabels(ns)
-suite.check("the settings rows speak Deutsch", labels["Kürschnerei ausblenden"] == true)
-suite.check("and none is left in English", labels["Hide skinning"] == nil)
+suite.check("the settings rows speak Deutsch", labels["Kürschnerei ausblenden:"] == true)
+suite.check("and none is left in English", labels["Hide Skinning:"] == nil)
 suite.check("the hide menu's line", L.Format("Hide %s", "Kobold") == "Kobold ausblenden")
 suite.check("a creature type shows in Deutsch, kept in English",
     ns.Grinding.TypeLabel("Beast") == "Wildtier" and ns.Grinding.EnglishType("Beast") == "Beast",

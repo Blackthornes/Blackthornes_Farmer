@@ -110,21 +110,16 @@ Minimap._width = 140
 UI:RepositionMinimapButton()
 
 --------------------------------------------------------------------------------
--- Hiding it
+-- Always shown (the owner, 2026-10-15: no setting, no command)
 --------------------------------------------------------------------------------
 
-suite.check("toggling hides it", UI:ToggleMinimapButton() == false)
-suite.check("hidden means hidden", not button:IsShown())
-suite.check("the choice is saved", ns.db.minimapHidden == true)
-
-suite.check("toggling again brings it back", UI:ToggleMinimapButton() == true)
-suite.check("shown means shown", button:IsShown())
-
-local run = SlashCmdList["BLACKTHORNESFARMER"]
-run("minimap")
-suite.check("/farm minimap hides it", not button:IsShown())
-run("minimap")
-suite.check("/farm minimap brings it back", button:IsShown())
+suite.check("there is no minimap command any more",
+    not (ns.commandOrder and (function()
+        for _, name in ipairs(ns.commandOrder) do
+            if name == "minimap" then return true end
+        end
+    end)()))
+suite.check("the button shows", button:IsShown())
 
 --------------------------------------------------------------------------------
 -- Building twice
@@ -134,20 +129,13 @@ UI:BuildMinimapButton()
 suite.check("building again does not make a second button",
     UI.minimapButton == button)
 
--- Hidden has to survive a reload. The button is rebuilt from scratch at every
--- login, so it is the build that has to respect the saved choice -- otherwise
--- it reappears every time you log in and the setting looks broken.
+-- A save from before, with the button hidden, still shows it. The key is
+-- kept in the save, only no longer read.
 ns.db.minimapHidden = true
 UI.minimapButton = nil
 
 UI:BuildMinimapButton()
-suite.check("a rebuilt button respects a saved hide",
-    not UI.minimapButton:IsShown())
-
-ns.db.minimapHidden = false
-UI.minimapButton = nil
-UI:BuildMinimapButton()
-suite.check("a rebuilt button is shown when it was not hidden",
-    UI.minimapButton:IsShown())
+suite.check("an old saved hide is ignored", UI.minimapButton:IsShown())
+suite.check("the old key stays in the save", ns.db.minimapHidden == true)
 
 suite.done()
