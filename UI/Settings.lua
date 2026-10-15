@@ -78,17 +78,6 @@ local function GrowRow(row, by)
     row:SetHeight(row.shownHeight)
 end
 
---- A button's tooltip: what it does, in clear white on the dark tooltip.
-local function Explain(button, title, text)
-    button:HookScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine(title, Theme.Unpack("accent"))
-        GameTooltip:AddLine(text, 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    button:HookScript("OnLeave", function() GameTooltip:Hide() end)
-end
-
 --- A button on `row` that runs a /farm command, at `x` (CONTROL_X unless
 --- given).
 local function CommandButton(row, text, command, width, x)
