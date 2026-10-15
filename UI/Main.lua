@@ -729,8 +729,8 @@ function UI:ShowMobTooltip(owner, mobName)
     end
 
     GameTooltip:AddLine(details.basis == "tally"
-        and L.Format("From your %d kills, %s.", details.kills, ns.Value:PriceNote(details))
-        or L.Format("Estimated from %s, without coin.", ns.Value:PriceNote(details)),
+        and L.Format("From your %d kills.", details.kills)
+        or L["A guess from known drop rates. Coin not counted."],
         Theme.Unpack("muted"))
     GameTooltip:Show()
 end

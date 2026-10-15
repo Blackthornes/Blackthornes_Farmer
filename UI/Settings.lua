@@ -78,17 +78,6 @@ local function GrowRow(row, by)
     row:SetHeight(row.shownHeight)
 end
 
---- A button's tooltip: what it does, in clear white on the dark tooltip.
-local function Explain(button, title, text)
-    button:HookScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine(title, Theme.Unpack("accent"))
-        GameTooltip:AddLine(text, 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    button:HookScript("OnLeave", function() GameTooltip:Hide() end)
-end
-
 --- A button on `row` that runs a /farm command, at `x` (CONTROL_X unless
 --- given).
 local function CommandButton(row, text, command, width, x)
@@ -537,7 +526,6 @@ function SettingsUI:WindowStyleControl(row)
         if ReloadUI then ReloadUI() end
     end, { width = 60, height = 20 })
     ns.SettingsPages.ReloadUnder(row, stepper, reload)
-    Explain(reload, L["Reload"], L["Reload the interface so the new window style shows (/reload)."])
     reload:Hide()
     stepper.reload = reload
 
@@ -593,7 +581,7 @@ function SettingsUI:BuildTallyPage()
     controls.dodgeGroup:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local reportRow = pages:Row("tally", 1, L["Kills in Chat:"],
-        L["Adds a line to your chat for each kill. Only you see it."])
+        L["Adds a line to your chat for each kill."])
 
     controls.report = Widgets.CreateCheckbox(reportRow, L["On"], function(checked)
         ns.db.trackerReport = checked

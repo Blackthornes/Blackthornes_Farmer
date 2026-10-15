@@ -565,12 +565,6 @@ function SettingsPages.TextSizeControl(row, x, db)
         if ReloadUI then ReloadUI() end
     end, { width = 60, height = 20 })
     SettingsPages.ReloadUnder(row, stepper, reload)
-    reload:HookScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:AddLine(L["Reload the interface so the new text size shows (/reload)"], 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    reload:HookScript("OnLeave", function() GameTooltip:Hide() end)
     reload:Hide()
     stepper.reload = reload
 
