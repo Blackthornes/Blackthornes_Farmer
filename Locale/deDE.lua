@@ -260,8 +260,10 @@ L["Lists in chat any gathers that look like they were counted wrong, to help tra
 L["Check"] = "Prüfen"
 L["SKINNING"] = "KÜRSCHNEREI"
 L["Hide skinning"] = "Kürschnerei ausblenden"
-L["When ticked, Farmer shows only drops. Skinning spots stay out of search, Rankings and Grind, and leather, hides and scales stay out of a mob's drops and what a kill is worth. Untick it to see skinning. Nothing you recorded is lost. Same as /farm skinning."] =
-    "Angehakt zeigt Farmer nur Drops. Kürschnerplätze bleiben aus Suche, Ranglisten und Grinden heraus, und Leder, Bälge und Schuppen aus den Drops eines Gegners und dem Wert eines Kills. Nimm den Haken weg, um Kürschnerei zu sehen. Nichts Aufgezeichnetes geht verloren. Wie /farm skinning."
+L["When ticked, Farmer shows only drops. Leather, hides and scales stay out of a mob's drops, what a kill is worth, Rankings and Grind. You can still search for them. Untick it to see skinning everywhere. Nothing you recorded is lost. Same as /farm skinning."] =
+    "Angehakt zeigt Farmer nur Drops. Leder, Bälge und Schuppen bleiben aus den Drops eines Gegners, dem Wert eines Kills, Ranglisten und Grinden heraus. Suchen kannst du sie trotzdem. Nimm den Haken weg, um Kürschnerei überall zu sehen. Nichts Aufgezeichnetes geht verloren. Wie /farm skinning."
+L["Everything that matches \"%s\" is on your hide list (/farm hidden)."] =
+    "Alles, was zu \"%s\" passt, steht auf deiner Ausblendliste (/farm hidden)."
 L["Hide it"] = "Ausblenden"
 L["Hidden"] = "Ausgeblendet"
 L["Mobs, nodes and items you hid. Right-click one in the search, Rankings, Grind or the kills panel to hide it. The list has a Show again button for each. Same as /farm hidden, /farm hide and /farm unhide."] =

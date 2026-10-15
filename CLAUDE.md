@@ -303,7 +303,10 @@ gathered or fished that the data does not know never showed.
 `Search:FoundItems` now adds every item in the player's own harvest,
 gathering and fishing records that `DB:GetItem` does not know as a result of
 its own ("Your finds", the spots it came from, a rate once
-`FOUND_SAMPLE` (20) are behind it, provenance "forever"). Nothing is added
+`FOUND_SAMPLE` (20) are behind it, "7 in 12" in the drop column before
+that, provenance "forever"). An item the data does know keeps its rows
+and gains your spots the data does not list (`Search:WithYourSpots`, a
+copy; 2026-10-15, clams off Wrathtail mobs never showed). Nothing is added
 to the database, so Rankings, the tooltips and the Grind tab are unchanged;
 nothing is saved; guild data never reaches it. Built only when a search
 runs and the records moved, at most every `FOUND_GAP` seconds. Found items
@@ -340,7 +343,11 @@ skinning). Ticked, `DB:HidesItem` and `DB:HidesSource`
 leave out every `kind = "skinning"` source and every item the data names a
 skinning spot for (`item.fromSkinning`: leather, hides, scales), since a
 skin opens a loot window and recorded loot has the leather as a drop. The
-search, `DB:ByName` (Rankings, worth estimates), `Value:FromTally`,
+search is the exception (the owner, 2026-10-15: "skinning should be
+searchable, it just doesn't pollute mob value"): it lists skinning items and
+spots ticked or not and leaves out only the hide list (`DB:IsHiddenItem`),
+while its PER KILL worth (`Value:ForMob`) still leaves skinning out.
+`DB:ByName` (Rankings, worth estimates), `Value:FromTally`,
 `Tracker:Summary` (panel, loot table), the Grind tab and the tooltip line
 follow it, and so does the session (the Loot tab, its looted count, a
 mob's loot worth, the session's worth and gold per hour, `Value:Session`,

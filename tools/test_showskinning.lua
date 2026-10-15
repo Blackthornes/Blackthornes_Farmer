@@ -41,7 +41,7 @@ end
 
 suite.check("skinning is left out by default", not DB:ShowsSkinning())
 suite.check("saved as Hide skinning on", ns.db.hideSkinning == true and ns.DEFAULTS.hideSkinning == true)
-suite.check("a fresh leather search finds nothing", not Names(Search:Run("light leather"))["Light Leather"])
+suite.check("a fresh leather search still finds it", Names(Search:Run("light leather"))["Light Leather"])
 
 ns.HandleSlash("skinning on")
 suite.check("/farm skinning on shows it", DB:ShowsSkinning() and ns.db.hideSkinning == false)
@@ -87,10 +87,11 @@ suite.check("/farm skinning leaves it out", not DB:ShowsSkinning())
 suite.check("saved as Hide skinning on", ns.db.hideSkinning == true)
 suite.check("what lists it is redrawn", redrawn == 1, redrawn)
 
-suite.check("a leather search finds nothing", not Names(Search:Run("light leather"))["Light Leather"])
-suite.check("and says skinning is why", Search:NothingFoundText("light leather"):find("skinning", 1, true) ~= nil)
+-- The search always finds skinning (the owner, 2026-10-15): hiding it only
+-- keeps it out of a mob's worth and the other lists.
+suite.check("a leather search still finds it", Names(Search:Run("light leather"))["Light Leather"])
 local durotar = Search:Run("durotar")
-suite.check("Durotar turns up no skinning", not AnySkinning(durotar))
+suite.check("Durotar still turns up skinning", AnySkinning(durotar))
 suite.check("but still turns up drops", #durotar > 0, #durotar)
 suite.check("cloth is still found", Names(Search:Run("linen"))["Linen Cloth"])
 
@@ -99,12 +100,12 @@ local leatherRow = false
 for _, row in ipairs(rows) do
     if row.type == "item" and DB:FromSkinning(row.item) then leatherRow = true end
 end
-suite.check("the window's rows have no leather", not leatherRow)
+suite.check("the window's rows still have leather", leatherRow)
 
 local kinds = Search:KindsInResults("durotar")
 local skinChip = false
 for _, kind in ipairs(kinds) do if kind == "skinning" then skinChip = true end end
-suite.check("and no Skinning chip", not skinChip)
+suite.check("and a Skinning chip", skinChip)
 
 local skinSource = false
 for _, entries in pairs(DB:ByName()) do
@@ -173,7 +174,7 @@ for name, redraw in pairs(DB.hideWatchers) do
     suite.check("the " .. name .. " redraw runs", ok, err)
 end
 DB:SetShowSkinning(false)
-suite.check("a picked Skinning chip in the search lets go", ns.UI.filterKind == nil)
+suite.check("a picked Skinning chip in the search stays", ns.UI.filterKind == "skinning")
 DB:SetShowSkinning(true)
 ns.UI:Hide()
 

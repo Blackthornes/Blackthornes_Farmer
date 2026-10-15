@@ -838,7 +838,7 @@ function SettingsUI:BuildLootPage()
     pages:Section("loot", 2, L["SKINNING"])
 
     local skinningRow = pages:Row("loot", 2, L["Hide skinning"],
-        L["When ticked, Farmer shows only drops. Skinning spots stay out of search, Rankings and Grind, and leather, hides and scales stay out of a mob's drops and what a kill is worth. Untick it to see skinning. Nothing you recorded is lost. Same as /farm skinning."])
+        L["When ticked, Farmer shows only drops. Leather, hides and scales stay out of a mob's drops, what a kill is worth, Rankings and Grind. You can still search for them. Untick it to see skinning everywhere. Nothing you recorded is lost. Same as /farm skinning."])
 
     controls.hideSkinning = Widgets.CreateCheckbox(skinningRow, L["Hide it"], function(checked)
         ns.DB:SetShowSkinning(not checked)
