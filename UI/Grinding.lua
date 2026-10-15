@@ -225,7 +225,7 @@ function GrindingUI:Build(frame)
     -- there is room: on the chip row it ran into Skinning (2026-10-10).
     local sort = Chip(band, GrindingUI.SortText(), function()
         GrindingUI:ToggleSortMenu()
-    end, { L["Sort the camps"], L["Busiest, nearest, by level, or by level and then the nearest."] })
+    end, { L["Sort the camps"] })
     self.sortChip = sort
     self:BuildSortMenu(view)
 

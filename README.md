@@ -79,7 +79,6 @@ inside it. If they differ, the client ignores the folder and says nothing.
 | `/farm <text>` | search, and show the results in the window |
 | `/farm` | open or close the window |
 | `/farm settings` | open the settings window (`options` and `config` work too) |
-| `/farm minimap` | show or hide the minimap button |
 | `/farm tracker [on\|off]` | show or hide the kills and loot panel (`reset confirm` clears the tallies) |
 | `/farm tracker clear` | empty what the kills and loot panel shows and start a new run (the tallies are kept) |
 | `/farm tracker group [on\|off]` | move the panel aside from the party and raid frames when grouped (on by default) |
@@ -139,27 +138,27 @@ and a herb that suit your level; click one to search for it.
 
 There is also a **minimap button** — the mining-pick icon on the ring. Click it
 to open the window, drag it to move it round the minimap, and it stays where
-you put it. `/farm minimap` hides it if you would rather not have it, and
-brings it back.
+you put it.
 
 ### Settings
 
 Every switch the addon has is in one window: `/farm settings`, **right-click**
 the minimap button, the **Settings** button in the search window, or
 Options > AddOns > Blackthornes Farmer in the game menu. Its pages are picked
-along the top: **Windows** (the minimap button, the size of the search window
-and of the kill tally, putting windows back if one ends up off screen,
-window effects and text size), **Kill tally** (the panel, its chat report,
-milestones and sounds, and your last mob's kills, loot table and worth),
-**Loot** (pausing loot recording, remembered between sessions, with an Export
-button, and your fishing and gathering), **Map & goals** (node markers, the
+along the top: **UI** (the size of the search window and of the kills
+panel, putting windows back if one ends up off screen, window effects, text
+size and buttons to open Farmer's windows), **Kills** (the panel, its chat
+report, milestones and sounds, your last mob's loot table, your top 15 and
+the XP bar), **Loot** (pausing loot recording, remembered between sessions,
+with an Export button, and the loot and gathering checks), **Map & goals** (node markers, the
 Grind tab's camps, the farming line on material tooltips, goals and the goal
-arrow), **Sharing** (your other account, below) and **Advanced** (debug output and
-the data loaded). Hover a setting to
+arrow), **Sharing** (your other account, below) and **Advanced** (debug output, the
+sister addons and What's New). Hover a setting to
 see what it does, or tick **Show descriptions** to see it under every row;
 **Find a setting** searches every page. **Text size** makes all of the
 addon's text a point or two bigger after a `/reload`. Every `/farm` command
-has a button or control there too. Changes save as you make them. Nothing in
+that changes a setting has a control there too; the ones that only list
+things in chat are typed. Changes save as you make them. Nothing in
 the window deletes data: clearing tallies or recorded loot stays a typed
 `reset confirm` command.
 

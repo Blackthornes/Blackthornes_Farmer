@@ -1920,9 +1920,9 @@ end
 -- The grip's tooltip, whole for each window kind so a translation can put
 -- its own article and word order round the noun.
 local GRIP_TIPS = {
-    window = L["Drag to make the window bigger or smaller, text and all."],
-    panel = L["Drag to make the panel bigger or smaller, text and all."],
-    picker = L["Drag to make the picker bigger or smaller, text and all."],
+    window = L["Drag to make the window bigger or smaller."],
+    panel = L["Drag to make the panel bigger or smaller."],
+    picker = L["Drag to make the picker bigger or smaller."],
 }
 
 function Widgets.CreateSizeGrip(frame, opts)
@@ -2058,7 +2058,7 @@ function Widgets.CreateSizeGrip(frame, opts)
         Light(true)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText(Widgets.SizeText(ScaleOf(frame) * 100), Theme.Unpack("accentHi"))
-        GameTooltip:AddLine(GRIP_TIPS[name] or L.Format("Drag to make the %s bigger or smaller, text and all.", name),
+        GameTooltip:AddLine(GRIP_TIPS[name] or L.Format("Drag to make the %s bigger or smaller.", name),
             1, 1, 1, true)
         GameTooltip:AddLine(L["Right-click to go back to the normal size."], 1, 1, 1, true)
         GameTooltip:Show()

@@ -386,13 +386,20 @@ as the row's tooltip ("Show descriptions", `settingsDescriptions`, off by
 default, puts it back under the rows), "Find a setting", and Text size
 (`textSize` normal/large/larger adds 0/1/2 to `Theme.sizes`, now a lookup
 over `Theme.BASE_SIZES`; read once, so it waits for /reload). The window
-fits its fullest page, so no page scrolls. Farmer's pages are Windows, Kill
-tally, Loot, Map & goals and Advanced. Add a setting with
+fits its fullest page, so no page scrolls. Add a setting with
 `pages:Row(page, column, label, description)` and
 `pages:Section(page, column, "HEADING")` in `UI/Settings.lua`; every
 `/farm` command has a button or control there (`tools/test_settings.lua`
 checks `ns.commandOrder` against them), but never one that deletes data:
-resets stay typed `reset confirm` commands.
+resets stay typed `reset confirm` commands. Commands that only list things
+in chat are typed only (the owner, 2026-10-15; the test's `chatOnly`
+list); the checks keep their buttons. The owner's Settings standard
+(2026-10-15): labels in Title Case ending with ":" ("Text Size:"),
+one-word buttons ("Open", "Show", "On"), a hover only when it adds
+something (`pages:Row(..., nil)` shows none), never "Same as /farm ...",
+section headings ALL CAPS. The pages are UI, Kills, Loot, Map & goals,
+Sharing, Advanced and About. The minimap button always shows: no setting,
+no `/farm minimap`, and a saved `minimapHidden` is kept but not read.
 
 ## The house frame (Titanforged)
 

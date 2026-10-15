@@ -322,12 +322,12 @@ controls.effects.minus:GetScript("OnClick")(controls.effects.minus)
 local saved = ns.db.trackerEffects
 controls.effects.plus:GetScript("OnClick")(controls.effects.plus)
 suite.check("Effects sits with the windows, not under the kill tally, and saves where it always has",
-    effectsRow._parent == controls.minimap._parent._parent
+    effectsRow._parent == controls.windowScale._parent._parent
     and effectsRow._parent ~= controls.tracker._parent._parent and saved == "subtle", saved)
-suite.check("named for what it moves", effectsRow.label:GetText() == "Window effects",
+suite.check("named for what it moves", effectsRow.label:GetText() == "Effects:",
     effectsRow.label:GetText())
-suite.check("and says the windows fade up and glow",
-    (effectsRow.hint:GetText() or ""):find("windows fade up and glow", 1, true) ~= nil)
+suite.check("and has no hover words (the owner, 2026-10-15)",
+    (effectsRow.hint:GetText() or "") == "")
 ns.SettingsUI:Hide()
 
 ns.HandleSlash("effects full")

@@ -522,8 +522,8 @@ function LootTableUI:Build()
         name = L["Sort by item name, A to Z."],
         dropped = L["Sort by how many corpses held it, most first."],
         total = L["Sort by how many you took in all, most first."],
-        rate = L["Sort by drop rate, best first. Items with no rate yet go last."],
-        perKill = L["Sort by what the item adds to a kill, most first. Items with no price go last."],
+        rate = L["Sort by drop rate, best first."],
+        perKill = L["Sort by what the item adds to a kill, most first."],
     }, function(newKey, newAscending)
         if ns.db then
             ns.db.lootTableSort = newKey and { key = newKey, ascending = newAscending } or nil

@@ -454,9 +454,7 @@ function Trash:ShowTooltip(owner)
         GameTooltip:AddLine(ItemText(pick), 1, 1, 1)
         GameTooltip:AddLine(L.Format("Worth %s in all, the least in your bags", ns.Value.Coins(pick.worth)),
             1, 1, 1, true)
-        GameTooltip:AddLine(L["Not for a goal or a quest, and not gear you could wear."], 0.8, 0.8, 0.8, true)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(L["This is the least valuable item in your bags."],
+        GameTooltip:AddLine(L["Click to pick it up."],
             0.2, 1, 0.2, true)
         GameTooltip:Show()
     end)

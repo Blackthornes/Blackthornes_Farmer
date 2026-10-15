@@ -81,13 +81,9 @@ local function Toggle(control)
     control:GetScript("OnClick")(control)
 end
 
-suite.check("the minimap box starts ticked", controls.minimap:GetChecked())
-Toggle(controls.minimap)
-suite.check("unticking it hides the button", ns.db.minimapHidden == true)
-suite.check("the button is actually hidden", not UI.minimapButton:IsShown())
-Toggle(controls.minimap)
-suite.check("ticking it brings it back", ns.db.minimapHidden == false
-    and UI.minimapButton:IsShown())
+-- The minimap button always shows (the owner, 2026-10-15): no row here.
+suite.check("there is no minimap row", controls.minimap == nil)
+suite.check("the minimap button shows", UI.minimapButton:IsShown())
 
 Toggle(controls.report)
 suite.check("chat report writes the /farm report setting", ns.db.trackerReport == true)
@@ -161,7 +157,7 @@ GameTooltip._lines = {}
 reportRow:GetScript("OnEnter")(reportRow)
 suite.check("a row lights under the mouse", reportRow.hover:IsShown())
 suite.check("and says what it does in a tooltip", GameTooltip._lines[1] ~= nil
-    and GameTooltip._lines[1]:find("Nobody else can see it", 1, true) ~= nil, GameTooltip._lines[1])
+    and GameTooltip._lines[1]:find("Only you see it", 1, true) ~= nil, GameTooltip._lines[1])
 local before = SettingsUI.frame:GetHeight()
 pages.describe:GetScript("OnClick")(pages.describe)
 suite.check("Show descriptions is saved", ns.db.settingsDescriptions == true)
@@ -212,11 +208,9 @@ local ran = {}
 local realSlash = ns.HandleSlash
 ns.HandleSlash = function(text) ran[#ran + 1] = text end
 local buttons = {
-    rankings = "rankings", kills = "kills", lootTable = "loot", value = "value",
-    harvest = "harvest", fishing = "fishing", fishingAll = "fishing all", gathering = "gathering",
-    gatheringAll = "gathering all", gatheringCheck = "gathering check", where = "where",
-    goals = "goals", goalsDock = "goals dock", goalList = "goal", arrowNext = "arrow next",
-    help = "help", chat = "chat", stats = "stats", data = "data", list = "list",
+    rankings = "rankings", lootTable = "loot",
+    harvestCheck = "harvest check", gatheringCheck = "gathering check",
+    goals = "goals", goalsDock = "goals dock", arrowNext = "arrow next",
     shareSync = "share sync",
     shareGive = "give",
     shareTake = "take",
@@ -228,7 +222,6 @@ local buttons = {
     openTest = "openbutton test",
     xpBarReset = "xpbar reset",
     statsTab = "charts",
-    worldDropsList = "worlddrops",
 }
 local wrong = {}
 for key, command in pairs(buttons) do
@@ -255,15 +248,26 @@ end
 -- Each command a player can type is reached from the page: by a button
 -- above, a control that writes the same setting, or the window itself.
 local covered = {
-    settings = true, minimap = true, tracker = true, report = true, celebrate = true,
+    settings = true, tracker = true, worlddrops = true, report = true, celebrate = true,
     raresound = true, voice = true, effects = true, markers = true, tooltip = true, killcount = true, sparkle = true, questcount = true, plates = true,
     arrow = true, grind = true, trash = true, opennote = true, bagsfull = true, export = true, sisters = true, skinning = true, hide = true, unhide = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
+-- Chat-only commands are typed only (the owner, 2026-10-15): the ones that
+-- just list things in chat have no button here.
+local chatOnly = {
+    kills = true, value = true, fishing = true, where = true, goal = true,
+    help = true, chat = true, stats = true, data = true, list = true,
+}
 local missing = {}
 for _, name in ipairs(ns.commandOrder) do
-    if not covered[name] then missing[#missing + 1] = name end
+    if not covered[name] and not chatOnly[name] then missing[#missing + 1] = name end
 end
+suite.check("the minimap command is gone", not (function()
+    for _, name in ipairs(ns.commandOrder) do
+        if name == "minimap" then return true end
+    end
+end)())
 suite.check("every /farm command has a button or control", #missing == 0, table.concat(missing, ", "))
 
 --------------------------------------------------------------------------------
@@ -364,9 +368,6 @@ suite.check("typing a command while it is open updates the page",
     controls.report:GetChecked() == false)
 
 
-ns.HandleSlash("minimap")
-suite.check("the minimap command too", controls.minimap:GetChecked() == false)
-ns.HandleSlash("minimap")
 
 ns.HandleSlash("harvest off")
 suite.check("/farm harvest off unticks recording", controls.record:GetChecked() == false)
