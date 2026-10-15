@@ -71,6 +71,9 @@ end
 suite.check("a rate once 20 corpses are behind it", rated and math.abs(rated.chance - 25) < 0.01,
     rated and rated.chance)
 suite.check("no rate off 3 corpses", thin and thin.chance == nil)
+suite.check("the count shows instead", thin and thin.dropText == "1 in 3", thin and thin.dropText)
+suite.check("no count once there is a rate", rated and rated.dropText == nil)
+suite.check("the chat line says the count", thin and Search:SourceLine(thin):find("1 in 3", 1, true) ~= nil)
 suite.check("marked as measured on Forever", rated and rated.provenance == "forever")
 suite.check("a gathered crate is found", byName["Dusty Crate"] ~= nil)
 suite.check("a fished crate is found", byName["Floating Crate"] ~= nil)

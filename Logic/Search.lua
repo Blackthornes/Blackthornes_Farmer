@@ -251,6 +251,14 @@ local function Rate(part, whole)
     return math.min(100, part / whole * 100)
 end
 
+-- Under FOUND_SAMPLE there is no rate yet, so the drop column says how
+-- many it came from instead ("7 in 12"), as the World drops rows do.
+local function Count(part, whole)
+    part, whole = tonumber(part), tonumber(whole)
+    if not (part and whole and part > 0 and whole > 0) or whole >= Search.FOUND_SAMPLE then return nil end
+    return L.Format("%1$d in %2$d", part, whole)
+end
+
 local function Coords(coords)
     if type(coords) ~= "table" then return nil end
     local x, y = tonumber(coords[1]), tonumber(coords[2])
@@ -335,7 +343,8 @@ function Search:FoundItems()
                     Add(name, entry.id, { kind = "mob", name = Text(mob), zone = Text(record.zone),
                         location = Text(record.location), coords = Coords(record.coords),
                         minLevel = tonumber(record.minLevel), maxLevel = tonumber(record.maxLevel),
-                        chance = Rate(entry.corpses, record.corpses) })
+                        chance = Rate(entry.corpses, record.corpses),
+                        dropText = Count(entry.corpses, record.corpses) })
                 end
             end
         end
@@ -349,7 +358,8 @@ function Search:FoundItems()
                     Add(name, entry.id, { kind = GATHER_KIND[node.kind] or "container",
                         name = Text(node.node), zone = Text(node.zone),
                         location = Text(node.location), coords = Coords(node.coords),
-                        chance = Rate(entry.gathers, node.gathers) })
+                        chance = Rate(entry.gathers, node.gathers),
+                        dropText = Count(entry.gathers, node.gathers) })
                 end
             end
         end
@@ -363,7 +373,8 @@ function Search:FoundItems()
                 if type(entry) == "table" then
                     Add(name, entry.id, { kind = "fishing", name = Text(school), zone = Text(spot.zone),
                         location = Text(spot.location), coords = Coords(spot.coords),
-                        chance = Rate(entry.casts, spot.casts) })
+                        chance = Rate(entry.casts, spot.casts),
+                        dropText = Count(entry.casts, spot.casts) })
                 end
             end
         end
@@ -601,6 +612,8 @@ function Search:SourceLine(source)
 
     if source.chance then
         detail = ("%s, %s"):format(detail, self:ChanceText(source.chance))
+    elseif source.dropText then
+        detail = ("%s, %s"):format(detail, source.dropText)
     end
 
     local line = ("%s %s"):format(
