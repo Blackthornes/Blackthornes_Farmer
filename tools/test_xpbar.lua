@@ -41,6 +41,10 @@ _G.GetTime = function() return now end
 _G.time = function() return clock end
 local XP, Bar = ns.XP, ns.XPBarUI
 
+-- Off unless ticked (2026-10-15).
+suite.check("the bar is off by default", ns.db.xpBar == nil and not Bar.On())
+ns.db.xpBar = true
+
 local sounds = {}
 _G.PlaySoundFile = function(path) sounds[#sounds + 1] = path; return true end
 
@@ -241,6 +245,10 @@ Bar.Cheer = function(_, info) cheered = info end
 Fire("PLAYER_LEVEL_UP", 22)
 suite.check("no cheer while it is off", cheered == nil)
 run("xpbar cheer on")
+ns.db.xpBar = false
+Fire("PLAYER_LEVEL_UP", 22)
+suite.check("no cheer while the bar is off", cheered == nil)
+ns.db.xpBar = true
 Bar.Cheer = cheer
 
 local milestone

@@ -898,8 +898,9 @@ release. `Logic/XP.lua` works it out; `UI/XPBar.lua` draws it.
 - The game's XP bar is never hidden: "Game's XP bar" makes it see-through
   through `ns.Veil` (`UI/Veil.lua`, Equipment's file; a fix to it belongs
   in both) and puts it back; a fight makes it wait.
-- Settings, Kill tally page, XP BAR: "XP bar" (`xpBar`), "Level-up cheer"
-  (`xpBarCheer`) with Try it, "Chime every tenth" (`xpBarChime`), all on
+- Settings, Kill tally page, XP BAR: "XP bar" (`xpBar`, off unless ticked
+  since 2026-10-15; the cheer waits for it too), "Level-up cheer"
+  (`xpBarCheer`) with Try it, "Chime every tenth" (`xpBarChime`), on
   unless unticked; "Game's XP bar" (`xpBarHideGame`, off unless ticked);
   "Put it back". Place and size: `xpBarPoint`, `xpBarRelPoint`, `xpBarX`,
   `xpBarY`, `xpBarScale`. All account wide; never rename them. `/farm
