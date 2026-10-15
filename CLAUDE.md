@@ -651,6 +651,12 @@ else by the loot window's `Item-` source guid matched to a bag slot
 recorded in game. Tested in `tools/test_containerworth.lua` and
 `tools/test_containers.lua`.
 
+Each counted opening shows a small note near the top of the screen
+(`UI/OpenNote.lua`, the owner asked 2026-10-15): "3 of 20 opened", then
+what one is worth; "Clams and sacks" on the Loot page (`openNote`, on
+unless unticked, never rename it) and `/farm opennote`. Tested in
+`tools/test_opennote.lua`.
+
 ## Kills on the mob tooltip
 
 The owner asked (2026-10-13) for a mob's tooltip to say how many you have

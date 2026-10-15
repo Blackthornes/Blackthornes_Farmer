@@ -440,6 +440,9 @@ local DEFAULTS = {
     -- A small can on the item worth the least while the bags are full
     -- (UI/Trash.lua, the owner asked 2026-10-13). Never rename it.
     trashCan = true,
+    -- A note on screen each time a clam or sack is opened and counted
+    -- (UI/OpenNote.lua, the owner asked 2026-10-15). Never rename it.
+    openNote = true,
 
     -- The goal arrow (UI/Arrow.lua): off until turned on, or until the
     -- first new goal turns it on (Arrow:TurnOnForGoal) while the player has

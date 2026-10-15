@@ -294,7 +294,11 @@ function Containers:OnLoot()
         opening.looted = true
 
         local items, quantities = ns.Tracker:LootedItems(true)
-        return self:Record(opening.name, opening.id, items, quantities)
+        local entry = self:Record(opening.name, opening.id, items, quantities)
+        if ns.OpenNote then
+            pcall(ns.OpenNote.Show, ns.OpenNote, opening.name, entry.id or opening.id, entry.opens)
+        end
+        return entry
     end
 
     if not self:IsObject() or self.objectLooted then return end

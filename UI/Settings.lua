@@ -856,6 +856,13 @@ function SettingsUI:BuildLootPage()
         ns.Trash:SetEnabled(checked)
     end, true)
     controls.trashCan:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local openRow = pages:Row("loot", 2, L["Clams and sacks"],
+        L["A small note shows each time you open a clam, sack or lockbox, with how many you've opened. Once you've opened 20, it shows what one is worth. Same as /farm opennote."])
+    controls.openNote = Widgets.CreateCheckbox(openRow, L["Show a note"], function(checked)
+        ns.OpenNote:SetEnabled(checked)
+    end, true)
+    controls.openNote:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Map and goals: what is drawn on the maps, and the goals and their arrow.
@@ -1242,6 +1249,7 @@ function SettingsUI:Refresh()
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
     controls.trashCan:SetChecked(db.trashCan ~= false)
+    controls.openNote:SetChecked(db.openNote ~= false)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
     controls.grindPins:SetChecked(db.grindPins ~= false)
