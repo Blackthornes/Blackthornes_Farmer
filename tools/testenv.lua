@@ -386,6 +386,7 @@ local UI_FILES = {
     "UI/KillTooltip.lua",
     "UI/NodeSparkle.lua",
     "UI/QuestMobs.lua",
+    "UI/KillPlates.lua",
     "UI/HideMenu.lua",
     "UI/NamePrompt.lua",
     "UI/HiddenWindow.lua",

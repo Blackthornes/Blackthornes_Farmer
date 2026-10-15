@@ -1157,6 +1157,17 @@ L["your quest count beside quest mobs' names on or off"] = "deinen Questfortschr
 L["quest count on quest mobs on."] = "Questfortschritt an Questgegnern an."
 L["quest count on quest mobs off."] = "Questfortschritt an Questgegnern aus."
 
+-- Your kills beside mobs' nameplates (UI/KillPlates.lua).
+L["Kill count on nameplates"] = "Anzahl getötet an Namensplaketten"
+L["Shows how many of a mob you've killed to the left of its nameplate. It's red until 20, then shows your kills. Same as /farm plates."] = "Zeigt links neben der Namensplakette, wie viele von einem Gegner du getötet hast. Bis 20 ist es rot, danach siehst du deine Kills. Wie /farm plates."
+L["Worth on nameplates"] = "Wert an Namensplaketten"
+L["Adds what one kill is worth after the count, once you have 20 kills. Same as /farm plates worth."] = "Zeigt hinter der Anzahl, was ein Kill wert ist, sobald du 20 Kills hast. Wie /farm plates worth."
+L["your kill count beside mobs' nameplates on or off"] = "deine Kills neben den Namensplaketten von Gegnern ein- oder ausschalten"
+L["kill count on nameplates on."] = "Anzahl getötet an Namensplaketten an."
+L["kill count on nameplates off."] = "Anzahl getötet an Namensplaketten aus."
+L["worth on nameplates on."] = "Wert an Namensplaketten an."
+L["worth on nameplates off."] = "Wert an Namensplaketten aus."
+
 -- The trash can on the item worth the least (UI/Trash.lua).
 L["Trash can when full"] = "Mülleimer bei vollen Taschen"
 L["When your bags are full, a small gold can sits on the item worth the least. It's never a goal's item, a quest item or gear you could wear. Click it to pick the item up, then drop it outside your bags, and the game asks before anything is destroyed. With Blackthornes Butler loaded, Butler's can shows instead. Same as /farm trash."] =

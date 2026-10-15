@@ -431,6 +431,11 @@ local DEFAULTS = {
     -- 2026-10-14). Never rename it.
     killTooltipDrops = true,
     questMobCount = true,
+    -- Your kill count beside a mob's nameplate, and what a kill is worth
+    -- after it (UI/KillPlates.lua; a player asked, the owner said build it
+    -- 2026-10-15). Never rename either.
+    killPlates = true,
+    killPlatesWorth = false,
     -- Skinning spots and leather left out of what Farmer lists, drops only
     -- (DB:ShowsSkinning). The owner asked for it on by default.
     hideSkinning = true,

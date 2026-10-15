@@ -810,6 +810,24 @@ plate (not in dungeons). "Quest count" on the Map & goals page
 (`questMobCount`, on unless unticked, never rename it) and `/farm
 questcount`. Tested in `tools/test_questmobs.lua`. Not yet seen in game.
 
+## Kill count beside mobs' nameplates
+
+A player asked, the owner said build it (2026-10-15): the tooltip's kill
+count to the left of a mob's nameplate. `UI/KillPlates.lua` shows "7/20"
+in red under `Tracker.MIN_KILLS`, then the whole count, and with "Worth
+on nameplates" ticked what a kill is worth after it, only from your own
+kills (`KillTooltip:Read`'s kept answer, never an estimate). The same
+mobs as the tooltip (`KillTooltip:Attackable`, `MobName`, hidden ones
+left out). Its own frames on UIParent anchored to the left of the plate's
+name, never parented, as `UI/QuestMobs.lua` does on the right; only where
+the game lets addons read the plate. A plate is read when it appears and
+again when a mob of that name is killed (`KillPlates:Killed`, from
+`Tracker:Record`), a setting changes or the hide list moves. "Kill count
+on nameplates" (`killPlates`, on unless unticked) and "Worth on
+nameplates" (`killPlatesWorth`, off unless ticked) on the Map & goals
+page, account wide, never rename either; `/farm plates [on|off|worth
+on|off]`. Tested in `tools/test_killplates.lua`.
+
 ## The XP bar
 
 The owner asked (2026-10-13) for an XP bar in the house style that does
