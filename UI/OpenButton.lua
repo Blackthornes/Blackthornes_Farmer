@@ -53,6 +53,10 @@ OpenButton.BUDGET = 40
 OpenButton.SETTLE = 0.3
 -- After a loot window closes, how long before the next one opens by itself.
 OpenButton.AUTO_DELAY = 1.0
+-- After a loot window closes, the longest to wait for the bags to take its
+-- loot before the next one opens (using one while they still are gives the
+-- game's internal bag error).
+OpenButton.BAG_WAIT = 2
 -- Tries in a row that stay shut before Open after loot leaves an item alone.
 OpenButton.STRIKES = 3
 -- How long the test waits for a loot window.
@@ -490,11 +494,43 @@ function OpenButton:Settle()
     end
 end
 
---- A loot window closed: note what the last try did, then open the next.
+--- A loot window closed: note what the last try did, then open the next
+--- once the bags have taken the loot (BAG_UPDATE_DELAYED), or `BAG_WAIT`
+--- later when nothing came.
 function OpenButton:LootClosed()
     self:Settle()
     if not (self:AutoOn() and self:TestResult() == "works") then return end
+    local token = {}
+    self.waitBags = token
+    C_Timer.After(self.BAG_WAIT, function() OpenButton:BagsTook(token) end)
+end
+
+--- The bags took the loot (or the wait ran out): open the next one shortly.
+function OpenButton:BagsTook(token)
+    if not self.waitBags or (token and self.waitBags ~= token) then return end
+    self.waitBags = nil
     C_Timer.After(self.AUTO_DELAY, function() OpenButton:OpenNext() end)
+end
+
+--- The player loots by itself (the game's Auto Loot setting).
+function OpenButton.AutoLootOn()
+    local get = (_G.C_CVar and _G.C_CVar.GetCVarBool) or _G.GetCVarBool
+    if type(get) ~= "function" then return false end
+    local ok, on = pcall(get, "autoLootDefault")
+    return ok and on == true
+end
+
+--- A window Open after loot opened: take everything in it, as the game's
+--- Auto Loot would on a click (it does not when an addon opens it). Done a
+--- frame later, after Farmer has read the window.
+function OpenButton:TakeLoot()
+    if not self.AutoLootOn() then return end
+    C_Timer.After(0, function()
+        if not OpenButton.lootOpen or InCombat() then return end
+        local gotCount, count = pcall(_G.GetNumLootItems)
+        if not gotCount or type(count) ~= "number" or type(_G.LootSlot) ~= "function" then return end
+        for slot = count, 1, -1 do pcall(_G.LootSlot, slot) end
+    end)
 end
 
 --- Open the next one by itself, when that is allowed now.
@@ -533,7 +569,10 @@ end
 --------------------------------------------------------------------------------
 
 function OpenButton:OnEnable()
-    ns.RegisterEvent(self, "BAG_UPDATE_DELAYED", function() OpenButton:Changed() end)
+    ns.RegisterEvent(self, "BAG_UPDATE_DELAYED", function()
+        OpenButton:Changed()
+        OpenButton:BagsTook()
+    end)
     ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", function() OpenButton:Changed() end)
     -- Just before combat locks secure frames: hidden, emptied and off the
     -- panel, so the panel stays free to move.
@@ -565,6 +604,7 @@ function OpenButton:OnEnable()
     ns.RegisterEvent(self, "LOOT_OPENED", function()
         OpenButton.lootOpen = true
         if OpenButton.testing then OpenButton.testLoot = true end
+        if OpenButton.last or OpenButton.testing then OpenButton:TakeLoot() end
     end)
     ns.RegisterEvent(self, "LOOT_CLOSED", function()
         OpenButton.lootOpen = false

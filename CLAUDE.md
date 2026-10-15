@@ -724,7 +724,7 @@ fight it hides and goes back to UIParent, so the panel can still move;
 hidden at a vendor, bank, mailbox, auction house or trade. "Open after
 loot" (`autoOpen`, off unless ticked) opens the next one each
 `LOOT_CLOSED`, out of combat, with a free slot, only once `/farm
-openbutton test` saved `openTest.result = "works"`; one the game refuses (its "internal loot error", with no loot window) is tried again, and left for the session only after `OpenButton.STRIKES` (3) tries in a row stay shut (`OpenButton.tried`, counted; a click on the button or one that opens starts it again).
+openbutton test` saved `openTest.result = "works"`; one the game refuses (its "internal loot error", with no loot window) is tried again, and left for the session only after `OpenButton.STRIKES` (3) tries in a row stay shut (`OpenButton.tried`, counted; a click on the button or one that opens starts it again). It waits for the bags to take the last loot (`BAG_UPDATE_DELAYED`, at most `BAG_WAIT`) before the next, since using one sooner gives the game's internal bag error, and with the game's Auto Loot on it loots a window it opened itself (`TakeLoot`, `LootSlot` a frame after Farmer reads it), which the game does not when an addon opens it.
 `openButton` (on unless
 unticked), `autoOpen` and `openTest` are account wide; never rename them.
 Loot page; `/farm openbutton [on|off|test|auto on|off]`. Tested in
