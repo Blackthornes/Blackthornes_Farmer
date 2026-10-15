@@ -695,8 +695,11 @@ are behind it (hidden items left out), and `Value:WorthOf(name, id)` takes
 it over `UnitPrice` when it pays more, so `FromTally`, `FromDatabase`
 (Rankings, the tooltip, rank-up) and the loot table's per kill follow; the
 loot table's item tooltip lists what it opens to
-(`LootTableUI:ContentsLines`). The session haul and Stats still price the
-clam itself. An opening is caught by the bag click (`UseContainerItem`),
+(`LootTableUI:ContentsLines`). The session haul follows it too (the
+owner, 2026-10-15: `Value:Session`, the Loot tab, a mob's loot worth and
+the panel's slot tooltip use `WorthOf`); opened loot never joins
+`Tracker.sessionLoot`, so nothing counts twice. Stats still prices the
+clam when looted. An opening is caught by the bag click (`UseContainerItem`),
 else by the loot window's `Item-` source guid matched to a bag slot
 (`Containers:FromSource`, `C_Item.GetItemGUID`), since none had been
 recorded in game. Tested in `tools/test_containerworth.lua` and

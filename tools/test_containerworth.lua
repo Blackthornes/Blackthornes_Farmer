@@ -114,6 +114,17 @@ unit, from = Value:WorthOf(CLAM.name, CLAM.id)
 suite.check("a vendor that pays more wins", unit == 5000 and from == "vendor", tostring(unit) .. " " .. tostring(from))
 VENDOR[5524] = 1
 
+--------------------------------------------------------------------------------
+-- The session haul (the Loot tab, gold per hour) counts what's inside too
+--------------------------------------------------------------------------------
+
+local savedLoot, savedCopper = Tracker.sessionLoot, Tracker.sessionCopper
+Tracker.sessionLoot, Tracker.sessionCopper = { [CLAM.name] = 2 }, 0
+local sessionWorth = Value:Session()
+suite.check("the session counts a clam by what's inside",
+    sessionWorth and math.abs(sessionWorth - 205) < 0.01, tostring(sessionWorth))
+Tracker.sessionLoot, Tracker.sessionCopper = savedLoot, savedCopper
+
 _G.BlackthornesTS = nil
 _G.C_Item = nil
 suite.done()

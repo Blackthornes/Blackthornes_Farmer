@@ -579,7 +579,8 @@ function Value:Session()
     local total = coin
 
     for name, count in pairs(counts) do
-        local unit = self:UnitPrice(self:ItemID(name))
+        -- A clam or a sack counts what's inside once you've opened enough.
+        local unit = self:WorthOf(name)
         if unit then
             total = total + count * unit
             details.priced = details.priced + 1

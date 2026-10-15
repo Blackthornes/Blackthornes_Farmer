@@ -1462,7 +1462,7 @@ function TrackerUI:SlotTooltip(slot)
     GameTooltip:AddLine(icon.item, r or 1, g or 1, b or 1)
     if icon.about then GameTooltip:AddLine(icon.about, 1, 1, 1) end
 
-    local unit = ns.Value and ns.Value:UnitPrice(ns.Value:ItemID(icon.item))
+    local unit = ns.Value and ns.Value:WorthOf(icon.item)
     if unit then GameTooltip:AddLine(L.Format("Worth %s each", ns.Value.Coins(unit)), 1, 1, 1) end
 
     if icon.mob then
@@ -1769,7 +1769,7 @@ function TrackerUI:MobLootValue(mob)
     for name, from in pairs(ns.Tracker.sessionFrom or {}) do
         local count = from[mob]
         if count and ns.Tracker.Counts(name) then
-            local unit = ns.Value:UnitPrice(ns.Value:ItemID(name))
+            local unit = ns.Value:WorthOf(name)
             if unit then total = total + count * unit end
         end
     end
@@ -2009,7 +2009,7 @@ function TrackerUI:SessionItems()
 
     local items = {}
     for _, entry in pairs(byName) do
-        local unit = ns.Value and ns.Value:UnitPrice(ns.Value:ItemID(entry.name))
+        local unit = ns.Value and ns.Value:WorthOf(entry.name)
         entry.value = unit and entry.count * unit or nil
         items[#items + 1] = entry
     end
