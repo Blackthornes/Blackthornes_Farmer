@@ -7,8 +7,10 @@
 -- would not say where the loot came from, could put a pearl down as that
 -- mob's drop. And a Giant Clam or a chest out in the world opens one too.
 --
--- A bag item counts only when the client says it holds loot and its window
--- opens within OPEN_SECONDS of the click. Each opening is one, kept by the
+-- A bag item counts when its window opens within OPEN_SECONDS of the click
+-- and the client says it holds loot (or, when it won't say, the window names
+-- an item as its source). With no click seen, a window that names an item in
+-- the bags as its source, and no creature, is that item's. Each opening is one, kept by the
 -- item's name in `containers.opened`, account wide, with how many of the
 -- openings gave each item and how many came out. Nothing says where a clam
 -- was opened, which says nothing about where it came from: Where? reads the
@@ -123,7 +125,10 @@ function Containers.SlotItem(bag, slot)
         if ok and type(info) == "table" then
             local link = ns.Harvest.Readable(info.hyperlink)
             local hasLoot
-            pcall(function() hasLoot = info.hasLoot == true end)
+            pcall(function()
+                if info.hasLoot == true then hasLoot = true
+                elseif info.hasLoot == false then hasLoot = false end
+            end)
             return ns.Harvest.ReadableNumber(info.itemID),
                 link and link:match("%[(.-)%]"), hasLoot
         end
@@ -134,18 +139,50 @@ function Containers.SlotItem(bag, slot)
         if ok then
             link = ns.Harvest.Readable(link)
             local hasLoot
-            pcall(function() hasLoot = lootable == true or lootable == 1 end)
+            pcall(function()
+                if lootable == true or lootable == 1 then hasLoot = true
+                elseif lootable == false then hasLoot = false end
+            end)
             return ns.Harvest.ReadableNumber(id), link and link:match("%[(.-)%]"), hasLoot
         end
     end
 end
 
---- You used something in your bags. Remembered only when it holds loot.
+--- You used something in your bags. Remembered unless the client says it
+--- holds no loot; one it would not say about (`unsure`) counts only when the
+--- loot window names an item as its source.
 function Containers:OnUsed(bag, slot)
     local id, name, hasLoot = Containers.SlotItem(bag, slot)
-    if not (hasLoot and name) then return end
+    if hasLoot == false or not name then return end
 
-    self.opening = { id = id, name = name, at = Now() }
+    self.opening = { id = id, name = name, at = Now(), unsure = hasLoot ~= true }
+end
+
+-- The bags looked through for the item a loot window names: the backpack,
+-- the four bags and the reagent bag.
+Containers.BAGS = { 0, 1, 2, 3, 4, 5 }
+
+--- The bag item with this guid: id and name, or nil.
+function Containers.ItemByGuid(guid)
+    if not (type(C_Item) == "table" and type(C_Item.GetItemGUID) == "function"
+        and type(ItemLocation) == "table" and type(ItemLocation.CreateFromBagAndSlot) == "function"
+        and type(C_Container) == "table" and type(C_Container.GetContainerNumSlots) == "function") then
+        return nil
+    end
+
+    for _, bag in ipairs(Containers.BAGS) do
+        local gotSlots, slots = pcall(C_Container.GetContainerNumSlots, bag)
+        slots = gotSlots and ns.Harvest.ReadableNumber(slots) or 0
+        for slot = 1, slots do
+            local ok, found = pcall(function()
+                return C_Item.GetItemGUID(ItemLocation:CreateFromBagAndSlot(bag, slot))
+            end)
+            if ok and ns.Harvest.Readable(found) == guid then
+                local id, name = Containers.SlotItem(bag, slot)
+                if name then return id, name end
+            end
+        end
+    end
 end
 
 --- Did this loot window come from something other than a corpse or a node?
@@ -158,18 +195,42 @@ local function SourceKinds()
     return kinds
 end
 
+--- The bag item the window names as its source, found by its guid, when
+--- no creature is named with it. Kept for the window.
+function Containers:FromSource()
+    local itemGuid
+    for _, guid in ipairs(ns.Harvest:LootSources()) do
+        local kind = type(guid) == "string" and guid:match("^(%a+)%-") or nil
+        if kind == "Creature" then return nil end
+        if kind == "Item" then itemGuid = itemGuid or guid end
+    end
+    if not itemGuid then return nil end
+
+    if self.sourced and self.sourced.guid == itemGuid then return self.sourced end
+
+    local id, name = Containers.ItemByGuid(itemGuid)
+    if not name then return nil end
+
+    self.sourced = { id = id, name = name, guid = itemGuid }
+    return self.sourced
+end
+
 --- The bag item this window is from, or nil.
 function Containers:Opening()
     local opening = self.opening
-    if not opening then return nil end
-    if opening.looted then return opening end
-    if not Recent(opening.at, Containers.OPEN_SECONDS) then return nil end
+    if opening and opening.looted then return opening end
 
-    -- The client says where the loot came from: a corpse is a corpse.
-    local kinds = SourceKinds()
-    if kinds.Creature and not kinds.Item then return nil end
+    if opening and Recent(opening.at, Containers.OPEN_SECONDS) then
+        -- The client says where the loot came from: a corpse is a corpse.
+        local kinds = SourceKinds()
+        if not (kinds.Creature and not kinds.Item) and (kinds.Item or not opening.unsure) then
+            return opening
+        end
+    end
 
-    return opening
+    -- No click seen (the game's bag button may not go through the call we
+    -- watch): the window's own source, when it names an item in the bags.
+    return self:FromSource()
 end
 
 --------------------------------------------------------------------------------
@@ -253,6 +314,7 @@ end
 
 function Containers:OnLootClosed()
     if self.opening and self.opening.looted then self.opening = nil end
+    if self.sourced and self.sourced.looted then self.sourced = nil end
     self.objectLooted = nil
 end
 

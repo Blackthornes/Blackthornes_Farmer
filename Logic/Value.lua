@@ -356,6 +356,73 @@ function Value:ItemID(name)
 end
 
 --------------------------------------------------------------------------------
+-- What a clam or a sack is worth opened
+--------------------------------------------------------------------------------
+
+-- A clam, a sack or a lockbox you opened from your bags is worth what came
+-- out of it, once you've opened enough to say (Containers keeps them by
+-- name). The same as a mob's rates: 20, or it says nothing.
+Value.MIN_OPENS = 20
+
+--- What one opening of `name` gives, in copper, or nil under MIN_OPENS or
+--- with nothing in it priced. Returns worth, details { opens, priced =
+--- { { name, id, chance, each, unit, perOpen } }, unpriced = { names } },
+--- most worth first; `each` is how many came out of an opening that gave it.
+--- Items on the hide list are left out.
+function Value:Contents(name)
+    local Containers = ns.Containers
+    if not (Containers and name) then return nil end
+
+    local ok, store = pcall(Containers.Store, Containers)
+    local entry = ok and type(store) == "table" and store[name]
+    if type(entry) ~= "table" or type(entry.items) ~= "table" then return nil end
+
+    local opens = tonumber(entry.opens) or 0
+    if opens < self.MIN_OPENS then return nil end
+
+    local details = { opens = opens, priced = {}, unpriced = {} }
+    local total = 0
+
+    for item, got in pairs(entry.items) do
+        local times = type(got) == "table" and tonumber(got.opens) or 0
+        local hidden = ns.DB and ns.DB:HidesItem(item)
+        if times > 0 and not hidden then
+            local id = got.id or self:ItemID(item)
+            local count = tonumber(got.count) or times
+            local unit = self:UnitPrice(id)
+            if unit then
+                local perOpen = count / opens * unit
+                total = total + perOpen
+                details.priced[#details.priced + 1] = { name = item, id = id,
+                    chance = times / opens * 100, each = count / times, unit = unit,
+                    perOpen = perOpen }
+            else
+                details.unpriced[#details.unpriced + 1] = item
+            end
+        end
+    end
+
+    if #details.priced == 0 then return nil end
+
+    table.sort(details.priced, function(a, b) return a.perOpen > b.perOpen end)
+    table.sort(details.unpriced)
+
+    return total, details
+end
+
+--- One of `name` (an item looted off a mob) is worth: what's inside when
+--- it's a clam or a sack you've opened enough and that pays more, else
+--- UnitPrice. Returns copper and "contents", "auction" or "vendor".
+function Value:WorthOf(name, id)
+    local unit, from = self:UnitPrice(id or self:ItemID(name))
+    local inside = self:Contents(name)
+
+    if inside and (not unit or inside > unit) then return inside, "contents" end
+
+    return unit, from
+end
+
+--------------------------------------------------------------------------------
 -- A mob's worth
 --------------------------------------------------------------------------------
 
@@ -387,7 +454,7 @@ function Value:FromTally(mobName)
         if ns.DB and ns.DB:HidesItem(name) then corpses = nil end
         local perCorpse = corpses and Tracker:StackSize(mobName, name)
         local unit, from
-        if corpses then unit, from = self:UnitPrice(self:ItemID(name)) end
+        if corpses then unit, from = self:WorthOf(name) end
 
         if not corpses then
             -- Left out: neither priced nor listed as unpriced.
@@ -423,7 +490,7 @@ function Value:FromDatabase(mobName)
         if source.chance and not seen[item.name] then
             seen[item.name] = true
 
-            local unit, from = self:UnitPrice(item.id or self:ItemID(item.name))
+            local unit, from = self:WorthOf(item.name, item.id)
 
             if unit then
                 local perKill = source.chance / 100 * unit

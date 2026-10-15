@@ -111,6 +111,60 @@ _G.GetLootSourceInfo = nil
 clock = clock + 10
 
 --------------------------------------------------------------------------------
+-- A clam opened with no click seen
+--------------------------------------------------------------------------------
+
+-- The game's bag button need not go through the call we watch. The loot
+-- window still names the clam by its item guid, found in the bags.
+local GUIDS = { [1] = "Item-4620-0-4000000AB12", [2] = "Item-4620-0-4000000AB13" }
+local realCItem, realLocation = _G.C_Item, _G.ItemLocation
+_G.C_Item = { GetItemGUID = function(location) return GUIDS[location.slot] end }
+_G.ItemLocation = { CreateFromBagAndSlot = function(_, bag, slot)
+    return bag == 0 and { bag = bag, slot = slot } or {}
+end }
+C_Container.GetContainerNumSlots = function(bag) return bag == 0 and 2 or 0 end
+
+env.world.target = { name = "Bluegill Murloc", level = 21, dead = true, guid = "Creature-0-1-2-3-1024-5" }
+Open({ CLAM })
+local kills = Tracker:Store()["Bluegill Murloc"].kills
+_G.GetLootSourceInfo = function(slot) if slot <= 2 then return GUIDS[1], 1 end end
+Open({ PEARL, MEAT })
+suite.check("no click: the window's item source is the clam",
+    Containers:Store()["Thick-shelled Clam"].opens == 2, Containers:Store()["Thick-shelled Clam"].opens)
+suite.check("no click: the pearl is not the murloc's", TallyItem("Bluegill Murloc", "Iridescent Pearl") == nil)
+suite.check("no click: no kill", Tracker:Store()["Bluegill Murloc"].kills == kills)
+
+-- The same stack opened again: one more.
+Open({ MEAT })
+suite.check("the same stack again is one more", Containers:Store()["Thick-shelled Clam"].opens == 3)
+
+-- An item guid nothing in the bags carries is never guessed.
+_G.GetLootSourceInfo = function(slot) if slot == 1 then return "Item-4620-0-4000000FFFF", 1 end end
+Open({ MEAT })
+suite.check("an item not in the bags is not guessed", Containers:Store()["Thick-shelled Clam"].opens == 3)
+
+-- A client that won't say whether the clam holds loot: the click counts
+-- when the window names an item, and never claims a corpse.
+SLOTS[1].hasLoot = nil
+-- (Its guid is one the bags don't show, so only the click can name it.)
+_G.GetLootSourceInfo = function(slot) if slot <= 2 then return "Item-4620-0-4000000CCCC", 1 end end
+C_Container.UseContainerItem(0, 1)
+Open({ PEARL, MEAT })
+suite.check("unsure click with an item source counts", Containers:Store()["Thick-shelled Clam"].opens == 4, tostring(Containers:Store()["Thick-shelled Clam"].opens) .. " " .. tostring(Containers:Store()["Minor Healing Potion"]))
+
+_G.GetLootSourceInfo = nil
+env.world.target = { name = "Bluegill Murloc", level = 21, dead = true, guid = "Creature-0-1-2-3-1024-6" }
+C_Container.UseContainerItem(0, 1)
+Open({ CLAM })
+suite.check("unsure click does not claim a corpse", Tracker:Store()["Bluegill Murloc"].kills == kills + 1)
+suite.check("and is no opening", Containers:Store()["Thick-shelled Clam"].opens == 4)
+SLOTS[1].hasLoot = true
+
+_G.C_Item, _G.ItemLocation = realCItem, realLocation
+C_Container.GetContainerNumSlots = nil
+clock = clock + 10
+
+--------------------------------------------------------------------------------
 -- A Giant Clam underwater
 --------------------------------------------------------------------------------
 
@@ -161,9 +215,9 @@ for _, spot in ipairs(spots) do
     if spot.name == "Giant Clam" and spot.zone == "Wetlands" and spot.yours then giant = spot end
 end
 suite.check("Where? lists the clam's place in Wetlands", inClam ~= nil)
-suite.check("with what you found inside", inClam and inClam.yours and inClam.yours.opens == 1)
+suite.check("with what you found inside", inClam and inClam.yours and inClam.yours.opens == 4)
 suite.check("which the note says",
-    inClam and ns.GoalsUI.SpotNote(inClam):find("in 1 of the 1 you opened", 1, true) ~= nil,
+    inClam and ns.GoalsUI.SpotNote(inClam):find("in 3 of the 4 you opened", 1, true) ~= nil,
     inClam and ns.GoalsUI.SpotNote(inClam))
 suite.check("and the Giant Clam you opened there", giant ~= nil)
 suite.check("whose note says so",
