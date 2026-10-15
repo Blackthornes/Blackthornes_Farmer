@@ -168,7 +168,7 @@ function GuildShare:OnHello(sender, body, channel)
         local key = GuildShare.LedgerKey(id)
         if type(Ledgers()[key]) ~= "table" and Guildmates() >= self.MAX_GUILDMATES then return end
         state = {
-            key = key, id = id, guild = true, check = GuildShare.Plausible,
+            key = key, id = id, guild = true, apart = true, owner = self, check = GuildShare.Plausible,
             sections = { h = true },
             store = function(section, create) return section == "h" and Drops(create) or nil end,
             book = Ledgers,
