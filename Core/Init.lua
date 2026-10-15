@@ -448,6 +448,12 @@ local DEFAULTS = {
     -- A note on screen each time a clam or sack is opened and counted
     -- (UI/OpenNote.lua, the owner asked 2026-10-15). Never rename it.
     openNote = true,
+    -- The Open button on the Kills & Loot panel, and opening clams, sacks
+    -- and lockboxes by itself after loot once the test found it may (off
+    -- unless ticked; UI/OpenButton.lua, the owner asked 2026-10-15). What
+    -- the test found is kept in openTest. Never rename any of them.
+    openButton = true,
+    autoOpen = false,
     -- A notice on screen when the bags fill up (UI/BagsFull.lua, the owner
     -- asked 2026-10-15). Never rename it.
     bagsFullNotice = true,

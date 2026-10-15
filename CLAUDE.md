@@ -690,6 +690,28 @@ what one is worth; "Clams and sacks" on the Loot page (`openNote`, on
 unless unticked, never rename it) and `/farm opennote`. Tested in
 `tools/test_opennote.lua`.
 
+## The Open button
+
+The owner asked (2026-10-15) for one click to open clams, sacks and
+lockboxes, in Farmer. `UI/OpenButton.lua`: a secure icon button
+(`BlackthornesFarmerOpen`, the next item's icon, how many in its corner,
+"Open" on hover) on the Kills & Loot panel's title bar, left of its X.
+Each click aims a `/use bag slot` macro at the next slot with `hasLoot`,
+read again first, and empties it after. Left shut: a goal's item (Farmer's
+own `Butler:Advise`), what Tradeskills' queue needs (its `Butler:Advise`
+`need` or `mailCount`), what Butler keeps (`_G.BlackthornesButler.Verdicts:Choice`
+keep, bank or mail, `Quests:Reason`), quest items and a lockbox whose
+tooltip says `LOCKED`; each sister read in a pcall, none required. In a
+fight it hides and goes back to UIParent, so the panel can still move;
+hidden at a vendor, bank, mailbox, auction house or trade. "Open after
+loot" (`autoOpen`, off unless ticked) opens the next one each
+`LOOT_CLOSED`, out of combat, with a free slot, only once `/farm
+openbutton test` saved `openTest.result = "works"`; one that stayed shut is
+left for the session (`OpenButton.tried`). `openButton` (on unless
+unticked), `autoOpen` and `openTest` are account wide; never rename them.
+Loot page; `/farm openbutton [on|off|test|auto on|off]`. Tested in
+`tools/test_openbutton.lua`. Not yet seen in game.
+
 ## Kills on the mob tooltip
 
 The owner asked (2026-10-13) for a mob's tooltip to say how many you have

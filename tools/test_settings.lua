@@ -225,6 +225,7 @@ local buttons = {
     rankUpShow = "rankup show",
     xpBarTry = "xpbar try",
     topFarmTry = "topfarm test",
+    openTest = "openbutton test",
     xpBarReset = "xpbar reset",
     statsTab = "charts",
     worldDropsList = "worlddrops",
