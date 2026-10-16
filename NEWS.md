@@ -25,7 +25,6 @@ tool prints a note for a shipped line that reads like an advert.
 
 ## 0.36.0
 
-- Thanks Ezmode, Voldar, DarkGarf and MagnusBabbage for the ideas and feedback!
 - A mob with the same name in another zone gets its own line.
 - Tradeskills can show which of your kills drop items that break into an enchanting material.
 
