@@ -42,7 +42,8 @@ local Session = ns.NewModule("Session")
 -- Loot tab's "from" lists), the order last done in, and plain numbers.
 Session.FIELDS = {
     Tracker = {
-        counts = { "session", "sessionLoot" },
+        -- sessionZones: kills by zone's key, for a name split by zone.
+        counts = { "session", "sessionLoot", "sessionZones" },
         nested = { "sessionFrom" },
         recent = "recent",
         numbers = { "sessionCopper" },
@@ -297,6 +298,7 @@ function Session:Clear()
     local Tracker = ns.Tracker
     if Tracker then
         Tracker.current = nil
+        Tracker.currentKey = nil
         Tracker.streak = 0
         Tracker.streakAt = nil
     end

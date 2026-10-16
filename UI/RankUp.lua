@@ -263,7 +263,7 @@ function RankUpUI:Fit(items)
     local kills = Theme.TextWidth("small", Util.Plural(999, L["kill"], L["kills"]))
 
     for _, item in ipairs(items) do
-        name = math.max(name, Theme.TextWidth("normal", item.mob))
+        name = math.max(name, Theme.TextWidth("normal", ns.Tracker.ShowKey(item.mob)))
         worth = math.max(worth, Theme.TextWidth("normal", ns.Value.Coins(item.value)),
             Theme.TextWidth("normal", ns.Value.Coins(item.fromValue or item.value)))
         kills = math.max(kills, Theme.TextWidth("small", Util.Plural(item.kills, L["kill"], L["kills"])))
@@ -365,7 +365,7 @@ function RankUpUI:Dress(row, item)
     row.picked = item.picked
     row.place, row.value = nil, nil
 
-    row.name:SetText(item.mob)
+    row.name:SetText(ns.Tracker.ShowKey(item.mob))
     row.name:SetTextColor(Theme.Unpack(item.picked and "accentHi" or "text"))
     row.kills:SetText(Util.Plural(item.kills, L["kill"], L["kills"]))
 
@@ -519,10 +519,10 @@ function RankUpUI:Show(move)
 
     if move.newTop then
         if move.lead then
-            self.foot:SetText(L.Format("%s is your best farm now: %s a kill, %d%% more than %s.", move.mob,
-                ns.Value.Coins(picked and picked.value or 0), math.floor(move.lead * 100 + 0.5), move.passed or ""))
+            self.foot:SetText(L.Format("%s is your best farm now: %s a kill, %d%% more than %s.", ns.Tracker.ShowKey(move.mob),
+                ns.Value.Coins(picked and picked.value or 0), math.floor(move.lead * 100 + 0.5), move.passed and ns.Tracker.ShowKey(move.passed) or ""))
         else
-            self.foot:SetText(L.Format("%s is your best farm now: %s a kill.", move.mob,
+            self.foot:SetText(L.Format("%s is your best farm now: %s a kill.", ns.Tracker.ShowKey(move.mob),
                 ns.Value.Coins(picked and picked.value or 0)))
         end
     elseif move.scan then
@@ -530,10 +530,10 @@ function RankUpUI:Show(move)
     elseif not move.mob then
         self.foot:SetText("")
     elseif move.new then
-        self.foot:SetText(L.Format("%s is on your board now: %s a kill.", move.mob,
+        self.foot:SetText(L.Format("%s is on your board now: %s a kill.", ns.Tracker.ShowKey(move.mob),
             ns.Value.Coins(picked and picked.value or 0)))
     else
-        self.foot:SetText(L.Format("%s moved up: %s to %s a kill.", move.mob,
+        self.foot:SetText(L.Format("%s moved up: %s to %s a kill.", ns.Tracker.ShowKey(move.mob),
             ns.Value.Coins(picked and picked.fromValue or 0), ns.Value.Coins(picked and picked.value or 0)))
     end
 

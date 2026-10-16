@@ -92,8 +92,9 @@ function KillPlates:Read(unit)
     local name = Tooltip:MobName(unit, guid)
     if not name then return nil end
     if ns.DB and ns.DB:IsHiddenSource(name) then return nil end
-    if Tooltip.Kills(name) == 0 and Tooltip:Attackable(unit) ~= true then return nil end
-    return name, self:TextFor(name)
+    local key = Tooltip.KeyHere(name)
+    if Tooltip.Kills(key) == 0 and Tooltip:Attackable(unit) ~= true then return nil end
+    return name, self:TextFor(key)
 end
 
 --------------------------------------------------------------------------------

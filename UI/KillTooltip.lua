@@ -181,11 +181,26 @@ function KillTooltip:MobName(unit, guid)
     return ns.Harvest.KnownNpcName(npcID) or ("Creature #%d"):format(npcID)
 end
 
---- Kills of a mob from the saved tally, 0 for one never killed.
-function KillTooltip.Kills(name)
-    local mobs = ns.db and type(ns.db.tracker) == "table" and ns.db.tracker.mobs
-    local mob = type(mobs) == "table" and mobs[name]
+--- Kills of a mob's line from the saved tally, 0 for one never killed. A
+--- name split by zone answers through its zone's key (Tracker:KeyHere).
+function KillTooltip.Kills(key)
+    local mob
+    if ns.Tracker and ns.Tracker.SplitKey and select(2, ns.Tracker.SplitKey(key)) then
+        mob = ns.Tracker:Tally(key)
+    else
+        local mobs = ns.db and type(ns.db.tracker) == "table" and ns.db.tracker.mobs
+        mob = type(mobs) == "table" and mobs[key]
+    end
     return type(mob) == "table" and tonumber(mob.kills) or 0
+end
+
+--- The line a mob of this name shows here: its name, or the zone's key
+--- once kills of that name are kept apart by zone.
+function KillTooltip.KeyHere(name)
+    local Tracker = ns.Tracker
+    if not (Tracker and Tracker.KeyHere) then return name end
+    local ok, key = pcall(Tracker.KeyHere, Tracker, name)
+    return ok and key or name
 end
 
 --- Is this something you would farm? A creature you can attack, not
@@ -361,6 +376,7 @@ function KillTooltip:Decorate(tooltip, data)
     local name = self:MobName(unit, guid)
     if not name then return "nounit" end
     if ns.DB and ns.DB:IsHiddenSource(name) then return "quiet" end
+    name = KillTooltip.KeyHere(name)
 
     -- A mob you could farm, or one you already have.
     if KillTooltip.Kills(name) == 0 and self:Attackable(unit) ~= true then return "quiet" end
