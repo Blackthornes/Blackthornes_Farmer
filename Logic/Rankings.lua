@@ -53,6 +53,55 @@ function Rankings:Spot(mobName)
     return best
 end
 
+--- The levels you met a mob at, from your own loot records: { min, max } by
+--- mob name. Laid out once and kept until a corpse is recorded
+--- (Harvest.changes) or LEVELS_KEEP seconds pass, since the board asks for
+--- every mob in one go. A mob the database has no row for (most of what the
+--- shipped data leaves out) still gets a level this way.
+Rankings.LEVELS_KEEP = 60
+
+function Rankings:OwnLevels()
+    local Harvest = ns.Harvest
+    local changes = Harvest and Harvest.changes or 0
+    local now = GetTime and GetTime() or 0
+    local kept = self.ownLevels
+    if kept and kept.changes == changes and now - kept.at < self.LEVELS_KEEP then
+        return kept.levels
+    end
+
+    local levels = {}
+    for _, record in pairs(Harvest and Harvest.records or {}) do
+        local mob, low, high = record.mob, tonumber(record.minLevel), tonumber(record.maxLevel)
+        if type(mob) == "string" and low then
+            high = high or low
+            local seen = levels[mob]
+            if seen then
+                seen.min = math.min(seen.min, low)
+                seen.max = math.max(seen.max, high)
+            else
+                levels[mob] = { min = low, max = high }
+            end
+        end
+    end
+
+    self.ownLevels = { changes = changes, at = now, levels = levels }
+    return levels
+end
+
+--- A mob's level for the board: "18-19". The levels you met it at first,
+--- like where you farm it, else the database's, else nil.
+--- Returns the text and the lowest level, for sorting.
+function Rankings:LevelFor(mobName, spot)
+    local own = self:OwnLevels()[mobName]
+    if own then
+        return ns.Search:LevelText({ minLevel = own.min, maxLevel = own.max }), own.min
+    end
+    if spot and spot.minLevel then
+        return ns.Search:LevelText(spot), tonumber(spot.minLevel)
+    end
+    return nil, nil
+end
+
 --------------------------------------------------------------------------------
 -- Outside dungeons only
 --------------------------------------------------------------------------------
@@ -143,8 +192,8 @@ function Rankings:Entry(mobName)
         kills = summary and summary.kills or 0,
         needed = summary and summary.needed or 0,
         spot = spot,
-        level = spot and ns.Search:LevelText(spot) or nil,
     }
+    entry.level, entry.minLevel = self:LevelFor(mobName, spot)
 
     -- Where you farm it beats where the database says it lives.
     local places = summary and summary.places

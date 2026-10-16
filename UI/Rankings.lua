@@ -234,7 +234,7 @@ local SORT_VALUE = {
     basis = function(entry) return entry.kills end,
     best = function(entry) return entry.best and entry.best.name end,
     where = function(entry) return entry.where end,
-    level = function(entry) return entry.spot and tonumber(entry.spot.minLevel) end,
+    level = function(entry) return entry.minLevel end,
 }
 
 --- The sort the headings were left on: key (nil for the usual order) and
