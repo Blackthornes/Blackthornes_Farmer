@@ -978,6 +978,9 @@ L["worth on nameplates off."] = "Wert an Namensplaketten aus."
 L["Throw away to make room"] = "Wegwerfen, um Platz zu schaffen"
 L["Worth %s in all, the least in your bags"] = "Insgesamt %s wert, das Wenigste in deinen Taschen"
 L["Click to pick it up."] = "Klick zum Aufnehmen."
+L["Stack these to make room"] = "Staple sie, um Platz zu schaffen"
+L["It fits on your other stack of %d."] = "Es passt auf deinen anderen Stapel mit %d."
+L["Click to stack them. Nothing is thrown away."] = "Klick, um sie zu stapeln. Nichts wird weggeworfen."
 L["Your cursor is already holding something. Put it down first."] =
     "Dein Mauszeiger hält schon etwas. Leg es zuerst ab."
 L["%s is on your cursor. Drop it outside your bags and the game will ask before it is destroyed, or click its bag slot to put it back."] =

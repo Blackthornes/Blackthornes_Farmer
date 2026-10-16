@@ -730,7 +730,11 @@ bag window is open and the bags that take anything have no free slot
 (`Trash.FREE`, 0), a gold can (`Media/Trash/TrashCan.tga`, drawn
 by `tools/make_trash_art.py`, the same tool and art as Butler's; rerun it,
 never edit the TGA) sits on the top right of the stack worth least by
-`Value:UnitPrice` times the stack. Never a goal's item (`Goals:Find`), a
+`Value:UnitPrice` times the stack. A trade good counts as
+`Trash.MATERIAL_LEAN` (1.5) times its worth, so close calls go to junk;
+and two short stacks of one item that fit in one slot come first: the can
+says "Stack these to make room" and a click joins them (`Trash:Merge`,
+the owner 2026-10-16). Never a goal's item (`Goals:Find`), a
 quest item, anything soulbound above grey, gear that could be worn (only
 grey gear), a locked slot or an unpriced item. Farmer never deletes: a
 click picks the item up and says to drop it outside the bags, where the
