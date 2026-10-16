@@ -302,6 +302,56 @@ def main():
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)
 
+    # -- Drops players sent ------------------------------------------------------
+    #
+    # Kept apart in the save (sharedDrops, Logic/Contribute.lua) and folded in
+    # only with --shared. Twelve more Rot Hide Gnoll corpses lift it to the
+    # twenty a rate needs; the sender's name, kept in the ledger, never shows.
+    shared_text = SAVED.rstrip().rstrip("}") + """\t["sharedDrops"] = {
+\t\t["Rot Hide Gnoll|Silverpine Forest|"] = {
+\t\t\t["mob"] = "Rot Hide Gnoll",
+\t\t\t["zone"] = "Silverpine Forest",
+\t\t\t["minLevel"] = 19,
+\t\t\t["maxLevel"] = 22,
+\t\t\t["corpses"] = 12,
+\t\t\t["items"] = {
+\t\t\t\t["Wool Cloth"] = {
+\t\t\t\t\t["name"] = "Wool Cloth",
+\t\t\t\t\t["count"] = 7,
+\t\t\t\t\t["corpses"] = 5,
+\t\t\t\t\t["id"] = 2592,
+\t\t\t\t},
+\t\t\t},
+\t\t},
+\t},
+\t["sharedIn"] = {
+\t\t["player:abcdef123456"] = { ["name"] = "Zed Sender" },
+\t},
+}
+"""
+    sandbox, repo, client = build_sandbox(stamped(shared_text))
+    try:
+        generated = os.path.join(repo, "Data", "Data_Harvested.lua")
+        plain = run_import(repo, client)
+        check("without --shared the sent drops stay out", plain.returncode == 0
+              and "55 corpses" in plain.stdout, plain.stdout + plain.stderr)
+
+        result = run_import(repo, client, "--shared")
+        check("an import with --shared succeeds", result.returncode == 0, result.stderr)
+        check("it says how many came from players",
+              "folded in 1 records players sent" in result.stdout, result.stdout)
+        text = open(generated, encoding="utf-8").read() if os.path.isfile(generated) else ""
+        check("their corpses join the total", "67 corpses" in result.stdout, result.stdout)
+        check("so the thin mob reaches a rate (8 of 20 corpses is 40%)",
+              "chance = 40" in text, text)
+        check("no sender's name reaches the data", "Zed Sender" not in text)
+        saved_now = open(os.path.join(
+            client, "_classic_beta_", "WTF", "Account", "BLACKTHORNES",
+            "SavedVariables", "Blackthornes_Farmer.lua"), encoding="utf-8").read()
+        check("the save itself is not changed", saved_now == stamped(shared_text))
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
+
     # -- Fishing ----------------------------------------------------------------
     #
     # Catches go into the same file as fishing rows, and their casts are held
