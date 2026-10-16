@@ -106,10 +106,12 @@ RankUp.Top = Top
 function RankUp:Build(keep, done)
     local old = self.snapshot
     if not keep then self.snapshot = nil end
+    -- By line: a name killed in two zones has a line for each.
+    local tallies = ns.Tracker:Tallies()
     self.building = { byMob = {}, kills = {}, hidden = Stamp(), queue = {},
-        old = old, done = done }
+        old = old, done = done, store = tallies }
 
-    for name, record in pairs(ns.Tracker:Store()) do
+    for name, record in pairs(tallies) do
         if type(name) == "string" and KillsOf(record) >= ns.Tracker.MIN_KILLS then
             self.building.queue[#self.building.queue + 1] = name
         end
@@ -131,7 +133,7 @@ function RankUp:Step(budget)
         return
     end
 
-    local store = ns.Tracker:Store()
+    local store = building.store or ns.Tracker:Tallies()
     local queue = building.queue
     while #queue > 0 and budget > 0 do
         local name = table.remove(queue)
@@ -236,7 +238,7 @@ function RankUp:Compare()
         return nil
     end
 
-    local store = ns.Tracker:Store()
+    local store = ns.Tracker:Tallies()
     local byMob, kills = {}, {}
     for name, entry in pairs(snapshot.byMob) do byMob[name] = entry end
     for name, count in pairs(snapshot.kills) do kills[name] = count end
@@ -314,7 +316,7 @@ function RankUp:Look()
     -- The kill that unlocks drop rates, the 100th and the 1000th have their
     -- fanfare: one sound at a time.
     local fanfare = ((move.new and move.kills == ns.Tracker.MIN_KILLS)
-            or (move.kills ~= ns.Tracker.MIN_KILLS and ns.Tracker.HasFanfare(move.kills, move.mob)))
+            or (move.kills ~= ns.Tracker.MIN_KILLS and ns.Tracker.HasFanfare(move.kills, ns.Tracker.NameOf(move.mob))))
         and not (ns.db and ns.db.trackerCelebrate == false)
     move.sound = self.SoundOn() and not fanfare
 

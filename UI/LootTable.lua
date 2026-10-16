@@ -153,7 +153,7 @@ function LootTableUI:Table(mobName)
             -- Until then, the guild's rate for it, if it has one. Only the
             -- rate: the kills and what dropped stay the player's own.
             local GuildShare = ns.GuildShare
-            local chance = GuildShare and GuildShare:RateFor(loot.mob, item.name)
+            local chance = GuildShare and GuildShare:RateFor(Tracker.NameOf(loot.mob), item.name)
             if chance then
                 row.chance = chance
                 row.rate = Tracker.FormatChance(chance)
@@ -597,7 +597,8 @@ function LootTableUI:Render()
     data.byTally = data.rows
     data.rows = self:SortRows(data.rows)
     self.data = data
-    if self.plate then self.plate:SetTitle(data.mob) else self.title:SetText(data.mob) end
+    local title = ns.Tracker.ShowKey(data.mob)
+    if self.plate then self.plate:SetTitle(title) else self.title:SetText(title) end
 
     -- Opening on a mob counts its kills up from nothing.
     local function Kills(count)
@@ -798,6 +799,11 @@ end
 ns.RegisterCommand("loot", L["open a mob's full loot table"], function(rest)
     local Tracker = ns.Tracker
     local mobName = Tracker:ResolveMob(rest or "")
+    -- A name killed in more than one zone opens on this zone's line, or
+    -- the one last looted.
+    if mobName then
+        mobName = (Util.Trim(rest or "") == "" and Tracker.currentKey) or Tracker:KeyHere(mobName)
+    end
 
     if not (mobName and LootTableUI:Show(mobName)) then
         local wanted = Util.Trim(rest or "")

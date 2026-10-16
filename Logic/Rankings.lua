@@ -40,17 +40,82 @@ end
 --- Where the database puts a mob and at what level: the lowest band first,
 --- as the search lists it. Nil when the database does not know the mob.
 function Rankings:Spot(mobName)
-    local best
+    -- One zone's line of a mob (Tracker's "One line a zone") looks in that
+    -- zone first.
+    local name, zone = ns.Tracker.SplitKey(mobName)
+    local best, here
 
-    for _, entry in ipairs(ns.DB:ByName()[mobName] or {}) do
+    for _, entry in ipairs(ns.DB:ByName()[name] or {}) do
         local source = entry.source
-        if CREATURE_KINDS[source.kind or "mob"]
-            and (not best or (source.minLevel or 0) < (best.minLevel or 0)) then
-            best = source
+        if CREATURE_KINDS[source.kind or "mob"] then
+            if not best or (source.minLevel or 0) < (best.minLevel or 0) then
+                best = source
+            end
+            if zone and source.zone == zone
+                and (not here or (source.minLevel or 0) < (here.minLevel or 0)) then
+                here = source
+            end
         end
     end
 
-    return best
+    return here or best
+end
+
+--- The levels you met a mob at, from your own loot records: { min, max } by
+--- mob name. Laid out once and kept until a corpse is recorded
+--- (Harvest.changes) or LEVELS_KEEP seconds pass, since the board asks for
+--- every mob in one go. A mob the database has no row for (most of what the
+--- shipped data leaves out) still gets a level this way.
+Rankings.LEVELS_KEEP = 60
+
+function Rankings:OwnLevels()
+    local Harvest = ns.Harvest
+    local changes = Harvest and Harvest.changes or 0
+    local now = GetTime and GetTime() or 0
+    local kept = self.ownLevels
+    if kept and kept.changes == changes and now - kept.at < self.LEVELS_KEEP then
+        return kept.levels
+    end
+
+    -- By name, and by each zone's line key, for a mob split by zone.
+    local levels = {}
+    local function Note(key, low, high)
+        local seen = levels[key]
+        if seen then
+            seen.min = math.min(seen.min, low)
+            seen.max = math.max(seen.max, high)
+        else
+            levels[key] = { min = low, max = high }
+        end
+    end
+    for _, record in pairs(Harvest and Harvest.records or {}) do
+        local mob, low, high = record.mob, tonumber(record.minLevel), tonumber(record.maxLevel)
+        if type(mob) == "string" and low then
+            high = high or low
+            Note(mob, low, high)
+            if type(record.zone) == "string" then
+                Note(ns.Tracker.ZoneKey(mob, record.zone), low, high)
+            end
+        end
+    end
+
+    self.ownLevels = { changes = changes, at = now, levels = levels }
+    return levels
+end
+
+--- A mob's level for the board: "18-19". The levels you met it at first,
+--- like where you farm it, else the database's, else nil.
+--- Returns the text and the lowest level, for sorting.
+function Rankings:LevelFor(mobName, spot)
+    local levels = self:OwnLevels()
+    local own = levels[mobName] or levels[ns.Tracker.NameOf(mobName)]
+    if own then
+        return ns.Search:LevelText({ minLevel = own.min, maxLevel = own.max }), own.min
+    end
+    if spot and spot.minLevel then
+        return ns.Search:LevelText(spot), tonumber(spot.minLevel)
+    end
+    return nil, nil
 end
 
 --------------------------------------------------------------------------------
@@ -84,8 +149,7 @@ end
 --- the zone the client named (GetRealZoneText), which inside a dungeon is
 --- the dungeon.
 local function PlaceZone(place)
-    if type(place) ~= "string" then return nil end
-    return place:match(".*, (.+)$") or place
+    return ns.Tracker.PlaceZone(place)
 end
 
 --- Is a database row for a mob inside a dungeon? A row from Classic's data
@@ -104,6 +168,9 @@ end
 --- killed before places were kept and not in the data, counts as outside.
 function Rankings:InDungeon(mobName)
     local Spots = ns.Spots
+    -- One zone's line is inside when its zone is.
+    local name, zone = ns.Tracker.SplitKey(mobName)
+    if zone then return Spots.IsInstance(zone) and true or false end
     local places = ns.Tracker:Places(mobName)
     if #places > 0 then
         for _, place in ipairs(places) do
@@ -113,7 +180,7 @@ function Rankings:InDungeon(mobName)
     end
 
     local any = false
-    for _, entry in ipairs(ns.DB:ByName()[mobName] or {}) do
+    for _, entry in ipairs(ns.DB:ByName()[name] or {}) do
         local source = entry.source
         if CREATURE_KINDS[source.kind or "mob"] then
             if not SourceInside(source) then return false end
@@ -126,7 +193,11 @@ end
 --- Is `mobName` left off the board? Hidden, or in a dungeon while the tick
 --- box says outside only.
 function Rankings:LeftOut(mobName)
-    if ns.DB:IsHiddenSource(mobName) then return true end
+    local Tracker = ns.Tracker
+    local name, zone = Tracker.SplitKey(mobName)
+    if ns.DB:IsHiddenSource(name) then return true end
+    -- A name killed in two zones is ranked a line a zone, never as a whole.
+    if not zone and Tracker:IsSplit(name) then return true end
     return self.OutsideOnly() and self:InDungeon(mobName)
 end
 
@@ -143,8 +214,8 @@ function Rankings:Entry(mobName)
         kills = summary and summary.kills or 0,
         needed = summary and summary.needed or 0,
         spot = spot,
-        level = spot and ns.Search:LevelText(spot) or nil,
     }
+    entry.level, entry.minLevel = self:LevelFor(mobName, spot)
 
     -- Where you farm it beats where the database says it lives.
     local places = summary and summary.places
@@ -177,8 +248,9 @@ end
 function Rankings:Build()
     local names = {}
 
-    for name in pairs(ns.Tracker:Store()) do
-        if type(name) == "string" then names[name] = true end
+    -- A line for each zone of a name killed in more than one.
+    for key in pairs(ns.Tracker:Tallies()) do
+        if type(key) == "string" then names[key] = true end
     end
     RatedMobs(names)
 

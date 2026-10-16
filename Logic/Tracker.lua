@@ -65,6 +65,9 @@ Tracker.FEAR_KILLS = FEAR_KILLS
 -- items already counted from it.
 Tracker.session = {}
 Tracker.corpses = {}
+-- Kills this session by zone's key ("name<TAB>zone"), for the panel's line
+-- of each zone once a name is split.
+Tracker.sessionZones = {}
 
 -- Corpses whose drops an area loot took with another's, by guid, this
 -- session: skinning one later is not a kill of its own.
@@ -144,7 +147,283 @@ function Tracker:GetMob(name)
     -- Kills by where they happened: "The Sepulcher, Silverpine Forest" = 12.
     if type(mob.places) ~= "table" then mob.places = {} end
 
+    -- A mob never killed starts its tallies by zone empty (see "One line a
+    -- zone" below); an older one has them laid out once, at login.
+    if mob.zones == nil and mob.kills == 0 then mob.zones = {} end
+
     return mob
+end
+
+--------------------------------------------------------------------------------
+-- One line a zone
+--------------------------------------------------------------------------------
+
+-- The owner asked (2026-10-16): a mob with the same name in another zone gets
+-- its own line. Two mobs can share a name and little else (a level 25 Ghoul
+-- in Duskwood, a level 55 one in the Plaguelands), so their drops and worth
+-- are kept apart once a name has kills in two zones.
+--
+-- The tally by name stays exactly as it was: kill counts, milestones, shares
+-- and imports all keep using it. Beside it each mob keeps `zones[zone]`, a
+-- tally of the same shape (kills, items, qty, stacks, copper, coinKills,
+-- places) for the kills made in that zone. Never rename it. Shares never
+-- carry it (Share's spec lists the fields it takes).
+--
+-- A line is named by a key: the mob's name while it has kills in one zone,
+-- "name<TAB>zone" for each zone once it has two. Everything that takes a
+-- mob's name (Summary, Value:ForMob, Rankings:Entry, the loot table) takes
+-- a key too.
+
+local ZONE_MARK = "\t"
+
+--- The key of `name`'s line in `zone`.
+function Tracker.ZoneKey(name, zone)
+    return name .. ZONE_MARK .. zone
+end
+
+--- A key's mob name and zone; the zone is nil for a plain name.
+function Tracker.SplitKey(key)
+    if type(key) ~= "string" then return key, nil end
+    local name, zone = key:match("^(.-)\t(.+)$")
+    if name then return name, zone end
+    return key, nil
+end
+
+--- The mob's name in a key.
+function Tracker.NameOf(key)
+    return (Tracker.SplitKey(key))
+end
+
+--- The zone part of a kill's place, "The Sepulcher, Silverpine Forest":
+--- the zone the client named (GetRealZoneText), which inside a dungeon is
+--- the dungeon.
+function Tracker.PlaceZone(place)
+    if type(place) ~= "string" then return nil end
+    return place:match(".*, (.+)$") or place
+end
+
+--- A key as a player reads it: "Ghoul", or "Ghoul (Duskwood)" for one zone's
+--- line. `show` names the mob for showing (the kills panel's
+--- Harvest.ShowName); without it the name is as kept.
+function Tracker.ShowKey(key, show)
+    local name, zone = Tracker.SplitKey(key)
+    local shown = show and show(name) or name
+    if not zone then return shown end
+    local Spots = ns.Spots
+    return ("%s (%s)"):format(shown, Spots and Spots.Show and Spots.Show(zone) or zone)
+end
+
+local function NewZoneTally()
+    return { kills = 0, items = {}, qty = {}, stacks = {}, copper = 0, coinKills = 0, places = {} }
+end
+
+local function Copy(value)
+    if type(value) ~= "table" then return value end
+    local out = {}
+    for key, inner in pairs(value) do out[key] = Copy(inner) end
+    return out
+end
+
+--- The zones `mob`'s kills have places in, and how many.
+local function PlaceZones(mob)
+    local zones, count = {}, 0
+    for place, kills in pairs(type(mob.places) == "table" and mob.places or {}) do
+        local zone = Tracker.PlaceZone(place)
+        if zone and (tonumber(kills) or 0) > 0 and not zones[zone] then
+            zones[zone] = true
+            count = count + 1
+        end
+    end
+    return zones, count
+end
+
+--- The tally as it stands, all of it, as one zone's.
+local function WholeAsZone(mob)
+    local tally = NewZoneTally()
+    tally.kills = tonumber(mob.kills) or 0
+    tally.items = Copy(type(mob.items) == "table" and mob.items or {})
+    tally.qty = Copy(type(mob.qty) == "table" and mob.qty or {})
+    tally.stacks = Copy(type(mob.stacks) == "table" and mob.stacks or {})
+    tally.copper = tonumber(mob.copper) or 0
+    tally.coinKills = tonumber(mob.coinKills) or 0
+    tally.places = Copy(type(mob.places) == "table" and mob.places or {})
+    return tally
+end
+
+--- Lay out a mob's tallies by zone from what was kept before they were.
+-- All in one zone (by its places, and the loot records'), the tally is
+-- copied whole. Spread over zones, each zone's comes from your own loot
+-- records (Harvest), which were always kept by zone: kills are the corpses
+-- recorded there, and coin starts counting from the next kill, since the
+-- records never kept it. `records` is the harvest by mob name; without it
+-- only the places are read.
+function Tracker.SeedZones(mob, records)
+    local zones, count = PlaceZones(mob)
+    local seeded = {}
+
+    local byZone, harvestZones = {}, 0
+    for _, record in ipairs(records or {}) do
+        local zone, corpses = record.zone, tonumber(record.corpses) or 0
+        if type(zone) == "string" and corpses > 0 then
+            if not byZone[zone] then
+                byZone[zone] = {}
+                harvestZones = harvestZones + 1
+            end
+            table.insert(byZone[zone], record)
+            if not zones[zone] then
+                zones[zone] = true
+                count = count + 1
+            end
+        end
+    end
+
+    if count == 1 then
+        seeded[next(zones)] = WholeAsZone(mob)
+    elseif count > 1 and harvestZones > 0 then
+        for zone, list in pairs(byZone) do
+            local tally = NewZoneTally()
+            for _, record in ipairs(list) do
+                local corpses = tonumber(record.corpses) or 0
+                tally.kills = tally.kills + corpses
+                local place = Tracker.PlaceName(zone, record.location)
+                if place then tally.places[place] = (tally.places[place] or 0) + corpses end
+                for itemName, entry in pairs(type(record.items) == "table" and record.items or {}) do
+                    if type(itemName) == "string" and type(entry) == "table" then
+                        local held = tonumber(entry.corpses) or 0
+                        tally.items[itemName] = (tally.items[itemName] or 0) + held
+                        tally.stacks[itemName] = (tally.stacks[itemName] or 0) + held
+                        tally.qty[itemName] = (tally.qty[itemName] or 0) + (tonumber(entry.count) or held)
+                    end
+                end
+            end
+            seeded[zone] = tally
+        end
+    end
+
+    return seeded
+end
+
+--- Every mob's tallies by zone, laid out once for mobs from before they
+--- were kept (at login, before any loot, so no corpse is counted twice).
+function Tracker:SeedAllZones()
+    local mobs = self:Store()
+    local waiting = false
+    for _, mob in pairs(mobs) do
+        if type(mob) == "table" and mob.zones == nil then waiting = true break end
+    end
+    if not waiting then return end
+
+    local byMob = {}
+    for _, record in pairs(ns.Harvest and ns.Harvest.records or {}) do
+        if type(record) == "table" and type(record.mob) == "string" then
+            local list = byMob[record.mob]
+            if not list then
+                list = {}
+                byMob[record.mob] = list
+            end
+            list[#list + 1] = record
+        end
+    end
+
+    for name, mob in pairs(mobs) do
+        if type(mob) == "table" and mob.zones == nil then
+            mob.zones = Tracker.SeedZones(mob, byMob[name])
+        end
+    end
+    self.zonesVersion = (self.zonesVersion or 0) + 1
+end
+
+--- The zones a mob has kills in, most kills first.
+function Tracker:ZonesOf(name)
+    local mob = type(name) == "string" and self:Store()[name]
+    local zones = type(mob) == "table" and type(mob.zones) == "table" and mob.zones or nil
+    local list = {}
+    for zone, tally in pairs(zones or {}) do
+        if type(zone) == "string" and type(tally) == "table" and (tonumber(tally.kills) or 0) > 0 then
+            list[#list + 1] = { zone = zone, kills = tonumber(tally.kills) }
+        end
+    end
+    table.sort(list, function(a, b)
+        if a.kills ~= b.kills then return a.kills > b.kills end
+        return a.zone < b.zone
+    end)
+    return list
+end
+
+--- Has a mob of this name been killed in more than one zone?
+function Tracker:IsSplit(name)
+    local mob = type(name) == "string" and self:Store()[name]
+    local zones = type(mob) == "table" and type(mob.zones) == "table" and mob.zones or nil
+    if not zones then return false end
+    local count = 0
+    for zone, tally in pairs(zones) do
+        if type(zone) == "string" and type(tally) == "table" and (tonumber(tally.kills) or 0) > 0 then
+            count = count + 1
+            if count > 1 then return true end
+        end
+    end
+    return false
+end
+
+--- The keys of a mob's lines: its name, or one for each zone once split.
+function Tracker:Lines(name)
+    if not self:IsSplit(name) then return { name } end
+    local keys = {}
+    for _, entry in ipairs(self:ZonesOf(name)) do
+        keys[#keys + 1] = Tracker.ZoneKey(name, entry.zone)
+    end
+    return keys
+end
+
+--- The key of `name`'s line in `zone`: its zone's once split, else its name.
+function Tracker:KeyFor(name, zone)
+    if type(name) ~= "string" then return name end
+    if zone and self:IsSplit(name) then
+        local mob = self:Store()[name]
+        local tally = mob.zones[zone]
+        if type(tally) == "table" and (tonumber(tally.kills) or 0) > 0 then
+            return Tracker.ZoneKey(name, zone)
+        end
+    end
+    return name
+end
+
+--- The key of `name`'s line in the zone you are in.
+function Tracker:KeyHere(name)
+    if not self:IsSplit(name) then return name end
+    local zone = ns.Harvest and ns.Harvest:Where()
+    return self:KeyFor(name, zone)
+end
+
+--- A line's tally: the mob's whole tally for a name, one zone's for a
+--- zone's key. Nil when there is none.
+function Tracker:Tally(key)
+    local name, zone = Tracker.SplitKey(key)
+    if type(name) ~= "string" then return nil end
+    local mob = self:Store()[name]
+    if type(mob) ~= "table" then return nil end
+    if not zone then return mob end
+    local tally = type(mob.zones) == "table" and mob.zones[zone]
+    return type(tally) == "table" and tally or nil
+end
+
+--- Every line's tally by key: each mob by name, or by zone once split.
+function Tracker:Tallies()
+    local out = {}
+    for name, mob in pairs(self:Store()) do
+        if type(name) == "string" and type(mob) == "table" then
+            if self:IsSplit(name) then
+                for zone, tally in pairs(mob.zones) do
+                    if type(zone) == "string" and type(tally) == "table" and (tonumber(tally.kills) or 0) > 0 then
+                        out[Tracker.ZoneKey(name, zone)] = tally
+                    end
+                end
+            else
+                out[name] = mob
+            end
+        end
+    end
+    return out
 end
 
 --- "The Sepulcher, Silverpine Forest", or the zone alone outside any subzone.
@@ -175,6 +454,10 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     local mob = self:GetMob(mobName)
     local corpse = guid and self.corpses[guid]
     local newKill = not corpse
+
+    -- A tally that missed being laid out by zone at login (a renamed or a
+    -- shared one): from its places only, before this kill counts.
+    if mob.zones == nil then mob.zones = Tracker.SeedZones(mob) end
 
     if newKill then
         corpse = {}
@@ -211,10 +494,26 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
 
         if place then
             mob.places[place] = (tonumber(mob.places[place]) or 0) + 1
+
+            -- And in its zone's tally, which takes the corpse's drops below.
+            local zone = Tracker.PlaceZone(place)
+            local tally = mob.zones[zone]
+            if type(tally) ~= "table" then
+                tally = NewZoneTally()
+                mob.zones[zone] = tally
+            end
+            tally.kills = (tonumber(tally.kills) or 0) + 1
+            tally.copper = (tonumber(tally.copper) or 0) + (tonumber(copper) or 0)
+            tally.coinKills = (tonumber(tally.coinKills) or 0) + 1
+            tally.places[place] = (tonumber(tally.places[place]) or 0) + 1
+            -- Kept at [1]: the corpse's string keys are the items it gave.
+            corpse[1] = tally
+            corpse[2] = zone
         end
 
         self:NoteStreak()
     end
+    local zoneTally = corpse[1]
 
     -- An item counts once per corpse, however many slots or visits it took.
     -- Leftovers seen again on a return visit add nothing to the loot total
@@ -236,6 +535,13 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
                 mob.stacks[name] = (tonumber(mob.stacks[name]) or 0) + 1
             end
             mob.qty[name] = (tonumber(mob.qty[name]) or 0) + quantity
+            if zoneTally then
+                if fresh then
+                    zoneTally.items[name] = (tonumber(zoneTally.items[name]) or 0) + 1
+                    zoneTally.stacks[name] = (tonumber(zoneTally.stacks[name]) or 0) + 1
+                end
+                zoneTally.qty[name] = (tonumber(zoneTally.qty[name]) or 0) + quantity
+            end
 
             -- A locked slot (a roll, or the master looter's to give) still
             -- dropped, so the tally has it, but it is not yours unless you
@@ -254,6 +560,15 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     self.clock = self.clock + 1
     self.recent[mobName] = self.clock
 
+    -- The line the panel puts on top: this zone's, once the name is split.
+    local key = self:KeyFor(mobName, corpse[2])
+    self.currentKey = key
+    self.recent[key] = self.clock
+    if newKill and corpse[2] then
+        local zoneKey = Tracker.ZoneKey(mobName, corpse[2])
+        self.sessionZones[zoneKey] = (self.sessionZones[zoneKey] or 0) + 1
+    end
+
     -- Whichever you did last goes on top of the panel: this, or fishing.
     ns.lastLoot = "kill"
 
@@ -262,7 +577,7 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     end
 
     if newKill and ns.db.trackerReport then
-        self:Report(mobName)
+        self:Report(key)
     end
 
     -- The kill that unlocks drop rates gets a fanfare.
@@ -279,7 +594,7 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     -- A kill that moves the mob up your top 15 gets a pop-up, a second
     -- later and never in a fight (Logic/RankUp.lua).
     if newKill and ns.RankUp then
-        ns.RankUp:Killed(mobName)
+        ns.RankUp:Killed(key)
     end
     -- Plates of the same mob show the new count (UI/KillPlates.lua).
     if newKill and ns.KillPlates then
@@ -332,10 +647,12 @@ function Tracker.Skinning()
     return (Gathering and Gathering.IsSkinning and Gathering:IsSkinning()) and true or false
 end
 
---- One mob's tally, items best-seen first.
+--- One mob's tally, items best-seen first. `mobName` is a line's key: a
+--- mob's name, or one zone's line of it (see "One line a zone").
 function Tracker:Summary(mobName)
-    local mob = mobName and self:Store()[mobName]
+    local mob = mobName and self:Tally(mobName)
     if type(mob) ~= "table" then return nil end
+    local name, zone = Tracker.SplitKey(mobName)
 
     local kills = tonumber(mob.kills) or 0
     local items = {}
@@ -379,8 +696,10 @@ function Tracker:Summary(mobName)
 
     return {
         mob = mobName,
+        name = name,
+        zone = zone,
         kills = kills,
-        session = self.session[mobName] or 0,
+        session = zone and (self.sessionZones[mobName] or 0) or (self.session[name] or 0),
         rated = kills >= MIN_KILLS,
         needed = math.max(0, MIN_KILLS - kills),
         items = items,
@@ -393,7 +712,7 @@ end
 --- how many of its kills have no place: from before places were kept, or
 --- killed where the client would not name the zone.
 function Tracker:Places(mobName)
-    local mob = mobName and self:Store()[mobName]
+    local mob = mobName and self:Tally(mobName)
     if type(mob) ~= "table" then return {}, 0 end
 
     local places, placed = {}, 0
@@ -438,7 +757,7 @@ end
 
 --- Average coin per kill, over the kills that recorded coin; nil before any.
 function Tracker:CoinPerKill(mobName)
-    local mob = mobName and self:Store()[mobName]
+    local mob = mobName and self:Tally(mobName)
     if type(mob) ~= "table" then return nil end
 
     local kills = tonumber(mob.coinKills) or 0
@@ -450,7 +769,7 @@ end
 --- How many of an item one corpse that held it gave, on average. 1 for an
 --- item whose amounts were never recorded.
 function Tracker:StackSize(mobName, itemName)
-    local mob = mobName and self:Store()[mobName]
+    local mob = mobName and self:Tally(mobName)
     if type(mob) ~= "table" or mob.coinKills == nil then return 1 end
 
     local qty = type(mob.qty) == "table" and tonumber(mob.qty[itemName])
@@ -476,19 +795,38 @@ function Tracker:LootTable(mobName)
     end
 
     summary.coinPerKill = self:CoinPerKill(mobName)
-    summary.coinKills = tonumber(self:Store()[mobName].coinKills) or 0
+    summary.coinKills = tonumber(self:Tally(mobName).coinKills) or 0
 
     return summary
 end
 
---- Every mob killed this session, most recent first, as summaries.
+--- Every mob killed this session, most recent first, as summaries. A name
+--- killed in more than one zone has a line for each zone killed in this
+--- session.
 function Tracker:SessionMobs()
     local mobs = {}
 
     for name in pairs(self.session) do
         -- A mob on the hide list is not on the panel (DB:IsHiddenSource).
-        local summary = not (ns.DB and ns.DB:IsHiddenSource(name)) and self:Summary(name)
-        if summary then mobs[#mobs + 1] = summary end
+        if not (ns.DB and ns.DB:IsHiddenSource(name)) then
+            local keys = self:Lines(name)
+            local shown = 0
+            for _, key in ipairs(keys) do
+                if key == name or (self.sessionZones[key] or 0) > 0 then
+                    local summary = self:Summary(key)
+                    if summary then
+                        mobs[#mobs + 1] = summary
+                        shown = shown + 1
+                    end
+                end
+            end
+            -- Killed this session only where the client named no zone:
+            -- the busiest zone's line stands in.
+            if shown == 0 and keys[1] then
+                local summary = self:Summary(keys[1])
+                if summary then mobs[#mobs + 1] = summary end
+            end
+        end
     end
 
     table.sort(mobs, function(a, b)
@@ -570,6 +908,8 @@ function Tracker:Reset()
     ns.db.bestCorpses = nil
     if ns.Moments then ns.Moments.bestDrop = nil end
     self.session = {}
+    self.sessionZones = {}
+    self.currentKey = nil
     self.corpses = {}
     self.areaLooted = {}
     self.sessionLoot = {}
@@ -926,7 +1266,7 @@ function Tracker:ReportLine(mobName)
     if not summary then return nil end
 
     local line = L.Format("%s: kill %d (%d this session)",
-        Util.Colored("accent", summary.mob), summary.kills, summary.session)
+        Util.Colored("accent", Tracker.ShowKey(summary.mob)), summary.kills, summary.session)
 
     if not summary.rated then
         return line .. Util.Colored("muted",
@@ -1245,6 +1585,10 @@ end
 --------------------------------------------------------------------------------
 
 function Tracker:OnEnable()
+    -- Before any loot: tallies from before zones were kept get theirs.
+    local ok, err = pcall(self.SeedAllZones, self)
+    if not ok then ns.Debug("zones laid out:", tostring(err)) end
+
     if not ns.Harvest:Capabilities().usable then return end
 
     ns.OnLootWindow(self, function() Tracker:OnLoot() end)
@@ -1254,7 +1598,7 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear empties it and keeps your tallies, keep on/off keeps it between sessions, group on/off moves it aside in a party or raid, size takes small, normal, large or a percent)"], function(rest)
+ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear empties it and keeps your tallies, keep on/off keeps it between sessions, seethrough on/off lets the world show through it, group on/off moves it aside in a party or raid, size takes small, normal, large or a percent)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     -- What the panel shows starts empty each session unless kept
@@ -1269,6 +1613,28 @@ ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear emp
         ns.Print(on
             and L["the kill and loot panel now keeps what it shows between sessions."]
             or L["the kill and loot panel now starts empty each session. Your kill tallies and drop rates are kept."])
+        return
+    end
+
+    -- A see-through panel (UI/Tracker.lua, `trackerSeeThrough`).
+    local clear = argument:match("^seethrough%s*(%a*)$")
+    if clear then
+        local TrackerUI = ns.TrackerUI
+        local levels = { some = 1, more = 2, most = 3 }
+        if levels[clear] then
+            TrackerUI:SetSeeThroughLevel(levels[clear])
+            if not TrackerUI:SeeThroughOn() then TrackerUI:SetSeeThrough(true) end
+        else
+            local on
+            if clear == "on" then on = true
+            elseif clear == "off" then on = false
+            else on = not TrackerUI:SeeThroughOn() end
+            TrackerUI:SetSeeThrough(on)
+        end
+        ns.Print(TrackerUI:SeeThroughOn()
+            and L["the kill and loot panel is now see-through. It goes dark again while your mouse is on it."]
+            or L["the kill and loot panel is back to dark glass."])
+        if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
         return
     end
 

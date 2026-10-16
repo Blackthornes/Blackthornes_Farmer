@@ -109,6 +109,48 @@ _G.BlackthornesTS.CraftOrFarm:ForMaterial(itemID)
 tooltip craft [on|off]`. Tested in `tools/test_itemtooltip.lua`. Not yet
 seen in game.
 
+## Find a material (Tradeskills' Disenchanting tab)
+
+The owner said build it (2026-10-16): Tradeskills' Find a material view
+lists, for one enchanting material, the mobs whose drops break into it,
+from the player's own kills only. `Logic/DisenchantFarm.lua` answers,
+inside a pcall, read only:
+
+```lua
+_G.BlackthornesFarmer.DisenchantFarm:Best(gives, max)
+  -- gives(itemID): how many breaking one gives on average, asked once each
+  -- { { mob, zone, shownZone (Spots.Show), kills, perKill, seconds, perHour,
+  --     items = { { id, name, corpses } } } }, best a kill first
+_G.BlackthornesFarmer.DisenchantFarm:DroppedBy(itemID)  -- mob that dropped it most, or nil
+_G.BlackthornesFarmer.DisenchantFarm:Show(mob)          -- opens the loot table; true when it did
+```
+
+Only `Harvest.records` (never shipped or guild data), a mob by name and
+zone once `MIN_SAMPLE` (20) corpses are behind it, suffixes grouped
+(`GroupedItems`), hidden mobs and items left out, an hour only at the
+mob's own pace (`Stats:SecondsPerKill`). Nothing is written. Tested in
+`tools/test_disenchantfarm.lua`. Keep the calls and fields stable; if one
+changes, change Tradeskills' `Logic/MaterialFinder.lua` too.
+
+## Farmed (Tradeskills' Profit by method)
+
+The owner said build it (2026-10-16): an auction sale Tradeskills knows
+no cost for goes under "Farmed" when you got the item yourself, not
+"Other sales". `Logic/Looted.lua` answers, inside a pcall, read only:
+
+```lua
+_G.BlackthornesFarmer.Looted:Has(item)   -- item ID or name; true or false
+```
+
+Only the player's own `Harvest.records`, `gathering.nodes` and
+`fishing.spots` (never shipped or guild data), laid out once as a lookup
+by name and ID and again when a corpse, gather or cast is recorded, at
+most every `GAP` seconds. Nothing is saved. Tested in
+`tools/test_looted.lua`. Tradeskills' Sell list (its
+`Logic/SisterKeeps.lua`, the same day) also reads `Butler:Advise` and
+`Value:Contents(name)`, so keep those as they are too. If one changes,
+change Tradeskills' `Logic/MethodProfit.lua` and `Logic/SisterKeeps.lua`.
+
 ## What Butler calls here
 
 Blackthornes Butler (`Blackthornes/Blackthornes_Butler`, 2026-10-10) tells
@@ -361,6 +403,24 @@ once), `Search:FoundItems`; `Tracker:Summary` groups the tally the same way
 (`Tracker.rollLooks`), and `Value.FoldSuffixes` names the item once in the
 best drops. Worth per kill is the same either way. Tested in
 `tools/test_suffixdrops.lua`. Not yet seen in game.
+
+## Same name, another zone
+
+The owner asked (2026-10-16): a mob of the same name in another zone gets
+its own line. The kill tally keeps, beside each mob's whole tally under
+its name (untouched), `tracker.mobs[name].zones[zone]` (never rename it),
+each with the tally's own fields. Once a name has kills in two zones it is
+split: its lines are keyed `name.."\t"..zone` (`Tracker.ZoneKey`,
+`SplitKey`, `NameOf`, shown as "Name (Zone)" by `Tracker.ShowKey`), and
+Rankings, the rank-up board, the kills panel, the loot table, worth
+(`Value:FromTally`, `FromDatabase` by the key's zone), the mob tooltip and
+the nameplates (`Tracker:KeyHere`, the zone you are in) read the line's
+tally (`Tracker:Tally`, `Tallies`, `Lines`, `IsSplit`). A plain name is
+still the whole. Kills from before were laid out once at login, before any
+loot, from the player's own loot records (`Tracker:SeedAllZones`; one zone
+is copied whole). Milestones, fanfares, goals, Stats and Moments still
+count the whole name. Never shared (Share's whitelist). Tested in
+`tools/test_zonelines.lua`.
 
 ## Drops only
 
@@ -699,7 +759,11 @@ bag window is open and the bags that take anything have no free slot
 (`Trash.FREE`, 0), a gold can (`Media/Trash/TrashCan.tga`, drawn
 by `tools/make_trash_art.py`, the same tool and art as Butler's; rerun it,
 never edit the TGA) sits on the top right of the stack worth least by
-`Value:UnitPrice` times the stack. Never a goal's item (`Goals:Find`), a
+`Value:UnitPrice` times the stack. A trade good counts as
+`Trash.MATERIAL_LEAN` (1.5) times its worth, so close calls go to junk;
+and two short stacks of one item that fit in one slot come first: the can
+says "Stack these to make room" and a click joins them (`Trash:Merge`,
+the owner 2026-10-16). Never a goal's item (`Goals:Find`), a
 quest item, anything soulbound above grey, gear that could be worn (only
 grey gear), a locked slot or an unpriced item. Farmer never deletes: a
 click picks the item up and says to drop it outside the bags, where the
@@ -775,6 +839,24 @@ openbutton test` saved `openTest.result = "works"`; one the game refuses (its "i
 unticked), `autoOpen` and `openTest` are account wide; never rename them.
 Loot page; `/farm openbutton [on|off|test|auto on|off]`. Tested in
 `tools/test_openbutton.lua`. Not yet seen in game.
+
+## The see-through panel
+
+The owner said build it (2026-10-16, from a mockup in
+`previews/kills-loot-transparent/` in the project files): the Kills & Loot
+panel's dark glass thins out so the world shows through, every word gets
+a black shadow (`TrackerUI.ShadeAll`) so it reads over a busy scene, and
+the glass comes back while the mouse is on the panel (a watcher looks
+every `SEE_THROUGH_LOOK` seconds, only while ticked and shown). Only the
+panel's own fills are faded (`TrackerUI:AddGlass`, texture SetAlpha,
+which the colours each redraw sets are multiplied by); the open card's
+gold keeps at least `LIVE_GLASS_FLOOR`; gold edges, icons, bars and glows
+stay; the cut-edge fades are left out while it is on. "See-Through:" and
+"How Clear:" (Some, More, Most: `SEE_THROUGH_LEVELS`) on the Kill tally
+page (`trackerSeeThrough`, off unless ticked, and
+`trackerSeeThroughLevel`, 2 by default, account wide, never rename
+either); `/farm tracker seethrough [on|off|some|more|most]`. Tested in
+`tools/test_seethrough.lua`. Not yet seen in game.
 
 ## Kills on the mob tooltip
 

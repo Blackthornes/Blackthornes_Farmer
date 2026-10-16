@@ -28,7 +28,7 @@ end
 -- section changes this line too, and tools/check_release.py refuses a tag it
 -- does not match. Played straight from the repository there is no packager
 -- to fill in the TOC's version, so this is the one shown.
-ns.RELEASED_VERSION = "0.35.0"
+ns.RELEASED_VERSION = "0.36.0"
 
 -- The TOC carries @project-version@, which the release packager rewrites to
 -- the tag it is building, "v0.2.0" say. Running straight from the repository
@@ -397,6 +397,10 @@ local DEFAULTS = {
     trackerHidden = false,
     trackerReport = false,
     trackerCelebrate = true,
+    -- The panel's dark glass thinned out so the world shows through (off
+    -- unless ticked, 2026-10-16), and how much of it stays (2 is "More").
+    trackerSeeThrough = false,
+    trackerSeeThroughLevel = 2,
     -- No longer read: the milestone emote went (2026-10-13). Kept so a
     -- saved value is never dropped.
     trackerAnnounce = true,
