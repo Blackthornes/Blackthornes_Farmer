@@ -25,7 +25,7 @@ tool prints a note for a shipped line that reads like an advert.
 
 ## 0.38.0
 
-- The goals panel, Where to farm, your top 15, the run recap and the XP bar can be see-through. Each is off until you turn it on, and you pick how clear.
+- The goals panel, Where to farm, your top 15, the run recap and the XP bar can be transparent. Each is off until you turn it on, and you pick how clear.
 
 ## 0.37.0
 
