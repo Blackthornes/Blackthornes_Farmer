@@ -23,6 +23,20 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.36.0
+
+- Thanks Ezmode, Voldar, DarkGarf and MagnusBabbage for the ideas and feedback!
+- A mob with the same name in another zone gets its own line.
+- Tradeskills can show which of your kills drop items that break into an enchanting material.
+
+Fixes and changes:
+
+- Rankings show the levels you met a mob at when the data has none.
+- The minimap button is always on.
+- Various fixes to Farmer.
+
+Thanks Ezmode, Voldar, DarkGarf and MagnusBabbage for the ideas and feedback!
+
 ## 0.35.0
 
 - Thanks Manthieus, seancool_com and their communities for the ideas and feedback! Catch their streams at twitch.tv/Manthieus and twitch.tv/seancool_com.

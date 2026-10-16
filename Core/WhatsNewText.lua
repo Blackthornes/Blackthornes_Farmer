@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "0.36.0", lines = {
+        "Thanks Ezmode, Voldar, DarkGarf and MagnusBabbage for the ideas and feedback!",
+        "A mob with the same name in another zone gets its own line.",
+        "Tradeskills can show which of your kills drop items that break into an enchanting material.",
+    } },
     { version = "0.35.0", lines = {
         "Thanks Manthieus, seancool_com and their communities for the ideas and feedback! Catch their streams at twitch.tv/Manthieus and twitch.tv/seancool_com.",
         "An Open button on the kills panel opens your clams, sacks and lockboxes. Turn on Open after loot in Settings to open them as you go.",
@@ -19,9 +24,5 @@ ns.WHATS_NEW = {
         "After an auction house scan, your top 15 farms pop up and show how they moved. A new best farm gets its own sound.",
         "Mobs in Forever's new dungeons get their names, and you can name any that are still numbers.",
         "The Rankings tab has a box that hides mobs found only in dungeons.",
-    } },
-    { version = "0.33.0", lines = {
-        "The Grind tab now shows Leather, Ore and Herbs too, with what each is worth and which nodes you can gather.",
-        "A mob's tooltip lists the three drops that add the most to a kill.",
     } },
 }
