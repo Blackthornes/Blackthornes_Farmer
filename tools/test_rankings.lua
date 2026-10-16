@@ -96,6 +96,26 @@ suite.check("an estimate says where the database puts it",
     ogre.where == "Nowhere, The Hill", ogre.where)
 suite.check("and at what level", ogre.level == "30-32", ogre.level)
 
+-- A measured mob the database has no row for still shows the levels you
+-- met it at, from your own loot records.
+suite.check("a mob only you have measured has no database spot",
+    board.measured[1].spot == nil)
+ns.Harvest:GetRecord("Mangy Wolf", 7, "Elwynn Forest")
+ns.Harvest:GetRecord("Mangy Wolf", 9, "Elwynn Forest", "Northshire")
+ns.Harvest.changes = (ns.Harvest.changes or 0) + 1
+local wolf = Rankings:Entry("Mangy Wolf")
+suite.check("its level comes from the levels you met it at",
+    wolf.level == "7-9", wolf.level)
+suite.check("and sorts by the lowest", wolf.minLevel == 7, wolf.minLevel)
+
+-- Your own levels win over the database's, as where you farm it does.
+ns.Harvest:GetRecord("Test Ogre", 28, "Nowhere", "The Hill")
+ns.Harvest.changes = ns.Harvest.changes + 1
+suite.check("your levels win over the database's",
+    Rankings:Entry("Test Ogre").level == "28", Rankings:Entry("Test Ogre").level)
+suite.check("a mob you never met keeps the database's level",
+    Rankings:Entry("Test Troll").level == "20", Rankings:Entry("Test Troll").level)
+
 -- Twenty kills of something nobody will pay for.
 for _ = 1, 20 do Loot("Pauper Rat", { { name = "Rat Whisker", id = 99999 } }) end
 local rat = Rankings:Entry("Pauper Rat")
