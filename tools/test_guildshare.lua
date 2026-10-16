@@ -339,12 +339,12 @@ do
     bob.db.tracker.mobs["Test Gnoll"] = Tally(3, 0, { ["Guild Test Fang"] = 1 })
     local loot = ns.LootTableUI:Table("Test Gnoll")
     Check("the loot table keeps his own kills", loot.kills == 3 and loot.rows[1].dropped == "1 of 3", loot.kills)
-    Check("and shows no rate until he has his own, not even the guild's", loot.rows[1].chance == nil
-        and loot.rows[1].rate == nil, loot.rows[1].chance)
+    Check("and shows the guild's rate until he has his own", loot.guildRates and loot.rows[1].chance == 25,
+        loot.rows[1].chance)
     Check("with no value off it", loot.rows[1].perKill == nil)
     bob.db.tracker.mobs["Test Gnoll"] = Tally(30, 0, { ["Guild Test Fang"] = 3 })
     loot = ns.LootTableUI:Table("Test Gnoll")
-    Check("past twenty kills the rate is his own", loot.rows[1].chance == 10, loot.rows[1].chance)
+    Check("past twenty kills the rate is his own", not loot.guildRates and loot.rows[1].chance == 10, loot.rows[1].chance)
     Check("his tally was never added to", bob.db.tracker.mobs["Test Gnoll"].kills == 30)
 
     -- Off, the rows leave; the data stays.
