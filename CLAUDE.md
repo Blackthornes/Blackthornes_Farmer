@@ -251,9 +251,8 @@ want, records) through hooks on the partner state (`sections`, `store`,
   guild row keeps the Classic row it replaced in `replaced`, and
   `DB:RemoveSource` puts it back), a few records
   a frame and only the changed ones (`GuildShare:Publish`). A mob's loot
-  table shows the guild's rate (`GuildShare:RateFor`) only for drops the
-  player has, only until their own kills reach the rate threshold, and never
-  a value off it. Nothing in the windows says "guild" (the owner, 2026-10-13:
+  table shows no rate before the player's own (the owner, 2026-10-15), the
+  guild's included. Nothing in the windows says "guild" (the owner, 2026-10-13:
   "The UI should be all about the player"): no tag, no note; only Settings
   and `/farm share` name it. Turned off, the rows leave and the data stays.
 - Safety: records must pass `GuildShare.Plausible`, at most `MAX_GUILDMATES`
@@ -265,6 +264,35 @@ want, records) through hooks on the partner state (`sections`, `store`,
 A tick box under YOUR GUILD on the Sharing page and `/farm share guild
 on|off`. Tested in `tools/test_guildshare.lua` (three accounts and an alt
 over a pretend chat). Not yet seen in game.
+
+## Sending drops to Blackthornes
+
+The owner asked (2026-10-15): players can opt in to send their drop
+records to his characters, for the shipped data. Off by default
+(`shareDrops`, never rename it); a one-time What's New card
+(`whatsNewTipsSeen.shareDrops`, due only while names are listed, on an
+English client, and off) turns it on, then only Settings > Sharing >
+BLACKTHORNES and `/farm share drops on|off`. `Logic/Contribute.lua` is guild
+sharing's conversation one way: the sender whispers a hello (`Q<id>:<hash>`)
+to each name in `Contribute.RECIPIENTS` (full names, kept only in code;
+never shown in chat or Settings; the game's "No player named" line is
+hidden, so a player can't tell whether a name exists on their realm) 30 s
+after login and every half hour. Only those characters answer, by full
+name (`Contribute:Receiving`). Share's states carry `giveOnly` (the sender
+never asks for anything) and `takeOnly` (the receiver never says what it
+has), so nothing comes back to the player. Only the sender's own "h"
+records go, checked by `GuildShare.Plausible`, kept apart on the receiver
+in `sharedDrops` with ledgers by Farmer id in `sharedIn` (never rename
+either; at most `MAX_SENDERS`); they never join the receiver's own counts
+or show in the windows. One sender is synced at a time, each at most every
+half hour, and a chat line says "Got drops for N mobs from NAME." Only
+English clients send (records keep the client's names). At a release,
+`tools/harvest_import.py --shared` folds `sharedDrops` into the shipped
+data (in memory; the save is never changed, ledger names never read).
+Never announce the fold-in. Tested in `tools/test_contribute.lua` and
+`tools/test_harvest_import.py`. Not yet seen in game. A recipient whose
+first name trips `check_package.py`'s owner's-name check would stop the
+release; check before adding names.
 
 ## Giving data to another player
 
@@ -868,11 +896,23 @@ harvest keys it. "Kill count" under Tooltips on the Map & goals page
 Under it, "Best drops" (the owner asked 2026-10-14): the three drops that
 add most to a kill, chance times price, straight from `Value:ForMob`'s
 sorted `priced` list (each entry carries `chance`), kept with the worth in
-`KillTooltip:Read`, so a hover adds no work; "(est.)" from the database's
-rates. A drop under half a copper a kill is left out. "Best drops" on the
+`KillTooltip:Read`, so a hover adds no work; only from the player's own
+rates, never the database's (below). A drop under half a copper a kill is left out. "Best drops" on the
 Map & goals page (`killTooltipDrops`, on unless unticked, never rename it)
 and `/farm killcount drops [on|off]`.
 Tested in `tools/test_killtooltip.lua`. Not yet seen in game.
+
+## Rates are the player's to find
+
+The owner (2026-10-15): learning what a mob drops is most of the fun, so
+before a mob has `Tracker.MIN_KILLS` of the player's own kills, no drop
+rate for it shows on its tooltip ("Best drops") or its loot table: not the
+shipped data's, the guild's or Classic's. Always on, no setting, never
+announced (no CHANGELOG, NEWS or What's New line). The player's own
+records are never touched; at 20 kills their own rates show. The search
+(where an item drops), Rankings' estimates, worth per kill "(est.)" and
+the other addons still read the shipped data. Tested in
+`tools/test_killtooltip.lua` and `tools/test_guildshare.lua`.
 
 ## World drops
 

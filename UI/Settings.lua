@@ -1119,6 +1119,17 @@ function SettingsUI:BuildSharingPage()
         SettingsUI:Refresh()
     end, false)
     controls.shareGuild:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- Logic/Contribute.lua: drops sent to help Farmer's data, off until ticked.
+    pages:Section("sharing", 2, L["BLACKTHORNES"])
+
+    local dropsRow = pages:Row("sharing", 2, L["Share My Drops:"],
+        L["Sends what mobs drop for you to Blackthornes to help make Farmer's data better. Nothing else is sent."])
+    controls.shareDrops = Widgets.CreateCheckbox(dropsRow, L["On"], function(checked)
+        ns.Contribute:SetOn(checked)
+        SettingsUI:Refresh()
+    end, false)
+    controls.shareDrops:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Advanced: debug output, the data the addon carries, and the commands.
@@ -1212,6 +1223,7 @@ function SettingsUI:Refresh()
     controls.share:SetChecked(db.shareData == true)
     controls.shareNames:SetText(db.shareNames or "")
     controls.shareGuild:SetChecked(db.shareGuild == true)
+    controls.shareDrops:SetChecked(db.shareDrops == true)
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
