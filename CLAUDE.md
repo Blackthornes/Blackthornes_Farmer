@@ -132,6 +132,25 @@ mob's own pace (`Stats:SecondsPerKill`). Nothing is written. Tested in
 `tools/test_disenchantfarm.lua`. Keep the calls and fields stable; if one
 changes, change Tradeskills' `Logic/MaterialFinder.lua` too.
 
+## Farmed (Tradeskills' Profit by method)
+
+The owner said build it (2026-10-16): an auction sale Tradeskills knows
+no cost for goes under "Farmed" when you got the item yourself, not
+"Other sales". `Logic/Looted.lua` answers, inside a pcall, read only:
+
+```lua
+_G.BlackthornesFarmer.Looted:Has(item)   -- item ID or name; true or false
+```
+
+Only the player's own `Harvest.records`, `gathering.nodes` and
+`fishing.spots` (never shipped or guild data), laid out once as a lookup
+by name and ID and again when a corpse, gather or cast is recorded, at
+most every `GAP` seconds. Nothing is saved. Tested in
+`tools/test_looted.lua`. Tradeskills' Sell list (its
+`Logic/SisterKeeps.lua`, the same day) also reads `Butler:Advise` and
+`Value:Contents(name)`, so keep those as they are too. If one changes,
+change Tradeskills' `Logic/MethodProfit.lua` and `Logic/SisterKeeps.lua`.
+
 ## What Butler calls here
 
 Blackthornes Butler (`Blackthornes/Blackthornes_Butler`, 2026-10-10) tells
