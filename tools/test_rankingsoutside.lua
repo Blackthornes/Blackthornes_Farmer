@@ -42,8 +42,9 @@ for _ = 1, 20 do
     Loot("Cursed Ghoul", "Ruins of Lordaeron", "")
     Loot("City Rat", "Stormwind City", "Trade District")
 end
-for index = 1, 20 do
-    Loot("Wandering Bat", index <= 10 and "Shadowfang Keep" or "Silverpine Forest", "")
+-- A mob killed inside and out is two lines, one a zone (2026-10-16).
+for index = 1, 40 do
+    Loot("Wandering Bat", index <= 20 and "Shadowfang Keep" or "Silverpine Forest", "")
 end
 
 -- Database estimates: one in Classic's dungeon, one in an open world
@@ -93,7 +94,10 @@ suite.check("a mob killed only in a dungeon leaves", not Has(board.measured, "De
 suite.check("a mob killed only in Forever's dungeon leaves", not Has(board.measured, "Cursed Ghoul"))
 suite.check("a mob killed in the open stays", Has(board.measured, "Open Wolf"))
 suite.check("a mob killed in a capital stays", Has(board.measured, "City Rat"))
-suite.check("a mob killed inside and out stays", Has(board.measured, "Wandering Bat"))
+suite.check("a mob killed inside and out keeps its open world line",
+    Has(board.measured, Tracker.ZoneKey("Wandering Bat", "Silverpine Forest")))
+suite.check("and its dungeon line leaves",
+    not Has(board.measured, Tracker.ZoneKey("Wandering Bat", "Shadowfang Keep")))
 suite.check("a Classic dungeon estimate leaves", not Has(board.estimate, "Test Pirate"))
 suite.check("an open subzone named like a dungeon stays", Has(board.estimate, "Test Hound"))
 suite.check("an open world estimate stays", Has(board.estimate, "Test Troll"))

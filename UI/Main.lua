@@ -706,7 +706,10 @@ function UI:ShowValueTooltip(row)
         return
     end
 
-    self:ShowMobTooltip(row, data.source.name)
+    -- A mob killed in more than one zone: this row's zone's line.
+    local key = data.source.name
+    if ns.Tracker then key = ns.Tracker:KeyFor(key, data.source.zone) end
+    self:ShowMobTooltip(row, key)
 end
 
 --- What a kill of `mobName` is worth and what makes it up, beside `owner`.
@@ -718,7 +721,7 @@ function UI:ShowMobTooltip(owner, mobName)
     if not worth then return end
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
-    GameTooltip:AddLine(mobName)
+    GameTooltip:AddLine(ns.Tracker and ns.Tracker.ShowKey(mobName) or mobName)
     GameTooltip:AddLine(L.Format("Worth about %s a kill", ns.Value.Coins(worth)),
         Theme.Unpack("good"))
 

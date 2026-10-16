@@ -433,7 +433,8 @@ end
 -- chance } (chance in percent of kills).
 function Value:FromTally(mobName)
     local Tracker = ns.Tracker
-    local mob = Tracker and Tracker:Store()[mobName]
+    -- A line's key: a mob's name, or one zone's line of it.
+    local mob = Tracker and Tracker:Tally(mobName)
     if type(mob) ~= "table" then return nil end
 
     local kills = tonumber(mob.kills) or 0
@@ -514,7 +515,20 @@ function Value:FromDatabase(mobName)
     local details = { basis = "database", priced = {}, unpriced = {}, coin = 0 }
     local total, seen = 0, {}
 
-    for _, entry in ipairs(ns.DB:ByName()[mobName] or {}) do
+    -- One zone's line of a mob reads that zone's rows, when the database
+    -- has any there.
+    local name, zone = mobName, nil
+    if ns.Tracker and ns.Tracker.SplitKey then name, zone = ns.Tracker.SplitKey(mobName) end
+    local rows = ns.DB:ByName()[name] or {}
+    if zone then
+        local here = {}
+        for _, entry in ipairs(rows) do
+            if entry.source and entry.source.zone == zone then here[#here + 1] = entry end
+        end
+        if #here > 0 then rows = here end
+    end
+
+    for _, entry in ipairs(rows) do
         local item, source = entry.item, entry.source
         if source.chance and not seen[item.name] then
             seen[item.name] = true

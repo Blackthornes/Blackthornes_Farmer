@@ -333,6 +333,24 @@ once), `Search:FoundItems`; `Tracker:Summary` groups the tally the same way
 best drops. Worth per kill is the same either way. Tested in
 `tools/test_suffixdrops.lua`. Not yet seen in game.
 
+## Same name, another zone
+
+The owner asked (2026-10-16): a mob of the same name in another zone gets
+its own line. The kill tally keeps, beside each mob's whole tally under
+its name (untouched), `tracker.mobs[name].zones[zone]` (never rename it),
+each with the tally's own fields. Once a name has kills in two zones it is
+split: its lines are keyed `name.."\t"..zone` (`Tracker.ZoneKey`,
+`SplitKey`, `NameOf`, shown as "Name (Zone)" by `Tracker.ShowKey`), and
+Rankings, the rank-up board, the kills panel, the loot table, worth
+(`Value:FromTally`, `FromDatabase` by the key's zone), the mob tooltip and
+the nameplates (`Tracker:KeyHere`, the zone you are in) read the line's
+tally (`Tracker:Tally`, `Tallies`, `Lines`, `IsSplit`). A plain name is
+still the whole. Kills from before were laid out once at login, before any
+loot, from the player's own loot records (`Tracker:SeedAllZones`; one zone
+is copied whole). Milestones, fanfares, goals, Stats and Moments still
+count the whole name. Never shared (Share's whitelist). Tested in
+`tools/test_zonelines.lua`.
+
 ## Drops only
 
 A player asked (2026-10-11, the owner agreed) for Farmer to leave skinning

@@ -1289,12 +1289,14 @@ function TrackerUI:CreateLine(parent, index)
         if button == "RightButton" and line and ns.HideMenu then
             if line.mob then
                 -- A mob known only by its number can be named here first.
+                -- A zone's card hides or names the mob itself.
+                local mob = ns.Tracker.NameOf(line.mob)
                 local choices = {}
-                local npcID = tonumber(line.mob:match("^Creature #(%d+)$"))
+                local npcID = tonumber(mob:match("^Creature #(%d+)$"))
                 if npcID and not ns.Harvest.KnownNpcName(npcID) then
-                    choices[1] = { kind = "name", name = line.mob, npcID = npcID }
+                    choices[1] = { kind = "name", name = mob, npcID = npcID }
                 end
-                choices[#choices + 1] = { kind = "source", name = line.mob }
+                choices[#choices + 1] = { kind = "source", name = mob }
                 ns.HideMenu:Open(choices)
             elseif line.style == "loot" and line.item then
                 ns.HideMenu:Open({ { kind = "item", name = line.item } })
@@ -1617,14 +1619,16 @@ function TrackerUI:CardLines(Add, card)
 
     -- A crown for a mob you are champion of, and for the one a preview
     -- crowned (held in memory only, never saved).
-    local name = ns.Harvest.ShowName(card.name)
+    -- A mob killed in more than one zone has a card a zone: "Ghoul (Duskwood)".
+    local name = ns.Tracker.ShowKey(card.name, ns.Harvest.ShowName)
+    local mobName = card.mob and ns.Tracker.NameOf(card.mob)
     local kills = card.mob and (tonumber(card.total) or 0) or 0
     -- A preview's kills, for its mark alone.
-    if card.mob and self.banePreview == card.mob then
+    if card.mob and self.banePreview == mobName then
         kills = math.max(kills, ns.Tracker.BANE_KILLS)
-    elseif card.mob and self.markPreview and self.markPreview.mob == card.mob then
+    elseif card.mob and self.markPreview and self.markPreview.mob == mobName then
         kills = math.max(kills, self.markPreview.kills)
-    elseif card.mob and self.crownPreview == card.mob then
+    elseif card.mob and self.crownPreview == mobName then
         kills = math.max(kills, ns.Tracker.CHAMPION_KILLS)
     end
     local mark, legendary = nil, false
@@ -1691,7 +1695,7 @@ function TrackerUI:CardLines(Add, card)
     end
 
     -- Your kills since its best drop last fell (Logic/Moments.lua).
-    local since = card.mob and ns.Moments and ns.Moments:SinceLine(card.mob)
+    local since = card.mob and ns.Moments and ns.Moments:SinceLine(mobName)
     if since then
         Add({ style = "value", left = since.label,
             right = Util.Plural(since.kills, L["kill"], L["kills"]), rightColor = "accent" })
@@ -1699,7 +1703,7 @@ function TrackerUI:CardLines(Add, card)
 
     -- The chance of green gear at its level, and what you have had from it
     -- (Logic/WorldDrops.lua). Only open cards get here, so only they ask.
-    local world = card.mob and ns.WorldDrops and ns.WorldDrops:CardLines(card.mob)
+    local world = card.mob and ns.WorldDrops and ns.WorldDrops:CardLines(mobName)
     if world then
         Add({ style = "value", left = world.label, right = world.chance, rightColor = "good" })
         Add({ style = "value", left = L["You've had here"], right = world.had })
@@ -1744,7 +1748,7 @@ function TrackerUI:SortMobs(mobs)
         elseif sort == "worth" then
             value = ns.Value and ns.Value:ForMob(summary.mob) or 0
         elseif sort == "value" then
-            value = self:MobLootValue(summary.mob)
+            value = self:MobLootValue(ns.Tracker.NameOf(summary.mob))
         end
         keyed[#keyed + 1] = { summary = summary, value = tonumber(value) or 0 }
     end
@@ -1801,7 +1805,7 @@ function TrackerUI:KillLines(Add, mobs, first)
     end
 
     -- The mob you are on leads; the rest follow in the order picked.
-    local current = Tracker.current
+    local current = Tracker.currentKey or Tracker.current
     local ordered = {}
     for _, summary in ipairs(mobs) do
         if summary.mob == current then table.insert(ordered, 1, summary) end
