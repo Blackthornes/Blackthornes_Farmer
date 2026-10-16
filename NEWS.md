@@ -34,8 +34,6 @@ Fixes and changes:
 - The minimap button is always on.
 - Various fixes to Farmer.
 
-Thanks Ezmode, Voldar, DarkGarf and MagnusBabbage for the ideas and feedback!
-
 ## 0.35.0
 
 - Thanks Manthieus, seancool_com and their communities for the ideas and feedback! Catch their streams at twitch.tv/Manthieus and twitch.tv/seancool_com.
