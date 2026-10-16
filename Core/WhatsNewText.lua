@@ -6,7 +6,7 @@ local _, ns = ...
 
 ns.WHATS_NEW = {
     { version = "0.38.0", lines = {
-        "The goals panel, Where to farm, your top 15, the run recap and the XP bar can be see-through. Each is off until you turn it on, and you pick how clear.",
+        "The goals panel, Where to farm, your top 15, the run recap and the XP bar can be transparent. Each is off until you turn it on, and you pick how clear.",
     } },
     { version = "0.37.0", lines = {
         "The Kills & Loot panel can be see-through. It's off until you turn it on, and you pick how clear.",
