@@ -324,6 +324,7 @@ local FILES = {
     "Data/Data_MobDrops.lua",
     "Data/Harvest_Carryover.lua",
     "Logic/Search.lua",
+    "Logic/Looted.lua",
     "Logic/Harvest.lua",
     "Logic/Tracker.lua",
     "Logic/Fishing.lua",
