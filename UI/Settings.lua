@@ -89,7 +89,7 @@ local function CommandButton(row, text, command, width, x)
 end
 
 --- A row whose button runs a /farm command.
---- A "See-Through:" stepper for one panel (UI/SeeThrough.lua): Off, Some,
+--- A "Transparent:" stepper for one panel (UI/SeeThrough.lua): Off, Some,
 --- More or Most clear.
 local function SeeThroughRow(pages, page, column, id, label, description)
     local row = pages:Row(page, column, label, description)
@@ -589,7 +589,7 @@ function SettingsUI:BuildTallyPage()
 
     -- The world shows through the panel; its glass comes back under the
     -- mouse (the owner, 2026-10-16). Off unless ticked.
-    local seeRow = pages:Row("tally", 1, L["See-Through:"],
+    local seeRow = pages:Row("tally", 1, L["Transparent:"],
         L["Lets the world show through the panel. It goes dark again while your mouse is on it."])
 
     controls.seeThrough = Widgets.CreateCheckbox(seeRow, L["On"], function(checked)
@@ -694,13 +694,13 @@ function SettingsUI:BuildTallyPage()
     controls.topFarm:SetPoint("TOPLEFT", CONTROL_X, -2)
     controls.topFarmTry = CommandButton(topFarmRow, L["Try"], "topfarm test", 60, CONTROL_X + 70)
 
-    controls.rankUpSeeThrough = SeeThroughRow(pages, "tally", 2, "rankup", L["See-Through:"],
+    controls.rankUpSeeThrough = SeeThroughRow(pages, "tally", 2, "rankup", L["Transparent:"],
         L["Lets the world show through your top 15. It goes dark again while your mouse is on it."])
 
     -- The card that sums up a run once you stop for a while (UI/Recap.lua).
     pages:Section("tally", 2, L["RUN RECAP"])
 
-    controls.recapSeeThrough = SeeThroughRow(pages, "tally", 2, "recap", L["See-Through:"],
+    controls.recapSeeThrough = SeeThroughRow(pages, "tally", 2, "recap", L["Transparent:"],
         L["Lets the world show through the card that sums up your run."])
 
     -- The XP bar (UI/XPBar.lua, the owner asked 2026-10-13).
@@ -713,7 +713,7 @@ function SettingsUI:BuildTallyPage()
     end, true)
     controls.xpBar:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    controls.xpBarSeeThrough = SeeThroughRow(pages, "tally", 2, "xpbar", L["See-Through:"],
+    controls.xpBarSeeThrough = SeeThroughRow(pages, "tally", 2, "xpbar", L["Transparent:"],
         L["Lets the world show through the XP bar."])
 
     local cheerRow = pages:Row("tally", 2, L["Level-Up Cheer:"],
@@ -1021,10 +1021,10 @@ function SettingsUI:BuildMapPage()
     controls.goals = CommandButton(goalsRow, L["Show"], "goals", 64)
     controls.goalsDock = CommandButton(goalsRow, L["Dock"], "goals dock", 64, CONTROL_X + 70)
 
-    controls.goalsSeeThrough = SeeThroughRow(pages, "map", 2, "goals", L["See-Through:"],
+    controls.goalsSeeThrough = SeeThroughRow(pages, "map", 2, "goals", L["Transparent:"],
         L["Lets the world show through the goals panel. It goes dark again while your mouse is on it."])
 
-    controls.goalSpotsSeeThrough = SeeThroughRow(pages, "map", 2, "places", L["Where to Farm See-Through:"],
+    controls.goalSpotsSeeThrough = SeeThroughRow(pages, "map", 2, "places", L["Where to Farm Transparent:"],
         L["Lets the world show through the list of places to farm a goal."])
 
     local bankRow = pages:Row("map", 2, L["Count the Bank:"],

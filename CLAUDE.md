@@ -850,11 +850,11 @@ every `SEE_THROUGH_LOOK` seconds, only while ticked and shown). Only the
 panel's own fills are faded (`TrackerUI:AddGlass`, texture SetAlpha,
 which the colours each redraw sets are multiplied by); the open card's
 gold keeps at least `LIVE_GLASS_FLOOR`; gold edges, icons, bars and glows
-stay; the cut-edge fades are left out while it is on. "See-Through:" and
+stay; the cut-edge fades are left out while it is on. "Transparent:" and
 "How Clear:" (Some, More, Most: `SEE_THROUGH_LEVELS`) on the Kill tally
 page (`trackerSeeThrough`, off unless ticked, and
 `trackerSeeThroughLevel`, 2 by default, account wide, never rename
-either); `/farm tracker seethrough [on|off|some|more|most]`. Tested in
+either); `/farm tracker transparent [on|off|some|more|most]`. Tested in
 `tools/test_seethrough.lua`. Not yet seen in game.
 
 The other panels that stay on screen have it too (the owner asked the same
@@ -866,11 +866,18 @@ word's own shadow comes back when it is turned off. One stepper each, Off,
 Some, More or Most, saved 0 to 3, off by default, account wide, never
 rename them: `goalsSeeThrough` and `goalSpotsSeeThrough` (GOALS on the Map
 & goals page), `rankUpSeeThrough` (TOP 15), `recapSeeThrough` (RUN RECAP)
-and `xpBarSeeThrough` (XP BAR) on the Kill tally page; `/farm seethrough
+and `xpBarSeeThrough` (XP BAR) on the Kill tally page; `/farm transparent
 goals|places|rankup|recap|xpbar [off|some|more|most]`. The main window
 and the loot table are left out, since the mouse is on them while they are
 used. The Kills & Loot panel keeps its own code above. Tested in
 `tools/test_seethroughpanels.lua`. Not yet seen in game.
+
+Players read "Transparent" (the owner, 2026-10-16): every label is
+"Transparent:" ("Where to Farm Transparent:" for the list), and the
+commands are `/farm transparent ...` and `/farm tracker transparent ...`.
+`seethrough` still works as the old word and is left out of the help
+list; the code, the module and the saved keys keep their see-through
+names. Never announce the wording change.
 
 ## Kills on the mob tooltip
 
