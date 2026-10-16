@@ -4,6 +4,22 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.36.0
+
+For WoW: Forever (interface 16001). A file was added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Same name, another zone:** a mob with the same name in two zones gets a
+  line for each zone in Rankings, the kills panel, the loot table, tooltips
+  and nameplates. Kills from before are sorted by zone once, from your loot
+  records.
+- **Find a material:** Tradeskills' Disenchanting tab can list the mobs whose
+  drops break into an enchanting material, from your own kills.
+- **Rankings:** the Level column shows the levels you met a mob at when the
+  data has no row for it.
+- **Minimap button:** always on, so the setting is gone.
+- **Bug fixes:** various fixes to Farmer.
+
 ## 0.35.0
 
 For WoW: Forever (interface 16001). Files were added and the TOC changed, so
