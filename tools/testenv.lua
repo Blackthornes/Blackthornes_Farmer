@@ -352,6 +352,7 @@ local FILES = {
     "Logic/Share.lua",
     "Logic/Transfer.lua",
     "Logic/GuildShare.lua",
+    "Logic/Contribute.lua",
     "Logic/CSV.lua",
 }
 

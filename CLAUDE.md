@@ -266,6 +266,35 @@ A tick box under YOUR GUILD on the Sharing page and `/farm share guild
 on|off`. Tested in `tools/test_guildshare.lua` (three accounts and an alt
 over a pretend chat). Not yet seen in game.
 
+## Sending drops to Blackthornes
+
+The owner asked (2026-10-15): players can opt in to send their drop
+records to his characters, for the shipped data. Off by default
+(`shareDrops`, never rename it); a one-time What's New card
+(`whatsNewTipsSeen.shareDrops`, due only while names are listed, on an
+English client, and off) turns it on, then only Settings > Sharing >
+BLACKTHORNES and `/farm share drops on|off`. `Logic/Contribute.lua` is guild
+sharing's conversation one way: the sender whispers a hello (`Q<id>:<hash>`)
+to each name in `Contribute.RECIPIENTS` (full names, kept only in code;
+never shown in chat or Settings; the game's "No player named" line is
+hidden, so a player can't tell whether a name exists on their realm) 30 s
+after login and every half hour. Only those characters answer, by full
+name (`Contribute:Receiving`). Share's states carry `giveOnly` (the sender
+never asks for anything) and `takeOnly` (the receiver never says what it
+has), so nothing comes back to the player. Only the sender's own "h"
+records go, checked by `GuildShare.Plausible`, kept apart on the receiver
+in `sharedDrops` with ledgers by Farmer id in `sharedIn` (never rename
+either; at most `MAX_SENDERS`); they never join the receiver's own counts
+or show in the windows. One sender is synced at a time, each at most every
+half hour, and a chat line says "Got drops for N mobs from NAME." Only
+English clients send (records keep the client's names). At a release,
+`tools/harvest_import.py --shared` folds `sharedDrops` into the shipped
+data (in memory; the save is never changed, ledger names never read).
+Never announce the fold-in. Tested in `tools/test_contribute.lua` and
+`tools/test_harvest_import.py`. Not yet seen in game. A recipient whose
+first name trips `check_package.py`'s owner's-name check would stop the
+release; check before adding names.
+
 ## Giving data to another player
 
 A player asked (2026-10-11, the owner agreed) to export Farmer's data and
