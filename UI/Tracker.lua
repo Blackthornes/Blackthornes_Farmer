@@ -78,6 +78,8 @@ local HALO_REST = 0.08
 
 -- The glow round the card you are on.
 local LIVE_HALO = 0.22
+-- While see-through, the open card keeps at least this much of its gold glass.
+local LIVE_GLASS_FLOOR = 0.6
 
 -- Right-hand value and the green badge beside it, in pixels.
 local RIGHT_WIDTH = 54
@@ -634,7 +636,7 @@ function TrackerUI:Build()
     frame:SetMovable(true)
     frame:RegisterForDrag("LeftButton")
 
-    Theme.Fill(frame, "window", 0.88)
+    local back = Theme.Fill(frame, "window", 0.88)
     Theme.Border(frame, "border")
     -- The house glow round its edge, as the windows have.
     Theme.Halo(frame, 8, HALO_REST)
@@ -697,6 +699,9 @@ function TrackerUI:Build()
     total.badge:SetPoint("RIGHT", total.right, "LEFT", -4, 0)
 
     self.frame = frame
+    self.glassParts = self.glassParts or {}
+    self:AddGlass(back)
+    self:AddGlass(header.background)
     self.title = title
     self.titleRow = total
     self.header = header
@@ -725,6 +730,7 @@ function TrackerUI:Build()
 
     self:BuildGrip(frame)
     self:BuildSizeGrip(frame)
+    self:BuildSeeThrough(frame)
 
     self:RestorePosition()
     frame:Hide()
@@ -746,6 +752,156 @@ function TrackerUI:BuildFade(frame, side)
     return fade
 end
 
+--------------------------------------------------------------------------------
+-- See-through
+--------------------------------------------------------------------------------
+
+-- The owner said build it (2026-10-16, from a mockup in
+-- previews/kills-loot-transparent/): the panel's dark glass thins out so the
+-- world shows through, every word gets a black shadow so it reads over a
+-- busy scene, and the glass comes back while the mouse is on the panel.
+-- "See-Through:" on the Kill tally page (`trackerSeeThrough`, account wide,
+-- off unless ticked, never rename it) and how much glass stays
+-- (`trackerSeeThroughLevel`, an index into SEE_THROUGH_LEVELS, never rename
+-- it); `/farm tracker seethrough [on|off|some|more|most]`. Only the panel's own textures are
+-- faded (texture SetAlpha, which multiplies the colour each redraw sets), so
+-- no game frame is touched. Gold edges, icons, bars and glows stay as they are.
+
+--- How much of each piece of glass stays, by level: Some, More, Most clear.
+TrackerUI.SEE_THROUGH_LEVELS = { 0.5, 0.3, 0.15 }
+-- What the glass blend belongs to, so it never stops another of the panel's.
+local GLASS = {}
+--- How often the mouse is looked for while see-through, in seconds.
+TrackerUI.SEE_THROUGH_LOOK = 0.1
+--- How long the glass takes to come back or go, in seconds.
+TrackerUI.SEE_THROUGH_FADE = 0.2
+
+function TrackerUI:SeeThroughOn()
+    return ns.db ~= nil and ns.db.trackerSeeThrough == true
+end
+
+function TrackerUI:SeeThroughLevel()
+    local level = ns.db and tonumber(ns.db.trackerSeeThroughLevel)
+    if not level or not TrackerUI.SEE_THROUGH_LEVELS[level] then return 2 end
+    return level
+end
+
+--- Keep a piece of the panel's glass, to thin out while see-through.
+--- `floor` is the least of it that ever stays (the open card's gold).
+function TrackerUI:AddGlass(texture, floor)
+    if not texture then return end
+    self.glassParts = self.glassParts or {}
+    self.glassParts[#self.glassParts + 1] = { texture = texture, floor = floor or 0 }
+    -- A line made while the panel is see-through starts that way.
+    if self.glassShown and self.glassShown < 1 then
+        pcall(texture.SetAlpha, texture, math.max(self.glassShown, floor or 0))
+    end
+end
+
+--- Every piece of glass at `shown` (1 is the usual dark glass).
+function TrackerUI:SetGlass(shown)
+    self.glassShown = shown
+    for _, part in ipairs(self.glassParts or {}) do
+        pcall(part.texture.SetAlpha, part.texture, math.max(shown, part.floor))
+    end
+end
+
+--- A black shadow under every word on the panel while see-through, so it
+--- reads over grass, snow or fire; none otherwise, as the labels are made.
+local function ShadeText(region, on)
+    if type(region) ~= "table" or type(region.GetObjectType) ~= "function" then return end
+    local ok, kind = pcall(region.GetObjectType, region)
+    if not ok or kind ~= "FontString" then return end
+    if on then
+        pcall(region.SetShadowColor, region, 0, 0, 0, 1)
+        pcall(region.SetShadowOffset, region, 1, -1)
+    else
+        pcall(region.SetShadowOffset, region, 0, 0)
+    end
+end
+
+local function ShadeAll(frame, on)
+    if type(frame) ~= "table" then return end
+    if type(frame.GetRegions) == "function" then
+        local regions = { pcall(frame.GetRegions, frame) }
+        for i = 2, #regions do ShadeText(regions[i], on) end
+    end
+    if type(frame.GetChildren) == "function" then
+        local children = { pcall(frame.GetChildren, frame) }
+        for i = 2, #children do ShadeAll(children[i], on) end
+    end
+end
+TrackerUI.ShadeAll = ShadeAll
+
+--- The watcher that brings the glass back under the mouse. It only runs
+--- while the panel shows and is see-through.
+function TrackerUI:BuildSeeThrough(frame)
+    local watch = CreateFrame("Frame", nil, frame)
+    watch.wait = 0
+    self.seeThroughWatch = watch
+    ns.Motion:SetValue(GLASS, "seeThrough", 1)
+    self:ApplySeeThrough()
+end
+
+function TrackerUI:MouseOnPanel()
+    local frame = self.frame
+    if not frame or type(frame.IsMouseOver) ~= "function" then return false end
+    local ok, over = pcall(frame.IsMouseOver, frame)
+    return ok and over == true
+end
+
+--- Blend the glass toward solid (mouse on the panel) or see-through.
+function TrackerUI:FadeGlass(solid)
+    local keep = TrackerUI.SEE_THROUGH_LEVELS[self:SeeThroughLevel()]
+    local target = solid and 1 or keep
+    self.glassSolid = solid
+    ns.Motion:Blend(GLASS, "seeThrough", target, TrackerUI.SEE_THROUGH_FADE,
+        function(value) TrackerUI:SetGlass(value) end)
+end
+
+--- Put the panel in step with the setting: the glass, the shadows under
+--- the words, the fades at the cut edges and the mouse watcher.
+function TrackerUI:ApplySeeThrough()
+    local frame, watch = self.frame, self.seeThroughWatch
+    if not frame or not watch then return end
+    local on = self:SeeThroughOn()
+
+    ShadeAll(frame, on)
+    if on then
+        self:FadeGlass(self:MouseOnPanel())
+        watch:SetScript("OnUpdate", function(w, elapsed)
+            w.wait = w.wait - (tonumber(elapsed) or 0)
+            if w.wait > 0 then return end
+            w.wait = TrackerUI.SEE_THROUGH_LOOK
+            local over = TrackerUI:MouseOnPanel()
+            if over ~= TrackerUI.glassSolid then TrackerUI:FadeGlass(over) end
+        end)
+        if self.fadeTop then self.fadeTop:Hide() end
+        if self.fadeBottom then self.fadeBottom:Hide() end
+    else
+        watch:SetScript("OnUpdate", nil)
+        self.glassSolid = nil
+        ns.Motion:Stop(GLASS, "seeThrough")
+        ns.Motion:SetValue(GLASS, "seeThrough", 1)
+        self:SetGlass(1)
+    end
+end
+
+--- Turn see-through on or off, and redraw so the cut-edge fades follow.
+function TrackerUI:SetSeeThrough(on)
+    ns.db.trackerSeeThrough = on == true
+    self:ApplySeeThrough()
+    if self.frame and self.frame:IsShown() then self:Refresh() end
+end
+
+--- Pick how much glass stays, 1 to #SEE_THROUGH_LEVELS.
+function TrackerUI:SetSeeThroughLevel(level)
+    level = tonumber(level)
+    if not level or not TrackerUI.SEE_THROUGH_LEVELS[level] then return end
+    ns.db.trackerSeeThroughLevel = level
+    if self:SeeThroughOn() then self:FadeGlass(self:MouseOnPanel()) end
+end
+
 --- How lit a tab is under the mouse, 0 to 1: its wash, and its name from
 --- muted toward white. The tab showing keeps its gold name.
 local function TabHover(tab, p)
@@ -763,7 +919,7 @@ function TrackerUI:BuildTabs(frame)
     strip:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -HEADER)
     strip:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -1, -HEADER)
     strip:SetHeight(TAB_HEIGHT)
-    Theme.Fill(strip, "header", 0.7)
+    self:AddGlass(Theme.Fill(strip, "header", 0.7))
 
     self.tabs = {}
 
@@ -902,7 +1058,7 @@ function TrackerUI:BuildToolbar(frame)
     bar:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -(HEADER + TAB_HEIGHT))
     bar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -1, -(HEADER + TAB_HEIGHT))
     bar:SetHeight(TOOLBAR)
-    Theme.Fill(bar, "rowAlt", 0.8)
+    self:AddGlass(Theme.Fill(bar, "rowAlt", 0.8))
 
     bar.left = Theme.CreateLabel(bar, "small", "muted")
     bar.left:SetPoint("LEFT", PADDING, 0)
@@ -1117,12 +1273,16 @@ function TrackerUI:CreateLine(parent, index)
     row.rule:SetPoint("BOTTOMRIGHT")
     row.rule:SetHeight(1)
     row.rule:SetColorTexture(Theme.Unpack("border", 0.6))
+    self:AddGlass(row.band)
+    self:AddGlass(row.rule)
 
     -- The card you are on: dark gold (glassActive) and a bright edge.
     row.live = row:CreateTexture(nil, "BACKGROUND", nil, 2)
     row.live:SetAllPoints(row)
     row.live:SetColorTexture(1, 1, 1, 1)
     row.live:Hide()
+    -- The card you are on keeps more of its gold glass, so it still stands out.
+    self:AddGlass(row.live, LIVE_GLASS_FLOOR)
 
     row.edge = row:CreateTexture(nil, "ARTWORK")
     row.edge:SetPoint("TOPLEFT")
@@ -1328,6 +1488,8 @@ function TrackerUI:CreateLine(parent, index)
         TrackerUI:ScrollBy(-(tonumber(delta) or 0) * SCROLL_STEP)
     end)
 
+    -- A line made while the panel is see-through gets the shadow under its words.
+    if self:SeeThroughOn() then ShadeAll(row, true) end
     return row
 end
 
@@ -2517,6 +2679,7 @@ function TrackerUI:Card(index)
     card = CreateFrame("Frame", nil, self.frame)
     card:SetFrameLevel(self.frame:GetFrameLevel() + 1)
     card.fill = Theme.Fill(card, "glassAlt")
+    self:AddGlass(card.fill)
 
     card.edges = {}
     for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
@@ -2774,8 +2937,11 @@ function TrackerUI:Arrange(effects)
         self.moreLabel:Hide()
     end
     if self.fadeTop then
-        self.fadeTop:SetShown(self.scroll > 0)
-        self.fadeBottom:SetShown(below > 0)
+        -- The fades are the panel's dark colour, so a see-through panel
+        -- leaves them out.
+        local clear = self:SeeThroughOn()
+        self.fadeTop:SetShown(self.scroll > 0 and not clear)
+        self.fadeBottom:SetShown(below > 0 and not clear)
     end
 
     if not self.sizing then

@@ -397,6 +397,10 @@ local DEFAULTS = {
     trackerHidden = false,
     trackerReport = false,
     trackerCelebrate = true,
+    -- The panel's dark glass thinned out so the world shows through (off
+    -- unless ticked, 2026-10-16), and how much of it stays (2 is "More").
+    trackerSeeThrough = false,
+    trackerSeeThroughLevel = 2,
     -- No longer read: the milestone emote went (2026-10-13). Kept so a
     -- saved value is never dropped.
     trackerAnnounce = true,

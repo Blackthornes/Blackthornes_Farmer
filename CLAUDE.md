@@ -811,6 +811,24 @@ unticked), `autoOpen` and `openTest` are account wide; never rename them.
 Loot page; `/farm openbutton [on|off|test|auto on|off]`. Tested in
 `tools/test_openbutton.lua`. Not yet seen in game.
 
+## The see-through panel
+
+The owner said build it (2026-10-16, from a mockup in
+`previews/kills-loot-transparent/` in the project files): the Kills & Loot
+panel's dark glass thins out so the world shows through, every word gets
+a black shadow (`TrackerUI.ShadeAll`) so it reads over a busy scene, and
+the glass comes back while the mouse is on the panel (a watcher looks
+every `SEE_THROUGH_LOOK` seconds, only while ticked and shown). Only the
+panel's own fills are faded (`TrackerUI:AddGlass`, texture SetAlpha,
+which the colours each redraw sets are multiplied by); the open card's
+gold keeps at least `LIVE_GLASS_FLOOR`; gold edges, icons, bars and glows
+stay; the cut-edge fades are left out while it is on. "See-Through:" and
+"How Clear:" (Some, More, Most: `SEE_THROUGH_LEVELS`) on the Kill tally
+page (`trackerSeeThrough`, off unless ticked, and
+`trackerSeeThroughLevel`, 2 by default, account wide, never rename
+either); `/farm tracker seethrough [on|off|some|more|most]`. Tested in
+`tools/test_seethrough.lua`. Not yet seen in game.
+
 ## Kills on the mob tooltip
 
 The owner asked (2026-10-13) for a mob's tooltip to say how many you have
