@@ -217,14 +217,14 @@ end
 
 local function Say(id)
     local panel = SeeThrough.PANELS[id]
-    ns.Print(L.Format("%s see-through: %s.", panel.name, SeeThrough.Names()[SeeThrough:Level(id)]))
+    ns.Print(L.Format("%s transparent: %s.", panel.name, SeeThrough.Names()[SeeThrough:Level(id)]))
 end
 
-ns.RegisterCommand("seethrough", L["lets the world show through a panel: goals, places, rankup, recap or xpbar, then off, some, more or most"], function(rest)
+local function Command(rest)
     local id, word = (rest or ""):lower():match("^(%a*)%s*(%a*)")
     if not SeeThrough.PANELS[id] then
         for _, each in ipairs(SeeThrough.ORDER) do Say(each) end
-        ns.Print(L["Type /farm seethrough goals, places, rankup, recap or xpbar, then off, some, more or most."])
+        ns.Print(L["Type /farm transparent goals, places, rankup, recap or xpbar, then off, some, more or most."])
         return
     end
     if word == "" then
@@ -244,4 +244,9 @@ ns.RegisterCommand("seethrough", L["lets the world show through a panel: goals, 
         SeeThrough:Set(id, level)
     end
     Say(id)
-end)
+end
+
+-- Players see "Transparent" (the owner, 2026-10-16); the older word still
+-- works but is left out of the help list.
+ns.RegisterCommand("transparent", L["lets the world show through a panel: goals, places, rankup, recap or xpbar, then off, some, more or most"], Command)
+ns.commands.seethrough = ns.commands.transparent

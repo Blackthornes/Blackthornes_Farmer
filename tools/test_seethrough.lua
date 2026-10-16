@@ -113,6 +113,10 @@ suite.check("unticked, the glass is solid again", solid and Near(TUI.glassShown,
 suite.check("and the watcher sleeps", TUI.seeThroughWatch:GetScript("OnUpdate") == nil)
 
 -- The command writes the same keys.
+ns.HandleSlash("tracker transparent on")
+suite.check("/farm tracker transparent on", ns.db.trackerSeeThrough == true)
+ns.HandleSlash("tracker transparent off")
+suite.check("/farm tracker transparent off", ns.db.trackerSeeThrough == false)
 ns.HandleSlash("tracker seethrough on")
 suite.check("/farm tracker seethrough on", ns.db.trackerSeeThrough == true)
 ns.HandleSlash("tracker seethrough off")
