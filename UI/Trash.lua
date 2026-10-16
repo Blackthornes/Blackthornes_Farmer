@@ -13,7 +13,13 @@
 -- in a herb bag frees no room). Never an item a goal of this character
 -- counts, a quest item, anything soulbound above grey, gear that could be
 -- worn (only grey gear may go), an item a vendor won't buy, a locked slot,
--- or an item with no price.
+-- or an item with no price. A trade good (cloth, herbs, ore and the like)
+-- counts as `Trash.MATERIAL_LEAN` times its worth there, so when it is close
+-- the can leans to junk and leaves the material (the owner, 2026-10-16).
+--
+-- Stacking first (the owner, 2026-10-16): when two short stacks of one item
+-- fit in one slot, the can sits on the smaller one and says to stack them,
+-- whatever the item is. A click joins them; nothing has to go.
 --
 -- Nothing is ever deleted by Farmer. A click on the can picks the item up
 -- and says so; the player drops it outside the bags and the game's own box
@@ -43,12 +49,19 @@ Trash.BUDGET = 40
 Trash.ART = [[Interface\AddOns\Blackthornes_Farmer\Media\Trash\TrashCan]]
 -- The can's side, as a share of the item button's.
 Trash.SHARE = 0.6
+-- A trade good counts as this many times its worth when picking, so junk
+-- worth up to half as much again goes first.
+Trash.MATERIAL_LEAN = 1.5
+-- Enum.ItemClass.Tradegoods on every build.
+local TRADE_GOODS = 7
 
 local MAX_FRAMES = 13
 local MAX_BUTTONS = 36
 
--- ["bag:slot"] = { bag, slot, key, worth, unit, itemID, link, count } from
--- the last read; worth is nil for a slot that may not be thrown away.
+-- ["bag:slot"] = { bag, slot, key, worth, unit, itemID, link, count, id,
+-- stack, itemLink, weight } from the last read; worth is nil for a slot that
+-- may not be thrown away. id, stack and itemLink are what the slot holds
+-- either way, for stacking.
 Trash.slots = {}
 
 local function Field(object, key)
@@ -216,8 +229,15 @@ function Trash:Scan(space, done)
                     -- One odd item costs its slot, never the can until /reload.
                     local fine, worth, unit, itemID, link, count = pcall(Trash.Worth, Trash, bag, slot, info)
                     if not fine then worth, unit, itemID, link, count = nil, nil, nil, nil, nil end
+                    local okRaw, id, stack, itemLink, locked = pcall(function()
+                        return info.itemID, tonumber(info.stackCount) or 1, info.hyperlink, info.isLocked and true or false
+                    end)
+                    if not okRaw then id, stack, itemLink, locked = nil, nil, nil, true end
+                    local weight = worth
+                    if worth and Trash.ClassOf(itemID) == TRADE_GOODS then weight = worth * Trash.MATERIAL_LEAN end
                     Trash.slots[place] = { bag = bag, slot = slot, key = key, worth = worth, unit = unit,
-                        itemID = itemID, link = link, count = count }
+                        itemID = itemID, link = link, count = count, weight = weight,
+                        id = id, stack = stack, itemLink = itemLink, locked = locked }
                 end
             end
         end
@@ -238,12 +258,71 @@ function Trash:Scan(space, done)
     Step()
 end
 
---- The stack worth least from the last read, or nil.
+--- The item's class ID from what the client always has, or nil.
+function Trash.ClassOf(itemID)
+    local getInstant = Field(rawget(_G, "C_Item"), "GetItemInfoInstant") or rawget(_G, "GetItemInfoInstant")
+    if type(getInstant) ~= "function" then return nil end
+    local ok, _, _, _, _, _, classID = pcall(getInstant, itemID)
+    return ok and Number(classID) or nil
+end
+
+--- How many of an item fit in one slot, or nil while the client does not say.
+function Trash.MaxStack(itemID)
+    local getInfo = Field(rawget(_G, "C_Item"), "GetItemInfo") or rawget(_G, "GetItemInfo")
+    if type(getInfo) ~= "function" then return nil end
+    local ok, name, _, _, _, _, _, _, max = pcall(getInfo, itemID)
+    if not ok or not name then return nil end
+    return Number(max)
+end
+
+--- Two short stacks of one item that fit in one slot, from the last read:
+--- { merge = true, bag, slot, itemID, link, count, to }, or nil. The smaller
+--- stack goes onto the fullest one that still has room for it.
+function Trash:Merge()
+    local byItem = {}
+    for _, entry in pairs(self.slots) do
+        if entry.id and not entry.locked then
+            local list = byItem[entry.id]
+            if not list then
+                list = {}
+                byItem[entry.id] = list
+            end
+            list[#list + 1] = entry
+        end
+    end
+    local function Before(a, b)
+        if a.stack ~= b.stack then return a.stack < b.stack end
+        if a.bag ~= b.bag then return a.bag < b.bag end
+        return a.slot < b.slot
+    end
+    local best
+    for id, list in pairs(byItem) do
+        local max = #list > 1 and self.MaxStack(id)
+        if max and max > 1 then
+            table.sort(list, Before)
+            local from, to = list[1], nil
+            for i = #list, 2, -1 do
+                if from.stack + list[i].stack <= max then
+                    to = list[i]
+                    break
+                end
+            end
+            if to and (not best or Before(from, best.from)) then
+                best = { merge = true, bag = from.bag, slot = from.slot, itemID = id, link = from.itemLink,
+                    count = from.stack, to = to, from = from }
+            end
+        end
+    end
+    return best
+end
+
+--- The stack worth least from the last read, or nil. A trade good is
+--- weighed at MATERIAL_LEAN times its worth.
 function Trash:Pick()
     local best
     for _, entry in pairs(self.slots) do
-        if entry.worth and (not best or entry.worth < best.worth
-            or (entry.worth == best.worth and (entry.bag < best.bag
+        if entry.worth and (not best or entry.weight < best.weight
+            or (entry.weight == best.weight and (entry.bag < best.bag
                 or (entry.bag == best.bag and entry.slot < best.slot)))) then
             best = entry
         end
@@ -388,7 +467,7 @@ function Trash:Place(frames)
     if self.stale then return self:Changed() end
     -- A fight or a vendor may have come while the bags were read.
     if self:IsOff() or Holding() then return self:Hide() end
-    local pick = self:Pick()
+    local pick = self:Merge() or self:Pick()
     local button = pick and self:FindButton(frames, pick.bag, pick.slot)
     if not button then return self:Hide() end
 
@@ -450,6 +529,14 @@ function Trash:ShowTooltip(owner)
     if not (pick and GameTooltip) then return end
     pcall(function()
         GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+        if pick.merge then
+            GameTooltip:AddLine(L["Stack these to make room"], 1, 0.82, 0)
+            GameTooltip:AddLine(ItemText(pick), 1, 1, 1)
+            GameTooltip:AddLine(L.Format("It fits on your other stack of %d.", pick.to.stack), 1, 1, 1, true)
+            GameTooltip:AddLine(L["Click to stack them. Nothing is thrown away."], 0.2, 1, 0.2, true)
+            GameTooltip:Show()
+            return
+        end
         GameTooltip:AddLine(L["Throw away to make room"], 1, 0.82, 0)
         GameTooltip:AddLine(ItemText(pick), 1, 1, 1)
         GameTooltip:AddLine(L.Format("Worth %s in all, the least in your bags", ns.Value.Coins(pick.worth)),
@@ -465,6 +552,7 @@ end
 function Trash:Take()
     local pick = self.pick
     if not pick or InCombat() then return false end
+    if pick.merge then return self:Stack(pick) end
     local info = Container("GetContainerItemInfo", pick.bag, pick.slot)
     local same = type(info) == "table" and pcall(function()
         if info.itemID ~= pick.itemID or (tonumber(info.stackCount) or 1) ~= pick.count or info.isLocked then
@@ -486,6 +574,34 @@ function Trash:Take()
     if GameTooltip then GameTooltip:Hide() end
     ns.Print(L.Format("%s is on your cursor. Drop it outside your bags and the game will ask before it is destroyed, or click its bag slot to put it back.",
         ItemText(pick)))
+    return true
+end
+
+--- Whether a slot still holds what the last read saw there.
+local function Still(bag, slot, itemID, count)
+    local info = Container("GetContainerItemInfo", bag, slot)
+    return type(info) == "table" and pcall(function()
+        if info.itemID ~= itemID or (tonumber(info.stackCount) or 1) ~= count or info.isLocked then
+            error("moved")
+        end
+    end)
+end
+
+--- The click on a stack: pick the smaller stack up and drop it on the
+--- other, and the game joins them. Nothing is thrown away.
+function Trash:Stack(pick)
+    if not (Still(pick.bag, pick.slot, pick.itemID, pick.count)
+        and Still(pick.to.bag, pick.to.slot, pick.itemID, pick.to.stack)) then
+        self:Changed()
+        return false
+    end
+    if Holding() then
+        ns.Print(L["Your cursor is already holding something. Put it down first."])
+        return false
+    end
+    Container("PickupContainerItem", pick.bag, pick.slot)
+    Container("PickupContainerItem", pick.to.bag, pick.to.slot)
+    if GameTooltip then GameTooltip:Hide() end
     return true
 end
 
