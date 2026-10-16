@@ -572,6 +572,26 @@ function SettingsUI:BuildTallyPage()
     end, false)
     controls.keepPanel:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The world shows through the panel; its glass comes back under the
+    -- mouse (the owner, 2026-10-16). Off unless ticked.
+    local seeRow = pages:Row("tally", 1, L["See-Through:"],
+        L["Lets the world show through the panel. It goes dark again while your mouse is on it."])
+
+    controls.seeThrough = Widgets.CreateCheckbox(seeRow, L["On"], function(checked)
+        ns.TrackerUI:SetSeeThrough(checked)
+    end, false)
+    controls.seeThrough:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local clearNames = { L["Some"], L["More"], L["Most"] }
+    local howClearRow = pages:Row("tally", 1, L["How Clear:"], nil)
+    controls.seeThroughLevel = Widgets.CreateStepper(howClearRow, {
+        min = 1, max = #clearNames, step = 1, value = 2,
+        format = function(index) return clearNames[index] end,
+        onChange = function(index) ns.TrackerUI:SetSeeThroughLevel(index) end,
+    })
+    ns.SettingsPages.FitStepper(controls.seeThroughLevel, clearNames)
+    controls.seeThroughLevel:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     local groupRow = pages:Row("tally", 1, L["Move in a Group:"],
         L["Moves the panel away from party and raid frames. Drag it while in a group to pick the spot."])
 
@@ -1187,6 +1207,8 @@ function SettingsUI:Refresh()
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)
     controls.keepPanel:SetChecked(db.keepPanel == true)
+    controls.seeThrough:SetChecked(db.trackerSeeThrough == true)
+    controls.seeThroughLevel:SetValue(ns.TrackerUI:SeeThroughLevel(), true)
     controls.report:SetChecked(db.trackerReport == true)
     controls.celebrate:SetChecked(db.trackerCelebrate ~= false)
 

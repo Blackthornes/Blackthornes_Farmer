@@ -1598,7 +1598,7 @@ end
 -- Commands
 --------------------------------------------------------------------------------
 
-ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear empties it and keeps your tallies, keep on/off keeps it between sessions, group on/off moves it aside in a party or raid, size takes small, normal, large or a percent)"], function(rest)
+ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear empties it and keeps your tallies, keep on/off keeps it between sessions, seethrough on/off lets the world show through it, group on/off moves it aside in a party or raid, size takes small, normal, large or a percent)"], function(rest)
     local argument = Util.Trim(rest):lower()
 
     -- What the panel shows starts empty each session unless kept
@@ -1613,6 +1613,28 @@ ns.RegisterCommand("tracker", L["show or hide the kill and loot panel (clear emp
         ns.Print(on
             and L["the kill and loot panel now keeps what it shows between sessions."]
             or L["the kill and loot panel now starts empty each session. Your kill tallies and drop rates are kept."])
+        return
+    end
+
+    -- A see-through panel (UI/Tracker.lua, `trackerSeeThrough`).
+    local clear = argument:match("^seethrough%s*(%a*)$")
+    if clear then
+        local TrackerUI = ns.TrackerUI
+        local levels = { some = 1, more = 2, most = 3 }
+        if levels[clear] then
+            TrackerUI:SetSeeThroughLevel(levels[clear])
+            if not TrackerUI:SeeThroughOn() then TrackerUI:SetSeeThrough(true) end
+        else
+            local on
+            if clear == "on" then on = true
+            elseif clear == "off" then on = false
+            else on = not TrackerUI:SeeThroughOn() end
+            TrackerUI:SetSeeThrough(on)
+        end
+        ns.Print(TrackerUI:SeeThroughOn()
+            and L["the kill and loot panel is now see-through. It goes dark again while your mouse is on it."]
+            or L["the kill and loot panel is back to dark glass."])
+        if ns.SettingsUI and ns.SettingsUI.Refresh then ns.SettingsUI:Refresh() end
         return
     end
 
