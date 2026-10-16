@@ -68,7 +68,7 @@ function RankUpUI:Build()
     frame:SetClampedToScreen(true)
     frame:EnableMouse(true)
 
-    Theme.Fill(frame, "window", 0.94)
+    local back = Theme.Fill(frame, "window", 0.94)
     Theme.Border(frame, "borderLit")
     Theme.Halo(frame, 8, 0.12)
 
@@ -126,6 +126,8 @@ function RankUpUI:Build()
 
         stripe.line = line
         self.stripes[slot] = stripe
+        ns.SeeThrough:AddGlass("rankup", stripe)
+        ns.SeeThrough:AddGlass("rankup", line)
     end
 
     self.rows = {}
@@ -157,6 +159,11 @@ function RankUpUI:Build()
         done = function() RankUpUI:Place() end,
     })
 
+    -- See-through (UI/SeeThrough.lua, `rankUpSeeThrough`).
+    ns.SeeThrough:AddGlass("rankup", back)
+    ns.SeeThrough:AddGlass("rankup", header.background)
+    ns.SeeThrough:Attach("rankup", frame)
+
     frame:Hide()
     self.frame = frame
     return frame
@@ -184,6 +191,8 @@ function RankUpUI:Row(index)
     row.active:SetAllPoints(row)
     row.active:SetColorTexture(Theme.Unpack("glassActive"))
     row.active:Hide()
+    -- The picked row keeps some of its gold while see-through.
+    ns.SeeThrough:AddGlass("rankup", row.active, 0.6)
 
     -- Under the mouse: lifted glass and a gold edge, on that row only.
     row.hover = row:CreateTexture(nil, "BACKGROUND", nil, 3)
@@ -248,6 +257,7 @@ function RankUpUI:Row(index)
         end
     end)
 
+    ns.SeeThrough:Grew("rankup", row)
     self.rows[index] = row
     return row
 end

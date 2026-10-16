@@ -401,6 +401,13 @@ local DEFAULTS = {
     -- unless ticked, 2026-10-16), and how much of it stays (2 is "More").
     trackerSeeThrough = false,
     trackerSeeThroughLevel = 2,
+    -- See-through for the other panels (UI/SeeThrough.lua): 0 off, 1 to 3
+    -- Some, More, Most clear. Never rename them.
+    goalsSeeThrough = 0,
+    goalSpotsSeeThrough = 0,
+    rankUpSeeThrough = 0,
+    recapSeeThrough = 0,
+    xpBarSeeThrough = 0,
     -- No longer read: the milestone emote went (2026-10-13). Kept so a
     -- saved value is never dropped.
     trackerAnnounce = true,

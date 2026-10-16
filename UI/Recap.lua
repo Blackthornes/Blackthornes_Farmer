@@ -35,7 +35,7 @@ function RecapUI:Build()
     frame:SetClampedToScreen(true)
     frame:EnableMouse(true)
 
-    Theme.Fill(frame, "window", 0.94)
+    local back = Theme.Fill(frame, "window", 0.94)
     Theme.Border(frame, "borderLit")
     Theme.Halo(frame, 8, 0.12)
 
@@ -71,6 +71,8 @@ function RecapUI:Build()
         line.right = Theme.CreateLabel(line, "normal", "text", "RIGHT")
         line.right:SetPoint("RIGHT", line, "RIGHT", -PADDING, 0)
         self.lines[index] = line
+        ns.SeeThrough:AddGlass("recap", stripe)
+        ns.SeeThrough:AddGlass("recap", rule)
     end
 
     local foot = Theme.CreateLabel(frame, "small", "accent")
@@ -98,6 +100,11 @@ function RecapUI:Build()
         save = function(percent) if ns.db then ns.db.recapScale = percent end end,
         done = function() RecapUI:Place() end,
     })
+
+    -- See-through (UI/SeeThrough.lua, `recapSeeThrough`).
+    ns.SeeThrough:AddGlass("recap", back)
+    ns.SeeThrough:AddGlass("recap", header.background)
+    ns.SeeThrough:Attach("recap", frame)
 
     frame:Hide()
     self.frame = frame

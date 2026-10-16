@@ -829,6 +829,21 @@ page (`trackerSeeThrough`, off unless ticked, and
 either); `/farm tracker seethrough [on|off|some|more|most]`. Tested in
 `tools/test_seethrough.lua`. Not yet seen in game.
 
+The other panels that stay on screen have it too (the owner asked the same
+day, "a button for each unique window"): the goals panel, Where to farm,
+the rank-up board, the run recap and the XP bar's well. `UI/SeeThrough.lua`
+does it the same way for each (`SeeThrough:AddGlass(id, texture, floor)`,
+`:Grew(id, row)` for rows made later, `:Attach(id, frame)`, `:Set`), and a
+word's own shadow comes back when it is turned off. One stepper each, Off,
+Some, More or Most, saved 0 to 3, off by default, account wide, never
+rename them: `goalsSeeThrough` and `goalSpotsSeeThrough` (GOALS on the Map
+& goals page), `rankUpSeeThrough` (TOP 15), `recapSeeThrough` (RUN RECAP)
+and `xpBarSeeThrough` (XP BAR) on the Kill tally page; `/farm seethrough
+goals|places|rankup|recap|xpbar [off|some|more|most]`. The main window
+and the loot table are left out, since the mouse is on them while they are
+used. The Kills & Loot panel keeps its own code above. Tested in
+`tools/test_seethroughpanels.lua`. Not yet seen in game.
+
 ## Kills on the mob tooltip
 
 The owner asked (2026-10-13) for a mob's tooltip to say how many you have
