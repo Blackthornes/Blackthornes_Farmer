@@ -121,7 +121,14 @@ suite.check("and get their own back after", label.offset[1] == 2 and label.offse
 suite.check("a level not on the list is refused", SeeThrough:Set("recap", 9) == false)
 suite.check("a panel not on the list is refused", SeeThrough:Set("nope", 1) == false)
 
--- The command.
+-- The command: "transparent" is the word players see; "seethrough" still works.
+ns.HandleSlash("transparent goals more")
+suite.check("/farm transparent goals more", ns.db.goalsSeeThrough == 2)
+ns.HandleSlash("transparent goals off")
+suite.check("/farm transparent goals off", ns.db.goalsSeeThrough == 0)
+local listed = {}
+for _, name in ipairs(ns.commandOrder) do listed[name] = true end
+suite.check("help lists transparent, not the old word", listed.transparent and not listed.seethrough)
 ns.HandleSlash("seethrough xpbar most")
 suite.check("/farm seethrough xpbar most", ns.db.xpBarSeeThrough == 3)
 ns.HandleSlash("seethrough xpbar off")

@@ -1289,7 +1289,7 @@ ns.RegisterCommand("xpbar", L["the XP bar (on/off, cheer on/off, chime on/off, g
         local hide
         if value == "show" then hide = false elseif value == "hide" then hide = true else hide = not XPBarUI.HidesGame() end
         XPBarUI:SetHideGame(hide)
-        ns.Print(hide and L["the game's XP bar is see-through while yours shows."]
+        ns.Print(hide and L["the game's XP bar is transparent while yours shows."]
             or L["the game's XP bar is back."])
     elseif word == "reset" then
         XPBarUI:ResetPlace()
