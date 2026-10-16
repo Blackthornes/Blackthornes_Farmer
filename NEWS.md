@@ -23,6 +23,10 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.38.0
+
+- The goals panel, Where to farm, your top 15, the run recap and the XP bar can be see-through. Each is off until you turn it on, and you pick how clear.
+
 ## 0.37.0
 
 - The Kills & Loot panel can be see-through. It's off until you turn it on, and you pick how clear.
