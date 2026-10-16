@@ -499,12 +499,8 @@ function Comm:Start()
     self.listening = true
     self:Register()
     ns.RegisterEvent(self, "CHAT_MSG_ADDON", self.CHAT_MSG_ADDON)
-    if not self.filtered then
-        -- Newer clients keep the call in ChatFrameUtil.
-        local add = type(ChatFrame_AddMessageEventFilter) == "function" and ChatFrame_AddMessageEventFilter
-            or type(ChatFrameUtil) == "table" and type(ChatFrameUtil.AddMessageEventFilter) == "function"
-                and ChatFrameUtil.AddMessageEventFilter
-        if add then self.filtered = pcall(add, "CHAT_MSG_SYSTEM", Comm.FilterNotFound) end
+    if not self.filtered and type(ChatFrame_AddMessageEventFilter) == "function" then
+        self.filtered = pcall(ChatFrame_AddMessageEventFilter, "CHAT_MSG_SYSTEM", Comm.FilterNotFound)
     end
 end
 

@@ -42,11 +42,6 @@
 -- `guild` set comes from GuildShare:PartnerFor instead of the typed names,
 -- and carries where its counts go instead of the player's own tables:
 -- `sections` (the ones shared), `store(key, create)` and `book()` (ledgers).
--- Such a state also sets `apart` (its records keep the key they came with),
--- `id` (the Farmer its manifest must name) and `owner` (told Compared and
--- Received). Logic/Contribute.lua adds two more: `giveOnly` (this side
--- serves and never asks) and `takeOnly` (this side asks and never says
--- what it has).
 
 local _, ns = ...
 local L = ns.L
@@ -442,7 +437,6 @@ end
 --- Sharing with the other account or with the guild, either.
 function Share:Active()
     return self:Enabled() or (ns.GuildShare ~= nil and ns.GuildShare:On())
-        or (ns.Contribute ~= nil and ns.Contribute:Active())
 end
 
 --- The names typed in Settings, as { key = "ana smith", name = "Ana Smith" }.
@@ -480,10 +474,7 @@ function Share:PartnerFor(sender)
         end
     end
     -- A guildmate heard on the guild channel (Logic/GuildShare.lua).
-    local guildmate = ns.GuildShare and ns.GuildShare:PartnerFor(sender)
-    if guildmate then return guildmate end
-    -- Drops given to, or taken from, a player who opted in (Logic/Contribute.lua).
-    return ns.Contribute and ns.Contribute:PartnerFor(sender) or nil
+    return ns.GuildShare and ns.GuildShare:PartnerFor(sender) or nil
 end
 
 --- What was heard from and taken from a partner, made if new.
@@ -602,8 +593,6 @@ function Share:Hello(name)
 end
 
 function Share:SendManifest(state)
-    -- A side that only takes never says what it has.
-    if state.takeOnly then return end
     state.manifestAt = time()
     self:Build(state, function(manifest)
         -- Which Farmer this is, so a partner naming two characters of this
@@ -679,11 +668,9 @@ function Share:OnManifest(sender, manifest, channel)
     -- unless one went out a moment ago (which is what stops the two
     -- answering each other for ever).
     if not state.manifestAt or time() - state.manifestAt > 60 then self:SendManifest(state) end
-    -- A side that only gives never asks for anything.
-    if state.giveOnly then return end
 
     -- A guildmate's manifest must come from the Farmer its hello named.
-    if state.id and manifest.i ~= state.id then return end
+    if state.guild and manifest.i ~= state.id then return end
     if not self:Identify(state, manifest.i) then return end
     local held = self:Held(state)
     local want, total = {}, 0
@@ -702,13 +689,13 @@ function Share:OnManifest(sender, manifest, channel)
         if #asked > 0 then want[section.key] = asked end
     end
     if total > 0 then Comm:SendTable("W", want, "WHISPER", state.name) end
-    if state.owner then state.owner:Compared(state, total) end
+    if state.guild and ns.GuildShare then ns.GuildShare:Compared(state, total) end
 end
 
 function Share:OnWant(sender, want, channel)
     if channel ~= "WHISPER" then return end
     local state = self:PartnerFor(sender)
-    if not state or state.takeOnly then return end
+    if not state then return end
 
     local function Serve()
         local todo = {}
@@ -791,7 +778,7 @@ function Share:Accept(state, entry)
     -- names; the counts go under this side's name for the mob. A guildmate's
     -- records live apart (guildDrops) and keep the key they came with.
     local sentKey = key
-    if not state.apart then key, record = Share.Canonical(section.key, key, record) end
+    if not state.guild then key, record = Share.Canonical(section.key, key, record) end
 
     local held = self:Held(state)
     local credit = held.credit[section.key]
@@ -812,7 +799,7 @@ end
 function Share:OnRecords(sender, batch, channel)
     if channel ~= "WHISPER" then return end
     local state = self:PartnerFor(sender)
-    if not state or state.duplicate or state.giveOnly then return end
+    if not state or state.duplicate then return end
 
     local taken = 0
     for index, entry in ipairs(batch) do
@@ -825,7 +812,7 @@ function Share:OnRecords(sender, batch, channel)
         self.taken = (self.taken or 0) + taken
         -- A guildmate's counts are not the player's: only the guild's rates
         -- in the database move (GuildShare:Received).
-        if state.owner then state.owner:Received(state, taken) else self:Changed() end
+        if state.guild and ns.GuildShare then ns.GuildShare:Received(state) else self:Changed() end
     end
 end
 
@@ -871,7 +858,6 @@ function Share:OnOffline(key)
     local state = self.partners[key]
     if state then state.online = false end
     if ns.GuildShare then ns.GuildShare:OnOffline(key) end
-    if ns.Contribute then ns.Contribute:OnOffline(key) end
 end
 
 --------------------------------------------------------------------------------
@@ -942,7 +928,6 @@ function Share:Apply()
         for _, state in pairs(self.partners) do state.online = false end
     end
     if ns.GuildShare then ns.GuildShare:Apply() end
-    if ns.Contribute then ns.Contribute:Apply() end
 end
 
 function Share:SetEnabled(on)
@@ -971,7 +956,7 @@ function Share:OnEnable()
     self.ticker = C_Timer.NewTicker(self.CHECK_SECONDS, function() Share:Check() end)
 end
 
-ns.RegisterCommand("share", L["share kills, drop rates and gathering with your other account or guild: on, off, with <names>, sync, guild on|off, drops on|off"],
+ns.RegisterCommand("share", L["share kills, drop rates and gathering with your other account or guild: on, off, with <names>, sync, guild on|off"],
     function(args)
         local word, rest = (args or ""):match("^(%S*)%s*(.-)%s*$")
         word = (word or ""):lower()
@@ -987,10 +972,6 @@ ns.RegisterCommand("share", L["share kills, drop rates and gathering with your o
             ns.Print(Share:Enabled() and L["asked your other account for anything new"] or L["sharing is off, or you haven't named a character yet"])
         elseif word == "guild" then
             ns.GuildShare:Command(rest)
-        elseif word == "drops" then
-            local choice = (rest or ""):lower()
-            if choice == "on" or choice == "off" then ns.Contribute:SetOn(choice == "on") end
-            ns.Print(ns.Contribute:Describe())
         else
             ns.Print(Share:Describe())
             ns.Print(ns.GuildShare:Describe())

@@ -34,8 +34,6 @@ Options:
     --stdout         print it instead of writing
     --list           show what was found and write nothing
     --allow-smaller  write even if it has fewer corpses than the file it replaces
-    --shared         also fold in the drops players sent (sharedDrops,
-                     Logic/Contribute.lua); the save itself is never changed
 """
 
 import argparse
@@ -208,66 +206,6 @@ def load_addon(lua, records, fishing=None, creature_types=None, tracker=None):
     return ns, restored
 
 
-# Adds one record's counts onto another, the way Logic/Share.lua merges a
-# drop record: corpses and each item's count and corpses add up, levels
-# widen, and empty names and places are filled. Only the copy in memory
-# changes; the save on disk is never written.
-FOLD_LUA = r"""
-return function(records, shared)
-    local added = 0
-    if type(shared) ~= "table" then return 0 end
-    for key, record in pairs(shared) do
-        if type(key) == "string" and type(record) == "table"
-            and type(record.corpses) == "number" and type(record.items) == "table" then
-            local own = records[key]
-            if type(own) ~= "table" then
-                own = { mob = record.mob, zone = record.zone, location = record.location,
-                        npc = record.npc, corpses = 0, items = {} }
-                records[key] = own
-            end
-            own.corpses = (own.corpses or 0) + record.corpses
-            if type(record.minLevel) == "number" then
-                own.minLevel = math.min(own.minLevel or record.minLevel, record.minLevel)
-            end
-            if type(record.maxLevel) == "number" then
-                own.maxLevel = math.max(own.maxLevel or record.maxLevel, record.maxLevel)
-            end
-            if own.coords == nil and type(record.coords) == "table" then
-                own.coords = { record.coords[1], record.coords[2] }
-            end
-            if type(own.items) ~= "table" then own.items = {} end
-            for name, item in pairs(record.items) do
-                if type(name) == "string" and type(item) == "table" then
-                    local mine = own.items[name]
-                    if type(mine) ~= "table" then
-                        mine = { name = item.name or name, id = item.id, count = 0, corpses = 0 }
-                        own.items[name] = mine
-                    end
-                    mine.count = (mine.count or 0) + (tonumber(item.count) or 0)
-                    mine.corpses = (mine.corpses or 0) + (tonumber(item.corpses) or 0)
-                    if mine.id == nil then mine.id = item.id end
-                end
-            end
-            added = added + 1
-        end
-    end
-    return added
-end
-"""
-
-
-def fold_shared(lua, records, shared):
-    """Add the drops players sent onto the harvest about to be written.
-
-    They are kept apart in the save (sharedDrops) so they never touch the
-    player's own counts in game; here, only for the shipped data, they join
-    in. Senders' names live only in the ledgers (sharedIn), never read here.
-    """
-    if shared is None:
-        return 0
-    return int(lua.execute(FOLD_LUA)(records, shared))
-
-
 def describe(ns):
     harvest = ns.Harvest
     items = harvest.Items(harvest)
@@ -320,8 +258,6 @@ def main():
                         help="print the data file instead of writing it")
     parser.add_argument("--list", action="store_true",
                         help="report what was found and write nothing")
-    parser.add_argument("--shared", action="store_true",
-                        help="also fold in the drops players sent (sharedDrops)")
     parser.add_argument("--allow-smaller", action="store_true",
                         help="write even if it has fewer corpses than before")
     args = parser.parse_args()
@@ -370,10 +306,6 @@ def main():
         raise SystemExit(
             "nothing harvested in that file yet.\n"
             "Loot some corpses, log out, and run this again.")
-
-    if args.shared:
-        added = fold_shared(lua, records, saved["sharedDrops"])
-        print("folded in %d records players sent" % added)
 
     ns, restored = load_addon(lua, records, saved["fishing"], saved["creatureTypes"],
                               saved["tracker"])
