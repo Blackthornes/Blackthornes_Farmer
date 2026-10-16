@@ -109,6 +109,29 @@ _G.BlackthornesTS.CraftOrFarm:ForMaterial(itemID)
 tooltip craft [on|off]`. Tested in `tools/test_itemtooltip.lua`. Not yet
 seen in game.
 
+## Find a material (Tradeskills' Disenchanting tab)
+
+The owner said build it (2026-10-16): Tradeskills' Find a material view
+lists, for one enchanting material, the mobs whose drops break into it,
+from the player's own kills only. `Logic/DisenchantFarm.lua` answers,
+inside a pcall, read only:
+
+```lua
+_G.BlackthornesFarmer.DisenchantFarm:Best(gives, max)
+  -- gives(itemID): how many breaking one gives on average, asked once each
+  -- { { mob, zone, shownZone (Spots.Show), kills, perKill, seconds, perHour,
+  --     items = { { id, name, corpses } } } }, best a kill first
+_G.BlackthornesFarmer.DisenchantFarm:DroppedBy(itemID)  -- mob that dropped it most, or nil
+_G.BlackthornesFarmer.DisenchantFarm:Show(mob)          -- opens the loot table; true when it did
+```
+
+Only `Harvest.records` (never shipped or guild data), a mob by name and
+zone once `MIN_SAMPLE` (20) corpses are behind it, suffixes grouped
+(`GroupedItems`), hidden mobs and items left out, an hour only at the
+mob's own pace (`Stats:SecondsPerKill`). Nothing is written. Tested in
+`tools/test_disenchantfarm.lua`. Keep the calls and fields stable; if one
+changes, change Tradeskills' `Logic/MaterialFinder.lua` too.
+
 ## What Butler calls here
 
 Blackthornes Butler (`Blackthornes/Blackthornes_Butler`, 2026-10-10) tells

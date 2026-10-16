@@ -342,6 +342,7 @@ local FILES = {
     "Logic/Moments.lua",
     "Logic/Butler.lua",
     "Logic/Pace.lua",
+    "Logic/DisenchantFarm.lua",
     "Logic/Spots.lua",
     "Logic/Arrow.lua",
     "Logic/TomTom.lua",
