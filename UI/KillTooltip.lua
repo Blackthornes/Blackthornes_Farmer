@@ -4,8 +4,8 @@
 --   Kills: 7/20                         (red, until drop rates unlock)
 --   Kills: 134, worth 1s 20c each       (from 20 kills on)
 --
---   Best drops                          (gold; "Best drops (est.)" from
---   Linen Cloth 41%              52c     the database's rates)
+--   Best drops                          (gold; from 20 kills on, from
+--   Linen Cloth 41%              52c     the player's own rates only)
 --
 -- Under it, the three drops that add most to a kill's worth: how often each
 -- drops times its price, the same entries Value:ForMob adds up, so they come
@@ -285,7 +285,9 @@ function KillTooltip:Read(name, kills)
 
         -- Already sorted by what each adds to a kill. A drop worth under
         -- half a copper a kill is not one of the best, whatever its place.
-        local priced = type(details) == "table" and details.priced or {}
+        -- Rates from the shipped data stay hidden until the player has kills
+        -- enough for their own (the owner, 2026-10-15): finding them is the fun.
+        local priced = type(details) == "table" and not entry.estimate and details.priced or {}
         for _, drop in ipairs(priced) do
             if #entry.drops >= KillTooltip.TOP_DROPS then break end
             if (tonumber(drop.perKill) or 0) >= 0.5 then

@@ -23,8 +23,9 @@
 --     (shaped as Harvest's records) with their ledgers in `guildIn`, and only
 --     the drop rates they make show: as rows in the database marked "guild"
 --     (only where nothing measured on Forever stands, and only from
---     MIN_SAMPLE corpses), and in a mob's loot table until the player has
---     killed enough for rates of their own (GuildShare:RateFor).
+--     MIN_SAMPLE corpses). A mob's loot table no longer shows them before
+--     the player's own rates (the owner, 2026-10-15); GuildShare:RateFor
+--     is kept for whatever reads it.
 --   * Records also have to look like play (`GuildShare.Plausible`).
 --   * At most MAX_GUILDMATES guildmates are kept.
 --   * Turned off, the guild's rows leave the database (the data is kept);
