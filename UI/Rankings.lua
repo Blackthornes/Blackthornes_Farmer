@@ -234,7 +234,7 @@ local SORT_VALUE = {
     basis = function(entry) return entry.kills end,
     best = function(entry) return entry.best and entry.best.name end,
     where = function(entry) return entry.where end,
-    level = function(entry) return entry.spot and tonumber(entry.spot.minLevel) end,
+    level = function(entry) return entry.minLevel end,
 }
 
 --- The sort the headings were left on: key (nil for the usual order) and
@@ -352,7 +352,7 @@ local CELLS = { "rank", "mob", "barTrack", "barFill", "worth", "basis", "best", 
 --- The texts a mob's row shows, by column; shared by drawing and fitting.
 local function EntryTexts(data)
     local entry = data.entry
-    local texts = { mob = entry.mob, where = entry.where or "", level = entry.level or "" }
+    local texts = { mob = ns.Tracker.ShowKey(entry.mob), where = entry.where or "", level = entry.level or "" }
 
     if entry.group == "pending" then
         texts.worth = entry.unpriced and L["no prices yet"]
@@ -602,7 +602,7 @@ function RankingsUI:OnRowClick(data, button)
 
     -- Right-click offers to hide the mob (HideMenu).
     if button == "RightButton" then
-        ns.HideMenu:Open({ { kind = "source", name = data.entry.mob } })
+        ns.HideMenu:Open({ { kind = "source", name = ns.Tracker.NameOf(data.entry.mob) } })
         return
     end
 
@@ -610,7 +610,7 @@ function RankingsUI:OnRowClick(data, button)
     if ns.LootTableUI and ns.LootTableUI:Show(mob) then return end
 
     ns.Print(L.Format("%s: no kills yet, so no loot table. Its worth is an estimate from the usual drop rates.",
-        Util.Colored("accent", mob)))
+        Util.Colored("accent", ns.Tracker.ShowKey(mob))))
 end
 
 --------------------------------------------------------------------------------

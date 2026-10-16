@@ -408,7 +408,7 @@ suite.check("an empty log explains the sessions card", StatsUI.sessionsCard.empt
 suite.check("and the sources card", StatsUI.sourcesCard.empty:IsShown())
 suite.check("and the luck card", StatsUI.luckCard.empty:IsShown())
 suite.check("and the levels card", StatsUI.levelsCard.empty:IsShown())
-suite.check("and the top says what shows when", StatsUI.tiles[2].note:GetText() == "nothing farmed yet",
+suite.check("and the top says what shows when", StatsUI.tiles[2].note:GetText() == "Nothing farmed yet",
     StatsUI.tiles[2].note:GetText())
 ns.XP.Record = realRecord
 

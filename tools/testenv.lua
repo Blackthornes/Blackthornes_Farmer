@@ -324,6 +324,7 @@ local FILES = {
     "Data/Data_MobDrops.lua",
     "Data/Harvest_Carryover.lua",
     "Logic/Search.lua",
+    "Logic/Looted.lua",
     "Logic/Harvest.lua",
     "Logic/Tracker.lua",
     "Logic/Fishing.lua",
@@ -342,6 +343,7 @@ local FILES = {
     "Logic/Moments.lua",
     "Logic/Butler.lua",
     "Logic/Pace.lua",
+    "Logic/DisenchantFarm.lua",
     "Logic/Spots.lua",
     "Logic/Arrow.lua",
     "Logic/TomTom.lua",
@@ -350,6 +352,7 @@ local FILES = {
     "Logic/Share.lua",
     "Logic/Transfer.lua",
     "Logic/GuildShare.lua",
+    "Logic/Contribute.lua",
     "Logic/CSV.lua",
 }
 

@@ -38,6 +38,7 @@ Data\Harvest_Carryover.lua
 #@end-do-not-package@
 
 Logic\Search.lua
+Logic\Looted.lua
 Logic\Harvest.lua
 Logic\Tracker.lua
 Logic\Fishing.lua
@@ -56,6 +57,7 @@ Logic\Stats.lua
 Logic\Moments.lua
 Logic\Butler.lua
 Logic\Pace.lua
+Logic\DisenchantFarm.lua
 Logic\Spots.lua
 Logic\Arrow.lua
 Logic\TomTom.lua
@@ -64,6 +66,7 @@ Logic\GrindGather.lua
 Logic\Share.lua
 Logic\Transfer.lua
 Logic\GuildShare.lua
+Logic\Contribute.lua
 Logic\CSV.lua
 
 UI\Theme.lua
