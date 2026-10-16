@@ -141,7 +141,9 @@ function XPBarUI:Build()
     bar:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(LINE + 3))
     bar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -(LINE + 3))
     bar:SetHeight(BAR)
-    Theme.Fill(bar, "well", 0.95)
+    -- See-through (UI/SeeThrough.lua, `xpBarSeeThrough`): only the well
+    -- thins out; the gold, the bands and the ticks stay.
+    ns.SeeThrough:AddGlass("xpbar", Theme.Fill(bar, "well", 0.95))
     Theme.Border(bar, "metal")
     Theme.Halo(bar, 7, 0.18)
     pcall(bar.SetClipsChildren, bar, true)
@@ -261,6 +263,8 @@ function XPBarUI:Build()
     })
     self.grip:SetAlpha(0)
     self.grip:HookScript("OnEnter", function() XPBarUI.grip:SetAlpha(1) end)
+
+    ns.SeeThrough:Attach("xpbar", frame)
 
     self.frame = frame
     self:Place()
