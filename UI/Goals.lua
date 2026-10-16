@@ -242,7 +242,7 @@ function GoalsUI:Build()
 
     -- Solid enough that name plates and chat behind it do not show through
     -- the text (a screenshot, 2026-09-27).
-    Theme.Fill(frame, "window", 0.96)
+    local back = Theme.Fill(frame, "window", 0.96)
     Theme.Border(frame, "border")
     -- The house's neon edge, as the other windows have.
     Theme.Halo(frame, 8, HALO_REST)
@@ -284,7 +284,7 @@ function GoalsUI:Build()
     footer:SetPoint("BOTTOMLEFT", 1, 1)
     footer:SetPoint("BOTTOMRIGHT", -1, 1)
     footer:SetHeight(FOOTER)
-    Theme.Fill(footer, "header", 0.9)
+    local footerBack = Theme.Fill(footer, "header", 0.9)
 
     footer.left = Theme.CreateLabel(footer, "small", "muted")
     footer.left:SetPoint("LEFT", PADDING, 0)
@@ -326,6 +326,13 @@ function GoalsUI:Build()
         end,
     })
 
+    -- See-through (UI/SeeThrough.lua, `goalsSeeThrough`).
+    local SeeThrough = ns.SeeThrough
+    SeeThrough:AddGlass("goals", back)
+    SeeThrough:AddGlass("goals", header.background)
+    SeeThrough:AddGlass("goals", footerBack)
+    SeeThrough:Attach("goals", frame)
+
     self:RestorePosition()
     frame:Hide()
     return frame
@@ -349,6 +356,8 @@ function GoalsUI:Card(index)
     card.rule:SetPoint("BOTTOMRIGHT")
     card.rule:SetHeight(1)
     card.rule:SetColorTexture(Theme.Unpack("border", 0.6))
+    ns.SeeThrough:AddGlass("goals", card.band)
+    ns.SeeThrough:AddGlass("goals", card.rule)
 
     -- Under the mouse the card lifts, a lighter wash and a lit edge easing
     -- in, so it reads as something to click. Both start clear.
@@ -508,6 +517,7 @@ function GoalsUI:Card(index)
     end)
     card:SetScript("OnClick", function(self, button) GoalsUI:OnCardClick(self, button) end)
 
+    ns.SeeThrough:Grew("goals", card)
     self.cards[index] = card
     return card
 end
@@ -1351,7 +1361,7 @@ function GoalsUI:BuildSpots()
     panel:SetClampedToScreen(true)
     panel:EnableMouse(true)
 
-    Theme.Fill(panel, "window", 0.96)
+    local back = Theme.Fill(panel, "window", 0.96)
     -- The house frame's rim and corner gems, and its red close gem
     -- (UI/Titanforged.lua). Its own title stays inside: it names the item
     -- in two colours and the panel is sized to it.
@@ -1410,6 +1420,10 @@ function GoalsUI:BuildSpots()
         table.insert(UISpecialFrames, "BlackthornesFarmerGoalSpots")
     end
 
+    -- See-through (UI/SeeThrough.lua, `goalSpotsSeeThrough`).
+    ns.SeeThrough:AddGlass("places", back)
+    ns.SeeThrough:Attach("places", panel)
+
     panel:Hide()
     self.spots = panel
     return panel
@@ -1432,6 +1446,8 @@ function GoalsUI:SpotRow(index)
     row.rule:SetPoint("BOTTOMRIGHT")
     row.rule:SetHeight(1)
     row.rule:SetColorTexture(Theme.Unpack("border", 0.6))
+    ns.SeeThrough:AddGlass("places", row.band)
+    ns.SeeThrough:AddGlass("places", row.rule)
     -- The light the lists' rows wear under the mouse. The wash here was
     -- filled clear, so no alpha could ever show it.
     Widgets.RowLight(row)
@@ -1485,6 +1501,7 @@ function GoalsUI:SpotRow(index)
             stop = function() self.flash:SetAlpha(0) end })
     end)
 
+    ns.SeeThrough:Grew("places", row)
     panel.rows[index] = row
     return row
 end
