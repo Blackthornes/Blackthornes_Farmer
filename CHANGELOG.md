@@ -4,6 +4,19 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.37.0
+
+For WoW: Forever (interface 16001). A file was added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Farmed:** Tradeskills can ask which items you looted, gathered or fished
+  yourself, for its Profit by method view.
+- **See-Through:** the Kills & Loot panel can be made see-through. "See-Through:" on the Kill Tally page, off until ticked, with "How Clear:" set to Some, More or Most.
+- **Trash can:** two short stacks of one item that fit in one slot come
+  first, and a click joins them. A trade good counts as 1.5 times its worth,
+  so close calls go to junk.
+- **Bug fixes:** various fixes to Farmer.
+
 ## 0.36.0
 
 For WoW: Forever (interface 16001). A file was added and the TOC changed, so

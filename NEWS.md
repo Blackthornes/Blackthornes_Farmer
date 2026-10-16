@@ -23,6 +23,16 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.37.0
+
+- The Kills & Loot panel can be see-through. It's off until you turn it on, and you pick how clear.
+- Tradeskills can tell which items you looted, gathered or fished yourself.
+- When your bags are full, the trash can points at two short stacks you can join first, so nothing gets thrown away.
+
+Fixes and changes:
+
+- Various fixes to Farmer.
+
 ## 0.36.0
 
 - A mob with the same name in another zone gets its own line.
