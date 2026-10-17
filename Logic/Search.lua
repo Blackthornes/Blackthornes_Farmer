@@ -291,9 +291,11 @@ function Search:FoundItems()
     local function AddKnown(known, source)
         local entry = extra[known.name]
         if not entry then
-            entry = { item = known, has = {}, sources = {} }
+            entry = { item = known, has = {}, sources = {}, mine = {} }
             for _, have in ipairs(type(known.sources) == "table" and known.sources or {}) do
-                if type(have) == "table" then
+                -- A Classic row is no reason to leave your own spot out:
+                -- yours shows and the Classic one goes (WithYourSpots).
+                if type(have) == "table" and have.provenance ~= "classic" then
                     entry.has[SpotKey(have.kind, have.name, have.zone)] = true
                 end
             end
@@ -302,6 +304,7 @@ function Search:FoundItems()
         local key = SpotKey(source.kind, source.name, source.zone)
         if entry.has[key] then return end
         entry.has[key] = true
+        entry.mine[key] = true
         source.provenance = "forever"
         entry.sources[#entry.sources + 1] = source
     end
@@ -400,7 +403,10 @@ function Search:WithYourSpots(item)
     copy = {}
     for k, v in pairs(item) do copy[k] = v end
     local sources = {}
-    for _, source in ipairs(item.sources or {}) do sources[#sources + 1] = source end
+    for _, source in ipairs(item.sources or {}) do
+        local key = ("%s|%s|%s"):format(source.kind or "", (source.name or ""):lower(), (source.zone or ""):lower())
+        if not (source.provenance == "classic" and entry.mine[key]) then sources[#sources + 1] = source end
+    end
     for _, source in ipairs(entry.sources) do sources[#sources + 1] = source end
     copy.sources = sources
     built.merged[item.name] = copy

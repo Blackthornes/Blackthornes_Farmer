@@ -389,6 +389,24 @@ query also matches names by its singular (`Search.Singular`: "crates" finds
 Crate), names only, never zones or mobs. Tested in
 `tools/test_searchfinds.lua`.
 
+## Classic drops in the search
+
+The owner said yes (2026-10-17) to filling the search with Classic's drops
+before anyone loots them on Forever. `Data/Data_ClassicDrops.lua` is written
+by `tools/make_classic_drops.py <Classic data> <Forever tables folder>`
+(never by hand; never name where the Classic data came from): trade goods
+and quest items the Forever client still has (Item.csv class 7 and 12),
+up to `MAX_SPOTS` ordinary mobs an item (no rares or bosses, at least
+`MIN_SPAWNS` spawns in the zone), one real spawn spot each, gathered items
+left to the node files. Every row is `searchOnly` and has no `chance`, so
+it feeds the search, the item tooltip and Spots, never worth, Rankings
+(`Rankings:Spot`), the Grind tab or Moments. `DB:AddSource`'s `SameMob`
+matches it by mob and zone (any location): a generated row never joins
+one already there, and a forever or guild row takes its place by
+`DB.RANK`. In the search your own records do the same
+(`WithYourSpots`, `entry.mine`). Rerun it when the tables are pulled again.
+Never announced. Tested in `tools/test_classicdrops.lua`.
+
 ## Random suffixes count as their item
 
 A player asked (2026-10-15, the owner said build it): gear with a random

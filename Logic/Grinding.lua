@@ -417,7 +417,9 @@ function Grinding:Mobs()
         local cloth = item.category == "Cloth"
         local itemHidden = ns.DB:HidesItem(item)
         for _, source in ipairs(item.sources or {}) do
-            if CREATURE_KINDS[source.kind or "mob"] and type(source.name) == "string"
+            -- Classic's generated drop rows are for the search only
+            -- (Data/Data_ClassicDrops.lua): the camps stay as they were.
+            if not source.searchOnly and CREATURE_KINDS[source.kind or "mob"] and type(source.name) == "string"
                 and type(source.zone) == "string" and (skinning or source.kind ~= "skinning")
                 and not ns.DB:IsHiddenSource(source.name) then
                 local mob = Spot(source.name, source.zone, source.location)

@@ -33,14 +33,19 @@ local byZone = Search:Run("westfall")
 suite.check("a zone returns what is farmable there", #byZone > 0, #byZone)
 
 for _, result in ipairs(byZone) do
+    -- Westfall Deed is a name match, and says so.
     suite.check("a zone match never claims to be a name match",
-        result.why ~= "name", result.item.name)
+        result.why ~= "name" or result.item.name:lower():find("westfall", 1, true) ~= nil,
+        result.item.name)
 end
 
 local byMob = Search:Run("defias")
-suite.check("a mob name finds what it drops",
-    byMob[1] and byMob[1].item.name == "Linen Cloth",
-    byMob[1] and byMob[1].item.name)
+-- Items named for them (Defias Script) come first, as name matches.
+local mobFirst
+for _, result in ipairs(byMob) do
+    if result.why ~= "name" then mobFirst = result.item.name break end
+end
+suite.check("a mob name finds what it drops", mobFirst == "Linen Cloth", mobFirst)
 
 local byCategory = Search:Run("herbalism")
 suite.check("a category returns its items", #byCategory > 3, #byCategory)
@@ -144,7 +149,10 @@ suite.check("a common rate is about a whole number", rareLine:find("~38%", 1, tr
 --------------------------------------------------------------------------------
 
 local function Matches(source, text)
-    for _, field in ipairs({ source.zone, source.location, source.name }) do
+    -- Not ipairs: a spot with no location would end the list early.
+    local fields = { source.zone, source.location, source.name }
+    for i = 1, 3 do
+        local field = fields[i]
         if field and field:lower():find(text, 1, true) then return true end
     end
     return false
@@ -154,23 +162,33 @@ for _, query in ipairs({ "defias", "westfall", "wailing caverns" }) do
     local rows = Search:BuildRows(query)
     local strays = 0
     for _, row in ipairs(rows) do
-        if row.type == "source" and not Matches(row.source, query) then strays = strays + 1 end
+        -- An item named for it (Westfall Deed) shows all its spots.
+        if row.type == "source" and not Matches(row.source, query)
+            and not row.item.name:lower():find(query, 1, true) then
+            strays = strays + 1
+        end
     end
     suite.check(("%s: every spot shown is one it named"):format(query), strays == 0, strays)
 end
 
 local linen = ns.DB:GetItem("Linen Cloth")
-local defiasRows = Search:BuildRows("defias")
+local linenHeading
+for _, row in ipairs(Search:BuildRows("defias")) do
+    if row.type == "item" and row.item == linen then linenHeading = row break end
+end
 suite.check("the item heading says how many of its spots are shown",
-    defiasRows[1].type == "item" and defiasRows[1].count < #linen.sources,
-    defiasRows[1].count)
+    linenHeading and linenHeading.count < #linen.sources,
+    linenHeading and linenHeading.count)
 suite.check("in so many words",
     Search:SpotsText(5, 47) == "5 of 47 spots" and Search:SpotsText(3, 3) == "3 spots",
     Search:SpotsText(5, 47))
 
-local defiasLines = Search:BuildLines("defias", 5)
-suite.check("chat says it too", Util.StripColor(defiasLines[1]):find(
-    ("of %d spots"):format(#linen.sources), 1, true) ~= nil, defiasLines[1])
+local linenLine
+for _, line in ipairs(Search:BuildLines("defias", 5)) do
+    if Util.StripColor(line):find("^Linen Cloth ") then linenLine = Util.StripColor(line) break end
+end
+suite.check("chat says it too", linenLine and linenLine:find(
+    ("of %d spots"):format(#linen.sources), 1, true) ~= nil, linenLine)
 
 -- Named by its own name, an item still shows everywhere it comes from.
 local byName = 0
