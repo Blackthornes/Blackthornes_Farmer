@@ -33,6 +33,8 @@ _G.GetCurrentRegion = function() error("no") end
 _G.GetCurrentRegionName = function() return "US" end
 suite.check("the region's name is read when its number is not", Contribute:InRegion())
 _G.GetCurrentRegionName = nil
+_G.GetCurrentRegion = function() return 110 end
+suite.check("the Forever test client's 110 counts as North America", Contribute:InRegion())
 _G.GetCurrentRegion = function() return 1 end
 suite.check("North America sends", Contribute:InRegion())
 

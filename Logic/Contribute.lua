@@ -50,8 +50,9 @@ Contribute.RECIPIENTS = {
 
 -- Only players on this region send (the owner, 2026-10-17: North America),
 -- since a whisper never crosses regions. GetCurrentRegion's 1 is the
--- Americas; a client that will not say sends nothing.
-Contribute.REGION = 1
+-- Americas, and the Forever test client says 110 there (the owner's,
+-- 2026-10-17, with no region name); a client that will not say sends nothing.
+Contribute.REGIONS = { [1] = true, [110] = true }
 Contribute.REGION_NAME = "US"
 
 Contribute.HELLO_SECONDS = 1800   -- a hello every half hour
@@ -110,7 +111,7 @@ end
 function Contribute:InRegion()
     if type(GetCurrentRegion) == "function" then
         local ok, region = pcall(GetCurrentRegion)
-        if ok and type(region) == "number" then return region == self.REGION end
+        if ok and type(region) == "number" then return self.REGIONS[region] == true end
     end
     if type(GetCurrentRegionName) == "function" then
         local ok, name = pcall(GetCurrentRegionName)
