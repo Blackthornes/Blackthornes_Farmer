@@ -286,6 +286,8 @@ RankingsUI.group = "worlddrops"
 RankingsUI:Render()
 suite.check("World Drops shows its tiles", RankingsUI.tiles:IsShown())
 suite.check("and its own headings", RankingsUI.worldHeadings.level:IsShown())
+suite.check("the tiles are named by rarity", RankingsUI.tileFrames[1].name:GetText() == "Uncommon"
+    and RankingsUI.tileFrames[4].name:GetText() == "Legendary", RankingsUI.tileFrames[1].name:GetText())
 RankingsUI.group = nil
 RankingsUI:Render()
 suite.check("the mob board hides them again", not RankingsUI.tiles:IsShown())
