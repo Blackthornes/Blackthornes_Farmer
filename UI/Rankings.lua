@@ -205,8 +205,8 @@ function RankingsUI:Build(frame)
     -- The World Drops chip's own headings, sorted on their own and kept in
     -- `rankingsWorldSort`. The best chance comes first until one is clicked.
     self.worldHeadings = {}
-    for wkey, text in pairs({ level = L["MOB LEVELS"], kills = L["KILLS"], greens = L["GREENS"],
-        chance = L["GREEN CHANCE"], pct = "%", onein = L["1 IN"] }) do
+    for wkey, text in pairs({ level = L["MOB LEVELS"], kills = L["KILLS"], greens = L["UNCOMMON"],
+        chance = L["UNCOMMON CHANCE"], pct = "%", onein = L["1 IN"] }) do
         local label = Theme.CreateLabel(panel, "tiny", "dim", WORLD_RIGHT[wkey] and "RIGHT" or nil)
         label:SetText(text)
         label:Hide()
@@ -216,14 +216,14 @@ function RankingsUI:Build(frame)
     self:PlaceWorldHeadings()
 
     local worldKey, worldAscending = self:WorldSortChoice()
-    local chanceTip = L["Sort by the chance of a green, best first."]
+    local chanceTip = L["Sort by the chance of an uncommon, best first."]
     self.worldSorter = Widgets.SortableHeadings(self.worldHeadings, {
         level = L["Sort by mob level, lowest first."],
         kills = L["Sort by kills, most first."],
-        greens = L["Sort by greens, most first."],
+        greens = L["Sort by uncommon drops, most first."],
         chance = chanceTip,
         pct = chanceTip,
-        onein = L["Sort by how many kills a green takes, fewest first."],
+        onein = L["Sort by how many kills an uncommon takes, fewest first."],
     }, function(newKey, newAscending)
         if ns.db then
             ns.db.rankingsWorldSort = newKey and { key = newKey, ascending = newAscending } or nil
@@ -359,7 +359,7 @@ function RankingsUI:CreateTile(parent, quality)
     tile.line:SetHeight(1)
     tile.line:SetColorTexture(Theme.Unpack("border", 0.6))
 
-    local names = { [2] = L["Green"], [3] = L["Blue"], [4] = L["Purple"], [5] = L["Orange"] }
+    local names = { [2] = L["Uncommon"], [3] = L["Rare"], [4] = L["Epic"], [5] = L["Legendary"] }
     tile.name = Theme.CreateLabel(tile, "tiny", "text")
     tile.name:SetPoint("TOPLEFT", 10, -7)
     tile.name:SetText(names[quality])
@@ -964,7 +964,7 @@ end
 local function WorthLine(data)
     local worth = data.best and ns.WorldDrops.GreenWorth(data.best)
     if not (worth and worth > 0) then return nil end
-    return L.Format("Greens add about %1$s a kill at %2$s.", ns.Value.Coins(worth),
+    return L.Format("Uncommon drops add about %1$s a kill at %2$s.", ns.Value.Coins(worth),
         ns.WorldDrops.BandLabel(data.best.band))
 end
 
@@ -1051,7 +1051,7 @@ function RankingsUI:WorldRows(onlyWithKills)
     end
 
     if data.measured > 0 then
-        local names = { [3] = L["Blue"], [4] = L["Purple"], [5] = L["Orange"] }
+        local names = { [3] = L["Rare"], [4] = L["Epic"], [5] = L["Legendary"] }
         for _, quality in ipairs({ 3, 4, 5 }) do
             local n = data.drops[quality]
             rows[#rows + 1] = { type = "rare", quality = quality, label = names[quality],
