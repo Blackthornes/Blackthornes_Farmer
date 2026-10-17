@@ -882,6 +882,26 @@ the commands are `/farm transparent ...` and `/farm tracker transparent ...`.
 list; the code, the module and the saved keys keep their see-through
 names. Never announce the wording change.
 
+## Kill heat map (a test feature)
+
+The owner asked (2026-10-17, from a mockup in `previews/mob-heatmap/` in the
+project files) for a heat map of where you kill, on the world map and the
+minimap, and said he may or may not keep it. `Logic/Heat.lua` keeps
+`killHeat[mapID][mob][cell] = count` on a 100 by 100 grid (a mob keeps at
+most `MAX_CELLS` cells, a map `MAX_MOBS` mobs), only while a switch is on,
+from `Tracker:Record`'s new kill (`Harvest:PlayerMapPosition`; a spot the
+client will not give adds nothing). Older kills have no spot. Own kills
+only; guild and shipped data never reach it. `UI/Heat.lua` draws soft dots
+(`Media/Frame/HeatDot.tga`, `tools/make_heat_art.py`) blue to red, a slice
+a frame, redone only when the cells, map, mob or strength change. The world
+map is never drawn in combat and sits under the gathered-node markers; the
+minimap is fainter. Hidden mobs are left out. Saved, never renamed:
+`killHeat`, `heatWorld`, `heatMinimap` (both off unless ticked), `heatLevel`
+(Some, More, Most) and `heatMob`. KILL HEAT on the Map & goals page and
+`/farm heat [on|off|map|minimap|strength|mob <name>|all|clear confirm]`;
+`clear confirm` is typed only. Tested in `tools/test_heat.lua`. Not yet seen
+in game.
+
 ## Kills on the mob tooltip
 
 The owner asked (2026-10-13) for a mob's tooltip to say how many you have

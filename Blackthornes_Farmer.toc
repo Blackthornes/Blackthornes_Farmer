@@ -41,6 +41,7 @@ Logic\Search.lua
 Logic\Looted.lua
 Logic\Harvest.lua
 Logic\Tracker.lua
+Logic\Heat.lua
 Logic\Fishing.lua
 Logic\Gathering.lua
 Logic\Containers.lua
@@ -90,6 +91,7 @@ UI\Recap.lua
 UI\Grinding.lua
 UI\Stats.lua
 UI\MapMarkers.lua
+UI\Heat.lua
 UI\GrindPins.lua
 UI\Arrow.lua
 UI\ItemTooltip.lua

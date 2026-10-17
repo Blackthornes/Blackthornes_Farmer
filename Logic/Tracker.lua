@@ -473,6 +473,12 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
         mob.coinKills = mob.coinKills + 1
         self.sessionCopper = self.sessionCopper + (tonumber(copper) or 0)
 
+        -- Where it was, for the heat map (Logic/Heat.lua, off unless ticked).
+        if ns.Heat and not skinning then
+            local ok, err = pcall(ns.Heat.Kill, ns.Heat, mobName)
+            if not ok then ns.Debug("heat:", tostring(err)) end
+        end
+
         -- The Stats tab's log (Logic/Stats.lua): the kill with the corpse's
         -- own drops (skinning aside), and its coin.
         if ns.Stats then

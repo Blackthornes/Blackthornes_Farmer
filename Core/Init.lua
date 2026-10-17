@@ -421,6 +421,14 @@ local DEFAULTS = {
     -- minimap. Each can be turned off on its own.
     markersWorld = true,
     markersMinimap = true,
+    -- A glow on the maps where you kill the most (Logic/Heat.lua, a test
+    -- feature, 2026-10-17). Off unless ticked. heatLevel is 1 to 3 (Some,
+    -- More, Most), heatMob "" for every mob. Never rename them, or killHeat,
+    -- the cells kept.
+    heatWorld = false,
+    heatMinimap = false,
+    heatLevel = 2,
+    heatMob = "",
     -- Gold sparkles over the herb or ore node you face (UI/NodeSparkle.lua;
     -- the owner asked 2026-10-13). Never rename it, or nodeSparkleCVars,
     -- the game settings it turned on, kept to put back.

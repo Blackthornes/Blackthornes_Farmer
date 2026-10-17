@@ -1052,6 +1052,35 @@ function SettingsUI:BuildMapPage()
         ns.TomTom:SetOn(checked)
     end, true)
     controls.tomtom:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- A glow where you kill the most (Logic/Heat.lua, a test feature).
+    pages:Section("map", 2, L["KILL HEAT"])
+
+    local heatWorldRow = pages:Row("map", 2, L["Heat on World Map:"],
+        L["Glows where you kill the most. It fills in as you play."])
+
+    controls.heatWorld = Widgets.CreateCheckbox(heatWorldRow, L["Show"], function(checked)
+        ns.Heat:SetWorld(checked)
+    end, false)
+    controls.heatWorld:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local heatMinimapRow = pages:Row("map", 2, L["Heat on Minimap:"],
+        L["The same glow around you, softer."])
+
+    controls.heatMinimap = Widgets.CreateCheckbox(heatMinimapRow, L["Show"], function(checked)
+        ns.Heat:SetMinimap(checked)
+    end, false)
+    controls.heatMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local heatLevelRow = pages:Row("map", 2, L["Heat Strength:"], nil)
+    local heatNames = { L["Some"], L["More"], L["Most"] }
+    controls.heatLevel = Widgets.CreateStepper(heatLevelRow, {
+        min = 1, max = #heatNames, step = 1, value = 2,
+        format = function(index) return heatNames[index] end,
+        onChange = function(index) ns.Heat:SetLevel(index) end,
+    })
+    ns.SettingsPages.FitStepper(controls.heatLevel, heatNames)
+    controls.heatLevel:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Sharing: kills, drop rates and gathering with your other account.
@@ -1213,6 +1242,9 @@ function SettingsUI:Refresh()
     controls.shareDrops:SetChecked(db.shareDrops == true)
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
+    controls.heatWorld:SetChecked(db.heatWorld == true)
+    controls.heatMinimap:SetChecked(db.heatMinimap == true)
+    controls.heatLevel:SetValue(ns.Heat:Level(), true)
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
     controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)
