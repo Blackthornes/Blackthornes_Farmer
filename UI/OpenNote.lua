@@ -89,12 +89,21 @@ function OpenNote:Show(name, id, opens)
     opens = tonumber(opens) or 0
     if opens < 1 then return end
 
-    local frame = self:Build()
-    local text = OpenNote.Text(name, opens)
-    frame.label:SetText(text)
+    self:Put(OpenNote.Text(name, opens), ns.Theme.ItemIcon(id) or 134400, OpenNote.HOLD)
+end
 
-    local icon = ns.Theme.ItemIcon(id)
-    frame.icon:SetTexture(icon or 134400)
+--- Any note in the same place and look, whatever the setting says: drops
+--- shared with a receiving character (Logic/Contribute.lua) use it too.
+function OpenNote:Notice(text, icon, hold)
+    if type(text) ~= "string" then return end
+    self:Put(text, icon or 134400, hold or OpenNote.HOLD)
+end
+
+function OpenNote:Put(text, icon, hold)
+    local frame = self:Build()
+    frame.label:SetText(text)
+    frame.icon:SetTexture(icon)
+    self.hold = hold
 
     local width = ns.Theme.TextWidth("normal", text)
     frame:SetWidth(PAD * 2 + ICON + 6 + (tonumber(width) or 200) + 4)
@@ -110,7 +119,7 @@ function OpenNote:Tick(elapsed)
     local frame = self.frame
     self.elapsed = (self.elapsed or 0) + (tonumber(elapsed) or 0)
     local t, fade = self.elapsed, OpenNote.FADE
-    local total = OpenNote.HOLD + (self.fade and fade * 2 or 0)
+    local total = (self.hold or OpenNote.HOLD) + (self.fade and fade * 2 or 0)
 
     if t >= total then
         frame:Hide()

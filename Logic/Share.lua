@@ -989,6 +989,7 @@ ns.RegisterCommand("share", L["share kills, drop rates and gathering with your o
             ns.GuildShare:Command(rest)
         elseif word == "drops" then
             local choice = (rest or ""):lower()
+            if choice == "log" then return ns.Contribute:PrintLog() end
             if choice == "on" or choice == "off" then ns.Contribute:SetOn(choice == "on") end
             ns.Print(ns.Contribute:Describe())
         else

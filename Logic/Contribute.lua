@@ -3,8 +3,8 @@
 --
 -- Asked 2026-10-15 by the owner: players who opt in send their own drop
 -- records to his characters, so they can be folded into the shipped data at
--- the next release (tools/harvest_import.py --shared). Off by default; a
--- one-time What's New card offers it, then only Settings.
+-- the next release (tools/harvest_import.py --shared). Off by default:
+-- one tick box on the About page of Settings (2026-10-17).
 --
 -- It is guild sharing's conversation (Logic/Share.lua), one way:
 --   * A player with it ticked whispers a short hello ("Q<farmer id>:<hash>")
@@ -24,12 +24,15 @@
 --     the windows shows them. They are checked for being play
 --     (GuildShare.Plausible), one sender is synced at a time, each at most
 --     every half hour, and at most MAX_SENDERS are kept.
---   * When a sender's records finish coming in, one chat line says so.
---   * Only English clients send: records keep the client's mob and item
---     names, and the shipped data is in English.
+--   * When a sender's records finish coming in, one chat line says so, with
+--     a sound and a note on screen (Alert).
+--   * Only North American players send (InRegion), and only English
+--     clients: records keep the client's mob and item names, and the
+--     shipped data is in English.
 --
 -- Saved, account wide, never renamed: `shareDrops` (the player's choice),
--- `sharedDrops` and `sharedIn` (only on a receiving character's account).
+-- `sharedDrops`, `sharedIn` and `sharedLog` (only on a receiving character's
+-- account; the log is each finished share, for `/farm share drops log`).
 
 local _, ns = ...
 local L = ns.L
@@ -42,7 +45,14 @@ local Share = ns.Share
 -- The characters drops are sent to: full names, first and last. Kept only
 -- here, never shown to players. Empty sends nothing.
 Contribute.RECIPIENTS = {
+    "Blackthornes Farmer",
 }
+
+-- Only players on this region send (the owner, 2026-10-17: North America),
+-- since a whisper never crosses regions. GetCurrentRegion's 1 is the
+-- Americas; a client that will not say sends nothing.
+Contribute.REGION = 1
+Contribute.REGION_NAME = "US"
 
 Contribute.HELLO_SECONDS = 1800   -- a hello every half hour
 Contribute.FIRST_HELLO = 30       -- and this long after login
@@ -96,6 +106,19 @@ function Contribute:Receiving()
     return false
 end
 
+--- True when the game is on the region the recipients play on.
+function Contribute:InRegion()
+    if type(GetCurrentRegion) == "function" then
+        local ok, region = pcall(GetCurrentRegion)
+        if ok and type(region) == "number" then return region == self.REGION end
+    end
+    if type(GetCurrentRegionName) == "function" then
+        local ok, name = pcall(GetCurrentRegionName)
+        if ok and type(name) == "string" then return name == self.REGION_NAME end
+    end
+    return false
+end
+
 --- Mob and item names are kept as the client gives them, so only an
 --- English client's records can join the shipped data.
 local function EnglishClient()
@@ -103,7 +126,8 @@ local function EnglishClient()
 end
 
 function Contribute:Sending()
-    return self:On() and self:HasRecipients() and EnglishClient() and not self:Receiving()
+    return self:On() and self:HasRecipients() and EnglishClient() and self:InRegion()
+        and not self:Receiving()
 end
 
 --- Listening is needed while sending or receiving.
@@ -227,12 +251,74 @@ function Contribute:Finish(state)
     local taken = state.taken or 0
     state.taken = 0
     if taken > 0 then
+        self:Note(state.name, taken)
+        local line
         if taken == 1 then
-            ns.Print(L.Format("Got drops for %d mob from %s.", taken, tostring(state.name)))
+            line = L.Format("Got drops for %d mob from %s.", taken, tostring(state.name))
         else
-            ns.Print(L.Format("Got drops for %d mobs from %s.", taken, tostring(state.name)))
+            line = L.Format("Got drops for %d mobs from %s.", taken, tostring(state.name))
+        end
+        ns.Print(line)
+        self:Alert(line)
+    end
+end
+
+--- A sound and a note on screen as the chat line goes out (the owner,
+--- 2026-10-17). Only the receiving character ever gets here. The sound is
+--- the addon's own rank-up chime; the note is OpenNote's frame.
+Contribute.ALERT_HOLD = 6
+Contribute.ALERT_ICON = [[Interface\Icons\Trade_Mining]]   -- Farmer's own icon
+
+function Contribute:Alert(line)
+    if ns.Tracker and ns.Tracker.PlayFile and ns.Tracker.SOUNDS then
+        pcall(ns.Tracker.PlayFile, ns.Tracker.SOUNDS.rankup)
+    end
+    if ns.OpenNote and ns.OpenNote.Notice then
+        pcall(ns.OpenNote.Notice, ns.OpenNote, line, self.ALERT_ICON, self.ALERT_HOLD)
+    end
+end
+
+--- Each finished share, kept on the receiving account so it can be read
+--- back with `/farm share drops log`. The newest LOG_KEEP are kept.
+Contribute.LOG_KEEP = 100
+Contribute.LOG_SHOW = 20
+
+function Contribute:Note(name, taken)
+    if type(ns.db) ~= "table" then return end
+    if type(ns.db.sharedLog) ~= "table" then ns.db.sharedLog = {} end
+    local log = ns.db.sharedLog
+    log[#log + 1] = { at = time(), name = tostring(name), mobs = taken }
+    while #log > self.LOG_KEEP do table.remove(log, 1) end
+end
+
+--- The shares kept, newest first, as lines for chat.
+function Contribute:LogLines()
+    local log = type(ns.db) == "table" and ns.db.sharedLog
+    local lines = {}
+    if type(log) ~= "table" then return lines end
+    for i = #log, math.max(1, #log - self.LOG_SHOW + 1), -1 do
+        local entry = log[i]
+        if type(entry) == "table" then
+            local ok, when = pcall(date, "%b %d %H:%M", tonumber(entry.at) or 0)
+            when = ok and when or "?"
+            local mobs = tonumber(entry.mobs) or 0
+            if mobs == 1 then
+                lines[#lines + 1] = L.Format("%s: drops for %d mob from %s.", when, mobs, tostring(entry.name))
+            else
+                lines[#lines + 1] = L.Format("%s: drops for %d mobs from %s.", when, mobs, tostring(entry.name))
+            end
         end
     end
+    return lines
+end
+
+function Contribute:PrintLog()
+    local lines = self:LogLines()
+    if #lines == 0 then
+        ns.Print(L["Nobody has shared drops with you yet."])
+        return
+    end
+    for _, line in ipairs(lines) do ns.Print(line) end
 end
 
 function Contribute:Next()
@@ -340,23 +426,6 @@ function Contribute:Describe()
     if self:On() then return L["Sharing your drops with Blackthornes is on. Thank you."] end
     return L["Sharing your drops with Blackthornes is off."]
 end
-
---- The one-time What's New card: offered once, only while there is
---- somewhere to send and the player has not turned it on.
-ns.WHATS_NEW_TIPS = ns.WHATS_NEW_TIPS or {}
-table.insert(ns.WHATS_NEW_TIPS, {
-    key = "shareDrops",
-    title = L["Share your drops"],
-    icon = [[Interface\Icons\INV_Misc_Bag_10]],
-    paragraphs = {
-        L["You can send your drop rates to Blackthornes to help make Farmer's data better for everyone. Only what mobs dropped is sent. Nothing else leaves your game."],
-        L["It's off until you turn it on."],
-    },
-    hint = L["You can turn it on or off any time in Farmer's Settings, on the Sharing page."],
-    button = L["Turn it on"],
-    due = function() return Contribute:HasRecipients() and EnglishClient() and not Contribute:On() end,
-    run = function() Contribute:SetOn(true) end,
-})
 
 function Contribute:OnEnable()
     Comm:On("Q", function(...) Contribute:OnHello(...) end)

@@ -21,8 +21,20 @@ ns.GuildShare:OnEnable()
 Contribute:OnEnable()
 
 suite.check("off by default", ns.db.shareDrops == false and not Contribute:On())
-suite.check("the shipped list is empty until the names are added",
-    type(Contribute.RECIPIENTS) == "table")
+suite.check("the shipped list names one whole name",
+    type(Contribute.RECIPIENTS) == "table" and #Contribute:Recipients() == 1)
+
+-- Only North America sends.
+_G.GetCurrentRegion, _G.GetCurrentRegionName = nil, nil
+suite.check("a client that will not say its region sends nothing", not Contribute:InRegion())
+_G.GetCurrentRegion = function() return 3 end
+suite.check("Europe sends nothing", not Contribute:InRegion())
+_G.GetCurrentRegion = function() error("no") end
+_G.GetCurrentRegionName = function() return "US" end
+suite.check("the region's name is read when its number is not", Contribute:InRegion())
+_G.GetCurrentRegionName = nil
+_G.GetCurrentRegion = function() return 1 end
+suite.check("North America sends", Contribute:InRegion())
 
 local shipped = Contribute.RECIPIENTS
 Contribute.RECIPIENTS = {}
@@ -30,8 +42,7 @@ local tip
 for _, card in ipairs(ns.WHATS_NEW_TIPS or {}) do
     if card.key == "shareDrops" then tip = card end
 end
-suite.check("a What's New card offers it", tip ~= nil and type(tip.run) == "function")
-suite.check("not due while there is nowhere to send", tip and tip.due() == false)
+suite.check("no What's New card offers it", tip == nil)
 
 --------------------------------------------------------------------------------
 -- Pretend accounts
@@ -106,6 +117,9 @@ ns.Print = function(...)
 end
 
 local whispers = 0
+-- The alert: counted per account, never drawn.
+ns.OpenNote.Notice = function() current.alerts = (current.alerts or 0) + 1 end
+ns.Tracker.PlayFile = function() return true end
 
 local function Settle()
     for _ = 1, 6000 do
@@ -181,17 +195,15 @@ Switch(ana) ns.db.shareDrops = false
 for _, account in ipairs(accounts) do Switch(account) Share:Apply() end
 Settle()
 Switch(ana)
-Check("the card is due once there is somewhere to send", tip.due() == true)
 Check("a named character is receiving", (function() Switch(tia) return Contribute:Receiving() end)())
 Switch(ana)
 Check("a player who is not named is not", not Contribute:Receiving())
 HalfHour()
 Check("still off, nothing is whispered", whispers == 0, whispers)
 
--- Ana ticks it through the card; Bob does not.
-Switch(ana) tip.run()
-Check("the card's button turns it on", ns.db.shareDrops == true and Contribute:Sending())
-Check("and it's off for the card after", tip.due() == false)
+-- Ana ticks it on the About page; Bob does not.
+Switch(ana) Contribute:SetOn(true)
+Check("ticking it turns it on", ns.db.shareDrops == true and Contribute:Sending())
 HalfHour()
 
 Switch(tia)
@@ -203,11 +215,30 @@ Check("no gathering came", next(tia.db.gathering.nodes) == nil)
 Check("the ledger is kept apart too", tia.db.sharedIn ~= nil and next(tia.db.shareIn or {}) == nil)
 Check("one chat line says what came in", #tia.said == 1 and tia.said[1] == "Got drops for 1 mob from Ana Smith.",
     tia.said[1])
+Check("a sound and a note on screen go with it", tia.alerts == 1, tia.alerts)
+Check("the share is kept in the log", type(tia.db.sharedLog) == "table" and #tia.db.sharedLog == 1
+    and tia.db.sharedLog[1].name == "Ana Smith" and tia.db.sharedLog[1].mobs == 1)
+do
+    local lines = Contribute:LogLines()
+    Check("the log reads back newest first", #lines == 1 and lines[1]:find("drops for 1 mob from Ana Smith.", 1, true) ~= nil,
+        lines[1])
+    for i = 1, Contribute.LOG_KEEP + 5 do Contribute:Note("Bob Stone", i + 1) end
+    Check("only the newest are kept", #tia.db.sharedLog == Contribute.LOG_KEEP
+        and tia.db.sharedLog[#tia.db.sharedLog].mobs == Contribute.LOG_KEEP + 6)
+    lines = Contribute:LogLines()
+    Check("and a few are shown", #lines == Contribute.LOG_SHOW
+        and lines[1]:find(("drops for %d mobs"):format(Contribute.LOG_KEEP + 6), 1, true) ~= nil, lines[1])
+    tia.db.sharedLog = { tia.db.sharedLog[1] }
+    tia.db.sharedLog[1] = { at = 0, name = "Ana Smith", mobs = 1 }
+end
 
 Switch(ana)
+Contribute:PrintLog()
+Check("a sender's log is empty", ana.said[1] == "Nobody has shared drops with you yet.", ana.said[1])
+ana.said = {}
 Check("Ana got nothing back", ana.db.sharedDrops == nil and ana.records[WOLF].corpses == 30
     and next(ana.db.shareIn or {}) == nil)
-Check("and Ana is never told anything", #ana.said == 0, ana.said[1])
+Check("and Ana is never told anything", #ana.said == 0 and (ana.alerts or 0) == 0, ana.said[1])
 Switch(tia)
 Check("Bob, who did not tick it, sent nothing", Shared(tia).corpses == 30 and Contribute.bySender["bob smith"] == nil)
 
@@ -263,11 +294,16 @@ end
 Switch(ana)
 Check("Ana holds no records of Tia's", ana.records[WOLF].corpses == 35 and ana.db.sharedDrops == nil)
 
+-- Away from North America nothing goes, ticked or not.
+Switch(ana)
+_G.GetCurrentRegion = function() return 2 end
+Check("a player in another region does not send", Contribute:On() and not Contribute:Sending())
+_G.GetCurrentRegion = function() return 1 end
+
 -- A client in another language sends nothing.
 locale = "deDE"
 Switch(bob)
 Check("a German client does not send", not Contribute:Sending())
-Check("and is not offered the card", tip.due() == false or ns.db.shareDrops == true)
 locale = "enUS"
 
 -- Turned off, nothing more goes.
