@@ -45,6 +45,53 @@ local TAB_INSET = 34
 -- The Rankings tab never draws the window narrower than this either.
 UI.BASE_WIDTH = WIDTH
 
+-- Every tab shares one size (the owner, 2026-10-17: the window kept
+-- changing width from tab to tab). It is as wide as the widest tab has
+-- needed, never narrower than the Grind and Stats tabs' own layouts, and
+-- every tab spreads its columns over the room. The widest is kept in
+-- `windowWidth` (account wide, never rename it), so it is the same size
+-- from the first look next time; Reset window positions lets it go.
+-- Most it keeps, so one odd search can't leave the window huge for good.
+UI.WIDEST_KEPT = 1600
+
+--- The width every tab draws at: the widest any has needed, at least the
+--- Grind and Stats layouts, never wider than the screen.
+function UI:WindowWidth()
+    local width = math.max(WIDTH, ns.GrindingUI and ns.GrindingUI.WIDTH or 0,
+        ns.StatsUI and ns.StatsUI.WIDTH or 0, self.widest or 0,
+        tonumber(ns.db and ns.db.windowWidth) or 0)
+    width = math.min(width, UI.WIDEST_KEPT)
+    local room = self.ScreenRoom and self:ScreenRoom()
+    if room then width = math.max(WIDTH, math.min(width, room)) end
+    return math.ceil(width)
+end
+
+--- The height every tab draws at: the Stats tab's charts want the most.
+function UI:WindowHeight()
+    return math.max(HEIGHT, ns.StatsUI and ns.StatsUI.HEIGHT or 0)
+end
+
+--- A tab needs this much room: the shared width grows to it (and is kept)
+--- if it is more. Returns the shared width, which the tab fills.
+function UI:Claim(width)
+    width = tonumber(width)
+    if width and width > (self.widest or 0) then
+        self.widest = math.min(math.ceil(width), UI.WIDEST_KEPT)
+        if ns.db and self.widest > (tonumber(ns.db.windowWidth) or 0) then
+            ns.db.windowWidth = self.widest
+        end
+    end
+    return self:WindowWidth()
+end
+
+--- Size the window to the shared width and height.
+function UI:ApplySize()
+    if not self.frame then return end
+    local width, height = self:WindowWidth(), self:WindowHeight()
+    if self.frame:GetWidth() ~= width then self.frame:SetWidth(width) end
+    if self.frame:GetHeight() ~= height then self.frame:SetHeight(height) end
+end
+
 -- The window's tabs, left to right.
 local TABS = {
     { key = "search", text = L["SEARCH"] },
@@ -169,7 +216,7 @@ function UI:Build()
     self.collapsed = {}
 
     local frame = CreateFrame("Frame", "BlackthornesFarmerFrame", UIParent)
-    frame:SetSize(WIDTH, HEIGHT)
+    frame:SetSize(self:WindowWidth(), self:WindowHeight())
     frame:SetFrameStrata("DIALOG")
     frame:SetToplevel(true)
     frame:SetClampedToScreen(true)
@@ -609,6 +656,16 @@ function UI:FitColumns(rows)
         end
     end
 
+    -- Every tab shares one width: the room past what the columns need goes
+    -- to the source and where columns, so nothing sits empty at the right.
+    local shared = self:Claim(WIDTH + Columns(widths).extra)
+    local spare = shared - (WIDTH + Columns(widths).extra)
+    if spare > 0 then
+        local half = math.floor(spare / 2)
+        widths.name = widths.name + half
+        widths.where = widths.where + (spare - half)
+    end
+
     local current = self.columns or COLUMN
     if current.kind.w == widths.kind and current.name.w == widths.name and current.where.w == widths.where
         and current.drop.w == widths.drop and current.value.w == widths.value
@@ -619,9 +676,8 @@ function UI:FitColumns(rows)
     self.columns = Columns(widths)
     self:PlaceHeadings()
 
-    -- Only the search tab's own width: the others size the window themselves.
     if self.tab ~= "rankings" and self.tab ~= "grind" and self.tab ~= "stats" then
-        self.frame:SetWidth(WIDTH + self.columns.extra)
+        self:ApplySize()
     end
 end
 
@@ -1268,9 +1324,8 @@ function UI:ShowTab(key)
     if self.grindView then self.grindView:SetShown(key == "grind") end
     if self.statsView then self.statsView:SetShown(key == "stats") end
 
-    -- The Stats tab's charts want a taller window; every other tab has
-    -- the usual height.
-    if key ~= "stats" then self.frame:SetHeight(HEIGHT) end
+    -- One size for every tab.
+    self:ApplySize()
 
     if key == "rankings" then
         -- A hidden search box keeping the keyboard would eat your keys.
@@ -1281,11 +1336,8 @@ function UI:ShowTab(key)
         ns.GrindingUI:Render(true)
     elseif key == "stats" then
         self.searchBox:ClearFocus()
-        self.frame:SetWidth(ns.StatsUI.WIDTH)
-        self.frame:SetHeight(ns.StatsUI.HEIGHT)
         ns.StatsUI:Render(true)
     else
-        self.frame:SetWidth(WIDTH + (self.columns or COLUMN).extra)
         self:DrawUnsearched()
     end
 end

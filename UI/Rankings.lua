@@ -1195,6 +1195,17 @@ function RankingsUI:FitColumns(rows)
         end
     end
 
+    -- Every tab shares one width: the room past what the board needs goes
+    -- to the best drop and where columns.
+    local natural = Columns(widths).total + CHROME
+    local shared = RankingsUI.Claim(math.max(natural, self:HeadWidth()))
+    local spare = shared - natural
+    if spare > 0 then
+        local half = math.floor(spare / 2)
+        widths.best = widths.best + half
+        widths.where = widths.where + (spare - half)
+    end
+
     local current = self.columns
     local changed = false
     for _, key in ipairs(COLUMN_ORDER) do
@@ -1206,7 +1217,14 @@ function RankingsUI:FitColumns(rows)
         self:PlaceHeadings()
     end
 
-    return self.columns.total + CHROME
+    return math.max(shared, self.columns.total + CHROME)
+end
+
+--- The window's shared width, grown to `width` when that is more (see
+--- UI:Claim); just `width` before the window is built.
+function RankingsUI.Claim(width)
+    if ns.UI and ns.UI.Claim then return ns.UI:Claim(width) end
+    return width
 end
 
 --- Widen the World Drops columns to fit these rows and the tiles, and
@@ -1244,9 +1262,8 @@ function RankingsUI:FitWorldColumns(rows)
     local tiles = (tileText + 20) * #TILE_QUALITIES + TILE_GAP * (#TILE_QUALITIES - 1) + PADDING * 2
 
     local want = math.max(WorldColumns(widths).total + CHROME, tiles, ns.UI and ns.UI.BASE_WIDTH or 0)
-    local frame = ns.UI and ns.UI.frame
-    local current = frame and frame.GetWidth and frame:GetWidth()
-    if type(current) == "number" then want = math.max(want, current) end
+    -- Every tab shares one width; the chance column takes what is spare.
+    want = RankingsUI.Claim(math.max(want, self:HeadWidth()))
     local room = ns.UI and ns.UI.ScreenRoom and ns.UI:ScreenRoom()
     if type(room) == "number" then want = math.max(math.min(want, room), WorldColumns(widths).total + CHROME) end
 
@@ -1284,9 +1301,7 @@ function RankingsUI:Resort()
     local rows = self:Rows(self.board)
     local width = math.max(self:FitColumns(rows), self:HeadWidth())
     self.list:SetData(rows)
-    if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then
-        ns.UI.frame:SetWidth(math.max(ns.UI.BASE_WIDTH or 0, width))
-    end
+    if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then ns.UI:ApplySize() end
 end
 
 --- The World Drops chip's tiles and headings, or the boards': read the
@@ -1338,9 +1353,7 @@ function RankingsUI:Render(arrive)
     self.summary:SetText(self:PriceText())
 
     -- The window grows to fit, never narrower than the search tab's base.
-    if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then
-        ns.UI.frame:SetWidth(math.max(ns.UI.BASE_WIDTH or 0, width))
-    end
+    if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then ns.UI:ApplySize() end
 
     return width
 end

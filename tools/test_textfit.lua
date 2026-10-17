@@ -164,8 +164,15 @@ suite.check("which it spans, with no room kept for a Goal button",
     badged.heading._point[2])
 
 UI:FitColumns({ { type = "note", text = "short" } })
-suite.check("a short note leaves the window at its usual width",
-    UI.frame:GetWidth() == baseWidth, UI.frame:GetWidth())
+-- Every tab shares one width, the widest any has needed: a short note
+-- after a long one leaves the window as it was, and spreads the columns.
+local grown = UI.frame:GetWidth()
+UI:FitColumns({ { type = "note", text = "short" } })
+suite.check("a short note keeps the window at the width it grew to",
+    UI.frame:GetWidth() == grown and grown == UI:WindowWidth(), UI.frame:GetWidth())
+suite.check("and the columns fill it", baseWidth + UI.columns.extra == UI.frame:GetWidth(),
+    baseWidth + UI.columns.extra)
+suite.check("the width is kept for next time", ns.db.windowWidth == grown, ns.db.windowWidth)
 
 --------------------------------------------------------------------------------
 -- Buttons

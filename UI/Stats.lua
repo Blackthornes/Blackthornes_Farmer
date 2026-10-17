@@ -34,6 +34,8 @@ local Util = ns.Util
 
 local PADDING = 14
 local GAP = 10
+-- The narrowest the charts are laid out at; the window is as wide as
+-- every tab shares (UI:WindowWidth), at least this.
 StatsUI.WIDTH = 920
 StatsUI.HEIGHT = 620
 StatsUI.REDRAW = 3
@@ -233,14 +235,26 @@ function StatsUI:Build(frame)
     self.switch = switch
     self:PlaceSwitch()
 
-    local width = StatsUI.WIDTH - 2 * PADDING
+    -- The window is as wide as the widest tab has needed, and every tab
+    -- shares it: the charts are laid out at that width when they are made,
+    -- on a canvas kept in the middle, so a window that grows later only
+    -- adds a little room either side.
+    local layoutWidth = math.max(StatsUI.WIDTH,
+        ns.UI and ns.UI.WindowWidth and ns.UI:WindowWidth() or 0)
+    local canvas = CreateFrame("Frame", nil, view)
+    canvas:SetPoint("TOP", view, "TOP")
+    canvas:SetPoint("BOTTOM", view, "BOTTOM")
+    canvas:SetWidth(layoutWidth)
+    self.canvas = canvas
+
+    local width = layoutWidth - 2 * PADDING
     local kpiTop = top + 24 + 10
 
     -- The numbers across the top.
     self.tiles = {}
     local tileWidth = math.floor((width - 3 * GAP) / 4)
     for index = 1, 4 do
-        local tile = Theme.CreatePanel(view, "glass", "border")
+        local tile = Theme.CreatePanel(canvas, "glass", "border")
         tile:SetPoint("TOPLEFT", PADDING + (index - 1) * (tileWidth + GAP), -kpiTop)
         tile:SetSize(tileWidth, KPI_HEIGHT)
         tile.width = tileWidth
@@ -264,17 +278,17 @@ function StatsUI:Build(frame)
     local ws = { wide, narrow, narrow }
     local y2 = cardsTop + rowHeight + GAP
 
-    self.sessionsCard = self:Card(view, xs[1], cardsTop, ws[1], rowHeight,
+    self.sessionsCard = self:Card(canvas, xs[1], cardsTop, ws[1], rowHeight,
         L["Gold an hour"], L["One point for each session"])
-    self.sourcesCard = self:Card(view, xs[2], cardsTop, ws[2], rowHeight,
+    self.sourcesCard = self:Card(canvas, xs[2], cardsTop, ws[2], rowHeight,
         L["Where your gold came from"], L["This session"])
-    self.mobsCard = self:Card(view, xs[3], cardsTop, ws[3], rowHeight,
+    self.mobsCard = self:Card(canvas, xs[3], cardsTop, ws[3], rowHeight,
         L["Best mobs for gold"], L["Gold an hour, at how fast you kill them"])
-    self.luckCard = self:Card(view, xs[1], y2, ws[1], rowHeight,
+    self.luckCard = self:Card(canvas, xs[1], y2, ws[1], rowHeight,
         L["Your luck"], L["Your drops vs. the usual drop rates"])
-    self.daysCard = self:Card(view, xs[2], y2, ws[2], rowHeight,
+    self.daysCard = self:Card(canvas, xs[2], y2, ws[2], rowHeight,
         L["Days you farmed"], L["Last 10 weeks, brighter is more gold"])
-    self.levelsCard = self:Card(view, xs[3], y2, ws[3], rowHeight,
+    self.levelsCard = self:Card(canvas, xs[3], y2, ws[3], rowHeight,
         L["How long each level took"], L["This character, in played time"])
 
     -- Days and levels are not kept by session, so these two show the same
@@ -1382,10 +1396,7 @@ function StatsUI:Render(arrive)
     end
     self.drawnVersion = ns.Stats.version
 
-    if ns.UI and ns.UI.frame and ns.UI.tab == "stats" then
-        ns.UI.frame:SetWidth(StatsUI.WIDTH)
-        ns.UI.frame:SetHeight(StatsUI.HEIGHT)
-    end
+    if ns.UI and ns.UI.frame and ns.UI.tab == "stats" then ns.UI:ApplySize() end
 end
 
 --- The switch moved: the charts grow in again for the other view.

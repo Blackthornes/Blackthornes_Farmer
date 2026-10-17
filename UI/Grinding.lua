@@ -1113,17 +1113,16 @@ function GrindingUI:FitColumns(rows, layout)
         self:PlaceHeadings()
     end
 
-    return math.max(target, self.columns.total + CHROME)
+    local want = self.columns.total + CHROME
+    if want > target and ns.UI and ns.UI.Claim then ns.UI:Claim(want) end
+    return math.max(target, want)
 end
 
---- The window width the tab keeps for every view: GrindingUI.WIDTH, never
---- narrower than the window's usual width, and no wider than the screen.
+--- The window width the tab keeps for every view: the one every tab
+--- shares (UI:WindowWidth), never narrower than GrindingUI.WIDTH.
 function GrindingUI.TargetWidth()
-    local base = ns.UI and ns.UI.BASE_WIDTH or 724
-    local width = math.max(GrindingUI.WIDTH, base)
-    local room = ns.UI and ns.UI.ScreenRoom and ns.UI:ScreenRoom()
-    if room then width = math.max(base, math.min(width, room)) end
-    return width
+    if ns.UI and ns.UI.WindowWidth then return ns.UI:WindowWidth() end
+    return math.max(GrindingUI.WIDTH, ns.UI and ns.UI.BASE_WIDTH or 724)
 end
 
 --- Put the controls in step with what is saved.
@@ -1180,9 +1179,7 @@ function GrindingUI:Render(arrive)
     self.camps = camps
     -- The window takes its width before the chips are laid out, so they
     -- measure the row they will sit in, not the last tab's.
-    if ns.UI and ns.UI.frame and ns.UI.tab == "grind" then
-        ns.UI.frame:SetWidth(GrindingUI.TargetWidth())
-    end
+    if ns.UI and ns.UI.frame and ns.UI.tab == "grind" then ns.UI:ApplySize() end
     self:PaintControls(low, high)
     self.footer:SetText(GrindingUI.FooterText(layout))
 
@@ -1195,9 +1192,7 @@ function GrindingUI:Render(arrive)
     -- are already the map markers').
     if ns.GrindPins then ns.GrindPins:Show(camps) end
 
-    if ns.UI and ns.UI.frame and ns.UI.tab == "grind" then
-        ns.UI.frame:SetWidth(math.max(ns.UI.BASE_WIDTH or 0, width))
-    end
+    if ns.UI and ns.UI.frame and ns.UI.tab == "grind" then ns.UI:ApplySize() end
 
     return width
 end
