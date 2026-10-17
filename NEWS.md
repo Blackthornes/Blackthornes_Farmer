@@ -23,9 +23,11 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
-## 0.41.0
+## 0.40.2
 
-- Search now shows where trade goods, quest items and recipes drop, even before you've looted them. You get the mobs and a spot to find each one.
+Fixes and changes:
+
+- Various fixes to Farmer.
 
 ## 0.40.0
 

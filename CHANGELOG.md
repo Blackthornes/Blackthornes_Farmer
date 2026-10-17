@@ -4,14 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
-## 0.41.0
+## 0.40.2
 
 For WoW: Forever (interface 16001). Files were added and the TOC changed, so
 restart the game fully after updating (`/reload` is not enough).
 
-- **Search:** items you haven't looted yet show the mobs that drop them, with
-  a spot to find each one. This covers trade goods, quest items and recipes.
-  Your own loot takes its place as you farm.
+- **Bug fixes:** various fixes to Farmer.
 
 ## 0.40.1
 
