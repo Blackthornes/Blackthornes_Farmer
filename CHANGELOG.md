@@ -4,6 +4,16 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.40.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Rankings:** the World Drops view has four tiles (Uncommon, Rare, Epic and
+  Legendary), a row for each mob level with its kills, a bar, the chance as a
+  percent and as 1 in N, BEST and YOUR LEVEL tags, and sortable columns.
+- **Main window:** Search, Rankings, Grind and Stats keep one size on every
+  tab.
+
 ## 0.39.1
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
