@@ -30,7 +30,8 @@
 --     shipped data is in English.
 --
 -- Saved, account wide, never renamed: `shareDrops` (the player's choice),
--- `sharedDrops` and `sharedIn` (only on a receiving character's account).
+-- `sharedDrops`, `sharedIn` and `sharedLog` (only on a receiving character's
+-- account; the log is each finished share, for `/farm share drops log`).
 
 local _, ns = ...
 local L = ns.L
@@ -249,12 +250,56 @@ function Contribute:Finish(state)
     local taken = state.taken or 0
     state.taken = 0
     if taken > 0 then
+        self:Note(state.name, taken)
         if taken == 1 then
             ns.Print(L.Format("Got drops for %d mob from %s.", taken, tostring(state.name)))
         else
             ns.Print(L.Format("Got drops for %d mobs from %s.", taken, tostring(state.name)))
         end
     end
+end
+
+--- Each finished share, kept on the receiving account so it can be read
+--- back with `/farm share drops log`. The newest LOG_KEEP are kept.
+Contribute.LOG_KEEP = 100
+Contribute.LOG_SHOW = 20
+
+function Contribute:Note(name, taken)
+    if type(ns.db) ~= "table" then return end
+    if type(ns.db.sharedLog) ~= "table" then ns.db.sharedLog = {} end
+    local log = ns.db.sharedLog
+    log[#log + 1] = { at = time(), name = tostring(name), mobs = taken }
+    while #log > self.LOG_KEEP do table.remove(log, 1) end
+end
+
+--- The shares kept, newest first, as lines for chat.
+function Contribute:LogLines()
+    local log = type(ns.db) == "table" and ns.db.sharedLog
+    local lines = {}
+    if type(log) ~= "table" then return lines end
+    for i = #log, math.max(1, #log - self.LOG_SHOW + 1), -1 do
+        local entry = log[i]
+        if type(entry) == "table" then
+            local ok, when = pcall(date, "%b %d %H:%M", tonumber(entry.at) or 0)
+            when = ok and when or "?"
+            local mobs = tonumber(entry.mobs) or 0
+            if mobs == 1 then
+                lines[#lines + 1] = L.Format("%s: drops for %d mob from %s.", when, mobs, tostring(entry.name))
+            else
+                lines[#lines + 1] = L.Format("%s: drops for %d mobs from %s.", when, mobs, tostring(entry.name))
+            end
+        end
+    end
+    return lines
+end
+
+function Contribute:PrintLog()
+    local lines = self:LogLines()
+    if #lines == 0 then
+        ns.Print(L["Nobody has shared drops with you yet."])
+        return
+    end
+    for _, line in ipairs(lines) do ns.Print(line) end
 end
 
 function Contribute:Next()

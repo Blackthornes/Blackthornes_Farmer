@@ -212,8 +212,26 @@ Check("no gathering came", next(tia.db.gathering.nodes) == nil)
 Check("the ledger is kept apart too", tia.db.sharedIn ~= nil and next(tia.db.shareIn or {}) == nil)
 Check("one chat line says what came in", #tia.said == 1 and tia.said[1] == "Got drops for 1 mob from Ana Smith.",
     tia.said[1])
+Check("the share is kept in the log", type(tia.db.sharedLog) == "table" and #tia.db.sharedLog == 1
+    and tia.db.sharedLog[1].name == "Ana Smith" and tia.db.sharedLog[1].mobs == 1)
+do
+    local lines = Contribute:LogLines()
+    Check("the log reads back newest first", #lines == 1 and lines[1]:find("drops for 1 mob from Ana Smith.", 1, true) ~= nil,
+        lines[1])
+    for i = 1, Contribute.LOG_KEEP + 5 do Contribute:Note("Bob Stone", i + 1) end
+    Check("only the newest are kept", #tia.db.sharedLog == Contribute.LOG_KEEP
+        and tia.db.sharedLog[#tia.db.sharedLog].mobs == Contribute.LOG_KEEP + 6)
+    lines = Contribute:LogLines()
+    Check("and a few are shown", #lines == Contribute.LOG_SHOW
+        and lines[1]:find(("drops for %d mobs"):format(Contribute.LOG_KEEP + 6), 1, true) ~= nil, lines[1])
+    tia.db.sharedLog = { tia.db.sharedLog[1] }
+    tia.db.sharedLog[1] = { at = 0, name = "Ana Smith", mobs = 1 }
+end
 
 Switch(ana)
+Contribute:PrintLog()
+Check("a sender's log is empty", ana.said[1] == "Nobody has shared drops with you yet.", ana.said[1])
+ana.said = {}
 Check("Ana got nothing back", ana.db.sharedDrops == nil and ana.records[WOLF].corpses == 30
     and next(ana.db.shareIn or {}) == nil)
 Check("and Ana is never told anything", #ana.said == 0, ana.said[1])

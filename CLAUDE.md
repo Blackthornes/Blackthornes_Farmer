@@ -269,10 +269,11 @@ over a pretend chat). Not yet seen in game.
 
 The owner asked (2026-10-15): players can opt in to send their drop
 records to his characters, for the shipped data. Off by default
-(`shareDrops`, never rename it); a one-time What's New card
-(`whatsNewTipsSeen.shareDrops`, due only while names are listed, on an
-English client, and off) turns it on, then only Settings > Sharing >
-BLACKTHORNES and `/farm share drops on|off`. `Logic/Contribute.lua` is guild
+(`shareDrops`, never rename it), never announced: one tick box on the
+About page of Settings (2026-10-17) and `/farm share drops on|off`. Only
+North American clients send or see the box (`Contribute:InRegion`,
+`GetCurrentRegion` 1, else `GetCurrentRegionName` "US"; unknown sends
+nothing). `Logic/Contribute.lua` is guild
 sharing's conversation one way: the sender whispers a hello (`Q<id>:<hash>`)
 to each name in `Contribute.RECIPIENTS` (full names, kept only in code;
 never shown in chat or Settings; the game's "No player named" line is
@@ -285,7 +286,10 @@ records go, checked by `GuildShare.Plausible`, kept apart on the receiver
 in `sharedDrops` with ledgers by Farmer id in `sharedIn` (never rename
 either; at most `MAX_SENDERS`); they never join the receiver's own counts
 or show in the windows. One sender is synced at a time, each at most every
-half hour, and a chat line says "Got drops for N mobs from NAME." Only
+half hour, and a chat line says "Got drops for N mobs from NAME."
+Each finished share is kept on the receiving account in `sharedLog`
+(`{ at, name, mobs }`, the newest `LOG_KEEP`; never rename it) and read
+back with `/farm share drops log` (typed only, not in the help line). Only
 English clients send (records keep the client's names). At a release,
 `tools/harvest_import.py --shared` folds `sharedDrops` into the shipped
 data (in memory; the save is never changed, ledger names never read).
