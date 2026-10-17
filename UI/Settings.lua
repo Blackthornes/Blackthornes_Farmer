@@ -1146,7 +1146,7 @@ function SettingsUI:BuildAboutPage()
     if tall < 14 then tall = 28 end
     box:SetHeight(math.max(18, tall + 2))
     holder:SetHeight(math.max(18, tall + 2) + 6)
-    pages:Place("about", 2, holder, 14)
+    pages:Place("about", 2, holder, -14)
     pages:Searchable("about", holder, text)
     self.controls.shareDrops = box
 end

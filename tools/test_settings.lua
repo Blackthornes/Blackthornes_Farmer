@@ -440,4 +440,19 @@ ok, result = pcall(SettingsUI.RegisterGameOptions, SettingsUI)
 suite.check("an options API that raises is not an error either", ok and result == false, result)
 _G.Settings = nil
 
+-- A gap below the item above is a step down: a positive one moved the
+-- About page's share box up over the Butler line (2026-10-17).
+do
+    local file = io.open("UI/Settings.lua", "r")
+    local source = file and file:read("*a") or ""
+    if file then file:close() end
+    local upward = {}
+    for gap in source:gmatch("pages:Place%b(),?") do
+        local n = gap:match(",%s*(%-?%d+)%)$")
+        if n and tonumber(n) > 0 then upward[#upward + 1] = gap end
+    end
+    suite.check("no setting is placed above the one before it", #upward == 0,
+        table.concat(upward, " "))
+end
+
 suite.done()
