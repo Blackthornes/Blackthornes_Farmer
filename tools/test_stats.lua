@@ -335,9 +335,28 @@ UI:Show()
 UI:ShowTab("stats")
 suite.check("choosing it shows its view", UI.statsView:IsShown())
 suite.check("and hides the search", not UI.searchView:IsShown())
-suite.check("the window grows to fit the charts",
-    UI.frame:GetWidth() == StatsUI.WIDTH and UI.frame:GetHeight() == StatsUI.HEIGHT,
+suite.check("the window fits the charts",
+    UI.frame:GetWidth() >= StatsUI.WIDTH and UI.frame:GetHeight() == StatsUI.HEIGHT,
     tostring(UI.frame:GetWidth()) .. "x" .. tostring(UI.frame:GetHeight()))
+suite.check("the charts fill the window's width", StatsUI.canvas:GetWidth() == UI.frame:GetWidth(),
+    StatsUI.canvas:GetWidth())
+
+-- One size for every tab (the owner, 2026-10-17).
+local statsW, statsH = UI.frame:GetWidth(), UI.frame:GetHeight()
+for _, key in ipairs({ "search", "rankings", "grind", "stats" }) do
+    UI:ShowTab(key)
+    suite.check("the " .. key .. " tab keeps the one size",
+        UI.frame:GetWidth() == statsW and UI.frame:GetHeight() == statsH,
+        tostring(UI.frame:GetWidth()) .. "x" .. tostring(UI.frame:GetHeight()))
+end
+UI:Claim(statsW + 100)
+UI:ShowTab("search")
+suite.check("a tab that needs more widens every tab", UI.frame:GetWidth() == statsW + 100,
+    UI.frame:GetWidth())
+UI:ShowTab("grind")
+suite.check("and the others keep it", UI.frame:GetWidth() == statsW + 100, UI.frame:GetWidth())
+suite.check("the width is kept for next time", ns.db.windowWidth == statsW + 100, ns.db.windowWidth)
+UI:ShowTab("stats")
 ns.Motion:FinishAll()
 suite.check("it is remembered", ns.db.lastTab == "stats")
 
@@ -390,7 +409,7 @@ suite.check("a loot while it shows draws it again", draws >= 1, draws)
 
 UI:ShowTab("search")
 suite.check("another tab hides it", not UI.statsView:IsShown())
-suite.check("and the window is its usual height again", UI.frame:GetHeight() == 458, UI.frame:GetHeight())
+suite.check("and the window keeps its height", UI.frame:GetHeight() == StatsUI.HEIGHT, UI.frame:GetHeight())
 draws = 0
 Wait(10)
 Loot("Quick Boar", { COINS })

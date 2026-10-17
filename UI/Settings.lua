@@ -223,6 +223,10 @@ function SettingsUI:ResetPositions()
         db[key] = defaults[key]
     end
 
+    -- The search window's kept width goes too; the tabs grow it again from
+    -- the next login, as wide as they need (UI:Claim).
+    db.windowWidth = nil
+
     -- This window too: it goes back to the middle of the screen.
     db.settingsPoint = nil
     db.settingsRelativePoint = nil
