@@ -281,4 +281,13 @@ suite.check("a secret price does not break the tab", ok, err)
 suite.check("nothing on the tab touched the tally",
     Tracker:Store()["Mangy Wolf"].kills == 20, Tracker:Store()["Mangy Wolf"].kills)
 
+-- The World Drops view draws its own tiles and headings, and puts them away again.
+RankingsUI.group = "worlddrops"
+RankingsUI:Render()
+suite.check("World Drops shows its tiles", RankingsUI.tiles:IsShown())
+suite.check("and its own headings", RankingsUI.worldHeadings.level:IsShown())
+RankingsUI.group = nil
+RankingsUI:Render()
+suite.check("the mob board hides them again", not RankingsUI.tiles:IsShown())
+
 suite.done()

@@ -173,6 +173,59 @@ suite.check("a row for each band", bands == 3, bands)
 suite.check("the band with the best chance glows", best and best.label == "Levels 20-24",
     best and best.label)
 suite.check("blue, purple and orange each have a row", rare == 3, rare)
+local bandText = ""
+for _, row in ipairs(rankRows) do
+    if row.type == "band" then bandText = bandText .. (row.text or "") end
+end
+suite.check("a band says its chance as a percent too", bandText:find("%", 1, true), bandText)
+
+local RUI = ns.RankingsUI
+suite.check("4.0% for 12 in 300", RUI.Percent(12, 300) == "4.0%", RUI.Percent(12, 300))
+suite.check("whole numbers from 10%", RUI.Percent(30, 100) == "30%", RUI.Percent(30, 100))
+suite.check("none reads 0%", RUI.Percent(0, 300) == "0%")
+suite.check("a tiny chance reads <0.1%", RUI.Percent(1, 5000) == "<0.1%", RUI.Percent(1, 5000))
+suite.check("no kills, no percent", RUI.Percent(0, 0) == nil)
+
+local world = RUI:WorldData()
+local view = RUI:WorldViewRows(world)
+local first, last = view[1], nil
+local measured, waiting = 0, nil
+for _, row in ipairs(view) do
+    if row.type == "wband" then
+        last = row
+        if row.measured then measured = measured + 1 else waiting = row end
+    end
+end
+suite.check("the view puts the best chance first", first and first.best and first.label == "Levels 20-24",
+    first and first.label)
+suite.check("a measured band has its percent and 1 in", first.pct and first.oneInText:find("1 in", 1, true),
+    first.pct)
+suite.check("a band short of kills says how far along", waiting and waiting.killsText == "50 of 200"
+    and waiting.oneInText == "Needs more kills", waiting and waiting.killsText)
+suite.check("and it comes last", last == waiting)
+suite.check("two bands are measured", measured == 2, measured)
+
+local tiles = RUI.TileTexts(world)
+suite.check("the green tile counts the greens", tiles[2] and tostring(tiles[2].count) ~= "0"
+    and tiles[2].note:find("1 in", 1, true), tiles[2] and tiles[2].note)
+suite.check("no data says it needs more kills", RUI.TileTexts(nil)[2].note == "Needs more kills")
+
+_G.UnitLevel = function() return 16 end
+local mine
+for _, row in ipairs(RUI:WorldViewRows(RUI:WorldData())) do
+    if row.yours then mine = row end
+end
+suite.check("your own level's band is marked", mine and mine.label == "Levels 15-19", mine and mine.label)
+_G.UnitLevel = function() return -1 end
+
+ns.db.rankingsWorldSort = { key = "level", ascending = true }
+local byLevel = {}
+for _, row in ipairs(RUI:WorldViewRows(RUI:WorldData())) do
+    if row.type == "wband" then byLevel[#byLevel + 1] = row.label end
+end
+suite.check("sorted by level, lowest first", byLevel[1] == "Levels 15-19" and byLevel[3] == "Levels 30-34",
+    table.concat(byLevel, ", "))
+ns.db.rankingsWorldSort = nil
 
 suite.check("'greens' is a world drops search", WorldDrops.IsQuery(" Greens "))
 suite.check("'world drops' too", WorldDrops.IsQuery("world drops"))

@@ -46,18 +46,40 @@ local HEADINGS = {
     worlddrops = { L["WORLD DROPS"], L["green gear and better, by mob level"] },
 }
 
+-- The World Drops chip has a layout of its own (the owner, 2026-10-17, from
+-- a mockup): four tiles on top, one for each colour, and a row per level
+-- band with its kills, greens, a bar, the percent and "1 in X". The bar's
+-- column takes whatever room the window has left, so the window keeps its
+-- size when the chip changes.
+local WORLD_ORDER = { "level", "kills", "greens", "chance", "pct", "onein" }
+local WORLD_BASE = { level = 140, kills = 60, greens = 56, chance = 160, pct = 52, onein = 96 }
+local WORLD_RIGHT = { kills = true, greens = true, pct = true, onein = true }
+local WORLD_BAR_HEIGHT = 8
+local TILE_GAP = 8
+local TILE_QUALITIES = { 2, 3, 4, 5 }
+
 --- Column left edges and widths for the given widths.
-local function Columns(widths)
+local function Columns(widths, order, base)
     local columns, x = {}, 0
 
-    for _, key in ipairs(COLUMN_ORDER) do
-        local w = widths and widths[key] or BASE_WIDTH[key]
+    for _, key in ipairs(order or COLUMN_ORDER) do
+        local w = widths and widths[key] or (base or BASE_WIDTH)[key]
         columns[key] = { x = x, w = w }
         x = x + w + COLUMN_GAP
     end
 
     columns.total = x - COLUMN_GAP
     return columns
+end
+
+local function WorldColumns(widths)
+    return Columns(widths, WORLD_ORDER, WORLD_BASE)
+end
+
+--- How tall a colour tile is at this text size: its name, its count and a
+--- line under them.
+local function TileHeight()
+    return 7 + Theme.sizes.tiny + 3 + Theme.sizes.title + 3 + Theme.sizes.small + 7
 end
 
 --------------------------------------------------------------------------------
@@ -128,12 +150,26 @@ function RankingsUI:Build(frame)
     self.summary = summary
 
     -- Below the portrait, as wide as the Search tab's results.
+    self.panelTop = top + 18 + 8
     local panel = Theme.CreatePanel(view, "panel", "border")
-    panel:SetPoint("TOPLEFT", view, "TOPLEFT", PADDING, -(top + 18 + 8))
-    panel:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", -PADDING, 36)
+    self.panel = panel
+    self:PlacePanel(false)
+
+    -- The World Drops tiles sit where the panel's top was; the panel moves
+    -- down under them while they show.
+    local tiles = CreateFrame("Frame", nil, view)
+    tiles:SetPoint("TOPLEFT", view, "TOPLEFT", PADDING, -self.panelTop)
+    tiles:SetPoint("TOPRIGHT", view, "TOPRIGHT", -PADDING, -self.panelTop)
+    tiles:SetHeight(TileHeight())
+    tiles:SetScript("OnSizeChanged", function() RankingsUI:PlaceTiles() end)
+    tiles:Hide()
+    self.tiles = tiles
+    self.tileFrames = {}
+    for index, quality in ipairs(TILE_QUALITIES) do
+        self.tileFrames[index] = self:CreateTile(tiles, quality)
+    end
     -- Sunk into the window, as the game's inset panels sit (Titanforged).
     if Theme.Recess then Theme.Recess(panel) end
-    self.panel = panel
 
     self.headings = {}
     for key, text in pairs({ rank = "#", mob = L["MOB"], worth = L["PER KILL"], basis = L["FROM"],
@@ -165,6 +201,36 @@ function RankingsUI:Build(frame)
         end
         RankingsUI:Resort()
     end, { startsLow = RankingsUI.SORT_STARTS_LOW, key = key, ascending = ascending })
+
+    -- The World Drops chip's own headings, sorted on their own and kept in
+    -- `rankingsWorldSort`. The best chance comes first until one is clicked.
+    self.worldHeadings = {}
+    for wkey, text in pairs({ level = L["MOB LEVELS"], kills = L["KILLS"], greens = L["GREENS"],
+        chance = L["GREEN CHANCE"], pct = "%", onein = L["1 IN"] }) do
+        local label = Theme.CreateLabel(panel, "tiny", "dim", WORLD_RIGHT[wkey] and "RIGHT" or nil)
+        label:SetText(text)
+        label:Hide()
+        self.worldHeadings[wkey] = label
+    end
+    self.worldColumns = WorldColumns()
+    self:PlaceWorldHeadings()
+
+    local worldKey, worldAscending = self:WorldSortChoice()
+    local chanceTip = L["Sort by the chance of a green, best first."]
+    self.worldSorter = Widgets.SortableHeadings(self.worldHeadings, {
+        level = L["Sort by mob level, lowest first."],
+        kills = L["Sort by kills, most first."],
+        greens = L["Sort by greens, most first."],
+        chance = chanceTip,
+        pct = chanceTip,
+        onein = L["Sort by how many kills a green takes, fewest first."],
+    }, function(newKey, newAscending)
+        if ns.db then
+            ns.db.rankingsWorldSort = newKey and { key = newKey, ascending = newAscending } or nil
+        end
+        RankingsUI:Resort()
+    end, { startsLow = RankingsUI.WORLD_STARTS_LOW, key = worldKey, ascending = worldAscending })
+    self:ShowHeadings(false)
 
     local rule = Theme.CreateDivider(panel, "border")
     rule:SetPoint("TOPLEFT", 8, -20)
@@ -217,6 +283,143 @@ function RankingsUI:PlaceHeadings()
     end
 end
 
+function RankingsUI:PlaceWorldHeadings()
+    for key, label in pairs(self.worldHeadings) do
+        local column = self.worldColumns[key]
+        label:ClearAllPoints()
+        label:SetPoint("TOPLEFT", 8 + column.x, -8)
+        label:SetWidth(column.w)
+    end
+end
+
+--- The mob boards' headings, or the World Drops chip's, with their sort
+--- buttons: a hidden heading's button must not take clicks either.
+function RankingsUI:ShowHeadings(world)
+    local function Show(labels, sorter, shown)
+        for key, label in pairs(labels) do
+            if shown then label:Show() else label:Hide() end
+            local button = sorter and sorter.buttons[key]
+            if button then
+                if shown then button:Show() else button:Hide() end
+            end
+        end
+    end
+    Show(self.headings, self.sorter, not world)
+    Show(self.worldHeadings, self.worldSorter, world)
+end
+
+--- The list's panel, under the World Drops tiles while they show.
+function RankingsUI:PlacePanel(world)
+    local panel = self.panel
+    local top = self.panelTop + (world and (TileHeight() + TILE_GAP) or 0)
+    panel:ClearAllPoints()
+    panel:SetPoint("TOPLEFT", self.view, "TOPLEFT", PADDING, -top)
+    panel:SetPoint("BOTTOMRIGHT", self.view, "BOTTOMRIGHT", -PADDING, 36)
+end
+
+--------------------------------------------------------------------------------
+-- World Drops tiles
+--------------------------------------------------------------------------------
+
+--- A gradient from `from` to `to` alpha in one colour, or a flat wash where
+--- the client has no gradients.
+local function Wash(texture, orientation, r, g, b, from, to)
+    local ok = type(CreateColor) == "function" and pcall(texture.SetGradient, texture,
+        orientation, CreateColor(r, g, b, from), CreateColor(r, g, b, to))
+    if not ok then texture:SetColorTexture(r, g, b, math.max(from, to) * 0.4) end
+end
+
+--- One colour's tile: dark glass with an edge of its colour on top, which
+--- lights up once you have had one.
+function RankingsUI:CreateTile(parent, quality)
+    local rgb = RankingsUI.QUALITY_RGB[quality]
+    local tile = CreateFrame("Frame", nil, parent)
+    tile:SetHeight(TileHeight())
+
+    tile.background = tile:CreateTexture(nil, "BACKGROUND")
+    tile.background:SetAllPoints(tile)
+    tile.background:SetColorTexture(Theme.Unpack("glass"))
+
+    -- A soft light of its colour falling from the top edge.
+    tile.glow = tile:CreateTexture(nil, "BACKGROUND", nil, 1)
+    tile.glow:SetAllPoints(tile)
+    tile.glow:SetColorTexture(1, 1, 1, 1)
+    Wash(tile.glow, "VERTICAL", rgb[1], rgb[2], rgb[3], 0, 0.22)
+    tile.glow:Hide()
+
+    tile.edge = tile:CreateTexture(nil, "ARTWORK")
+    tile.edge:SetPoint("TOPLEFT")
+    tile.edge:SetPoint("TOPRIGHT")
+    tile.edge:SetHeight(2)
+    tile.edge:SetColorTexture(rgb[1], rgb[2], rgb[3], 1)
+
+    tile.line = tile:CreateTexture(nil, "ARTWORK")
+    tile.line:SetPoint("BOTTOMLEFT")
+    tile.line:SetPoint("BOTTOMRIGHT")
+    tile.line:SetHeight(1)
+    tile.line:SetColorTexture(Theme.Unpack("border", 0.6))
+
+    local names = { [2] = L["Green"], [3] = L["Blue"], [4] = L["Purple"], [5] = L["Orange"] }
+    tile.name = Theme.CreateLabel(tile, "tiny", "text")
+    tile.name:SetPoint("TOPLEFT", 10, -7)
+    tile.name:SetText(names[quality])
+    tile.name:SetTextColor(rgb[1], rgb[2], rgb[3])
+
+    tile.count = Theme.CreateLabel(tile, "title", "text")
+    tile.count:SetPoint("TOPLEFT", 10, -(7 + Theme.sizes.tiny + 3))
+    tile.count:SetPoint("RIGHT", -8, 0)
+
+    tile.note = Theme.CreateLabel(tile, "small", "muted")
+    tile.note:SetPoint("TOPLEFT", 10, -(7 + Theme.sizes.tiny + 3 + Theme.sizes.title + 3))
+    tile.note:SetPoint("RIGHT", -8, 0)
+
+    tile.quality = quality
+    return tile
+end
+
+--- The four tiles side by side, sharing the width.
+function RankingsUI:PlaceTiles()
+    local width = self.tiles:GetWidth()
+    if type(width) ~= "number" or width <= 0 then return end
+    local each = math.floor((width - TILE_GAP * (#self.tileFrames - 1)) / #self.tileFrames)
+    for index, tile in ipairs(self.tileFrames) do
+        tile:ClearAllPoints()
+        tile:SetPoint("TOPLEFT", self.tiles, "TOPLEFT", (index - 1) * (each + TILE_GAP), 0)
+        tile:SetWidth(each)
+    end
+end
+
+--- What each tile says, from the bands: { [quality] = { count, note, lit } }.
+function RankingsUI.TileTexts(data)
+    local texts = {}
+    for _, quality in ipairs(TILE_QUALITIES) do
+        local count = data and data.drops[quality] or 0
+        local note
+        if not data or data.measured == 0 then
+            note = L["Needs more kills"]
+        elseif count == 0 then
+            note = L.Format("None yet in %d kills", data.measured)
+        else
+            note = L.Format("%1$s, 1 in %2$d kills", RankingsUI.Percent(count, data.measured),
+                ns.WorldDrops.OneIn(data.measured, count))
+        end
+        texts[quality] = { count = tostring(count), note = note, lit = count > 0 }
+    end
+    return texts
+end
+
+function RankingsUI:FillTiles(data)
+    local texts = RankingsUI.TileTexts(data)
+    for _, tile in ipairs(self.tileFrames) do
+        local text = texts[tile.quality]
+        tile.count:SetText(text.count)
+        tile.count:SetTextColor(Theme.Unpack(text.lit and "text" or "dim"))
+        tile.note:SetText(text.note)
+        if text.lit then tile.glow:Show() else tile.glow:Hide() end
+        tile.edge:SetAlpha(text.lit and 1 or 0.4)
+    end
+end
+
 --------------------------------------------------------------------------------
 -- Sorting by the headings
 --------------------------------------------------------------------------------
@@ -243,6 +446,35 @@ function RankingsUI:SortChoice()
     local saved = ns.db and type(ns.db.rankingsSort) == "table" and ns.db.rankingsSort or {}
     if not RankingsUI.SORT_KEYS[saved.key or ""] then return nil, false end
     return saved.key, saved.ascending and true or false
+end
+
+-- The World Drops headings: level and "1 in" start lowest first, the rest
+-- with the biggest. Chance and percent sort the same way.
+RankingsUI.WORLD_SORT_KEYS = { level = true, kills = true, greens = true, chance = true, pct = true,
+    onein = true }
+RankingsUI.WORLD_STARTS_LOW = { level = true, onein = true }
+
+local WORLD_SORT_VALUE = {
+    level = function(row) return row.band.band end,
+    kills = function(row) return row.kills end,
+    greens = function(row) return row.greens end,
+    chance = function(row) return row.rate end,
+    pct = function(row) return row.rate end,
+    onein = function(row) return row.oneIn end,
+}
+
+function RankingsUI:WorldSortChoice()
+    local saved = ns.db and type(ns.db.rankingsWorldSort) == "table" and ns.db.rankingsWorldSort or {}
+    if not RankingsUI.WORLD_SORT_KEYS[saved.key or ""] then return nil, false end
+    return saved.key, saved.ascending and true or false
+end
+
+--- The band rows in the order the headings ask for. The usual order is the
+--- best chance first; bands still short on kills go last, lowest first.
+function RankingsUI:SortWorld(rows)
+    local key, ascending = self:WorldSortChoice()
+    if not key then return Util.SortBy(rows, false, WORLD_SORT_VALUE.chance) end
+    return Util.SortBy(rows, ascending, WORLD_SORT_VALUE[key])
 end
 
 --- One board's entries in the order the headings ask for, as a new list.
@@ -318,8 +550,74 @@ function RankingsUI:CreateRow(row)
     row.where = Theme.CreateLabel(row, "small", "muted")
     row.level = Theme.CreateLabel(row, "small", "text", "CENTER")
 
+    -- The World Drops chip's cells.
+    row.wLevel = Theme.CreateLabel(row, "small", "text")
+    row.wKills = Theme.CreateLabel(row, "small", "muted", "RIGHT")
+    row.wGreens = Theme.CreateLabel(row, "small", "text", "RIGHT")
+    row.wPct = Theme.CreateLabel(row, "small", "text", "RIGHT")
+    row.wOneIn = Theme.CreateLabel(row, "small", "text", "RIGHT")
+
+    row.wTrack = row:CreateTexture(nil, "ARTWORK")
+    row.wTrack:SetHeight(WORLD_BAR_HEIGHT)
+    row.wTrack:SetColorTexture(Theme.Unpack("well"))
+    -- A soft glow under the bar, the house neon.
+    row.wGlow = row:CreateTexture(nil, "ARTWORK", nil, 1)
+    row.wGlow:SetHeight(WORLD_BAR_HEIGHT + 8)
+    row.wGlow:SetColorTexture(1, 1, 1, 1)
+    pcall(row.wGlow.SetBlendMode, row.wGlow, "ADD")
+    row.wFill = row:CreateTexture(nil, "OVERLAY")
+    row.wFill:SetHeight(WORLD_BAR_HEIGHT)
+
+    -- BEST and YOUR LEVEL, after the band's name.
+    row.wTags = {}
+    for index = 1, 2 do
+        local tag = { back = row:CreateTexture(nil, "ARTWORK"), text = Theme.CreateLabel(row, "tiny", "ink", "CENTER") }
+        tag.back:SetHeight(Theme.sizes.tiny + 4)
+        tag.text:SetPoint("CENTER", tag.back, "CENTER", 0, 0)
+        row.wTags[index] = tag
+    end
+
     self:PlaceRow(row)
 end
+
+-- The tags a band row can wear, by kind.
+local WORLD_TAGS = {
+    best = { text = L["BEST"], back = "accent", backAlpha = 1, color = "ink" },
+    yours = { text = L["YOUR LEVEL"], back = "good", backAlpha = 0.2, color = "good" },
+}
+
+--- How wide a tag is for its words.
+local function TagWidth(kind)
+    return Theme.TextWidth("tiny", WORLD_TAGS[kind].text) + 10
+end
+
+--- Row `row`'s World Drops cells where the current layout puts them.
+function RankingsUI:PlaceWorldRow(row)
+    local columns = self.worldColumns
+    if row.worldLayout == columns then return end
+    row.worldLayout = columns
+
+    local function Place(region, key, width)
+        region:ClearAllPoints()
+        region:SetPoint("LEFT", columns[key].x, 0)
+        region:SetWidth(width or columns[key].w)
+    end
+
+    Place(row.wLevel, "level")
+    Place(row.wKills, "kills")
+    Place(row.wGreens, "greens")
+    Place(row.wPct, "pct")
+    Place(row.wOneIn, "onein")
+    local bar = math.max(20, columns.chance.w - 8)
+    Place(row.wTrack, "chance", bar)
+    row.wFill:ClearAllPoints()
+    row.wFill:SetPoint("LEFT", columns.chance.x, 0)
+    row.wGlow:ClearAllPoints()
+    row.wGlow:SetPoint("LEFT", columns.chance.x - 3, 0)
+    row.barMost = bar
+end
+
+local WORLD_CELLS = { "wLevel", "wKills", "wGreens", "wPct", "wOneIn", "wTrack", "wGlow", "wFill" }
 
 --- Row `row`'s columns where the current layout puts them.
 function RankingsUI:PlaceRow(row)
@@ -386,6 +684,24 @@ function RankingsUI:UpdateRow(row, data, index)
     row.bandStripe:Hide()
     row.medal:Hide()
     for _, key in ipairs(CELLS) do row[key]:Hide() end
+    for _, key in ipairs(WORLD_CELLS) do row[key]:Hide() end
+    for _, tag in ipairs(row.wTags) do tag.back:Hide(); tag.text:Hide() end
+
+    if data.type == "wband" then
+        self:UpdateWorldBand(row, data, index)
+        return
+    end
+
+    if data.type == "wnote" then
+        -- What greens add to a kill, on a gold wash like the best band's.
+        local medal = MEDALS[1]
+        Wash(row.podium, "HORIZONTAL", medal[1], medal[2], medal[3], 0.16, 0)
+        row.podium:Show()
+        row.heading:SetTextColor(Theme.Unpack("text"))
+        row.heading:SetText(data.text)
+        row.heading:Show()
+        return
+    end
 
     if data.type == "heading" then
         row.band:Show()
@@ -530,32 +846,189 @@ function RankingsUI:UpdateWorldRow(row, data, index)
     end
 end
 
---- The world drops rows (Logic/WorldDrops.lua): a heading, a row per level
---- band, the rarer colours and what greens add to a kill where they drop
---- most. Nil while it is turned off.
-function RankingsUI:WorldRows(onlyWithKills)
-    local WorldDrops = ns.WorldDrops
-    if not (WorldDrops and WorldDrops:IsEnabled()) then return nil end
+--- A World Drops band row: kills, greens, a bar against the best band,
+--- the percent and "1 in X". A band short on kills shows how far it has to
+--- go instead.
+function RankingsUI:UpdateWorldBand(row, data, index)
+    self:PlaceWorldRow(row)
+    local measured = data.measured
 
-    local bands = WorldDrops:Bands()
-    -- Under ALL it shows once there is something to show.
-    if onlyWithKills and #bands == 0 then return nil end
-    local rows = {}
-    local total, measuredKills = 0, 0
-    local rare = { [3] = 0, [4] = 0, [5] = 0 }
-    local best, bestRate
-    for _, entry in ipairs(bands) do
-        total = total + entry.kills
-        if WorldDrops.Measured(entry) then
-            measuredKills = measuredKills + entry.kills
-            for quality in pairs(rare) do rare[quality] = rare[quality] + entry.drops[quality] end
-            local rate = entry.drops[2] / entry.kills
-            if rate > 0 and (not bestRate or rate > bestRate) then best, bestRate = entry, rate end
+    row.wLevel:SetText(data.label)
+    row.wLevel:SetTextColor(Theme.Unpack(measured and "text" or "muted"))
+    row.wKills:SetText(data.killsText)
+    row.wGreens:SetText(data.greensText)
+    row.wGreens:SetTextColor(Theme.Unpack(measured and (data.greens or 0) > 0 and "text" or "dim"))
+    row.wPct:SetText(data.pct or "")
+    local green = QUALITY_RGB[2]
+    if data.rate and data.rate > 0 then
+        row.wPct:SetTextColor(green[1], green[2], green[3])
+    else
+        row.wPct:SetTextColor(Theme.Unpack("dim"))
+    end
+    row.wOneIn:SetText(data.oneInText)
+    row.wOneIn:SetTextColor(Theme.Unpack(data.oneIn and "text" or "dim"))
+    for _, key in ipairs({ "wLevel", "wKills", "wGreens", "wPct", "wOneIn", "wTrack" }) do row[key]:Show() end
+
+    -- BEST and YOUR LEVEL just after the band's name.
+    local x = self.worldColumns.level.x + Theme.TextWidth("small", data.label) + 8
+    local slot = 0
+    for _, kind in ipairs({ "best", "yours" }) do
+        if data[kind] then
+            slot = slot + 1
+            local tag, look = row.wTags[slot], WORLD_TAGS[kind]
+            local width = TagWidth(kind)
+            tag.back:ClearAllPoints()
+            tag.back:SetPoint("LEFT", row, "LEFT", x, 0)
+            tag.back:SetWidth(width)
+            tag.back:SetColorTexture(Theme.Unpack(look.back, look.backAlpha))
+            tag.text:SetText(look.text)
+            tag.text:SetTextColor(Theme.Unpack(look.color))
+            tag.back:Show()
+            tag.text:Show()
+            x = x + width + 4
         end
     end
 
+    -- The share of the bar: the chance against the best band's, or how many
+    -- kills a band short on them has of the ones it needs.
+    local share = measured and (data.share or 0) or (data.progress or 0)
+    local width = (row.barMost or 100) * share
+    local fill, glow = row.wFill, row.wGlow
+    if measured then
+        fill:SetColorTexture(green[1], green[2], green[3], 0.95)
+        glow:SetColorTexture(green[1], green[2], green[3], 0.22)
+    else
+        fill:SetColorTexture(Theme.Unpack("dim", 0.6))
+    end
+    local function Grow(w)
+        fill:SetWidth(math.max(1, w))
+        glow:SetWidth(math.max(1, w) + 6)
+    end
+    if width >= 1 then
+        fill:Show()
+        if measured then glow:Show() end
+        if self.arriving and index then
+            ns.Motion:Run(row, "bar", 0.5, function(p) Grow(width * p) end,
+                { delay = 0.1 + math.min(index - 1, 14) * 0.025 })
+        else
+            ns.Motion:Stop(row, "bar")
+            Grow(width)
+        end
+    end
+
+    -- The best band wears gold, as the top of a board does.
+    if data.best then
+        local medal = MEDALS[1]
+        Wash(row.podium, "HORIZONTAL", medal[1], medal[2], medal[3], 0.16, 0)
+        row.podium:Show()
+        row.bandStripe:Show()
+    end
+end
+
+--- A chance as a percent: "4.3%", "12%", "0%"; nil with no kills.
+function RankingsUI.Percent(drops, kills)
+    if not kills or kills <= 0 then return nil end
+    local percent = (drops or 0) / kills * 100
+    if percent <= 0 then return "0%" end
+    if percent >= 10 then return ("%d%%"):format(math.floor(percent + 0.5)) end
+    if percent >= 0.1 then return ("%.1f%%"):format(percent) end
+    return "<0.1%"
+end
+
+--- The bands and what they add up to, or nil while World Drops is off:
+--- { bands, total, measured, drops = { [quality] = n }, best, bestRate }.
+--- Only bands with enough kills count toward the drops.
+function RankingsUI:WorldData()
+    local WorldDrops = ns.WorldDrops
+    if not (WorldDrops and WorldDrops:IsEnabled()) then return nil end
+
+    local data = { bands = WorldDrops:Bands(), total = 0, measured = 0,
+        drops = { [2] = 0, [3] = 0, [4] = 0, [5] = 0 } }
+    for _, entry in ipairs(data.bands) do
+        data.total = data.total + entry.kills
+        if WorldDrops.Measured(entry) then
+            data.measured = data.measured + entry.kills
+            for quality in pairs(data.drops) do
+                data.drops[quality] = data.drops[quality] + (entry.drops[quality] or 0)
+            end
+            local rate = entry.drops[2] / entry.kills
+            if rate > 0 and (not data.bestRate or rate > data.bestRate) then
+                data.best, data.bestRate = entry, rate
+            end
+        end
+    end
+    return data
+end
+
+--- What greens add to a kill where they drop most, as a line, or nil.
+local function WorthLine(data)
+    local worth = data.best and ns.WorldDrops.GreenWorth(data.best)
+    if not (worth and worth > 0) then return nil end
+    return L.Format("Greens add about %1$s a kill at %2$s.", ns.Value.Coins(worth),
+        ns.WorldDrops.BandLabel(data.best.band))
+end
+
+--- The band of the character's own level, or nil.
+local function PlayerBand()
+    local ok, level = pcall(UnitLevel, "player")
+    if not ok then return nil end
+    return ns.WorldDrops.Band(level)
+end
+
+--- The World Drops chip's rows: a row per band in the headings' order and
+--- the greens worth line. The tiles are filled from `data`.
+function RankingsUI:WorldViewRows(data)
+    local WorldDrops = ns.WorldDrops
+    if #data.bands == 0 then
+        return { { type = "note", text = L["No kills with a level yet."] } }
+    end
+
+    local yours = PlayerBand()
+    local bands = {}
+    for _, entry in ipairs(data.bands) do
+        local row = { type = "wband", band = entry, label = WorldDrops.BandLabel(entry.band),
+            kills = entry.kills, measured = WorldDrops.Measured(entry),
+            best = entry == data.best or nil, yours = entry.band == yours or nil }
+        if row.measured then
+            local greens = entry.drops[2] or 0
+            row.greens = greens
+            row.rate = greens / entry.kills
+            row.pct = RankingsUI.Percent(greens, entry.kills)
+            row.oneIn = WorldDrops.OneIn(entry.kills, greens)
+            row.share = data.bestRate and row.rate / data.bestRate or 0
+            row.killsText = tostring(entry.kills)
+            row.greensText = tostring(greens)
+            row.oneInText = row.oneIn and L.Format("1 in %d", row.oneIn) or L["None yet"]
+        else
+            row.progress = math.min(1, entry.kills / WorldDrops.MIN_KILLS)
+            row.killsText = L.Format("%1$d of %2$d", entry.kills, WorldDrops.MIN_KILLS)
+            row.greensText = "-"
+            row.oneInText = L["Needs more kills"]
+        end
+        bands[#bands + 1] = row
+    end
+
+    local rows = self:SortWorld(bands)
+    local worth = WorthLine(data)
+    if worth then rows[#rows + 1] = { type = "wnote", text = worth } end
+    return rows
+end
+
+--- The world drops rows under ALL (Logic/WorldDrops.lua): a heading, a row
+--- per level band, the rarer colours and what greens add to a kill where
+--- they drop most. Nil while it is turned off.
+function RankingsUI:WorldRows(onlyWithKills)
+    local data = self:WorldData()
+    if not data then return nil end
+    local WorldDrops = ns.WorldDrops
+    local bands = data.bands
+
+    -- Under ALL it shows once there is something to show.
+    if onlyWithKills and #bands == 0 then return nil end
+    local rows = {}
+
     rows[1] = { type = "heading", group = "worlddrops",
-        note = L.Format("green gear, from %d kills", total) }
+        note = L.Format("green gear, from %d kills", data.total) }
 
     if #bands == 0 then
         rows[2] = { type = "note", text = L["No kills with a level yet."] }
@@ -569,29 +1042,26 @@ function RankingsUI:WorldRows(onlyWithKills)
         elseif entry.drops[2] == 0 then
             text = L.Format("none in %d", entry.kills)
         else
-            text = L.Format("1 in %d", WorldDrops.OneIn(entry.kills, entry.drops[2]))
-            share = (entry.drops[2] / entry.kills) / bestRate
+            text = L.Format("1 in %1$d (%2$s)", WorldDrops.OneIn(entry.kills, entry.drops[2]),
+                RankingsUI.Percent(entry.drops[2], entry.kills))
+            share = (entry.drops[2] / entry.kills) / data.bestRate
         end
         rows[#rows + 1] = { type = "band", label = WorldDrops.BandLabel(entry.band),
-            text = text, share = share, best = entry == best or nil, band = entry }
+            text = text, share = share, best = entry == data.best or nil, band = entry }
     end
 
-    if measuredKills > 0 then
+    if data.measured > 0 then
         local names = { [3] = L["Blue"], [4] = L["Purple"], [5] = L["Orange"] }
         for _, quality in ipairs({ 3, 4, 5 }) do
-            local n = rare[quality]
+            local n = data.drops[quality]
             rows[#rows + 1] = { type = "rare", quality = quality, label = names[quality],
-                text = n > 0 and L.Format("%1$d in %2$d kills", n, measuredKills)
-                    or L.Format("none yet in %d kills", measuredKills) }
+                text = n > 0 and L.Format("%1$d in %2$d kills", n, data.measured)
+                    or L.Format("none yet in %d kills", data.measured) }
         end
     end
 
-    local worth = best and WorldDrops.GreenWorth(best)
-    if worth and worth > 0 then
-        local label = WorldDrops.BandLabel(best.band)
-        rows[#rows + 1] = { type = "note", text = L.Format("Greens add about %1$s a kill at %2$s.",
-            ns.Value.Coins(worth), label) }
-    end
+    local worth = WorthLine(data)
+    if worth then rows[#rows + 1] = { type = "note", text = worth } end
 
     return rows
 end
@@ -632,6 +1102,9 @@ end
 function RankingsUI:Rows(board)
     local rows = {}
     local wanted = self.group
+
+    -- The World Drops chip has its own layout: tiles and band rows.
+    if self.world then return self:WorldViewRows(self.world) end
 
     local function Add(group, emptyText)
         local entries = board[group]
@@ -678,6 +1151,7 @@ end
 
 --- Widen the columns to fit these rows, and return the window width they want.
 function RankingsUI:FitColumns(rows)
+    if self.world then return self:FitWorldColumns(rows) end
     local widths = {}
     for key, w in pairs(BASE_WIDTH) do widths[key] = w end
 
@@ -735,6 +1209,53 @@ function RankingsUI:FitColumns(rows)
     return self.columns.total + CHROME
 end
 
+--- Widen the World Drops columns to fit these rows and the tiles, and
+--- return the window width they want. The window never shrinks for it: the
+--- bar's column takes whatever room is left.
+function RankingsUI:FitWorldColumns(rows)
+    local widths = {}
+    for key, w in pairs(WORLD_BASE) do widths[key] = w end
+
+    -- Room for each heading and its sort arrow.
+    for key, label in pairs(self.worldHeadings) do
+        widths[key] = math.max(widths[key], Theme.TextWidth("tiny", label:GetText()) + 14)
+    end
+
+    for _, row in ipairs(rows) do
+        if row.type == "wband" then
+            local level = Theme.TextWidth("small", row.label) + 8
+            for _, kind in ipairs({ "best", "yours" }) do
+                if row[kind] then level = level + TagWidth(kind) + 4 end
+            end
+            widths.level = math.max(widths.level, level)
+            widths.kills = math.max(widths.kills, Theme.TextWidth("small", row.killsText) + 8)
+            widths.greens = math.max(widths.greens, Theme.TextWidth("small", row.greensText) + 8)
+            widths.pct = math.max(widths.pct, Theme.TextWidth("small", row.pct or "") + 8)
+            widths.onein = math.max(widths.onein, Theme.TextWidth("small", row.oneInText) + 8)
+        end
+    end
+    for key in pairs(widths) do widths[key] = math.ceil(widths[key]) end
+
+    -- Each tile wide enough for its line, so none is cut.
+    local tileText = 0
+    for _, text in pairs(RankingsUI.TileTexts(self.world)) do
+        tileText = math.max(tileText, Theme.TextWidth("small", text.note))
+    end
+    local tiles = (tileText + 20) * #TILE_QUALITIES + TILE_GAP * (#TILE_QUALITIES - 1) + PADDING * 2
+
+    local want = math.max(WorldColumns(widths).total + CHROME, tiles, ns.UI and ns.UI.BASE_WIDTH or 0)
+    local frame = ns.UI and ns.UI.frame
+    local current = frame and frame.GetWidth and frame:GetWidth()
+    if type(current) == "number" then want = math.max(want, current) end
+    local room = ns.UI and ns.UI.ScreenRoom and ns.UI:ScreenRoom()
+    if type(room) == "number" then want = math.max(math.min(want, room), WorldColumns(widths).total + CHROME) end
+
+    widths.chance = widths.chance + math.max(0, want - CHROME - WorldColumns(widths).total)
+    self.worldColumns = WorldColumns(widths)
+    self:PlaceWorldHeadings()
+    return want
+end
+
 --- How wide the window must be for the top row: the chips, the tick box
 --- and the price note beside them, clear of the Settings button. German
 --- runs longer, and the note would end in "..." otherwise.
@@ -759,12 +1280,34 @@ end
 --- the top. Nothing is priced or counted again.
 function RankingsUI:Resort()
     if not (self.view and self.view:IsShown() and self.board) then return end
+    self:ShowWorld()
     local rows = self:Rows(self.board)
     local width = math.max(self:FitColumns(rows), self:HeadWidth())
     self.list:SetData(rows)
     if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then
         ns.UI.frame:SetWidth(math.max(ns.UI.BASE_WIDTH or 0, width))
     end
+end
+
+--- The World Drops chip's tiles and headings, or the boards': read the
+--- bands once into `self.world` (nil on the other chips, or while World
+--- Drops is turned off).
+function RankingsUI:ShowWorld()
+    local world = self.group == "worlddrops" and self:WorldData() or nil
+    self.world = world
+    local on = world ~= nil
+    if self.shownWorld ~= on then
+        self.shownWorld = on
+        self:PlacePanel(on)
+        self:ShowHeadings(on)
+        if on then
+            self.tiles:Show()
+            self:PlaceTiles()
+        else
+            self.tiles:Hide()
+        end
+    end
+    if world then self:FillTiles(world) end
 end
 
 --- Rebuild the board and draw it. Returns the window width it wants.
@@ -776,6 +1319,7 @@ function RankingsUI:Render(arrive)
     end
     if self.outside then self.outside:SetChecked(ns.Rankings.OutsideOnly()) end
 
+    self:ShowWorld()
     local board = ns.Rankings:Build()
     local rows = self:Rows(board)
     self.board = board

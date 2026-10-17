@@ -940,7 +940,9 @@ until `Harvest.changes` moves (each corpse) or `KEEP_FOR` passes.
 It shows as "World drops, level N" and "You've had here" under the open
 mob in the kills panel (`WorldDrops:CardLines`), a WORLD DROPS chip and
 rows on Rankings (`RankingsUI:WorldRows`; under ALL only once there are
-kills), "Greens: 1 in N kills" on the mob tooltip (`KillTooltip:GreensLine`)
+kills; the chip's own view, `WorldViewRows`, has four quality tiles, a
+band a row with kills, greens, a bar, a percent and 1 in, BEST and YOUR
+LEVEL tags and its own sorting, `rankingsWorldSort`, never rename it), "Greens: 1 in N kills" on the mob tooltip (`KillTooltip:GreensLine`)
 and a search for "greens" or "world drops" (`WorldDrops.IsQuery`,
 `SearchItem`: a result with no Goal button or hide choice). "World drops"
 on the Loot page (`worldDrops`, account wide, on unless unticked, never
