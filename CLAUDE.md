@@ -812,7 +812,15 @@ the panel's slot tooltip use `WorthOf`); opened loot never joins
 clam when looted. An opening is caught by the bag click (`UseContainerItem`),
 else by the loot window's `Item-` source guid matched to a bag slot
 (`Containers:FromSource`, `C_Item.GetItemGUID`), since none had been
-recorded in game. Tested in `tools/test_containerworth.lua` and
+recorded in game. A disenchant opens a window that names the broken item
+too, so it is told apart (2026-10-17, the owner saw greens counted as
+opened): gear (`Containers.IsGear`, `WorldDrops.IsGear`) is never a
+container, and a window just after the player's own Disenchant
+(`Containers.IsBreakSpell`, `BREAK_SECONDS`) is the spell's
+(`Containers:IsBreaking`). That window is still kept off the targeted
+corpse (`Claims`) and nothing is counted. Gear counted before is left in
+the save and skipped by every reader (`Containers:Entry`, `Holding`).
+Tested in `tools/test_containerworth.lua` and
 `tools/test_containers.lua`.
 
 Each counted opening shows a small note near the top of the screen

@@ -374,9 +374,8 @@ function Value:Contents(name)
     local Containers = ns.Containers
     if not (Containers and name) then return nil end
 
-    local ok, store = pcall(Containers.Store, Containers)
-    local entry = ok and type(store) == "table" and store[name]
-    if type(entry) ~= "table" or type(entry.items) ~= "table" then return nil end
+    local ok, entry = pcall(Containers.Entry, Containers, name)
+    if not ok or type(entry) ~= "table" or type(entry.items) ~= "table" then return nil end
 
     local opens = tonumber(entry.opens) or 0
     if opens < self.MIN_OPENS then return nil end
