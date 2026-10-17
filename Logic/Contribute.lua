@@ -25,8 +25,9 @@
 --     (GuildShare.Plausible), one sender is synced at a time, each at most
 --     every half hour, and at most MAX_SENDERS are kept.
 --   * When a sender's records finish coming in, one chat line says so.
---   * Only English clients send: records keep the client's mob and item
---     names, and the shipped data is in English.
+--   * Only North American players send (InRegion), and only English
+--     clients: records keep the client's mob and item names, and the
+--     shipped data is in English.
 --
 -- Saved, account wide, never renamed: `shareDrops` (the player's choice),
 -- `sharedDrops` and `sharedIn` (only on a receiving character's account).
@@ -42,7 +43,14 @@ local Share = ns.Share
 -- The characters drops are sent to: full names, first and last. Kept only
 -- here, never shown to players. Empty sends nothing.
 Contribute.RECIPIENTS = {
+    "Blackthornes Farmer",
 }
+
+-- Only players on this region send (the owner, 2026-10-17: North America),
+-- since a whisper never crosses regions. GetCurrentRegion's 1 is the
+-- Americas; a client that will not say sends nothing.
+Contribute.REGION = 1
+Contribute.REGION_NAME = "US"
 
 Contribute.HELLO_SECONDS = 1800   -- a hello every half hour
 Contribute.FIRST_HELLO = 30       -- and this long after login
@@ -96,6 +104,19 @@ function Contribute:Receiving()
     return false
 end
 
+--- True when the game is on the region the recipients play on.
+function Contribute:InRegion()
+    if type(GetCurrentRegion) == "function" then
+        local ok, region = pcall(GetCurrentRegion)
+        if ok and type(region) == "number" then return region == self.REGION end
+    end
+    if type(GetCurrentRegionName) == "function" then
+        local ok, name = pcall(GetCurrentRegionName)
+        if ok and type(name) == "string" then return name == self.REGION_NAME end
+    end
+    return false
+end
+
 --- Mob and item names are kept as the client gives them, so only an
 --- English client's records can join the shipped data.
 local function EnglishClient()
@@ -103,7 +124,8 @@ local function EnglishClient()
 end
 
 function Contribute:Sending()
-    return self:On() and self:HasRecipients() and EnglishClient() and not self:Receiving()
+    return self:On() and self:HasRecipients() and EnglishClient() and self:InRegion()
+        and not self:Receiving()
 end
 
 --- Listening is needed while sending or receiving.

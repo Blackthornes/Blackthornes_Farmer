@@ -21,8 +21,20 @@ ns.GuildShare:OnEnable()
 Contribute:OnEnable()
 
 suite.check("off by default", ns.db.shareDrops == false and not Contribute:On())
-suite.check("the shipped list is empty until the names are added",
-    type(Contribute.RECIPIENTS) == "table")
+suite.check("the shipped list names one whole name",
+    type(Contribute.RECIPIENTS) == "table" and #Contribute:Recipients() == 1)
+
+-- Only North America sends.
+_G.GetCurrentRegion, _G.GetCurrentRegionName = nil, nil
+suite.check("a client that will not say its region sends nothing", not Contribute:InRegion())
+_G.GetCurrentRegion = function() return 3 end
+suite.check("Europe sends nothing", not Contribute:InRegion())
+_G.GetCurrentRegion = function() error("no") end
+_G.GetCurrentRegionName = function() return "US" end
+suite.check("the region's name is read when its number is not", Contribute:InRegion())
+_G.GetCurrentRegionName = nil
+_G.GetCurrentRegion = function() return 1 end
+suite.check("North America sends", Contribute:InRegion())
 
 local shipped = Contribute.RECIPIENTS
 Contribute.RECIPIENTS = {}
@@ -259,6 +271,12 @@ end
 -- Tia never sends her own.
 Switch(ana)
 Check("Ana holds no records of Tia's", ana.records[WOLF].corpses == 35 and ana.db.sharedDrops == nil)
+
+-- Away from North America nothing goes, ticked or not.
+Switch(ana)
+_G.GetCurrentRegion = function() return 2 end
+Check("a player in another region does not send", Contribute:On() and not Contribute:Sending())
+_G.GetCurrentRegion = function() return 1 end
 
 -- A client in another language sends nothing.
 locale = "deDE"
