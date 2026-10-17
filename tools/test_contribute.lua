@@ -117,6 +117,9 @@ ns.Print = function(...)
 end
 
 local whispers = 0
+-- The alert: counted per account, never drawn.
+ns.OpenNote.Notice = function() current.alerts = (current.alerts or 0) + 1 end
+ns.Tracker.PlayFile = function() return true end
 
 local function Settle()
     for _ = 1, 6000 do
@@ -212,6 +215,7 @@ Check("no gathering came", next(tia.db.gathering.nodes) == nil)
 Check("the ledger is kept apart too", tia.db.sharedIn ~= nil and next(tia.db.shareIn or {}) == nil)
 Check("one chat line says what came in", #tia.said == 1 and tia.said[1] == "Got drops for 1 mob from Ana Smith.",
     tia.said[1])
+Check("a sound and a note on screen go with it", tia.alerts == 1, tia.alerts)
 Check("the share is kept in the log", type(tia.db.sharedLog) == "table" and #tia.db.sharedLog == 1
     and tia.db.sharedLog[1].name == "Ana Smith" and tia.db.sharedLog[1].mobs == 1)
 do
@@ -234,7 +238,7 @@ Check("a sender's log is empty", ana.said[1] == "Nobody has shared drops with yo
 ana.said = {}
 Check("Ana got nothing back", ana.db.sharedDrops == nil and ana.records[WOLF].corpses == 30
     and next(ana.db.shareIn or {}) == nil)
-Check("and Ana is never told anything", #ana.said == 0, ana.said[1])
+Check("and Ana is never told anything", #ana.said == 0 and (ana.alerts or 0) == 0, ana.said[1])
 Switch(tia)
 Check("Bob, who did not tick it, sent nothing", Shared(tia).corpses == 30 and Contribute.bySender["bob smith"] == nil)
 

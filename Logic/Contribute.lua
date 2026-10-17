@@ -24,7 +24,8 @@
 --     the windows shows them. They are checked for being play
 --     (GuildShare.Plausible), one sender is synced at a time, each at most
 --     every half hour, and at most MAX_SENDERS are kept.
---   * When a sender's records finish coming in, one chat line says so.
+--   * When a sender's records finish coming in, one chat line says so, with
+--     a sound and a note on screen (Alert).
 --   * Only North American players send (InRegion), and only English
 --     clients: records keep the client's mob and item names, and the
 --     shipped data is in English.
@@ -251,11 +252,29 @@ function Contribute:Finish(state)
     state.taken = 0
     if taken > 0 then
         self:Note(state.name, taken)
+        local line
         if taken == 1 then
-            ns.Print(L.Format("Got drops for %d mob from %s.", taken, tostring(state.name)))
+            line = L.Format("Got drops for %d mob from %s.", taken, tostring(state.name))
         else
-            ns.Print(L.Format("Got drops for %d mobs from %s.", taken, tostring(state.name)))
+            line = L.Format("Got drops for %d mobs from %s.", taken, tostring(state.name))
         end
+        ns.Print(line)
+        self:Alert(line)
+    end
+end
+
+--- A sound and a note on screen as the chat line goes out (the owner,
+--- 2026-10-17). Only the receiving character ever gets here. The sound is
+--- the addon's own rank-up chime; the note is OpenNote's frame.
+Contribute.ALERT_HOLD = 6
+Contribute.ALERT_ICON = [[Interface\Icons\Trade_Mining]]   -- Farmer's own icon
+
+function Contribute:Alert(line)
+    if ns.Tracker and ns.Tracker.PlayFile and ns.Tracker.SOUNDS then
+        pcall(ns.Tracker.PlayFile, ns.Tracker.SOUNDS.rankup)
+    end
+    if ns.OpenNote and ns.OpenNote.Notice then
+        pcall(ns.OpenNote.Notice, ns.OpenNote, line, self.ALERT_ICON, self.ALERT_HOLD)
     end
 end
 
