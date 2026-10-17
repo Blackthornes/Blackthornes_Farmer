@@ -272,7 +272,7 @@ records to his characters, for the shipped data. Off by default
 (`shareDrops`, never rename it), never announced: one tick box on the
 About page of Settings (2026-10-17) and `/farm share drops on|off`. Only
 North American clients send or see the box (`Contribute:InRegion`,
-`GetCurrentRegion` 1, else `GetCurrentRegionName` "US"; unknown sends
+`GetCurrentRegion` 1, or 110 on the Forever test client, else `GetCurrentRegionName` "US"; unknown sends
 nothing). `Logic/Contribute.lua` is guild
 sharing's conversation one way: the sender whispers a hello (`Q<id>:<hash>`)
 to each name in `Contribute.RECIPIENTS` (full names, kept only in code;
