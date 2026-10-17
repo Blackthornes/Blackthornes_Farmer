@@ -858,7 +858,9 @@ never rename either; `/farm tracker transparent [on|off|some|more|most]`. Tested
 
 The other panels that stay on screen have it too (the owner asked the same
 day, "a button for each unique window"): the goals panel, Where to farm,
-the rank-up board, the run recap and the XP bar's well. `UI/SeeThrough.lua`
+the rank-up board, the run recap and the XP bar (the whole bar since
+2026-10-17, the well alone hardly showed: its gold keeps at least
+`XPBarUI.GOLD_FLOOR` and its rim `RIM_FLOOR`). `UI/SeeThrough.lua`
 does it the same way for each (`SeeThrough:AddGlass(id, texture, floor)`,
 `:Grew(id, row)` for rows made later, `:Attach(id, frame)`, `:Set`), and a
 word's own shadow comes back when it is turned off. One stepper each, Off,

@@ -40,6 +40,9 @@ local Util = ns.Util
 XPBarUI.WIDTH = 520
 XPBarUI.BAR = 18
 XPBarUI.LINE = 16
+-- The least of the gold and the rim that stays while the bar is transparent.
+XPBarUI.GOLD_FLOOR = 0.55
+XPBarUI.RIM_FLOOR = 0.4
 XPBarUI.CARD = 380
 -- Seconds the cheer stays up while the mouse is away from it.
 XPBarUI.HOLD = 6
@@ -163,6 +166,18 @@ function XPBarUI:Build()
     self.restedCap:SetWidth(2)
     self.sessionMark = Texture(bar, "OVERLAY", 1, 1, 1, 1, 0.8)
     self.sessionMark:SetWidth(2)
+
+    -- Transparent thins the whole bar, not only the well (the owner,
+    -- 2026-10-17: the well alone hardly showed). The gold keeps enough
+    -- to read how far along you are, and the rim enough to see the bar.
+    for _, edge in ipairs(bar.borderTextures or {}) do
+        ns.SeeThrough:AddGlass("xpbar", edge, self.RIM_FLOOR)
+    end
+    ns.SeeThrough:AddGlass("xpbar", self.fill, self.GOLD_FLOOR)
+    for _, band in ipairs({ self.sheen, self.shade, self.session, self.quest,
+        self.rested, self.restedCap, self.sessionMark }) do
+        ns.SeeThrough:AddGlass("xpbar", band)
+    end
 
     -- A tick every tenth, each with a flash for when it is crossed.
     self.ticks, self.flashes = {}, {}

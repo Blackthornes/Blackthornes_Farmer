@@ -156,6 +156,25 @@ for control, id in pairs({ goalsSeeThrough = "goals", goalSpotsSeeThrough = "pla
         suite.check(control .. " turns it off", SeeThrough:Level(id) == 0, control)
     end
 end
+-- The XP bar thins as a whole, not only its well; its gold keeps enough
+-- to read.
+local xp = ns.XPBarUI
+local fillPart, bandPart
+for _, part in ipairs(SeeThrough.states.xpbar.parts) do
+    if part.texture == xp.fill then fillPart = part end
+    if part.texture == xp.rested then bandPart = part end
+end
+suite.check("the XP bar's gold is glass", fillPart ~= nil and Near(fillPart.floor, xp.GOLD_FLOOR))
+suite.check("and so are its bands", bandPart ~= nil)
+Track("xpbar")
+SeeThrough:Set("xpbar", 3)
+Settle()
+suite.check("at Most the gold thins but stays readable", Near(xp.fill._alpha, xp.GOLD_FLOOR)
+    and Near(xp.rested._alpha, SeeThrough.LEVELS[3]))
+SeeThrough:Set("xpbar", 0)
+Settle()
+suite.check("off puts the bar back", Near(xp.fill._alpha, 1) and Near(xp.rested._alpha, 1))
+
 -- All six sit together on the UI page (the owner, 2026-10-17).
 for _, control in ipairs({ "seeThrough", "goalsSeeThrough", "goalSpotsSeeThrough",
     "rankUpSeeThrough", "recapSeeThrough", "xpBarSeeThrough" }) do
