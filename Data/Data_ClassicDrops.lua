@@ -264,6 +264,15 @@ DB:RegisterItem({ name = "Bone Fragments", id = 22526, category = "Quest item", 
     { name = "Dread Weaver", zone = "Eastern Plaguelands", coords = { 78.5, 45.8 }, minLevel = 58, maxLevel = 59, searchOnly = true },
     { name = "Scourge Champion", zone = "Eastern Plaguelands", coords = { 75.9, 52.0 }, minLevel = 59, maxLevel = 60, searchOnly = true },
 } })
+DB:RegisterItem({ name = "Book: Gift of the Wild", id = 17682, category = "Recipe", sources = {
+    { name = "Murk Spitter", zone = "Swamp of Sorrows", coords = { 77.8, 39.6 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Mummified Atal'ai", zone = "Swamp of Sorrows", coords = { 78.2, 41.2 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Atal'ai Priest", zone = "Swamp of Sorrows", coords = { 77.6, 48.5 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Anvilrage Overseer", zone = "Searing Gorge", coords = { 27.8, 87.2 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+    { name = "Anvilrage Warden", zone = "Searing Gorge", coords = { 27.1, 84.7 }, minLevel = 49, maxLevel = 50, searchOnly = true },
+    { name = "Scarshield Grunt", zone = "Burning Steppes", coords = { 35.5, 26.8 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+    { name = "Scarshield Sentry", zone = "Burning Steppes", coords = { 34.6, 28.1 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+} })
 DB:RegisterItem({ name = "Book: The Powers Below", id = 5352, category = "Quest item", sources = {
     { name = "Twilight Disciple", zone = "Darkshore", coords = { 38.6, 86.3 }, minLevel = 16, maxLevel = 17, searchOnly = true },
     { name = "Twilight Thug", zone = "Darkshore", coords = { 39.0, 86.1 }, minLevel = 17, maxLevel = 18, searchOnly = true },
@@ -430,6 +439,15 @@ DB:RegisterItem({ name = "Coarse Blasting Powder", id = 4364, category = "Mob dr
     { name = "Venture Co. Engineer", zone = "Stonetalon Mountains", coords = { 64.1, 39.5 }, minLevel = 20, maxLevel = 21, searchOnly = true },
     { name = "Venture Co. Machine Smith", zone = "Stonetalon Mountains", coords = { 63.4, 40.0 }, minLevel = 21, maxLevel = 22, searchOnly = true },
     { name = "Warsong Shredder", zone = "Ashenvale", coords = { 85.3, 62.2 }, minLevel = 27, maxLevel = 28, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Codex: Prayer of Fortitude", id = 17413, category = "Recipe", sources = {
+    { name = "Murk Spitter", zone = "Swamp of Sorrows", coords = { 77.8, 39.6 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Atal'ai Priest", zone = "Swamp of Sorrows", coords = { 77.6, 48.5 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Mummified Atal'ai", zone = "Swamp of Sorrows", coords = { 78.2, 41.2 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Anvilrage Overseer", zone = "Searing Gorge", coords = { 27.8, 87.2 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+    { name = "Anvilrage Warden", zone = "Searing Gorge", coords = { 27.1, 84.7 }, minLevel = 49, maxLevel = 50, searchOnly = true },
+    { name = "Scarshield Sentry", zone = "Burning Steppes", coords = { 34.6, 28.1 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+    { name = "Scarshield Grunt", zone = "Burning Steppes", coords = { 35.5, 26.8 }, minLevel = 53, maxLevel = 54, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Copper Modulator", id = 4363, category = "Mob drop", sources = {
     { name = "Rusty Harvest Golem", zone = "Westfall", coords = { 57.1, 21.2 }, minLevel = 9, maxLevel = 10, searchOnly = true },
@@ -1062,6 +1080,130 @@ DB:RegisterItem({ name = "Forked Mudrock Tongue", id = 5883, category = "Quest i
     { name = "Mudrock Snapjaw", zone = "Dustwallow Marsh", coords = { 60.4, 57.5 }, minLevel = 41, maxLevel = 42, searchOnly = true },
     { name = "Mudrock Borer", zone = "Dustwallow Marsh", coords = { 60.1, 63.9 }, minLevel = 42, maxLevel = 43, searchOnly = true },
 } })
+DB:RegisterItem({ name = "Formula: Enchant 2H Weapon - Lesser Spirit", id = 11038, category = "Recipe", sources = {
+    { name = "Lakota'mani", zone = "The Barrens", coords = { 47.5, 51.1 }, minLevel = 22, maxLevel = 22, searchOnly = true },
+    { name = "Torn Fin Coastrunner", zone = "Hillsbrad Foothills", coords = { 27.0, 71.8 }, minLevel = 29, maxLevel = 30, searchOnly = true },
+    { name = "Torn Fin Oracle", zone = "Hillsbrad Foothills", coords = { 43.9, 68.7 }, minLevel = 30, maxLevel = 31, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Boots - Greater Agility", id = 16245, category = "Recipe", sources = {
+    { name = "Strashaz Hydra", zone = "Dustwallow Marsh", coords = { 69.8, 19.2 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+    { name = "Verdantine Boughguard", zone = "The Hinterlands", coords = { 66.3, 28.1 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Boots - Spirit", id = 16220, category = "Recipe", sources = {
+    { name = "Condemned Cleric", zone = "Hillsbrad Foothills", coords = { 16.3, 80.9 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Bracer - Greater Intellect", id = 16214, category = "Recipe", sources = {
+    { name = "Vilebranch Shadowcaster", zone = "The Hinterlands", coords = { 64.9, 71.3 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Bracer - Greater Stamina", id = 11225, category = "Recipe", sources = {
+    { name = "Emerald Ooze", zone = "The Hinterlands", coords = { 65.1, 66.0 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Sprite Dragon", zone = "Feralas", coords = { 44.3, 22.2 }, minLevel = 47, maxLevel = 50, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Bracer - Minor Spirit", id = 6344, category = "Recipe", sources = {
+    { name = "Ghoul", zone = "Westfall", coords = { 40.3, 66.9 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Deviate Slayer", zone = "The Barrens", coords = { 47.9, 32.6 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+    { name = "Deviate Stinglash", zone = "The Barrens", coords = { 48.2, 34.4 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+    { name = "Skeletal Miner", zone = "Westfall", coords = { 41.6, 81.7 }, minLevel = 17, maxLevel = 18, searchOnly = true },
+    { name = "Mo'grosh Brute", zone = "Loch Modan", coords = { 75.6, 18.4 }, minLevel = 19, maxLevel = 20, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Bracer - Minor Strength", id = 6347, category = "Recipe", sources = {
+    { name = "Dreadmaw Crocolisk", zone = "Durotar", coords = { 34.5, 44.3 }, minLevel = 9, maxLevel = 11, searchOnly = true },
+    { name = "Deviate Lurker", zone = "The Barrens", coords = { 47.9, 33.4 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+    { name = "Wild Buck", zone = "Ashenvale", coords = { 22.7, 29.9 }, minLevel = 18, maxLevel = 19, searchOnly = true },
+    { name = "Stone Behemoth", zone = "Darkshore", coords = { 36.1, 85.6 }, minLevel = 19, maxLevel = 20, searchOnly = true },
+    { name = "Mo'grosh Brute", zone = "Loch Modan", coords = { 75.6, 18.4 }, minLevel = 19, maxLevel = 20, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Bracer - Superior Spirit", id = 16218, category = "Recipe", sources = {
+    { name = "Emerald Ooze", zone = "The Hinterlands", coords = { 65.1, 66.0 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Bracer - Superior Stamina", id = 16251, category = "Recipe", sources = {
+    { name = "Strashaz Warrior", zone = "Dustwallow Marsh", coords = { 77.0, 18.4 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+    { name = "Strashaz Serpent Guard", zone = "Dustwallow Marsh", coords = { 77.3, 17.5 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+    { name = "Hive'Regal Hive Lord", zone = "Silithus", coords = { 61.5, 78.8 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+    { name = "Wyrmkin Firebrand", zone = "Wetlands", coords = { 87.6, 56.6 }, minLevel = 61, maxLevel = 62, searchOnly = true },
+    { name = "Emeraldon Boughguard", zone = "Ashenvale", coords = { 92.8, 39.5 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+    { name = "Dreadlord", zone = "Blasted Lands", coords = { 38.1, 72.3 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Bracer - Superior Strength", id = 16246, category = "Recipe", sources = {
+    { name = "Deadwind Warlock", zone = "Deadwind Pass", coords = { 62.2, 75.8 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Chest - Major Intellect", id = 16242, category = "Recipe", sources = {
+    { name = "Scarlet Enchanter", zone = "Eastern Plaguelands", coords = { 83.2, 79.5 }, minLevel = 53, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Chest - Minor Intellect", id = 6342, category = "Recipe", sources = {
+    { name = "Bloodtalon Scythemaw", zone = "Durotar", coords = { 36.8, 25.4 }, minLevel = 8, maxLevel = 10, searchOnly = true },
+    { name = "Pyrewood Watcher", zone = "Silverpine Forest", coords = { 45.3, 72.4 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+    { name = "Pyrewood Elder", zone = "Silverpine Forest", coords = { 45.4, 74.7 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Muck Frenzy", zone = "The Barrens", coords = { 68.4, 48.7 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Cloak - Lesser Agility", id = 11206, category = "Recipe", sources = {
+    { name = "Syndicate Assassin", zone = "Alterac Mountains", coords = { 39.7, 15.8 }, minLevel = 38, maxLevel = 39, searchOnly = true },
+    { name = "Wastewander Assassin", zone = "Tanaris", coords = { 63.3, 37.4 }, minLevel = 44, maxLevel = 45, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Cloak - Lesser Shadow Resistance", id = 11098, category = "Recipe", sources = {
+    { name = "Captain Ironhill", zone = "Arathi Highlands", coords = { 10.8, 48.6 }, minLevel = 32, maxLevel = 32, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Cloak - Minor Agility", id = 11039, category = "Recipe", sources = {
+    { name = "Blackrock Gladiator", zone = "Redridge Mountains", coords = { 69.4, 56.3 }, minLevel = 24, maxLevel = 25, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Gloves - Advanced Herbalism", id = 11205, category = "Recipe", sources = {
+    { name = "Swampwalker", zone = "Swamp of Sorrows", coords = { 15.7, 36.6 }, minLevel = 38, maxLevel = 39, searchOnly = true },
+    { name = "Swampwalker Elder", zone = "Swamp of Sorrows", coords = { 11.4, 34.7 }, minLevel = 39, maxLevel = 40, searchOnly = true },
+    { name = "Tangled Horror", zone = "Swamp of Sorrows", coords = { 68.1, 32.1 }, minLevel = 40, maxLevel = 41, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Gloves - Advanced Mining", id = 11203, category = "Recipe", sources = {
+    { name = "Venture Co. Strip Miner", zone = "Stranglethorn Vale", coords = { 41.6, 43.5 }, minLevel = 40, maxLevel = 41, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Gloves - Fishing", id = 11152, category = "Recipe", sources = {
+    { name = "Torn Fin Muckdweller", zone = "Hillsbrad Foothills", coords = { 26.1, 71.7 }, minLevel = 28, maxLevel = 29, searchOnly = true },
+    { name = "Torn Fin Coastrunner", zone = "Hillsbrad Foothills", coords = { 27.0, 71.8 }, minLevel = 29, maxLevel = 30, searchOnly = true },
+    { name = "Torn Fin Oracle", zone = "Hillsbrad Foothills", coords = { 43.9, 68.7 }, minLevel = 30, maxLevel = 31, searchOnly = true },
+    { name = "Torn Fin Tidehunter", zone = "Hillsbrad Foothills", coords = { 43.2, 68.0 }, minLevel = 31, maxLevel = 32, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Gloves - Greater Agility", id = 16219, category = "Recipe", sources = {
+    { name = "Legashi Rogue", zone = "Azshara", coords = { 65.2, 17.4 }, minLevel = 51, maxLevel = 53, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Gloves - Herbalism", id = 11151, category = "Recipe", sources = {
+    { name = "Charred Ancient", zone = "Stonetalon Mountains", coords = { 34.1, 67.6 }, minLevel = 25, maxLevel = 26, searchOnly = true },
+    { name = "Withered Ancient", zone = "Ashenvale", coords = { 54.7, 34.4 }, minLevel = 26, maxLevel = 27, searchOnly = true },
+    { name = "Crazed Ancient", zone = "Ashenvale", coords = { 57.8, 39.1 }, minLevel = 27, maxLevel = 28, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Gloves - Mining", id = 11150, category = "Recipe", sources = {
+    { name = "Dark Iron Dwarf", zone = "Wetlands", coords = { 59.9, 23.0 }, minLevel = 27, maxLevel = 28, searchOnly = true },
+    { name = "Dark Iron Saboteur", zone = "Wetlands", coords = { 48.1, 18.6 }, minLevel = 28, maxLevel = 29, searchOnly = true },
+    { name = "Dark Iron Tunneler", zone = "Wetlands", coords = { 47.1, 17.9 }, minLevel = 29, maxLevel = 30, searchOnly = true },
+    { name = "Dark Iron Demolitionist", zone = "Wetlands", coords = { 60.1, 24.4 }, minLevel = 30, maxLevel = 31, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Gloves - Skinning", id = 11166, category = "Recipe", sources = {
+    { name = "Witherbark Headhunter", zone = "Arathi Highlands", coords = { 68.6, 76.6 }, minLevel = 34, maxLevel = 35, searchOnly = true },
+    { name = "Witherbark Shadow Hunter", zone = "Arathi Highlands", coords = { 67.6, 81.0 }, minLevel = 35, maxLevel = 36, searchOnly = true },
+    { name = "Witherbark Berserker", zone = "Arathi Highlands", coords = { 24.0, 65.2 }, minLevel = 36, maxLevel = 37, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Shield - Stamina", id = 11202, category = "Recipe", sources = {
+    { name = "Mosh'Ogg Lord", zone = "Stranglethorn Vale", coords = { 52.9, 27.8 }, minLevel = 45, maxLevel = 45, searchOnly = true },
+    { name = "Timbermaw Warrior", zone = "Azshara", coords = { 34.3, 42.1 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Shield - Superior Spirit", id = 16222, category = "Recipe", sources = {
+    { name = "Scarlet Warder", zone = "Eastern Plaguelands", coords = { 81.1, 83.1 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Weapon - Crusader", id = 16252, category = "Recipe", sources = {
+    { name = "Scarlet Spellbinder", zone = "Western Plaguelands", coords = { 55.1, 23.5 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Weapon - Demonslaying", id = 11208, category = "Recipe", sources = {
+    { name = "Atal'ai Priest", zone = "Swamp of Sorrows", coords = { 77.6, 48.5 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Emerald Ooze", zone = "The Hinterlands", coords = { 65.1, 66.0 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Shore Strider", zone = "Feralas", coords = { 44.1, 50.1 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Weapon - Icy Chill", id = 16223, category = "Recipe", sources = {
+    { name = "Anguished Highborne", zone = "Winterspring", coords = { 53.6, 43.5 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Weapon - Lesser Elemental Slayer", id = 11165, category = "Recipe", sources = {
+    { name = "Noxious Flayer", zone = "Dustwallow Marsh", coords = { 55.6, 19.0 }, minLevel = 35, maxLevel = 36, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Formula: Enchant Weapon - Minor Beastslayer", id = 6348, category = "Recipe", sources = {
+    { name = "Mo'grosh Brute", zone = "Loch Modan", coords = { 75.6, 18.4 }, minLevel = 19, maxLevel = 20, searchOnly = true },
+    { name = "Barrens Kodo", zone = "The Barrens", coords = { 47.3, 66.5 }, minLevel = 19, maxLevel = 20, searchOnly = true },
+} })
 DB:RegisterItem({ name = "Fractured Elemental Shard", id = 11266, category = "Quest item", sources = {
     { name = "War Reaver", zone = "Burning Steppes", coords = { 59.4, 37.8 }, minLevel = 53, maxLevel = 55, searchOnly = true },
     { name = "Greater Obsidian Elemental", zone = "Burning Steppes", coords = { 55.5, 49.0 }, minLevel = 55, maxLevel = 57, searchOnly = true },
@@ -1323,6 +1465,10 @@ DB:RegisterItem({ name = "Grimesilt Outhouse Key", id = 11818, category = "Quest
     { name = "Dark Iron Lookout", zone = "Searing Gorge", coords = { 37.1, 60.8 }, minLevel = 47, maxLevel = 48, searchOnly = true },
     { name = "Dark Iron Taskmaster", zone = "Searing Gorge", coords = { 43.1, 40.4 }, minLevel = 47, maxLevel = 48, searchOnly = true },
     { name = "Dark Iron Sentry", zone = "Searing Gorge", coords = { 49.2, 55.9 }, minLevel = 48, maxLevel = 48, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Grimoire of Doom", id = 4213, category = "Recipe", sources = {
+    { name = "Doomguard Commander", zone = "Blasted Lands", coords = { 40.1, 66.5 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Dreadlord", zone = "Blasted Lands", coords = { 38.1, 72.3 }, minLevel = 62, maxLevel = 62, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Grimtotem Horn", id = 9460, category = "Quest item", sources = {
     { name = "Grimtotem Naturalist", zone = "Feralas", coords = { 67.3, 39.4 }, minLevel = 41, maxLevel = 42, searchOnly = true },
@@ -1783,6 +1929,27 @@ DB:RegisterItem({ name = "Lesser Infernal Stone", id = 6990, category = "Quest i
 DB:RegisterItem({ name = "Lesser Moonstone", id = 1705, sources = {
     { name = "Wrathtail Sea Witch", zone = "Ashenvale", coords = { 10.8, 27.1 }, minLevel = 19, maxLevel = 20, searchOnly = true },
 } })
+DB:RegisterItem({ name = "Libram of Constitution", id = 11733, category = "Recipe", sources = {
+    { name = "Gordok Mauler", zone = "Feralas", coords = { 63.7, 29.9 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+    { name = "Servant of Sevine", zone = "Blasted Lands", coords = { 41.0, 40.1 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+    { name = "Hakkari Oracle", zone = "Stranglethorn Vale", coords = { 52.3, 17.6 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Libram of Resilience", id = 11736, category = "Recipe", sources = {
+    { name = "Scarshield Grunt", zone = "Burning Steppes", coords = { 35.5, 26.8 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+    { name = "Scarshield Sentry", zone = "Burning Steppes", coords = { 34.6, 28.1 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+    { name = "Stonard Grunt", zone = "Swamp of Sorrows", coords = { 43.3, 54.4 }, minLevel = 55, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Libram of Rumination", id = 11732, category = "Recipe", sources = {
+    { name = "Servant of Arkkoroc", zone = "Azshara", coords = { 61.9, 62.1 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Libram of Tenacity", id = 11734, category = "Recipe", sources = {
+    { name = "Scarshield Grunt", zone = "Burning Steppes", coords = { 35.5, 26.8 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+    { name = "Hakkari Oracle", zone = "Stranglethorn Vale", coords = { 52.3, 17.6 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Libram of Voracity", id = 11737, category = "Recipe", sources = {
+    { name = "Servant of Grol", zone = "Blasted Lands", coords = { 41.2, 14.4 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+    { name = "Gordok Enforcer", zone = "Feralas", coords = { 59.7, 42.8 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+} })
 DB:RegisterItem({ name = "Lieutenant's Insignia", id = 14544, category = "Quest item", sources = {
     { name = "Burning Blade Fanatic", zone = "Durotar", coords = { 52.4, 9.2 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Burning Blade Apprentice", zone = "Durotar", coords = { 53.1, 9.4 }, minLevel = 10, maxLevel = 11, searchOnly = true },
@@ -1875,6 +2042,9 @@ DB:RegisterItem({ name = "Malachite", id = 774, sources = {
     { name = "Encrusted Surf Crawler", zone = "Durotar", coords = { 58.1, 12.0 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Bloodfeather Fury", zone = "Teldrassil", coords = { 34.3, 28.9 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Torn Fin Oracle", zone = "Hillsbrad Foothills", coords = { 43.9, 68.7 }, minLevel = 30, maxLevel = 31, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Manual: Strong Anti-Venom", id = 6454, category = "Recipe", sources = {
+    { name = "Caverndeep Looter", zone = "Dun Morogh", coords = { 19.3, 36.6 }, minLevel = 26, maxLevel = 26, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Meaty Bat Wing", id = 12223, category = "Cooking", sources = {
     { name = "Greater Duskbat", zone = "Tirisfal Glades", coords = { 57.1, 54.2 }, minLevel = 6, maxLevel = 7, searchOnly = true },
@@ -2097,6 +2267,367 @@ DB:RegisterItem({ name = "Painted Gnoll Armband", id = 782, category = "Quest it
     { name = "Riverpaw Runt", zone = "Elwynn Forest", coords = { 68.6, 46.5 }, minLevel = 8, maxLevel = 9, searchOnly = true },
     { name = "Riverpaw Outrunner", zone = "Elwynn Forest", coords = { 28.3, 81.2 }, minLevel = 9, maxLevel = 10, searchOnly = true },
 } })
+DB:RegisterItem({ name = "Pattern: Big Voodoo Pants", id = 8389, category = "Recipe", sources = {
+    { name = "Spitelash Screamer", zone = "Azshara", coords = { 31.0, 55.1 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+    { name = "Wave Strider", zone = "Feralas", coords = { 44.1, 50.1 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+    { name = "Deep Strider", zone = "Feralas", coords = { 44.1, 50.1 }, minLevel = 47, maxLevel = 49, searchOnly = true },
+    { name = "Shadowsilk Poacher", zone = "Searing Gorge", coords = { 59.6, 25.3 }, minLevel = 47, maxLevel = 50, searchOnly = true },
+    { name = "Dune Smasher", zone = "Tanaris", coords = { 36.7, 80.6 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+    { name = "Nethergarde Cleric", zone = "Blasted Lands", coords = { 61.0, 17.7 }, minLevel = 49, maxLevel = 51, searchOnly = true },
+    { name = "Hakkari Oracle", zone = "Stranglethorn Vale", coords = { 52.3, 17.6 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Big Voodoo Robe", id = 8386, category = "Recipe", sources = {
+    { name = "Elder Murk Thresher", zone = "Dustwallow Marsh", coords = { 66.8, 62.3 }, minLevel = 43, maxLevel = 45, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Black Silk Pack", id = 5775, category = "Recipe", sources = {
+    { name = "Syndicate Spy", zone = "Alterac Mountains", coords = { 61.4, 43.4 }, minLevel = 35, maxLevel = 36, searchOnly = true },
+    { name = "Theramore Infiltrator", zone = "Dustwallow Marsh", coords = { 39.0, 26.4 }, minLevel = 35, maxLevel = 36, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Blue Dragonscale Shoulders", id = 15763, category = "Recipe", sources = {
+    { name = "Cliff Breaker", zone = "Azshara", coords = { 60.3, 81.7 }, minLevel = 54, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Boots of the Enchanter", id = 4352, category = "Recipe", sources = {
+    { name = "Caverndeep Looter", zone = "Dun Morogh", coords = { 19.3, 36.6 }, minLevel = 26, maxLevel = 26, searchOnly = true },
+    { name = "Mage Hunter", zone = "Desolace", coords = { 56.7, 77.9 }, minLevel = 38, maxLevel = 39, searchOnly = true },
+    { name = "Condemned Cleric", zone = "Hillsbrad Foothills", coords = { 16.3, 80.9 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Brightcloth Cloak", id = 14484, category = "Recipe", sources = {
+    { name = "Emerald Ooze", zone = "The Hinterlands", coords = { 65.1, 66.0 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Cyclone Warrior", zone = "Silithus", coords = { 45.0, 62.2 }, minLevel = 57, maxLevel = 59, searchOnly = true },
+    { name = "Hive'Zora Hive Sister", zone = "Silithus", coords = { 26.5, 63.8 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Brightcloth Gloves", id = 14479, category = "Recipe", sources = {
+    { name = "Gurubashi Warrior", zone = "Stranglethorn Vale", coords = { 51.6, 17.4 }, minLevel = 54, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Brightcloth Pants", id = 14494, category = "Recipe", sources = {
+    { name = "Jademir Tree Warder", zone = "Feralas", coords = { 50.6, 10.6 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+    { name = "Verdantine Tree Warder", zone = "The Hinterlands", coords = { 66.3, 28.1 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+    { name = "Minion of Weavil", zone = "Dustwallow Marsh", coords = { 77.6, 17.7 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Brightcloth Robe", id = 14478, category = "Recipe", sources = {
+    { name = "Scarshield Grunt", zone = "Burning Steppes", coords = { 35.5, 26.8 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Chimeric Boots", id = 15737, category = "Recipe", sources = {
+    { name = "Nethergarde Elite", zone = "Blasted Lands", coords = { 65.0, 17.0 }, minLevel = 55, maxLevel = 55, searchOnly = true },
+    { name = "Hive'Ashi Swarmer", zone = "Silithus", coords = { 49.3, 27.9 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Chimeric Leggings", id = 15746, category = "Recipe", sources = {
+    { name = "Strashaz Serpent Guard", zone = "Dustwallow Marsh", coords = { 77.3, 17.5 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Chimeric Vest", id = 15755, category = "Recipe", sources = {
+    { name = "Hive'Zora Waywatcher", zone = "Silithus", coords = { 24.1, 61.7 }, minLevel = 58, maxLevel = 59, searchOnly = true },
+    { name = "Strashaz Myrmidon", zone = "Dustwallow Marsh", coords = { 77.2, 18.9 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Cindercloth Cloak", id = 14482, category = "Recipe", sources = {
+    { name = "Thaurissan Firewalker", zone = "Burning Steppes", coords = { 65.7, 40.1 }, minLevel = 53, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Cindercloth Gloves", id = 14476, category = "Recipe", sources = {
+    { name = "Twilight Fire Guard", zone = "Searing Gorge", coords = { 22.0, 36.6 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Cindercloth Pants", id = 14490, category = "Recipe", sources = {
+    { name = "Thaurissan Firewalker", zone = "Burning Steppes", coords = { 65.7, 40.1 }, minLevel = 53, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Cindercloth Vest", id = 14471, category = "Recipe", sources = {
+    { name = "Twilight Fire Guard", zone = "Searing Gorge", coords = { 22.0, 36.6 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Colorful Kilt", id = 10316, category = "Recipe", sources = {
+    { name = "Torn Fin Oracle", zone = "Hillsbrad Foothills", coords = { 43.9, 68.7 }, minLevel = 30, maxLevel = 31, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Dark Leather Gloves", id = 7360, category = "Recipe", sources = {
+    { name = "Caverndeep Looter", zone = "Dun Morogh", coords = { 19.3, 36.6 }, minLevel = 26, maxLevel = 26, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Dark Leather Tunic", id = 2409, category = "Recipe", sources = {
+    { name = "Deviate Lurker", zone = "The Barrens", coords = { 47.9, 33.4 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+    { name = "Deviate Slayer", zone = "The Barrens", coords = { 47.9, 32.6 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+    { name = "Mo'grosh Brute", zone = "Loch Modan", coords = { 75.6, 18.4 }, minLevel = 19, maxLevel = 20, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Earthen Silk Belt", id = 7086, category = "Recipe", sources = {
+    { name = "Saltscale Oracle", zone = "Stranglethorn Vale", coords = { 24.5, 23.9 }, minLevel = 36, maxLevel = 37, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Felcloth Boots", id = 14492, category = "Recipe", sources = {
+    { name = "Nethergarde Elite", zone = "Blasted Lands", coords = { 65.0, 17.0 }, minLevel = 55, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Felcloth Hood", id = 14496, category = "Recipe", sources = {
+    { name = "Manahound", zone = "Blasted Lands", coords = { 42.1, 62.7 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Felcloth Robe", id = 14506, category = "Recipe", sources = {
+    { name = "Verdantine Tree Warder", zone = "The Hinterlands", coords = { 66.3, 28.1 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+    { name = "Spectral Attendant", zone = "Western Plaguelands", coords = { 45.5, 69.2 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+    { name = "Strashaz Myrmidon", zone = "Dustwallow Marsh", coords = { 77.2, 18.9 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+    { name = "Felguard Elite", zone = "Blasted Lands", coords = { 41.0, 59.1 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Verdantine Oracle", zone = "The Hinterlands", coords = { 66.3, 28.1 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Chimaerok Devourer", zone = "Feralas", coords = { 29.1, 76.7 }, minLevel = 61, maxLevel = 62, searchOnly = true },
+    { name = "Emeraldon Boughguard", zone = "Ashenvale", coords = { 92.8, 39.5 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+    { name = "Dreadlord", zone = "Blasted Lands", coords = { 38.1, 72.3 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Felcloth Shoulders", id = 14508, category = "Recipe", sources = {
+    { name = "Hakkari Oracle", zone = "Stranglethorn Vale", coords = { 52.3, 17.6 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+    { name = "Desert Rager", zone = "Silithus", coords = { 48.3, 89.8 }, minLevel = 58, maxLevel = 59, searchOnly = true },
+    { name = "Strashaz Serpent Guard", zone = "Dustwallow Marsh", coords = { 77.3, 17.5 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+    { name = "Verdantine Tree Warder", zone = "The Hinterlands", coords = { 66.3, 28.1 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+    { name = "Doomguard Commander", zone = "Blasted Lands", coords = { 40.1, 66.5 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Felguard Elite", zone = "Blasted Lands", coords = { 41.0, 59.1 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Emeraldon Boughguard", zone = "Ashenvale", coords = { 92.8, 39.5 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+    { name = "Dreadlord", zone = "Blasted Lands", coords = { 38.1, 72.3 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Fine Leather Boots", id = 2406, category = "Recipe", sources = {
+    { name = "Savannah Huntress", zone = "The Barrens", coords = { 51.4, 26.2 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Murloc Minor Oracle", zone = "Westfall", coords = { 34.6, 15.9 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+    { name = "Reef Frenzy", zone = "Silverpine Forest", coords = { 34.2, 47.8 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Lake Frenzy", zone = "Silverpine Forest", coords = { 61.7, 28.4 }, minLevel = 15, maxLevel = 16, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Fine Leather Gloves", id = 2408, category = "Recipe", sources = {
+    { name = "Makrura Snapclaw", zone = "Durotar", coords = { 60.4, 18.5 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Dreadmaw Crocolisk", zone = "Durotar", coords = { 34.5, 44.3 }, minLevel = 9, maxLevel = 11, searchOnly = true },
+    { name = "Hogger", zone = "Elwynn Forest", coords = { 25.8, 89.8 }, minLevel = 11, maxLevel = 11, searchOnly = true },
+    { name = "Riverpaw Shaman", zone = "Westfall", coords = { 41.8, 20.7 }, minLevel = 12, maxLevel = 13, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Frostsaber Gloves", id = 15761, category = "Recipe", sources = {
+    { name = "Winterfall Totemic", zone = "Winterspring", coords = { 33.2, 36.8 }, minLevel = 54, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Frostsaber Leggings", id = 15747, category = "Recipe", sources = {
+    { name = "Winterfall Den Watcher", zone = "Winterspring", coords = { 39.7, 42.7 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Frostsaber Tunic", id = 15779, category = "Recipe", sources = {
+    { name = "Winterfall Ursa", zone = "Winterspring", coords = { 67.9, 37.9 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Frostweave Gloves", id = 14474, category = "Recipe", sources = {
+    { name = "Scarshield Grunt", zone = "Burning Steppes", coords = { 35.5, 26.8 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+    { name = "Hive'Regal Ambusher", zone = "Silithus", coords = { 58.1, 86.9 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Frostweave Pants", id = 14489, category = "Recipe", sources = {
+    { name = "Watery Invader", zone = "Winterspring", coords = { 52.5, 42.8 }, minLevel = 56, maxLevel = 58, searchOnly = true },
+    { name = "Emeraldon Tree Warder", zone = "Ashenvale", coords = { 92.8, 39.5 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Frostweave Robe", id = 14467, category = "Recipe", sources = {
+    { name = "Coralshell Tortoise", zone = "Azshara", coords = { 84.8, 12.7 }, minLevel = 50, maxLevel = 52, searchOnly = true },
+    { name = "Strashaz Hydra", zone = "Dustwallow Marsh", coords = { 69.8, 19.2 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+    { name = "Strashaz Serpent Guard", zone = "Dustwallow Marsh", coords = { 77.3, 17.5 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Frostweave Tunic", id = 14466, category = "Recipe", sources = {
+    { name = "Gurubashi Warrior", zone = "Stranglethorn Vale", coords = { 51.6, 17.4 }, minLevel = 54, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Ghostweave Belt", id = 14473, category = "Recipe", sources = {
+    { name = "Lingering Highborne", zone = "Azshara", coords = { 39.4, 50.3 }, minLevel = 48, maxLevel = 50, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Ghostweave Gloves", id = 14477, category = "Recipe", sources = {
+    { name = "Lingering Highborne", zone = "Azshara", coords = { 39.4, 50.3 }, minLevel = 48, maxLevel = 50, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Green Silk Armor", id = 7090, category = "Recipe", sources = {
+    { name = "Scorpashi Lasher", zone = "Desolace", coords = { 60.8, 54.5 }, minLevel = 34, maxLevel = 35, searchOnly = true },
+    { name = "Murkgill Oracle", zone = "Stranglethorn Vale", coords = { 35.6, 23.2 }, minLevel = 36, maxLevel = 37, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Green Silk Pack", id = 5774, category = "Recipe", sources = {
+    { name = "Captain Ironhill", zone = "Arathi Highlands", coords = { 10.8, 48.6 }, minLevel = 32, maxLevel = 32, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Green Whelp Armor", id = 7450, category = "Recipe", sources = {
+    { name = "Captain Ironhill", zone = "Arathi Highlands", coords = { 10.8, 48.6 }, minLevel = 32, maxLevel = 32, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Guardian Leather Bracers", id = 4300, category = "Recipe", sources = {
+    { name = "Stromgarde Vindicator", zone = "Arathi Highlands", coords = { 27.3, 58.8 }, minLevel = 39, maxLevel = 40, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Heavy Earthen Gloves", id = 7364, category = "Recipe", sources = {
+    { name = "Torn Fin Muckdweller", zone = "Hillsbrad Foothills", coords = { 26.1, 71.7 }, minLevel = 28, maxLevel = 29, searchOnly = true },
+    { name = "Torn Fin Coastrunner", zone = "Hillsbrad Foothills", coords = { 27.0, 71.8 }, minLevel = 29, maxLevel = 30, searchOnly = true },
+    { name = "Torn Fin Oracle", zone = "Hillsbrad Foothills", coords = { 43.9, 68.7 }, minLevel = 30, maxLevel = 31, searchOnly = true },
+    { name = "Torn Fin Tidehunter", zone = "Hillsbrad Foothills", coords = { 43.2, 68.0 }, minLevel = 31, maxLevel = 32, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Heavy Scorpid Belt", id = 15743, category = "Recipe", sources = {
+    { name = "Scarlet Cavalier", zone = "Western Plaguelands", coords = { 41.9, 15.0 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+    { name = "Strashaz Siren", zone = "Dustwallow Marsh", coords = { 77.2, 19.3 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Heavy Scorpid Gauntlets", id = 15738, category = "Recipe", sources = {
+    { name = "Blackrock Soldier", zone = "Burning Steppes", coords = { 45.0, 56.8 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Heavy Scorpid Leggings", id = 15748, category = "Recipe", sources = {
+    { name = "Blackrock Slayer", zone = "Burning Steppes", coords = { 41.8, 55.7 }, minLevel = 56, maxLevel = 57, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Heavy Scorpid Shoulders", id = 15774, category = "Recipe", sources = {
+    { name = "Blackrock Battlemaster", zone = "Burning Steppes", coords = { 40.2, 34.8 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Heavy Woolen Cloak", id = 4346, category = "Recipe", sources = {
+    { name = "Deviate Stinglash", zone = "The Barrens", coords = { 48.2, 34.4 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+    { name = "Mo'grosh Enforcer", zone = "Loch Modan", coords = { 69.7, 25.2 }, minLevel = 18, maxLevel = 19, searchOnly = true },
+    { name = "Mo'grosh Shaman", zone = "Loch Modan", coords = { 69.7, 25.2 }, minLevel = 18, maxLevel = 19, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Hillman's Leather Vest", id = 4293, category = "Recipe", sources = {
+    { name = "Defias Watchman", zone = "Westfall", coords = { 40.0, 78.5 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Ironfeather Breastplate", id = 15760, category = "Recipe", sources = {
+    { name = "Vilebranch Hideskinner", zone = "The Hinterlands", coords = { 64.4, 74.1 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Living Leggings", id = 15752, category = "Recipe", sources = {
+    { name = "Deadwood Shaman", zone = "Felwood", coords = { 62.7, 8.4 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Mooncloth Bag", id = 14499, category = "Recipe", sources = {
+    { name = "Hive'Regal Burrower", zone = "Silithus", coords = { 61.0, 78.8 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Murloc Scale Belt", id = 5786, category = "Recipe", sources = {
+    { name = "Theramore Marine", zone = "The Barrens", coords = { 61.8, 54.8 }, minLevel = 15, maxLevel = 16, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Murloc Scale Bracers", id = 5789, category = "Recipe", sources = {
+    { name = "Blackwater Deckhand", zone = "Arathi Highlands", coords = { 33.2, 81.5 }, minLevel = 38, maxLevel = 39, searchOnly = true },
+    { name = "Bloodsail Raider", zone = "Stranglethorn Vale", coords = { 27.9, 69.9 }, minLevel = 40, maxLevel = 41, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Murloc Scale Breastplate", id = 5787, category = "Recipe", sources = {
+    { name = "Theramore Preserver", zone = "The Barrens", coords = { 61.8, 54.9 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Red Linen Bag", id = 5771, category = "Recipe", sources = {
+    { name = "Defias Looter", zone = "Westfall", coords = { 38.8, 58.0 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Red Linen Robe", id = 2598, category = "Recipe", sources = {
+    { name = "Surf Crawler", zone = "Durotar", coords = { 64.1, 78.9 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Venture Co. Taskmaster", zone = "Mulgore", coords = { 44.7, 46.0 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Bael'dun Appraiser", zone = "Mulgore", coords = { 31.5, 48.8 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Frostmane Hideskinner", zone = "Dun Morogh", coords = { 21.7, 52.9 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Encrusted Surf Crawler", zone = "Durotar", coords = { 58.1, 12.0 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Bloodfeather Wind Witch", zone = "Teldrassil", coords = { 34.3, 28.9 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Bristleback Interloper", zone = "The Barrens", coords = { 36.6, 38.7 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Ghoul", zone = "Westfall", coords = { 40.3, 66.9 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Red Linen Vest", id = 6271, category = "Recipe", sources = {
+    { name = "Kodo Matriarch", zone = "Mulgore", coords = { 43.2, 53.8 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Pyrewood Sentry", zone = "Silverpine Forest", coords = { 44.7, 73.2 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Red Mageweave Gloves", id = 10312, category = "Recipe", sources = {
+    { name = "Mosh'Ogg Mauler", zone = "Stranglethorn Vale", coords = { 51.5, 27.1 }, minLevel = 43, maxLevel = 44, searchOnly = true },
+    { name = "Emerald Ooze", zone = "The Hinterlands", coords = { 65.1, 66.0 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Red Mageweave Headband", id = 10320, category = "Recipe", sources = {
+    { name = "Spitelash Warrior", zone = "Azshara", coords = { 31.0, 55.1 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Emerald Ooze", zone = "The Hinterlands", coords = { 65.1, 66.0 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Timbermaw Totemic", zone = "Azshara", coords = { 34.3, 41.2 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Red Woolen Boots", id = 4345, category = "Recipe", sources = {
+    { name = "Skeletal Miner", zone = "Westfall", coords = { 41.6, 81.7 }, minLevel = 17, maxLevel = 18, searchOnly = true },
+    { name = "Dust Devil", zone = "Westfall", coords = { 45.6, 49.3 }, minLevel = 18, maxLevel = 19, searchOnly = true },
+    { name = "Mo'grosh Brute", zone = "Loch Modan", coords = { 75.6, 18.4 }, minLevel = 19, maxLevel = 20, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Robe of Winter Night", id = 14493, category = "Recipe", sources = {
+    { name = "Cobalt Mageweaver", zone = "Winterspring", coords = { 56.7, 51.7 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Robes of Arcana", id = 5773, category = "Recipe", sources = {
+    { name = "Defias Enchanter", zone = "Duskwood", coords = { 23.7, 72.0 }, minLevel = 26, maxLevel = 27, searchOnly = true },
+    { name = "Dark Strand Voidcaller", zone = "Darkshore", coords = { 56.1, 26.0 }, minLevel = 28, maxLevel = 29, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Rugged Leather Pants", id = 7288, category = "Recipe", sources = {
+    { name = "Savannah Huntress", zone = "The Barrens", coords = { 51.4, 26.2 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Greymist Netter", zone = "Darkshore", coords = { 36.2, 70.7 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Pyrewood Elder", zone = "Silverpine Forest", coords = { 45.4, 74.7 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Runecloth Headband", id = 14498, category = "Recipe", sources = {
+    { name = "Emeraldon Tree Warder", zone = "Ashenvale", coords = { 92.8, 39.5 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+    { name = "Dreadlord", zone = "Blasted Lands", coords = { 38.1, 72.3 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Runecloth Pants", id = 14491, category = "Recipe", sources = {
+    { name = "Servant of Arkkoroc", zone = "Azshara", coords = { 61.9, 62.1 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+    { name = "Hakkari Oracle", zone = "Stranglethorn Vale", coords = { 52.3, 17.6 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+    { name = "Strashaz Siren", zone = "Dustwallow Marsh", coords = { 77.2, 19.3 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+    { name = "Strashaz Myrmidon", zone = "Dustwallow Marsh", coords = { 77.2, 18.9 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Runecloth Shoulders", id = 14504, category = "Recipe", sources = {
+    { name = "Red Wyrmkin", zone = "Wetlands", coords = { 77.9, 46.3 }, minLevel = 58, maxLevel = 59, searchOnly = true },
+    { name = "Verdantine Tree Warder", zone = "The Hinterlands", coords = { 66.3, 28.1 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+    { name = "Chimaerok", zone = "Feralas", coords = { 29.8, 80.9 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+    { name = "Dreadlord", zone = "Blasted Lands", coords = { 38.1, 72.3 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Runecloth Tunic", id = 14470, category = "Recipe", sources = {
+    { name = "Emerald Ooze", zone = "The Hinterlands", coords = { 65.1, 66.0 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Gordok Enforcer", zone = "Feralas", coords = { 59.7, 42.8 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Runic Leather Belt", id = 15745, category = "Recipe", sources = {
+    { name = "Emeraldon Oracle", zone = "Ashenvale", coords = { 92.8, 39.5 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Runic Leather Bracers", id = 15739, category = "Recipe", sources = {
+    { name = "Jaedenar Cultist", zone = "Felwood", coords = { 38.1, 61.1 }, minLevel = 51, maxLevel = 52, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Runic Leather Pants", id = 15765, category = "Recipe", sources = {
+    { name = "Strashaz Serpent Guard", zone = "Dustwallow Marsh", coords = { 77.3, 17.5 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+    { name = "Strashaz Sorceress", zone = "Dustwallow Marsh", coords = { 77.4, 19.0 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+    { name = "Doomguard Commander", zone = "Blasted Lands", coords = { 40.1, 66.5 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Felguard Elite", zone = "Blasted Lands", coords = { 41.0, 59.1 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Stormshroud Armor", id = 15753, category = "Recipe", sources = {
+    { name = "Arkkoran Oracle", zone = "Azshara", coords = { 77.2, 42.6 }, minLevel = 54, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Stormshroud Shoulders", id = 15764, category = "Recipe", sources = {
+    { name = "Son of Arkkoroc", zone = "Azshara", coords = { 56.4, 57.8 }, minLevel = 54, maxLevel = 55, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Stylish Blue Shirt", id = 6390, category = "Recipe", sources = {
+    { name = "Torn Fin Oracle", zone = "Hillsbrad Foothills", coords = { 43.9, 68.7 }, minLevel = 30, maxLevel = 31, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Stylish Green Shirt", id = 6391, category = "Recipe", sources = {
+    { name = "Blackrock Hunter", zone = "Redridge Mountains", coords = { 69.3, 56.0 }, minLevel = 23, maxLevel = 24, searchOnly = true },
+    { name = "Torn Fin Coastrunner", zone = "Hillsbrad Foothills", coords = { 27.0, 71.8 }, minLevel = 29, maxLevel = 30, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Swift Boots", id = 7453, category = "Recipe", sources = {
+    { name = "Withervine Bark Ripper", zone = "Dustwallow Marsh", coords = { 42.1, 37.2 }, minLevel = 36, maxLevel = 37, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Thick Murloc Armor", id = 5788, category = "Recipe", sources = {
+    { name = "Kurzen Commando", zone = "Stranglethorn Vale", coords = { 46.0, 7.9 }, minLevel = 34, maxLevel = 35, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Tough Scorpid Boots", id = 8399, category = "Recipe", sources = {
+    { name = "Wastewander Rogue", zone = "Tanaris", coords = { 61.7, 38.2 }, minLevel = 43, maxLevel = 44, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Tough Scorpid Bracers", id = 8397, category = "Recipe", sources = {
+    { name = "Wastewander Shadow Mage", zone = "Tanaris", coords = { 63.3, 37.4 }, minLevel = 42, maxLevel = 43, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Tough Scorpid Breastplate", id = 8395, category = "Recipe", sources = {
+    { name = "Wastewander Bandit", zone = "Tanaris", coords = { 63.6, 31.0 }, minLevel = 41, maxLevel = 42, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Tough Scorpid Gloves", id = 8398, category = "Recipe", sources = {
+    { name = "Wastewander Thief", zone = "Tanaris", coords = { 63.6, 31.0 }, minLevel = 40, maxLevel = 41, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Tough Scorpid Helm", id = 8402, category = "Recipe", sources = {
+    { name = "Wastewander Assassin", zone = "Tanaris", coords = { 63.3, 37.4 }, minLevel = 44, maxLevel = 45, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Tough Scorpid Leggings", id = 8401, category = "Recipe", sources = {
+    { name = "Wastewander Rogue", zone = "Tanaris", coords = { 61.7, 38.2 }, minLevel = 43, maxLevel = 44, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Tough Scorpid Shoulders", id = 8400, category = "Recipe", sources = {
+    { name = "Wastewander Assassin", zone = "Tanaris", coords = { 63.3, 37.4 }, minLevel = 44, maxLevel = 45, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Truefaith Gloves", id = 7091, category = "Recipe", sources = {
+    { name = "Legion Hound", zone = "Ashenvale", coords = { 78.8, 82.3 }, minLevel = 29, maxLevel = 30, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Volcanic Leggings", id = 15732, category = "Recipe", sources = {
+    { name = "Firegut Brute", zone = "Burning Steppes", coords = { 81.4, 44.1 }, minLevel = 52, maxLevel = 53, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: White Bandit Mask", id = 10301, category = "Recipe", sources = {
+    { name = "Rock Worm", zone = "Desolace", coords = { 29.3, 55.8 }, minLevel = 41, maxLevel = 42, searchOnly = true },
+    { name = "Mosh'Ogg Spellcrafter", zone = "Stranglethorn Vale", coords = { 51.4, 27.9 }, minLevel = 43, maxLevel = 44, searchOnly = true },
+    { name = "Mosh'Ogg Lord", zone = "Stranglethorn Vale", coords = { 52.9, 27.8 }, minLevel = 45, maxLevel = 45, searchOnly = true },
+    { name = "Shore Strider", zone = "Feralas", coords = { 44.1, 50.1 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: White Leather Jerkin", id = 2407, category = "Recipe", sources = {
+    { name = "Bloodtalon Scythemaw", zone = "Durotar", coords = { 36.8, 25.4 }, minLevel = 8, maxLevel = 10, searchOnly = true },
+    { name = "Savannah Huntress", zone = "The Barrens", coords = { 51.4, 26.2 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Gazz'uz", zone = "Durotar", coords = { 51.9, 9.6 }, minLevel = 14, maxLevel = 14, searchOnly = true },
+    { name = "Pyrewood Sentry", zone = "Silverpine Forest", coords = { 44.7, 73.2 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Wicked Leather Bracers", id = 15728, category = "Recipe", sources = {
+    { name = "Legashi Rogue", zone = "Azshara", coords = { 65.2, 17.4 }, minLevel = 51, maxLevel = 53, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Wicked Leather Headband", id = 15744, category = "Recipe", sources = {
+    { name = "Jadefire Trickster", zone = "Felwood", coords = { 42.7, 18.0 }, minLevel = 52, maxLevel = 53, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Wicked Leather Pants", id = 15757, category = "Recipe", sources = {
+    { name = "Hive'Ashi Sandstalker", zone = "Silithus", coords = { 42.9, 20.3 }, minLevel = 58, maxLevel = 59, searchOnly = true },
+    { name = "Strashaz Serpent Guard", zone = "Dustwallow Marsh", coords = { 77.3, 17.5 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Wildthorn Mail", id = 12691, category = "Recipe", sources = {
+    { name = "Nethergarde Elite", zone = "Blasted Lands", coords = { 65.0, 17.0 }, minLevel = 55, maxLevel = 55, searchOnly = true },
+    { name = "Manahound", zone = "Blasted Lands", coords = { 42.1, 62.7 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Wizardweave Leggings", id = 14485, category = "Recipe", sources = {
+    { name = "Dark Summoner", zone = "Eastern Plaguelands", coords = { 60.4, 70.9 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Wizardweave Robe", id = 14500, category = "Recipe", sources = {
+    { name = "Dark Caster", zone = "Eastern Plaguelands", coords = { 59.2, 68.2 }, minLevel = 56, maxLevel = 57, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Pattern: Wizardweave Turban", id = 14505, category = "Recipe", sources = {
+    { name = "Dark Caster", zone = "Eastern Plaguelands", coords = { 59.2, 68.2 }, minLevel = 56, maxLevel = 57, searchOnly = true },
+} })
 DB:RegisterItem({ name = "Perfect Deviate Scale", id = 6471, sources = {
     { name = "Deviate Creeper", zone = "The Barrens", coords = { 46.2, 34.3 }, minLevel = 15, maxLevel = 16, searchOnly = true },
     { name = "Deviate Coiler", zone = "The Barrens", coords = { 46.1, 34.6 }, minLevel = 15, maxLevel = 16, searchOnly = true },
@@ -2140,6 +2671,146 @@ DB:RegisterItem({ name = "Plainstrider Talon", id = 4759, category = "Quest item
     { name = "Greater Plainstrider", zone = "The Barrens", coords = { 51.7, 23.1 }, minLevel = 11, maxLevel = 12, searchOnly = true },
     { name = "Fleeting Plainstrider", zone = "The Barrens", coords = { 48.7, 31.7 }, minLevel = 12, maxLevel = 13, searchOnly = true },
     { name = "Ornery Plainstrider", zone = "The Barrens", coords = { 52.6, 47.1 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Blue Glittering Axe", id = 7992, category = "Recipe", sources = {
+    { name = "Bloodfen Lashtail", zone = "Dustwallow Marsh", coords = { 33.1, 65.7 }, minLevel = 40, maxLevel = 41, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Copper Chain Vest", id = 3609, category = "Recipe", sources = {
+    { name = "Murloc Streamrunner", zone = "Elwynn Forest", coords = { 52.0, 66.2 }, minLevel = 6, maxLevel = 7, searchOnly = true },
+    { name = "Dark Sprite", zone = "Teldrassil", coords = { 52.4, 50.2 }, minLevel = 6, maxLevel = 7, searchOnly = true },
+    { name = "Swoop", zone = "Mulgore", coords = { 49.8, 44.4 }, minLevel = 7, maxLevel = 9, searchOnly = true },
+    { name = "Lord Melenas", zone = "Teldrassil", coords = { 51.3, 50.2 }, minLevel = 8, maxLevel = 8, searchOnly = true },
+    { name = "Servant of Azora", zone = "Elwynn Forest", coords = { 64.8, 69.9 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Taloned Swoop", zone = "Mulgore", coords = { 53.2, 23.7 }, minLevel = 8, maxLevel = 10, searchOnly = true },
+    { name = "Bloodfeather Wind Witch", zone = "Teldrassil", coords = { 34.3, 28.9 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Ravenous Darkhound", zone = "Tirisfal Glades", coords = { 86.0, 45.1 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Dazzling Mithril Rapier", id = 7993, category = "Recipe", sources = {
+    { name = "Spitelash Screamer", zone = "Azshara", coords = { 31.0, 55.1 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+    { name = "Hazzali Stinger", zone = "Tanaris", coords = { 55.4, 70.3 }, minLevel = 49, maxLevel = 50, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Frost Tiger Blade", id = 3868, category = "Recipe", sources = {
+    { name = "Murk Thresher", zone = "Dustwallow Marsh", coords = { 57.4, 60.2 }, minLevel = 41, maxLevel = 43, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Gemmed Copper Gauntlets", id = 3610, category = "Recipe", sources = {
+    { name = "Hogger", zone = "Elwynn Forest", coords = { 25.8, 89.8 }, minLevel = 11, maxLevel = 11, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Golden Iron Destroyer", id = 3867, category = "Recipe", sources = {
+    { name = "Writhing Mage", zone = "Hillsbrad Foothills", coords = { 14.7, 82.0 }, minLevel = 31, maxLevel = 32, searchOnly = true },
+    { name = "Maraudine Stormer", zone = "Desolace", coords = { 29.3, 55.5 }, minLevel = 39, maxLevel = 40, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Golden Scale Leggings", id = 3872, category = "Recipe", sources = {
+    { name = "Captain Ironhill", zone = "Arathi Highlands", coords = { 10.8, 48.6 }, minLevel = 32, maxLevel = 32, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Golden Scale Shoulders", id = 3871, category = "Recipe", sources = {
+    { name = "Torn Fin Oracle", zone = "Hillsbrad Foothills", coords = { 43.9, 68.7 }, minLevel = 30, maxLevel = 31, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Green Iron Gauntlets", id = 3612, category = "Recipe", sources = {
+    { name = "Warsong Shredder", zone = "Ashenvale", coords = { 85.3, 62.2 }, minLevel = 27, maxLevel = 28, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Green Iron Shoulders", id = 3870, category = "Recipe", sources = {
+    { name = "Swirling Vortex", zone = "Thousand Needles", coords = { 71.9, 66.1 }, minLevel = 33, maxLevel = 34, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Heavy Mithril Helm", id = 7990, category = "Recipe", sources = {
+    { name = "Shore Strider", zone = "Feralas", coords = { 44.1, 50.1 }, minLevel = 48, maxLevel = 49, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Heavy Mithril Pants", id = 7975, category = "Recipe", sources = {
+    { name = "Elder Murk Thresher", zone = "Dustwallow Marsh", coords = { 66.8, 62.3 }, minLevel = 43, maxLevel = 45, searchOnly = true },
+    { name = "Mosh'Ogg Lord", zone = "Stranglethorn Vale", coords = { 52.9, 27.8 }, minLevel = 45, maxLevel = 45, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Iron Shield Spike", id = 6044, category = "Recipe", sources = {
+    { name = "Dark Iron Rifleman", zone = "Wetlands", coords = { 48.8, 16.0 }, minLevel = 27, maxLevel = 28, searchOnly = true },
+    { name = "Dark Iron Demolitionist", zone = "Wetlands", coords = { 60.1, 24.4 }, minLevel = 30, maxLevel = 31, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Jade Serpentblade", id = 3866, category = "Recipe", sources = {
+    { name = "Darkfang Lurker", zone = "Dustwallow Marsh", coords = { 45.0, 36.6 }, minLevel = 36, maxLevel = 37, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Mithril Spurs", id = 7989, category = "Recipe", sources = {
+    { name = "Hazzali Worker", zone = "Tanaris", coords = { 56.0, 71.3 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+    { name = "Makrinni Snapclaw", zone = "Azshara", coords = { 82.5, 10.8 }, minLevel = 50, maxLevel = 51, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Polished Steel Boots", id = 3874, category = "Recipe", sources = {
+    { name = "Withervine Rager", zone = "Dustwallow Marsh", coords = { 41.4, 62.2 }, minLevel = 38, maxLevel = 39, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Radiant Boots", id = 12697, category = "Recipe", sources = {
+    { name = "Jademir Boughguard", zone = "Feralas", coords = { 50.6, 10.6 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Radiant Breastplate", id = 12689, category = "Recipe", sources = {
+    { name = "Hive'Regal Ambusher", zone = "Silithus", coords = { 58.1, 86.9 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Radiant Gloves", id = 12695, category = "Recipe", sources = {
+    { name = "Twilight Marauder", zone = "Silithus", coords = { 57.4, 17.5 }, minLevel = 58, maxLevel = 59, searchOnly = true },
+    { name = "Wyrmkin Firebrand", zone = "Wetlands", coords = { 87.6, 56.6 }, minLevel = 61, maxLevel = 62, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Radiant Leggings", id = 12713, category = "Recipe", sources = {
+    { name = "Emeraldon Tree Warder", zone = "Ashenvale", coords = { 92.8, 39.5 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+    { name = "Strashaz Sorceress", zone = "Dustwallow Marsh", coords = { 77.4, 19.0 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+    { name = "Chimaerok", zone = "Feralas", coords = { 29.8, 80.9 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+    { name = "Emeraldon Oracle", zone = "Ashenvale", coords = { 92.8, 39.5 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Felguard Elite", zone = "Blasted Lands", coords = { 41.0, 59.1 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Jademir Oracle", zone = "Feralas", coords = { 50.6, 10.6 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Verdantine Oracle", zone = "The Hinterlands", coords = { 66.3, 28.1 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+    { name = "Dreadlord", zone = "Blasted Lands", coords = { 38.1, 72.3 }, minLevel = 62, maxLevel = 62, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Runed Copper Breastplate", id = 2881, category = "Recipe", sources = {
+    { name = "Ghoul", zone = "Westfall", coords = { 40.3, 66.9 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Skeletal Miner", zone = "Westfall", coords = { 41.6, 81.7 }, minLevel = 17, maxLevel = 18, searchOnly = true },
+    { name = "Mo'grosh Shaman", zone = "Loch Modan", coords = { 69.7, 25.2 }, minLevel = 18, maxLevel = 19, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Runic Breastplate", id = 12718, category = "Recipe", sources = {
+    { name = "Strashaz Myrmidon", zone = "Dustwallow Marsh", coords = { 77.2, 18.9 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Runic Plate Boots", id = 12707, category = "Recipe", sources = {
+    { name = "Scarlet Cavalier", zone = "Western Plaguelands", coords = { 41.9, 15.0 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Runic Plate Helm", id = 12714, category = "Recipe", sources = {
+    { name = "Strashaz Warrior", zone = "Dustwallow Marsh", coords = { 77.0, 18.4 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Runic Plate Shoulders", id = 12706, category = "Recipe", sources = {
+    { name = "Strashaz Serpent Guard", zone = "Dustwallow Marsh", coords = { 77.3, 17.5 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Searing Golden Blade", id = 12261, category = "Recipe", sources = {
+    { name = "Torn Fin Tidehunter", zone = "Hillsbrad Foothills", coords = { 43.2, 68.0 }, minLevel = 31, maxLevel = 32, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Silvered Bronze Breastplate", id = 5578, category = "Recipe", sources = {
+    { name = "Razorfen Servitor", zone = "The Barrens", coords = { 43.3, 90.3 }, minLevel = 23, maxLevel = 24, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Silvered Bronze Leggings", id = 10424, category = "Recipe", sources = {
+    { name = "Captain Ironhill", zone = "Arathi Highlands", coords = { 10.8, 48.6 }, minLevel = 32, maxLevel = 32, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Silvered Bronze Shoulders", id = 2882, category = "Recipe", sources = {
+    { name = "Owatanka", zone = "The Barrens", coords = { 49.4, 61.1 }, minLevel = 24, maxLevel = 24, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Thorium Armor", id = 12682, category = "Recipe", sources = {
+    { name = "Scarshield Grunt", zone = "Burning Steppes", coords = { 35.5, 26.8 }, minLevel = 53, maxLevel = 54, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Thorium Boots", id = 12693, category = "Recipe", sources = {
+    { name = "Hakkari Oracle", zone = "Stranglethorn Vale", coords = { 52.3, 17.6 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+    { name = "Searscale Drake", zone = "Burning Steppes", coords = { 23.1, 59.6 }, minLevel = 56, maxLevel = 58, searchOnly = true },
+    { name = "Spectral Attendant", zone = "Western Plaguelands", coords = { 45.5, 69.2 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Thorium Bracers", id = 12684, category = "Recipe", sources = {
+    { name = "Deep Strider", zone = "Feralas", coords = { 44.1, 50.1 }, minLevel = 47, maxLevel = 49, searchOnly = true },
+    { name = "Gurubashi Warrior", zone = "Stranglethorn Vale", coords = { 51.6, 17.4 }, minLevel = 54, maxLevel = 55, searchOnly = true },
+    { name = "Manahound", zone = "Blasted Lands", coords = { 42.1, 62.7 }, minLevel = 60, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Thorium Helm", id = 12694, category = "Recipe", sources = {
+    { name = "Hive'Zora Reaver", zone = "Silithus", coords = { 24.6, 63.7 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Thorium Leggings", id = 12704, category = "Recipe", sources = {
+    { name = "Hakkari Oracle", zone = "Stranglethorn Vale", coords = { 52.3, 17.6 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+    { name = "Strashaz Hydra", zone = "Dustwallow Marsh", coords = { 69.8, 19.2 }, minLevel = 59, maxLevel = 61, searchOnly = true },
+    { name = "Doomguard Commander", zone = "Blasted Lands", coords = { 40.1, 66.5 }, minLevel = 61, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Plans: Wicked Mithril Blade", id = 8029, category = "Recipe", sources = {
+    { name = "Mirefin Warrior", zone = "Dustwallow Marsh", coords = { 63.1, 26.3 }, minLevel = 37, maxLevel = 38, searchOnly = true },
+    { name = "Muckshell Clacker", zone = "Dustwallow Marsh", coords = { 54.0, 44.0 }, minLevel = 39, maxLevel = 40, searchOnly = true },
+    { name = "Mudrock Snapjaw", zone = "Dustwallow Marsh", coords = { 60.4, 57.5 }, minLevel = 41, maxLevel = 42, searchOnly = true },
+    { name = "Skullsplitter Beastmaster", zone = "Stranglethorn Vale", coords = { 45.6, 42.2 }, minLevel = 41, maxLevel = 42, searchOnly = true },
+    { name = "Dustbelcher Shaman", zone = "Badlands", coords = { 9.6, 77.9 }, minLevel = 42, maxLevel = 43, searchOnly = true },
+    { name = "Dark Iron Kidnapper", zone = "Searing Gorge", coords = { 69.0, 34.2 }, minLevel = 45, maxLevel = 45, searchOnly = true },
+    { name = "Searing Lava Spider", zone = "Searing Gorge", coords = { 55.9, 69.3 }, minLevel = 45, maxLevel = 47, searchOnly = true },
+    { name = "Centipaar Tunneler", zone = "Tanaris", coords = { 33.4, 45.3 }, minLevel = 47, maxLevel = 48, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Powerful Mojo", id = 12804, category = "Mob drop", sources = {
     { name = "Hakkari Priest", zone = "Stranglethorn Vale", coords = { 51.2, 17.6 }, minLevel = 54, maxLevel = 55, searchOnly = true },
@@ -2298,6 +2969,133 @@ DB:RegisterItem({ name = "Razzashi Coin", id = 19699, category = "Quest item", s
 } })
 DB:RegisterItem({ name = "Reagent Pouch", id = 6652, category = "Quest item", sources = {
     { name = "Burning Blade Cultist", zone = "Durotar", coords = { 52.7, 25.4 }, minLevel = 10, maxLevel = 11, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Cooked Crab Claw", id = 2698, category = "Recipe", sources = {
+    { name = "Thistle Cub", zone = "Darkshore", coords = { 51.6, 38.3 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Greymist Raider", zone = "Darkshore", coords = { 36.4, 51.1 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Murloc Raider", zone = "Westfall", coords = { 53.1, 8.9 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Greymist Coastrunner", zone = "Darkshore", coords = { 38.8, 29.8 }, minLevel = 12, maxLevel = 13, searchOnly = true },
+    { name = "Moonkin Oracle", zone = "Darkshore", coords = { 46.0, 50.3 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+    { name = "Reef Frenzy", zone = "Silverpine Forest", coords = { 34.2, 47.8 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Riverpaw Herbalist", zone = "Westfall", coords = { 30.4, 57.9 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Coastal Frenzy", zone = "Darkshore", coords = { 33.0, 63.9 }, minLevel = 14, maxLevel = 16, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Elixir of Detect Lesser Invisibility", id = 3832, category = "Recipe", sources = {
+    { name = "Witherbark Berserker", zone = "Arathi Highlands", coords = { 24.0, 65.2 }, minLevel = 36, maxLevel = 37, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Elixir of Giant Growth", id = 6663, category = "Recipe", sources = {
+    { name = "Razormane Hunter", zone = "The Barrens", coords = { 57.8, 24.4 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Sunscale Lashtail", zone = "The Barrens", coords = { 51.3, 22.6 }, minLevel = 11, maxLevel = 13, searchOnly = true },
+    { name = "Razormane Defender", zone = "The Barrens", coords = { 58.9, 25.1 }, minLevel = 12, maxLevel = 13, searchOnly = true },
+    { name = "Kolkar Packhound", zone = "The Barrens", coords = { 53.6, 42.0 }, minLevel = 13, maxLevel = 13, searchOnly = true },
+    { name = "Razormane Mystic", zone = "The Barrens", coords = { 58.6, 26.9 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+    { name = "Witchwing Harpy", zone = "The Barrens", coords = { 40.7, 16.8 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Kolkar Pack Runner", zone = "The Barrens", coords = { 54.0, 42.8 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Kolkar Marauder", zone = "The Barrens", coords = { 53.9, 43.0 }, minLevel = 15, maxLevel = 16, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Elixir of Giants", id = 9298, category = "Recipe", sources = {
+    { name = "Spitelash Warrior", zone = "Azshara", coords = { 31.0, 55.1 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+    { name = "Wave Strider", zone = "Feralas", coords = { 44.1, 50.1 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+    { name = "Jade Sludge", zone = "The Hinterlands", coords = { 61.9, 74.8 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Elixir of Greater Firepower", id = 21547, category = "Recipe", sources = {
+    { name = "Dark Iron Watchman", zone = "Searing Gorge", coords = { 63.1, 59.6 }, minLevel = 44, maxLevel = 45, searchOnly = true },
+    { name = "Dark Iron Slaver", zone = "Searing Gorge", coords = { 43.1, 40.4 }, minLevel = 45, maxLevel = 46, searchOnly = true },
+    { name = "Dark Iron Taskmaster", zone = "Searing Gorge", coords = { 43.1, 40.4 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Elixir of Ogre's Strength", id = 6211, category = "Recipe", sources = {
+    { name = "Horde Peon", zone = "Ashenvale", coords = { 85.4, 59.2 }, minLevel = 26, maxLevel = 27, searchOnly = true },
+    { name = "Splinter Fist Fire Weaver", zone = "Duskwood", coords = { 36.3, 75.2 }, minLevel = 26, maxLevel = 27, searchOnly = true },
+    { name = "Mosshide Alpha", zone = "Wetlands", coords = { 35.0, 27.4 }, minLevel = 27, maxLevel = 27, searchOnly = true },
+    { name = "Mudsnout Shaman", zone = "Hillsbrad Foothills", coords = { 64.1, 61.9 }, minLevel = 27, maxLevel = 28, searchOnly = true },
+    { name = "Splinter Fist Firemonger", zone = "Duskwood", coords = { 37.8, 79.7 }, minLevel = 28, maxLevel = 29, searchOnly = true },
+    { name = "Muckshell Pincer", zone = "Dustwallow Marsh", coords = { 59.9, 67.1 }, minLevel = 41, maxLevel = 42, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Elixir of the Mongoose", id = 13491, category = "Recipe", sources = {
+    { name = "Jadefire Rogue", zone = "Felwood", coords = { 36.9, 66.9 }, minLevel = 50, maxLevel = 51, searchOnly = true },
+    { name = "Legashi Rogue", zone = "Azshara", coords = { 65.2, 17.4 }, minLevel = 51, maxLevel = 53, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Elixir of the Sages", id = 13479, category = "Recipe", sources = {
+    { name = "Scarlet Enchanter", zone = "Eastern Plaguelands", coords = { 83.2, 79.5 }, minLevel = 53, maxLevel = 55, searchOnly = true },
+    { name = "Scarlet Cleric", zone = "Eastern Plaguelands", coords = { 79.5, 81.6 }, minLevel = 54, maxLevel = 55, searchOnly = true },
+    { name = "Scarlet Curate", zone = "Eastern Plaguelands", coords = { 87.1, 86.1 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+    { name = "Scarlet Archmage", zone = "Eastern Plaguelands", coords = { 87.1, 86.0 }, minLevel = 55, maxLevel = 57, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Flask of Petrification", id = 13518, category = "Recipe", sources = {
+    { name = "Frostmaul Giant", zone = "Winterspring", coords = { 61.9, 68.5 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Gift of Arthas", id = 9296, category = "Recipe", sources = {
+    { name = "Skeletal Flayer", zone = "Western Plaguelands", coords = { 49.4, 77.1 }, minLevel = 50, maxLevel = 51, searchOnly = true },
+    { name = "Slavering Ghoul", zone = "Western Plaguelands", coords = { 49.9, 77.1 }, minLevel = 50, maxLevel = 52, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Greater Arcane Protection Potion", id = 13497, category = "Recipe", sources = {
+    { name = "Cobalt Mageweaver", zone = "Winterspring", coords = { 56.7, 51.7 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Greater Frost Protection Potion", id = 13495, category = "Recipe", sources = {
+    { name = "Frostmaul Giant", zone = "Winterspring", coords = { 61.9, 68.5 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Greater Nature Protection Potion", id = 13496, category = "Recipe", sources = {
+    { name = "Rotting Behemoth", zone = "Western Plaguelands", coords = { 62.4, 35.4 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Greater Shadow Protection Potion", id = 13499, category = "Recipe", sources = {
+    { name = "Dark Adept", zone = "Eastern Plaguelands", coords = { 65.9, 37.8 }, minLevel = 58, maxLevel = 59, searchOnly = true },
+    { name = "Shadowmage", zone = "Eastern Plaguelands", coords = { 65.9, 37.8 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Greater Stoneshield Potion", id = 13490, category = "Recipe", sources = {
+    { name = "Hive'Zora Waywatcher", zone = "Silithus", coords = { 24.1, 61.7 }, minLevel = 58, maxLevel = 59, searchOnly = true },
+    { name = "Hive'Regal Burrower", zone = "Silithus", coords = { 61.0, 78.8 }, minLevel = 59, maxLevel = 60, searchOnly = true },
+    { name = "Minion of Weavil", zone = "Dustwallow Marsh", coords = { 77.6, 17.7 }, minLevel = 60, maxLevel = 61, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Invisibility Potion", id = 9295, category = "Recipe", sources = {
+    { name = "Wave Strider", zone = "Feralas", coords = { 44.1, 50.1 }, minLevel = 47, maxLevel = 48, searchOnly = true },
+    { name = "Mistwing Rogue", zone = "Azshara", coords = { 32.2, 81.8 }, minLevel = 49, maxLevel = 50, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Limited Invulnerability Potion", id = 3395, category = "Recipe", sources = {
+    { name = "Coast Crawl Deepseer", zone = "Feralas", coords = { 37.6, 48.7 }, minLevel = 43, maxLevel = 44, searchOnly = true },
+    { name = "Deep Strider", zone = "Feralas", coords = { 44.1, 50.1 }, minLevel = 47, maxLevel = 49, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Magic Resistance Potion", id = 9293, category = "Recipe", sources = {
+    { name = "Mudrock Borer", zone = "Dustwallow Marsh", coords = { 60.1, 63.9 }, minLevel = 42, maxLevel = 43, searchOnly = true },
+    { name = "Coast Crawl Snapclaw", zone = "Feralas", coords = { 36.0, 48.6 }, minLevel = 44, maxLevel = 45, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Mighty Rage Potion", id = 13476, category = "Recipe", sources = {
+    { name = "Blackrock Slayer", zone = "Burning Steppes", coords = { 41.8, 55.7 }, minLevel = 56, maxLevel = 57, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Purification Potion", id = 13492, category = "Recipe", sources = {
+    { name = "Hakkari Oracle", zone = "Stranglethorn Vale", coords = { 52.3, 17.6 }, minLevel = 55, maxLevel = 56, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Savory Deviate Delight", id = 6661, category = "Recipe", sources = {
+    { name = "Razormane Hunter", zone = "The Barrens", coords = { 57.8, 24.4 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Razormane Defender", zone = "The Barrens", coords = { 58.9, 25.1 }, minLevel = 12, maxLevel = 13, searchOnly = true },
+    { name = "Venture Co. Peon", zone = "The Barrens", coords = { 53.0, 11.3 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+    { name = "Muck Frenzy", zone = "The Barrens", coords = { 68.4, 48.7 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Venture Co. Drudger", zone = "The Barrens", coords = { 56.1, 8.6 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Thunderhead", zone = "The Barrens", coords = { 47.1, 62.1 }, minLevel = 20, maxLevel = 21, searchOnly = true },
+    { name = "Razorfen Servitor", zone = "The Barrens", coords = { 43.3, 90.3 }, minLevel = 23, maxLevel = 24, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Succulent Pork Ribs", id = 2700, category = "Recipe", sources = {
+    { name = "Elder Black Bear", zone = "Loch Modan", coords = { 32.5, 29.8 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Tunnel Rat Digger", zone = "Loch Modan", coords = { 35.5, 23.9 }, minLevel = 12, maxLevel = 13, searchOnly = true },
+    { name = "Cliff Lurker", zone = "Loch Modan", coords = { 57.1, 65.2 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+    { name = "Grizzled Black Bear", zone = "Loch Modan", coords = { 65.5, 69.7 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+    { name = "Loch Crocolisk", zone = "Loch Modan", coords = { 56.9, 39.1 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Mangy Mountain Boar", zone = "Loch Modan", coords = { 60.1, 61.8 }, minLevel = 14, maxLevel = 15, searchOnly = true },
+    { name = "Stonesplinter Bonesnapper", zone = "Loch Modan", coords = { 52.9, 26.9 }, minLevel = 15, maxLevel = 16, searchOnly = true },
+    { name = "Mountain Buzzard", zone = "Loch Modan", coords = { 75.8, 70.5 }, minLevel = 15, maxLevel = 16, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Swiftness Potion", id = 2555, category = "Recipe", sources = {
+    { name = "Encrusted Surf Crawler", zone = "Durotar", coords = { 58.1, 12.0 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Vile Fin Tidehunter", zone = "Silverpine Forest", coords = { 60.5, 17.5 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Recipe: Wildvine Potion", id = 9294, category = "Recipe", sources = {
+    { name = "Bloodscalp Berserker", zone = "Stranglethorn Vale", coords = { 23.2, 10.7 }, minLevel = 36, maxLevel = 37, searchOnly = true },
+    { name = "Bloodscalp Headhunter", zone = "Stranglethorn Vale", coords = { 23.2, 10.7 }, minLevel = 36, maxLevel = 37, searchOnly = true },
+    { name = "Bloodscalp Witch Doctor", zone = "Stranglethorn Vale", coords = { 23.2, 10.7 }, minLevel = 37, maxLevel = 37, searchOnly = true },
+    { name = "Skullsplitter Axe Thrower", zone = "Stranglethorn Vale", coords = { 46.0, 37.9 }, minLevel = 39, maxLevel = 40, searchOnly = true },
+    { name = "Skullsplitter Mystic", zone = "Stranglethorn Vale", coords = { 46.0, 37.9 }, minLevel = 39, maxLevel = 40, searchOnly = true },
+    { name = "Skullsplitter Warrior", zone = "Stranglethorn Vale", coords = { 46.0, 37.9 }, minLevel = 39, maxLevel = 40, searchOnly = true },
+    { name = "Witherbark Scalper", zone = "The Hinterlands", coords = { 23.0, 57.8 }, minLevel = 40, maxLevel = 41, searchOnly = true },
+    { name = "Skullsplitter Beastmaster", zone = "Stranglethorn Vale", coords = { 45.6, 42.2 }, minLevel = 41, maxLevel = 42, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Recovered Tome", id = 3658, category = "Quest item", sources = {
     { name = "Crushridge Ogre", zone = "Alterac Mountains", coords = { 49.9, 42.1 }, minLevel = 34, maxLevel = 35, searchOnly = true },
@@ -2467,6 +3265,51 @@ DB:RegisterItem({ name = "Scarlet Insignia Ring", id = 2875, category = "Quest i
 DB:RegisterItem({ name = "Scavenger Paw", id = 3265, category = "Quest item", sources = {
     { name = "Young Scavenger", zone = "Tirisfal Glades", coords = { 30.8, 62.1 }, minLevel = 1, maxLevel = 1, searchOnly = true },
     { name = "Ragged Scavenger", zone = "Tirisfal Glades", coords = { 36.6, 60.8 }, minLevel = 2, maxLevel = 3, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Arcanite Dragonling", id = 16054, category = "Recipe", sources = {
+    { name = "Cobalt Mageweaver", zone = "Winterspring", coords = { 56.7, 51.7 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: EZ-Thro Dynamite", id = 6716, category = "Recipe", sources = {
+    { name = "Corrupted Scorpid", zone = "Durotar", coords = { 36.6, 29.3 }, minLevel = 10, maxLevel = 11, searchOnly = true },
+    { name = "Mystlash Flayer", zone = "Ashenvale", coords = { 6.9, 24.4 }, minLevel = 20, maxLevel = 21, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Flawless Arcanite Rifle", id = 16056, category = "Recipe", sources = {
+    { name = "Mossflayer Shadowhunter", zone = "Eastern Plaguelands", coords = { 71.1, 15.6 }, minLevel = 58, maxLevel = 59, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Goblin Land Mine", id = 4416, category = "Recipe", sources = {
+    { name = "Swirling Vortex", zone = "Thousand Needles", coords = { 71.9, 66.1 }, minLevel = 33, maxLevel = 34, searchOnly = true },
+    { name = "Dying Kodo", zone = "Desolace", coords = { 53.6, 58.0 }, minLevel = 35, maxLevel = 36, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Mechanical Squirrel", id = 4408, category = "Recipe", sources = {
+    { name = "Makrura Elder", zone = "Durotar", coords = { 61.1, 23.4 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Bloodtalon Scythemaw", zone = "Durotar", coords = { 36.8, 25.4 }, minLevel = 8, maxLevel = 10, searchOnly = true },
+    { name = "Pyrewood Watcher", zone = "Silverpine Forest", coords = { 45.3, 72.4 }, minLevel = 13, maxLevel = 14, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Mithril Heavy-bore Rifle", id = 10604, category = "Recipe", sources = {
+    { name = "Stonard Explorer", zone = "Swamp of Sorrows", coords = { 53.5, 27.5 }, minLevel = 37, maxLevel = 38, searchOnly = true },
+    { name = "Emerald Ooze", zone = "The Hinterlands", coords = { 65.1, 66.0 }, minLevel = 46, maxLevel = 47, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Parachute Cloak", id = 10606, category = "Recipe", sources = {
+    { name = "Venture Co. Foreman", zone = "Stranglethorn Vale", coords = { 42.1, 44.5 }, minLevel = 42, maxLevel = 42, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Shadow Goggles", id = 4410, category = "Recipe", sources = {
+    { name = "Mystlash Flayer", zone = "Ashenvale", coords = { 6.9, 24.4 }, minLevel = 20, maxLevel = 21, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Small Seaforium Charge", id = 4409, category = "Recipe", sources = {
+    { name = "Lake Frenzy", zone = "Silverpine Forest", coords = { 61.7, 28.4 }, minLevel = 15, maxLevel = 16, searchOnly = true },
+    { name = "Defias Conjurer", zone = "Westfall", coords = { 42.0, 78.1 }, minLevel = 15, maxLevel = 16, searchOnly = true },
+    { name = "Defias Watchman", zone = "Westfall", coords = { 40.0, 78.5 }, minLevel = 16, maxLevel = 17, searchOnly = true },
+    { name = "Wild Buck", zone = "Ashenvale", coords = { 22.7, 29.9 }, minLevel = 18, maxLevel = 19, searchOnly = true },
+    { name = "Mo'grosh Enforcer", zone = "Loch Modan", coords = { 69.7, 25.2 }, minLevel = 18, maxLevel = 19, searchOnly = true },
+    { name = "Mo'grosh Brute", zone = "Loch Modan", coords = { 75.6, 18.4 }, minLevel = 19, maxLevel = 20, searchOnly = true },
+    { name = "Mystlash Flayer", zone = "Ashenvale", coords = { 6.9, 24.4 }, minLevel = 20, maxLevel = 21, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Spellpower Goggles Xtreme Plus", id = 16045, category = "Recipe", sources = {
+    { name = "Spitelash Siren", zone = "Azshara", coords = { 44.4, 53.9 }, minLevel = 51, maxLevel = 52, searchOnly = true },
+} })
+DB:RegisterItem({ name = "Schematic: Thorium Shells", id = 16051, category = "Recipe", sources = {
+    { name = "Hive'Ashi Swarmer", zone = "Silithus", coords = { 49.3, 27.9 }, minLevel = 57, maxLevel = 58, searchOnly = true },
+    { name = "Doomguard Commander", zone = "Blasted Lands", coords = { 40.1, 66.5 }, minLevel = 61, maxLevel = 61, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Scorched Ectoplasm", id = 21937, category = "Quest item", sources = {
     { name = "Tortured Druid", zone = "Silithus", coords = { 62.7, 52.8 }, minLevel = 55, maxLevel = 56, searchOnly = true },
