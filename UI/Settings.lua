@@ -462,6 +462,31 @@ function SettingsUI:BuildWindowsPage()
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
     controls.resetPositions = reset
 
+    -- Every panel that stays on screen can let the world show through, all
+    -- in one place (the owner, 2026-10-17). The glass comes back while the
+    -- mouse is on a panel. The saved keys keep their see-through names.
+    pages:Section("windows", 1, L["TRANSPARENT"])
+
+    local trackerRow = pages:Row("windows", 1, L["Kills & Loot:"],
+        L["Lets the world show through the panel. It goes dark again while your mouse is on it."])
+    local names = ns.SeeThrough.Names()
+    controls.seeThrough = Widgets.CreateStepper(trackerRow, {
+        min = 0, max = #ns.TrackerUI.SEE_THROUGH_LEVELS, step = 1, value = 0,
+        format = function(index) return names[index] end,
+        onChange = function(index)
+            if index > 0 then ns.TrackerUI:SetSeeThroughLevel(index) end
+            ns.TrackerUI:SetSeeThrough(index > 0)
+        end,
+    })
+    ns.SettingsPages.FitStepper(controls.seeThrough, { names[0], names[1], names[2], names[3] })
+    controls.seeThrough:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    controls.goalsSeeThrough = SeeThroughRow(pages, "windows", 1, "goals", L["Goals:"], nil)
+    controls.goalSpotsSeeThrough = SeeThroughRow(pages, "windows", 1, "places", L["Where to Farm:"], nil)
+    controls.rankUpSeeThrough = SeeThroughRow(pages, "windows", 1, "rankup", L["Top 15:"], nil)
+    controls.recapSeeThrough = SeeThroughRow(pages, "windows", 1, "recap", L["Run Recap:"], nil)
+    controls.xpBarSeeThrough = SeeThroughRow(pages, "windows", 1, "xpbar", L["XP Bar:"], nil)
+
     pages:Section("windows", 2, L["EFFECTS"])
 
     -- Every window and both panels follow it, so it sits with the windows
@@ -587,26 +612,6 @@ function SettingsUI:BuildTallyPage()
     end, false)
     controls.keepPanel:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    -- The world shows through the panel; its glass comes back under the
-    -- mouse (the owner, 2026-10-16). Off unless ticked.
-    local seeRow = pages:Row("tally", 1, L["Transparent:"],
-        L["Lets the world show through the panel. It goes dark again while your mouse is on it."])
-
-    controls.seeThrough = Widgets.CreateCheckbox(seeRow, L["On"], function(checked)
-        ns.TrackerUI:SetSeeThrough(checked)
-    end, false)
-    controls.seeThrough:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local clearNames = { L["Some"], L["More"], L["Most"] }
-    local howClearRow = pages:Row("tally", 1, L["How Clear:"], nil)
-    controls.seeThroughLevel = Widgets.CreateStepper(howClearRow, {
-        min = 1, max = #clearNames, step = 1, value = 2,
-        format = function(index) return clearNames[index] end,
-        onChange = function(index) ns.TrackerUI:SetSeeThroughLevel(index) end,
-    })
-    ns.SettingsPages.FitStepper(controls.seeThroughLevel, clearNames)
-    controls.seeThroughLevel:SetPoint("TOPLEFT", CONTROL_X, -2)
-
     local groupRow = pages:Row("tally", 1, L["Move in a Group:"],
         L["Moves the panel away from party and raid frames. Drag it while in a group to pick the spot."])
 
@@ -694,15 +699,6 @@ function SettingsUI:BuildTallyPage()
     controls.topFarm:SetPoint("TOPLEFT", CONTROL_X, -2)
     controls.topFarmTry = CommandButton(topFarmRow, L["Try"], "topfarm test", 60, CONTROL_X + 70)
 
-    controls.rankUpSeeThrough = SeeThroughRow(pages, "tally", 2, "rankup", L["Transparent:"],
-        L["Lets the world show through your top 15. It goes dark again while your mouse is on it."])
-
-    -- The card that sums up a run once you stop for a while (UI/Recap.lua).
-    pages:Section("tally", 2, L["RUN RECAP"])
-
-    controls.recapSeeThrough = SeeThroughRow(pages, "tally", 2, "recap", L["Transparent:"],
-        L["Lets the world show through the card that sums up your run."])
-
     -- The XP bar (UI/XPBar.lua, the owner asked 2026-10-13).
     pages:Section("tally", 2, L["XP BAR"])
 
@@ -712,9 +708,6 @@ function SettingsUI:BuildTallyPage()
         ns.XPBarUI:SetOn(checked)
     end, true)
     controls.xpBar:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    controls.xpBarSeeThrough = SeeThroughRow(pages, "tally", 2, "xpbar", L["Transparent:"],
-        L["Lets the world show through the XP bar."])
 
     local cheerRow = pages:Row("tally", 2, L["Level-Up Cheer:"],
         L["A card when you level up."])
@@ -1021,12 +1014,6 @@ function SettingsUI:BuildMapPage()
     controls.goals = CommandButton(goalsRow, L["Show"], "goals", 64)
     controls.goalsDock = CommandButton(goalsRow, L["Dock"], "goals dock", 64, CONTROL_X + 70)
 
-    controls.goalsSeeThrough = SeeThroughRow(pages, "map", 2, "goals", L["Transparent:"],
-        L["Lets the world show through the goals panel. It goes dark again while your mouse is on it."])
-
-    controls.goalSpotsSeeThrough = SeeThroughRow(pages, "map", 2, "places", L["Where to Farm Transparent:"],
-        L["Lets the world show through the list of places to farm a goal."])
-
     local bankRow = pages:Row("map", 2, L["Count the Bank:"],
         L["Goals count your bank as well as your bags."])
 
@@ -1252,8 +1239,7 @@ function SettingsUI:Refresh()
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)
     controls.keepPanel:SetChecked(db.keepPanel == true)
-    controls.seeThrough:SetChecked(db.trackerSeeThrough == true)
-    controls.seeThroughLevel:SetValue(ns.TrackerUI:SeeThroughLevel(), true)
+    controls.seeThrough:SetValue(db.trackerSeeThrough == true and ns.TrackerUI:SeeThroughLevel() or 0, true)
     controls.goalsSeeThrough:SetValue(ns.SeeThrough:Level("goals"), true)
     controls.goalSpotsSeeThrough:SetValue(ns.SeeThrough:Level("places"), true)
     controls.rankUpSeeThrough:SetValue(ns.SeeThrough:Level("rankup"), true)

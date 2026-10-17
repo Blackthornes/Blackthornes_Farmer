@@ -156,6 +156,27 @@ for control, id in pairs({ goalsSeeThrough = "goals", goalSpotsSeeThrough = "pla
         suite.check(control .. " turns it off", SeeThrough:Level(id) == 0, control)
     end
 end
+-- All six sit together on the UI page (the owner, 2026-10-17).
+for _, control in ipairs({ "seeThrough", "goalsSeeThrough", "goalSpotsSeeThrough",
+    "rankUpSeeThrough", "recapSeeThrough", "xpBarSeeThrough" }) do
+    local found
+    for _, entry in ipairs(ns.SettingsUI.pages.searchables or {}) do
+        if entry.frame == controls[control]._parent then found = entry.page end
+    end
+    suite.check(control .. " is on the UI page", found == "windows", tostring(found))
+end
+
+-- The Kills & Loot row is one stepper over its two keys.
+controls.seeThrough:SetValue(3)
+suite.check("Kills & Loot Most turns it on", ns.db.trackerSeeThrough == true
+    and ns.db.trackerSeeThroughLevel == 3)
+controls.seeThrough:SetValue(0)
+suite.check("Off turns it off and keeps the level", ns.db.trackerSeeThrough == false
+    and ns.db.trackerSeeThroughLevel == 3)
+controls.seeThrough:SetValue(1)
+suite.check("Some turns it on again", ns.db.trackerSeeThrough == true
+    and ns.db.trackerSeeThroughLevel == 1)
+controls.seeThrough:SetValue(0)
 ns.SettingsUI:Hide()
 
 suite.done()
