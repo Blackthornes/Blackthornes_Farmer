@@ -4,6 +4,16 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.39.0
+
+For WoW: Forever (interface 16001). A file was added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Transparent:** every Transparent setting now sits together in one
+  TRANSPARENT section on the UI page of Settings, and the XP bar thins out
+  all the way when it is transparent, not only its middle.
+- **Bug fixes:** various fixes to Farmer.
+
 ## 0.38.0
 
 For WoW: Forever (interface 16001). A file was added and the TOC changed, so

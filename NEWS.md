@@ -23,6 +23,15 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.39.0
+
+- The settings for making each panel transparent now sit together in one place on the UI page.
+
+Fixes and changes:
+
+- The XP bar fades all the way when it's transparent.
+- Various fixes to Farmer.
+
 ## 0.38.0
 
 - The goals panel, Where to farm, your top 15, the run recap and the XP bar can be transparent. Each is off until you turn it on, and you pick how clear.
