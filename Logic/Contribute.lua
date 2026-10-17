@@ -3,8 +3,8 @@
 --
 -- Asked 2026-10-15 by the owner: players who opt in send their own drop
 -- records to his characters, so they can be folded into the shipped data at
--- the next release (tools/harvest_import.py --shared). Off by default; a
--- one-time What's New card offers it, then only Settings.
+-- the next release (tools/harvest_import.py --shared). Off by default:
+-- one tick box on the About page of Settings (2026-10-17).
 --
 -- It is guild sharing's conversation (Logic/Share.lua), one way:
 --   * A player with it ticked whispers a short hello ("Q<farmer id>:<hash>")
