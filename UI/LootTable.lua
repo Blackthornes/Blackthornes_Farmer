@@ -262,8 +262,8 @@ function LootTableUI:ContentsLines(name)
     local Value, Containers = ns.Value, ns.Containers
     if not (Value and Containers and name) then return lines end
 
-    local ok, store = pcall(Containers.Store, Containers)
-    local entry = ok and type(store) == "table" and store[name]
+    local ok, entry = pcall(Containers.Entry, Containers, name)
+    entry = ok and entry
     local opens = type(entry) == "table" and tonumber(entry.opens) or 0
     if opens <= 0 then return lines end
 

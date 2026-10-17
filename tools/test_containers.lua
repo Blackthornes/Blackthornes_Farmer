@@ -160,6 +160,77 @@ suite.check("unsure click does not claim a corpse", Tracker:Store()["Bluegill Mu
 suite.check("and is no opening", Containers:Store()["Thick-shelled Clam"].opens == 4)
 SLOTS[1].hasLoot = true
 
+--------------------------------------------------------------------------------
+-- A disenchant is no clam
+--------------------------------------------------------------------------------
+
+-- Slot 2 holds a green ring. Breaking it opens a window that names the ring
+-- by its item guid, just as a clam's does.
+local RING = { itemID = 15000, hyperlink = "|cff1eff00|Hitem:15000::|h[Lead Band]|h|r", hasLoot = false }
+local DUST = { name = "Strange Dust", id = 10940 }
+local realSlot2, realInstant = SLOTS[2], _G.GetItemInfoInstant
+SLOTS[2] = RING
+_G.GetItemInfoInstant = function(id)
+    if id == 15000 then return 15000, nil, nil, nil, nil, 4 end
+    return id, nil, nil, nil, nil, 15
+end
+if ns.WorldDrops.ForgetGear then ns.WorldDrops.ForgetGear() end
+
+clock = clock + 10
+local clamOpens = Containers:Store()["Thick-shelled Clam"].opens
+env.world.target = { name = "Bluegill Murloc", level = 21, dead = true, guid = "Creature-0-1-2-3-1024-7" }
+Open({ CLAM })
+kills = Tracker:Store()["Bluegill Murloc"].kills
+
+-- No cast seen: the window names the ring, and gear is never opened.
+_G.GetLootSourceInfo = function(slot) if slot == 1 then return GUIDS[2], 1 end end
+Open({ DUST })
+suite.check("a disenchanted ring is not counted as opened", Containers:Store()["Lead Band"] == nil)
+suite.check("its dust is not the murloc's", TallyItem("Bluegill Murloc", "Strange Dust") == nil)
+suite.check("and is no kill", Tracker:Store()["Bluegill Murloc"].kills == kills)
+suite.check("nor the clam's", Containers:Store()["Thick-shelled Clam"].opens == clamOpens)
+
+-- Right after your Disenchant, whatever the client says about the item.
+_G.GetItemInfoInstant = function() return nil end
+if ns.WorldDrops.ForgetGear then ns.WorldDrops.ForgetGear() end
+local fireCast = function(event, ...) fire(ns.eventFrame, event, "player", ...) end
+fireCast("UNIT_SPELLCAST_SENT", "Lead Band", "Cast-1", 13262)
+fireCast("UNIT_SPELLCAST_SUCCEEDED", "Cast-1", 13262)
+clock = clock + 3
+Open({ DUST })
+suite.check("a window after Disenchant is not counted", Containers:Store()["Lead Band"] == nil)
+suite.check("nor the murloc's", TallyItem("Bluegill Murloc", "Strange Dust") == nil)
+
+-- A clam opened afterwards still counts.
+clock = clock + 10
+_G.GetLootSourceInfo = function(slot) if slot <= 2 then return GUIDS[1], 1 end end
+Open({ PEARL })
+suite.check("a clam after a disenchant still counts",
+    Containers:Store()["Thick-shelled Clam"].opens == clamOpens + 1)
+
+-- Gear counted as opened before this fix stays in the save, never read.
+_G.GetItemInfoInstant = function(id)
+    if id == 15000 then return 15000, nil, nil, nil, nil, 4 end
+    return id, nil, nil, nil, nil, 15
+end
+if ns.WorldDrops.ForgetGear then ns.WorldDrops.ForgetGear() end
+local old = { id = 15000, opens = 12, items = { ["Strange Dust"] = { opens = 12, count = 20, id = 10940 } } }
+Containers:Store()["Lead Band"] = old
+suite.check("an old disenchant is kept in the save", Containers:Store()["Lead Band"] == old)
+suite.check("but has no worth from inside", ns.Value:Contents("Lead Band") == nil)
+suite.check("and no loot table lines", #ns.LootTableUI:ContentsLines("Lead Band") == 0)
+local fromRing = false
+for _, held in ipairs(Containers:Holding("Strange Dust")) do
+    if held.name == "Lead Band" then fromRing = true end
+end
+suite.check("and Where? leaves it out", not fromRing)
+Containers:Store()["Lead Band"] = nil
+
+SLOTS[2], _G.GetItemInfoInstant = realSlot2, realInstant
+if ns.WorldDrops.ForgetGear then ns.WorldDrops.ForgetGear() end
+_G.GetLootSourceInfo = nil
+clock = clock + 10
+
 _G.C_Item, _G.ItemLocation = realCItem, realLocation
 C_Container.GetContainerNumSlots = nil
 clock = clock + 10
@@ -215,9 +286,9 @@ for _, spot in ipairs(spots) do
     if spot.name == "Giant Clam" and spot.zone == "Wetlands" and spot.yours then giant = spot end
 end
 suite.check("Where? lists the clam's place in Wetlands", inClam ~= nil)
-suite.check("with what you found inside", inClam and inClam.yours and inClam.yours.opens == 4)
+suite.check("with what you found inside", inClam and inClam.yours and inClam.yours.opens == 5)
 suite.check("which the note says",
-    inClam and ns.GoalsUI.SpotNote(inClam):find("in 3 of the 4 you opened", 1, true) ~= nil,
+    inClam and ns.GoalsUI.SpotNote(inClam):find("in 4 of the 5 you opened", 1, true) ~= nil,
     inClam and ns.GoalsUI.SpotNote(inClam))
 suite.check("and the Giant Clam you opened there", giant ~= nil)
 suite.check("whose note says so",

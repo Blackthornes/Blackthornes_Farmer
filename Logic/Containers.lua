@@ -22,6 +22,13 @@
 -- as a "container", where it is, so Where? lists it like a herb you picked.
 -- No name, nothing recorded: never a guess.
 --
+-- A disenchant opens a loot window that names the item broken as its source
+-- too, so it looked just like a clam. It is not one: gear is never a
+-- container, and a window that opens just after your own Disenchant is the
+-- spell's. Those windows are still kept off the corpse you have targeted,
+-- and nothing is counted. Gear counted as opened before this is left in the
+-- save as it is, and never read.
+--
 -- Everything is kept in saved variables. Nothing is sent anywhere.
 
 local _, ns = ...
@@ -35,6 +42,12 @@ Containers.OPEN_SECONDS = 3
 -- How long a cast's target or a tooltip names the object opened after it.
 Containers.NAME_SECONDS = 5
 
+-- How long after your Disenchant goes through its loot window may open.
+Containers.BREAK_SECONDS = 5
+
+-- Spells that break an item into its parts: Disenchant.
+Containers.BREAK_SPELLS = { [13262] = true }
+
 --- The client's clock in seconds, or nil if it will not say.
 local function Now()
     if type(GetTime) ~= "function" then return nil end
@@ -45,6 +58,44 @@ end
 local function Recent(at, seconds)
     local now = Now()
     return at ~= nil and now ~= nil and now - at >= 0 and now - at <= seconds
+end
+
+--- A spell's name in the client's language, or nil.
+local function SpellName(spellID)
+    if type(C_Spell) == "table" and type(C_Spell.GetSpellName) == "function" then
+        local ok, name = pcall(C_Spell.GetSpellName, spellID)
+        local text = ok and ns.Harvest.Readable(name) or nil
+        if text then return text end
+    end
+
+    if type(GetSpellInfo) == "function" then
+        local ok, name = pcall(GetSpellInfo, spellID)
+        return ok and ns.Harvest.Readable(name) or nil
+    end
+end
+
+--- Is this spell one that breaks an item, such as Disenchant? By its ID, or
+--- by its name matching one of theirs, in case the client gives another ID.
+function Containers.IsBreakSpell(spellID)
+    local id = ns.Harvest.ReadableNumber(spellID)
+    if not id then return false end
+    if Containers.BREAK_SPELLS[id] then return true end
+
+    local name = SpellName(id)
+    if not name then return false end
+    for known in pairs(Containers.BREAK_SPELLS) do
+        if SpellName(known) == name then return true end
+    end
+    return name == "Disenchant"
+end
+
+--- Is this item a weapon or armour? Gear is never a clam or a sack, so a
+--- window it opens is a disenchant. False when the client will not say.
+function Containers.IsGear(id)
+    local WorldDrops = ns.WorldDrops
+    if not (id and WorldDrops and WorldDrops.IsGear) then return false end
+    local ok, gear = pcall(WorldDrops.IsGear, id)
+    return ok and gear == true
 end
 
 --------------------------------------------------------------------------------
@@ -59,6 +110,14 @@ function Containers:Store()
     if type(db.containers.opened) ~= "table" then db.containers.opened = {} end
 
     return db.containers.opened
+end
+
+--- One opened item's entry, or nil. Gear counted before disenchants were
+--- told apart is skipped, never deleted.
+function Containers:Entry(name)
+    local entry = name and self:Store()[name]
+    if type(entry) ~= "table" or Containers.IsGear(entry.id) then return nil end
+    return entry
 end
 
 --- Count one opening of `name`. `items` are names, each once; `quantities`
@@ -100,6 +159,7 @@ function Containers:Holding(itemName)
     for name, entry in pairs(self:Store()) do
         local got = type(entry) == "table" and type(entry.items) == "table" and entry.items[itemName]
         local times = type(got) == "table" and tonumber(got.opens) or 0
+        if times > 0 and Containers.IsGear(entry.id) then times = 0 end
         if times > 0 then
             list[#list + 1] = { name = name, opens = tonumber(entry.opens) or 0, got = times }
         end
@@ -153,7 +213,7 @@ end
 --- loot window names an item as its source.
 function Containers:OnUsed(bag, slot)
     local id, name, hasLoot = Containers.SlotItem(bag, slot)
-    if hasLoot == false or not name then return end
+    if hasLoot == false or not name or Containers.IsGear(id) then return end
 
     self.opening = { id = id, name = name, at = Now(), unsure = hasLoot ~= true }
 end
@@ -211,14 +271,34 @@ function Containers:FromSource()
     local id, name = Containers.ItemByGuid(itemGuid)
     if not name then return nil end
 
-    self.sourced = { id = id, name = name, guid = itemGuid }
+    self.sourced = { id = id, name = name, guid = itemGuid, broken = Containers.IsGear(id) }
     return self.sourced
 end
 
---- The bag item this window is from, or nil.
+--- Did your Disenchant (or another spell that breaks an item) just go
+--- through, and does this window name an item and no creature?
+function Containers:IsBreaking()
+    local kinds = SourceKinds()
+    if kinds.Creature then return false end
+
+    local breaking = self.breaking
+    if breaking and (breaking.looted or Recent(breaking.at, Containers.BREAK_SECONDS)) then
+        return true
+    end
+
+    local sourced = kinds.Item and self:FromSource() or nil
+    return sourced ~= nil and sourced.broken == true
+end
+
+--- The bag item this window is from, or nil. Never a disenchant.
 function Containers:Opening()
     local opening = self.opening
     if opening and opening.looted then return opening end
+
+    if self:IsBreaking() then
+        if self.breaking then self.breaking.looted = true end
+        return nil
+    end
 
     if opening and Recent(opening.at, Containers.OPEN_SECONDS) then
         -- The client says where the loot came from: a corpse is a corpse.
@@ -230,18 +310,32 @@ function Containers:Opening()
 
     -- No click seen (the game's bag button may not go through the call we
     -- watch): the window's own source, when it names an item in the bags.
-    return self:FromSource()
+    local sourced = self:FromSource()
+    if sourced and sourced.broken then return nil end
+    return sourced
 end
 
 --------------------------------------------------------------------------------
 -- An object in the world opened
 --------------------------------------------------------------------------------
 
---- The cast that may open an object: what it named.
-function Containers:OnCastSent(unit, target)
+--- The cast that may open an object: what it named. A Disenchant is only
+--- noted, so its window is not taken for a clam.
+function Containers:OnCastSent(unit, target, _, spellID)
     if ns.Harvest.Readable(unit) ~= "player" then return end
+    if Containers.IsBreakSpell(spellID) then
+        self.breaking = { at = Now() }
+        self.cast = nil
+        return
+    end
     local name = ns.Harvest.Readable(target)
     self.cast = name and { name = name, at = Now() } or nil
+end
+
+--- A cast went through: a Disenchant's window opens next.
+function Containers:OnCastSucceeded(unit, _, spellID)
+    if ns.Harvest.Readable(unit) ~= "player" then return end
+    if Containers.IsBreakSpell(spellID) then self.breaking = { at = Now() } end
 end
 
 --- The name of the object this window is from, or nil.
@@ -278,6 +372,8 @@ end
 --- and the kill tally ask, as they ask about nodes (Harvest:IsNodeLoot).
 function Containers:Claims()
     if self:Opening() then return true end
+    -- A disenchant is no corpse's loot either; it is just not counted.
+    if self:IsBreaking() then return true end
     if ns.Gathering and ns.Gathering:IsGathering() then return false end
     return self:IsObject()
 end
@@ -319,6 +415,8 @@ end
 function Containers:OnLootClosed()
     if self.opening and self.opening.looted then self.opening = nil end
     if self.sourced and self.sourced.looted then self.sourced = nil end
+    if self.sourced and self.sourced.broken then self.sourced = nil end
+    if self.breaking and self.breaking.looted then self.breaking = nil end
     self.objectLooted = nil
 end
 
@@ -334,6 +432,9 @@ function Containers:OnEnable()
 
     ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_SENT", function(_, _, ...)
         Containers:OnCastSent(...)
+    end)
+    ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_SUCCEEDED", function(_, _, ...)
+        Containers:OnCastSucceeded(...)
     end)
 
     -- A post-hook: it runs after the game's own call and changes nothing.
