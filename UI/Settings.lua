@@ -1061,7 +1061,7 @@ function SettingsUI:BuildSharingPage()
 
     pages:Section("sharing", 1, L["YOUR OTHER ACCOUNT"])
 
-    local shareRow = pages:Row("sharing", 1, L["Share With It:"],
+    local shareRow = pages:Row("sharing", 1, L["Share With Your Other Account:"],
         L["Swaps your kill counts, drop rates, gathering and fishing with your other account while both are logged in. What comes in merges with your totals and can't be taken back out."])
     controls.share = Widgets.CreateCheckbox(shareRow, L["On"], function(checked)
         ns.Share:SetEnabled(checked)
@@ -1069,7 +1069,7 @@ function SettingsUI:BuildSharingPage()
     end, false)
     controls.share:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local namesRow = pages:Row("sharing", 1, L["Its Characters:"],
+    local namesRow = pages:Row("sharing", 1, L["Other Accounts Characters:"],
         L["Type your other account's characters, first and last name, with commas. Name one of yours in Farmer there too."])
     GrowRow(namesRow, 26)
     local names = Widgets.CreateSearchBox(namesRow, L["Ana Smith, Bob Jones"], nil, function(text)
