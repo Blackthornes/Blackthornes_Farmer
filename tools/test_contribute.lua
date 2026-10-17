@@ -30,8 +30,7 @@ local tip
 for _, card in ipairs(ns.WHATS_NEW_TIPS or {}) do
     if card.key == "shareDrops" then tip = card end
 end
-suite.check("a What's New card offers it", tip ~= nil and type(tip.run) == "function")
-suite.check("not due while there is nowhere to send", tip and tip.due() == false)
+suite.check("no What's New card offers it", tip == nil)
 
 --------------------------------------------------------------------------------
 -- Pretend accounts
@@ -181,17 +180,15 @@ Switch(ana) ns.db.shareDrops = false
 for _, account in ipairs(accounts) do Switch(account) Share:Apply() end
 Settle()
 Switch(ana)
-Check("the card is due once there is somewhere to send", tip.due() == true)
 Check("a named character is receiving", (function() Switch(tia) return Contribute:Receiving() end)())
 Switch(ana)
 Check("a player who is not named is not", not Contribute:Receiving())
 HalfHour()
 Check("still off, nothing is whispered", whispers == 0, whispers)
 
--- Ana ticks it through the card; Bob does not.
-Switch(ana) tip.run()
-Check("the card's button turns it on", ns.db.shareDrops == true and Contribute:Sending())
-Check("and it's off for the card after", tip.due() == false)
+-- Ana ticks it on the About page; Bob does not.
+Switch(ana) Contribute:SetOn(true)
+Check("ticking it turns it on", ns.db.shareDrops == true and Contribute:Sending())
 HalfHour()
 
 Switch(tia)
@@ -267,7 +264,6 @@ Check("Ana holds no records of Tia's", ana.records[WOLF].corpses == 35 and ana.d
 locale = "deDE"
 Switch(bob)
 Check("a German client does not send", not Contribute:Sending())
-Check("and is not offered the card", tip.due() == false or ns.db.shareDrops == true)
 locale = "enUS"
 
 -- Turned off, nothing more goes.

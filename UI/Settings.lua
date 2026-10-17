@@ -1107,16 +1107,6 @@ function SettingsUI:BuildSharingPage()
     end, false)
     controls.shareGuild:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    -- Logic/Contribute.lua: drops sent to help Farmer's data, off until ticked.
-    pages:Section("sharing", 2, L["BLACKTHORNES"])
-
-    local dropsRow = pages:Row("sharing", 2, L["Share My Drops:"],
-        L["Sends what mobs drop for you to Blackthornes to help make Farmer's data better. Nothing else is sent."])
-    controls.shareDrops = Widgets.CreateCheckbox(dropsRow, L["On"], function(checked)
-        ns.Contribute:SetOn(checked)
-        SettingsUI:Refresh()
-    end, false)
-    controls.shareDrops:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Advanced: debug output, the data the addon carries, and the commands.
@@ -1132,6 +1122,31 @@ function SettingsUI:BuildAboutPage()
     pages:Section("about", 2, L["ABOUT"])
     local info = pages:Place("about", 2, About:Info(pages.pages.about.content, COLUMN_WIDTH))
     pages:Searchable("about", info, info.words)
+
+    -- Logic/Contribute.lua: drops sent to help Farmer's data, off until
+    -- ticked. Its words wrap under the box, since they run long.
+    local text = L["Share your data with Blackthornes to improve the Farmer AddOn."]
+    local holder = CreateFrame("Frame", nil, pages.pages.about.content)
+    holder:SetSize(COLUMN_WIDTH, 36)
+    local box = Widgets.CreateCheckbox(holder, text, function(checked)
+        ns.Contribute:SetOn(checked)
+        SettingsUI:Refresh()
+    end, false)
+    box:SetPoint("TOPLEFT", 0, -2)
+    box:SetWidth(COLUMN_WIDTH)
+    box.label:ClearAllPoints()
+    box.label:SetPoint("TOPLEFT", box.box, "TOPRIGHT", 6, 1)
+    box.label:SetWidth(COLUMN_WIDTH - 24)
+    box.label:SetJustifyH("LEFT")
+    if box.label.SetWordWrap then box.label:SetWordWrap(true) end
+    local ok, tall = pcall(box.label.GetStringHeight, box.label)
+    tall = ok and tonumber(tall) or 0
+    if tall < 14 then tall = 28 end
+    box:SetHeight(math.max(18, tall + 2))
+    holder:SetHeight(math.max(18, tall + 2) + 6)
+    pages:Place("about", 2, holder, 14)
+    pages:Searchable("about", holder, text)
+    self.controls.shareDrops = box
 end
 
 function SettingsUI:BuildAdvancedPage()
@@ -1210,7 +1225,7 @@ function SettingsUI:Refresh()
     controls.share:SetChecked(db.shareData == true)
     controls.shareNames:SetText(db.shareNames or "")
     controls.shareGuild:SetChecked(db.shareGuild == true)
-    controls.shareDrops:SetChecked(db.shareDrops == true)
+    if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)

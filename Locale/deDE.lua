@@ -1497,15 +1497,8 @@ L["Type /farm transparent goals, places, rankup, recap or xpbar, then off, some,
 L["Type off, some, more or most."] = "Tippe off, some, more oder most."
 
 -- Logic/Contribute.lua: drops sent to Blackthornes
-L["BLACKTHORNES"] = "BLACKTHORNES"
-L["Share My Drops:"] = "Meine Beute teilen:"
-L["Sends what mobs drop for you to Blackthornes to help make Farmer's data better. Nothing else is sent."] = "Schickt Blackthornes, was Gegner bei dir fallen lassen, damit Farmers Daten besser werden. Sonst wird nichts geschickt."
+L["Share your data with Blackthornes to improve the Farmer AddOn."] = "Teile deine Daten mit Blackthornes, damit das Farmer-AddOn besser wird."
 L["Got drops for %d mob from %s."] = "Beute für %d Gegner von %s erhalten."
 L["Got drops for %d mobs from %s."] = "Beute für %d Gegner von %s erhalten."
 L["Sharing your drops with Blackthornes is on. Thank you."] = "Du teilst deine Beute mit Blackthornes. Danke dir."
 L["Sharing your drops with Blackthornes is off."] = "Du teilst deine Beute nicht mit Blackthornes."
-L["Share your drops"] = "Teile deine Beute"
-L["You can send your drop rates to Blackthornes to help make Farmer's data better for everyone. Only what mobs dropped is sent. Nothing else leaves your game."] = "Du kannst Blackthornes deine Dropchancen schicken, damit Farmers Daten für alle besser werden. Nur was Gegner fallen lassen wird geschickt. Sonst verlässt nichts dein Spiel."
-L["It's off until you turn it on."] = "Es ist aus, bis du es einschaltest."
-L["You can turn it on or off any time in Farmer's Settings, on the Sharing page."] = "Du kannst es jederzeit in Farmers Einstellungen auf der Seite Teilen ein- oder ausschalten."
-L["Turn it on"] = "Einschalten"

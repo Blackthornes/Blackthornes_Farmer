@@ -341,23 +341,6 @@ function Contribute:Describe()
     return L["Sharing your drops with Blackthornes is off."]
 end
 
---- The one-time What's New card: offered once, only while there is
---- somewhere to send and the player has not turned it on.
-ns.WHATS_NEW_TIPS = ns.WHATS_NEW_TIPS or {}
-table.insert(ns.WHATS_NEW_TIPS, {
-    key = "shareDrops",
-    title = L["Share your drops"],
-    icon = [[Interface\Icons\INV_Misc_Bag_10]],
-    paragraphs = {
-        L["You can send your drop rates to Blackthornes to help make Farmer's data better for everyone. Only what mobs dropped is sent. Nothing else leaves your game."],
-        L["It's off until you turn it on."],
-    },
-    hint = L["You can turn it on or off any time in Farmer's Settings, on the Sharing page."],
-    button = L["Turn it on"],
-    due = function() return Contribute:HasRecipients() and EnglishClient() and not Contribute:On() end,
-    run = function() Contribute:SetOn(true) end,
-})
-
 function Contribute:OnEnable()
     Comm:On("Q", function(...) Contribute:OnHello(...) end)
     -- Share:OnEnable ran first (the TOC's order); this starts the hellos.
