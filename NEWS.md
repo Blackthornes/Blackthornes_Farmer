@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.40.0
+
+- The World Drops view on Rankings shows how often Uncommon, Rare, Epic and Legendary gear drops at each mob level. You can sort it, and it points out the best level and yours.
+
+Fixes and changes:
+
+- The main window keeps the same size on every tab.
+
 ## 0.39.0
 
 - The settings for making each panel transparent now sit together in one place on the UI page.
