@@ -396,6 +396,7 @@ before anyone loots them on Forever. `Data/Data_ClassicDrops.lua` is written
 by `tools/make_classic_drops.py <Classic data> <Forever tables folder>`
 (never by hand; never name where the Classic data came from): trade goods
 and quest items the Forever client still has (Item.csv class 7 and 12),
+and recipes (class 9, at `MIN_RECIPE_CHANCE` or better, 2026-10-17),
 up to `MAX_SPOTS` ordinary mobs an item (no rares or bosses, at least
 `MIN_SPAWNS` spawns in the zone), one real spawn spot each, gathered items
 left to the node files. Every row is `searchOnly` and has no `chance`, so

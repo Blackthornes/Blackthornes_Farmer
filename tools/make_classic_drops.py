@@ -12,8 +12,8 @@ Run from the repository root:
 
 So the search has something to show for a trade good before anyone has
 looted it on Forever. Only trade goods (the client's item class 7: cloth,
-leather, meat, herbs, metal, elemental, enchanting and the rest) and quest
-items (class 12) that the Forever client still has, dropped by a mob that stands somewhere, at
+leather, meat, herbs, metal, elemental, enchanting and the rest), recipes
+(class 9, at MIN_RECIPE_CHANCE or better) and quest items (class 12) that the Forever client still has, dropped by a mob that stands somewhere, at
 MIN_CHANCE or better, the MAX_SPOTS likeliest mobs an item, each in the zone
 it stands in most. No drop rates are written: these are Classic's, nobody
 measured them here, and a spot is shown as one from Classic until it is
@@ -39,8 +39,11 @@ from check_package import PRIVATE  # noqa: E402
 OUT = Path("Data/Data_ClassicDrops.lua")
 ZONES = Path("Data/Zones.lua")
 
-TRADE_GOODS, QUEST_ITEMS = "7", "12"
+TRADE_GOODS, RECIPES, QUEST_ITEMS = "7", "9", "12"
 MIN_CHANCE = 1.0
+# Recipes drop far less often; a world drop from every mob (well under
+# this) is no lead to anywhere.
+MIN_RECIPE_CHANCE = 0.1
 MAX_SPOTS = 8
 MIN_SPAWNS = 3
 
@@ -89,11 +92,13 @@ def hand_typed():
 def category(kind, subclass):
     if kind == QUEST_ITEMS:
         return "Quest item"
+    if kind == RECIPES:
+        return "Recipe"
     return CATEGORIES.get(subclass, "Mob drop")
 
 
 def trade_goods(tables):
-    """{ item ID: (English name, category) } for trade goods and quest items."""
+    """{ item ID: (English name, category) } for trade goods, recipes and quest items."""
     kinds = {}
     with open(tables / "Item.csv", encoding="utf-8", newline="") as f:
         for row in csv.DictReader(f):
@@ -104,7 +109,7 @@ def trade_goods(tables):
             item = int(row["ID"])
             name = (row.get("Display_lang") or "").strip()
             kind, subclass = kinds.get(item, (None, None))
-            if kind not in (TRADE_GOODS, QUEST_ITEMS) or not name:
+            if kind not in (TRADE_GOODS, RECIPES, QUEST_ITEMS) or not name:
                 continue
             # "[PH]", "Deprecated", "Test" and the like were never handed out.
             if name.startswith("[") or re.search(r"\b(test|deprecated|unused|old)\b", name, re.I):
@@ -169,7 +174,8 @@ def main():
         for unit, chance in PAIR.findall(drops.group(1) if drops else ""):
             unit, chance = int(unit), float(chance)
             name = unit_names.get(unit)
-            if chance < MIN_CHANCE or unit not in stands or not name or name.startswith("["):
+            least = MIN_RECIPE_CHANCE if goods[item][1] == "Recipe" else MIN_CHANCE
+            if chance < least or unit not in stands or not name or name.startswith("["):
                 continue
             if any(pattern.search(name) for _, pattern in PRIVATE):
                 continue
