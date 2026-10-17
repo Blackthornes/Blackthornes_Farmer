@@ -250,8 +250,10 @@ for _, name in ipairs(RESEARCHED) do
         suite.check(("every %s row names its mob"):format(name),
             source.name and source.name ~= "", source.zone)
 
+        -- Classic's generated rows (Data/Data_ClassicDrops.lua) are leads
+        -- for the search and name no subzone.
         suite.check(("every %s row names where in the zone"):format(name),
-            source.location and source.location ~= "", source.name)
+            source.searchOnly or (source.location and source.location ~= ""), source.name)
 
         -- Absent is fine. Present and malformed is not.
         suite.check(("a %s drop rate, where there is one, is a number"):format(name),

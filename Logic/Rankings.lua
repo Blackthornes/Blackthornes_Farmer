@@ -47,7 +47,8 @@ function Rankings:Spot(mobName)
 
     for _, entry in ipairs(ns.DB:ByName()[name] or {}) do
         local source = entry.source
-        if CREATURE_KINDS[source.kind or "mob"] then
+        -- Classic's generated rows are for the search (Data_ClassicDrops).
+        if CREATURE_KINDS[source.kind or "mob"] and not source.searchOnly then
             if not best or (source.minLevel or 0) < (best.minLevel or 0) then
                 best = source
             end

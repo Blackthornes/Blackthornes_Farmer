@@ -142,6 +142,32 @@ local function SameSpot(item, source)
     return nil
 end
 
+--- A Classic row and a measured one (looted here, or the guild's) for the
+--- same creature in the same zone, when SameSpot finds no exact match. The
+--- generated Classic rows (Data/Data_ClassicDrops.lua) name no subzone, and
+--- a looted row always does, so they would otherwise sit side by side.
+local function SameMob(item, source)
+    if type(source.name) ~= "string" or source.name == "" then return nil end
+
+    local name = source.name:lower()
+    local zone = source.zone:lower()
+    local classic = source.provenance == DB.DEFAULT_PROVENANCE
+
+    for index, existing in ipairs(item.sources) do
+        if type(existing.name) == "string"
+            and existing.name:lower() == name
+            and type(existing.zone) == "string"
+            and existing.zone:lower() == zone
+            -- A generated row gives way to any row already there, the
+            -- hand-typed ones included, and a measured row takes its place.
+            and (source.searchOnly or (existing.searchOnly and not classic)) then
+            return index, existing
+        end
+    end
+
+    return nil
+end
+
 function DB:AddSource(item, source)
     if type(item) == "string" then
         item = self.items[item:lower()]
@@ -198,6 +224,10 @@ function DB:AddSource(item, source)
     -- Only across provenances. Two rows of the same kind for one spot are a
     -- data-entry duplicate, which is not this function's problem to guess at.
     local index, existing = SameSpot(item, source)
+    if not existing then
+        index, existing = SameMob(item, source)
+        if existing and source.searchOnly then return nil end
+    end
 
     -- A guild row is taken out again when guild sharing is turned off, so
     -- it keeps the row it stood in for (DB:RemoveSource puts it back).
