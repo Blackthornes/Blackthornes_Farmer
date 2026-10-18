@@ -970,7 +970,11 @@ brightest (`Heat:BestMap`, `OpenWorldMap`, never in a fight). The same row
 again, or **Stop Tracking** on the map's card (`HeatUI:UpdateCard`, our own
 frame on the map: "Showing: NAME", an item's mobs with "N% a kill", the
 colour key), stops tracking. Dim with "Kill a few first and it will
-show here." until a spot is kept (`Heat:HasSpots`, `ItemHasSpots`).
+show here." until a spot is kept (`Heat:HasSpots`, `ItemHasSpots`), and
+the card says the same (`HeatUI.HasGlow`): kills from before the heat map
+was on have no spot. The card can be dragged and stays where it was left,
+inside the map (`heatCardX`, `heatCardY`, never rename them;
+`HeatUI:PlaceCard`, `KeepCardPlace`).
 The maps glow only while a mob or item is tracked (the owner, 2026-10-18;
 `HeatUI.Tracking`): with nothing picked, neither map draws. The glow's
 outer edge has a gold line over a dark one (the owner asked the same day,
