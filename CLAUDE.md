@@ -965,8 +965,11 @@ client will not give adds nothing). Older kills have no spot. Own kills
 only; guild and shipped data never reach it. `UI/Heat.lua` draws soft dots
 (`Media/Frame/HeatDot.tga`, `tools/make_heat_art.py`) blue to red, a slice
 a frame, redone only when the cells, map, mob or strength change. The world
-map is never drawn in combat and sits under the gathered-node markers; the
-minimap is fainter. Hidden mobs are left out. Saved, never renamed:
+map is never drawn in combat and sits over the map's art and under the
+gathered-node markers (`HeatUI.WORLD_ABOVE` 2 levels over the canvas,
+`MapMarkers.WORLD_ABOVE` 3, Grind pins 4; at the canvas's own level it was
+drawn under the art and never showed, 2026-10-18); the minimap is fainter
+(`MINIMAP_ABOVE`, 1 for the glow, 2 for the markers). Hidden mobs are left out. Saved, never renamed:
 `killHeat`, `heatWorld`, `heatMinimap` (both off unless ticked), `heatLevel`
 (Some, More, Most) and `heatMob`. KILL HEAT on the Map & goals page and
 `/farm heat [on|off|map|minimap|strength|mob <name>|all|clear confirm]`;
