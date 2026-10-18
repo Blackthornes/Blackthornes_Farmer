@@ -973,8 +973,14 @@ drawn under the art and never showed, 2026-10-18); the minimap is fainter
 `killHeat`, `heatWorld`, `heatMinimap` (both off unless ticked), `heatLevel`
 (Some, More, Most) and `heatMob`. KILL HEAT on the Map & goals page and
 `/farm heat [on|off|map|minimap|strength|mob <name>|all|clear confirm]`;
-`clear confirm` is typed only. Tested in `tools/test_heat.lua`. Not yet seen
-in game.
+`clear confirm` is typed only. A kill is kept under the map the game
+names where you stood, which can be a smaller map than the one shown, so
+`Heat:Cells` also reads every map inside the shown one or holding it,
+moved over by `C_Map.GetMapRectOnMap` (`Heat.MapRect`, `Heat.Carry`;
+`BestMap` still counts each map's own kills). `/farm heat check`
+(`ns.KeepCheck`, typed only) prints where you stand, the map shown, each
+map kills are kept on and the world layer. Tested in `tools/test_heat.lua`.
+Not yet seen in game.
 
 Show on Map (the owner, 2026-10-18, from a mockup; he approved the words):
 while the heat map is on the world map, search rows get a **Map** button,
