@@ -279,7 +279,23 @@ suite.check("an item's card draws its mob rows", okItem and ns.HeatUI.card ~= ni
     and #ns.HeatUI.card.rows >= 1)
 Heat:ShowAll()
 ns.db.heatCardX, ns.db.heatCardY = nil, nil
+
+-- The loot table's Map button, for the mob it shows.
+local LTU = ns.LootTableUI
+LTU:Build()
+LTU.mob = mobName .. "\tSomewhere"
+suite.check("the loot table maps a mob by its name", LTU:MapName() == mobName)
+LTU:DressMap()
+suite.check("the loot table's Map button shows with the heat map on", LTU.mapButton:IsShown())
+LTU.mapButton:GetScript("OnClick")(LTU.mapButton, "LeftButton")
+suite.check("and tracks that mob", Heat:Mob() == mobName)
+LTU.mapButton:GetScript("OnClick")(LTU.mapButton, "LeftButton")
+suite.check("a second click stops tracking", Heat:Mob() == nil)
 Heat:SetWorld(false)
+LTU:DressMap()
+suite.check("it hides with the heat map off the world map", not LTU.mapButton:IsShown()
+    and LTU:MapName() == nil)
+LTU.mob = nil
 
 -- 6.
 ns.SettingsUI:Show()

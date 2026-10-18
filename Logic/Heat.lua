@@ -123,6 +123,8 @@ local function Changed()
     Heat.version = Heat.version + 1
     cached = nil
     if ns.HeatUI then ns.HeatUI:Refresh() end
+    -- The loot table's Map button follows what the map shows.
+    if ns.LootTableUI and ns.LootTableUI.Refresh then pcall(ns.LootTableUI.Refresh, ns.LootTableUI) end
 end
 
 function Heat:SetWorld(on)
