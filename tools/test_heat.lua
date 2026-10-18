@@ -235,8 +235,10 @@ end)())
 suite.check("no cells, no outline", #ns.HeatUI.Outline({}) == 0)
 
 local keptView = ns.MapMarkers.WorldView
+local worldCanvas = CreateFrame("Frame")
+worldCanvas:SetFrameLevel(5)
 ns.MapMarkers.WorldView = function()
-    return { mapID = 9, width = 1000, height = 700, canvas = env.Stub() }
+    return { mapID = 9, width = 1000, height = 700, canvas = worldCanvas }
 end
 Heat:SetWorld(true)
 Heat:ShowAll()
@@ -248,6 +250,13 @@ ns.HeatUI:Refresh()
 for _ = 1, 20 do ns.HeatUI:Slice() end
 suite.check("tracking a mob, the map glows", ns.HeatUI.world and ns.HeatUI.world.used > 0)
 suite.check("and its edge is outlined", (ns.HeatUI.world.edgesUsed or 0) > 0)
+-- The map's art is a frame one level over the canvas: a glow at the
+-- canvas's own level was drawn under it and never showed.
+suite.check("the glow sits over the map's art",
+    ns.HeatUI.world.frame:GetFrameLevel() >= worldCanvas:GetFrameLevel() + 2)
+suite.check("and under the node markers",
+    ns.MapMarkers.WORLD_ABOVE > ns.HeatUI.WORLD_ABOVE
+    and ns.MapMarkers.MINIMAP_ABOVE > ns.HeatUI.MINIMAP_ABOVE)
 Heat:ShowAll()
 suite.check("stop tracking, the glow goes", ns.HeatUI.world.used == 0
     and ns.HeatUI.world.edgesUsed == 0)

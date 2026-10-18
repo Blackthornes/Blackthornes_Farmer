@@ -286,6 +286,11 @@ end
 --------------------------------------------------------------------------------
 
 --- The world map's canvas, the map it shows, and how far it is zoomed.
+-- Frame levels over the world map's canvas and the minimap: over the kill
+-- heat glow (UI/Heat.lua), under the Grind tab's pins.
+MapMarkers.WORLD_ABOVE = 3
+MapMarkers.MINIMAP_ABOVE = 2
+
 function MapMarkers:WorldView()
     local map = _G.WorldMapFrame
     if type(map) ~= "table" then return nil end
@@ -362,10 +367,11 @@ end
 
 function MapMarkers:PlaceWorld(pool, view)
     local now = ns.Gathering.Clock()
-    -- The bottom of the canvas's own pins: whatever else the map shows, the
+    -- Low among the canvas's own pins: whatever else the map shows, the
     -- game's or another addon's, draws over a spot you have already taken.
+    -- Just over the kill heat glow (HeatUI.WORLD_ABOVE), so a node shows on it.
     local okLevel, level = pcall(view.canvas.GetFrameLevel, view.canvas)
-    level = (okLevel and tonumber(level) or 1) + 1
+    level = (okLevel and tonumber(level) or 1) + MapMarkers.WORLD_ABOVE
 
     -- Same size on screen at any zoom: shrink the marker as the canvas grows,
     -- and place it in its own, smaller, units.
@@ -563,9 +569,10 @@ function MapMarkers:PlaceMinimap(pool)
     table.sort(near, function(a, b) return a.distance < b.distance end)
 
     local now = ns.Gathering.Clock()
-    -- Just above the minimap, so another addon's pins draw over these.
+    -- Just above the minimap and the kill heat glow, so another addon's pins
+    -- draw over these.
     local okLevel, level = pcall(Minimap.GetFrameLevel, Minimap)
-    level = (okLevel and tonumber(level) or 1) + 1
+    level = (okLevel and tonumber(level) or 1) + MapMarkers.MINIMAP_ABOVE
 
     for index = 1, math.min(#near, MINIMAP_MAX) do
         local entry = near[index]

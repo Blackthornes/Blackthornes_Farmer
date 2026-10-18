@@ -218,8 +218,8 @@ local framePin = Shown(MapMarkers.minimapPool)[1]
 suite.check("a minimap marker is hollow", framePin.hollow == true and rawget(framePin, "icon") == nil
     and rawget(framePin, "ring") == nil)
 suite.check("drawn as corner brackets", #framePin.corners == 8)
-suite.check("sitting just above the minimap, under anything else on it",
-    rawget(framePin, "_frameLevel") == Minimap:GetFrameLevel() + 1, rawget(framePin, "_frameLevel"))
+suite.check("sitting just above the minimap and the heat glow, under anything else on it",
+    rawget(framePin, "_frameLevel") == Minimap:GetFrameLevel() + MapMarkers.MINIMAP_ABOVE, rawget(framePin, "_frameLevel"))
 
 --------------------------------------------------------------------------------
 -- The world map
@@ -240,8 +240,8 @@ suite.check("the world map shows this map's spots", #Shown(world) == 3, #Shown(w
 local silver = PinFor(world, "Silverleaf")
 p = silver._point
 suite.check("placed on the canvas from its top left", p[2] == canvas and p[3] == "TOPLEFT")
-suite.check("at the bottom of the map's pins, so anything else draws over it",
-    rawget(silver, "_frameLevel") == canvas:GetFrameLevel() + 1, rawget(silver, "_frameLevel"))
+suite.check("low among the map's pins, over the heat glow, so anything else draws over it",
+    rawget(silver, "_frameLevel") == canvas:GetFrameLevel() + MapMarkers.WORLD_ABOVE, rawget(silver, "_frameLevel"))
 -- Zoomed in 2x, so the marker is drawn at half scale and placed in its own units.
 suite.check("at the spot, whatever the zoom",
     Near(p[4], 0.45 * 1000 * 2) and Near(p[5], -(0.68 - 50 / 2000) * 667 * 2),

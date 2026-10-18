@@ -5,9 +5,11 @@
 -- Each cell is one soft dot (Media/Frame/HeatDot.tga) coloured by how busy
 -- it is next to your busiest cell, added together where they overlap, so
 -- a crowd of kills glows hotter than a few. The world map's dots sit on a
--- frame of their own at the canvas's own level, under the gathered-node
--- markers and the game's pins, so a live node and the game's icons always
--- show over the glow. The minimap's are fainter still, since its blips are
+-- frame of their own two levels over the canvas (HeatUI.WORLD_ABOVE): the
+-- map's own art is a frame one level over it, and a glow at the canvas's
+-- level was drawn under the art, so nothing showed (2026-10-18). The
+-- gathered-node markers and the game's pins sit higher still, so a live
+-- node and the game's icons always show over the glow. The minimap's are fainter still, since its blips are
 -- part of the minimap and every addon frame draws over them. Nothing here
 -- touches a Blizzard frame, and the world map is left alone in a fight.
 --
@@ -59,6 +61,12 @@ local WORLD_GOLD, WORLD_DARK = 0.003, 0.0065
 local MINIMAP_GOLD, MINIMAP_DARK = 1.5, 3.5
 local MAX_WORLD_EDGES = 4000
 local MAX_MINIMAP_EDGES = 400
+
+-- How many frame levels over the world map's canvas and over the minimap
+-- the glow sits. The map's art is one over the canvas, so the glow must be
+-- higher; MapMarkers keeps the node markers higher again.
+HeatUI.WORLD_ABOVE = 2
+HeatUI.MINIMAP_ABOVE = 1
 
 --------------------------------------------------------------------------------
 -- Dots
@@ -282,7 +290,8 @@ function HeatUI:DrawWorld()
             TrimEdges(self.world, 0)
         end
         local okLevel, level = pcall(view.canvas.GetFrameLevel, view.canvas)
-        self.world = NewLayer(view.canvas, okLevel and tonumber(level) or nil)
+        level = (okLevel and tonumber(level) or 1) + HeatUI.WORLD_ABOVE
+        self.world = NewLayer(view.canvas, level)
         self.world.parent = view.canvas
     end
 
@@ -409,7 +418,8 @@ function HeatUI:DrawMinimap()
 
     if not self.minimap then
         local okLevel, level = pcall(Minimap.GetFrameLevel, Minimap)
-        self.minimap = NewLayer(Minimap, okLevel and tonumber(level) or nil)
+        level = (okLevel and tonumber(level) or 1) + HeatUI.MINIMAP_ABOVE
+        self.minimap = NewLayer(Minimap, level)
     end
 
     local layer = self.minimap
