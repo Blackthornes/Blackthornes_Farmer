@@ -46,6 +46,7 @@ local Share = ns.Share
 -- here, never shown to players. Empty sends nothing.
 Contribute.RECIPIENTS = {
     "Blackthornes Farmer",
+    "Blackthorne Wither",
 }
 
 -- Only players on this region send (the owner, 2026-10-17: North America),

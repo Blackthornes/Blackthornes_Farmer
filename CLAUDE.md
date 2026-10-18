@@ -296,7 +296,12 @@ data (in memory; the save is never changed, ledger names never read).
 Never announce the fold-in. Tested in `tools/test_contribute.lua` and
 `tools/test_harvest_import.py`. Not yet seen in game. A recipient whose
 first name trips `check_package.py`'s owner's-name check would stop the
-release; check before adding names.
+release; check before adding names. Two recipients since 2026-10-18, the
+owner's two characters on one account (one save between them), so the one
+online takes a share and the other skips it. Tradeskills has the same
+choice for disenchants and recipe levels (its `Logic/Contribute.lua`,
+"Sending data to Blackthornes" in its `CLAUDE.md`), with the same two
+names; change both lists together.
 
 ## Giving data to another player
 
