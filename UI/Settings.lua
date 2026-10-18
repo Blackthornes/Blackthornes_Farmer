@@ -1061,7 +1061,7 @@ function SettingsUI:BuildMapPage()
     pages:Section("map", 2, L["KILL HEAT"])
 
     local heatWorldRow = pages:Row("map", 2, L["Heat on World Map:"],
-        L["Glows where you kill the most. It fills in as you play."])
+        L["Glows where you kill what you're tracking."])
 
     controls.heatWorld = Widgets.CreateCheckbox(heatWorldRow, L["Show"], function(checked)
         ns.Heat:SetWorld(checked)

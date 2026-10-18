@@ -146,7 +146,7 @@ suite.check("a mob's map is where it was killed most", opened == 7 or opened == 
 local _, mobLines = ns.HeatUI.CardText()
 suite.check("a mob's card has no rate lines", #mobLines == 0)
 Heat:ShowAll()
-suite.check("Show All Mobs goes back to every mob", Heat:Mob() == nil and Heat:Item() == nil
+suite.check("Stop Tracking goes back to every mob", Heat:Mob() == nil and Heat:Item() == nil
     and Heat:TargetKey() == "all")
 
 ns.DB:Hide("source", "Bear")

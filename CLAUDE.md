@@ -967,7 +967,7 @@ aims the glow at that mob (`heatMob`) or item (`Heat:SetItem`, kept for the
 session only: the mobs your own `Harvest.records` say drop it, each
 weighted by its rate, `Heat:ItemMobs`) and opens the world map where it is
 brightest (`Heat:BestMap`, `OpenWorldMap`, never in a fight). The same row
-again, or **Show All Mobs** on the map's card (`HeatUI:UpdateCard`, our own
+again, or **Stop Tracking** on the map's card (`HeatUI:UpdateCard`, our own
 frame on the map: "Showing: NAME", an item's mobs with "N% a kill", the
 colour key), stops tracking. Dim with "Kill a few first and it will
 show here." until a spot is kept (`Heat:HasSpots`, `ItemHasSpots`).

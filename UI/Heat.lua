@@ -478,7 +478,7 @@ end
 
 -- A small dark glass card in the world map's top left corner while the glow
 -- is for one mob or item: what it shows, the mobs behind an item's glow,
--- the colour key and Show All Mobs. Our own frame, a child of the map so it
+-- the colour key and Stop Tracking. Our own frame, a child of the map so it
 -- comes and goes with it; nothing on the map is written.
 
 -- Mobs listed under an item, the likeliest first.
@@ -529,7 +529,7 @@ local function Card(map)
     card.best = Theme.CreateLabel(card, "tiny", "muted", "RIGHT")
     card.best:SetText(L["Your best spot"])
 
-    card.all = ns.Widgets.CreateButton(card, L["Show All Mobs"], function()
+    card.all = ns.Widgets.CreateButton(card, L["Stop Tracking"], function()
         Heat:ShowAll()
     end, { width = 100, height = 18 })
 
