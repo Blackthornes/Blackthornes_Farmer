@@ -251,6 +251,24 @@ Heat:ShowAll()
 suite.check("stop tracking, the glow goes", ns.HeatUI.world.used == 0
     and ns.HeatUI.world.edgesUsed == 0)
 ns.MapMarkers.WorldView = keptView
+
+-- The card says when there is nothing to show yet, and stays inside the map.
+Heat:SetMob(mobName)
+suite.check("a mob with spots has glow", ns.HeatUI.HasGlow())
+Heat:SetMob("Never Killed Here")
+suite.check("a mob with no spots has none yet", not ns.HeatUI.HasGlow())
+Heat:ShowAll()
+ns.db.heatCardX, ns.db.heatCardY = 5000, -50
+local okPlace = pcall(function()
+    _G.WorldMapFrame = _G.WorldMapFrame or env.Stub()
+    Heat:SetMob(mobName)
+    ns.HeatUI:UpdateCard()
+    ns.HeatUI:PlaceCard()
+    ns.HeatUI:KeepCardPlace()
+end)
+suite.check("placing and dragging the card does not raise", okPlace)
+Heat:ShowAll()
+ns.db.heatCardX, ns.db.heatCardY = nil, nil
 Heat:SetWorld(false)
 
 -- 6.

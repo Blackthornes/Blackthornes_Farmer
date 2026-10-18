@@ -479,7 +479,9 @@ end
 -- A small dark glass card in the world map's top left corner while the glow
 -- is for one mob or item: what it shows, the mobs behind an item's glow,
 -- the colour key and Stop Tracking. Our own frame, a child of the map so it
--- comes and goes with it; nothing on the map is written.
+-- comes and goes with it; nothing on the map is written. It sits in the top
+-- left corner until dragged, then where it was left (heatCardX, heatCardY,
+-- from the map's top left; never rename them), kept inside the map.
 
 -- Mobs listed under an item, the likeliest first.
 HeatUI.KEY_MOST = 5
@@ -494,12 +496,22 @@ local function Card(map)
     card:SetWidth(PANEL_WIDTH)
     card:SetFrameStrata("HIGH")
     card:EnableMouse(true)
+    card:SetMovable(true)
+    card:RegisterForDrag("LeftButton")
+    card:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    card:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        HeatUI:KeepCardPlace()
+    end)
 
     card.showing = Theme.CreateLabel(card, "small", "text")
     card.showing:SetPoint("TOPLEFT", 8, -8)
     card.showing:SetPoint("TOPRIGHT", -8, -8)
 
     card.lines = {}
+
+    card.empty = Theme.CreateLabel(card, "tiny", "muted")
+    card.empty:SetText(L["Kill a few first and it will show here."])
 
     card.bar = CreateFrame("Frame", nil, card)
     card.bar:SetHeight(6)
@@ -535,6 +547,62 @@ local function Card(map)
 
     card:Hide()
     return card
+end
+
+-- The map area the card sits in and is kept inside.
+local function CardCorner(map)
+    return map.ScrollContainer or map
+end
+
+-- How far the card may go from the corner's top left, so it stays inside.
+local function CardRoom(card, corner)
+    local okW, width = pcall(corner.GetWidth, corner)
+    local okH, height = pcall(corner.GetHeight, corner)
+    local roomX = math.max(0, ((okW and tonumber(width)) or 0) - (card:GetWidth() or 0) - 8)
+    local roomY = math.max(0, ((okH and tonumber(height)) or 0) - (card:GetHeight() or 0) - 8)
+    return roomX, roomY
+end
+
+--- Put the card where it was left, or the top left corner, inside the map.
+function HeatUI:PlaceCard()
+    local card, map = self.card, _G.WorldMapFrame
+    if not (card and type(map) == "table") then return end
+    local corner = CardCorner(map)
+    local x = tonumber(ns.db and ns.db.heatCardX) or 8
+    local y = tonumber(ns.db and ns.db.heatCardY) or 8
+    local roomX, roomY = CardRoom(card, corner)
+    if roomX > 0 then x = math.min(math.max(x, 8), roomX) end
+    if roomY > 0 then y = math.min(math.max(y, 8), roomY) end
+    card:ClearAllPoints()
+    card:SetPoint("TOPLEFT", corner, "TOPLEFT", x, -y)
+end
+
+--- After a drag: keep where the card was left, as an offset from the map's
+--- top left, and anchor it there again.
+function HeatUI:KeepCardPlace()
+    local card, map = self.card, _G.WorldMapFrame
+    if not (card and type(map) == "table" and ns.db) then return end
+    local corner = CardCorner(map)
+    local ok, left, top, cornerLeft, cornerTop = pcall(function()
+        local cardScale = card:GetEffectiveScale() or 1
+        local cornerScale = corner:GetEffectiveScale() or 1
+        return (card:GetLeft() or 0) * cardScale / cornerScale, (card:GetTop() or 0) * cardScale / cornerScale,
+            corner:GetLeft() or 0, corner:GetTop() or 0
+    end)
+    if ok then
+        ns.db.heatCardX = math.floor(left - cornerLeft + 0.5)
+        ns.db.heatCardY = math.floor(cornerTop - top + 0.5)
+    end
+    self:PlaceCard()
+end
+
+--- Has the glow anywhere to show? False until a kill of what it is for was
+--- kept with its spot.
+function HeatUI.HasGlow()
+    local item = Heat.item
+    if item then return Heat:ItemHasSpots(item.name) end
+    local mob = Heat:Mob()
+    return mob ~= nil and Heat:HasSpots(mob)
 end
 
 --- The text for the card: what it shows, and the item's mobs.
@@ -576,11 +644,7 @@ function HeatUI:UpdateCard()
     if key == self.cardKey and self.card:IsShown() then return end
     self.cardKey = key
 
-    if not self.card then
-        self.card = Card(map)
-        local corner = map.ScrollContainer or map
-        self.card:SetPoint("TOPLEFT", corner, "TOPLEFT", 8, -8)
-    end
+    if not self.card then self.card = Card(map) end
 
     local card = self.card
     card.showing:SetText(showing)
@@ -601,6 +665,17 @@ function HeatUI:UpdateCard()
     end
     for index = #lines + 1, #card.lines do card.lines[index]:Hide() end
 
+    if HeatUI.HasGlow() then
+        card.empty:Hide()
+    else
+        y = y - 2
+        card.empty:ClearAllPoints()
+        card.empty:SetPoint("TOPLEFT", 8, y)
+        card.empty:SetPoint("TOPRIGHT", -8, y)
+        card.empty:Show()
+        y = y - (card.empty:GetStringHeight() or 13) - 2
+    end
+
     y = y - 4
     card.bar:ClearAllPoints()
     card.bar:SetPoint("TOPLEFT", 8, y)
@@ -617,6 +692,7 @@ function HeatUI:UpdateCard()
 
     card:SetHeight(-y)
     card:Show()
+    self:PlaceCard()
 end
 
 --------------------------------------------------------------------------------
