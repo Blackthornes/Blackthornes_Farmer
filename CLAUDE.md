@@ -403,6 +403,18 @@ clam, chest, node or school by name before any of them takes a second
 row, so the clams you opened, found in many zones, no longer push Giant
 Clams off. Mobs are ranked as before.
 
+## Quest items in the loot lists
+
+A player asked (2026-10-18, the owner said yes): quest items sell for
+nothing, so they read as loot with no price. `Value:IsQuest(name, id)`
+(the client's item class 12, else the data's "Quest item" category) marks
+them: "Quest" under the count on the Loot tab (`TrackerUI:SessionItems`'
+`quest`), "Quest" in the loot table's Per Kill column (`row.quest`) and
+"Quest item" on an icon's hover. They stay worth nothing: never a made-up
+price, so every total is the same, and `Value:Session` counts them in
+`details.quest`, not `unpriced`, so the "no price left out" note leaves
+them out. No setting. Tested in `tools/test_questloot.lua`.
+
 ## Classic drops in the search
 
 The owner said yes (2026-10-17) to filling the search with Classic's drops

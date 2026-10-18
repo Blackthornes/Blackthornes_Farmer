@@ -1626,7 +1626,12 @@ function TrackerUI:SlotTooltip(slot)
     if icon.about then GameTooltip:AddLine(icon.about, 1, 1, 1) end
 
     local unit = ns.Value and ns.Value:WorthOf(icon.item)
-    if unit then GameTooltip:AddLine(L.Format("Worth %s each", ns.Value.Coins(unit)), 1, 1, 1) end
+    if unit then
+        GameTooltip:AddLine(L.Format("Worth %s each", ns.Value.Coins(unit)), 1, 1, 1)
+    elseif ns.Value and ns.Value:IsQuest(icon.item) then
+        local r, g, b = Theme.Unpack("accent")
+        GameTooltip:AddLine(L["Quest item"], r, g, b)
+    end
 
     if icon.mob then
         GameTooltip:AddLine(L["Click for everything it has dropped."], 0.6, 0.6, 0.6)
@@ -2176,6 +2181,7 @@ function TrackerUI:SessionItems()
     for _, entry in pairs(byName) do
         local unit = ns.Value and ns.Value:WorthOf(entry.name)
         entry.value = unit and entry.count * unit or nil
+        entry.quest = not unit and ns.Value and ns.Value:IsQuest(entry.name) or nil
         items[#items + 1] = entry
     end
 
@@ -2206,8 +2212,9 @@ function TrackerUI:LootLines(Add)
         Add({ style = "loot", item = entry.name, left = entry.name,
             sub = sub, subShort = short, rank = rank,
             right = ("x%d"):format(entry.count),
-            below = entry.value and ns.Value.Coins(entry.value) or L["no price"],
-            belowColor = entry.value and "good" or "muted",
+            below = entry.value and ns.Value.Coins(entry.value)
+                or (entry.quest and L["Quest"] or L["no price"]),
+            belowColor = entry.value and "good" or (entry.quest and "accent" or "muted"),
             key = "loot:" .. entry.name, count = entry.count })
     end
 
