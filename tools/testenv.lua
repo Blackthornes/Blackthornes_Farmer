@@ -307,6 +307,10 @@ end
 local FILES = {
     "Locale/Locale.lua",
     "Locale/deDE.lua",
+    "Locale/zhCN.lua",
+    "Locale/frFR.lua",
+    "Locale/esES.lua",
+    "Locale/ruRU.lua",
     "Core/Init.lua",
     "Core/Util.lua",
     "Core/SisterNote.lua",

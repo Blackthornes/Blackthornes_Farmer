@@ -1495,6 +1495,21 @@ the language as "Deutsch"; the code names stay `deDE` and
 - `Locale/Locale.lua` and `tools/check_locale.py` are the same as Pets';
   a fix to either belongs in every addon that has them.
 
+## Simplified Chinese, French, Spanish and Russian
+
+The owner asked (2026-10-18) for Simplified Chinese, French, Spanish and
+Russian in every addon, after a player asked for Chinese. They work like
+German: written by us from the English keys, never from a player's or
+anyone else's file (the owner turned down a player's zip for safety).
+`Locale/zhCN.lua`, `Locale/frFR.lua` ("tu"), `Locale/esES.lua` (one
+Spanish for both Spanish clients: it loads on "esES" and "esMX", neutral
+words, "tú") and `Locale/ruRU.lua` ("ты"), each in the game's own words,
+listed in the TOC and in `tools/testenv.lua`'s `FILES` after deDE. Yards
+show as metres as in German, except Chinese keeps 码. Talk to the owner
+about "Simplified Chinese", "French" and so on, never the codes. Every new
+string gets a line in all five files; `tools/check_locale.py` checks them
+all. Tested in `tools/test_locale.lua`. Not yet seen in game.
+
 ## Zone names from the client
 
 The owner said "do it all" (2026-10-12) to using the Forever client's game
