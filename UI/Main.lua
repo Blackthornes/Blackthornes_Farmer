@@ -105,8 +105,11 @@ local TABS = {
 -- the game's font runs wider than widths picked by eye, and names were being
 -- cut off. The last slot holds the [Forever] badge, as wide as its text when
 -- a row has one, so a long "needs" in the drop column never runs under it.
-local COLUMN_ORDER = { "kind", "name", "where", "level", "drop", "value", "badge" }
-local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110, value = 58, badge = 8 }
+-- The map slot holds a mob's Map button (Show on Map), only while the kill
+-- heat map is on the world map; otherwise it takes no room at all.
+local COLUMN_ORDER = { "kind", "name", "where", "level", "drop", "value", "badge", "map" }
+local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110, value = 58, badge = 8, map = 0 }
+local MAP_BUTTON_WIDTH = 40
 -- Where has room for the longest place in the data (a zone, a landmark and
 -- coordinates) in the game's font; at 400 it cut 47 of them off.
 local MAX_WIDTH = { name = 320, where = 520, drop = 220, value = 140 }
@@ -142,7 +145,7 @@ local function Columns(widths)
     for _, key in ipairs(COLUMN_ORDER) do
         local w = widths and widths[key] or BASE_WIDTH[key]
         columns[key] = { x = x, w = w }
-        x = x + w + COLUMN_GAP
+        if w > 0 then x = x + w + COLUMN_GAP end
     end
 
     -- How much wider than the narrowest layout, for the window to grow by.
@@ -597,7 +600,7 @@ end
 --- than the base layout.
 function UI:FitColumns(rows)
     local widths = { kind = BASE_WIDTH.kind, name = BASE_WIDTH.name, where = BASE_WIDTH.where,
-        drop = BASE_WIDTH.drop, value = BASE_WIDTH.value, badge = BASE_WIDTH.badge }
+        drop = BASE_WIDTH.drop, value = BASE_WIDTH.value, badge = BASE_WIDTH.badge, map = 0 }
     local note = 0
 
     for _, row in ipairs(rows) do
@@ -619,6 +622,7 @@ function UI:FitColumns(rows)
             if row.source.provenance == "forever" then
                 widths.badge = math.max(widths.badge, Theme.TextWidth("tiny", BADGE_TEXT))
             end
+            if UI.MapsMob(row.source) then widths.map = MAP_BUTTON_WIDTH end
         elseif row.type == "zone" then
             -- A zone's heading takes the where column's room and more; it
             -- only needs not to run past the row.
@@ -669,7 +673,7 @@ function UI:FitColumns(rows)
     local current = self.columns or COLUMN
     if current.kind.w == widths.kind and current.name.w == widths.name and current.where.w == widths.where
         and current.drop.w == widths.drop and current.value.w == widths.value
-        and current.badge.w == widths.badge then
+        and current.badge.w == widths.badge and current.map.w == widths.map then
         return
     end
 
@@ -845,6 +849,28 @@ function UI:CreateRow(row)
     row.goal:SetPoint("RIGHT", -2, 0)
     row.goal:Hide()
 
+    -- Show on Map: the kill heat map's glow for this mob or item.
+    row.map = Widgets.CreateButton(row, L["Map"], function()
+        local kind, name = UI.MapTarget(row.data)
+        if not (kind and ns.Heat) then return end
+        if not UI.MapHasSpots(kind, name) then return end
+        ns.Heat:ShowOnMap(kind, name)
+        UI:Render()
+    end, { width = MAP_BUTTON_WIDTH, height = 15 })
+    row.map:HookScript("OnEnter", function(self)
+        local kind, name = UI.MapTarget(row.data)
+        if not (kind and GameTooltip) then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(UI.MapHasSpots(kind, name)
+            and L["Show where you find this on your map."]
+            or L["Kill a few first and it will show here."], 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    row.map:HookScript("OnLeave", function()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    row.map:Hide()
+
     row.kindChip = row:CreateTexture(nil, "ARTWORK")
     row.kindChip:SetSize(BASE_WIDTH.kind - 6, 13)
 
@@ -879,6 +905,45 @@ function UI:CreateRow(row)
     self:PlaceRow(row)
 end
 
+--- Does a search row's source get a Map button? Mobs only, while the heat
+--- map is on the world map.
+function UI.MapsMob(source)
+    return ns.Heat ~= nil and ns.Heat.WorldOn() and type(source) == "table"
+        and type(source.name) == "string" and (source.kind or "mob") == "mob"
+end
+
+--- What a row's Map button shows: "mob" or "item", and its name.
+function UI.MapTarget(data)
+    if type(data) ~= "table" then return nil end
+    if data.type == "source" and UI.MapsMob(data.source) then return "mob", data.source.name end
+    if data.type == "item" and data.item and not data.item.worldDrops
+        and ns.Heat and ns.Heat.WorldOn() then
+        return "item", data.item.name
+    end
+    return nil
+end
+
+--- Is there any glow to show for it yet?
+function UI.MapHasSpots(kind, name)
+    if not ns.Heat then return false end
+    if kind == "item" then return ns.Heat:ItemHasSpots(name) end
+    return ns.Heat:HasSpots(name)
+end
+
+--- Light the button gold while it is what the map shows; dim with no spots.
+local function DressMapButton(row, kind, name)
+    local Heat = ns.Heat
+    local current = (kind == "item" and Heat:Item() == name) or (kind == "mob" and Heat:Mob() == name)
+    if current then
+        row.map:SetLabelColor("accent")
+    elseif not UI.MapHasSpots(kind, name) then
+        row.map:SetLabelColor("dim")
+    else
+        row.map:SetLabelColor(nil)
+    end
+    row.map:Show()
+end
+
 local function HideSourceColumns(row)
     row.kindChip:Hide()
     row.kindEdge:Hide()
@@ -905,6 +970,7 @@ function UI:UpdateRow(row, data, index)
     self:PlaceRow(row)
     row.heading:Hide()
     row.goal:Hide()
+    row.map:Hide()
     row.band:Hide()
     row.bandGlow:Hide()
     row.bandStripe:Hide()
@@ -930,10 +996,25 @@ function UI:UpdateRow(row, data, index)
                 data.item.category, ns.Search:SpotsText(data.count, #data.item.sources)))))
         row.heading:Show()
 
+        -- Show on Map sits left of Goal, or at the end with no Goal.
+        local mapKind, mapName = UI.MapTarget(data)
+        local hasGoal = not (data.item.worldDrops or data.item.found)
+        if mapKind then
+            row.map:ClearAllPoints()
+            if hasGoal then
+                row.map:SetPoint("RIGHT", row.goal, "LEFT", -4, 0)
+            else
+                row.map:SetPoint("RIGHT", -2, 0)
+            end
+            DressMapButton(row, mapKind, mapName)
+            PlaceHeading(row, data.item.id and 38 or 18,
+                (hasGoal and 64 or 22) + MAP_BUTTON_WIDTH + 4)
+        end
+
         -- "23/40" once it has a goal, so the list shows where you are.
         -- The world drops result is no item to gather toward, and a find
         -- the data does not know (Search:FoundItems) is no goal's item.
-        if data.item.worldDrops or data.item.found then return end
+        if not hasGoal then return end
 
         local goal = ns.Goals and ns.Goals:Find(data.item.name)
         if goal and not goal.done then
@@ -1045,6 +1126,13 @@ function UI:UpdateRow(row, data, index)
     if source.provenance == "forever" then
         row.badge:SetText(BADGE_TEXT)
         row.badge:Show()
+    end
+
+    local mapKind, mapName = UI.MapTarget(data)
+    if mapKind and (self.columns or COLUMN).map.w > 0 then
+        row.map:ClearAllPoints()
+        row.map:SetPoint("LEFT", (self.columns or COLUMN).map.x, 0)
+        DressMapButton(row, mapKind, mapName)
     end
 end
 

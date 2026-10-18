@@ -13,6 +13,12 @@
 -- (inside a dungeon) adds nothing; the kill itself still counts.
 --
 -- Saved, never renamed: killHeat, heatWorld, heatMinimap, heatLevel, heatMob.
+--
+-- Show on Map (the owner, 2026-10-18): a search row's Map button aims the
+-- glow at one mob (heatMob) or one item. An item's glow is the mobs your own
+-- loot says drop it, each weighted by how often it did (`Heat:ItemMobs`, from
+-- Harvest.records only). The item is kept for the session only; nothing new
+-- is saved.
 
 local _, ns = ...
 local L = ns.L
@@ -93,11 +99,24 @@ function Heat:Level()
     return math.min(#Heat.LEVELS, math.max(1, level))
 end
 
---- The mob the heat is for, or nil for every mob.
+--- The mob the heat is for, or nil for every mob. Nil while an item is.
 function Heat:Mob()
+    if Heat.item then return nil end
     local mob = ns.db and ns.db.heatMob
     if type(mob) == "string" and mob ~= "" then return mob end
     return nil
+end
+
+--- The item the heat is for (Show on Map), or nil.
+function Heat:Item()
+    return Heat.item and Heat.item.name or nil
+end
+
+--- What the glow is for, as one string for a drawing's key.
+function Heat:TargetKey()
+    if Heat.item then return "item:" .. Heat.item.name end
+    local mob = self:Mob()
+    return mob and ("mob:" .. mob) or "all"
 end
 
 local function Changed()
@@ -124,6 +143,85 @@ end
 function Heat:SetMob(name)
     name = type(name) == "string" and Util.Trim(name) or ""
     ns.db.heatMob = name ~= "" and name or nil
+    Heat.item = nil
+    Changed()
+end
+
+--- The mobs your own loot says drop an item: { { mob, chance (0 to 1),
+--- corpses } }, likeliest first. Suffixes count as their item, a mob in two
+--- places is one mob, and hidden mobs are left out.
+-- ItemMobs answers, kept by item until a corpse is recorded, the records
+-- or the hide list change: a search row asks it on every redraw.
+local itemMobsKept = {}
+
+function Heat:ItemMobs(itemName)
+    local Harvest = ns.Harvest
+    if not (Harvest and type(Harvest.records) == "table" and type(itemName) == "string") then
+        return {}
+    end
+
+    local stamp = tostring(Harvest.changes or 0) .. "|" .. tostring(Harvest.records)
+        .. "|" .. tostring(ns.DB and ns.DB.hiddenVersion or 0)
+    if itemMobsKept.stamp ~= stamp then itemMobsKept = { stamp = stamp } end
+    local kept = itemMobsKept[itemName]
+    if kept then return kept end
+
+    local byMob = {}
+    for _, record in pairs(Harvest.records) do
+        local mob = type(record) == "table" and record.mob
+        local corpses = tonumber(record and record.corpses) or 0
+        if type(mob) == "string" and corpses > 0
+            and not (ns.DB and ns.DB:IsHiddenSource(mob)) then
+            local entry = Harvest:GroupedItems(record)[itemName]
+            local tally = byMob[mob]
+            if not tally then
+                tally = { corpses = 0, had = 0 }
+                byMob[mob] = tally
+            end
+            tally.corpses = tally.corpses + corpses
+            if type(entry) == "table" then
+                tally.had = tally.had + math.min(corpses, tonumber(entry.corpses) or 0)
+            end
+        end
+    end
+
+    local list = {}
+    for mob, tally in pairs(byMob) do
+        if tally.had > 0 then
+            list[#list + 1] = { mob = mob, chance = tally.had / tally.corpses, corpses = tally.corpses }
+        end
+    end
+    table.sort(list, function(a, b)
+        if a.chance ~= b.chance then return a.chance > b.chance end
+        return a.mob < b.mob
+    end)
+    itemMobsKept[itemName] = list
+    return list
+end
+
+--- Aim the glow at an item's mobs, or nil for all mobs again.
+function Heat:SetItem(itemName)
+    if type(itemName) ~= "string" or itemName == "" then
+        Heat.item = nil
+        Changed()
+        return
+    end
+
+    local mobs, weights, best = self:ItemMobs(itemName), {}, 0
+    for _, entry in ipairs(mobs) do
+        if entry.chance > best then best = entry.chance end
+    end
+    for _, entry in ipairs(mobs) do weights[entry.mob] = best > 0 and entry.chance / best or 0 end
+
+    ns.db.heatMob = nil
+    Heat.item = { name = itemName, mobs = mobs, weights = weights }
+    Changed()
+end
+
+--- Back to every mob.
+function Heat:ShowAll()
+    ns.db.heatMob = nil
+    Heat.item = nil
     Changed()
 end
 
@@ -190,9 +288,11 @@ end
 --- the cells, the mob or the hide list change.
 function Heat:Cells(mapID)
     local mob = self:Mob()
+    local target = self:TargetKey()
+    local weights = Heat.item and Heat.item.weights
     local hidden = ns.DB and ns.DB.hiddenVersion or 0
 
-    if cached and cached.map == mapID and cached.mob == mob
+    if cached and cached.map == mapID and cached.target == target
         and cached.version == Heat.version and cached.hidden == hidden then
         return cached.list, cached.max
     end
@@ -202,12 +302,18 @@ function Heat:Cells(mapID)
 
     if type(map) == "table" then
         for name, cells in pairs(map) do
-            local wanted = (mob == nil or name == mob) and type(cells) == "table"
+            local weight = 1
+            if weights then
+                weight = weights[name] or 0
+            elseif mob ~= nil and name ~= mob then
+                weight = 0
+            end
+            local wanted = weight > 0 and type(cells) == "table"
                 and not (ns.DB and ns.DB:IsHiddenSource(name))
             if wanted then
                 for cell, count in pairs(cells) do
                     count = tonumber(count)
-                    if count and count > 0 then sums[cell] = (sums[cell] or 0) + count end
+                    if count and count > 0 then sums[cell] = (sums[cell] or 0) + count * weight end
                 end
             end
         end
@@ -219,9 +325,87 @@ function Heat:Cells(mapID)
         if count > highest then highest = count end
     end
 
-    cached = { map = mapID, mob = mob, version = Heat.version, hidden = hidden,
+    cached = { map = mapID, target = target, version = Heat.version, hidden = hidden,
         list = list, max = highest }
     return list, highest
+end
+
+-- Which mobs have any spot kept, laid out again only when the cells move.
+local withSpots, withSpotsVersion
+
+--- Does a mob have a spot kept on any map?
+function Heat:HasSpots(mob)
+    if withSpotsVersion ~= Heat.version or not withSpots then
+        withSpots, withSpotsVersion = {}, Heat.version
+        local store = ns.db and ns.db.killHeat
+        if type(store) == "table" then
+            for _, map in pairs(store) do
+                if type(map) == "table" then
+                    for name, cells in pairs(map) do
+                        if type(cells) == "table" and next(cells) ~= nil then withSpots[name] = true end
+                    end
+                end
+            end
+        end
+    end
+    return type(mob) == "string" and withSpots[mob] == true
+end
+
+--- Does any mob that dropped an item have a spot kept?
+function Heat:ItemHasSpots(itemName)
+    for _, entry in ipairs(self:ItemMobs(itemName)) do
+        if self:HasSpots(entry.mob) then return true end
+    end
+    return false
+end
+
+--- The map with the most glow for what the heat is for now, or nil.
+function Heat:BestMap()
+    local store = ns.db and ns.db.killHeat
+    if type(store) ~= "table" then return nil end
+
+    local bestMap, bestSum = nil, 0
+    for mapID in pairs(store) do
+        local list = self:Cells(mapID)
+        local sum = 0
+        for _, entry in ipairs(list) do sum = sum + entry.count end
+        if sum > bestSum or (sum == bestSum and sum > 0 and bestMap and mapID < bestMap) then
+            bestMap, bestSum = mapID, sum
+        end
+    end
+    return bestMap
+end
+
+--- Open the world map where the glow is, out of a fight. True when it asked.
+function Heat:OpenMap()
+    local mapID = self:BestMap()
+    if not mapID then return false end
+    if type(InCombatLockdown) == "function" then
+        local ok, fighting = pcall(InCombatLockdown)
+        if ok and fighting then return false end
+    end
+    if type(OpenWorldMap) ~= "function" then return false end
+    return (pcall(OpenWorldMap, mapID))
+end
+
+--- A search row's Map button: aim the glow at a mob ("mob") or an item
+--- ("item") and open the map there. The same row again goes back to every
+--- mob. Returns true when it aimed.
+function Heat:ShowOnMap(kind, name)
+    if type(name) ~= "string" or name == "" then return false end
+
+    if (kind == "item" and self:Item() == name) or (kind == "mob" and self:Mob() == name) then
+        self:ShowAll()
+        return false
+    end
+
+    if kind == "item" then
+        self:SetItem(name)
+    else
+        self:SetMob(name)
+    end
+    self:OpenMap()
+    return true
 end
 
 --- How much is kept: maps, mob lines and cells.
