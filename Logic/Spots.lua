@@ -616,8 +616,34 @@ function Spots:For(itemName, player)
         return Key(a.name, a.zone) < Key(b.name, b.zone)
     end)
 
-    local best = {}
-    for index = 1, math.min(Spots.MAX, #spots) do best[index] = spots[index] end
+    -- Every kind of clam, chest or node keeps its best place on the list
+    -- before another of its kind takes a second one: a pearl comes out of
+    -- Giant Clams and Thick-shelled Clams, and the clams you opened, found
+    -- all over, used to fill every row. Mobs are ranked as they are.
+    local best, taken, firstOf = {}, {}, {}
+    for index, spot in ipairs(spots) do
+        local kind = spot.kind or "mob"
+        if kind ~= "mob" then
+            local name = (spot.name or "?"):lower()
+            if not firstOf[name] then firstOf[name] = index end
+        end
+    end
+    local wanted = {}
+    for _, index in pairs(firstOf) do wanted[#wanted + 1] = index end
+    table.sort(wanted)
+    for index = 1, math.min(Spots.MAX, #wanted) do taken[wanted[index]] = true end
+    local room = Spots.MAX
+    for _ in pairs(taken) do room = room - 1 end
+    for index = 1, #spots do
+        if room <= 0 then break end
+        if not taken[index] then
+            taken[index] = true
+            room = room - 1
+        end
+    end
+    for index, spot in ipairs(spots) do
+        if taken[index] then best[#best + 1] = spot end
+    end
     return best, player
 end
 
