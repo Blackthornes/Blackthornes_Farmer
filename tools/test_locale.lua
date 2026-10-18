@@ -55,8 +55,78 @@ suite.check("values named by place go where German puts them",
     L.Format("%s after %d kills", "Kobold", 50) == "nach 50 Kills: Kobold")
 suite.check("a %% stays a percent sign", L.Format("%d%%", 25) == "25%")
 
+-- A Simplified Chinese client.
+ns = env.Load({ ui = true, locale = "zhCN" })
+L = ns.L
+ns.UI:Show()
+suite.check("the search window speaks Simplified Chinese", ns.UI.emptyLine:GetText() == "搜索要刷的东西",
+    ns.UI.emptyLine:GetText())
+labels = SettingsLabels(ns)
+suite.check("the settings rows speak Simplified Chinese", labels["隐藏剥皮："] == true)
+suite.check("and none is left in English (Simplified Chinese)", labels["Hide Skinning:"] == nil)
+suite.check("the hide menu's line (Simplified Chinese)", L.Format("Hide %s", "Kobold") == "隐藏 Kobold")
+suite.check("a creature type is kept in English (Simplified Chinese)", ns.Grinding.EnglishType("Beast") == "Beast")
+suite.check("a word with no Simplified Chinese line falls back to English",
+    L["A string nobody translated"] == "A string nobody translated")
+
+-- A French client.
+ns = env.Load({ ui = true, locale = "frFR" })
+L = ns.L
+ns.UI:Show()
+suite.check("the search window speaks French", ns.UI.emptyLine:GetText() == "Cherche quelque chose à farmer",
+    ns.UI.emptyLine:GetText())
+labels = SettingsLabels(ns)
+suite.check("the settings rows speak French", labels["Cacher le dépeçage :"] == true)
+suite.check("and none is left in English (French)", labels["Hide Skinning:"] == nil)
+suite.check("the hide menu's line (French)", L.Format("Hide %s", "Kobold") == "Cacher Kobold")
+suite.check("a creature type is kept in English (French)", ns.Grinding.EnglishType("Beast") == "Beast")
+suite.check("a word with no French line falls back to English",
+    L["A string nobody translated"] == "A string nobody translated")
+
+-- A Spanish (Spain) client.
+ns = env.Load({ ui = true, locale = "esES" })
+L = ns.L
+ns.UI:Show()
+suite.check("the search window speaks Spanish (Spain)", ns.UI.emptyLine:GetText() == "Busca algo para farmear",
+    ns.UI.emptyLine:GetText())
+labels = SettingsLabels(ns)
+suite.check("the settings rows speak Spanish (Spain)", labels["Ocultar desuello:"] == true)
+suite.check("and none is left in English (Spanish (Spain))", labels["Hide Skinning:"] == nil)
+suite.check("the hide menu's line (Spanish (Spain))", L.Format("Hide %s", "Kobold") == "Ocultar Kobold")
+suite.check("a creature type is kept in English (Spanish (Spain))", ns.Grinding.EnglishType("Beast") == "Beast")
+suite.check("a word with no Spanish (Spain) line falls back to English",
+    L["A string nobody translated"] == "A string nobody translated")
+
+-- A Spanish (Latin America) client.
+ns = env.Load({ ui = true, locale = "esMX" })
+L = ns.L
+ns.UI:Show()
+suite.check("the search window speaks Spanish (Latin America)", ns.UI.emptyLine:GetText() == "Busca algo para farmear",
+    ns.UI.emptyLine:GetText())
+labels = SettingsLabels(ns)
+suite.check("the settings rows speak Spanish (Latin America)", labels["Ocultar desuello:"] == true)
+suite.check("and none is left in English (Spanish (Latin America))", labels["Hide Skinning:"] == nil)
+suite.check("the hide menu's line (Spanish (Latin America))", L.Format("Hide %s", "Kobold") == "Ocultar Kobold")
+suite.check("a creature type is kept in English (Spanish (Latin America))", ns.Grinding.EnglishType("Beast") == "Beast")
+suite.check("a word with no Spanish (Latin America) line falls back to English",
+    L["A string nobody translated"] == "A string nobody translated")
+
+-- A Russian client.
+ns = env.Load({ ui = true, locale = "ruRU" })
+L = ns.L
+ns.UI:Show()
+suite.check("the search window speaks Russian", ns.UI.emptyLine:GetText() == "Найди, что пофармить",
+    ns.UI.emptyLine:GetText())
+labels = SettingsLabels(ns)
+suite.check("the settings rows speak Russian", labels["Скрыть снятие шкур:"] == true)
+suite.check("and none is left in English (Russian)", labels["Hide Skinning:"] == nil)
+suite.check("the hide menu's line (Russian)", L.Format("Hide %s", "Kobold") == "Скрыть Kobold")
+suite.check("a creature type is kept in English (Russian)", ns.Grinding.EnglishType("Beast") == "Beast")
+suite.check("a word with no Russian line falls back to English",
+    L["A string nobody translated"] == "A string nobody translated")
+
 -- Another language that has no file shows English.
-ns = env.Load({ locale = "frFR" })
+ns = env.Load({ locale = "itIT" })
 suite.check("a client in a language with no file shows English", ns.L["Hide skinning"] == "Hide skinning")
 
 _G.GetLocale = nil
