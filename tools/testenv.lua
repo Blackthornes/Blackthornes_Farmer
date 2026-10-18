@@ -233,7 +233,7 @@ function env.InstallWorld()
     _G.GetLootSlotLink = function(slot)
         local item = world.loot[slot]
         if not item or not item.id then return nil end
-        return ("|cffffffff|Hitem:%d::::::::25::::|h[%s]|h|r"):format(item.id, item.name)
+        return ("|c%s|Hitem:%d::::::::25::::|h[%s]|h|r"):format(item.color or "ffffffff", item.id, item.name)
     end
 
     -- Coins come out of a loot window in a slot of their own, alongside the

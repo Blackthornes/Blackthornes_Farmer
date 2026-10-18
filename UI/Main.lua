@@ -776,10 +776,17 @@ end
 --- Shows nothing for a mob with no value.
 --- `colored` names the drops in their rarity colour (Rankings and Grind);
 --- the search window keeps its own look (the owner, 2026-10-18).
-function UI:ShowMobTooltip(owner, mobName, colored)
+--- `entry`, when given, is a Rankings entry whose worth (one with Uncommon
+--- and better drops left out, say) is shown instead of the mob's own.
+function UI:ShowMobTooltip(owner, mobName, colored, entry)
     if not (GameTooltip and ns.Value) then return end
 
-    local worth, details = ns.Value:ForMob(mobName)
+    local worth, details
+    if entry and entry.value and entry.details then
+        worth, details = entry.value, entry.details
+    else
+        worth, details = ns.Value:ForMob(mobName)
+    end
     if not worth then return end
 
     GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")

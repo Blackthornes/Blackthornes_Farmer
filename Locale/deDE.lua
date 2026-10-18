@@ -1318,6 +1318,13 @@ L["show your top 15 after an auction scan and call out a new top farm (on/off, t
 L["Outside dungeons only"] = "Nur außerhalb von Dungeons"
 L["Rankings show only mobs outside dungeons."] = "Die Ranglisten zeigen nur Gegner außerhalb von Dungeons."
 L["Rankings show mobs from dungeons too."] = "Die Ranglisten zeigen auch Gegner aus Dungeons."
+
+-- Rankings: skip Uncommon and better (2026-10-18)
+L["Skip Uncommon and better"] = "Ohne Ungewöhnlich und besser"
+L["Worth per kill leaves out Uncommon, Rare and Epic drops."] = "Der Wert pro Kill lässt ungewöhnliche, seltene und epische Beute weg."
+L["Skip Uncommon Drops:"] = "Ohne ungewöhnliche Beute:"
+L["Rankings leave Uncommon and better drops out of worth per kill."] = "Die Ranglisten lassen ungewöhnliche und bessere Beute beim Wert pro Kill weg."
+L["Rankings count every drop in worth per kill."] = "Die Ranglisten zählen jede Beute beim Wert pro Kill mit."
 L["%s an hour"] = "%s pro Stunde"
 L["As %s"] = "Als %s"
 L["Sold as it is"] = "So verkauft"

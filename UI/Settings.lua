@@ -537,6 +537,14 @@ function SettingsUI:BuildWindowsPage()
     end, false)
     controls.rankingsOutside:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The owner, 2026-10-18: worth per kill without Uncommon and better drops.
+    local uncommonRow = pages:Row("windows", 2, L["Skip Uncommon Drops:"],
+        L["Worth per kill leaves out Uncommon, Rare and Epic drops."])
+    controls.rankingsSkipUncommon = Widgets.CreateCheckbox(uncommonRow, L["On"], function(checked)
+        ns.Rankings:SetSkipUncommon(checked)
+    end, false)
+    controls.rankingsSkipUncommon:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     local _, statsButton = CommandRow(pages, "windows", 2, L["Stats:"], nil, L["Open"], "charts")
     controls.statsTab = statsButton
 end
@@ -1280,6 +1288,7 @@ function SettingsUI:Refresh()
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
+    controls.rankingsSkipUncommon:SetChecked(db.rankingsSkipUncommon == true)
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.openNote:SetChecked(db.openNote ~= false)
     controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)

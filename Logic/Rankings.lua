@@ -146,6 +146,58 @@ function Rankings:SetOutsideOnly(on)
     if ns.RankingsUI then ns.RankingsUI:Refresh() end
 end
 
+--------------------------------------------------------------------------------
+-- Skip Uncommon and better
+--------------------------------------------------------------------------------
+
+-- The owner asked (2026-10-18) for a tick box on Rankings that leaves
+-- Uncommon, Rare and Epic drops out of what a kill is worth, so the board
+-- ranks what a mob gives every time. Off unless ticked, kept in
+-- `rankingsSkipUncommon` (account wide, never rename it). It moves
+-- `outsideVersion` too, so the rank-up order is laid out again.
+
+function Rankings.SkipUncommon()
+    return ns.db ~= nil and ns.db.rankingsSkipUncommon == true
+end
+
+function Rankings:SetSkipUncommon(on)
+    if not ns.db then return end
+    on = on and true or false
+    if (ns.db.rankingsSkipUncommon == true) == on then return end
+    ns.db.rankingsSkipUncommon = on
+    self.outsideVersion = self.outsideVersion + 1
+    if ns.RankingsUI then ns.RankingsUI:Refresh() end
+end
+
+--- Is a priced drop Uncommon or better? Its loot link's colour, else the
+--- client's quality. A drop whose quality is not known yet stays in.
+function Rankings.IsUncommonOrBetter(drop)
+    local WorldDrops = ns.WorldDrops
+    if not (WorldDrops and WorldDrops.QualityOf and drop) then return false end
+    local id = drop.id
+    if not id and ns.Tracker and ns.Tracker.LookOf then id = ns.Tracker:LookOf(drop.name).id end
+    if not id and ns.Value.ItemID then id = ns.Value:ItemID(drop.name) end
+    local quality = WorldDrops.QualityOf(id, drop.name)
+    return type(quality) == "number" and quality >= 2
+end
+
+--- A worth and its details with Uncommon and better drops taken out: coin
+--- and the drops left. A fresh details table; the one given is untouched.
+function Rankings.WithoutUncommon(value, details)
+    local kept = {}
+    for key, field in pairs(details) do kept[key] = field end
+    kept.priced = {}
+    local total = tonumber(details.coin) or 0
+    for _, drop in ipairs(details.priced or {}) do
+        if not Rankings.IsUncommonOrBetter(drop) then
+            kept.priced[#kept.priced + 1] = drop
+            total = total + (drop.perKill or 0)
+        end
+    end
+    if #kept.priced == #(details.priced or {}) then return value, details end
+    return total, kept
+end
+
 --- The zone part of a kill's place, "The Sepulcher, Silverpine Forest":
 --- the zone the client named (GetRealZoneText), which inside a dungeon is
 --- the dungeon.
@@ -205,6 +257,7 @@ end
 --- One entry for a mob, or nil when it is on no list.
 function Rankings:Entry(mobName)
     local value, details = ns.Value:ForMob(mobName)
+    if value and self.SkipUncommon() then value, details = self.WithoutUncommon(value, details) end
     local summary = ns.Tracker:Summary(mobName)
     local spot = self:Spot(mobName)
 
@@ -298,6 +351,17 @@ ns.RegisterCommand("rankings", L["mobs ranked by what a kill is worth, or only t
         end
         ns.Print(Rankings.OutsideOnly() and L["Rankings show only mobs outside dungeons."]
             or L["Rankings show mobs from dungeons too."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "uncommon" then
+        if value == "on" or value == "off" then
+            Rankings:SetSkipUncommon(value == "on")
+        else
+            Rankings:SetSkipUncommon(not Rankings.SkipUncommon())
+        end
+        ns.Print(Rankings.SkipUncommon() and L["Rankings leave Uncommon and better drops out of worth per kill."]
+            or L["Rankings count every drop in worth per kill."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end
