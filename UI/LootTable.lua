@@ -288,7 +288,8 @@ function LootTableUI:ContentsLines(name)
         if item.each >= 1.05 then
             rate = L.Format("%s, %s each", rate, ("%.1f"):format(item.each))
         end
-        lines[#lines + 1] = { ("  %s  %s"):format(item.name, rate), Value.Coins(item.perOpen) }
+        lines[#lines + 1] = { ("  %s  %s"):format(ns.Util.ColorItem(item.name, item.id), rate),
+            Value.Coins(item.perOpen) }
     end
     if #details.unpriced > 0 then
         lines[#lines + 1] = { L.Format("  %d more with no price", #details.unpriced), nil, "muted" }
@@ -304,7 +305,7 @@ local function ShowItemTooltip(row)
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
 
     local shown = data.id and pcall(GameTooltip.SetItemByID, GameTooltip, data.id)
-    if not shown then GameTooltip:AddLine(data.name) end
+    if not shown then GameTooltip:AddLine(ns.Util.ColorItem(data.name, data.id)) end
 
     for _, line in ipairs(LootTableUI:ContentsLines(data.name)) do
         local r, g, b = Theme.Unpack(line[3] or "text")
@@ -321,6 +322,11 @@ local function UpdateRow(row, data)
     row.icon:SetTexture(look.icon or Theme.ItemIcon(data.id) or FALLBACK_ICON)
 
     local r, g, b, a = HexColor(look.color)
+    -- No loot link kept its colour: the item's rarity from the client.
+    if not r then
+        r, g, b = ns.Util.ItemRGB(data.name, data.id)
+        a = r and 1 or nil
+    end
     if r then
         row.name:SetTextColor(r, g, b, a)
     else
@@ -328,6 +334,7 @@ local function UpdateRow(row, data)
     end
 
     local quality = ns.TrackerFX and ns.TrackerFX.QualityOf(data.name) or nil
+    if not quality then quality = ns.Util.ItemQuality(data.name, data.id) end
     if r and quality and quality >= 1 then
         for _, edge in ipairs(row.iconFrame.borderTextures) do
             edge:SetColorTexture(r, g, b, quality >= 2 and 1 or 0.5)
@@ -787,6 +794,11 @@ end
 function LootTableUI:Refresh()
     if self:IsShown() then self:Render() end
 end
+
+-- An item's rarity came in late: the rows on screen take its colour.
+ns.Util.OnRarity("lootTable", function()
+    if LootTableUI:IsShown() and LootTableUI.list then LootTableUI.list:Refresh() end
+end)
 
 ns.RegisterCommand("loot", L["open a mob's full loot table"], function(rest)
     local Tracker = ns.Tracker

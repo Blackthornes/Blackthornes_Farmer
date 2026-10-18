@@ -770,7 +770,9 @@ end
 
 --- What a kill of `mobName` is worth and what makes it up, beside `owner`.
 --- Shows nothing for a mob with no value.
-function UI:ShowMobTooltip(owner, mobName)
+--- `colored` names the drops in their rarity colour (Rankings and Grind);
+--- the search window keeps its own look (the owner, 2026-10-18).
+function UI:ShowMobTooltip(owner, mobName, colored)
     if not (GameTooltip and ns.Value) then return end
 
     local worth, details = ns.Value:ForMob(mobName)
@@ -783,7 +785,7 @@ function UI:ShowMobTooltip(owner, mobName)
 
     for index = 1, math.min(#details.priced, 4) do
         local entry = details.priced[index]
-        GameTooltip:AddLine(("  %s  %s"):format(entry.name, ns.Value.Coins(entry.perKill)),
+        GameTooltip:AddLine(("  %s  %s"):format(colored and Util.ColorItem(entry.name, entry.id) or entry.name, ns.Value.Coins(entry.perKill)),
             Theme.Unpack("muted"))
     end
 

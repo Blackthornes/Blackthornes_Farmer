@@ -917,7 +917,7 @@ local function PrintNode(summary)
     for _, item in ipairs(summary.items) do
         local right = summary.rated and ns.Tracker.FormatChance(item.chance)
             or L.Format("%d of %d", item.gathers, summary.gathers)
-        ns.PrintRaw(("  %s %s"):format(item.name, Util.Colored("muted", right)))
+        ns.PrintRaw(("  %s %s"):format(Util.ColorItem(item.name, item.id), Util.Colored("muted", right)))
     end
 
     if not summary.rated then

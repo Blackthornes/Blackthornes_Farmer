@@ -619,8 +619,11 @@ function GoalsUI:DrawCard(card, goal)
     card.name:SetWordWrap(wraps)
     if card.name.SetMaxLines then pcall(card.name.SetMaxLines, card.name, wraps and 2 or 0) end
     card.name:SetText(name)
-    if type(look.color) == "string" and #look.color == 8 and look.color ~= "ffffffff" then
+    if type(look.color) == "string" and #look.color == 8 then
         card.name:SetText(("|c%s%s|r"):format(look.color, name))
+    else
+        -- No loot link kept its colour: the item's rarity from the client.
+        card.name:SetText(Util.ColorItem(name))
     end
 
     local fraction = Goals.Fraction(goal)
@@ -773,6 +776,25 @@ function GoalsUI:Render()
     self.frame:SetHeight(HEADER + GAP + #list * (CARD + 2) + (footer and FOOTER or 0))
 end
 
+--- An item's rarity came in late (Util.OnRarity): the cards and the
+--- titles naming it take its colour. Only what is up is drawn.
+function GoalsUI:RarityArrived()
+    if self.frame and self.frame:IsShown() then self:Render() end
+    local spots = self.spots
+    if spots and spots:IsShown() and self.spotsItem then
+        spots.title:SetText(L.Format("Where to farm |c%s%s|r", Util.ItemHexOr("text", self.spotsItem),
+            self.spotsItem))
+    end
+    local picker = self.picker
+    local item = GoalsUI.pickItem
+    if picker and picker:IsShown() and item then
+        picker.title:SetText(L.Format("GATHERING GOAL  |c%s%s|r", Util.ItemHexOr("text", item),
+            (item:upper():gsub("ä", "Ä"):gsub("ö", "Ö"):gsub("ü", "Ü"))))
+    end
+end
+
+Util.OnRarity("goals", function() GoalsUI:RarityArrived() end)
+
 --- Redraw, and show or hide: shown while there are goals, unless you
 --- closed it.
 function GoalsUI:Refresh()
@@ -832,7 +854,7 @@ function GoalsUI:ShowCardTooltip(card)
     if not (goal and GameTooltip) then return end
 
     GameTooltip:SetOwner(card, "ANCHOR_RIGHT")
-    GameTooltip:AddLine(goal.item)
+    GameTooltip:AddLine(Util.ColorItem(goal.item))
     GameTooltip:AddLine(L.Format("%d of %d", goal.have or 0, goal.target or 0), 1, 1, 1)
     if goal.done then
         GameTooltip:AddLine(L["Click to clear it."], 0.6, 0.6, 0.6)
@@ -860,7 +882,7 @@ function GoalsUI:OnCardClick(card, button)
 
     if button == "RightButton" then
         ns.Goals:Remove(goal.item)
-        ns.Print(L.Format("goal for %s removed.", Util.Colored("accent", goal.item)))
+        ns.Print(L.Format("goal for %s removed.", Util.ColorItemOr("accent", goal.item)))
         return
     end
 
@@ -1076,7 +1098,7 @@ function GoalsUI:Complete(goal)
 
     -- How long it took, where the banner has room for it (the chat line
     -- says it too): measured, as it ran off a panel at its usual width.
-    local subject = ("%d / %d %s"):format(goal.have or 0, goal.target or 0, goal.item)
+    local subject = ("%d / %d %s"):format(goal.have or 0, goal.target or 0, Util.ColorItem(goal.item))
     if (tonumber(goal.doneIn) or 0) >= 1 then
         local took = subject .. "  |  " .. ns.Goals.Duration(goal.doneIn)
         if Theme.TextWidth("small", took) <= width - 12 then subject = took end
@@ -1519,7 +1541,7 @@ function GoalsUI:OpenSpots(item, anchor)
 
     local spots, player = ns.Spots:For(item)
 
-    panel.title:SetText(L.Format("Where to farm |c%s%s|r", ns.COLORS.text, item))
+    panel.title:SetText(L.Format("Where to farm |c%s%s|r", Util.ItemHexOr("text", item), item))
     if player.zone and player.level then
         panel.from:SetText(L.Format("Nearest first, from %s at level %d", ns.Spots.Show(player.zone), player.level))
     elseif player.zone then
@@ -1533,7 +1555,12 @@ function GoalsUI:OpenSpots(item, anchor)
         row.spot = spot
 
         row.rank:SetText(tostring(index))
-        row.name:SetText(spot.name or "?")
+        -- A clam or sack you opened is an item, in its rarity colour.
+        if spot.kind == "container" and spot.yours and spot.yours.container and spot.name then
+            row.name:SetText(Util.ColorItem(spot.name))
+        else
+            row.name:SetText(spot.name or "?")
+        end
 
         -- Coloured the way the search window colours a level: red well above
         -- you, yellow around you, green and then grey below.
@@ -1713,7 +1740,7 @@ function GoalsUI:BuildPicker()
 
     local remove = Widgets.CreateButton(picker, L["Remove goal"], function()
         ns.Goals:Remove(GoalsUI.pickItem)
-        ns.Print(L.Format("goal for %s removed.", Util.Colored("accent", GoalsUI.pickItem)))
+        ns.Print(L.Format("goal for %s removed.", Util.ColorItemOr("accent", GoalsUI.pickItem)))
         picker:Hide()
         GoalsUI:RedrawSearch()
     end, { width = 80, height = 22 })
@@ -1752,7 +1779,7 @@ function GoalsUI:FillPicker()
     local goal = ns.Goals:Find(item)
     local have = ns.Goals:Have(item) or 0
 
-    picker.title:SetText(L.Format("GATHERING GOAL  |c%s%s|r", ns.COLORS.text,
+    picker.title:SetText(L.Format("GATHERING GOAL  |c%s%s|r", Util.ItemHexOr("text", item),
         (item:upper():gsub("ä", "Ä"):gsub("ö", "Ö"):gsub("ü", "Ü"))))
     picker.have:SetText(L.Format("You have |c%s%d|r %s.", ns.COLORS.text, have,
         ns.Goals:CountsBank() and L["in your bags and bank"] or L["in your bags"]))
@@ -1906,7 +1933,7 @@ function GoalsUI:PickerSet()
 
     picker:Hide()
     ns.Print(L.Format("goal set: %s %s. You have %d, %d to go.",
-        Util.Colored("good", tostring(goal.target)), Util.Colored("accent", goal.item),
+        Util.Colored("good", tostring(goal.target)), Util.ColorItemOr("accent", goal.item),
         goal.have, ns.Goals.Left(goal)))
     self:Show()
     GoalsUI:RedrawSearch()

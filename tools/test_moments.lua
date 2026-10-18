@@ -80,7 +80,8 @@ end
 
 local function Said(text)
     for _, line in ipairs(env.chat) do
-        if tostring(line):find(text, 1, true) then return true end
+        -- Item names come in their rarity colour; the words are what count.
+        if ns.Util.StripColor(tostring(line)):find(text, 1, true) then return true end
     end
     return false
 end
@@ -135,19 +136,19 @@ suite.check("the next one counts from it", Said("You got it in 4 kills."))
 for _ = 1, 4 do Kill("Lucky Mob") end
 local since = Moments:SinceLine("Lucky Mob")
 suite.check("the card counts kills since its best drop", since
-    and since.label == "Since your last Shiny Gem" and since.kills == 36,
+    and ns.Util.StripColor(since.label) == "Since your last Shiny Gem" and since.kills == 36,
     since and (since.label .. " " .. since.kills))
 
 RATES["Dry Mob"] = { { "Shiny Gem", 9001, 1 } }
 for _ = 1, 7 do Kill("Dry Mob") end
 since = Moments:SinceLine("Dry Mob")
 suite.check("never dropped: waiting on it, every kill", since
-    and since.label == "Waiting on Shiny Gem" and since.kills == 7)
+    and ns.Util.StripColor(since.label) == "Waiting on Shiny Gem" and since.kills == 7)
 
 TUI:Refresh()
 local found = false
 for _, line in ipairs(TUI.shown or {}) do
-    if line.left == "Waiting on Shiny Gem" then found = true end
+    if ns.Util.StripColor(line.left) == "Waiting on Shiny Gem" then found = true end
 end
 suite.check("and the open card shows it", found)
 

@@ -42,17 +42,19 @@ function OpenNote:SetEnabled(on)
 end
 
 --- The note's words for `name` after its `opens`th opening.
-function OpenNote.Text(name, opens)
+function OpenNote.Text(name, opens, id)
     local need = ns.Value.MIN_OPENS or 10
+    -- The name in its rarity colour; worth is read by the plain name.
+    local shown = ns.Util.ColorItem(name, id)
     if opens < need then
-        return L.Format("%s: %d of %d opened", name, opens, need)
+        return L.Format("%s: %d of %d opened", shown, opens, need)
     end
 
     local ok, worth = pcall(ns.Value.Contents, ns.Value, name)
     if ok and type(worth) == "number" and worth > 0 then
-        return L.Format("%s: %d opened, about %s each", name, opens, ns.Value.Coins(worth))
+        return L.Format("%s: %d opened, about %s each", shown, opens, ns.Value.Coins(worth))
     end
-    return L.Format("%s: %d opened", name, opens)
+    return L.Format("%s: %d opened", shown, opens)
 end
 
 function OpenNote:Build()
@@ -89,7 +91,7 @@ function OpenNote:Show(name, id, opens)
     opens = tonumber(opens) or 0
     if opens < 1 then return end
 
-    self:Put(OpenNote.Text(name, opens), ns.Theme.ItemIcon(id) or 134400, OpenNote.HOLD)
+    self:Put(OpenNote.Text(name, opens, id), ns.Theme.ItemIcon(id) or 134400, OpenNote.HOLD)
 end
 
 --- Any note in the same place and look, whatever the setting says: drops

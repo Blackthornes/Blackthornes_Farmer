@@ -586,7 +586,7 @@ end
 --- A goal just reached its number: a line in chat, and the fanfare.
 function Goals:Finished(goal)
     local line = L.Format("Goal done: %s %s!",
-        Util.Colored("good", tostring(goal.target)), Util.Colored("accent", goal.item))
+        Util.Colored("good", tostring(goal.target)), Util.ColorItemOr("accent", goal.item))
 
     if (tonumber(goal.doneIn) or 0) >= 1 then
         line = line .. L.Format(" %s of gathering.", Goals.Duration(goal.doneIn))
@@ -697,7 +697,7 @@ local function PrintGoals()
         local state = goal.done and Util.Colored("good", L["done"])
             or L.Format("%d left", Goals.Left(goal))
         ns.PrintRaw(("  %s  %d / %d  %s"):format(
-            Util.Colored("accent", goal.item), goal.have or 0, goal.target or 0,
+            Util.ColorItemOr("accent", goal.item), goal.have or 0, goal.target or 0,
             Util.Colored("muted", state)))
     end
 end
@@ -722,7 +722,7 @@ ns.RegisterCommand("goal", L["set a gathering goal: /farm goal Copper Ore 40 (re
 
         local name = Goals:ResolveItem(after)
         if name and Goals:Remove(name) then
-            ns.Print(L.Format("goal for %s removed.", Util.Colored("accent", name)))
+            ns.Print(L.Format("goal for %s removed.", Util.ColorItemOr("accent", name)))
         else
             ns.Print(L.Format("no goal for %s.", after ~= "" and after or L["that"]))
         end
@@ -758,7 +758,7 @@ ns.RegisterCommand("goal", L["set a gathering goal: /farm goal Copper Ore 40 (re
 
     ns.Print(L.Format("goal set: %s %s. You have %d, %d to go.",
 
-        Util.Colored("good", tostring(goal.target)), Util.Colored("accent", goal.item),
+        Util.Colored("good", tostring(goal.target)), Util.ColorItemOr("accent", goal.item),
         goal.have, Goals.Left(goal)))
     if ns.GoalsUI then ns.GoalsUI:Show() end
 end)

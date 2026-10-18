@@ -21,7 +21,7 @@ end }
 
 suite.check("on unless unticked", OpenNote:Enabled())
 suite.check("under 10 it counts up",
-    OpenNote.Text(CLAM.name, 3) == "Small Barnacled Clam: 3 of 10 opened", OpenNote.Text(CLAM.name, 3))
+    ns.Util.StripColor(OpenNote.Text(CLAM.name, 3)) == "Small Barnacled Clam: 3 of 10 opened", OpenNote.Text(CLAM.name, 3))
 
 -- Opened from the bags, as the loot window sees it.
 local function OpenOne()
@@ -34,7 +34,7 @@ end
 OpenOne()
 local frame = OpenNote.frame
 suite.check("an opening shows the note", frame ~= nil and frame:IsShown())
-suite.check("with the count", frame.label:GetText() == "Small Barnacled Clam: 1 of 10 opened",
+suite.check("with the count", ns.Util.StripColor(frame.label:GetText()) == "Small Barnacled Clam: 1 of 10 opened",
     frame and frame.label:GetText())
 
 OpenNote:Tick(OpenNote.HOLD + OpenNote.FADE * 2 + 0.1)

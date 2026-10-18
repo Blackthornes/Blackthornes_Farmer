@@ -58,7 +58,7 @@ suite.check("the 20th kill celebrates",
         and said:find("Drop rates unlocked for", 1, true) ~= nil, said)
 suite.check("naming the mob", said:find(WOLF, 1, true) ~= nil, said)
 suite.check("and its best drop with its rate",
-    said:find("Best drop: Large Fang", 1, true) ~= nil and said:find("25%", 1, true) ~= nil,
+    ns.Util.StripColor(said):find("Best drop: Large Fang", 1, true) ~= nil and said:find("25%", 1, true) ~= nil,
     said)
 suite.check("with no other addon prefix in front",
     said:find("Farmer|r |c", 1, true) == nil, said)
@@ -191,7 +191,7 @@ suite.check("the 20th cast at a spot celebrates",
 suite.check("naming the spot and where it is",
     said:find("open water", 1, true) ~= nil
         and said:find("in Crystal Lake, Elwynn Forest", 1, true) ~= nil, said)
-suite.check("and its best catch", said:find("Best catch: " .. SMALLFISH, 1, true) ~= nil, said)
+suite.check("and its best catch", ns.Util.StripColor(said):find("Best catch: " .. SMALLFISH, 1, true) ~= nil, said)
 suite.check("a sound plays", #played == before + 1, #played - before)
 -- The report: this cast raised "ADDON BLOCKED", since an emote was sent
 -- from it. Now nothing is.

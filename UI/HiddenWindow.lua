@@ -118,14 +118,15 @@ end
 
 function HiddenUI:UpdateRow(row, data)
     row.tag:SetText(KIND_TAG[data.kind] or "")
-    row.name:SetText(data.name)
+    row.name:SetText(data.kind == "item" and Util.ColorItem(data.name) or data.name)
 end
 
 --- Take one entry off the list and say so.
 function HiddenUI:ShowAgain(data)
     local name = ns.DB:Unhide(data.kind, data.name)
     if name then
-        ns.Print(L.Format("%s is shown again.", Util.Colored("accent", name)))
+        local shown = data.kind == "item" and Util.ColorItemOr("accent", name) or Util.Colored("accent", name)
+        ns.Print(L.Format("%s is shown again.", shown))
     end
 end
 
@@ -139,6 +140,11 @@ function HiddenUI:Render()
     self.list:SetData(entries)
     self.empty:SetShown(#entries == 0)
 end
+
+-- An item's rarity came in late: the rows on screen take its colour.
+Util.OnRarity("hidden", function()
+    if HiddenUI.frame and HiddenUI.frame:IsShown() and HiddenUI.list then HiddenUI.list:Refresh() end
+end)
 
 function HiddenUI:Show()
     self:Build()
@@ -184,7 +190,8 @@ ns.RegisterCommand("hide", L["hide a mob, node or item from the lists: /farm hid
     end
     local kept = ns.DB:Hide(kind, name)
     if kept then
-        ns.Print(L.Format("hid %s. /farm unhide %s shows it again.", Util.Colored("accent", kept), kept))
+        local shown = kind == "item" and Util.ColorItemOr("accent", kept) or Util.Colored("accent", kept)
+        ns.Print(L.Format("hid %s. /farm unhide %s shows it again.", shown, kept))
     end
 end)
 

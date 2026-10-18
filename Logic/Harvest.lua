@@ -2164,7 +2164,7 @@ ns.RegisterCommand("harvest", L["what you've looted as you played (check shows w
         local item = items[index]
         ns.PrintRaw(("  %s %s  %s"):format(
             Util.Colored("accent", tostring(item.count)),
-            item.name,
+            Util.ColorItem(item.name, item.id),
             Util.Colored("muted", L.Format("from %s", Util.Plural(item.corpses, L["corpse"], L["corpses"])))))
     end
 

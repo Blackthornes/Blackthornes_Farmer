@@ -929,7 +929,7 @@ end
 --- "+2 Wool Cloth" rising off the panel's right edge beside `anchor`; a
 --- green-or-better drop bigger, with a cheer ahead of it ("Rare! ...").
 function TrackerFX:Float(item, anchor, delay)
-    local color = ns.Tracker:LookOf(item.name).color
+    local color = ns.Tracker:LookOf(item.name).color or ns.Util.ItemHex(item.name)
     local text = ("+%d %s"):format(item.delta, item.name)
 
     local cheer = CHEERS[item.quality or 0]

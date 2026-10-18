@@ -242,7 +242,7 @@ function RankingsUI:Build(frame)
         updateRow = function(row, data, index) RankingsUI:UpdateRow(row, data, index) end,
         onClick = function(data, button) RankingsUI:OnRowClick(data, button) end,
         onEnter = function(row, data)
-            if data.entry then ns.UI:ShowMobTooltip(row, data.entry.mob) end
+            if data.entry then ns.UI:ShowMobTooltip(row, data.entry.mob, true) end
         end,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
         -- The colour of the well the rows sit in.
@@ -738,6 +738,11 @@ function RankingsUI:UpdateRow(row, data, index)
 
     row.mob:SetTextColor(Theme.Unpack(entry.group == "pending" and "muted" or "text"))
     row.best:SetTextColor(Theme.Unpack(entry.group == "pending" and "dim" or "muted"))
+    -- The best drop in its rarity colour, once the game says what that is.
+    if entry.best and entry.best.name then
+        local r, g, b = ns.Util.ItemRGB(entry.best.name, entry.best.id)
+        if r then row.best:SetTextColor(r, g, b) end
+    end
 
     if entry.group == "pending" then
         -- No worth yet, so no bar: just how far there is to go.
@@ -1360,6 +1365,14 @@ end
 
 -- "Hide skinning" moved: leather counts toward a kill's worth or not.
 ns.DB.hideWatchers.rankings = function() RankingsUI:Refresh() end
+
+-- An item's rarity came in late: the rows on screen take its colour.
+ns.Util.OnRarity("rankings", function()
+    local self = RankingsUI
+    if self.view and self.view:IsShown() and self.list and ns.UI.frame and ns.UI.frame:IsShown() then
+        self.list:Refresh()
+    end
+end)
 
 --- Redraw if the tab is on screen: a kill can change the board. The board
 --- prices every rated mob, so a burst of loot gets one redraw, not one each.

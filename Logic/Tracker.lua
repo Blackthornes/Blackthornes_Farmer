@@ -1359,7 +1359,7 @@ function Tracker:Celebrate(mobName)
 
     local best = summary.items[1]
     if best then
-        line = line .. L.Format(" Best drop: %s %s.", best.name,
+        line = line .. L.Format(" Best drop: %s %s.", Util.ColorItem(best.name, best.id),
             Util.Colored("good", Tracker.FormatChance(best.chance)))
     else
         line = line .. L[" Nothing has dropped yet."]
@@ -1779,12 +1779,12 @@ ns.RegisterCommand("kills", L["a mob's kill tally and drop rates"], function(res
     if summary.rated and #summary.items > REPORT_ITEMS then
         for index = REPORT_ITEMS + 1, #summary.items do
             local item = summary.items[index]
-            ns.PrintRaw(("  %s %s"):format(item.name,
+            ns.PrintRaw(("  %s %s"):format(Util.ColorItem(item.name, item.id),
                 Util.Colored("muted", Tracker.FormatChance(item.chance))))
         end
     elseif not summary.rated then
         for _, item in ipairs(summary.items) do
-            ns.PrintRaw(("  %s %s"):format(item.name,
+            ns.PrintRaw(("  %s %s"):format(Util.ColorItem(item.name, item.id),
                 Util.Colored("muted", L.Format("%d of %d", item.corpses, summary.kills))))
         end
     end

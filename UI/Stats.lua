@@ -962,7 +962,7 @@ function StatsUI:DrawLuck(card, arrive, view)
         local entry = luck.rows[index]
         row:SetShown(entry ~= nil)
         if entry then
-            local hex = entry.color or "ffffffff"
+            local hex = entry.color or ns.Util.ItemHex(entry.name, entry.id) or "ffffffff"
             row.name:SetText(("|c%s%s|r"):format(hex, entry.name))
             row.value:SetText(L.Format("%s, about %s expected", StatsUI.Count(entry.got),
                 StatsUI.Count(entry.expected)))
@@ -1436,3 +1436,8 @@ end
 ns.DB.hideWatchers.stats = function()
     if StatsUI:Showing() then StatsUI:Render() end
 end
+
+-- An item's rarity came in late: the luck card's names take its colour.
+ns.Util.OnRarity("stats", function()
+    if StatsUI:Showing() then StatsUI:Render() end
+end)
