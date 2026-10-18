@@ -40,6 +40,9 @@ local Util = ns.Util
 XPBarUI.WIDTH = 520
 XPBarUI.BAR = 18
 XPBarUI.LINE = 16
+-- Room kept between the two words on one line around the bar. When the
+-- two would come closer than this, the right one takes a line of its own.
+XPBarUI.LINE_GAP = 18
 -- The least of the gold and the rim that stays while the bar is transparent.
 XPBarUI.GOLD_FLOOR = 0.55
 XPBarUI.RIM_FLOOR = 0.4
@@ -135,14 +138,11 @@ function XPBarUI:Build()
     frame:EnableMouse(true)
     pcall(frame.RegisterForDrag, frame, "LeftButton")
 
+    -- Placed by XPBarUI:Layout once their words are known.
     local topLeft = InfoLabel(frame)
-    topLeft:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, 0)
     local topRight = InfoLabel(frame, "RIGHT")
-    topRight:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, 0)
 
     local bar = CreateFrame("Frame", nil, frame)
-    bar:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(LINE + 3))
-    bar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -(LINE + 3))
     bar:SetHeight(BAR)
     -- See-through (UI/SeeThrough.lua, `xpBarSeeThrough`): only the well
     -- thins out; the gold, the bands and the ticks stay.
@@ -240,9 +240,7 @@ function XPBarUI:Build()
     label:SetPoint("CENTER", over, "CENTER", 0, 0)
 
     local bottomLeft = InfoLabel(frame)
-    bottomLeft:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 4, 0)
     local bottomRight = InfoLabel(frame, "RIGHT")
-    bottomRight:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -4, 0)
 
     self.labels = { topLeft = topLeft, topRight = topRight, bar = label,
         bottomLeft = bottomLeft, bottomRight = bottomRight }
@@ -282,9 +280,107 @@ function XPBarUI:Build()
     ns.SeeThrough:Attach("xpbar", frame)
 
     self.frame = frame
+    self:Layout()
     self:Place()
     frame:Hide()
     return frame
+end
+
+--------------------------------------------------------------------------------
+-- The lines around the bar
+--------------------------------------------------------------------------------
+
+--- How tall one line of the words around the bar is, by the text size.
+function XPBarUI.LineHeight()
+    local size = tonumber(Theme.sizes and Theme.sizes.small) or 11
+    return math.max(XPBarUI.LINE, size + 5)
+end
+
+--- How wide a label's words are on screen, measured, never guessed.
+local function Width(label)
+    local text = label:GetText()
+    if type(text) ~= "string" or text == "" then return 0 end
+    return Theme.TextWidth("small", text) or 0
+end
+
+--- How tall a label is once it wraps inside `width`.
+local function Height(label, line)
+    local ok, height = pcall(label.GetStringHeight, label)
+    height = ok and tonumber(height) or nil
+    if not height or height < line then return line end
+    return math.ceil(height)
+end
+
+--- Puts one pair of labels on a line, or on two when they would touch.
+--- Returns their height and whether they were stacked.
+function XPBarUI.FitPair(left, right, room, line)
+    local leftWidth, rightWidth = Width(left), Width(right)
+    for _, label in ipairs({ left, right }) do
+        pcall(label.SetWordWrap, label, true)
+        label:SetWidth(room)
+    end
+    if rightWidth == 0 or leftWidth == 0
+        or leftWidth + rightWidth + XPBarUI.LINE_GAP <= room then
+        return math.max(Height(left, line), Height(right, line)), false
+    end
+    return Height(left, line) + Height(right, line), true
+end
+
+--- Lays the words out round the bar so no two lines ever overlap, at any
+--- text size and in any language, and sizes the frame to fit them. The
+--- frame's top stays where it is.
+function XPBarUI:Layout()
+    local frame, labels, bar = self.frame, self.labels, self.bar
+    if not (frame and labels and bar) then return end
+    local line = self.LineHeight()
+    local room = self.WIDTH - 8
+
+    local topHeight, topStacked = self.FitPair(labels.topLeft, labels.topRight, room, line)
+    local bottomHeight, bottomStacked = self.FitPair(labels.bottomLeft, labels.bottomRight, room, line)
+    if topStacked then topHeight = topHeight + 2 end
+    if bottomStacked then bottomHeight = bottomHeight + 2 end
+
+    local key = table.concat({ topHeight, tostring(topStacked), bottomHeight,
+        tostring(bottomStacked) }, ":")
+    if key == self.layoutKey then return end
+    self.layoutKey = key
+
+    for _, label in pairs(labels) do
+        if label ~= labels.bar then label:ClearAllPoints() end
+    end
+    labels.topLeft:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, 0)
+    if topStacked then
+        labels.topRight:SetPoint("TOPRIGHT", labels.topLeft, "BOTTOMRIGHT", 0, -2)
+    else
+        labels.topRight:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, 0)
+    end
+
+    bar:ClearAllPoints()
+    bar:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(topHeight + 3))
+    bar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, -(topHeight + 3))
+
+    labels.bottomLeft:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 4, -4)
+    if bottomStacked then
+        labels.bottomRight:SetPoint("TOPRIGHT", labels.bottomLeft, "BOTTOMRIGHT", 0, -2)
+    else
+        labels.bottomRight:SetPoint("TOPRIGHT", bar, "BOTTOMRIGHT", -4, -4)
+    end
+
+    -- A bar dragged near the bottom of the screen can be held by its
+    -- bottom edge; hold it by its top while it grows, so the bar stays put.
+    local height = topHeight + 3 + self.BAR + 4 + bottomHeight + 2
+    local okLeft, left = pcall(frame.GetLeft, frame)
+    local okTop, top = pcall(frame.GetTop, frame)
+    left = okLeft and tonumber(left) or nil
+    top = okTop and tonumber(top) or nil
+    local okHeight, was = pcall(frame.GetHeight, frame)
+    was = okHeight and tonumber(was) or nil
+    if left and top and was and math.abs(was - height) > 0.5 then
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left, top)
+    end
+    frame:SetWidth(self.WIDTH)
+    frame:SetHeight(height)
 end
 
 --------------------------------------------------------------------------------
@@ -432,6 +528,7 @@ function XPBarUI:Refresh()
         end
         labels.bottomRight:SetText(table.concat(parts, "  |  "))
     end
+    self:Layout()
 
     -- The bar itself.
     local share = summary.share

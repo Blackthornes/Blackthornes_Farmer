@@ -427,6 +427,37 @@ Bar:Tick(0)
 Bar.grip = savedGrip
 
 --------------------------------------------------------------------------------
+-- The lines round the bar never overlap (a player saw this session's XP run
+-- into the time to level, 2026-10-18)
+--------------------------------------------------------------------------------
+
+do
+    local labels = Bar.labels
+    local line = Bar.LineHeight()
+    suite.check("a line is as tall as its text size", line >= (ns.Theme.sizes.small or 11) + 5, line)
+
+    labels.bottomLeft:SetText("Level 21 in about 2 hours")
+    labels.bottomRight:SetText("This session +500 XP")
+    local height, stacked = Bar.FitPair(labels.bottomLeft, labels.bottomRight, Bar.WIDTH - 8, line)
+    suite.check("short words share a line", not stacked and height == line, height)
+
+    labels.bottomLeft:SetText(("Level 21 in about 2 hours at this session's pace "):rep(2))
+    labels.bottomRight:SetText("This session +12,345 XP  |  45,678 XP an hour (up 25%)")
+    height, stacked = Bar.FitPair(labels.bottomLeft, labels.bottomRight, Bar.WIDTH - 8, line)
+    suite.check("long words take a line each", stacked and height >= line * 2, height)
+
+    Bar.layoutKey = nil
+    Bar:Layout()
+    local _, anchor = labels.bottomRight:GetPoint()
+    suite.check("the right line sits under the left one", anchor == labels.bottomLeft, tostring(anchor))
+    local frameHeight = Bar.frame:GetHeight()
+    suite.check("the bar grows to fit both lines", frameHeight >= line * 3 + Bar.BAR, frameHeight)
+
+    Bar:Refresh()
+    suite.check("a refresh lays them out again", Bar.frame:GetHeight() < frameHeight, Bar.frame:GetHeight())
+end
+
+--------------------------------------------------------------------------------
 -- Words
 --------------------------------------------------------------------------------
 
