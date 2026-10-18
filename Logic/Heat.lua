@@ -286,36 +286,72 @@ end
 --------------------------------------------------------------------------------
 
 --- Where map `inner` lies on map `outer`, as left, right, top, bottom in
---- `outer`'s 0 to 1, or nil when the client does not say (the maps are not
---- one inside the other). Kept per pair: a map's place never moves.
+--- `outer`'s 0 to 1, or nil when the client does not say. Read first from
+--- both maps' corners in the world (two maps of one continent, nested or
+--- side by side), else from C_Map.GetMapRectOnMap. On Forever a kill can
+--- be kept under the continent while the zone map showed nothing of it
+--- (Clattering Crawler glowed on Kalimdor, not Ashenvale, 2026-10-18).
+--- Kept per pair: a map's place never moves.
 local rects = {}
+
+local function Read(value)
+    local read = ns.Harvest and ns.Harvest.ReadableNumber or tonumber
+    return read(value)
+end
+
+--- A map point in the world: continent, then the two world axes. A map's
+--- x runs along the world's second axis and its y along the first.
+local function World(mapID, x, y)
+    if type(C_Map) ~= "table" or type(C_Map.GetWorldPosFromMapPos) ~= "function"
+        or type(CreateVector2D) ~= "function" then
+        return nil
+    end
+    local ok, continent, position = pcall(C_Map.GetWorldPosFromMapPos, mapID, CreateVector2D(x, y))
+    if not ok or type(position) ~= "table" or type(position.GetXY) ~= "function" then return nil end
+    local read, first, second = pcall(position.GetXY, position)
+    if not read then return nil end
+    continent, first, second = Read(continent), Read(first), Read(second)
+    if not (continent and first and second) then return nil end
+    return continent, first, second
+end
+
+local function ByWorld(inner, outer)
+    local ic, ia0, ib0 = World(inner, 0, 0)
+    local _, ia1, ib1 = World(inner, 1, 1)
+    local oc, oa0, ob0 = World(outer, 0, 0)
+    local _, oa1, ob1 = World(outer, 1, 1)
+    if not (ic and oc and ia1 and oa1) or ic ~= oc then return nil end
+    if ob1 == ob0 or oa1 == oa0 then return nil end
+    local left, right = (ib0 - ob0) / (ob1 - ob0), (ib1 - ob0) / (ob1 - ob0)
+    local top, bottom = (ia0 - oa0) / (oa1 - oa0), (ia1 - oa0) / (oa1 - oa0)
+    if right - left > 0 and bottom - top > 0 then return { left, right, top, bottom } end
+    return nil
+end
+
+local function ByRect(inner, outer)
+    if type(C_Map) ~= "table" or type(C_Map.GetMapRectOnMap) ~= "function" then return nil end
+    local ok, left, right, top, bottom = pcall(C_Map.GetMapRectOnMap, inner, outer)
+    if not ok then return nil end
+    left, right, top, bottom = Read(left), Read(right), Read(top), Read(bottom)
+    if left and right and top and bottom and right - left > 0 and bottom - top > 0 then
+        return { left, right, top, bottom }
+    end
+    return nil
+end
 
 function Heat.MapRect(inner, outer)
     local key = tostring(inner) .. ">" .. tostring(outer)
     local kept = rects[key]
-    if kept ~= nil then
-        if kept == false then return nil end
-        return kept[1], kept[2], kept[3], kept[4]
+    if kept == nil then
+        kept = ByWorld(inner, outer) or ByRect(inner, outer) or false
+        rects[key] = kept
     end
-
-    local found = false
-    if type(C_Map) == "table" and type(C_Map.GetMapRectOnMap) == "function" then
-        local ok, left, right, top, bottom = pcall(C_Map.GetMapRectOnMap, inner, outer)
-        local Read = ns.Harvest and ns.Harvest.ReadableNumber or tonumber
-        if ok then
-            left, right, top, bottom = Read(left), Read(right), Read(top), Read(bottom)
-            if left and right and top and bottom and right - left > 0 and bottom - top > 0 then
-                found = { left, right, top, bottom }
-            end
-        end
-    end
-    rects[key] = found
-    if not found then return nil end
-    return found[1], found[2], found[3], found[4]
+    if kept == false then return nil end
+    return kept[1], kept[2], kept[3], kept[4]
 end
 
 --- A point on map `from` as a point on map `to`, or nil when it is off `to`
---- or the two maps are not one inside the other. A kill is kept under the
+--- or the client can't place one map on the other. A kill is kept under the
 --- map the game names where you stood, which need not be the map you look
 --- at later (the owner tracked Clattering Crawler on Ashenvale and saw no
 --- glow, 2026-10-18), so the glow reads every map the shown one holds or

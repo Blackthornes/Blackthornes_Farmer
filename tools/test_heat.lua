@@ -343,4 +343,45 @@ suite.check("/farm heat check names the map kills are kept on", probe and probe.
 C_Map.GetMapRectOnMap = realRect
 Heat:SetMob(nil)
 
+-- 8. Kills kept under the continent, or a map beside the zone, show on the
+-- zone too, placed by where each map's corners lie in the world (the owner
+-- saw the glow on Kalimdor but not on Ashenvale, 2026-10-18).
+ns.db.killHeat = {}
+Heat.version = Heat.version + 1
+local realWorld, realVector = C_Map.GetWorldPosFromMapPos, _G.CreateVector2D
+-- Each map's corners in the world: { north, west } at (0, 0), then at (1, 1).
+local corners = {
+    [8414] = { 1000, 1000, 0, 0 },     -- the continent
+    [8440] = { 600, 600, 400, 400 },   -- a zone on it
+    [8441] = { 600, 650, 400, 550 },   -- a strip beside the zone, half on it
+    [8999] = { 600, 600, 400, 400 },   -- another continent
+}
+_G.CreateVector2D = function(x, y) return { x = x, y = y } end
+C_Map.GetWorldPosFromMapPos = function(mapID, at)
+    local c = corners[mapID]
+    if not c then return nil end
+    local north = c[1] + (c[3] - c[1]) * at.y
+    local west = c[2] + (c[4] - c[2]) * at.x
+    return mapID == 8999 and 2 or 1, { GetXY = function() return north, west end }
+end
+Heat:Note(8414, 0.5, 0.5, "Clattering Crawler")
+Heat:SetMob("Clattering Crawler")
+local onZone = Heat:Cells(8440)
+-- One continent cell is five zone cells wide, so its centre lands a little off.
+suite.check("a kill kept on the continent shows on the zone", #onZone == 1
+    and onZone[1].cell == Heat.CellOf(Heat.Carry(8414, 8440, Heat.CellCentre(Heat.CellOf(0.5, 0.5))))
+    and math.abs(onZone[1].cell - Heat.CellOf(0.5, 0.5)) <= 202)
+suite.check("but not on another continent's map", #Heat:Cells(8999) == 0)
+ns.db.killHeat = {}
+Heat.version = Heat.version + 1
+Heat:Note(8441, 0.25, 0.5, "Clattering Crawler")
+Heat:Note(8441, 0.75, 0.5, "Clattering Crawler")
+local beside = Heat:Cells(8440)
+suite.check("a kill on a map beside the zone shows where they meet", #beside == 1
+    and beside[1].cell == Heat.CellOf(0.125, 0.5))
+local wide = Heat:Cells(8414)
+suite.check("and both show on the continent", #wide == 2)
+C_Map.GetWorldPosFromMapPos, _G.CreateVector2D = realWorld, realVector
+Heat:SetMob(nil)
+
 suite.done()

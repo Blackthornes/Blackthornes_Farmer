@@ -974,10 +974,13 @@ drawn under the art and never showed, 2026-10-18); the minimap is fainter
 (Some, More, Most) and `heatMob`. KILL HEAT on the Map & goals page and
 `/farm heat [on|off|map|minimap|strength|mob <name>|all|clear confirm]`;
 `clear confirm` is typed only. A kill is kept under the map the game
-names where you stood, which can be a smaller map than the one shown, so
-`Heat:Cells` also reads every map inside the shown one or holding it,
-moved over by `C_Map.GetMapRectOnMap` (`Heat.MapRect`, `Heat.Carry`;
-`BestMap` still counts each map's own kills). `/farm heat check`
+names where you stood, which can be a smaller map, the continent or a
+map beside the one shown (it glowed on Kalimdor, not Ashenvale,
+2026-10-18), so `Heat:Cells` reads every map kept, moved over by where
+both maps' corners lie in the world (`C_Map.GetWorldPosFromMapPos`, one
+continent only), else `C_Map.GetMapRectOnMap` (`Heat.MapRect`,
+`Heat.Carry`; the minimap reads the same; `BestMap` still counts each
+map's own kills). `/farm heat check`
 (`ns.KeepCheck`, typed only) prints where you stand, the map shown, each
 map kills are kept on and the world layer. Tested in `tools/test_heat.lua`.
 Not yet seen in game.
