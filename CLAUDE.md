@@ -968,16 +968,23 @@ a frame, redone only when the cells, map, mob or strength change. The world
 map is never drawn in combat and sits over the map's art and under the
 gathered-node markers (`HeatUI.WORLD_ABOVE` 2 levels over the canvas,
 `MapMarkers.WORLD_ABOVE` 3, Grind pins 4; at the canvas's own level it was
-drawn under the art and never showed, 2026-10-18); the minimap is fainter
+drawn under the art and never showed, 2026-10-18). On a zone map the
+parts you have explored are pins over the art, so all three count up from
+`MapMarkers.BaseLevel` (those pins' level, else the level the map keeps
+for them, else the canvas; the glow showed on Kalimdor, not Ashenvale,
+2026-10-18); the minimap is fainter
 (`MINIMAP_ABOVE`, 1 for the glow, 2 for the markers). Hidden mobs are left out. Saved, never renamed:
 `killHeat`, `heatWorld`, `heatMinimap` (both off unless ticked), `heatLevel`
 (Some, More, Most) and `heatMob`. KILL HEAT on the Map & goals page and
 `/farm heat [on|off|map|minimap|strength|mob <name>|all|clear confirm]`;
 `clear confirm` is typed only. A kill is kept under the map the game
-names where you stood, which can be a smaller map than the one shown, so
-`Heat:Cells` also reads every map inside the shown one or holding it,
-moved over by `C_Map.GetMapRectOnMap` (`Heat.MapRect`, `Heat.Carry`;
-`BestMap` still counts each map's own kills). `/farm heat check`
+names where you stood, which can be a smaller map, the continent or a
+map beside the one shown (it glowed on Kalimdor, not Ashenvale,
+2026-10-18), so `Heat:Cells` reads every map kept, moved over by where
+both maps' corners lie in the world (`C_Map.GetWorldPosFromMapPos`, one
+continent only), else `C_Map.GetMapRectOnMap` (`Heat.MapRect`,
+`Heat.Carry`; the minimap reads the same; `BestMap` still counts each
+map's own kills). `/farm heat check`
 (`ns.KeepCheck`, typed only) prints where you stand, the map shown, each
 map kills are kept on and the world layer. Tested in `tools/test_heat.lua`.
 Not yet seen in game.
