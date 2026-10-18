@@ -230,7 +230,8 @@ Search.FOUND_SAMPLE = 20
 --- What the found items are built from: moves when a corpse, a gather or
 --- a cast is recorded, or the data or the client's names change.
 function Search:FoundVersion()
-    local key = ("%d:%d:%d:%d:%d"):format(
+    local key = ("%d:%d:%d:%d:%d:%d"):format(
+        ns.Containers and ns.Containers.changes or 0,
         ns.Harvest and ns.Harvest.changes or 0,
         ns.Gathering and ns.Gathering.clock or 0,
         ns.Fishing and ns.Fishing.clock or 0,
@@ -379,6 +380,35 @@ function Search:FoundItems()
                         location = Text(spot.location), coords = Coords(spot.coords),
                         chance = Rate(entry.casts, spot.casts),
                         dropText = Count(entry.casts, spot.casts) })
+                end
+            end
+        end
+    end
+
+    -- What came out of the clams and sacks you opened from your bags: where
+    -- you got the clam, from your own kills, and how often one held it.
+    local Containers = ns.Containers
+    local opened = Containers and ns.db and type(ns.db.containers) == "table"
+        and ns.db.containers.opened
+    for container, entry in pairs(type(opened) == "table" and opened or {}) do
+        entry = Containers:Entry(container)
+        if entry and type(entry.items) == "table" then
+            local seen = {}
+            for _, record in pairs(Harvest and Harvest.records or {}) do
+                local dropped = type(record) == "table" and type(record.items) == "table"
+                    and record.items[container]
+                local zone = type(dropped) == "table" and Text(record.zone)
+                if zone and not seen[zone:lower()] then
+                    seen[zone:lower()] = true
+                    for name, got in pairs(entry.items) do
+                        if type(got) == "table" then
+                            Add(name, got.id, { kind = "container", name = container, zone = zone,
+                                location = Text(record.location), coords = Coords(record.coords),
+                                minLevel = tonumber(record.minLevel), maxLevel = tonumber(record.maxLevel),
+                                chance = Rate(got.opens, entry.opens),
+                                dropText = Count(got.opens, entry.opens) })
+                        end
+                    end
                 end
             end
         end

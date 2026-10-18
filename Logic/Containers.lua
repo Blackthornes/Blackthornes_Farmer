@@ -133,6 +133,8 @@ function Containers:Record(name, id, items, quantities)
 
     entry.opens = (tonumber(entry.opens) or 0) + 1
     entry.id = entry.id or id
+    -- The search reads openings again when this moves.
+    Containers.changes = (Containers.changes or 0) + 1
     if type(entry.items) ~= "table" then entry.items = {} end
 
     for _, item in ipairs(items or {}) do

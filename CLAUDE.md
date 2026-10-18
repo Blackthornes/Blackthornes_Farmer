@@ -386,8 +386,17 @@ nothing is saved; guild data never reaches it. Built only when a search
 runs and the records moved, at most every `FOUND_GAP` seconds. Found items
 have no Goal button (`Goals:Set` knows only database items). A plural
 query also matches names by its singular (`Search.Singular`: "crates" finds
-Crate), names only, never zones or mobs. Tested in
-`tools/test_searchfinds.lua`.
+Crate), names only, never zones or mobs. Clams and sacks you opened from your
+bags count too (2026-10-18, a player saw no Giant Clams and none of the
+clams they opened for Iridescent Pearl): what came out shows at the zones
+your own kills dropped the clam, "3 in 10" opened, never a guess at a
+place (`Containers.changes` moves the search). Tested in
+`tools/test_searchfinds.lua` and `tools/test_clamspots.lua`.
+
+Where to farm (`Spots:For`, `MAX` places) keeps the best place of every
+clam, chest, node or school by name before any of them takes a second
+row, so the clams you opened, found in many zones, no longer push Giant
+Clams off. Mobs are ranked as before.
 
 ## Classic drops in the search
 
