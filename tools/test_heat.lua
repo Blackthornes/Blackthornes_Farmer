@@ -134,17 +134,18 @@ suite.check("an item's glow is weighted by drop rate", wolfCell == 2 and math.ab
 suite.check("the map opens where the glow is most", opened == 7)
 suite.check("nothing new is saved for an item", ns.db.heatMob == nil)
 
-local text, lines = ns.HeatUI.CardText()
-suite.check("the card says what it shows", text:find("Showing:", 1, true) and text:find("Wolf Fang", 1, true))
-suite.check("the card lists the mobs with their rate", lines[1] == "Wolf (50% a kill)" and lines[2] == "Bear (10% a kill)")
+local shows = ns.HeatUI.CardText()
+suite.check("the card says what it shows", shows.name == "Wolf Fang" and shows.item)
+suite.check("the card lists the mobs with their rate", shows.rows[1].mob == "Wolf"
+    and shows.rows[1].rate == "50% a kill" and shows.rows[2].mob == "Bear" and shows.rows[2].rate == "10% a kill")
 
 suite.check("the same row again shows all", not Heat:ShowOnMap("item", "Wolf Fang") and Heat:Item() == nil)
 
 opened = nil
 suite.check("Map on a mob picks the mob", Heat:ShowOnMap("mob", "Bear") and Heat:Mob() == "Bear")
 suite.check("a mob's map is where it was killed most", opened == 7 or opened == 8)
-local _, mobLines = ns.HeatUI.CardText()
-suite.check("a mob's card has no rate lines", #mobLines == 0)
+local mobShows = ns.HeatUI.CardText()
+suite.check("a mob's card has no rate lines", #mobShows.rows == 0 and not mobShows.item)
 Heat:ShowAll()
 suite.check("Stop Tracking goes back to every mob", Heat:Mob() == nil and Heat:Item() == nil
     and Heat:TargetKey() == "all")
@@ -267,6 +268,15 @@ local okPlace = pcall(function()
     ns.HeatUI:KeepCardPlace()
 end)
 suite.check("placing and dragging the card does not raise", okPlace)
+local mapShown = _G.WorldMapFrame.IsShown
+_G.WorldMapFrame.IsShown = function() return true end
+local okItem = pcall(function()
+    Heat.item = { name = "Wolf Fang", mobs = { { mob = "Wolf", chance = 0.5 } }, weights = { Wolf = 1 } }
+    ns.HeatUI:UpdateCard()
+end)
+_G.WorldMapFrame.IsShown = mapShown
+suite.check("an item's card draws its mob rows", okItem and ns.HeatUI.card ~= nil
+    and #ns.HeatUI.card.rows >= 1)
 Heat:ShowAll()
 ns.db.heatCardX, ns.db.heatCardY = nil, nil
 Heat:SetWorld(false)
