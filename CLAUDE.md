@@ -772,6 +772,20 @@ the rank-up pop-up and the top farm alert follow the tick box; `RankUp.Stamp`
 lays the order out again when it moves (`Rankings.outsideVersion`). Tested
 in `tools/test_rankingsoutside.lua`. Not yet seen in game.
 
+## Rankings without Uncommon and better
+
+The owner asked (2026-10-18) for a tick box on the Rankings tab that leaves
+Uncommon, Rare and Epic drops out of worth per kill. "Skip Uncommon and
+better" sits after "Outside dungeons only", with "Skip Uncommon Drops:" on
+the UI page of Settings and `/farm rankings uncommon [on|off]`; off unless
+ticked, `rankingsSkipUncommon`, account wide, never rename it.
+`Rankings:Entry` takes the drops out (`Rankings.WithoutUncommon`, quality
+from the loot link's colour, else the client, `WorldDrops.QualityOf`; a
+quality not known stays in), so the order, the best drop, the row's hover
+and the rank-up order follow (it moves `outsideVersion`). `Value:ForMob` is
+untouched, so tooltips and the loot table still count every drop. Tested in
+`tools/test_rankingsuncommon.lua`. Not yet seen in game.
+
 ## Your top 15 after an auction scan
 
 The owner asked (2026-10-14): an alert after an auction scan when there is

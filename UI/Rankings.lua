@@ -141,6 +141,23 @@ function RankingsUI:Build(frame)
     outside:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
     self.outside = outside
     offset = offset + 8 + outside:GetWidth()
+
+    -- Uncommon and better drops left out of worth per kill (the owner,
+    -- 2026-10-18). Off unless ticked; Rankings:SetSkipUncommon redraws.
+    local uncommon = Widgets.CreateCheckbox(filters, L["Skip Uncommon and better"], function(checked)
+        ns.Rankings:SetSkipUncommon(checked)
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+    end, ns.Rankings.SkipUncommon())
+    uncommon:SetPoint("LEFT", filters, "LEFT", offset + 12, 0)
+    uncommon:HookScript("OnEnter", function(box)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(box, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:SetText(L["Worth per kill leaves out Uncommon, Rare and Epic drops."], 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    uncommon:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    self.uncommon = uncommon
+    offset = offset + 12 + uncommon:GetWidth()
     self.headOffset = offset
 
     -- Where the prices come from, on the right of the chips.
@@ -242,7 +259,7 @@ function RankingsUI:Build(frame)
         updateRow = function(row, data, index) RankingsUI:UpdateRow(row, data, index) end,
         onClick = function(data, button) RankingsUI:OnRowClick(data, button) end,
         onEnter = function(row, data)
-            if data.entry then ns.UI:ShowMobTooltip(row, data.entry.mob, true) end
+            if data.entry then ns.UI:ShowMobTooltip(row, data.entry.mob, true, data.entry) end
         end,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
         -- The colour of the well the rows sit in.
@@ -1338,6 +1355,7 @@ function RankingsUI:Render(arrive)
         chip:SetSelected(chip:GetFilterKind() == self.group)
     end
     if self.outside then self.outside:SetChecked(ns.Rankings.OutsideOnly()) end
+    if self.uncommon then self.uncommon:SetChecked(ns.Rankings.SkipUncommon()) end
 
     self:ShowWorld()
     local board = ns.Rankings:Build()
