@@ -23,6 +23,17 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.41.0
+
+- A heat map shows where you have killed on the world map and the minimap. It's off until you turn it on under Kill Heat on the Map & goals page of Settings. Then press Map beside a mob or item in the search, or on a mob's loot card.
+- Rankings can leave Uncommon, Rare and Epic drops out of worth per kill. The tick box is on the Rankings tab.
+- Quest items are marked Quest in the loot lists.
+
+Fixes and changes:
+
+- Item names use their rarity color in goals, loot tables, rankings and tooltips.
+- Various fixes to Where to farm and the search.
+
 ## 0.40.2
 
 Fixes and changes:

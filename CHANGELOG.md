@@ -4,6 +4,22 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.41.0
+
+For WoW: Forever (interface 16001). Files were added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Kill heat map:** a map of where you have killed, on the world map and the
+  minimap. Off until you tick it under Kill Heat on the Map & goals page. Press
+  Map beside a mob or item in the search, or on a mob's loot card, to see it.
+- **Rankings:** a tick box leaves Uncommon, Rare and Epic drops out of worth per
+  kill. It is on the Rankings tab, with a row on the UI page of Settings.
+- **Quest items:** they show as Quest in the loot lists.
+- **Rarity colors:** item names use their rarity color in goals, loot tables,
+  rankings and tooltips.
+- **Bug fixes:** Giant Clams stay on Where to farm, opened clams show in the
+  search, and various other fixes to Farmer.
+
 ## 0.40.2
 
 For WoW: Forever (interface 16001). Files were added and the TOC changed, so
