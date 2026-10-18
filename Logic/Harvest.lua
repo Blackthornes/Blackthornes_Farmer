@@ -455,6 +455,45 @@ function Harvest:PickingPockets()
     return at ~= nil and now ~= nil and now - at >= 0 and now - at <= PICK_POCKET_SECONDS
 end
 
+--- Is the open loot window a pocket you picked? True after your own Pick
+--- Pocket, or when the mob it names is still alive (a client whose cast
+--- was not heard). A window from an item in the bags never is. Second: the
+--- mob's name, when the client gives it.
+-- It is no kill, but the coin and items are yours, so the session's loot
+-- and gold take them (2026-10-18: a rogue's pocket coin went uncounted).
+function Harvest:PocketLoot()
+    local sources = self:LootSources()
+    for _, source in ipairs(sources) do
+        if type(source) == "string" and source:match("^Item%-") then return false end
+    end
+
+    local living
+    for _, source in ipairs(sources) do
+        if Harvest.NpcID(source) and self:StillAlive(source) then
+            living = source
+            break
+        end
+    end
+    if not living and not self:PickingPockets() then return false end
+
+    local function NameOf(unit)
+        if not UnitName then return nil end
+        local ok, name = pcall(UnitName, unit)
+        return ok and Readable(name) or nil
+    end
+
+    if living and UnitGUID then
+        for _, unit in ipairs(Harvest.LIVING_UNITS) do
+            local ok, guid = pcall(UnitGUID, unit)
+            if ok and Readable(guid) == living then
+                local name = NameOf(unit)
+                if name then return true, name end
+            end
+        end
+    end
+    return true, NameOf("target")
+end
+
 --- The mob ID in a creature's guid ("Creature-0-4621-389-76516-11320-..."
 --- is 11320), or nil for anything else.
 function Harvest.NpcID(guid)
