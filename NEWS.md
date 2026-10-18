@@ -23,6 +23,16 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.43.0
+
+- Each tooltip line Farmer adds can be Off, Shift or Always. You pick under Tooltips on the Map & goals page of Settings.
+- Kill count on nameplates has a Counter Position choice. It can sit above, below, left or right of the name.
+
+Fixes and changes:
+
+- Coin and items from Pick Pocket count toward your session loot and gold.
+- The words around the XP bar don't run into each other now.
+
 ## 0.42.0
 
 - Farmer speaks Simplified Chinese, French, Spanish and Russian now if your game is in one of those.
