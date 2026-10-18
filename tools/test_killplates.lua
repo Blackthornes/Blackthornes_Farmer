@@ -146,6 +146,51 @@ worthBox:GetScript("OnClick")(worthBox)
 suite.check("ticking it turns the worth on", ns.db.killPlatesWorth == true)
 ns.SettingsUI:Hide()
 
+-- Counter Position: where the count sits beside the plate.
+suite.check("left of the name unless picked", ns.DEFAULTS.killPlatesSide == "left" and KillPlates:Side() == "left")
+local namePlate = CreateFrame("Frame")
+local nameText = CreateFrame("Frame")
+nameText.GetObjectType = function() return "FontString" end
+local castBar = CreateFrame("StatusBar")
+castBar.GetObjectType = function() return "StatusBar" end
+namePlate.UnitFrame = { name = nameText, castBar = castBar }
+plates.nameplate1 = namePlate
+Mob("nameplate1", "Plainstrider")
+local function Anchor()
+    for _, entry in pairs({ KillPlates:LabelOf(namePlate) }) do
+        local point = entry.frame._point
+        return point[1], point[2], point[3]
+    end
+end
+local p1, to, p2 = Anchor()
+suite.check("left: its right edge by the name's left", p1 == "RIGHT" and to == nameText and p2 == "LEFT")
+KillPlates:SetSide("above")
+p1, to, p2 = Anchor()
+suite.check("above: over the name", p1 == "BOTTOM" and to == nameText and p2 == "TOP")
+KillPlates:SetSide("below")
+p1, to, p2 = Anchor()
+suite.check("below: under the cast bar, clear of the name and bars", p1 == "TOP" and to == castBar and p2 == "BOTTOM")
+KillPlates:SetSide("right")
+p1, to, p2 = Anchor()
+suite.check("right: past the name", p1 == "LEFT" and to == nameText and p2 == "RIGHT")
+ns.QuestMobs:Show(namePlate, "3/8")
+local quest = ns.QuestMobs:LabelFor(namePlate)
+p1, to, p2 = Anchor()
+suite.check("right: past the quest count when one shows", quest and to == quest.text and p1 == "LEFT")
+ns.QuestMobs:Hide(namePlate)
+p1, to = Anchor()
+suite.check("and back by the name when it goes", to == nameText)
+KillPlates:SetSide("sideways")
+suite.check("a side that isn't one is left alone", ns.db.killPlatesSide == "right")
+ns.SettingsUI:Show()
+local sideStepper = ns.SettingsUI.controls.killPlatesSide
+suite.check("Settings shows the side picked", sideStepper:GetValue() == 4)
+sideStepper:SetValue(1)
+suite.check("the stepper picks the side", ns.db.killPlatesSide == "above")
+sideStepper:SetValue(3)
+suite.check("and back to left", ns.db.killPlatesSide == "left")
+ns.SettingsUI:Hide()
+
 ns.Value.ForMob = realForMob
 _G.C_NamePlate = nil
 suite.done()
