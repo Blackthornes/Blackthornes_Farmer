@@ -21,8 +21,8 @@ ns.GuildShare:OnEnable()
 Contribute:OnEnable()
 
 suite.check("off by default", ns.db.shareDrops == false and not Contribute:On())
-suite.check("the shipped list names one whole name",
-    type(Contribute.RECIPIENTS) == "table" and #Contribute:Recipients() == 1)
+suite.check("the shipped list names two whole names",
+    type(Contribute.RECIPIENTS) == "table" and #Contribute:Recipients() == 2)
 
 -- Only North America sends.
 _G.GetCurrentRegion, _G.GetCurrentRegionName = nil, nil
@@ -334,4 +334,16 @@ do
 end
 
 Contribute.RECIPIENTS = shipped
+
+-- Both of the shipped characters take drops, and nobody else does.
+do
+    local before = Comm.PlayerName
+    for _, name in ipairs(shipped) do
+        Comm.PlayerName = function() return name end
+        suite.check("a shipped character takes drops: " .. name, Contribute:Receiving())
+    end
+    Comm.PlayerName = function() return "Tia Smith" end
+    suite.check("anyone else does not", not Contribute:Receiving())
+    Comm.PlayerName = before
+end
 suite.done()
