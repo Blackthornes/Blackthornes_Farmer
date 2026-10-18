@@ -208,11 +208,11 @@ suite.check("and on again", ns.db.killTooltipDrops == true)
 
 ns.SettingsUI:Show()
 local box = ns.SettingsUI.controls.killTooltipDrops
-suite.check("the settings page shows Best drops on", box:GetChecked())
-box:GetScript("OnClick")(box)
-suite.check("unticking it turns them off", ns.db.killTooltipDrops == false)
-box:GetScript("OnClick")(box)
-suite.check("ticking it brings them back", ns.db.killTooltipDrops == true)
+suite.check("the settings page shows Best drops on (Always)", box:GetValue() == 2)
+box:SetValue(0)
+suite.check("Off turns them off", ns.db.killTooltipDrops == false)
+box:SetValue(2)
+suite.check("Always brings them back", ns.db.killTooltipDrops == true)
 ns.SettingsUI:Hide()
 suite.check("on by default", ns.DEFAULTS.killTooltipDrops == true)
 
@@ -264,11 +264,11 @@ ns.HandleSlash("killcount")
 suite.check("and on again", ns.db.killTooltip == true)
 
 ns.SettingsUI:Show()
-suite.check("the settings page shows it on", ns.SettingsUI.controls.killTooltip:GetChecked())
-ns.SettingsUI.controls.killTooltip:GetScript("OnClick")(ns.SettingsUI.controls.killTooltip)
-suite.check("unticking it turns it off", ns.db.killTooltip == false)
-ns.SettingsUI.controls.killTooltip:GetScript("OnClick")(ns.SettingsUI.controls.killTooltip)
-suite.check("and ticking it back on", ns.db.killTooltip == true)
+suite.check("the settings page shows it on (Always)", ns.SettingsUI.controls.killTooltip:GetValue() == 2)
+ns.SettingsUI.controls.killTooltip:SetValue(0)
+suite.check("Off turns it off", ns.db.killTooltip == false)
+ns.SettingsUI.controls.killTooltip:SetValue(2)
+suite.check("and Always back on", ns.db.killTooltip == true)
 ns.SettingsUI:Hide()
 
 -- The crown Farmer gave you on a mob shows on its kill line.

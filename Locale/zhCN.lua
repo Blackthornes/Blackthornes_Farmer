@@ -1559,3 +1559,8 @@ L["Showing"] = "显示中"
 L["Seen here a little"] = "在这里见过一些"
 L["Your best spot"] = "你最好的地点"
 L["Stop Tracking"] = "停止追踪"
+
+-- Off, Shift or Always for tooltip lines (UI/TooltipShift.lua).
+L["Shift"] = "Shift"
+L["Always"] = "总是"
+L["Hold Shift for more."] = "按住 Shift 查看更多。"

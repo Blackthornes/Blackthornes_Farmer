@@ -1562,3 +1562,8 @@ L["Showing"] = "Показано"
 L["Seen here a little"] = "Здесь встречалось немного"
 L["Your best spot"] = "Твоё лучшее место"
 L["Stop Tracking"] = "Не отслеживать"
+
+-- Off, Shift or Always for tooltip lines (UI/TooltipShift.lua).
+L["Shift"] = "Shift"
+L["Always"] = "Всегда"
+L["Hold Shift for more."] = "Зажми Shift, чтобы увидеть больше."

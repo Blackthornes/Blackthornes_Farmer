@@ -394,6 +394,7 @@ local UI_FILES = {
     "UI/Heat.lua",
     "UI/GrindPins.lua",
     "UI/Arrow.lua",
+    "UI/TooltipShift.lua",
     "UI/ItemTooltip.lua",
     "UI/KillTooltip.lua",
     "UI/NodeSparkle.lua",
