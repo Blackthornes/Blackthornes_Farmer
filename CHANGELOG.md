@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.43.0
+
+For WoW: Forever (interface 16001). Files were added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Tooltips:** each tooltip line Farmer adds can be Off, Shift or Always. The choices are under Tooltips on the Map & goals page.
+- **Kill count on nameplates:** Counter Position puts the count Above, Below, Left or Right of the name. It is under Tooltips on the Map & goals page.
+- **Bug fixes:** coin and items from Pick Pocket count toward your session loot and gold, the words around the XP bar no longer run into each other, and various other fixes to Farmer.
+
 ## 0.42.0
 
 For WoW: Forever (interface 16001). Files were added and the TOC changed, so
