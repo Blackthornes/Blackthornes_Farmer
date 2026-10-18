@@ -285,37 +285,103 @@ end
 -- Reading
 --------------------------------------------------------------------------------
 
+--- Where map `inner` lies on map `outer`, as left, right, top, bottom in
+--- `outer`'s 0 to 1, or nil when the client does not say (the maps are not
+--- one inside the other). Kept per pair: a map's place never moves.
+local rects = {}
+
+function Heat.MapRect(inner, outer)
+    local key = tostring(inner) .. ">" .. tostring(outer)
+    local kept = rects[key]
+    if kept ~= nil then
+        if kept == false then return nil end
+        return kept[1], kept[2], kept[3], kept[4]
+    end
+
+    local found = false
+    if type(C_Map) == "table" and type(C_Map.GetMapRectOnMap) == "function" then
+        local ok, left, right, top, bottom = pcall(C_Map.GetMapRectOnMap, inner, outer)
+        local Read = ns.Harvest and ns.Harvest.ReadableNumber or tonumber
+        if ok then
+            left, right, top, bottom = Read(left), Read(right), Read(top), Read(bottom)
+            if left and right and top and bottom and right - left > 0 and bottom - top > 0 then
+                found = { left, right, top, bottom }
+            end
+        end
+    end
+    rects[key] = found
+    if not found then return nil end
+    return found[1], found[2], found[3], found[4]
+end
+
+--- A point on map `from` as a point on map `to`, or nil when it is off `to`
+--- or the two maps are not one inside the other. A kill is kept under the
+--- map the game names where you stood, which need not be the map you look
+--- at later (the owner tracked Clattering Crawler on Ashenvale and saw no
+--- glow, 2026-10-18), so the glow reads every map the shown one holds or
+--- lies in.
+function Heat.Carry(from, to, x, y)
+    if from == to then return x, y end
+    local left, right, top, bottom = Heat.MapRect(from, to)
+    local nx, ny
+    if left then
+        nx, ny = left + x * (right - left), top + y * (bottom - top)
+    else
+        left, right, top, bottom = Heat.MapRect(to, from)
+        if not left then return nil end
+        nx, ny = (x - left) / (right - left), (y - top) / (bottom - top)
+    end
+    if nx < 0 or nx > 1 or ny < 0 or ny > 1 then return nil end
+    return nx, ny
+end
+
 --- The cells to draw on a map: { { cell, count }, ... } and the highest
---- count, for the picked mob or all of them, hidden mobs left out. Kept until
+--- count, for the picked mob or all of them, hidden mobs left out. Kills
+--- kept under a map inside this one, or one this one lies in, count too,
+--- moved onto this map's cells; `own` keeps to this map's own. Kept until
 --- the cells, the mob or the hide list change.
-function Heat:Cells(mapID)
+function Heat:Cells(mapID, own)
     local mob = self:Mob()
     local target = self:TargetKey()
     local weights = Heat.item and Heat.item.weights
     local hidden = ns.DB and ns.DB.hiddenVersion or 0
 
-    if cached and cached.map == mapID and cached.target == target
-        and cached.version == Heat.version and cached.hidden == hidden then
-        return cached.list, cached.max
+    -- Kept per map, since the world map and the minimap can show two.
+    local slot = tostring(mapID) .. (own and ":own" or "")
+    local kept = cached and cached[slot]
+    if kept and kept.target == target and kept.version == Heat.version and kept.hidden == hidden then
+        return kept.list, kept.max
     end
 
-    local map = type(ns.db.killHeat) == "table" and ns.db.killHeat[mapID] or nil
+    local store = type(ns.db.killHeat) == "table" and ns.db.killHeat or {}
     local sums, highest = {}, 0
 
-    if type(map) == "table" then
-        for name, cells in pairs(map) do
-            local weight = 1
-            if weights then
-                weight = weights[name] or 0
-            elseif mob ~= nil and name ~= mob then
-                weight = 0
-            end
-            local wanted = weight > 0 and type(cells) == "table"
-                and not (ns.DB and ns.DB:IsHiddenSource(name))
-            if wanted then
-                for cell, count in pairs(cells) do
-                    count = tonumber(count)
-                    if count and count > 0 then sums[cell] = (sums[cell] or 0) + count * weight end
+    for storedID, map in pairs(store) do
+        local here = storedID == mapID
+        if type(map) == "table" and (here or not own) then
+            for name, cells in pairs(map) do
+                local weight = 1
+                if weights then
+                    weight = weights[name] or 0
+                elseif mob ~= nil and name ~= mob then
+                    weight = 0
+                end
+                local wanted = weight > 0 and type(cells) == "table"
+                    and not (ns.DB and ns.DB:IsHiddenSource(name))
+                if wanted then
+                    for cell, count in pairs(cells) do
+                        count = tonumber(count)
+                        cell = tonumber(cell)
+                        if count and count > 0 and cell then
+                            local at = cell
+                            if not here then
+                                local x, y = Heat.CellCentre(cell)
+                                x, y = Heat.Carry(storedID, mapID, x, y)
+                                at = x and Heat.CellOf(x, y) or nil
+                            end
+                            if at then sums[at] = (sums[at] or 0) + count * weight end
+                        end
+                    end
                 end
             end
         end
@@ -327,7 +393,8 @@ function Heat:Cells(mapID)
         if count > highest then highest = count end
     end
 
-    cached = { map = mapID, target = target, version = Heat.version, hidden = hidden,
+    cached = cached or {}
+    cached[slot] = { target = target, version = Heat.version, hidden = hidden,
         list = list, max = highest }
     return list, highest
 end
@@ -368,7 +435,8 @@ function Heat:BestMap()
 
     local bestMap, bestSum = nil, 0
     for mapID in pairs(store) do
-        local list = self:Cells(mapID)
+        -- Its own kills only: a continent holding them would tie with the zone.
+        local list = self:Cells(mapID, true)
         local sum = 0
         for _, entry in ipairs(list) do sum = sum + entry.count end
         if sum > bestSum or (sum == bestSum and sum > 0 and bestMap and mapID < bestMap) then
@@ -457,6 +525,65 @@ local function Status()
         "  /farm heat on|off, map on|off, minimap on|off, strength some|more|most, mob <name>|all"))
 end
 
+--- `/farm heat check`: what the glow reads, for a report (ns.KeepCheck
+--- saves it). English on purpose, like the other checks.
+function Heat.Check()
+    local function Say(text) ns.PrintRaw(text) end
+    local target = Heat:TargetKey()
+    Say(("heat check: world %s, minimap %s, tracking %s"):format(tostring(Heat.WorldOn()),
+        tostring(Heat.MinimapOn()), target))
+
+    local best, bx, by = ns.Harvest:PlayerMapPosition()
+    Say(("you stand on map %s at %s, %s"):format(tostring(best),
+        bx and ("%.3f"):format(bx) or "?", by and ("%.3f"):format(by) or "?"))
+
+    local view = ns.MapMarkers and ns.MapMarkers:WorldView()
+    Say(("world map shows %s"):format(view and tostring(view.mapID) or "nothing (closed)"))
+
+    local store = type(ns.db.killHeat) == "table" and ns.db.killHeat or {}
+    local mob = Heat:Mob()
+    local weights = Heat.item and Heat.item.weights
+    local any = false
+    for mapID, map in pairs(store) do
+        if type(map) == "table" then
+            local cells, kills = 0, 0
+            for name, list in pairs(map) do
+                local wanted = type(list) == "table"
+                    and ((weights and weights[name]) or (not weights and (mob == nil or name == mob)))
+                if wanted then
+                    for _, count in pairs(list) do
+                        cells, kills = cells + 1, kills + (tonumber(count) or 0)
+                    end
+                end
+            end
+            if cells > 0 then
+                any = true
+                local left = Heat.MapRect(mapID, view and view.mapID or best or mapID)
+                Say(("kept on map %s: %d spots, %d kills%s"):format(tostring(mapID), cells, kills,
+                    left and " (lies inside that map)" or ""))
+            end
+        end
+    end
+    if not any then Say("no spots kept for what is tracked") end
+
+    local shownMap = view and view.mapID or best
+    if shownMap then
+        local list, highest = Heat:Cells(shownMap)
+        Say(("glow on map %s: %d spots, busiest %s"):format(tostring(shownMap), #list, tostring(highest)))
+    end
+    local ui = ns.HeatUI
+    local layer = ui and ui.world
+    if layer then
+        local okLevel, level = pcall(layer.frame.GetFrameLevel, layer.frame)
+        local okShown, shown = pcall(layer.frame.IsVisible, layer.frame)
+        Say(("world layer: %d dots, %d edges, level %s, visible %s, drawing %s"):format(layer.used or 0,
+            layer.edgesUsed or 0, okLevel and tostring(level) or "?", okShown and tostring(shown) or "?",
+            tostring(ui.job ~= nil)))
+    else
+        Say("world layer: not made yet")
+    end
+end
+
 ns.RegisterCommand("heat", L["a glow on the maps where you kill the most (on, off, map, minimap, strength, mob)"], function(rest)
     local argument = Util.Trim(rest)
     local lowered = argument:lower()
@@ -464,6 +591,11 @@ ns.RegisterCommand("heat", L["a glow on the maps where you kill the most (on, of
 
     if lowered == "" then
         Status()
+        return
+    end
+
+    if lowered == "check" then
+        ns.KeepCheck("heat check", Heat.Check)
         return
     end
 

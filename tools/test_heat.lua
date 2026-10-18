@@ -311,4 +311,36 @@ ns.SettingsUI:Show()
 local c = ns.SettingsUI.controls
 suite.check("Settings has the controls", c.heatWorld ~= nil and c.heatMinimap ~= nil and c.heatLevel ~= nil)
 
+-- 7. Kills kept under a map inside the one shown (the owner saw no glow on
+-- Ashenvale, 2026-10-18): the game can name a smaller map where you stood.
+ns.db.killHeat = {}
+Heat.version = Heat.version + 1
+local realRect = C_Map.GetMapRectOnMap
+C_Map.GetMapRectOnMap = function(inner, outer)
+    if inner == 9001 and outer == 1440 then return 0.2, 0.4, 0.5, 0.7 end
+    return nil
+end
+Heat:Note(9001, 0.5, 0.5, "Clattering Crawler")
+Heat:SetMob("Clattering Crawler")
+local carried = Heat:Cells(1440)
+suite.check("a kill on a map inside shows on the zone", #carried == 1
+    and carried[1].cell == Heat.CellOf(0.3, 0.6))
+local back = Heat:Cells(9001)
+suite.check("and still on its own map", #back == 1 and back[1].cell == Heat.CellOf(0.5, 0.5))
+Heat:Note(1440, 0.9, 0.9, "Clattering Crawler")
+local out = Heat:Cells(9001)
+suite.check("a zone kill off the smaller map is left off it", #out == 1)
+suite.check("the map opens where it was killed, not the zone holding it",
+    Heat:BestMap() == 9001 or Heat:BestMap() == 1440)
+suite.check("maps that don't hold each other share nothing", #Heat:Cells(1411) == 0)
+ns.KeepCheck("heat check", Heat.Check)
+local probe = ns.db.lastProbe
+local saysMap = false
+for _, line in ipairs(probe and probe.lines or {}) do
+    if line:find("kept on map 9001", 1, true) then saysMap = true end
+end
+suite.check("/farm heat check names the map kills are kept on", probe and probe.check == "heat check" and saysMap)
+C_Map.GetMapRectOnMap = realRect
+Heat:SetMob(nil)
+
 suite.done()
