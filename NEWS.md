@@ -23,6 +23,10 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.42.0
+
+- Farmer speaks Simplified Chinese, French, Spanish and Russian now if your game is in one of those.
+
 ## 0.41.0
 
 - A heat map shows where you have killed on the world map and the minimap. It's off until you turn it on under Kill Heat on the Map & goals page of Settings. Then press Map beside a mob or item in the search, or on a mob's loot card.
