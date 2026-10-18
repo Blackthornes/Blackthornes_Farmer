@@ -150,6 +150,8 @@ function LootTableUI:Table(mobName)
             local unit = Value and Value:WorthOf(item.name, id)
             if unit then row.perKill = item.corpses / loot.kills * item.perCorpse * unit end
         end
+        -- A quest item says so where its worth would be (2026-10-18).
+        if not row.perKill and Value and Value:IsQuest(item.name, id) then row.quest = true end
         -- Until then no rate shows, not even the guild's or the shipped
         -- data's: finding them is the player's own (the owner, 2026-10-15).
 
@@ -378,6 +380,9 @@ local function UpdateRow(row, data)
     if data.perKill then
         row.cells.perKill:SetText(ns.Value.Coins(data.perKill))
         row.cells.perKill:SetTextColor(Theme.Unpack("good"))
+    elseif data.quest then
+        row.cells.perKill:SetText(L["Quest"])
+        row.cells.perKill:SetTextColor(Theme.Unpack("accent"))
     else
         row.cells.perKill:SetText("--")
         row.cells.perKill:SetTextColor(Theme.Unpack("dim"))
