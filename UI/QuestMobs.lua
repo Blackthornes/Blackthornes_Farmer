@@ -175,7 +175,17 @@ function QuestMobs:Show(plate, count)
         end
         entry.placed = true
     end
+    local was = entry.frame:IsShown()
     entry.frame:Show()
+    if not was and ns.KillPlates then ns.KillPlates:QuestMoved(plate) end
+end
+
+--- The count's frame and text over a plate while it shows, for the kill
+--- count to sit clear of it.
+function QuestMobs:LabelFor(plate)
+    local entry = plate and labels[plate]
+    if entry and entry.frame:IsShown() then return entry end
+    return nil
 end
 
 --- The count showing over a plate, or nil.
@@ -187,9 +197,11 @@ end
 function QuestMobs:Hide(plate)
     local entry = plate and labels[plate]
     if not entry then return end
+    local was = entry.frame:IsShown()
     entry.frame:Hide()
     entry.frame:ClearAllPoints()
     entry.placed, entry.shown = nil, nil
+    if was and ns.KillPlates then ns.KillPlates:QuestMoved(plate) end
 end
 
 --- Read one plate's mob again.

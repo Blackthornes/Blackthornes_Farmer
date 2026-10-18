@@ -1175,7 +1175,12 @@ again when a mob of that name is killed (`KillPlates:Killed`, from
 on nameplates" (`killPlates`, on unless unticked) and "Worth on
 nameplates" (`killPlatesWorth`, off unless ticked) on the Map & goals
 page, account wide, never rename either; `/farm plates [on|off|worth
-on|off]`. Tested in `tools/test_killplates.lua`.
+on|off]`. "Counter Position:" under it (a player asked, the owner said
+yes 2026-10-18: it covered another nameplate addon's text) picks Above
+(over the name), Below (under the cast bar, else the health bar), Left
+or Right (past the quest count when one shows, `QuestMobs:LabelFor`):
+`killPlatesSide`, "left" unless picked, account wide, never rename it.
+Tested in `tools/test_killplates.lua`.
 The crown the kills panel puts after a mob's name (`TrackerUI.MarkFor`,
 through `KillTooltip.Crown`) follows the count on its plate and on the
 tooltip's kill line too (the owner asked 2026-10-15); no setting of its

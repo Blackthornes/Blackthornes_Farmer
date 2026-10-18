@@ -13,6 +13,12 @@
 -- (`killPlates`, on unless unticked) and "Worth on nameplates"
 -- (`killPlatesWorth`, off unless ticked) on the Map & goals page, account
 -- wide, never rename either; `/farm plates [on|off|worth on|off]`.
+-- "Counter Position" picks where it sits (a player asked, the owner said
+-- yes 2026-10-18, since it covered another nameplate addon's text):
+-- `killPlatesSide`, "above", "below", "left" or "right", "left" unless
+-- picked, account wide, never rename it. Above sits over the name, below
+-- under the health and cast bars, right past the quest count, so none of
+-- them covers the plate's own text.
 --
 -- Which mobs: the same as the tooltip. A creature you can attack, or one
 -- you have killed; never a player, a pet or a critter, and never a hidden
@@ -48,6 +54,16 @@ end
 
 function KillPlates:IsEnabled()
     return not (ns.db and ns.db.killPlates == false)
+end
+
+KillPlates.SIDES = { "above", "below", "left", "right" }
+local IS_SIDE = { above = true, below = true, left = true, right = true }
+
+--- Where the count sits beside the plate: "left" unless picked.
+function KillPlates:Side()
+    local side = ns.db and ns.db.killPlatesSide
+    if IS_SIDE[side] then return side end
+    return "left"
 end
 
 function KillPlates:WorthEnabled()
@@ -125,13 +141,57 @@ local function Label(plate)
     frame:SetSize(80, 16)
     pcall(frame.EnableMouse, frame, false)
     local text = ns.Theme.CreateLabel(frame, "normal", "text")
-    text:SetPoint("RIGHT")
-    pcall(text.SetJustifyH, text, "RIGHT")
     pcall(text.SetShadowOffset, text, 1, -1)
     frame:Hide()
     entry = { frame = frame, text = text }
     labels[plate] = entry
     return entry
+end
+
+local JUSTIFY = { left = "RIGHT", right = "LEFT", above = "CENTER", below = "CENTER" }
+
+--- The lowest bar under the name the game lets us read: the cast bar
+--- (so a cast never runs over the count), else the health bar.
+local function LowestBar(plate)
+    local unitFrame = Field(plate, "UnitFrame")
+    for _, key in ipairs({ "castBar", "CastBar", "healthBar", "HealthBar" }) do
+        local bar = Field(unitFrame, key)
+        if type(bar) == "table" then
+            local ok, kind = pcall(function() return bar:GetObjectType() end)
+            if ok and type(kind) == "string" then return bar end
+        end
+    end
+    return nil
+end
+
+--- Lays the count out on the side picked. Right goes past the quest
+--- count when one shows, so the two never sit on each other.
+function KillPlates:Place(plate, entry)
+    local side = self:Side()
+    local frame, text = entry.frame, entry.text
+    frame:ClearAllPoints()
+    text:ClearAllPoints()
+    local justify = JUSTIFY[side]
+    text:SetPoint(justify)
+    pcall(text.SetJustifyH, text, justify)
+    local name = NameText(plate)
+    if side == "left" then
+        if name then frame:SetPoint("RIGHT", name, "LEFT", -4, 0)
+        else frame:SetPoint("RIGHT", plate, "LEFT", -2, 0) end
+    elseif side == "right" then
+        local quest = ns.QuestMobs and ns.QuestMobs.LabelFor and ns.QuestMobs:LabelFor(plate)
+        if quest then frame:SetPoint("LEFT", quest.text, "RIGHT", 4, 0)
+        elseif name then frame:SetPoint("LEFT", name, "RIGHT", 4, 0)
+        else frame:SetPoint("LEFT", plate, "RIGHT", 2, 0) end
+    elseif side == "above" then
+        if name then frame:SetPoint("BOTTOM", name, "TOP", 0, 2)
+        else frame:SetPoint("BOTTOM", plate, "TOP", 0, 2) end
+    else
+        local bar = LowestBar(plate)
+        if bar then frame:SetPoint("TOP", bar, "BOTTOM", 0, -2)
+        else frame:SetPoint("TOP", plate, "BOTTOM", 0, -2) end
+    end
+    entry.placed = side
 end
 
 function KillPlates:Show(plate, text)
@@ -140,17 +200,21 @@ function KillPlates:Show(plate, text)
         entry.text:SetText(text)
         entry.shown = text
     end
-    if not entry.placed then
-        entry.frame:ClearAllPoints()
-        local name = NameText(plate)
-        if name then
-            entry.frame:SetPoint("RIGHT", name, "LEFT", -4, 0)
-        else
-            entry.frame:SetPoint("RIGHT", plate, "LEFT", -2, 0)
-        end
-        entry.placed = true
-    end
+    if not entry.placed then self:Place(plate, entry) end
     entry.frame:Show()
+end
+
+--- The quest count over this plate came or went: on the right, the
+--- count moves to stay clear of it.
+function KillPlates:QuestMoved(plate)
+    local entry = plate and labels[plate]
+    if not entry or not entry.placed or self:Side() ~= "right" then return end
+    self:Place(plate, entry)
+end
+
+--- The count's frame and text over a plate, for the tests.
+function KillPlates:LabelOf(plate)
+    return labels[plate]
 end
 
 --- The text showing over a plate, or nil.
@@ -204,6 +268,15 @@ end
 function KillPlates:SetEnabled(on)
     ns.db.killPlates = on and true or false
     self:UpdateAll()
+end
+
+--- Moves every count to the side picked.
+function KillPlates:SetSide(side)
+    if not IS_SIDE[side] then return end
+    ns.db.killPlatesSide = side
+    for plate, entry in pairs(labels) do
+        if entry.placed then self:Place(plate, entry) end
+    end
 end
 
 function KillPlates:SetWorthEnabled(on)

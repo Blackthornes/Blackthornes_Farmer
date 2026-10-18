@@ -1012,6 +1012,17 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.killPlates:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Where the count sits by the plate (a player asked, 2026-10-18).
+    local sideNames = { above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] }
+    local platesSideRow = pages:Row("map", 1, L["Counter Position:"], nil)
+    controls.killPlatesSide = Widgets.CreateStepper(platesSideRow, {
+        min = 1, max = #ns.KillPlates.SIDES, step = 1, value = 3,
+        format = function(index) return sideNames[ns.KillPlates.SIDES[index]] end,
+        onChange = function(index) ns.KillPlates:SetSide(ns.KillPlates.SIDES[index]) end,
+    })
+    ns.SettingsPages.FitStepper(controls.killPlatesSide, sideNames)
+    controls.killPlatesSide:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     local platesWorthRow = pages:Row("map", 1, L["Nameplate Worth:"],
         L["Adds what one kill is worth once you have 20 kills."])
     controls.killPlatesWorth = Widgets.CreateCheckbox(platesWorthRow, L["Show"], function(checked)
@@ -1284,6 +1295,12 @@ function SettingsUI:Refresh()
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
     controls.killPlates:SetChecked(db.killPlates ~= false)
     controls.killPlatesWorth:SetChecked(db.killPlatesWorth == true)
+    do
+        local side = ns.KillPlates:Side()
+        for index, each in ipairs(ns.KillPlates.SIDES) do
+            if each == side then controls.killPlatesSide:SetValue(index, true) end
+        end
+    end
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
     controls.worldDrops:SetChecked(db.worldDrops ~= false)

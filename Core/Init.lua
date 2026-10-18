@@ -455,6 +455,7 @@ local DEFAULTS = {
     -- 2026-10-15). Never rename either.
     killPlates = true,
     killPlatesWorth = false,
+    killPlatesSide = "left",
     -- Skinning spots and leather left out of what Farmer lists, drops only
     -- (DB:ShowsSkinning). The owner asked for it on by default.
     hideSkinning = true,
