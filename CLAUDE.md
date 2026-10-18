@@ -968,7 +968,11 @@ a frame, redone only when the cells, map, mob or strength change. The world
 map is never drawn in combat and sits over the map's art and under the
 gathered-node markers (`HeatUI.WORLD_ABOVE` 2 levels over the canvas,
 `MapMarkers.WORLD_ABOVE` 3, Grind pins 4; at the canvas's own level it was
-drawn under the art and never showed, 2026-10-18); the minimap is fainter
+drawn under the art and never showed, 2026-10-18). On a zone map the
+parts you have explored are pins over the art, so all three count up from
+`MapMarkers.BaseLevel` (those pins' level, else the level the map keeps
+for them, else the canvas; the glow showed on Kalimdor, not Ashenvale,
+2026-10-18); the minimap is fainter
 (`MINIMAP_ABOVE`, 1 for the glow, 2 for the markers). Hidden mobs are left out. Saved, never renamed:
 `killHeat`, `heatWorld`, `heatMinimap` (both off unless ticked), `heatLevel`
 (Some, More, Most) and `heatMob`. KILL HEAT on the Map & goals page and

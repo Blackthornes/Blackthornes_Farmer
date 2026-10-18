@@ -257,6 +257,36 @@ suite.check("the glow sits over the map's art",
 suite.check("and under the node markers",
     ns.MapMarkers.WORLD_ABOVE > ns.HeatUI.WORLD_ABOVE
     and ns.MapMarkers.MINIMAP_ABOVE > ns.HeatUI.MINIMAP_ABOVE)
+-- On a zone map the explored parts are pins over the art (the glow showed
+-- on Kalimdor, not Ashenvale, 2026-10-18): the glow goes over them too.
+local keptMap = _G.WorldMapFrame
+local explored = CreateFrame("Frame")
+explored:SetFrameLevel(9)
+_G.WorldMapFrame = {
+    -- As the game's pin pools give them: pairs over the active pins.
+    EnumeratePinsByTemplate = function(_, template)
+        if template ~= "MapExplorationPinTemplate" then return pairs({}) end
+        return pairs({ [explored] = true })
+    end,
+}
+Heat.version = Heat.version + 1
+ns.HeatUI:Refresh()
+local glowLevel = ns.HeatUI.world.frame:GetFrameLevel()
+suite.check("the glow sits over a zone's explored parts", glowLevel > explored:GetFrameLevel(), glowLevel)
+suite.check("and the node markers over the glow",
+    ns.MapMarkers.BaseLevel(worldCanvas) + ns.MapMarkers.WORLD_ABOVE > glowLevel)
+_G.WorldMapFrame = {
+    GetPinFrameLevelsManager = function()
+        return { GetValidFrameLevel = function(_, kind)
+            return kind == "PIN_FRAME_LEVEL_MAP_EXPLORATION" and 12 or nil
+        end }
+    end,
+}
+suite.check("with no explored pins out yet, the level the map keeps for them counts",
+    ns.MapMarkers.BaseLevel(worldCanvas) == 11)
+_G.WorldMapFrame = {}
+suite.check("a map with neither counts from the canvas", ns.MapMarkers.BaseLevel(worldCanvas) == 5)
+_G.WorldMapFrame = keptMap
 Heat:ShowAll()
 suite.check("stop tracking, the glow goes", ns.HeatUI.world.used == 0
     and ns.HeatUI.world.edgesUsed == 0)

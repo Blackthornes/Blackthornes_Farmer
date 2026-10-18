@@ -291,6 +291,49 @@ end
 MapMarkers.WORLD_ABOVE = 3
 MapMarkers.MINIMAP_ABOVE = 2
 
+--- The frame level our world map layers count up from: the canvas's own,
+--- or, on a zone map, the parts you have explored, which the game lays
+--- over the map's art as pins of their own. The glow sat at their level
+--- and was drawn under them, so it showed on Kalimdor, which has none, and
+--- not on Ashenvale (2026-10-18). Read from those pins, else from the
+--- level the map keeps for them; never lower than the canvas.
+function MapMarkers.BaseLevel(canvas)
+    local okLevel, level = pcall(canvas.GetFrameLevel, canvas)
+    level = okLevel and tonumber(level) or 1
+    local map = _G.WorldMapFrame
+    if type(map) ~= "table" then return level end
+
+    local top
+    if type(map.EnumeratePinsByTemplate) == "function" then
+        -- A pool's active pins, as pairs gives them: the pin is the key or
+        -- the value, whichever is a frame.
+        local ok, step, state, key = pcall(map.EnumeratePinsByTemplate, map, "MapExplorationPinTemplate")
+        if ok and type(step) == "function" then
+            for _ = 1, 64 do
+                local okNext, nextKey, value = pcall(step, state, key)
+                if not okNext or nextKey == nil then break end
+                key = nextKey
+                local pin = type(nextKey) == "table" and nextKey or value
+                if type(pin) == "table" and type(pin.GetFrameLevel) == "function" then
+                    local okPin, pinLevel = pcall(pin.GetFrameLevel, pin)
+                    pinLevel = okPin and tonumber(pinLevel)
+                    if pinLevel and (not top or pinLevel > top) then top = pinLevel end
+                end
+            end
+        end
+    end
+    if not top and type(map.GetPinFrameLevelsManager) == "function" then
+        local ok, manager = pcall(map.GetPinFrameLevelsManager, map)
+        if ok and type(manager) == "table" and type(manager.GetValidFrameLevel) == "function" then
+            local okKept, kept = pcall(manager.GetValidFrameLevel, manager, "PIN_FRAME_LEVEL_MAP_EXPLORATION")
+            top = okKept and tonumber(kept) or nil
+        end
+    end
+    -- The art is one over the canvas; explored parts sit at or over it.
+    if top and top - 1 > level then return top - 1 end
+    return level
+end
+
 function MapMarkers:WorldView()
     local map = _G.WorldMapFrame
     if type(map) ~= "table" then return nil end
@@ -370,8 +413,7 @@ function MapMarkers:PlaceWorld(pool, view)
     -- Low among the canvas's own pins: whatever else the map shows, the
     -- game's or another addon's, draws over a spot you have already taken.
     -- Just over the kill heat glow (HeatUI.WORLD_ABOVE), so a node shows on it.
-    local okLevel, level = pcall(view.canvas.GetFrameLevel, view.canvas)
-    level = (okLevel and tonumber(level) or 1) + MapMarkers.WORLD_ABOVE
+    local level = MapMarkers.BaseLevel(view.canvas) + MapMarkers.WORLD_ABOVE
 
     -- Same size on screen at any zoom: shrink the marker as the canvas grows,
     -- and place it in its own, smaller, units.

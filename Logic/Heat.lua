@@ -594,9 +594,10 @@ function Heat.Check()
             end
             if cells > 0 then
                 any = true
-                local left = Heat.MapRect(mapID, view and view.mapID or best or mapID)
+                local shown = view and view.mapID or best or mapID
+                local left = mapID ~= shown and Heat.MapRect(mapID, shown)
                 Say(("kept on map %s: %d spots, %d kills%s"):format(tostring(mapID), cells, kills,
-                    left and " (lies inside that map)" or ""))
+                    left and " (lies on the map shown)" or ""))
             end
         end
     end
@@ -617,6 +618,11 @@ function Heat.Check()
             tostring(ui.job ~= nil)))
     else
         Say("world layer: not made yet")
+    end
+    if view and ns.MapMarkers and ns.MapMarkers.BaseLevel then
+        local okCanvas, canvasLevel = pcall(view.canvas.GetFrameLevel, view.canvas)
+        Say(("map art: canvas level %s, layers count from %s"):format(
+            okCanvas and tostring(canvasLevel) or "?", tostring(ns.MapMarkers.BaseLevel(view.canvas))))
     end
 end
 

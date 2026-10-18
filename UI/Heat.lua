@@ -7,7 +7,9 @@
 -- a crowd of kills glows hotter than a few. The world map's dots sit on a
 -- frame of their own two levels over the canvas (HeatUI.WORLD_ABOVE): the
 -- map's own art is a frame one level over it, and a glow at the canvas's
--- level was drawn under the art, so nothing showed (2026-10-18). The
+-- level was drawn under the art, so nothing showed (2026-10-18). On a zone
+-- map the parts you have explored are pins over the art, so the levels
+-- count up from those (MapMarkers.BaseLevel; Ashenvale, 2026-10-18). The
 -- gathered-node markers and the game's pins sit higher still, so a live
 -- node and the game's icons always show over the glow. The minimap's are fainter still, since its blips are
 -- part of the minimap and every addon frame draws over them. Nothing here
@@ -289,11 +291,12 @@ function HeatUI:DrawWorld()
             Trim(self.world, 0)
             TrimEdges(self.world, 0)
         end
-        local okLevel, level = pcall(view.canvas.GetFrameLevel, view.canvas)
-        level = (okLevel and tonumber(level) or 1) + HeatUI.WORLD_ABOVE
-        self.world = NewLayer(view.canvas, level)
+        self.world = NewLayer(view.canvas)
         self.world.parent = view.canvas
     end
+    -- Read again each map, since a zone's explored parts sit higher.
+    pcall(self.world.frame.SetFrameLevel, self.world.frame,
+        ns.MapMarkers.BaseLevel(view.canvas) + HeatUI.WORLD_ABOVE)
 
     local list, highest = Heat:Cells(view.mapID)
     local kept = Busiest(list, MAX_WORLD)
