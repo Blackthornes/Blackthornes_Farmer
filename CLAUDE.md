@@ -1042,6 +1042,26 @@ Map & goals page (`killTooltipDrops`, on unless unticked, never rename it)
 and `/farm killcount drops [on|off]`.
 Tested in `tools/test_killtooltip.lua`. Not yet seen in game.
 
+## Off, Shift or Always on tooltip lines
+
+The owner said yes (2026-10-18): each tooltip line Farmer adds can be Off,
+Shift (only while Shift is held) or Always. The four TOOLTIPS rows on the
+Map & goals page are steppers (`TooltipShiftStepper` in `UI/Settings.lua`):
+"Where to Farm:" (`whereToFarm`, `itemTooltip`), "Craft or Sell:"
+(`craftOrSell`, `itemTooltipCraft`), "Kill Count:" (`killCount`,
+`killTooltip`; its marks and the greens line go with it) and "Best Drops:"
+(`bestDrops`, `killTooltipDrops`). Whether a line is on stays in its own
+key, so nobody's settings moved: on reads as Always, off as Off. Shift is
+kept account wide in `tooltipShift[key] = true` (never rename it; only a
+true is ever written). `UI/TooltipShift.lua` is the same file in all five
+addons (a fix to it belongs in all five): `Shows(key)` is asked each time
+the tooltip is built, after the kept lines (`ItemTooltip`'s and
+`KillTooltip`'s caches never hold the Shift answer), `Held(tooltip)` adds
+"Hold Shift for more." once per tooltip across the addons, and one shared
+frame redraws GameTooltip when Shift goes down or up, only while a line is
+on Shift. The slash commands still turn lines on and off as before. Tested
+in `tools/test_tooltipshift.lua`. Not yet seen in game.
+
 ## Rates are the player's to find
 
 The owner (2026-10-15): learning what a mob drops is most of the fun, so

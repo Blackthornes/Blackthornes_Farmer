@@ -104,6 +104,22 @@ local function SeeThroughRow(pages, page, column, id, label, description)
     return stepper
 end
 
+--- An Off, Shift or Always stepper for one tooltip line (UI/TooltipShift.lua).
+--- `isOn()` reads the line's own setting and `setOn(on)` is its old tick box.
+local function TooltipShiftStepper(row, key, isOn, setOn)
+    local Shift = ns.TooltipShift
+    local names = Shift.NAMES
+    local stepper = Widgets.CreateStepper(row, {
+        min = 0, max = 2, step = 1, value = Shift:Mode(isOn(), key),
+        format = function(index) return names[index] end,
+        onChange = function(index) Shift:Apply(index, key, isOn(), setOn) end,
+    })
+    ns.SettingsPages.FitStepper(stepper, { names[0], names[1], names[2] })
+    stepper:SetPoint("TOPLEFT", CONTROL_X, -2)
+    stepper.shiftKey, stepper.isOn = key, isOn
+    return stepper
+end
+
 local function CommandRow(pages, page, column, label, description, buttonText, command)
     local row = pages:Row(page, column, label, description)
     return row, CommandButton(row, buttonText, command)
@@ -965,36 +981,35 @@ function SettingsUI:BuildMapPage()
     local tooltipRow = pages:Row("map", 1, L["Where to Farm:"],
         L["Hover a material to see the best place to farm it."])
 
-    controls.itemTooltip = Widgets.CreateCheckbox(tooltipRow, L["Show"], function(checked)
-        ns.db.itemTooltip = checked
-        if ns.ItemTooltip then ns.ItemTooltip.ForgetKept() end
-    end, true)
-    controls.itemTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
+    -- Off, Shift or Always (2026-10-18): Shift shows it only while Shift is held.
+    controls.itemTooltip = TooltipShiftStepper(tooltipRow, "whereToFarm",
+        function() return ns.db.itemTooltip ~= false end,
+        function(on)
+            ns.db.itemTooltip = on
+            if ns.ItemTooltip then ns.ItemTooltip.ForgetKept() end
+        end)
 
     -- What crafting a material pays for your time, from Tradeskills
     -- (the owner said yes, 2026-10-15).
     local craftRow = pages:Row("map", 1, L["Craft or Sell:"],
         L["With Tradeskills, a material shows what an hour of farming it pays, sold or crafted."])
-    controls.itemTooltipCraft = Widgets.CreateCheckbox(craftRow, L["Show"], function(checked)
-        ns.ItemTooltip:SetCraftEnabled(checked)
-    end, true)
-    controls.itemTooltipCraft:SetPoint("TOPLEFT", CONTROL_X, -2)
+    controls.itemTooltipCraft = TooltipShiftStepper(craftRow, "craftOrSell",
+        function() return ns.db.itemTooltipCraft ~= false end,
+        function(on) ns.ItemTooltip:SetCraftEnabled(on) end)
 
     local killRow = pages:Row("map", 1, L["Kill Count:"],
         L["Hover a mob to see how many you've killed."])
 
-    controls.killTooltip = Widgets.CreateCheckbox(killRow, L["Show"], function(checked)
-        ns.KillTooltip:SetEnabled(checked)
-    end, true)
-    controls.killTooltip:SetPoint("TOPLEFT", CONTROL_X, -2)
+    controls.killTooltip = TooltipShiftStepper(killRow, "killCount",
+        function() return ns.db.killTooltip ~= false end,
+        function(on) ns.KillTooltip:SetEnabled(on) end)
 
     -- The three drops worth most a kill, under the count (2026-10-14).
     local dropsRow = pages:Row("map", 1, L["Best Drops:"],
         L["The three drops worth the most from a mob."])
-    controls.killTooltipDrops = Widgets.CreateCheckbox(dropsRow, L["Show"], function(checked)
-        ns.KillTooltip:SetDropsEnabled(checked)
-    end, true)
-    controls.killTooltipDrops:SetPoint("TOPLEFT", CONTROL_X, -2)
+    controls.killTooltipDrops = TooltipShiftStepper(dropsRow, "bestDrops",
+        function() return ns.db.killTooltipDrops ~= false end,
+        function(on) ns.KillTooltip:SetDropsEnabled(on) end)
 
     -- "3/8" beside a quest mob's name (the owner picked it 2026-10-13).
     local questCountRow = pages:Row("map", 1, L["Quest Count:"],
@@ -1288,10 +1303,10 @@ function SettingsUI:Refresh()
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
     controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)
-    controls.itemTooltip:SetChecked(db.itemTooltip ~= false)
-    controls.itemTooltipCraft:SetChecked(db.itemTooltipCraft ~= false)
-    controls.killTooltip:SetChecked(db.killTooltip ~= false)
-    controls.killTooltipDrops:SetChecked(db.killTooltipDrops ~= false)
+    for _, name in ipairs({ "itemTooltip", "itemTooltipCraft", "killTooltip", "killTooltipDrops" }) do
+        local stepper = controls[name]
+        stepper:SetValue(ns.TooltipShift:Mode(stepper.isOn(), stepper.shiftKey), true)
+    end
     controls.questMobCount:SetChecked(db.questMobCount ~= false)
     controls.killPlates:SetChecked(db.killPlates ~= false)
     controls.killPlatesWorth:SetChecked(db.killPlatesWorth == true)

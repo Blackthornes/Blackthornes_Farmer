@@ -38,6 +38,12 @@ local Util = ns.Util
 
 local TOOLTIP_NAMES = { "GameTooltip", "ItemRefTooltip" }
 
+-- Off, Shift or Always for each line (UI/TooltipShift.lua): "whereToFarm"
+-- is the farming line, "craftOrSell" the two Tradeskills lines.
+local Shift = ns.TooltipShift
+table.insert(Shift.KEYS, "whereToFarm")
+table.insert(Shift.KEYS, "craftOrSell")
+
 -- The game's item class for trade goods.
 local TRADE_GOODS = 7
 
@@ -276,6 +282,12 @@ function ItemTooltip:Decorate(tooltip, data)
     local craft = not ns.DB:HidesItem(item) and self:CraftLines(itemID) or nil
     if not line and not craft then return "quiet" end
 
+    -- A line on Shift waits for Shift, asked now and never kept, so the
+    -- kept line above stays the same whichever way Shift is.
+    local held = false
+    if line and not Shift:Shows("whereToFarm") then line, held = nil, true end
+    if craft and not Shift:Shows("craftOrSell") then craft, held = nil, true end
+
     local addLine = Field(tooltip, "AddLine")
     if type(addLine) ~= "function" then return "noitem" end
 
@@ -292,6 +304,7 @@ function ItemTooltip:Decorate(tooltip, data)
             pcall(addLine, tooltip, pair[1] .. "  " .. pair[2], r, g, b, true)
         end
     end
+    if held then Shift:Held(tooltip) end
     local show = Field(tooltip, "Show")
     if type(show) == "function" then pcall(show, tooltip) end
     self.writing = false

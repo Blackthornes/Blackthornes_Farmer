@@ -137,10 +137,10 @@ for _, module in ipairs(ns.moduleOrder) do
     if module.OnEnable then pcall(module.OnEnable, module) end
 end
 ns.SettingsUI:Show()
-suite.check("the settings page shows it on", ns.SettingsUI.controls.itemTooltip:GetChecked())
+suite.check("the settings page shows it on (Always)", ns.SettingsUI.controls.itemTooltip:GetValue() == 2)
 ns.db.itemTooltip = false
 ns.SettingsUI:Refresh()
-suite.check("and follows the saved value", not ns.SettingsUI.controls.itemTooltip:GetChecked())
+suite.check("and follows the saved value", ns.SettingsUI.controls.itemTooltip:GetValue() == 0)
 ns.db.itemTooltip = true
 ns.SettingsUI:Hide()
 

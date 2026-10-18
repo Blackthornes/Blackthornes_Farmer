@@ -1561,3 +1561,8 @@ L["Showing"] = "Mostrando"
 L["Seen here a little"] = "Visto aquí un poco"
 L["Your best spot"] = "Tu mejor lugar"
 L["Stop Tracking"] = "Dejar de seguir"
+
+-- Off, Shift or Always for tooltip lines (UI/TooltipShift.lua).
+L["Shift"] = "Mayús"
+L["Always"] = "Siempre"
+L["Hold Shift for more."] = "Mantén Mayús para ver más."
