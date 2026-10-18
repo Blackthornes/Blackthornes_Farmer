@@ -620,12 +620,35 @@ function Tracker:AddHaul(mobName, haul)
     for name, count in pairs(type(haul.items) == "table" and haul.items or {}) do
         if ns.Stats then ns.Stats:Loot("drops", name, count) end
         self.sessionLoot[name] = (self.sessionLoot[name] or 0) + count
-        self.sessionFrom[name] = self.sessionFrom[name] or {}
-        self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + count
+        if mobName then
+            self.sessionFrom[name] = self.sessionFrom[name] or {}
+            self.sessionFrom[name][mobName] = (self.sessionFrom[name][mobName] or 0) + count
+        end
     end
 
     self.sessionCopper = self.sessionCopper + (tonumber(haul.copper) or 0)
     if ns.Stats then ns.Stats:Coin(haul.copper) end
+end
+
+--- A pocket you picked: no kill and no drop rate, but its coin and items
+--- go into the session's loot and gold, under the mob it came from.
+function Tracker:PickedPocket()
+    local pocket, mobName = ns.Harvest:PocketLoot()
+    if not pocket then return end
+
+    local names, quantities, copper = self:LootedItems(true)
+    local haul = { items = {}, copper = copper or 0 }
+    for _, name in ipairs(names) do
+        local count = tonumber(quantities[name]) or 0
+        if count > 0 then haul.items[name] = count end
+    end
+    if haul.copper <= 0 and not next(haul.items) then return false end
+
+    self:AddHaul(mobName, haul)
+    if ns.TrackerUI then
+        ns.TrackerUI:Refresh()
+    end
+    return false
 end
 
 --- A corpse skinned without being opened first. What it gave is yours, so
@@ -1216,7 +1239,7 @@ function Tracker:OnLoot()
     -- Same rule as the harvester: if the target is not plainly the corpse,
     -- count nothing rather than count it against the wrong mob.
     local mobName, _, guid, unit = ns.Harvest:Corpse()
-    if not mobName then return end
+    if not mobName then return self:PickedPocket() end
 
     local items, quantities, copper, haul = self:LootedItems()
     local skinning = Tracker.Skinning()
