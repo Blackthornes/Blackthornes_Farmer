@@ -100,7 +100,9 @@ function HideMenu:Open(choices)
             if choice.kind == "name" then
                 line.label:SetText(L["Name this mob"])
             else
-                line.label:SetText(L.Format("Hide %s", choice.name))
+                -- An item's name in its rarity colour; a mob's as it is.
+                local shown = choice.kind == "item" and Util.ColorItem(choice.name) or choice.name
+                line.label:SetText(L.Format("Hide %s", shown))
             end
             local w = Theme.TextWidth("tiny", line.label:GetText())
             local ok, drawn = pcall(line.label.GetStringWidth, line.label)
@@ -158,6 +160,7 @@ function HideMenu:Pick(choice)
     -- A mob or a node is a "source".
     local shown = Util.Colored("accent", name)
     if choice.kind == "item" then
+        shown = Util.ColorItemOr("accent", name)
         ns.Print(L.Format("hid item %s. /farm hidden lists what you hid, with Show again.", shown))
     else
         ns.Print(L.Format("hid mob or node %s. /farm hidden lists what you hid, with Show again.", shown))

@@ -1622,6 +1622,7 @@ function TrackerUI:SlotTooltip(slot)
 
     GameTooltip:SetOwner(slot, "ANCHOR_RIGHT")
     local r, g, b = HexColor(ns.Tracker:LookOf(icon.item).color)
+    if not r then r, g, b = ns.Util.ItemRGB(icon.item) end
     GameTooltip:AddLine(icon.item, r or 1, g or 1, b or 1)
     if icon.about then GameTooltip:AddLine(icon.about, 1, 1, 1) end
 
@@ -2294,6 +2295,9 @@ end
 local function ItemColor(name)
     local r, g, b, a = HexColor(ns.Tracker:LookOf(name).color)
     if r then return r, g, b, a end
+    -- No loot link kept its colour: the item's rarity from the client.
+    r, g, b = ns.Util.ItemRGB(name)
+    if r then return r, g, b, 1 end
     return Theme.Unpack("text")
 end
 
@@ -3126,6 +3130,13 @@ end
 ns.DB.hideWatchers.tally = function()
     if TrackerUI.frame then TrackerUI:Refresh() end
 end
+
+-- An item's rarity came in late: the lines on screen take its colour,
+-- laid out as they are (nothing is priced or measured again).
+ns.Util.OnRarity("tracker", function()
+    local frame = TrackerUI.frame
+    if frame and frame:IsShown() and TrackerUI.arranged then TrackerUI:Arrange(false) end
+end)
 
 --- Redraw, and show or hide to match the saved setting.
 function TrackerUI:Refresh()

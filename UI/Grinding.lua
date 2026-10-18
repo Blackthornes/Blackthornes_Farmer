@@ -628,6 +628,22 @@ local function GivesText(mob)
 end
 GrindingUI.GivesText = GivesText
 
+--- Item names joined as the Gives column shows them, each in its rarity
+--- colour. For showing only: widths and sorting read the plain text.
+function GrindingUI.ColoredNames(names)
+    local parts = {}
+    for index, name in ipairs(names or {}) do parts[index] = ns.Util.ColorItem(name) end
+    return table.concat(parts, ", ")
+end
+
+--- The leathers a mob gives, in the Leather view, in their colours.
+local function ColoredLeathers(mob)
+    local names = {}
+    for name in pairs(mob.leathers or {}) do names[#names + 1] = name end
+    table.sort(names)
+    return GrindingUI.ColoredNames(names)
+end
+
 --- The skill a row needs, and your own: the words, and whether you are
 --- short of it. "105, you have 94" when short.
 function GrindingUI.SkillText(need, have)
@@ -780,6 +796,11 @@ function GrindingUI:UpdateRow(row, data)
             end
         end
         local short = texts.short
+        -- What it gives, each in its rarity colour; a node your skill does
+        -- not reach stays greyed.
+        if columns.shown.gives and not short then
+            row.gives:SetText(GrindingUI.ColoredNames(data.node.givesList))
+        end
         row.mob:SetTextColor(Theme.Unpack(short and "dim" or "text"))
         row.gives:SetTextColor(Theme.Unpack(short and "dim" or "muted"))
         row.skill:SetTextColor(Theme.Unpack(short and "loss" or "text"))
@@ -806,6 +827,10 @@ function GrindingUI:UpdateRow(row, data)
         end
     end
     local short = texts.short
+    -- The Leather view names its leathers, each in its rarity colour.
+    if columns.shown.gives and not short and GrindingUI.Layout() == "leather" then
+        row.gives:SetText(ColoredLeathers(mob))
+    end
     row.type:SetTextColor(Theme.Unpack(mob.type and not short and "muted" or "dim"))
     row.mob:SetTextColor(Theme.Unpack(short and "dim" or "text"))
     row.level:SetTextColor(Theme.Unpack(short and "dim" or "text"))
@@ -824,7 +849,7 @@ function GrindingUI:ShowRowTooltip(row, data)
     if not GameTooltip then return end
 
     if data.type == "mob" then
-        if ns.UI and ns.UI.ShowMobTooltip then ns.UI:ShowMobTooltip(row, data.mob.name) end
+        if ns.UI and ns.UI.ShowMobTooltip then ns.UI:ShowMobTooltip(row, data.mob.name, true) end
         return
     end
 
@@ -837,7 +862,7 @@ function GrindingUI:ShowRowTooltip(row, data)
             GameTooltip:AddDoubleLine(L["Skill"], texts.skill, 1, 1, 1, Theme.Unpack(texts.short and "loss" or "text"))
         end
         for _, name in ipairs(node.givesList or {}) do
-            GameTooltip:AddLine(name, Theme.Unpack("muted"))
+            GameTooltip:AddLine(ns.Util.ColorItem(name), Theme.Unpack("muted"))
         end
         if node.gathers > 0 then
             GameTooltip:AddDoubleLine(L["You gathered it"], tostring(node.gathers), 1, 1, 1, 1, 1, 1)
@@ -1207,6 +1232,14 @@ function GrindingUI:SkinningChanged()
 end
 
 ns.DB.hideWatchers.grind = function() GrindingUI:SkinningChanged() end
+
+-- An item's rarity came in late: the rows on screen take its colour.
+ns.Util.OnRarity("grind", function()
+    local self, frame = GrindingUI, ns.UI and ns.UI.frame
+    if self.view and self.view:IsShown() and self.list and frame and frame:IsShown() then
+        self.list:Refresh()
+    end
+end)
 
 --- Redraw if the tab is on screen.
 function GrindingUI:Refresh()

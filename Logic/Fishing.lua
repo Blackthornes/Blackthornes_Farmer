@@ -323,7 +323,7 @@ function Fishing:Celebrate(key)
 
     local best = summary.items[1]
     if best then
-        line = line .. L.Format(" Best catch: %s %s.", best.name,
+        line = line .. L.Format(" Best catch: %s %s.", Util.ColorItem(best.name, best.id),
             Util.Colored("good", ns.Tracker.FormatChance(best.chance)))
     end
 
@@ -679,7 +679,7 @@ local function PrintSpot(summary)
     for _, item in ipairs(summary.items) do
         local right = summary.rated and ns.Tracker.FormatChance(item.chance)
             or L.Format("%d of %d", item.casts, summary.casts)
-        ns.PrintRaw(("  %s %s"):format(item.name, Util.Colored("muted", right)))
+        ns.PrintRaw(("  %s %s"):format(Util.ColorItem(item.name, item.id), Util.Colored("muted", right)))
     end
 
     if not summary.rated then

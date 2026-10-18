@@ -837,7 +837,7 @@ function Arrow:Check()
     local state = self:State(GetTime and GetTime() or 0)
     if state.goal then
         local target = state.target
-        ns.PrintRaw(("  following: %s%s"):format(Util.Colored("accent", state.goal.item),
+        ns.PrintRaw(("  following: %s%s"):format(Util.ColorItemOr("accent", state.goal.item),
             target and (", %s, %s"):format(target.name or "?", state.distance or "") or ", nowhere known"))
     elseif state.mode == "none" then
         ns.PrintRaw("  following: no open goal. /farm goal Copper Ore 40 sets one.")
@@ -853,7 +853,7 @@ local function Status()
         local goal = Arrow:Goal()
         if goal then
             ns.Print(L.Format("goal arrow on, following %s. Click it for the next goal, right-click for the next place.",
-                Util.Colored("accent", goal.item)))
+                Util.ColorItemOr("accent", goal.item)))
         else
             ns.Print(L["goal arrow on. It shows once you set a goal: /farm goal Copper Ore 40."])
         end
@@ -899,7 +899,7 @@ ns.RegisterCommand("arrow", L["an arrow to the nearest place to gather a goal (o
         local name = ns.Goals:ResolveItem(argument) or argument
         if Arrow:Follow(name) then
             if not Arrow.IsOn() then Arrow:SetOn(true) end
-            ns.Print(L.Format("goal arrow following %s.", Util.Colored("accent", Arrow:Goal().item)))
+            ns.Print(L.Format("goal arrow following %s.", Util.ColorItemOr("accent", Arrow:Goal().item)))
         else
             ns.Print(L.Format("no open goal for %s. /farm goal %s 20 sets one.", argument, argument))
 

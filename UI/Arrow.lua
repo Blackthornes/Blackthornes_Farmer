@@ -377,7 +377,9 @@ function ArrowUI:Draw(force)
 
     local goal = state.goal
     -- The plate carries a goal or nothing: never a name for the dial.
-    local title = goal and ("%s  %d / %d"):format(goal.item, goal.have or 0, goal.target or 0) or ""
+    -- The goal's item in its rarity colour (kept, so no client call a frame).
+    local title = goal and ("%s  %d / %d"):format(goal.grind and goal.item or ns.Util.ColorItem(goal.item),
+        goal.have or 0, goal.target or 0) or ""
     -- A grinding camp has no count: its place is the plate.
     if goal and goal.grind then title = L.Format("Grind: %s", goal.item) end
 

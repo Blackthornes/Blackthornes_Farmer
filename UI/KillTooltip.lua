@@ -256,6 +256,8 @@ local function ItemLook(name, id)
             end
         end
     end
+    -- Not loaded yet: asked for, so the next read has it.
+    color = color or ns.Util.ItemHex(name, id)
     return color or ns.Tracker.QUALITY[1], icon
 end
 

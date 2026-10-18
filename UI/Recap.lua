@@ -135,7 +135,8 @@ function RecapUI.Rows(summary)
     if summary.best then
         local look = ns.Tracker and ns.Tracker:LookOf(summary.best)
         local color = look and type(look.color) == "string" and #look.color == 8 and look.color
-        rows[#rows + 1] = { L["Best drop"], color and ("|c%s%s|r"):format(color, summary.best) or summary.best }
+        rows[#rows + 1] = { L["Best drop"], color and ("|c%s%s|r"):format(color, summary.best)
+            or ns.Util.ColorItem(summary.best) }
     end
     return rows
 end

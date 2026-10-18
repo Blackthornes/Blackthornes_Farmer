@@ -243,12 +243,12 @@ function Moments:Kill(mobName, mob, items, quantities, copper)
     if late then
         moment = { kind = "late", item = late.name,
             line = L.Format("Finally! %s after %d kills. It drops 1 in %d.",
-                late.name, late.took, OneIn(late.chance)),
+                ns.Util.ColorItem(late.name), late.took, OneIn(late.chance)),
             float = L.Format("Finally! %d kills", late.took) }
     elseif lucky then
         moment = { kind = "lucky", item = lucky.name,
             line = L.Format("Lucky! %s drops 1 in %d. You got it in %d kills.",
-                lucky.name, OneIn(lucky.chance), lucky.took),
+                ns.Util.ColorItem(lucky.name), OneIn(lucky.chance), lucky.took),
             float = L.Format("Lucky! 1 in %d", OneIn(lucky.chance)) }
     elseif best then
         moment = { kind = "best",
@@ -389,10 +389,10 @@ function Moments:SinceLine(mobName)
     local mark = type(waits) == "table" and type(waits.items) == "table" and Number(waits.items[kept.name])
     local dropped = Number(mob.items and mob.items[kept.name]) or 0
     if mark then
-        return { label = L.Format("Since your last %s", kept.name),
+        return { label = L.Format("Since your last %s", ns.Util.ColorItem(kept.name)),
             kills = math.max(0, (Number(waits.n) or 0) - mark) }
     elseif dropped == 0 then
-        return { label = L.Format("Waiting on %s", kept.name), kills = kills }
+        return { label = L.Format("Waiting on %s", ns.Util.ColorItem(kept.name)), kills = kills }
     end
     return nil
 end
