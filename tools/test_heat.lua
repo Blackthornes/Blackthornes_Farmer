@@ -10,7 +10,9 @@
 --   6. The Settings controls exist.
 --   7. Show on Map: a mob or an item from the search aims the glow, an
 --      item's mobs weighted by your own drop rate; the map opens where the
---      glow is; the same row again, or Show All Mobs, goes back to all.
+--      glow is; the same row again, or the card's button, stops tracking.
+--   8. The maps glow only while a mob or an item is tracked, and the glow's
+--      outer edge has an outline that closes round it.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("heat")
@@ -144,7 +146,7 @@ suite.check("a mob's map is where it was killed most", opened == 7 or opened == 
 local _, mobLines = ns.HeatUI.CardText()
 suite.check("a mob's card has no rate lines", #mobLines == 0)
 Heat:ShowAll()
-suite.check("Show All Mobs goes back to every mob", Heat:Mob() == nil and Heat:Item() == nil
+suite.check("Stop Tracking goes back to every mob", Heat:Mob() == nil and Heat:Item() == nil
     and Heat:TargetKey() == "all")
 
 ns.DB:Hide("source", "Bear")
@@ -200,6 +202,56 @@ ns.Harvest.records = keptRecords
 -- Drawing never fails, in a fight or out.
 local ok = pcall(function() ns.HeatUI:Refresh() end)
 suite.check("drawing does not raise", ok)
+
+-- 8.
+local outline = ns.HeatUI.Outline({ { cell = Heat.CellOf(0.505, 0.505), count = 1 } })
+-- One cell grown to three by three: a square with its corners cut: four corners and two pieces a side.
+suite.check("one cell's outline has twelve pieces", #outline == 12)
+local ends = {}
+for _, piece in ipairs(outline) do
+    for _, at in ipairs({ { piece[1], piece[2] }, { piece[3], piece[4] } }) do
+        local k = ("%.4f,%.4f"):format(at[1], at[2])
+        ends[k] = (ends[k] or 0) + 1
+    end
+end
+local closed = true
+for _, n in pairs(ends) do if n ~= 2 then closed = false end end
+suite.check("the outline closes round the glow", closed)
+local outside = true
+for _, piece in ipairs(outline) do
+    for _, at in ipairs({ { piece[1], piece[2] }, { piece[3], piece[4] } }) do
+        local far = math.max(math.abs(at[1] - 0.505), math.abs(at[2] - 0.505))
+        if far < 0.0099 then outside = false end
+    end
+end
+suite.check("the outline sits outside the cell", outside)
+suite.check("a corner cell's outline stays on the map", (function()
+    for _, piece in ipairs(ns.HeatUI.Outline({ { cell = 0, count = 1 } })) do
+        for _, v in ipairs(piece) do if v < 0 or v > 1 then return false end end
+    end
+    return true
+end)())
+suite.check("no cells, no outline", #ns.HeatUI.Outline({}) == 0)
+
+local keptView = ns.MapMarkers.WorldView
+ns.MapMarkers.WorldView = function()
+    return { mapID = 9, width = 1000, height = 700, canvas = env.Stub() }
+end
+Heat:SetWorld(true)
+Heat:ShowAll()
+ns.HeatUI:Refresh()
+suite.check("nothing tracked, no glow on the map", ns.HeatUI.job == nil
+    and (not ns.HeatUI.world or ns.HeatUI.world.used == 0))
+Heat:SetMob(mobName)
+ns.HeatUI:Refresh()
+for _ = 1, 20 do ns.HeatUI:Slice() end
+suite.check("tracking a mob, the map glows", ns.HeatUI.world and ns.HeatUI.world.used > 0)
+suite.check("and its edge is outlined", (ns.HeatUI.world.edgesUsed or 0) > 0)
+Heat:ShowAll()
+suite.check("stop tracking, the glow goes", ns.HeatUI.world.used == 0
+    and ns.HeatUI.world.edgesUsed == 0)
+ns.MapMarkers.WorldView = keptView
+Heat:SetWorld(false)
 
 -- 6.
 ns.SettingsUI:Show()
