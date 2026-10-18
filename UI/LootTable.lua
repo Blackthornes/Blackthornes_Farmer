@@ -61,6 +61,10 @@ local GAP = 6
 
 local FALLBACK_ICON = [[Interface\Icons\INV_Misc_QuestionMark]]
 
+-- The Map button at the top right, beside the three numbers.
+local MAP_WIDTH = 56
+local MAP_LEFT = PADDING + 400
+
 local function RateColor(chance)
     if chance >= 40 then return "good" end
     if chance >= 15 then return "accent" end
@@ -484,6 +488,30 @@ function LootTableUI:Build()
     self.worth = Stat(frame, PADDING + 130, L["WORTH PER KILL"])
     self.coin = Stat(frame, PADDING + 280, L["COIN PER KILL"])
 
+    -- Show on Map, as the search's mob rows have it: the kill heat map's
+    -- glow for this mob, only while the heat map is on the world map.
+    local map = Widgets.CreateButton(frame, L["Map"], function()
+        local name = LootTableUI:MapName()
+        if not (name and ns.Heat and ns.UI.MapHasSpots("mob", name)) then return end
+        ns.Heat:ShowOnMap("mob", name)
+        LootTableUI:DressMap()
+    end, { width = MAP_WIDTH, height = 22 })
+    map:SetPoint("TOPRIGHT", -PADDING, -(HEADER + 12))
+    map:HookScript("OnEnter", function(self)
+        local name = LootTableUI:MapName()
+        if not (name and GameTooltip) then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(ns.UI.MapHasSpots("mob", name)
+            and L["Show where you find this on your map."]
+            or L["Kill a few first and it will show here."], 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    map:HookScript("OnLeave", function()
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    map:Hide()
+    self.mapButton = map
+
     local status = Theme.CreateLabel(frame, "small", "muted")
     status:SetPoint("TOPLEFT", PADDING, -STATUS_TOP)
     status:SetPoint("TOPRIGHT", -PADDING, -STATUS_TOP)
@@ -683,6 +711,7 @@ function LootTableUI:Render()
         self.footer:SetText(L["Prices: vendor price. Load Blackthornes Tradeskills for market prices."])
     end
 
+    self:DressMap()
     local width = self:WidthFor(data.rows, status, data.where)
     self.frame:SetWidth(width)
 
@@ -736,7 +765,40 @@ function LootTableUI:WidthFor(rows, status, where)
     needs = math.max(needs, PADDING * 2 + Theme.TextWidth("small", where) + 4)
     needs = math.max(needs, PADDING * 2 + Theme.TextWidth("tiny", self.footer and self.footer:GetText()) + 4)
 
+    -- Room for the Map button after the numbers while it shows.
+    if self:MapName() then needs = math.max(needs, MAP_LEFT + MAP_WIDTH + PADDING) end
+
     return math.min(MAX_WIDTH, math.max(WIDTH, math.ceil(needs)))
+end
+
+--- The mob the Map button shows, by its name alone (the heat map keeps
+--- kills by name), or nil while the heat map is off the world map.
+function LootTableUI:MapName()
+    if not (ns.Heat and ns.Heat.WorldOn() and ns.UI and ns.UI.MapHasSpots) then return nil end
+    local mob = self.mob
+    if type(mob) ~= "string" then return nil end
+    local name = ns.Tracker and ns.Tracker.NameOf and ns.Tracker.NameOf(mob) or mob
+    return type(name) == "string" and name ~= "" and name or nil
+end
+
+--- The Map button: gold while the map shows this mob, dim before any kill
+--- with a spot, hidden while the heat map is off the world map.
+function LootTableUI:DressMap()
+    local button = self.mapButton
+    if not button then return end
+    local name = self:MapName()
+    if not name then
+        button:Hide()
+        return
+    end
+    if ns.Heat:Mob() == name then
+        button:SetLabelColor("accent")
+    elseif not ns.UI.MapHasSpots("mob", name) then
+        button:SetLabelColor("dim")
+    else
+        button:SetLabelColor(nil)
+    end
+    button:Show()
 end
 
 --- Tall enough for `count` rows, within MIN_HEIGHT and MAX_HEIGHT.

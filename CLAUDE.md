@@ -977,7 +977,10 @@ show here." until a spot is kept (`Heat:HasSpots`, `ItemHasSpots`), and
 the card says the same (`HeatUI.HasGlow`): kills from before the heat map
 was on have no spot. The card can be dragged and stays where it was left,
 inside the map, plate and corners too (`heatCardX`, `heatCardY`, never
-rename them; `HeatUI:PlaceCard`, `KeepCardPlace`).
+rename them; `HeatUI:PlaceCard`, `KeepCardPlace`). The loot table has the same **Map**
+button at the top right, beside its numbers, for its mob by name
+(`LootTableUI:MapName`, `DressMap`; the owner asked 2026-10-18), shown only
+while the heat map is on the world map.
 The maps glow only while a mob or item is tracked (the owner, 2026-10-18;
 `HeatUI.Tracking`): with nothing picked, neither map draws. The glow's
 outer edge has a gold line over a dark one (the owner asked the same day,
