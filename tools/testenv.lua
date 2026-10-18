@@ -67,6 +67,7 @@ local function Stub(fields)
     function frame:UnregisterEvent(event) self._events[event] = nil end
 
     function frame:CreateTexture() return Stub() end
+    function frame:CreateLine() return Stub() end
     function frame:CreateFontString() return Stub() end
 
     function frame:SetMinMaxValues(low, high) self._min, self._max = low, high end

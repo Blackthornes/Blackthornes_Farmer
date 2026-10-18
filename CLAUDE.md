@@ -969,8 +969,15 @@ weighted by its rate, `Heat:ItemMobs`) and opens the world map where it is
 brightest (`Heat:BestMap`, `OpenWorldMap`, never in a fight). The same row
 again, or **Show All Mobs** on the map's card (`HeatUI:UpdateCard`, our own
 frame on the map: "Showing: NAME", an item's mobs with "N% a kill", the
-colour key), goes back to every mob. Dim with "Kill a few first and it will
+colour key), stops tracking. Dim with "Kill a few first and it will
 show here." until a spot is kept (`Heat:HasSpots`, `ItemHasSpots`).
+The maps glow only while a mob or item is tracked (the owner, 2026-10-18;
+`HeatUI.Tracking`): with nothing picked, neither map draws. The glow's
+outer edge has a gold line over a dark one (the owner asked the same day,
+so where you have killed reads at a glance): `HeatUI.Outline` grows the
+cells by one all round and traces their edge by marching squares, laid on
+the world map a slice a frame after the dots and on the minimap through
+`MinimapOffset` (`MAX_WORLD_EDGES`, `MAX_MINIMAP_EDGES`).
 
 ## Kills on the mob tooltip
 

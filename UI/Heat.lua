@@ -15,6 +15,11 @@
 -- and a long list of cells is placed a few a frame (SLICE). The minimap
 -- is placed again only when you have moved a little, turned, or its zoom
 -- changed.
+--
+-- Only while something is tracked (a mob or an item from the Map button, or
+-- /farm heat mob): with nothing picked, neither map glows. The glow's outer
+-- edge gets a gold line over a dark one (HeatUI.Outline), so where you have
+-- killed and where you haven't reads at a glance on any map.
 
 local _, ns = ...
 
@@ -45,6 +50,16 @@ local MINIMAP_STEP = 0.2
 local ALPHA_LOW, ALPHA_HIGH = 0.18, 0.7
 local MINIMAP_SHARE = 0.5
 
+-- The outline: a gold line over a dark one, as wide as a share of the map
+-- on the world map and in pixels on the minimap, and at most this many
+-- pieces.
+local EDGE_GOLD = { 1, 0.82, 0.3, 0.95 }
+local EDGE_DARK = { 0, 0, 0, 0.7 }
+local WORLD_GOLD, WORLD_DARK = 0.003, 0.0065
+local MINIMAP_GOLD, MINIMAP_DARK = 1.5, 3.5
+local MAX_WORLD_EDGES = 4000
+local MAX_MINIMAP_EDGES = 400
+
 --------------------------------------------------------------------------------
 -- Dots
 --------------------------------------------------------------------------------
@@ -72,6 +87,116 @@ end
 local function Trim(layer, used)
     for index = used + 1, #layer.dots do layer.dots[index]:Hide() end
     layer.used = used
+end
+
+--- The outline's two lines for piece `index`, dark under gold; nil on a
+--- client with no lines.
+local function Edge(layer, index)
+    layer.edges = layer.edges or {}
+    local edge = layer.edges[index]
+    if edge then return edge end
+    if type(layer.frame.CreateLine) ~= "function" then return nil end
+    local okDark, dark = pcall(layer.frame.CreateLine, layer.frame, nil, "OVERLAY", nil, 1)
+    local okGold, gold = pcall(layer.frame.CreateLine, layer.frame, nil, "OVERLAY", nil, 2)
+    if not (okDark and dark and okGold and gold) then return nil end
+    dark:SetColorTexture(EDGE_DARK[1], EDGE_DARK[2], EDGE_DARK[3], EDGE_DARK[4])
+    gold:SetColorTexture(EDGE_GOLD[1], EDGE_GOLD[2], EDGE_GOLD[3], EDGE_GOLD[4])
+    edge = { dark = dark, gold = gold }
+    layer.edges[index] = edge
+    return edge
+end
+
+local function PlaceEdge(edge, frame, point, x1, y1, x2, y2, darkWidth, goldWidth)
+    for _, line in ipairs({ edge.dark, edge.gold }) do
+        line:SetStartPoint(point, frame, x1, y1)
+        line:SetEndPoint(point, frame, x2, y2)
+        line:SetThickness(line == edge.dark and darkWidth or goldWidth)
+        line:Show()
+    end
+end
+
+--- Hide every outline piece past `used`.
+local function TrimEdges(layer, used)
+    for index = used + 1, #(layer.edges or {}) do
+        layer.edges[index].dark:Hide()
+        layer.edges[index].gold:Hide()
+    end
+    layer.edgesUsed = used
+end
+
+-- Marching squares: for each of a square's 16 ways of having its corners
+-- inside, the edges whose middles a piece of outline joins. Corners are
+-- top left 8, top right 4, bottom right 2, bottom left 1; edges T, R, B, L.
+local CASES = {
+    [1] = { { "L", "B" } }, [2] = { { "B", "R" } }, [3] = { { "L", "R" } },
+    [4] = { { "T", "R" } }, [5] = { { "T", "R" }, { "L", "B" } }, [6] = { { "T", "B" } },
+    [7] = { { "T", "L" } }, [8] = { { "T", "L" } }, [9] = { { "T", "B" } },
+    [10] = { { "T", "L" }, { "B", "R" } }, [11] = { { "T", "R" } }, [12] = { { "L", "R" } },
+    [13] = { { "R", "B" } }, [14] = { { "L", "B" } },
+}
+
+--- The outer edge of a list of cells, as pieces { x1, y1, x2, y2 } in map
+--- fractions (0 to 1, y down). The cells are grown by one all round first,
+--- so the line sits just outside the glow the dots make, and small gaps
+--- inside it close up.
+function HeatUI.Outline(list)
+    local grid = Heat.GRID
+    local inside = {}
+    for _, entry in ipairs(list or {}) do
+        local cx = entry.cell % grid
+        local cy = (entry.cell - cx) / grid
+        for dy = -1, 1 do
+            for dx = -1, 1 do
+                local x, y = cx + dx, cy + dy
+                if x >= 0 and x < grid and y >= 0 and y < grid then inside[y * grid + x] = true end
+            end
+        end
+    end
+
+    local function In(x, y)
+        return x >= 0 and x < grid and y >= 0 and y < grid and inside[y * grid + x] or false
+    end
+
+    -- Squares are named by their top left corner, from -1 so the map's own
+    -- edge closes the line.
+    local squares, order = {}, {}
+    for cell in pairs(inside) do
+        local cx = cell % grid
+        local cy = (cell - cx) / grid
+        for dy = -1, 0 do
+            for dx = -1, 0 do
+                local key = (cy + dy + 1) * (grid + 1) + (cx + dx + 1)
+                if not squares[key] then
+                    squares[key] = true
+                    order[#order + 1] = key
+                end
+            end
+        end
+    end
+    table.sort(order)
+
+    local pieces = {}
+    for _, key in ipairs(order) do
+        local x = key % (grid + 1) - 1
+        local y = (key - (x + 1)) / (grid + 1) - 1
+        local case = (In(x, y) and 8 or 0) + (In(x + 1, y) and 4 or 0)
+            + (In(x + 1, y + 1) and 2 or 0) + (In(x, y + 1) and 1 or 0)
+        local joins = CASES[case]
+        if joins then
+            local left, right = (x + 0.5) / grid, (x + 1.5) / grid
+            local top, bottom = (y + 0.5) / grid, (y + 1.5) / grid
+            local midX, midY = (x + 1) / grid, (y + 1) / grid
+            local at = {
+                T = { midX, top }, B = { midX, bottom },
+                L = { left, midY }, R = { right, midY },
+            }
+            for _, join in ipairs(joins) do
+                local a, b = at[join[1]], at[join[2]]
+                pieces[#pieces + 1] = { a[1], a[2], b[1], b[2] }
+            end
+        end
+    end
+    return pieces
 end
 
 --- The share of the busiest cell a count is, eased so a few kills still show.
@@ -123,11 +248,19 @@ end
 function HeatUI:ClearWorld()
     self.job = nil
     self.worldKey = nil
-    if self.world and self.world.used > 0 then Trim(self.world, 0) end
+    if self.world then
+        if self.world.used > 0 then Trim(self.world, 0) end
+        if (self.world.edgesUsed or 0) > 0 then TrimEdges(self.world, 0) end
+    end
+end
+
+--- True while a mob or an item is picked, the only time the maps glow.
+function HeatUI.Tracking()
+    return Heat:TargetKey() ~= "all"
 end
 
 function HeatUI:DrawWorld()
-    if not Heat.WorldOn() or InFight() then
+    if not Heat.WorldOn() or not HeatUI.Tracking() or InFight() then
         self:ClearWorld()
         return
     end
@@ -144,18 +277,23 @@ function HeatUI:DrawWorld()
     if key == self.worldKey then return end
 
     if not self.world or self.world.parent ~= view.canvas then
-        if self.world then Trim(self.world, 0) end
+        if self.world then
+            Trim(self.world, 0)
+            TrimEdges(self.world, 0)
+        end
         local okLevel, level = pcall(view.canvas.GetFrameLevel, view.canvas)
         self.world = NewLayer(view.canvas, okLevel and tonumber(level) or nil)
         self.world.parent = view.canvas
     end
 
     local list, highest = Heat:Cells(view.mapID)
+    local kept = Busiest(list, MAX_WORLD)
     self.worldKey = key
     self.job = {
-        layer = self.world, list = Busiest(list, MAX_WORLD), highest = highest,
+        layer = self.world, list = kept, highest = highest,
         index = 0, level = Heat:Level(),
         width = view.width, height = view.height,
+        edges = HeatUI.Outline(kept), edgeIndex = 0,
     }
 end
 
@@ -181,9 +319,33 @@ function HeatUI:Slice()
     end
 
     job.index = last
-
-    if last >= #job.list then
+    if last < #job.list then return end
+    if not job.trimmed then
         Trim(job.layer, #job.list)
+        job.trimmed = true
+        return
+    end
+
+    -- Then the outline, a few pieces a frame.
+    local most = math.min(#job.edges, MAX_WORLD_EDGES)
+    local gold, dark = job.width * WORLD_GOLD, job.width * WORLD_DARK
+    local done = math.min(most, job.edgeIndex + SLICE)
+    local placed = job.edgeIndex
+    for index = job.edgeIndex + 1, done do
+        local edge = Edge(job.layer, index)
+        if not edge then
+            done = most
+            break
+        end
+        local piece = job.edges[index]
+        PlaceEdge(edge, job.layer.frame, "TOPLEFT", piece[1] * job.width, -piece[2] * job.height,
+            piece[3] * job.width, -piece[4] * job.height, dark, gold)
+        placed = index
+    end
+    job.edgeIndex = done
+
+    if done >= most then
+        TrimEdges(job.layer, placed)
         self.job = nil
     end
 end
@@ -210,11 +372,14 @@ end
 
 function HeatUI:ClearMinimap()
     self.minimapKey = nil
-    if self.minimap and self.minimap.used > 0 then Trim(self.minimap, 0) end
+    if self.minimap then
+        if self.minimap.used > 0 then Trim(self.minimap, 0) end
+        if (self.minimap.edgesUsed or 0) > 0 then TrimEdges(self.minimap, 0) end
+    end
 end
 
 function HeatUI:DrawMinimap()
-    if not (Minimap and Heat.MinimapOn()) then
+    if not (Minimap and Heat.MinimapOn() and HeatUI.Tracking()) then
         self:ClearMinimap()
         return
     end
@@ -278,6 +443,31 @@ function HeatUI:DrawMinimap()
         dot:Show()
     end
     Trim(layer, used)
+
+    -- The outline, laid out once a map and target, then only placed.
+    local outlineKey = mapID .. "|" .. Heat:TargetKey() .. "|" .. Heat.version
+    if self.outlineKey ~= outlineKey then
+        self.outlineKey = outlineKey
+        self.outline = HeatUI.Outline(list)
+    end
+    local placed = 0
+    for _, piece in ipairs(self.outline) do
+        if placed >= MAX_MINIMAP_EDGES then break end
+        local x1, y1 = ns.MapMarkers.MinimapOffset({ x = piece[1], y = piece[2] }, player,
+            width, height, radius, facing, square, half)
+        local x2, y2
+        if x1 then
+            x2, y2 = ns.MapMarkers.MinimapOffset({ x = piece[3], y = piece[4] }, player,
+                width, height, radius, facing, square, half)
+        end
+        if x2 then
+            local edge = Edge(layer, placed + 1)
+            if not edge then break end
+            placed = placed + 1
+            PlaceEdge(edge, Minimap, "CENTER", x1, y1, x2, y2, MINIMAP_DARK, MINIMAP_GOLD)
+        end
+    end
+    TrimEdges(layer, placed)
 
     self.minimapKey = key
 end
