@@ -476,23 +476,60 @@ end
 -- What the world map shows (Show on Map)
 --------------------------------------------------------------------------------
 
--- A small dark glass card in the world map's top left corner while the glow
--- is for one mob or item: what it shows, the mobs behind an item's glow,
--- the colour key and Stop Tracking. Our own frame, a child of the map so it
--- comes and goes with it; nothing on the map is written. It sits in the top
--- left corner until dragged, then where it was left (heatCardX, heatCardY,
--- from the map's top left; never rename them), kept inside the map.
+-- A card in the house frame in the world map's top left corner while the
+-- glow is for one mob or item (the owner picked the gold rim look,
+-- 2026-10-18): the Kill Heat plate, the item's icon and name in its rarity
+-- colour under a small Showing heading, the mobs behind an item's glow in
+-- dark glass rows with their rate on the right, the colour key and a solid
+-- gold Stop Tracking. Our own frame, a child of the map so it comes and
+-- goes with it; nothing on the map is written. It sits in the top left
+-- corner until dragged, then where it was left (heatCardX, heatCardY, from
+-- the map's top left; never rename them), kept inside the map, plate and
+-- all.
 
 -- Mobs listed under an item, the likeliest first.
 HeatUI.KEY_MOST = 5
 
-local PANEL_WIDTH = 230
+local PANEL_WIDTH = 262
+local INSET = 12       -- the card's contents, clear of the rim
+local ICON = 32
+local ROW_HEIGHT = 20
+
+-- How far the plate and corners reach past the card's edges, so the card
+-- is kept whole inside the map.
+local function Reach(card)
+    if card.trim and ns.Titanforged and ns.Titanforged.Reach then
+        local ok, left, right, top, bottom = pcall(ns.Titanforged.Reach, card.trim)
+        if ok then return left or 0, right or 0, top or 0, bottom or 0 end
+    end
+    return 0, 0, 0, 0
+end
+
+-- Two rows of three gold dots at the top right: the card can be dragged.
+local function Grip(card)
+    local Theme = ns.Theme
+    local grip = CreateFrame("Frame", nil, card)
+    grip:SetSize(14, 9)
+    grip:SetPoint("TOPRIGHT", -10, -10)
+    grip.dots = {}
+    for row = 0, 1 do
+        for column = 0, 2 do
+            local dot = grip:CreateTexture(nil, "ARTWORK")
+            dot:SetSize(2, 2)
+            dot:SetPoint("TOPLEFT", column * 5 + 1, -(row * 5 + 1))
+            dot:SetColorTexture(Theme.Unpack("accent", 0.8))
+            grip.dots[#grip.dots + 1] = dot
+        end
+    end
+    return grip
+end
 
 local function Card(map)
     local L = ns.L
     local Theme = ns.Theme
 
-    local card = Theme.CreatePanel(map, "glass", "border")
+    local card = CreateFrame("Frame", nil, map)
+    card.background = Theme.Fill(card, "window")
     card:SetWidth(PANEL_WIDTH)
     card:SetFrameStrata("HIGH")
     card:EnableMouse(true)
@@ -504,17 +541,36 @@ local function Card(map)
         HeatUI:KeepCardPlace()
     end)
 
-    card.showing = Theme.CreateLabel(card, "small", "text")
-    card.showing:SetPoint("TOPLEFT", 8, -8)
-    card.showing:SetPoint("TOPRIGHT", -8, -8)
+    if ns.Titanforged then
+        card.trim = ns.Titanforged:Dress(card, { title = L["Kill Heat"], level = 10 })
+    else
+        Theme.Border(card, "borderLit")
+    end
+    card.grip = Grip(card)
 
-    card.lines = {}
+    card.icon = Theme.CreateItemIcon(card, ICON)
+    card.iconEdge = CreateFrame("Frame", nil, card)
+    card.iconEdge:SetPoint("TOPLEFT", card.icon, "TOPLEFT", -1, 1)
+    card.iconEdge:SetPoint("BOTTOMRIGHT", card.icon, "BOTTOMRIGHT", 1, -1)
+    Theme.Border(card.iconEdge, "metal")
 
-    card.empty = Theme.CreateLabel(card, "tiny", "muted")
+    card.heading = Theme.CreateLabel(card, "tiny", "muted")
+    card.heading:SetText(L["Showing"]:upper())
+    card.name = Theme.CreateLabel(card, "large", "accentHi")
+    card.name:SetWordWrap(true)
+
+    -- The item's mobs sit in a well, a dark glass row each.
+    card.well = Theme.CreatePanel(card, "well", "border")
+    if Theme.Recess then Theme.Recess(card.well) end
+    card.rows = {}
+
+    card.empty = Theme.CreateLabel(card, "small", "muted")
+    card.empty:SetWordWrap(true)
     card.empty:SetText(L["Kill a few first and it will show here."])
 
     card.bar = CreateFrame("Frame", nil, card)
-    card.bar:SetHeight(6)
+    card.bar:SetHeight(7)
+    Theme.Border(card.bar, "border", 0.8)
     card.bar.parts = {}
     local stops = { 0, 0.25, 0.5, 0.75, 1 }
     for index = 1, #stops - 1 do
@@ -532,35 +588,62 @@ local function Card(map)
         for index, part in ipairs(bar.parts) do
             part:ClearAllPoints()
             part:SetPoint("TOPLEFT", (index - 1) * each, 0)
-            part:SetSize(each, 6)
+            part:SetSize(each, 7)
         end
     end)
 
-    card.little = Theme.CreateLabel(card, "tiny", "muted")
+    card.little = Theme.CreateLabel(card, "small", "muted")
     card.little:SetText(L["Seen here a little"])
-    card.best = Theme.CreateLabel(card, "tiny", "muted", "RIGHT")
+    card.best = Theme.CreateLabel(card, "small", "muted", "RIGHT")
     card.best:SetText(L["Your best spot"])
 
     card.all = ns.Widgets.CreateButton(card, L["Stop Tracking"], function()
         Heat:ShowAll()
-    end, { width = 100, height = 18 })
+    end, { primary = true, width = PANEL_WIDTH - INSET * 2, height = 24 })
 
     card:Hide()
     return card
 end
 
--- The map area the card sits in and is kept inside.
-local function CardCorner(map)
-    return map.ScrollContainer or map
+-- One dark glass row in the well: the mob on the left, its rate on the right.
+local function Row(card, index)
+    local Theme = ns.Theme
+    local row = card.rows[index]
+    if row then return row end
+
+    row = CreateFrame("Frame", nil, card.well)
+    row:SetHeight(ROW_HEIGHT)
+    row.fill = Theme.Fill(row, index % 2 == 1 and "glass" or "glassAlt")
+    row.line = row:CreateTexture(nil, "BORDER")
+    row.line:SetPoint("BOTTOMLEFT")
+    row.line:SetPoint("BOTTOMRIGHT")
+    row.line:SetHeight(1)
+    row.line:SetColorTexture(Theme.Unpack("border", 0.6))
+    row.rate = Theme.CreateLabel(row, "small", "accent", "RIGHT")
+    row.rate:SetPoint("RIGHT", -8, 0)
+    row.mob = Theme.CreateLabel(row, "small", "accentHi")
+    row.mob:SetPoint("LEFT", 8, 0)
+    row.mob:SetPoint("RIGHT", row.rate, "LEFT", -8, 0)
+    card.rows[index] = row
+    return row
 end
 
--- How far the card may go from the corner's top left, so it stays inside.
+-- The map area the card sits in and is kept inside.
+local function CardCorner(map)
+    local container = rawget(map, "ScrollContainer")
+    return type(container) == "table" and container or map
+end
+
+-- The nearest the card's top left may come to the corner's, and how far it
+-- may go, so it stays inside with its plate and corners.
 local function CardRoom(card, corner)
+    local left, right, top, bottom = Reach(card)
+    local minX, minY = 8 + left, 8 + top
     local okW, width = pcall(corner.GetWidth, corner)
     local okH, height = pcall(corner.GetHeight, corner)
-    local roomX = math.max(0, ((okW and tonumber(width)) or 0) - (card:GetWidth() or 0) - 8)
-    local roomY = math.max(0, ((okH and tonumber(height)) or 0) - (card:GetHeight() or 0) - 8)
-    return roomX, roomY
+    local roomX = math.max(0, ((okW and tonumber(width)) or 0) - (card:GetWidth() or 0) - 8 - right)
+    local roomY = math.max(0, ((okH and tonumber(height)) or 0) - (card:GetHeight() or 0) - 8 - bottom)
+    return roomX, roomY, minX, minY
 end
 
 --- Put the card where it was left, or the top left corner, inside the map.
@@ -568,11 +651,11 @@ function HeatUI:PlaceCard()
     local card, map = self.card, _G.WorldMapFrame
     if not (card and type(map) == "table") then return end
     local corner = CardCorner(map)
-    local x = tonumber(ns.db and ns.db.heatCardX) or 8
-    local y = tonumber(ns.db and ns.db.heatCardY) or 8
-    local roomX, roomY = CardRoom(card, corner)
-    if roomX > 0 then x = math.min(math.max(x, 8), roomX) end
-    if roomY > 0 then y = math.min(math.max(y, 8), roomY) end
+    local roomX, roomY, minX, minY = CardRoom(card, corner)
+    local x = tonumber(ns.db and ns.db.heatCardX) or minX
+    local y = tonumber(ns.db and ns.db.heatCardY) or minY
+    if roomX > 0 then x = math.min(math.max(x, minX), roomX) end
+    if roomY > 0 then y = math.min(math.max(y, minY), roomY) end
     card:ClearAllPoints()
     card:SetPoint("TOPLEFT", corner, "TOPLEFT", x, -y)
 end
@@ -605,31 +688,38 @@ function HeatUI.HasGlow()
     return mob ~= nil and Heat:HasSpots(mob)
 end
 
---- The text for the card: what it shows, and the item's mobs.
+--- What the card shows: { name, item (true for an item), id, rows = { { mob,
+--- rate } } }, the item's likeliest mobs, or nil when it is for every mob.
 function HeatUI.CardText()
     local L = ns.L
     local item = Heat.item
     local name = item and item.name or Heat:Mob()
     if not name then return nil end
 
-    local lines = {}
+    local rows = {}
     if item then
         for index = 1, math.min(#item.mobs, HeatUI.KEY_MOST) do
             local entry = item.mobs[index]
-            lines[index] = L.Format("%s (%s a kill)", entry.mob,
-                ns.Tracker.FormatChance(entry.chance * 100))
+            rows[index] = { mob = entry.mob,
+                rate = L.Format("%s a kill", ns.Tracker.FormatChance(entry.chance * 100)) }
         end
     end
-    return L.Format("Showing: %s", ns.Util.Colored("accent", name)), lines
+
+    local id
+    if item and ns.DB and ns.DB.GetItem then
+        local ok, known = pcall(ns.DB.GetItem, ns.DB, name)
+        id = ok and type(known) == "table" and known.id or nil
+    end
+    return { name = name, item = item ~= nil, id = id, rows = rows }
 end
 
 function HeatUI:UpdateCard()
     local map = _G.WorldMapFrame
-    local showing, lines
-    if Heat.WorldOn() and type(map) == "table" then showing, lines = HeatUI.CardText() end
+    local shows
+    if Heat.WorldOn() and type(map) == "table" then shows = HeatUI.CardText() end
 
     local open = false
-    if showing then
+    if shows then
         local ok, shown = pcall(map.IsShown, map)
         open = ok and shown
     end
@@ -647,48 +737,88 @@ function HeatUI:UpdateCard()
     if not self.card then self.card = Card(map) end
 
     local card = self.card
-    card.showing:SetText(showing)
+    local Theme = ns.Theme
+    local width = PANEL_WIDTH - INSET * 2
 
-    local y = -8 - 16
-    for index, text in ipairs(lines) do
-        local line = card.lines[index]
-        if not line then
-            line = ns.Theme.CreateLabel(card, "tiny", "muted")
-            card.lines[index] = line
+    -- The heading: the item's icon, then Showing over its name.
+    local y = -22
+    local textLeft = INSET
+    if shows.item then
+        if shows.id then
+            Theme.SetItemIcon(card.icon, shows.id)
+        else
+            card.icon:SetTexture([[Interface\Icons\INV_Misc_QuestionMark]])
+            card.icon:Show()
         end
-        line:ClearAllPoints()
-        line:SetPoint("TOPLEFT", 12, y)
-        line:SetPoint("TOPRIGHT", -8, y)
-        line:SetText(text)
-        line:Show()
-        y = y - 13
+        card.icon:ClearAllPoints()
+        card.icon:SetPoint("TOPLEFT", INSET, y)
+        card.iconEdge:Show()
+        textLeft = INSET + ICON + 10
+    else
+        card.icon:Hide()
+        card.iconEdge:Hide()
     end
-    for index = #lines + 1, #card.lines do card.lines[index]:Hide() end
+    card.heading:ClearAllPoints()
+    card.heading:SetPoint("TOPLEFT", textLeft, y - 1)
+    card.heading:SetPoint("TOPRIGHT", -INSET - 18, y - 1)
+    card.name:ClearAllPoints()
+    card.name:SetPoint("TOPLEFT", textLeft, y - 14)
+    card.name:SetPoint("TOPRIGHT", -INSET, y - 14)
+    if shows.item then
+        card.name:SetTextColor(Theme.Unpack("text"))
+        card.name:SetText(ns.Util.ColorItemOr("text", shows.name, shows.id))
+    else
+        card.name:SetTextColor(Theme.Unpack("accentHi"))
+        card.name:SetText(shows.name)
+    end
+    local nameHeight = card.name:GetStringHeight() or 16
+    y = y - math.max(shows.item and ICON or 0, 14 + nameHeight) - 10
+
+    -- The item's mobs, a dark glass row each.
+    if #shows.rows > 0 then
+        card.well:ClearAllPoints()
+        card.well:SetPoint("TOPLEFT", INSET, y)
+        card.well:SetSize(width, #shows.rows * ROW_HEIGHT + 2)
+        for index, entry in ipairs(shows.rows) do
+            local row = Row(card, index)
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", card.well, "TOPLEFT", 1, -1 - (index - 1) * ROW_HEIGHT)
+            row:SetPoint("TOPRIGHT", card.well, "TOPRIGHT", -1, -1 - (index - 1) * ROW_HEIGHT)
+            row.mob:SetText(entry.mob)
+            row.rate:SetText(entry.rate)
+            row:Show()
+        end
+        for index = #shows.rows + 1, #card.rows do card.rows[index]:Hide() end
+        card.well:Show()
+        y = y - (#shows.rows * ROW_HEIGHT + 2) - 10
+    else
+        card.well:Hide()
+    end
 
     if HeatUI.HasGlow() then
         card.empty:Hide()
     else
-        y = y - 2
         card.empty:ClearAllPoints()
-        card.empty:SetPoint("TOPLEFT", 8, y)
-        card.empty:SetPoint("TOPRIGHT", -8, y)
+        card.empty:SetPoint("TOPLEFT", INSET, y)
+        card.empty:SetPoint("TOPRIGHT", -INSET, y)
         card.empty:Show()
-        y = y - (card.empty:GetStringHeight() or 13) - 2
+        y = y - (card.empty:GetStringHeight() or 14) - 10
     end
 
-    y = y - 4
+    -- The colour key.
     card.bar:ClearAllPoints()
-    card.bar:SetPoint("TOPLEFT", 8, y)
-    card.bar:SetPoint("TOPRIGHT", -8, y)
-    y = y - 9
+    card.bar:SetPoint("TOPLEFT", INSET, y)
+    card.bar:SetPoint("TOPRIGHT", -INSET, y)
+    y = y - 7 - 5
     card.little:ClearAllPoints()
-    card.little:SetPoint("TOPLEFT", 8, y)
+    card.little:SetPoint("TOPLEFT", INSET, y)
     card.best:ClearAllPoints()
-    card.best:SetPoint("TOPRIGHT", -8, y)
-    y = y - 16
+    card.best:SetPoint("TOPRIGHT", -INSET, y)
+    y = y - 14 - 10
+
     card.all:ClearAllPoints()
-    card.all:SetPoint("TOPLEFT", 8, y)
-    y = y - 18 - 8
+    card.all:SetPoint("TOPLEFT", INSET, y)
+    y = y - 24 - INSET
 
     card:SetHeight(-y)
     card:Show()
