@@ -1566,6 +1566,17 @@ L["Shift"] = "Umschalt"
 L["Always"] = "Immer"
 L["Hold Shift for more."] = "Halte Umschalt für mehr."
 
+-- Damage numbers (UI/DamageNumbers.lua).
+L["DAMAGE NUMBERS"] = "SCHADENSZAHLEN"
+L["Damage Numbers:"] = "Schadenszahlen:"
+L["Big numbers pop off a mob each time you hit it. The game's own numbers go away while this is on."] = "Große Zahlen springen jedes Mal von einem Gegner, wenn du ihn triffst. Die Zahlen des Spiels verschwinden, solange das an ist."
+L["How Big:"] = "Wie groß:"
+L["Combo Counter:"] = "Kombozähler:"
+L["COMBO"] = "KOMBO"
+L["Damage numbers on or off, or how big they are."] = "Schadenszahlen an oder aus, oder wie groß sie sind."
+L["Damage numbers on."] = "Schadenszahlen an."
+L["Damage numbers off."] = "Schadenszahlen aus."
+
 -- The loot feed (UI/LootFeed.lua)
 L["%d seconds"] = "%d Sekunden"
 L["Coin: %s"] = "Münzen: %s"

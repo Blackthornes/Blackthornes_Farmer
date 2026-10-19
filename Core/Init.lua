@@ -480,6 +480,12 @@ local DEFAULTS = {
     killPlates = true,
     killPlatesWorth = false,
     killPlatesSide = "left",
+    -- Big damage numbers off mobs in place of the game's (UI/DamageNumbers.lua;
+    -- the owner said build it 2026-10-19). Off unless ticked. Never rename
+    -- these, or damageNumbersCVars.
+    damageNumbers = false,
+    damageNumbersSize = "most",
+    damageNumbersCombo = true,
     -- Skinning spots and leather left out of what Farmer lists, drops only
     -- (DB:ShowsSkinning). The owner asked for it on by default.
     hideSkinning = true,
