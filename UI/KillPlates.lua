@@ -217,6 +217,14 @@ function KillPlates:LabelOf(plate)
     return labels[plate]
 end
 
+--- The nameplate units being read now, in order, for the loot check.
+function KillPlates:Units()
+    local units = {}
+    for unit in pairs(plateOf) do units[#units + 1] = unit end
+    table.sort(units)
+    return units
+end
+
 --- The text showing over a plate, or nil.
 function KillPlates:Shown(plate)
     local entry = plate and labels[plate]
