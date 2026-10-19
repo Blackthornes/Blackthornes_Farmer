@@ -7,6 +7,12 @@ Drawn here, never shipped from the game: a lid with its handle, a tapered
 body with three ribs, in the house gold with a dark edge and a soft glow
 round it, so it reads on any item icon at 16 pixels. Uncompressed 32-bit
 TGA, 64 by 64, supersampled 4x4 per pixel, like tools/make_frame_art.py.
+
+It also draws Media/Trash/PickGlow.tga, the red glow round the slot the can
+sits on: a bright red line on the slot's edge with a soft glow either side.
+The slot fills the middle of the art, GLOW_MARGIN pixels in from each side,
+so UI/Trash.lua lays it GLOW_MARGIN / (SIZE - 2 * GLOW_MARGIN) of the slot's
+side past each edge (Trash.GLOW_REACH).
 """
 
 import math
@@ -126,6 +132,37 @@ def shade(x, y):
     return GLOW + (0.55 * glow * glow,)
 
 
+GLOW_RED = hexrgb("#FF3B30")
+GLOW_HOT = hexrgb("#FFB0A8")
+GLOW_MARGIN = SIZE / 7.0
+GLOW_CORNER = 3.0
+
+
+def slot_edge(x, y):
+    """Signed distance to the slot's edge: below 0 inside, above 0 outside."""
+    lo, hi = GLOW_MARGIN + GLOW_CORNER, SIZE - GLOW_MARGIN - GLOW_CORNER
+    dx = max(lo - x, 0.0, x - hi)
+    dy = max(lo - y, 0.0, y - hi)
+    if dx > 0 or dy > 0:
+        return math.hypot(dx, dy) - GLOW_CORNER
+    return -min(x - GLOW_MARGIN, SIZE - GLOW_MARGIN - x, y - GLOW_MARGIN, SIZE - GLOW_MARGIN - y)
+
+
+def glow(x, y):
+    d = slot_edge(x, y)
+    if abs(d) <= 0.9:
+        return GLOW_HOT + (1.0,)
+    if abs(d) <= 2.0:
+        return GLOW_RED + (1.0,)
+    if d > 0:
+        reach = max(0.0, 1.0 - (d - 2.0) / (GLOW_MARGIN - 2.0))
+        return GLOW_RED + (0.85 * reach * reach,)
+    reach = max(0.0, 1.0 - (-d - 2.0) / 6.0)
+    if reach <= 0:
+        return None
+    return GLOW_RED + (0.5 * reach * reach,)
+
+
 def render(name, width, height, fn):
     pixels = []
     total = SAMPLES * SAMPLES
@@ -160,6 +197,7 @@ def render(name, width, height, fn):
 
 def main():
     render("TrashCan", SIZE, SIZE, shade)
+    render("PickGlow", SIZE, SIZE, glow)
 
 
 if __name__ == "__main__":

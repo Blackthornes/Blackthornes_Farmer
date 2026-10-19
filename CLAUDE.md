@@ -827,7 +827,10 @@ and two short stacks of one item that fit in one slot come first: the can
 says "Stack these to make room" and a click joins them (`Trash:Merge`,
 the owner 2026-10-16). Never a goal's item (`Goals:Find`), a
 quest item, anything soulbound above grey, gear that could be worn (only
-grey gear), a locked slot or an unpriced item. Farmer never deletes: a
+grey gear), a locked slot or an unpriced item. A red glow lies round that
+slot too, pulsing slowly (the owner, 2026-10-19; `Trash:Glow`,
+`Media/Trash/PickGlow.tga` from the same tool, `Trash.GLOW_REACH`), our own
+frame with no mouse, shown and hidden with the can. Farmer never deletes: a
 click picks the item up and says to drop it outside the bags, where the
 game's own box asks first. Its own button on UIParent anchored to the
 game's item button; the bag windows are only hooked. Hidden in combat, at
