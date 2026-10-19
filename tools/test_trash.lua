@@ -128,6 +128,9 @@ bagWindow._scripts.OnShow()
 suite.check("full bags show the can", Showing())
 local point = Trash.can._point
 suite.check("on the cheapest stack", point and point[2] == buttons[2], point and tostring(point[2]))
+suite.check("a red glow lies round the same slot",
+    Trash.glow ~= nil and Trash.glow:IsShown()
+        and Trash.glow._point and Trash.glow._point[2] == buttons[2])
 suite.check("not the quest item, the locked rock, the sword or the goal's linen",
     Trash.pick and Trash.pick.itemID == 702)
 suite.check("the goal's linen may never go", Trash.slots["0:6"] and Trash.slots["0:6"].worth == nil)
@@ -185,6 +188,7 @@ suite.check("and the can comes back once the bags are read", Showing())
 -- 6.
 Fire("PLAYER_REGEN_DISABLED")
 suite.check("hidden in a fight", not Showing())
+suite.check("the glow goes with it", not Trash.glow:IsShown())
 Fire("PLAYER_REGEN_ENABLED")
 suite.check("back after it", Showing())
 Fire("MERCHANT_SHOW")

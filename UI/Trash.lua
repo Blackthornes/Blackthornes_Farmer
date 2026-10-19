@@ -21,6 +21,11 @@
 -- fit in one slot, the can sits on the smaller one and says to stack them,
 -- whatever the item is. A click joins them; nothing has to go.
 --
+-- A red glow lies round the picked slot too (the owner, 2026-10-19: "a red
+-- glowing outline around the item in the bag"), so it is easy to spot. It
+-- is its own frame beside the can, shown and hidden with it, and pulses
+-- slowly; Media/Trash/PickGlow.tga comes from the same tool as the can.
+--
 -- Nothing is ever deleted by Farmer. A click on the can picks the item up
 -- and says so; the player drops it outside the bags and the game's own box
 -- asks before anything is destroyed, or clicks the slot to put it back.
@@ -47,6 +52,10 @@ Trash.FREE = 0
 Trash.SETTLE = 0.2
 Trash.BUDGET = 40
 Trash.ART = [[Interface\AddOns\Blackthornes_Farmer\Media\Trash\TrashCan]]
+Trash.GLOW_ART = [[Interface\AddOns\Blackthornes_Farmer\Media\Trash\PickGlow]]
+-- How far the glow reaches past each edge of the slot, as a share of its
+-- side (the art's slot sits a seventh of the way in from each side).
+Trash.GLOW_REACH = 0.2
 -- The can's side, as a share of the item button's.
 Trash.SHARE = 0.6
 -- A trade good counts as this many times its worth when picking, so junk
@@ -453,8 +462,43 @@ function Trash:Can()
     return can
 end
 
+--- The red glow round the picked slot: our own frame, no mouse, so a click
+--- still reaches the item button under it.
+function Trash:Glow()
+    if self.glow then return self.glow end
+    local glow = CreateFrame("Frame", nil, UIParent)
+    glow:Hide()
+    pcall(glow.EnableMouse, glow, false)
+    local texture = glow:CreateTexture(nil, "OVERLAY")
+    texture:SetAllPoints(glow)
+    texture:SetTexture(self.GLOW_ART)
+    glow.texture = texture
+    pcall(function()
+        local group = glow:CreateAnimationGroup()
+        group:SetLooping("BOUNCE")
+        local fade = group:CreateAnimation("Alpha")
+        fade:SetFromAlpha(1)
+        fade:SetToAlpha(0.45)
+        fade:SetDuration(0.8)
+        fade:SetSmoothing("IN_OUT")
+        glow.pulse = group
+    end)
+    glow:SetScript("OnShow", function(owner)
+        if owner.pulse then pcall(owner.pulse.Play, owner.pulse) end
+    end)
+    glow:SetScript("OnHide", function(owner)
+        if owner.pulse then pcall(owner.pulse.Stop, owner.pulse) end
+    end)
+    self.glow = glow
+    return glow
+end
+
 function Trash:Hide()
     self.pick = nil
+    if self.glow then
+        self.glow:Hide()
+        if Ask(self.glow, "GetParent") ~= UIParent then pcall(self.glow.SetParent, self.glow, UIParent) end
+    end
     if self.can then
         self.can:Hide()
         if Ask(self.can, "GetParent") ~= UIParent then pcall(self.can.SetParent, self.can, UIParent) end
@@ -483,6 +527,15 @@ function Trash:Place(frames)
     can:ClearAllPoints()
     can:SetPoint("TOPRIGHT", button, "TOPRIGHT", 1, 1)
     can:Show()
+
+    local glow = self:Glow()
+    if Ask(glow, "GetParent") ~= button then pcall(glow.SetParent, glow, button) end
+    local reach = (Number(Ask(button, "GetWidth")) or 37) * self.GLOW_REACH
+    glow:SetFrameLevel((Number(Ask(button, "GetFrameLevel")) or 1) + 9)
+    glow:ClearAllPoints()
+    glow:SetPoint("TOPLEFT", button, "TOPLEFT", -reach, reach)
+    glow:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", reach, -reach)
+    glow:Show()
 end
 
 local function Off(self)
