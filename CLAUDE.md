@@ -1209,6 +1209,34 @@ through `KillTooltip.Crown`) follows the count on its plate and on the
 tooltip's kill line too (the owner asked 2026-10-15); no setting of its
 own, and like the other kill marks it is never announced.
 
+## Damage numbers
+
+The owner asked (2026-10-19, from a mockup) for the game's damage numbers
+made far more exciting, and said build it. `UI/DamageNumbers.lua`: hits
+come from `UNIT_COMBAT` (the combat log is closed to addons), only a
+WOUND on a `nameplateN` unit, or on the target when it has no plate (then
+just above the character, `SPOT_X`/`SPOT_Y`; the owner said no setting
+for it), never a mob tapped by someone else or one you can't attack. A
+number pops and rises; a crit is bigger with a ring and sparks; hits on
+one mob count a combo (gold, orange from 5, violet from 10); a hit that
+kills (`UnitIsDead` within `KILL_LOOK`, or the plate going) becomes a
+kill with rings, coins, a short slow motion of our own effects and the
+kill line ("8/20", then the count and worth from `KillTooltip:Read`, never
+an estimate). No words but COMBO and the count (the owner: "Let the
+numbers do the talking"). Window effects Subtle drops sparks and coins,
+Off shows numbers only. Pools have caps (`MOST_NUMBERS` and the like) and
+one driver runs only while something moves. While ticked the game's own
+numbers (`floatingCombatTextCombatDamage_v2`, `floatingCombatTextCombatDamage`)
+are set to 0, the player's values kept in `damageNumbersCVars` and put
+back when unticked or at login while off, never in a fight. Art from
+`tools/make_damage_art.py` (HitRing, HitSpark, HitCoin); rerun it, never
+edit the TGAs. "Damage Numbers:" (`damageNumbers`, off unless ticked),
+"How Big:" (`damageNumbersSize`, some, more, most; most by default) and
+"Combo Counter:" (`damageNumbersCombo`, on unless unticked) under DAMAGE
+NUMBERS on the Kills page, account wide, never rename them; `/farm numbers
+[on|off|some|more|most]`. Never announced. Tested in
+`tools/test_damagenumbers.lua`. Not yet seen in game.
+
 ## The XP bar
 
 The owner asked (2026-10-13) for an XP bar in the house style that does
