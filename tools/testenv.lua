@@ -405,6 +405,7 @@ local UI_FILES = {
     "UI/HiddenWindow.lua",
     "UI/Trash.lua",
     "UI/OpenNote.lua",
+    "UI/LootFeed.lua",
     "UI/OpenButton.lua",
     "UI/BagsFull.lua",
     "UI/Veil.lua",

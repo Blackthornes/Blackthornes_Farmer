@@ -220,6 +220,8 @@ local buttons = {
     xpBarTry = "xpbar try",
     topFarmTry = "topfarm test",
     openTest = "openbutton test",
+    lootFeedMove = "lootfeed move",
+    lootFeedReset = "lootfeed reset",
     xpBarReset = "xpbar reset",
     statsTab = "charts",
 }

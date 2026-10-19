@@ -272,6 +272,9 @@ function SettingsUI:ResetPositions()
     -- The goals panel goes back under the kills panel.
     if ns.GoalsUI and ns.GoalsUI.frame then ns.GoalsUI:Dock() end
 
+    -- The loot feed goes back to its first place and size.
+    if ns.LootFeed then ns.LootFeed:ResetPlace() end
+
     -- The goal arrow goes back to the top middle.
     if ns.ArrowUI then ns.ArrowUI:ResetPosition() end
 
@@ -506,6 +509,7 @@ function SettingsUI:BuildWindowsPage()
     controls.rankUpSeeThrough = SeeThroughRow(pages, "windows", 1, "rankup", L["Top 15:"], nil)
     controls.recapSeeThrough = SeeThroughRow(pages, "windows", 1, "recap", L["Run Recap:"], nil)
     controls.xpBarSeeThrough = SeeThroughRow(pages, "windows", 1, "xpbar", L["XP Bar:"], nil)
+    controls.lootFeedSeeThrough = SeeThroughRow(pages, "windows", 1, "lootfeed", L["Loot Feed:"], nil)
 
     pages:Section("windows", 2, L["EFFECTS"])
 
@@ -840,6 +844,35 @@ function SettingsUI:BuildLootPage()
         ns.WorldDrops:SetEnabled(checked)
     end, true)
     controls.worldDrops:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The loot feed (a player asked, the owner said build it 2026-10-19).
+    pages:Section("loot", 1, L["LOOT FEED"])
+
+    local feedRow = pages:Row("loot", 1, L["Loot Feed:"], nil)
+    controls.lootFeed = Widgets.CreateCheckbox(feedRow, L["On"], function(checked)
+        ns.LootFeed:SetEnabled(checked)
+    end, false)
+    controls.lootFeed:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local holdRow = pages:Row("loot", 1, L["Show For:"], nil)
+    local function Seconds(value) return L.Format("%d seconds", value) end
+    controls.lootFeedHold = Widgets.CreateStepper(holdRow, {
+        min = ns.LootFeed.HOLD_MIN, max = ns.LootFeed.HOLD_MAX, step = 1, value = 3,
+        format = Seconds,
+        onChange = function(value) ns.LootFeed:SetHold(value) end,
+    })
+    ns.SettingsPages.FitStepper(controls.lootFeedHold, { Seconds(ns.LootFeed.HOLD_MAX) })
+    controls.lootFeedHold:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local worthRow = pages:Row("loot", 1, L["Show Worth:"], nil)
+    controls.lootFeedWorth = Widgets.CreateCheckbox(worthRow, L["On"], function(checked)
+        ns.LootFeed:SetShowsWorth(checked)
+    end, true)
+    controls.lootFeedWorth:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local placeRow = pages:Row("loot", 1, L["Feed Place:"], nil)
+    controls.lootFeedMove = CommandButton(placeRow, L["Move"], "lootfeed move", 70)
+    controls.lootFeedReset = CommandButton(placeRow, L["Reset"], "lootfeed reset", 70, CONTROL_X + 76)
 
     pages:Section("loot", 2, L["FISHING AND GATHERING"])
 
@@ -1323,6 +1356,9 @@ function SettingsUI:Refresh()
     controls.rankingsSkipUncommon:SetChecked(db.rankingsSkipUncommon == true)
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.openNote:SetChecked(db.openNote ~= false)
+    controls.lootFeed:SetChecked(db.lootFeed == true)
+    controls.lootFeedHold:SetValue(ns.LootFeed:Hold(), true)
+    controls.lootFeedWorth:SetChecked(db.lootFeedWorth ~= false)
     controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)
     controls.openButton:SetChecked(db.openButton ~= false)
     controls.autoOpen:SetChecked(db.autoOpen == true)
@@ -1339,6 +1375,7 @@ function SettingsUI:Refresh()
     controls.rankUpSeeThrough:SetValue(ns.SeeThrough:Level("rankup"), true)
     controls.recapSeeThrough:SetValue(ns.SeeThrough:Level("recap"), true)
     controls.xpBarSeeThrough:SetValue(ns.SeeThrough:Level("xpbar"), true)
+    controls.lootFeedSeeThrough:SetValue(ns.SeeThrough:Level("lootfeed"), true)
     controls.report:SetChecked(db.trackerReport == true)
     controls.celebrate:SetChecked(db.trackerCelebrate ~= false)
 

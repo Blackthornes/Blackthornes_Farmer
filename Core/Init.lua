@@ -492,6 +492,11 @@ local DEFAULTS = {
     -- A note on screen each time a clam or sack is opened and counted
     -- (UI/OpenNote.lua, the owner asked 2026-10-15). Never rename it.
     openNote = true,
+    -- The loot feed (UI/LootFeed.lua): off until ticked.
+    lootFeed = false,
+    lootFeedHold = 3,
+    lootFeedWorth = true,
+    lootFeedSeeThrough = 1,
     -- The Open button on the Kills & Loot panel, and opening clams, sacks
     -- and lockboxes by itself after loot once the test found it may (off
     -- unless ticked; UI/OpenButton.lua, the owner asked 2026-10-15). What
