@@ -635,4 +635,55 @@ suite.check("a rare drop keeps a decimal", EC(0.4) == "chance = 0.4", EC(0.4))
 suite.check("never writes 0", EC(0.01) == nil, EC(0.01))
 suite.check("tops out at 100", EC(100) == "chance = 100", EC(100))
 suite.check("nothing for nothing", EC(nil) == nil)
+--------------------------------------------------------------------------------
+-- Combat log check
+--------------------------------------------------------------------------------
+
+do
+    local function Lines() return table.concat(ns.db.lastProbe and ns.db.lastProbe.lines or {}, "\n") end
+    local CREATURE = "Creature-0-1-2-3-299-0000"
+    local PLAYER = "Player-1-0000ABCD"
+    local fields
+    _G.CombatLogGetCurrentEventInfo = function() return unpack(fields, 1, fields.n) end
+
+    ns.db.lastProbe = nil
+    ns.HandleSlash("harvest combat")
+    local frame = Harvest.combatFrame
+    suite.check("the combat check listens", frame and frame._events.COMBAT_LOG_EVENT_UNFILTERED)
+    suite.check("and does not report before a fight", ns.db.lastProbe == nil)
+    local OnEvent = frame._scripts.OnEvent
+    OnEvent(frame, "PLAYER_REGEN_DISABLED")
+    fields = { n = 15, 100.5, "SWING_DAMAGE", false, PLAYER, "Somebody", 0, 0,
+        CREATURE, "Diseased Young Wolf", 0, 0, 12, nil, 1 }
+    OnEvent(frame, "COMBAT_LOG_EVENT_UNFILTERED")
+    OnEvent(frame, "COMBAT_LOG_EVENT_UNFILTERED")
+    fields = { n = 11, 101, env.Secret("string"), false, env.Secret("string"),
+        env.Secret("string"), 0, 0, env.Secret("string"), env.Secret("string"), 0, 0 }
+    local ok, why = pcall(OnEvent, frame, "COMBAT_LOG_EVENT_UNFILTERED")
+    suite.check("a hidden event does not raise", ok, why)
+    OnEvent(frame, "PLAYER_REGEN_ENABLED")
+
+    local text = Lines()
+    suite.check("it reports when the fight ends", ns.db.lastProbe and ns.db.lastProbe.check == "combat log check", text)
+    suite.check("it counts the events", text:find("events: 3", 1, true), text)
+    suite.check("and their kinds", text:find("SWING_DAMAGE 2", 1, true), text)
+    suite.check("a creature's name is shown", text:find("target Creature 299, target name Diseased Young Wolf", 1, true), text)
+    suite.check("a player's name is left out", not text:find("Somebody", 1, true), text)
+    suite.check("and says a player", text:find("source a player", 1, true), text)
+    suite.check("a hidden kind says so", (text:find("kind secret", 1, true) or text:find("kind unreadable", 1, true)), text)
+    suite.check("a nil field part way along is kept", text:find("field 13 nil", 1, true), text)
+    suite.check("it lets go of the event", not frame._events.COMBAT_LOG_EVENT_UNFILTERED)
+
+    -- A client that refuses the event reports straight away.
+    ns.db.lastProbe = nil
+    local realRegister = frame.RegisterEvent
+    frame.RegisterEvent = function(_, event)
+        if event == "COMBAT_LOG_EVENT_UNFILTERED" then error("cannot be registered") end
+    end
+    ns.HandleSlash("harvest combat")
+    suite.check("a refusal is reported at once", Lines():find("listen: refused", 1, true), Lines())
+    frame.RegisterEvent = realRegister
+    _G.CombatLogGetCurrentEventInfo = nil
+end
+
 suite.done()
