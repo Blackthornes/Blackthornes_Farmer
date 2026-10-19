@@ -2077,6 +2077,11 @@ function Harvest:LootCheck()
     if count == 0 then
         Line("note", "this window was empty: loot one that drops something")
     end
+    -- How often fast looting got there first (Core/Init.lua, ns.OnLootWindow).
+    local windows = ns.lootWindows
+    if windows then
+        Line("loot windows this session", ("%d read, %d empty when first ready"):format(windows.read, windows.empty))
+    end
 
     for slot = 1, math.min(count or 0, Harvest.CHECK_SLOTS) do
         Line(("slot %d info"):format(slot), Call("GetLootSlotInfo", slot))

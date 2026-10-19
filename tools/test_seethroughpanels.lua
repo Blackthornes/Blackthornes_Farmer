@@ -1,6 +1,6 @@
 -- See-through for the other panels (UI/SeeThrough.lua, the owner asked
 -- 2026-10-16): the goals panel, Where to farm, the rank-up board, the run
--- recap and the XP bar.
+-- recap and the XP bar, and the loot feed (2026-10-19).
 --
 -- What matters: each is off unless picked, so it looks as it always has;
 -- each has its own saved key; picked, its dark glass thins to the level and
@@ -14,11 +14,17 @@ local suite = env.NewSuite("seethroughpanels")
 local ns = env.Load({ ui = true })
 local SeeThrough = ns.SeeThrough
 
+-- The loot feed starts at Some (it is new and off until ticked); the
+-- checks below start every panel from off.
+suite.check("the loot feed starts at Some", SeeThrough:Level("lootfeed") == 1)
+ns.db.lootFeedSeeThrough = 0
+
 ns.GoalsUI:Build()
 ns.GoalsUI:BuildSpots()
 ns.RankUpUI:Build()
 ns.RecapUI:Build()
 ns.XPBarUI:Build()
+ns.LootFeed:Build()
 
 local function Near(a, b) return type(a) == "number" and math.abs(a - b) < 0.001 end
 local function Settle() ns.Motion:FinishAll() end
@@ -54,10 +60,10 @@ end
 -- Each key is its own.
 local keys = {}
 for _, id in ipairs(SeeThrough.ORDER) do keys[SeeThrough.PANELS[id].key] = true end
-suite.check("five keys of their own", (function()
+suite.check("six keys of their own", (function()
     local n = 0
     for _ in pairs(keys) do n = n + 1 end
-    return n == 5 and not keys.trackerSeeThrough
+    return n == 6 and not keys.trackerSeeThrough
 end)())
 
 for _, id in ipairs(SeeThrough.ORDER) do
@@ -147,7 +153,8 @@ suite.check("a word it doesn't know changes nothing", ns.db.goalSpotsSeeThrough 
 ns.SettingsUI:Show()
 local controls = ns.SettingsUI.controls
 for control, id in pairs({ goalsSeeThrough = "goals", goalSpotsSeeThrough = "places",
-    rankUpSeeThrough = "rankup", recapSeeThrough = "recap", xpBarSeeThrough = "xpbar" }) do
+    rankUpSeeThrough = "rankup", recapSeeThrough = "recap", xpBarSeeThrough = "xpbar",
+    lootFeedSeeThrough = "lootfeed" }) do
     suite.check(control .. " is on the page", controls[control] ~= nil, control)
     if controls[control] then
         controls[control]:SetValue(3)
@@ -177,7 +184,7 @@ suite.check("off puts the bar back", Near(xp.fill._alpha, 1) and Near(xp.rested.
 
 -- All six sit together on the UI page (the owner, 2026-10-17).
 for _, control in ipairs({ "seeThrough", "goalsSeeThrough", "goalSpotsSeeThrough",
-    "rankUpSeeThrough", "recapSeeThrough", "xpBarSeeThrough" }) do
+    "rankUpSeeThrough", "recapSeeThrough", "xpBarSeeThrough", "lootFeedSeeThrough" }) do
     local found
     for _, entry in ipairs(ns.SettingsUI.pages.searchables or {}) do
         if entry.frame == controls[control]._parent then found = entry.page end
