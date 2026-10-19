@@ -109,9 +109,14 @@ suite.check("a friend shows nothing", DN:OnHit("nameplate2", "WOUND", nil, 30) =
 suite.check("the player shows nothing", DN:OnHit("player", "WOUND", nil, 30) == nil)
 
 -- The target: at the spot when it has no nameplate, never twice when it does.
-units.target = units.nameplate1
-plates.target = plates.nameplate1
-suite.check("a target with a nameplate is not shown twice", DN:OnHit("target", "WOUND", nil, 12) == nil)
+Mob("nameplate3", "Swoop", "Creature-0-1-2-3-2969-00000009", true)
+units.target, plates.target = units.nameplate3, plates.nameplate3
+local onPlate = DN:OnHit("nameplate3", "WOUND", nil, 12)
+suite.check("a target with a nameplate is not shown twice", onPlate and DN:OnHit("target", "WOUND", nil, 12) == nil)
+now = now + 0.05
+local alone = DN:OnHit("target", "WOUND", nil, 14)
+suite.check("a target heard alone shows on its plate", alone and alone.anchor.plate == plates.nameplate3)
+suite.check("a hit counts once", DN.seen["seen already"] == 1 and DN.seen.shown >= 2)
 Mob("target", "Bristleback", "Creature-0-1-2-3-3258-00000003", false)
 UIParent._width, UIParent._height = 1024, 768
 local spot = DN:OnHit("target", "WOUND", nil, 12)

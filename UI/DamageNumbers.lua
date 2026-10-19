@@ -127,6 +127,7 @@ end
 
 local numbers, sparks, rings, coins, motes = {}, {}, {}, {}, {}
 local combos = {}       -- [guid] = { count, last }
+local lastHit = {}      -- [guid] = { at, unit, crit, amount }, to show a hit once
 local pending = {}      -- [unit] = { guid, number, untilAt }
 local combo             -- the one combo label
 local driver
@@ -167,6 +168,17 @@ local function Ask(fn, ...)
     local ok, value = pcall(fn, ...)
     if not ok or IsSecret(value) then return nil end
     return value
+end
+
+--- What the hits did, for `/farm numbers check`.
+DamageNumbers.seen = {}
+--- Units besides plates whose hits count.
+DamageNumbers.OTHER_UNITS = { target = true, focus = true, softenemy = true }
+
+local function Dropped(why)
+    local seen = DamageNumbers.seen
+    seen[why] = (seen[why] or 0) + 1
+    return nil
 end
 
 --------------------------------------------------------------------------------
@@ -607,8 +619,11 @@ local function Wake()
     end
     if not driver:GetScript("OnUpdate") then
         driver:SetScript("OnUpdate", function(_, elapsed)
-            local ok = pcall(DamageNumbers.Step, DamageNumbers, elapsed)
-            if not ok then driver:SetScript("OnUpdate", nil) end
+            local ok, err = pcall(DamageNumbers.Step, DamageNumbers, elapsed)
+            if not ok then
+                DamageNumbers.lastError = tostring(err)
+                driver:SetScript("OnUpdate", nil)
+            end
         end)
     end
 end
@@ -896,16 +911,19 @@ function DamageNumbers:OnHit(unit, kind, flag, amount, school)
     local plate
     if unit:find("^nameplate%d+$") then
         plate = PlateFor(unit)
-        if not plate then return nil end
-    elseif unit == "target" then
-        if PlateFor("target") then return nil end
+        if not plate then return Dropped("no plate") end
+    elseif self.OTHER_UNITS[unit] then
+        -- The client may tell only the target, not its plate, so the
+        -- target counts too, on its plate when it has one.
+        plate = PlateFor(unit)
+        if not plate and unit ~= "target" then return Dropped("no plate") end
     else
         return nil
     end
     local okKind, wound = pcall(function() return kind == "WOUND" end)
-    if not (okKind and wound) then return nil end
-    if Ask(_G.UnitCanAttack, "player", unit) ~= true then return nil end
-    if Ask(_G.UnitIsTapDenied, unit) == true then return nil end
+    if not (okKind and wound) then return Dropped("not a wound") end
+    if Ask(_G.UnitCanAttack, "player", unit) ~= true then return Dropped("can't attack") end
+    if Ask(_G.UnitIsTapDenied, unit) == true then return Dropped("someone else's") end
 
     local shown = amount
     if not IsSecret(amount) then
@@ -918,6 +936,15 @@ function DamageNumbers:OnHit(unit, kind, flag, amount, school)
 
     local guid = Ask(_G.UnitGUID, unit)
     if type(guid) ~= "string" then guid = unit end
+    -- One hit comes once for each name the mob has (its plate, the
+    -- target): show it once.
+    local at, last = Now(), lastHit[guid]
+    if last and last.at == at and last.unit ~= unit and last.crit == crit
+        and (IsSecret(amount) or last.amount == shown) then
+        return Dropped("seen already")
+    end
+    lastHit[guid] = { at = at, unit = unit, crit = crit, amount = (not IsSecret(amount)) and shown or nil }
+    self.seen.shown = (self.seen.shown or 0) + 1
     local anchor = { unit = unit, plate = plate }
     -- Hits on one mob share an anchor, so they fan out around it.
     local entry = combos[guid]
@@ -964,6 +991,7 @@ function DamageNumbers:Clear()
     if combo then combo.active = nil combo.frame:Hide() end
     for unit in pairs(pending) do pending[unit] = nil end
     for guid in pairs(combos) do combos[guid] = nil end
+    for guid in pairs(lastHit) do lastHit[guid] = nil end
     active = 0
     if driver then driver:SetScript("OnUpdate", nil) end
 end
@@ -979,7 +1007,14 @@ function DamageNumbers:Listen(on)
         listener = CreateFrame("Frame")
         listener:SetScript("OnEvent", function(_, event, unit, ...)
             if event == "UNIT_COMBAT" then
-                pcall(DamageNumbers.OnHit, DamageNumbers, unit, ...)
+                local seen = DamageNumbers.seen
+                seen.events = (seen.events or 0) + 1
+                if type(unit) == "string" then
+                    local token = unit:find("^nameplate%d+$") and "nameplate" or unit
+                    seen["from " .. token] = (seen["from " .. token] or 0) + 1
+                end
+                local ok, err = pcall(DamageNumbers.OnHit, DamageNumbers, unit, ...)
+                if not ok then DamageNumbers.lastError = tostring(err) end
             elseif event == "NAME_PLATE_UNIT_REMOVED" then
                 pcall(DamageNumbers.PlateGone, DamageNumbers, unit)
             end
@@ -989,6 +1024,7 @@ function DamageNumbers:Listen(on)
         if on then pcall(listener.RegisterEvent, listener, event)
         else pcall(listener.UnregisterEvent, listener, event) end
     end
+    self.listening = on and true or false
 end
 
 function DamageNumbers:SetEnabled(on)
@@ -1026,8 +1062,31 @@ function DamageNumbers:OnEnable()
     end)
 end
 
+--- `/farm numbers check`: what the hits did this session, for a report
+--- (ns.KeepCheck saves it). English on purpose, like the other checks.
+function DamageNumbers.Check()
+    local function Say(text) ns.PrintRaw(text) end
+    Say(("numbers check: on %s, listening %s, size %s"):format(tostring(DamageNumbers:IsEnabled()),
+        tostring(listener ~= nil and DamageNumbers.listening == true), DamageNumbers:Size()))
+    for _, name in ipairs(DamageNumbers.CVARS) do
+        Say(("%s = %s"):format(name, tostring(GetCVarValue(name))))
+    end
+    local keys = {}
+    for key in pairs(DamageNumbers.seen) do keys[#keys + 1] = key end
+    table.sort(keys)
+    if #keys == 0 then Say("no hits heard yet: hit a mob, then run this again") end
+    for _, key in ipairs(keys) do Say(("%s: %d"):format(key, DamageNumbers.seen[key])) end
+    local target = PlateFor("target")
+    Say(("target has a nameplate: %s"):format(tostring(target ~= nil)))
+    Say(("last error: %s"):format(DamageNumbers.lastError or "none"))
+end
+
 ns.RegisterCommand("numbers", L["Damage numbers on or off, or how big they are."], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
+    if argument == "check" then
+        ns.KeepCheck("numbers check", DamageNumbers.Check)
+        return
+    end
     if DamageNumbers.SCALE[argument] then
         DamageNumbers:SetSize(argument)
     else
