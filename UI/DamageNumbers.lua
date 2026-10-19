@@ -2,8 +2,9 @@
 -- Big damage numbers that pop off a mob each time it's hit, in place of
 -- the game's own.
 --
---   a hit       a gold-white number that bounces up and fades
---   a crit      bigger and gold, a ring, sparks and a shake
+--   a hit       a number that bounces up and fades, coloured by its kind
+--               of damage, with a few of that kind's motes
+--   a crit      bigger, a ring and a burst of that kind's motes, a shake
 --   a combo     COMBO x5 over the mob, warming gold to orange to violet as
 --               the hits keep coming, a ring every fifth
 --   the kill    bigger still and hot orange, two rings, sparks, coins, a moment of slow
@@ -15,6 +16,14 @@
 -- the character, with no setting for it (the owner, the same day). Never
 -- announced. No words over the numbers but COMBO: "Let the numbers do
 -- the talking" (the owner, the same day).
+--
+-- Kinds of damage (the owner said build it, 2026-10-19, from a mockup:
+-- "cool dopamine for each class"): UNIT_COMBAT's school picks the colour
+-- and the motes. Physical is steel with sparks, Holy gold with rays, Fire
+-- orange with embers, Nature green with leaves, Frost blue with shards,
+-- Shadow violet with smoke (its ring pulls in), Arcane pink with stars. A
+-- mixed school takes the first magic one in SCHOOL_ORDER; one the client
+-- won't say is Physical. The kill stays gold for everyone.
 --
 -- How a hit is heard: Forever keeps the combat log from addons, so it is
 -- UNIT_COMBAT, which names the unit hit, "WOUND", the amount and
@@ -50,6 +59,12 @@ local MEDIA = [[Interface\AddOns\Blackthornes_Farmer\Media\Frame\]]
 local RING = MEDIA .. "HitRing.tga"
 local SPARK = MEDIA .. "HitSpark.tga"
 local COIN = MEDIA .. "HitCoin.tga"
+local MOTE_ART = {
+    steel = SPARK, rays = SPARK,
+    embers = MEDIA .. "HitEmber.tga", shards = MEDIA .. "HitShard.tga",
+    leaves = MEDIA .. "HitLeaf.tga", smoke = MEDIA .. "HitSmoke.tga",
+    stars = MEDIA .. "HitStar.tga",
+}
 local GLOW = MEDIA .. "Glow.tga"
 
 DamageNumbers.SIZES = { "some", "more", "most" }
@@ -60,6 +75,7 @@ DamageNumbers.MOST_NUMBERS = 16
 DamageNumbers.MOST_SPARKS = 48
 DamageNumbers.MOST_RINGS = 6
 DamageNumbers.MOST_COINS = 14
+DamageNumbers.MOST_MOTES = 40
 DamageNumbers.COMBO_WINDOW = 2.4    -- seconds between hits that keep a combo going
 DamageNumbers.KILL_LOOK = 0.5       -- seconds after a hit to see whether it killed
 DamageNumbers.SLOW = 0.25           -- how slow the moment after a kill runs
@@ -81,7 +97,35 @@ local HEAT = {
     { from = 0,  color = { 1, 0.843, 0.353 } },
 }
 
-local numbers, sparks, rings, coins = {}, {}, {}, {}
+-- Each kind of damage: the number's colour, its glow and ring, its motes.
+local SCHOOLS = {
+    physical = { color = { 0.95, 0.96, 1 },    crit = { 1, 0.93, 0.72 }, glow = { 0.81, 0.84, 0.9 },  mote = { 0.95, 0.96, 1 },    fx = "steel" },
+    holy     = { color = { 1, 0.95, 0.66 },    crit = { 1, 0.91, 0.54 }, glow = { 1, 0.9, 0.5 },      mote = { 1, 0.91, 0.54 },    fx = "rays" },
+    fire     = { color = { 1, 0.66, 0.24 },    crit = { 1, 0.56, 0.14 }, glow = { 1, 0.48, 0.13 },    mote = { 1, 0.6, 0.16 },     fx = "embers" },
+    nature   = { color = { 0.66, 0.92, 0.45 }, crit = { 0.56, 0.88, 0.35 }, glow = { 0.5, 0.88, 0.35 }, mote = { 0.56, 0.88, 0.35 }, fx = "leaves" },
+    frost    = { color = { 0.72, 0.91, 1 },    crit = { 0.62, 0.87, 1 }, glow = { 0.5, 0.82, 1 },     mote = { 0.72, 0.91, 1 },    fx = "shards" },
+    shadow   = { color = { 0.74, 0.55, 0.95 }, crit = { 0.66, 0.42, 0.9 }, glow = { 0.54, 0.23, 0.85 }, mote = { 0.42, 0.2, 0.62 },  fx = "smoke" },
+    arcane   = { color = { 1, 0.62, 0.93 },    crit = { 1, 0.52, 0.9 },  glow = { 1, 0.48, 0.88 },    mote = { 1, 0.75, 0.96 },    fx = "stars" },
+}
+DamageNumbers.SCHOOLS = SCHOOLS
+-- UNIT_COMBAT's school bits; a mixed one takes the first here.
+local SCHOOL_ORDER = {
+    { 4, "fire" }, { 16, "frost" }, { 32, "shadow" }, { 64, "arcane" }, { 8, "nature" }, { 2, "holy" },
+}
+
+--- The kind of damage a school mask is, "physical" when the client won't say.
+function DamageNumbers.School(mask)
+    local ok, kind = pcall(function()
+        if type(mask) ~= "number" then return "physical" end
+        for _, each in ipairs(SCHOOL_ORDER) do
+            if math.floor(mask / each[1]) % 2 == 1 then return each[2] end
+        end
+        return "physical"
+    end)
+    return ok and kind or "physical"
+end
+
+local numbers, sparks, rings, coins, motes = {}, {}, {}, {}, {}
 local combos = {}       -- [guid] = { count, last }
 local pending = {}      -- [unit] = { guid, number, untilAt }
 local combo             -- the one combo label
@@ -410,6 +454,7 @@ local function StepRing(r, now)
     if age < 0 then return true end
     local p = age / r.life
     local size = r.from + (r.to - r.from) * Ease(p)
+    if r.inward then size = r.to - (r.to - r.from) * Ease(p) * 0.85 end
     r.frame:SetSize(size, size)
     local x, y = Where(r.anchor)
     Place(r.frame, x + r.dx, y + r.dy, 1)
@@ -431,6 +476,66 @@ local function StepCoin(c, now, dt)
     Place(c.frame, c.x, c.y, 1)
     local p = age / c.life
     c.frame:SetAlpha(p > 0.7 and (1 - (p - 0.7) / 0.3) or 1)
+    return true
+end
+
+local function StepMote(m, now, dt)
+    local age = now - m.born
+    if age >= m.life then
+        m.active = nil
+        m.frame:Hide()
+        return false
+    end
+    if age < 0 then return true end
+    local p = age / m.life
+    local fx = m.fx
+    local alpha = 1 - p
+    local width, height = m.size, m.size
+    local rotation
+    if fx == "rays" then
+        local length = m.size * (1 + 2.5 * Ease(p))
+        local x = m.x + math.cos(m.angle) * length * 0.6
+        local y = m.y + math.sin(m.angle) * length * 0.6
+        m.frame:SetSize(length, 4)
+        Place(m.frame, x, y, 1)
+        pcall(m.texture.SetRotation, m.texture, m.angle)
+        m.frame:SetAlpha(alpha * 0.9)
+        return true
+    elseif fx == "stars" then
+        m.angle = m.angle + m.spin * dt
+        local radius = m.radius * (0.6 + 0.6 * p)
+        local x = m.x + math.cos(m.angle) * radius
+        local y = m.y + math.sin(m.angle) * radius * 0.6 + 20 * p
+        local twinkle = 0.7 + 0.5 * math.abs(math.sin(age * 18 + m.spin))
+        m.frame:SetSize(m.size * twinkle, m.size * twinkle)
+        Place(m.frame, x, y, 1)
+        m.frame:SetAlpha(alpha)
+        return true
+    elseif fx == "embers" then
+        m.vx = m.vx + math.sin(age * 14 + m.spin) * 60 * dt
+    elseif fx == "leaves" then
+        m.vy = m.vy - 140 * dt
+        m.vx = m.vx + math.cos(age * 10 + m.spin) * 90 * dt
+        rotation = age * m.spin
+        width, height = m.size * 1.6, m.size * 0.8
+    elseif fx == "smoke" then
+        local grow = 1 + 1.6 * p
+        width, height = m.size * grow, m.size * grow
+        alpha = 0.7 * (1 - p)
+    elseif fx == "shards" then
+        m.vy = m.vy - 460 * dt
+        rotation = age * m.spin
+        width, height = m.size * 0.7, m.size * 1.3
+    else -- steel
+        m.vy = m.vy - 380 * dt
+        rotation = math.atan2 and math.atan2(m.vy, m.vx) or 0
+        width, height = m.size * 2.4, 3
+    end
+    m.x, m.y = m.x + m.vx * dt, m.y + m.vy * dt
+    m.frame:SetSize(width, height)
+    Place(m.frame, m.x, m.y, 1)
+    if rotation then pcall(m.texture.SetRotation, m.texture, rotation) end
+    m.frame:SetAlpha(alpha)
     return true
 end
 
@@ -486,6 +591,9 @@ function DamageNumbers:Step(elapsed)
     for _, c in ipairs(coins) do
         if c.active and StepCoin(c, now, dt) then count = count + 1 end
     end
+    for _, m in ipairs(motes) do
+        if m.active and StepMote(m, now, dt) then count = count + 1 end
+    end
     if StepCombo(now) then count = count + 1 end
     if next(pending) then count = count + 1 end
     active = count
@@ -509,7 +617,7 @@ end
 function DamageNumbers:Active() return active end
 --- The pools and the combo, for the tests.
 function DamageNumbers:Pools()
-    return { numbers = numbers, sparks = sparks, rings = rings, coins = coins, combo = combo, pending = pending }
+    return { numbers = numbers, sparks = sparks, rings = rings, coins = coins, motes = motes, combo = combo, pending = pending }
 end
 
 --------------------------------------------------------------------------------
@@ -532,9 +640,9 @@ function DamageNumbers:Burst(x, y, count, color)
     end
 end
 
-function DamageNumbers:Ring(anchor, size, color, delay, dx, dy)
+function DamageNumbers:Ring(anchor, size, color, delay, dx, dy, inward)
     local r = Take(rings, self.MOST_RINGS, NewTexture(RING))
-    r.anchor, r.dx, r.dy = anchor, dx or 0, dy or 0
+    r.anchor, r.dx, r.dy, r.inward = anchor, dx or 0, dy or 0, inward or nil
     r.from, r.to = 24 * size, 150 * size
     r.life = 0.5
     r.born, r.active = clock + (delay or 0), true
@@ -558,20 +666,87 @@ function DamageNumbers:CoinShower(x, y, count, size)
     end
 end
 
+local function NewMote()
+    local frame = CreateFrame("Frame", nil, UIParent)
+    frame:SetSize(8, 8)
+    Strata(frame)
+    local texture = frame:CreateTexture(nil, "OVERLAY")
+    texture:SetAllPoints()
+    frame:Hide()
+    return { frame = frame, texture = texture }
+end
+
+--- `count` of a kind of damage's motes flying off x, y. `big` for a crit.
+function DamageNumbers:Motes(x, y, count, school, size, big)
+    local look = SCHOOLS[school] or SCHOOLS.physical
+    local fx = look.fx
+    local art = MOTE_ART[fx]
+    local spread = big and 1.5 or 1
+    for i = 1, count do
+        local m = Take(motes, self.MOST_MOTES, NewMote)
+        if m.art ~= art then
+            m.art = art
+            m.texture:SetTexture(art)
+        end
+        local blend = fx == "smoke" and "BLEND" or "ADD"
+        if m.blend ~= blend then
+            m.blend = blend
+            pcall(m.texture.SetBlendMode, m.texture, blend)
+        end
+        pcall(m.texture.SetRotation, m.texture, 0)
+        m.texture:SetVertexColor(look.mote[1], look.mote[2], look.mote[3])
+        local angle = math.random() * math.pi * 2
+        local speed = (60 + math.random() * 120) * spread * size
+        m.fx, m.x, m.y = fx, x, y
+        m.vx, m.vy = math.cos(angle) * speed, math.sin(angle) * speed
+        m.angle = fx == "rays" and (i / count) * math.pi * 2 + math.random() * 0.3 or angle
+        m.spin = (math.random() < 0.5 and -1 or 1) * (3 + math.random() * 4)
+        m.size = (6 + math.random() * 5) * size * (big and 1.2 or 1)
+        m.life = 0.55 + math.random() * 0.5
+        m.radius = (24 + math.random() * 30) * size * spread
+        if fx == "embers" then
+            m.vx, m.vy = m.vx * 0.5, math.abs(m.vy) * 0.6 + 60 * size
+            m.life = m.life + 0.4
+        elseif fx == "shards" then
+            m.vy = math.abs(m.vy) * 0.7 + 80 * size
+        elseif fx == "leaves" then
+            m.vy = math.abs(m.vy) * 0.5 + 50 * size
+            m.life = m.life + 0.3
+        elseif fx == "smoke" then
+            m.vx, m.vy = m.vx * 0.35, -(20 + math.random() * 30) * size
+            m.size = m.size * 1.6
+            m.life = m.life + 0.4
+        elseif fx == "steel" then
+            m.vx, m.vy = m.vx * 1.8, m.vy * 0.6 + 60 * size
+            m.life = 0.3 + math.random() * 0.3
+        elseif fx == "rays" then
+            m.size = (14 + math.random() * 12) * size * spread
+            m.life = 0.45 + math.random() * 0.2
+        end
+        m.born, m.active = clock, true
+        m.frame:SetAlpha(0)
+        m.frame:Show()
+    end
+end
+
 --------------------------------------------------------------------------------
 -- A hit
 --------------------------------------------------------------------------------
 
-local function Style(n, kind, size)
+local function Style(n, kind, size, school)
     local style = STYLES[kind]
-    n.kind, n.style, n.size = kind, style, size
+    local look = SCHOOLS[school] or SCHOOLS.physical
+    n.kind, n.style, n.size, n.school = kind, style, size, school
     SetFont(n.text, math.floor(style.size * size + 0.5))
-    n.text:SetTextColor(style.color[1], style.color[2], style.color[3])
+    -- The kill stays gold for everyone; hits and crits wear their kind.
+    local color = kind == "kill" and style.color or (kind == "crit" and look.crit or look.color)
+    n.text:SetTextColor(color[1], color[2], color[3])
     n.hasGlow = style.glow ~= nil
     if n.hasGlow then
         local glow = math.floor(style.size * size * 3.2)
+        local tint = kind == "kill" and style.glow or look.glow
         n.glow:SetSize(glow * 1.6, glow)
-        n.glow:SetVertexColor(style.glow[1], style.glow[2], style.glow[3])
+        n.glow:SetVertexColor(tint[1], tint[2], tint[3])
         n.glow:Show()
     else
         n.glow:Hide()
@@ -580,12 +755,13 @@ end
 
 --- A number for one hit. `amount` may be a secret value: it is shown as it
 --- is and never compared.
-function DamageNumbers:Pop(anchor, amount, crit)
+function DamageNumbers:Pop(anchor, amount, crit, school)
+    school = SCHOOLS[school] and school or "physical"
     local size = self:Scale()
     local level = Level()
     local n = Take(numbers, self.MOST_NUMBERS, NewNumber)
     local kind = crit and "crit" or "hit"
-    Style(n, kind, size)
+    Style(n, kind, size, school)
     pcall(n.text.SetText, n.text, amount)
     n.sub:SetText("")
     n.anchor = anchor
@@ -600,12 +776,14 @@ function DamageNumbers:Pop(anchor, amount, crit)
     n.frame:SetAlpha(1)
     n.frame:Show()
 
+    local look = SCHOOLS[school]
     if crit and level ~= "off" then
+        self:Ring(anchor, size, look.glow, 0, n.dx, n.dy, look.fx == "smoke")
+    end
+    if level == "full" then
         local x, y = Where(anchor)
-        self:Ring(anchor, size, STYLES.crit.glow, 0, n.dx, n.dy)
-        if level == "full" then
-            self:Burst(x + n.dx, y + n.dy, math.floor(10 * size + 0.5), STYLES.crit.glow)
-        end
+        local count = crit and math.floor(10 * size + 0.5) or math.max(1, math.floor(3 * size + 0.5))
+        self:Motes(x + n.dx, y + n.dy, count, school, size, crit)
     end
     return n
 end
@@ -690,7 +868,7 @@ function DamageNumbers:Killed(look)
     if not n or not n.active or n.kind == "kill" then return end
     local size = self:Scale()
     local level = Level()
-    Style(n, "kill", size)
+    Style(n, "kill", size, n.school)
     n.born, n.life = clock, STYLES.kill.life
     n.popFrom = level == "off" and 1 or (level == "subtle" and 1.3 or STYLES.kill.pop)
     n.shakeUntil = level == "full" and 0.22 or nil
@@ -704,6 +882,7 @@ function DamageNumbers:Killed(look)
     if level == "full" then
         self:Burst(x + n.dx, y + n.dy, math.floor(16 * size + 0.5), STYLES.kill.glow)
         self:CoinShower(x + n.dx, y + n.dy, math.floor(8 * size + 0.5), size)
+        self:Motes(x + n.dx, y + n.dy, math.floor(8 * size + 0.5), n.school, size, true)
         slowUntil = Now() + self.SLOW_FOR
     end
     Wake()
@@ -712,7 +891,7 @@ end
 --- What UNIT_COMBAT says. Only a nameplate's unit, or the target when it
 --- has none; only a WOUND on a mob you can attack that isn't someone
 --- else's.
-function DamageNumbers:OnHit(unit, kind, flag, amount)
+function DamageNumbers:OnHit(unit, kind, flag, amount, school)
     if not self:IsEnabled() or type(unit) ~= "string" then return nil end
     local plate
     if unit:find("^nameplate%d+$") then
@@ -747,7 +926,7 @@ function DamageNumbers:OnHit(unit, kind, flag, amount)
     end
     Where(anchor)
 
-    local n = self:Pop(anchor, shown, crit)
+    local n = self:Pop(anchor, shown, crit, self.School(school))
     self:Bump(anchor, guid, clock)
     combos[guid].anchor = anchor
 
@@ -776,7 +955,7 @@ end
 
 --- Everything off the screen at once.
 function DamageNumbers:Clear()
-    for _, pool in ipairs({ numbers, sparks, rings, coins }) do
+    for _, pool in ipairs({ numbers, sparks, rings, coins, motes }) do
         for _, each in ipairs(pool) do
             each.active = nil
             each.frame:Hide()

@@ -1222,14 +1222,21 @@ one mob count a combo (gold, orange from 5, violet from 10); a hit that
 kills (`UnitIsDead` within `KILL_LOOK`, or the plate going) becomes a
 kill with rings, coins, a short slow motion of our own effects and the
 kill line ("8/20", then the count and worth from `KillTooltip:Read`, never
-an estimate). No words but COMBO and the count (the owner: "Let the
+an estimate). Each kind of damage has its colour and motes (the owner said
+build it the same day, "cool dopamine for each class"): `DamageNumbers.School`
+reads UNIT_COMBAT's school mask (a mixed one takes the first in
+`SCHOOL_ORDER`, one the client won't say is Physical), and `SCHOOLS` gives
+Physical steel sparks, Holy rays, Fire embers, Nature leaves, Frost shards,
+Shadow smoke with a ring that pulls in, Arcane stars (`Motes`, its own pool,
+`MOST_MOTES`); the kill stays gold for everyone. No words but COMBO and the count (the owner: "Let the
 numbers do the talking"). Window effects Subtle drops sparks and coins,
 Off shows numbers only. Pools have caps (`MOST_NUMBERS` and the like) and
 one driver runs only while something moves. While ticked the game's own
 numbers (`floatingCombatTextCombatDamage_v2`, `floatingCombatTextCombatDamage`)
 are set to 0, the player's values kept in `damageNumbersCVars` and put
 back when unticked or at login while off, never in a fight. Art from
-`tools/make_damage_art.py` (HitRing, HitSpark, HitCoin); rerun it, never
+`tools/make_damage_art.py` (HitRing, HitSpark, HitCoin, HitEmber, HitShard,
+HitLeaf, HitSmoke, HitStar); rerun it, never
 edit the TGAs. "Damage Numbers:" (`damageNumbers`, off unless ticked),
 "How Big:" (`damageNumbersSize`, some, more, most; most by default) and
 "Combo Counter:" (`damageNumbersCombo`, on unless unticked) under DAMAGE

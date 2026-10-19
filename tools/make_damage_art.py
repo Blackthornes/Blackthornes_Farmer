@@ -6,6 +6,13 @@
                               fading to both ends, white (tinted)
     Media/Frame/HitCoin.tga   a small gold coin with a rim and a shine,
                               in its own colours
+    Media/Frame/HitEmber.tga  a soft round ember (fire)
+    Media/Frame/HitShard.tga  a thin ice diamond with a bright edge (frost)
+    Media/Frame/HitLeaf.tga   a leaf with a vein (nature)
+    Media/Frame/HitSmoke.tga  a soft cloudy puff (shadow)
+    Media/Frame/HitStar.tga   a four-point twinkle (arcane)
+
+All but the coin are white, so the game tints them.
 
     python tools/make_damage_art.py
 
@@ -79,10 +86,59 @@ def coin(x, y):
     return color[0], color[1], color[2], 1.0
 
 
+def ember(x, y):
+    r = math.hypot(x, y)
+    core = math.exp(-(r / 0.28) ** 2)
+    halo = 0.55 * math.exp(-(r / 0.45) ** 2)
+    return 1, 1, 1, min(1.0, core + halo)
+
+
+def shard(x, y):
+    # A diamond, tall along y.
+    d = abs(x) / 0.45 + abs(y) / 0.95
+    if d >= 1:
+        return 1, 1, 1, 0.0
+    edge = 0.55 + 0.45 * (d ** 3)
+    soft = min(1.0, (1 - d) / 0.12)
+    return 1, 1, 1, edge * soft
+
+
+def leaf(x, y):
+    # Pointed at both ends along x, a vein down the middle.
+    half = 0.55 * max(0.0, 1 - x * x) ** 0.8
+    if abs(y) >= half or abs(x) >= 1:
+        return 1, 1, 1, 0.0
+    body = 0.85
+    vein = 0.35 * math.exp(-(y / 0.05) ** 2)
+    soft = min(1.0, (half - abs(y)) / 0.08)
+    return 1, 1, 1, min(1.0, body + vein) * soft
+
+
+def smoke(x, y):
+    # A lumpy soft puff.
+    r = math.hypot(x, y)
+    a = math.atan2(y, x)
+    lump = 0.75 + 0.12 * math.sin(a * 3) + 0.08 * math.sin(a * 5 + 1)
+    alpha = max(0.0, 1 - (r / lump) ** 2) ** 1.5
+    return 1, 1, 1, alpha
+
+
+def star(x, y):
+    # Four thin points and a soft middle.
+    arms = math.exp(-(abs(x) / 0.06)) * max(0.0, 1 - abs(y)) + math.exp(-(abs(y) / 0.06)) * max(0.0, 1 - abs(x))
+    core = math.exp(-((x * x + y * y) / 0.04))
+    return 1, 1, 1, min(1.0, arms + core)
+
+
 def main():
     write("HitRing.tga", 128, 128, ring)
     write("HitSpark.tga", 64, 16, spark)
     write("HitCoin.tga", 32, 32, coin)
+    write("HitEmber.tga", 32, 32, ember)
+    write("HitShard.tga", 32, 32, shard)
+    write("HitLeaf.tga", 32, 32, leaf)
+    write("HitSmoke.tga", 64, 64, smoke)
+    write("HitStar.tga", 32, 32, star)
 
 
 if __name__ == "__main__":

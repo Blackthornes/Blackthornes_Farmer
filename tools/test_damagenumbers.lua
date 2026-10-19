@@ -93,7 +93,7 @@ local pools = DN:Pools()
 suite.check("a crit is bigger", crit and crit.kind == "crit"
     and crit.text.fontSize > n.text.fontSize, crit and crit.text.fontSize)
 suite.check("with no word over it", crit and crit.tag == nil)
-suite.check("a ring and sparks", Live(pools.rings) == 1 and Live(pools.sparks) > 0)
+suite.check("a ring and a burst of steel", Live(pools.rings) == 1 and Live(pools.motes) > 0)
 suite.check("the combo counts two hits", pools.combo and pools.combo.active
     and pools.combo.count:GetText() == "x2", pools.combo and pools.combo.count:GetText())
 
@@ -166,6 +166,35 @@ _G.issecretvalue = function(value) return value == secret end
 local ok, hidden = pcall(DN.OnHit, DN, "nameplate1", "WOUND", nil, secret)
 suite.check("a secret amount doesn't raise", ok, hidden)
 suite.check("and still shows", ok and hidden ~= nil)
+
+-- Kinds of damage.
+suite.check("a plain hit is physical", n.school == "physical")
+suite.check("a mixed school takes fire first", DN.School(20) == "fire")
+suite.check("frost alone is frost", DN.School(16) == "frost")
+suite.check("a school the client won't say is physical", DN.School(nil) == "physical"
+    and DN.School(secret) == "physical")
+local fire = DN:OnHit("nameplate1", "WOUND", nil, 50, 4)
+suite.check("a fire hit is orange", fire.school == "fire" and fire.text._color[1] == 1
+    and fire.text._color[3] < 0.4, fire.text._color and fire.text._color[3])
+local found = false
+for _, m in ipairs(pools.motes) do
+    if m.active and m.fx == "embers" then found = true end
+end
+suite.check("with embers", found)
+local shadow = DN:OnHit("nameplate1", "WOUND", "CRITICAL", 90, 32)
+local inward = false
+for _, r in ipairs(pools.rings) do
+    if r.active and r.inward then inward = true end
+end
+suite.check("a shadow crit's ring pulls in", shadow.school == "shadow" and inward)
+units.nameplate1.dead = true
+Run(0.1)
+suite.check("the kill stays gold whatever the kind", shadow.kind == "kill"
+    and shadow.text._color[1] == DN.STYLES.kill.color[1] and shadow.text._color[2] == DN.STYLES.kill.color[2])
+units.nameplate1.dead = false
+for school = 0, 127 do DN:OnHit("nameplate1", "WOUND", "CRITICAL", school + 1, school) end
+suite.check("the motes never pass their cap", #pools.motes <= DN.MOST_MOTES, #pools.motes)
+Run(3)
 _G.issecretvalue = nil
 
 -- Caps, and the driver stops.
