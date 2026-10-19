@@ -40,9 +40,12 @@ local Util = ns.Util
 XPBarUI.WIDTH = 520
 XPBarUI.BAR = 18
 XPBarUI.LINE = 16
--- Room kept between the two words on one line around the bar. When the
--- two would come closer than this, the right one takes a line of its own.
+-- Room kept between the two words on one line around the bar.
 XPBarUI.LINE_GAP = 18
+-- When the two are too long for one line, each wraps in its own share of
+-- the bar, one at each end. A share narrower than this would wrap word by
+-- word, so the right one takes a line of its own instead.
+XPBarUI.MIN_SHARE = 150
 -- The least of the gold and the rim that stays while the bar is transparent.
 XPBarUI.GOLD_FLOOR = 0.55
 XPBarUI.RIM_FLOOR = 0.4
@@ -311,19 +314,40 @@ local function Height(label, line)
     return math.ceil(height)
 end
 
---- Puts one pair of labels on a line, or on two when they would touch.
---- Returns their height and whether they were stacked.
+--- Puts one pair of labels on a line, side by side at the two ends. When
+--- they are too long for that, each wraps in its own share of the line,
+--- the longer one getting more; only when a share would be too narrow do
+--- they go on two lines. Returns their height, whether they were stacked
+--- and the two widths they were given.
 function XPBarUI.FitPair(left, right, room, line)
     local leftWidth, rightWidth = Width(left), Width(right)
-    for _, label in ipairs({ left, right }) do
-        pcall(label.SetWordWrap, label, true)
-        label:SetWidth(room)
+    local leftRoom, rightRoom = room, room
+    local stacked = false
+    local open = room - XPBarUI.LINE_GAP
+    if leftWidth > 0 and rightWidth > 0 and leftWidth + rightWidth > open then
+        -- Each gets at least the least share (or all it needs, if less),
+        -- and what is left goes by how much more each one needs.
+        local leftLeast = math.ceil(math.min(leftWidth, XPBarUI.MIN_SHARE))
+        local rightLeast = math.ceil(math.min(rightWidth, XPBarUI.MIN_SHARE))
+        local spare = open - leftLeast - rightLeast
+        if spare < 0 then
+            stacked = true
+        else
+            local leftMore, rightMore = leftWidth - leftLeast, rightWidth - rightLeast
+            local more = leftMore + rightMore
+            local leftSpare = more > 0 and math.floor(spare * leftMore / more) or 0
+            leftRoom = leftLeast + leftSpare
+            rightRoom = open - leftRoom
+        end
     end
-    if rightWidth == 0 or leftWidth == 0
-        or leftWidth + rightWidth + XPBarUI.LINE_GAP <= room then
-        return math.max(Height(left, line), Height(right, line)), false
+    pcall(left.SetWordWrap, left, true)
+    pcall(right.SetWordWrap, right, true)
+    left:SetWidth(leftRoom)
+    right:SetWidth(rightRoom)
+    if stacked then
+        return Height(left, line) + Height(right, line), true, leftRoom, rightRoom
     end
-    return Height(left, line) + Height(right, line), true
+    return math.max(Height(left, line), Height(right, line)), false, leftRoom, rightRoom
 end
 
 --- Lays the words out round the bar so no two lines ever overlap, at any
@@ -335,13 +359,15 @@ function XPBarUI:Layout()
     local line = self.LineHeight()
     local room = self.WIDTH - 8
 
-    local topHeight, topStacked = self.FitPair(labels.topLeft, labels.topRight, room, line)
-    local bottomHeight, bottomStacked = self.FitPair(labels.bottomLeft, labels.bottomRight, room, line)
+    local topHeight, topStacked, topLeftRoom, topRightRoom =
+        self.FitPair(labels.topLeft, labels.topRight, room, line)
+    local bottomHeight, bottomStacked, bottomLeftRoom, bottomRightRoom =
+        self.FitPair(labels.bottomLeft, labels.bottomRight, room, line)
     if topStacked then topHeight = topHeight + 2 end
     if bottomStacked then bottomHeight = bottomHeight + 2 end
 
-    local key = table.concat({ topHeight, tostring(topStacked), bottomHeight,
-        tostring(bottomStacked) }, ":")
+    local key = table.concat({ topHeight, tostring(topStacked), topLeftRoom, topRightRoom,
+        bottomHeight, tostring(bottomStacked), bottomLeftRoom, bottomRightRoom }, ":")
     if key == self.layoutKey then return end
     self.layoutKey = key
 

@@ -441,17 +441,39 @@ do
     local height, stacked = Bar.FitPair(labels.bottomLeft, labels.bottomRight, Bar.WIDTH - 8, line)
     suite.check("short words share a line", not stacked and height == line, height)
 
-    labels.bottomLeft:SetText(("Level 21 in about 2 hours at this session's pace "):rep(2))
-    labels.bottomRight:SetText("This session +12,345 XP  |  45,678 XP an hour (up 25%)")
-    height, stacked = Bar.FitPair(labels.bottomLeft, labels.bottomRight, Bar.WIDTH - 8, line)
-    suite.check("long words take a line each", stacked and height >= line * 2, height)
+    -- A German line runs long: the two stay side by side, one at each
+    -- end, each wrapping in its own share (a player asked, 2026-10-19).
+    labels.bottomLeft:SetText("Stufe 5 in etwa 3Std 4Min bei deinem Tempo in dieser Sitzung")
+    labels.bottomRight:SetText("Diese Sitzung +450 EP  |  272 EP pro Stunde")
+    local leftRoom, rightRoom
+    height, stacked, leftRoom, rightRoom = Bar.FitPair(labels.bottomLeft, labels.bottomRight, Bar.WIDTH - 8, line)
+    suite.check("long words stay side by side", not stacked, height)
+    suite.check("the two shares fill the line with a gap",
+        leftRoom + rightRoom + Bar.LINE_GAP == Bar.WIDTH - 8, leftRoom .. "+" .. rightRoom)
+    suite.check("the longer line gets the bigger share", leftRoom > rightRoom, leftRoom .. "/" .. rightRoom)
+    suite.check("no share is too narrow to read",
+        math.min(leftRoom, rightRoom) >= Bar.MIN_SHARE, leftRoom .. "/" .. rightRoom)
 
     Bar.layoutKey = nil
     Bar:Layout()
     local _, anchor = labels.bottomRight:GetPoint()
-    suite.check("the right line sits under the left one", anchor == labels.bottomLeft, tostring(anchor))
+    suite.check("the right line sits at the bar's right end", anchor == Bar.bar, tostring(anchor))
+
+    labels.bottomLeft:SetText("Level 21 in about 2 hours at this session's pace")
+    labels.bottomRight:SetText("This session +12,345 XP  |  45,678 XP an hour (up 25%)")
+    height, stacked = Bar.FitPair(labels.bottomLeft, labels.bottomRight, Bar.MIN_SHARE * 2, line)
+    suite.check("too little room for two shares takes a line each", stacked and height >= line * 2, height)
+    labels.bottomLeft:SetText(("Level 21 in about 2 hours at this session's pace "):rep(4))
+    labels.bottomRight:SetText(("This session +12,345 XP  |  45,678 XP an hour (up 25%) "):rep(4))
+    local savedWidth = Bar.WIDTH
+    Bar.WIDTH = Bar.MIN_SHARE * 2
+    Bar.layoutKey = nil
+    Bar:Layout()
+    _, anchor = labels.bottomRight:GetPoint()
+    suite.check("stacked, the right line sits under the left one", anchor == labels.bottomLeft, tostring(anchor))
     local frameHeight = Bar.frame:GetHeight()
     suite.check("the bar grows to fit both lines", frameHeight >= line * 3 + Bar.BAR, frameHeight)
+    Bar.WIDTH = savedWidth
 
     Bar:Refresh()
     suite.check("a refresh lays them out again", Bar.frame:GetHeight() < frameHeight, Bar.frame:GetHeight())
