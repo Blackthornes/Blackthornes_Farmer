@@ -191,6 +191,33 @@ sideStepper:SetValue(3)
 suite.check("and back to left", ns.db.killPlatesSide == "left")
 ns.SettingsUI:Hide()
 
+-- A live mob's nameplate inside a dungeon: what it lets the kill count read.
+do
+    local plate = CreateFrame("Frame")
+    local oldName, oldGuid = _G.UnitName, _G.UnitGUID
+    local Harvest = ns.Harvest
+    local function Lines() return table.concat(ns.db.lastProbe and ns.db.lastProbe.lines or {}, "\n") end
+    local realPlates = _G.C_NamePlate
+    _G.C_NamePlate = { GetNamePlateForUnit = function(unit)
+        if unit == "nameplate1" then return plate end
+    end }
+    _G.UnitName = function() return env.Secret("string") end
+    _G.UnitGUID = function() return env.Secret("string") end
+    ns.KillPlates:Update("nameplate1")
+    Harvest.checkArmed = true
+    local ran, why = pcall(Harvest.RunArmedCheck, Harvest)
+    suite.check("a hidden nameplate does not raise", ran, why)
+    suite.check("it counts the nameplates", Lines():find("nameplates: %d+"), Lines())
+    suite.check("it describes the plate's mob",
+        Lines():find("nameplate1 name: unreadable", 1, true), Lines())
+    suite.check("and whether the kill count shows there",
+        Lines():find("nameplate1 kill count: not shown", 1, true), Lines())
+    ns.KillPlates:Removed("nameplate1")
+    _G.C_NamePlate = realPlates
+    _G.UnitName, _G.UnitGUID = oldName, oldGuid
+end
+
+
 ns.Value.ForMob = realForMob
 _G.C_NamePlate = nil
 suite.done()

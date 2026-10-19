@@ -1967,6 +1967,16 @@ end
 
 -- How many loot slots it describes, so area loot cannot flood chat.
 Harvest.CHECK_SLOTS = 8
+-- How many live nameplates it describes.
+Harvest.CHECK_PLATES = 3
+
+local function PlateOf(unit)
+    local plates = _G.C_NamePlate
+    local forUnit = type(plates) == "table" and plates.GetNamePlateForUnit
+    if type(forUnit) ~= "function" then return nil end
+    local ok, plate = pcall(forUnit, unit)
+    return ok and type(plate) == "table" and plate or nil
+end
 
 --- What a value off the client looks like to this addon: its text, or
 --- "secret", "unreadable" or "nil". Never raises.
@@ -2048,6 +2058,17 @@ function Harvest:LootCheck()
 
     for _, unit in ipairs({ "target", "mouseover", "softinteract" }) do
         DescribeUnit(unit)
+    end
+
+    -- Live mobs' nameplates, for the kill count beside them: it can only
+    -- show over a mob whose name or ID the plate lets an addon read.
+    local plates = ns.KillPlates and ns.KillPlates.Units and ns.KillPlates:Units() or {}
+    Line("nameplates", tostring(#plates))
+    for i = 1, math.min(#plates, Harvest.CHECK_PLATES) do
+        local unit = plates[i]
+        DescribeUnit(unit)
+        local shown = ns.KillPlates:Shown(PlateOf(unit))
+        Line(unit .. " kill count", shown and "shown" or "not shown")
     end
 
     local gotCount, lootCount = pcall(GetNumLootItems or error)
