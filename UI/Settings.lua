@@ -884,7 +884,7 @@ function SettingsUI:BuildLootPage()
     local holdRow = pages:Row("loot", 1, L["Show For:"], nil)
     local function Seconds(value) return L.Format("%d seconds", value) end
     controls.lootFeedHold = Widgets.CreateStepper(holdRow, {
-        min = ns.LootFeed.HOLD_MIN, max = ns.LootFeed.HOLD_MAX, step = 1, value = 3,
+        min = ns.LootFeed.HOLD_MIN, max = ns.LootFeed.HOLD_MAX, step = 1, value = ns.LootFeed.HOLD,
         format = Seconds,
         onChange = function(value) ns.LootFeed:SetHold(value) end,
     })
