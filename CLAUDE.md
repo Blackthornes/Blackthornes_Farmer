@@ -856,6 +856,29 @@ rename it) with Try it, and `/farm bagsfull [on|off|test]`. Tested in
 `tools/test_bagsfull.lua` (also listed in `tools/testenv.lua`'s
 `UI_FILES`). Not yet seen in game.
 
+## The loot feed
+
+A player asked (2026-10-19, the owner said build it from a mockup he
+approved word for word): a small feed of what you loot, off unless ticked.
+`UI/LootFeed.lua`: a dark glass row a thing (icon, name in its rarity
+colour, "x3"), newest on top with a gold edge; the same thing again adds
+to its count, moves to the top and holds again; rows fade after Show For
+(`lootFeedHold`, 2 to 10 seconds, 3); at most `MAX_ROWS` (6). A warm glass
+foot under a gold rule says "Coin: X" and, with Show Worth on
+(`lootFeedWorth`), "Loot worth: X" (`Value:WorthOf` for each row's count,
+greys at vendor). It reads each loot window once through `ns.OnLootWindow`
+(ahead of fast-loot addons) and shows a slot when `LOOT_SLOT_CLEARED` says
+it was taken (a client without the event shows the window as read);
+locked slots, hidden items and secret values never go in. Its own frame on
+UIParent that never takes the mouse, except in Move, which shows a sample
+row, the gold edge and the house size grip (`lootFeedScale`); its top left
+is kept in `lootFeedX`/`lootFeedY` (nil for the first place). Transparent
+is `lootFeedSeeThrough` (`UI/SeeThrough.lua`'s "lootfeed", Some unless
+picked). All account wide; never rename them. Settings > Loot > LOOT FEED
+("Loot Feed:", "Show For:", "Show Worth:", "Feed Place:" Move and Reset),
+"Loot Feed:" under TRANSPARENT, and `/farm lootfeed on|off|move|reset`.
+Tested in `tools/test_lootfeed.lua`. Not yet seen in game.
+
 ## Clams and sacks worth what's inside
 
 The owner asked (2026-10-15) for what comes out of a clam, sack or lockbox

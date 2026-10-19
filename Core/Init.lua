@@ -287,11 +287,33 @@ end
 -- That guard needs LOOT_CLOSED. On a client without it nothing would end a
 -- window, and every loot after the first would go unread, so there each
 -- window is read on LOOT_READY alone (or LOOT_OPENED, without LOOT_READY).
+--
+-- Fast looting still lost some corpses (2026-10-19). The game hands an
+-- event to frames in the order they asked for it, and these events were
+-- only asked for at login, after every addon that asks as it loads: a fast
+-- loot addon that empties or closes the window on LOOT_READY did so before
+-- Farmer looked. So they are asked for here, as Farmer loads, ahead of most
+-- addons. And a window LOOT_READY finds already empty waits for its
+-- LOOT_OPENED rather than being taken as read, in case its slots come in
+-- by then; LOOT_OPENED reads it as it always did.
 local lootReaders = {}
 local lootReadEarly = false
 local lootHasReady, lootHasClosed = false, false
+-- Windows read, and LOOT_READYs that found the window empty, this session
+-- (the loot check, Harvest.LootCheck).
+ns.lootWindows = { read = 0, empty = 0 }
+
+--- How many slots the open loot window has, or nil when the client will not say.
+local function LootCount()
+    if type(GetNumLootItems) ~= "function" then return nil end
+    local ok, count = pcall(GetNumLootItems)
+    if not ok then return nil end
+    local readable, number = pcall(function() return count + 0 end)
+    return readable and type(number) == "number" and number or nil
+end
 
 local function ReadLoot()
+    ns.lootWindows.read = ns.lootWindows.read + 1
     -- One window's sources, read once for all the readers (Harvest:LootSources).
     local harvest = ns.Harvest
     if harvest then harvest.lootReading = {} end
@@ -303,22 +325,24 @@ local function ReadLoot()
     if harvest then harvest.lootReading = nil end
 end
 
+lootHasClosed = ns.RegisterEvent(ns, "LOOT_CLOSED", function() lootReadEarly = false end)
+lootHasReady = ns.RegisterEvent(ns, "LOOT_READY", function()
+    if lootReadEarly or #lootReaders == 0 then return end
+    -- Without LOOT_CLOSED, LOOT_OPENED reads nothing, so this is the only turn.
+    if lootHasClosed and LootCount() == 0 then
+        ns.lootWindows.empty = ns.lootWindows.empty + 1
+        return
+    end
+    lootReadEarly = lootHasClosed
+    ReadLoot()
+end)
+ns.RegisterEvent(ns, "LOOT_OPENED", function()
+    if lootReadEarly or #lootReaders == 0 or (lootHasReady and not lootHasClosed) then return end
+    ReadLoot()
+end)
+
 function ns.OnLootWindow(owner, fn)
     if type(fn) ~= "function" then return false end
-
-    if #lootReaders == 0 then
-        lootHasClosed = ns.RegisterEvent(ns, "LOOT_CLOSED", function() lootReadEarly = false end)
-        lootHasReady = ns.RegisterEvent(ns, "LOOT_READY", function()
-            if lootReadEarly then return end
-            lootReadEarly = lootHasClosed
-            ReadLoot()
-        end)
-        ns.RegisterEvent(ns, "LOOT_OPENED", function()
-            if lootReadEarly or (lootHasReady and not lootHasClosed) then return end
-            ReadLoot()
-        end)
-    end
-
     lootReaders[#lootReaders + 1] = { owner = owner, fn = fn }
     return true
 end
@@ -474,6 +498,11 @@ local DEFAULTS = {
     -- A note on screen each time a clam or sack is opened and counted
     -- (UI/OpenNote.lua, the owner asked 2026-10-15). Never rename it.
     openNote = true,
+    -- The loot feed (UI/LootFeed.lua): off until ticked.
+    lootFeed = false,
+    lootFeedHold = 3,
+    lootFeedWorth = true,
+    lootFeedSeeThrough = 1,
     -- The Open button on the Kills & Loot panel, and opening clams, sacks
     -- and lockboxes by itself after loot once the test found it may (off
     -- unless ticked; UI/OpenButton.lua, the owner asked 2026-10-15). What

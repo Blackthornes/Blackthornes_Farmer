@@ -111,6 +111,7 @@ UI\NamePrompt.lua
 UI\HiddenWindow.lua
 UI\Trash.lua
 UI\OpenNote.lua
+UI\LootFeed.lua
 UI\BagsFull.lua
 UI\OpenButton.lua
 UI\Veil.lua

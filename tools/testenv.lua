@@ -406,6 +406,7 @@ local UI_FILES = {
     "UI/HiddenWindow.lua",
     "UI/Trash.lua",
     "UI/OpenNote.lua",
+    "UI/LootFeed.lua",
     "UI/OpenButton.lua",
     "UI/BagsFull.lua",
     "UI/Veil.lua",
@@ -423,10 +424,24 @@ end
 
 --- Load the addon exactly as the TOC does, and return its namespace.
 --- `opts.locale` ("deDE") loads it as a client in that language would.
+--- `opts.unknownEvents` ({ LOOT_CLOSED = true }) loads it on a client that
+--- refuses those events, as Forever does for any event it does not know.
 function env.Load(opts)
     opts = opts or {}
 
     env.InstallClient()
+    if opts.unknownEvents then
+        local unknown, create = opts.unknownEvents, _G.CreateFrame
+        _G.CreateFrame = function(...)
+            local frame = create(...)
+            local register = frame.RegisterEvent
+            frame.RegisterEvent = function(self, event, ...)
+                if unknown[event] then error("unknown event " .. event) end
+                return register(self, event, ...)
+            end
+            return frame
+        end
+    end
     if opts.locale then
         local locale = opts.locale
         _G.GetLocale = function() return locale end
