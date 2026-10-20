@@ -234,6 +234,19 @@ controls.damageNumbers:GetScript("OnClick")(controls.damageNumbers)
 suite.check("ticking it turns it on", ns.db.damageNumbers == true)
 controls.damageNumbersCombo:GetScript("OnClick")(controls.damageNumbersCombo)
 suite.check("the combo box turns the counter off", ns.db.damageNumbersCombo == false)
+-- The game raises on SetText until a font string has a font (seen in
+-- game, 2026-10-19), so every one is given a font when it is made.
+local unfonted = 0
+for _, n in ipairs(pools.numbers) do
+    if not n.text.fontSize then unfonted = unfonted + 1 end
+    if not n.sub.fontSize then unfonted = unfonted + 1 end
+end
+if pools.combo then
+    if not pools.combo.count.fontSize then unfonted = unfonted + 1 end
+    if not pools.combo.tag.fontSize then unfonted = unfonted + 1 end
+end
+suite.check("every number has a font before its text", #pools.numbers > 0 and unfonted == 0, unfonted)
+
 DN:SetEnabled(false)
 DN:SetComboOn(true)
 

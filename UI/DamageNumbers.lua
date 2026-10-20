@@ -330,6 +330,30 @@ local function Strata(frame)
     pcall(frame.EnableMouse, frame, false)
 end
 
+--- A font string's font and size. The game raises on SetText until a
+--- font string has a font, so a thick outline that won't take falls back
+--- to a plain one, then to the game's own font.
+local function SetFont(fontString, size)
+    if fontString.fontSize == size then return end
+    local font = ns.Theme and ns.Theme.FONT or [[Fonts\FRIZQT__.TTF]]
+    for _, flags in ipairs({ "THICKOUTLINE", "OUTLINE" }) do
+        local ok, set = pcall(fontString.SetFont, fontString, font, size, flags)
+        if ok and set ~= false then
+            fontString.fontSize = size
+            return
+        end
+    end
+    if _G.GameFontNormalLarge then pcall(fontString.SetFontObject, fontString, _G.GameFontNormalLarge) end
+    fontString.fontSize = size
+end
+
+--- A font string with a font from the start.
+local function NewText(frame, size)
+    local text = frame:CreateFontString(nil, "OVERLAY")
+    SetFont(text, size)
+    return text
+end
+
 local function NewNumber()
     local frame = CreateFrame("Frame", nil, UIParent)
     frame:SetSize(10, 10)
@@ -338,9 +362,9 @@ local function NewNumber()
     glow:SetTexture(GLOW)
     pcall(glow.SetBlendMode, glow, "ADD")
     glow:SetPoint("CENTER")
-    local text = frame:CreateFontString(nil, "OVERLAY")
+    local text = NewText(frame, 24)
     text:SetPoint("CENTER")
-    local sub = frame:CreateFontString(nil, "OVERLAY")
+    local sub = NewText(frame, 14)
     sub:SetPoint("TOP", text, "BOTTOM", 0, -2)
     frame:Hide()
     return { frame = frame, glow = glow, text = text, sub = sub }
@@ -376,12 +400,6 @@ local function NewTexture(path)
     end
 end
 
-local function SetFont(fontString, size)
-    if fontString.fontSize == size then return end
-    fontString.fontSize = size
-    local font = ns.Theme and ns.Theme.FONT or [[Fonts\FRIZQT__.TTF]]
-    pcall(fontString.SetFont, fontString, font, size, "THICKOUTLINE")
-end
 
 local function Place(frame, x, y, scale)
     scale = scale > 0.01 and scale or 0.01
@@ -778,7 +796,7 @@ function DamageNumbers:Pop(anchor, amount, crit, school)
     local kind = crit and "crit" or "hit"
     Style(n, kind, size, school)
     pcall(n.text.SetText, n.text, amount)
-    n.sub:SetText("")
+    pcall(n.sub.SetText, n.sub, "")
     n.anchor = anchor
     n.born, n.active, n.life = clock, true, STYLES[kind].life
     -- Hits on one mob fan out left and right so they don't sit on each other.
@@ -821,9 +839,9 @@ function DamageNumbers:Bump(anchor, guid, now)
         local frame = CreateFrame("Frame", nil, UIParent)
         frame:SetSize(10, 10)
         Strata(frame)
-        local count = frame:CreateFontString(nil, "OVERLAY")
+        local count = NewText(frame, 30)
         count:SetPoint("CENTER")
-        local tag = frame:CreateFontString(nil, "OVERLAY")
+        local tag = NewText(frame, 12)
         tag:SetPoint("BOTTOM", count, "TOP", 0, 0)
         combo = { frame = frame, count = count, tag = tag }
     end
