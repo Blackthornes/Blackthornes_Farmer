@@ -23,6 +23,15 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.44.0
+
+- Loot Feed shows what you loot in a small list, with the coin and what it's all worth. It's off until you tick it on the Loot page of Settings.
+- The trash can in your bags now puts a red glow round the item it picked. It's on the Loot page, under Trash Can When Full.
+
+Fixes and changes:
+
+- Several bug fixes for the XP bar and for looting with fast-loot addons.
+
 ## 0.43.0
 
 - Each tooltip line Farmer adds can be Off, Shift or Always. You pick under Tooltips on the Map & goals page of Settings.
