@@ -284,15 +284,17 @@ local function UIScale()
     return ok and tonumber(scale) or 1
 end
 
---- The middle top of a plate in UIParent's units from its bottom left, or nil.
+--- The middle top of a plate in UIParent's units from its bottom left, or
+--- nil. Forever often won't say where a plate is, so this is only a try.
 local function PlatePoint(plate)
     local ok, x, y = pcall(plate.GetCenter, plate)
-    if not ok or type(x) ~= "number" or type(y) ~= "number" then return nil end
+    if not ok or type(x) ~= "number" or type(y) ~= "number" or IsSecret(x) or IsSecret(y) then return nil end
     local okScale, scale = pcall(plate.GetEffectiveScale, plate)
     scale = okScale and tonumber(scale) or 1
     local ratio = scale / UIScale()
     return x * ratio, y * ratio + 18
 end
+DamageNumbers.PlatePoint = PlatePoint
 
 --- The spot, in UIParent's units from its bottom left.
 local function SpotPoint()
@@ -304,20 +306,69 @@ local function SpotPoint()
     return width / 2 + x, height / 2 + y
 end
 
---- Where an anchor stands now. A plate that went away, or now shows
---- another mob, leaves the number where it last was.
-local function Where(anchor)
-    if anchor.plate then
-        if PlateFor(anchor.unit) == anchor.plate then
-            local x, y = PlatePoint(anchor.plate)
-            if x then anchor.x, anchor.y = x, y end
-        else
-            anchor.plate = nil
-        end
-    elseif not anchor.x then
-        anchor.x, anchor.y = SpotPoint()
+-- Each anchor has a small frame of its own that everything it shows is
+-- placed from. On a plate it is pinned to the plate itself, as the kill
+-- counts are, so it follows the mob even when the game won't say where
+-- the plate is (the numbers sat in the bottom left corner, 2026-10-19).
+local bases = {}
+DamageNumbers.MOST_BASES = 24
+DamageNumbers.BASE_KEEP = 5
+
+local function Pin(base, x, y)
+    base:ClearAllPoints()
+    base:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+end
+
+local function TakeBase(anchor)
+    local now, pick, oldest = Now(), nil, nil
+    for _, base in ipairs(bases) do
+        if now - (base.used or 0) > DamageNumbers.BASE_KEEP then pick = base break end
+        if not oldest or base.used < oldest.used then oldest = base end
     end
-    return anchor.x or 0, anchor.y or 0
+    if not pick and #bases < DamageNumbers.MOST_BASES then
+        pick = CreateFrame("Frame", nil, UIParent)
+        pick:SetSize(1, 1)
+        pcall(pick.EnableMouse, pick, false)
+        bases[#bases + 1] = pick
+    end
+    pick = pick or oldest
+    pick.owner, pick.used = anchor, now
+    return pick
+end
+
+local function PinToPlate(base, plate)
+    base:ClearAllPoints()
+    return (pcall(base.SetPoint, base, "CENTER", plate, "CENTER", 0, 18))
+end
+
+--- Where an anchor stands now: x and y from its base, and the base. A
+--- plate that went away, or now shows another mob, leaves the number
+--- where it last was.
+local function Where(anchor)
+    local base = anchor.base
+    if not base or base.owner ~= anchor then
+        base = TakeBase(anchor)
+        anchor.base = base
+        if not (anchor.plate and PlateFor(anchor.unit) == anchor.plate
+            and PinToPlate(base, anchor.plate)) then
+            local x, y
+            if anchor.plate then x, y = PlatePoint(anchor.plate) end
+            if not x then x, y = SpotPoint() end
+            anchor.plate = nil
+            Pin(base, x, y)
+        end
+    elseif anchor.plate and PlateFor(anchor.unit) ~= anchor.plate then
+        -- Kept where it was when the game says; else it stays on the
+        -- plate's last place.
+        local ok, x, y = pcall(base.GetCenter, base)
+        anchor.plate = nil
+        if ok and type(x) == "number" and type(y) == "number" and not IsSecret(x)
+            and not IsSecret(y) and (x ~= 0 or y ~= 0) then
+            Pin(base, x, y)
+        end
+    end
+    base.used = Now()
+    return 0, 0, base
 end
 DamageNumbers.Where = Where
 
@@ -401,12 +452,16 @@ local function NewTexture(path)
 end
 
 
-local function Place(frame, x, y, scale)
+local function Place(frame, x, y, scale, base)
     scale = scale > 0.01 and scale or 0.01
     frame:SetScale(scale)
     frame:ClearAllPoints()
     -- A scaled frame's offsets are in its own units.
-    frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+    if base then
+        frame:SetPoint("CENTER", base, "CENTER", x / scale, y / scale)
+    else
+        frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x / scale, y / scale)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -437,7 +492,7 @@ local function StepNumber(n, now)
         n.frame:Hide()
         return false
     end
-    local x, y = Where(n.anchor)
+    local x, y, base = Where(n.anchor)
     local p = age / n.life
     local popFor = 0.2
     local scale = 1
@@ -450,7 +505,7 @@ local function StepNumber(n, now)
     if n.shakeUntil and age < n.shakeUntil then
         shake = (math.random() * 2 - 1) * 4 * n.size
     end
-    Place(n.frame, x + dx + shake, y + n.dy + rise, scale)
+    Place(n.frame, x + dx + shake, y + n.dy + rise, scale, base)
     local alpha = 1
     if p > 0.65 then alpha = 1 - (p - 0.65) / 0.35 end
     n.frame:SetAlpha(alpha)
@@ -468,7 +523,7 @@ local function StepSpark(s, now, dt)
     s.vy = s.vy - 380 * dt
     s.x, s.y = s.x + s.vx * dt, s.y + s.vy * dt
     local p = age / s.life
-    Place(s.frame, s.x, s.y, 1)
+    Place(s.frame, s.x, s.y, 1, s.base)
     pcall(s.texture.SetRotation, s.texture, math.atan2 and math.atan2(s.vy, s.vx) or 0)
     s.frame:SetAlpha(1 - p)
     return true
@@ -486,8 +541,8 @@ local function StepRing(r, now)
     local size = r.from + (r.to - r.from) * Ease(p)
     if r.inward then size = r.to - (r.to - r.from) * Ease(p) * 0.85 end
     r.frame:SetSize(size, size)
-    local x, y = Where(r.anchor)
-    Place(r.frame, x + r.dx, y + r.dy, 1)
+    local x, y, base = Where(r.anchor)
+    Place(r.frame, x + r.dx, y + r.dy, 1, base)
     r.frame:SetAlpha(0.9 * (1 - p))
     return true
 end
@@ -503,7 +558,7 @@ local function StepCoin(c, now, dt)
     c.x, c.y = c.x + c.vx * dt, c.y + c.vy * dt
     local spin = math.abs(math.cos(age * c.spin))
     c.frame:SetSize(c.size * (0.25 + 0.75 * spin), c.size)
-    Place(c.frame, c.x, c.y, 1)
+    Place(c.frame, c.x, c.y, 1, c.base)
     local p = age / c.life
     c.frame:SetAlpha(p > 0.7 and (1 - (p - 0.7) / 0.3) or 1)
     return true
@@ -527,7 +582,7 @@ local function StepMote(m, now, dt)
         local x = m.x + math.cos(m.angle) * length * 0.6
         local y = m.y + math.sin(m.angle) * length * 0.6
         m.frame:SetSize(length, 4)
-        Place(m.frame, x, y, 1)
+        Place(m.frame, x, y, 1, m.base)
         pcall(m.texture.SetRotation, m.texture, m.angle)
         m.frame:SetAlpha(alpha * 0.9)
         return true
@@ -538,7 +593,7 @@ local function StepMote(m, now, dt)
         local y = m.y + math.sin(m.angle) * radius * 0.6 + 20 * p
         local twinkle = 0.7 + 0.5 * math.abs(math.sin(age * 18 + m.spin))
         m.frame:SetSize(m.size * twinkle, m.size * twinkle)
-        Place(m.frame, x, y, 1)
+        Place(m.frame, x, y, 1, m.base)
         m.frame:SetAlpha(alpha)
         return true
     elseif fx == "embers" then
@@ -563,7 +618,7 @@ local function StepMote(m, now, dt)
     end
     m.x, m.y = m.x + m.vx * dt, m.y + m.vy * dt
     m.frame:SetSize(width, height)
-    Place(m.frame, m.x, m.y, 1)
+    Place(m.frame, m.x, m.y, 1, m.base)
     if rotation then pcall(m.texture.SetRotation, m.texture, rotation) end
     m.frame:SetAlpha(alpha)
     return true
@@ -577,11 +632,11 @@ local function StepCombo(now)
         combo.frame:Hide()
         return false
     end
-    local x, y = Where(combo.anchor)
+    local x, y, base = Where(combo.anchor)
     local scale = 1
     local since = now - combo.bumped
     if since < 0.18 then scale = 1.35 - 0.35 * Ease(since / 0.18) end
-    Place(combo.frame, x, y + 62 * combo.size, scale)
+    Place(combo.frame, x, y + 62 * combo.size, scale, base)
     local left = DamageNumbers.COMBO_WINDOW - age
     combo.frame:SetAlpha(left < 0.5 and left / 0.5 or 1)
     return true
@@ -657,12 +712,12 @@ end
 -- Effects
 --------------------------------------------------------------------------------
 
-function DamageNumbers:Burst(x, y, count, color)
+function DamageNumbers:Burst(x, y, count, color, base)
     for _ = 1, count do
         local s = Take(sparks, self.MOST_SPARKS, NewTexture(SPARK))
         local angle = math.random() * math.pi * 2
         local speed = 160 + math.random() * 260
-        s.x, s.y = x, y
+        s.x, s.y, s.base = x, y, base
         s.vx, s.vy = math.cos(angle) * speed, math.sin(angle) * speed + 60
         s.life = 0.35 + math.random() * 0.3
         s.born, s.active = clock, true
@@ -685,10 +740,10 @@ function DamageNumbers:Ring(anchor, size, color, delay, dx, dy, inward)
     r.frame:Show()
 end
 
-function DamageNumbers:CoinShower(x, y, count, size)
+function DamageNumbers:CoinShower(x, y, count, size, base)
     for _ = 1, count do
         local c = Take(coins, self.MOST_COINS, NewTexture(COIN))
-        c.x, c.y = x, y
+        c.x, c.y, c.base = x, y, base
         c.vx = (math.random() * 2 - 1) * 170
         c.vy = 180 + math.random() * 200
         c.spin = 8 + math.random() * 8
@@ -709,8 +764,9 @@ local function NewMote()
     return { frame = frame, texture = texture }
 end
 
---- `count` of a kind of damage's motes flying off x, y. `big` for a crit.
-function DamageNumbers:Motes(x, y, count, school, size, big)
+--- `count` of a kind of damage's motes flying off x, y (from `base`, else
+--- UIParent's bottom left). `big` for a crit.
+function DamageNumbers:Motes(x, y, count, school, size, big, base)
     local look = SCHOOLS[school] or SCHOOLS.physical
     local fx = look.fx
     local art = MOTE_ART[fx]
@@ -730,7 +786,7 @@ function DamageNumbers:Motes(x, y, count, school, size, big)
         m.texture:SetVertexColor(look.mote[1], look.mote[2], look.mote[3])
         local angle = math.random() * math.pi * 2
         local speed = (60 + math.random() * 120) * spread * size
-        m.fx, m.x, m.y = fx, x, y
+        m.fx, m.x, m.y, m.base = fx, x, y, base
         m.vx, m.vy = math.cos(angle) * speed, math.sin(angle) * speed
         m.angle = fx == "rays" and (i / count) * math.pi * 2 + math.random() * 0.3 or angle
         m.spin = (math.random() < 0.5 and -1 or 1) * (3 + math.random() * 4)
@@ -814,9 +870,9 @@ function DamageNumbers:Pop(anchor, amount, crit, school)
         self:Ring(anchor, size, look.glow, 0, n.dx, n.dy, look.fx == "smoke")
     end
     if level == "full" then
-        local x, y = Where(anchor)
+        local x, y, base = Where(anchor)
         local count = crit and math.floor(10 * size + 0.5) or math.max(1, math.floor(3 * size + 0.5))
-        self:Motes(x + n.dx, y + n.dy, count, school, size, crit)
+        self:Motes(x + n.dx, y + n.dy, count, school, size, crit, base)
     end
     return n
 end
@@ -909,13 +965,13 @@ function DamageNumbers:Killed(look)
     SetFont(n.sub, math.max(8, math.floor(15 * size + 0.5)))
     n.sub:SetText(line or "")
     if level == "off" then return end
-    local x, y = Where(n.anchor)
+    local x, y, base = Where(n.anchor)
     self:Ring(n.anchor, size * 1.2, STYLES.kill.glow, 0, n.dx, n.dy)
     self:Ring(n.anchor, size * 0.9, { 1, 0.85, 0.4 }, 0.12, n.dx, n.dy)
     if level == "full" then
-        self:Burst(x + n.dx, y + n.dy, math.floor(16 * size + 0.5), STYLES.kill.glow)
-        self:CoinShower(x + n.dx, y + n.dy, math.floor(8 * size + 0.5), size)
-        self:Motes(x + n.dx, y + n.dy, math.floor(8 * size + 0.5), n.school, size, true)
+        self:Burst(x + n.dx, y + n.dy, math.floor(16 * size + 0.5), STYLES.kill.glow, base)
+        self:CoinShower(x + n.dx, y + n.dy, math.floor(8 * size + 0.5), size, base)
+        self:Motes(x + n.dx, y + n.dy, math.floor(8 * size + 0.5), n.school, size, true, base)
         slowUntil = Now() + self.SLOW_FOR
     end
     Wake()
@@ -1096,6 +1152,9 @@ function DamageNumbers.Check()
     for _, key in ipairs(keys) do Say(("%s: %d"):format(key, DamageNumbers.seen[key])) end
     local target = PlateFor("target")
     Say(("target has a nameplate: %s"):format(tostring(target ~= nil)))
+    if target then
+        Say(("game says where it is: %s"):format(tostring(PlatePoint(target) ~= nil)))
+    end
     Say(("last error: %s"):format(DamageNumbers.lastError or "none"))
 end
 
