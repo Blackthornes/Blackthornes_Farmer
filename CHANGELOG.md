@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.44.0
+
+For WoW: Forever (interface 16001). Files were added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Loot Feed:** shows what you loot in a small list, with the coin and what it's all worth. It's off until you tick it on the Loot page of Settings.
+- **Trash can:** puts a red glow round the item it picked. It's on the Loot page, under Trash Can When Full.
+- **Bug fixes:** several bug fixes for the XP bar and for looting with fast-loot addons.
+
 ## 0.43.0
 
 For WoW: Forever (interface 16001). Files were added and the TOC changed, so
