@@ -190,6 +190,18 @@ suite.check("today not farmed yet keeps yesterday's run", run == 2, run)
 local days = Stats:Days(70)
 suite.check("the calendar is ten weeks, today last", #days == 70 and days[70].key == Stats.DayBack(0))
 
+-- Goblin Gold in Tradeskills reads kills and their loot over a week.
+store.days = {}
+store.days[Stats.DayBack(0)] = { kills = 4, drops = 300, grey = 20, coin = 50, gather = 999, mobs = {} }
+store.days[Stats.DayBack(6)] = { kills = 6, drops = 100, coin = 30, mobs = {} }
+store.days[Stats.DayBack(7)] = { kills = 90, drops = 9000, coin = 900, mobs = {} }
+local week = Stats:KillsAndLoot(7)
+suite.check("a week's kills, today and six days back", week.kills == 10, week.kills)
+suite.check("its loot is drops and greys, never gathering", week.loot == 420, week.loot)
+suite.check("and its coin", week.coin == 80, week.coin)
+store.days = {}
+Farm(0) Farm(1) Farm(2) Farm(5) Farm(6) Farm(7) Farm(8)
+
 -- Pruning: a day past the keep and short sessions go.
 store.days["2000-01-01"] = { kills = 1, mobs = {} }
 Stats:Prune()

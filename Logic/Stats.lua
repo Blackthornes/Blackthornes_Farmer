@@ -473,6 +473,28 @@ local function Farmed(day)
     return type(day) == "table" and ((Number(day.kills) or 0) > 0 or DayCopper(day) > 0)
 end
 
+--- Kills and their loot over the last `count` days, today included, for
+--- Tradeskills' Goblin Gold (asked 2026-10-20): { kills, loot, coin }, where
+--- loot is what the drops were worth when looted (greys at vendor) and coin
+--- the coin off corpses, in copper. Read only; a fresh table.
+function Stats:KillsAndLoot(count, now)
+    local store = self:Store()
+    local result = { kills = 0, loot = 0, coin = 0 }
+    count = math.max(1, math.floor(Number(count) or 7))
+    now = now or Clock()
+    if not (store and now) then return result end
+    for back = 0, count - 1 do
+        local key = Stats.DayBack(back, now)
+        local day = key and store.days[key]
+        if type(day) == "table" then
+            result.kills = result.kills + (Number(day.kills) or 0)
+            result.loot = result.loot + (Number(day.drops) or 0) + (Number(day.grey) or 0)
+            result.coin = result.coin + (Number(day.coin) or 0)
+        end
+    end
+    return result
+end
+
 --- The last `count` days, today last: { key, copper, kills, seconds, top,
 --- topKills, sources }.
 function Stats:Days(count, now)

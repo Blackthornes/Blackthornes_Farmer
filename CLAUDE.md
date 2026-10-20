@@ -151,6 +151,21 @@ most every `GAP` seconds. Nothing is saved. Tested in
 `Value:Contents(name)`, so keep those as they are too. If one changes,
 change Tradeskills' `Logic/MethodProfit.lua` and `Logic/SisterKeeps.lua`.
 
+## Goblin Gold (Tradeskills' gold bar)
+
+The owner said build it (2026-10-20, from a mockup): Goblin Gold's hover
+card shows this week's gold from mobs beside how many you killed and what
+their loot was worth. Tradeskills asks, inside a pcall, read only:
+
+```lua
+_G.BlackthornesFarmer.Stats:KillsAndLoot(7)   -- { kills, loot, coin } over the last 7 days, today in
+```
+
+From `farmStats.days` only (the player's own play, account wide): `loot`
+is `drops` plus `grey` as priced when looted, never gathering or fishing.
+Tested in `tools/test_stats.lua`. Keep it stable; if it changes, change
+Tradeskills' `GoldGoal:Sources` too.
+
 ## What Butler calls here
 
 Blackthornes Butler (`Blackthornes/Blackthornes_Butler`, 2026-10-10) tells
