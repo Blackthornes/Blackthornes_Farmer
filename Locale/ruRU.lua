@@ -1568,14 +1568,6 @@ L["Shift"] = "Shift"
 L["Always"] = "Всегда"
 L["Hold Shift for more."] = "Зажми Shift, чтобы увидеть больше."
 
--- Damage numbers (UI/DamageNumbers.lua).
-L["DAMAGE NUMBERS"] = "ЦИФРЫ УРОНА"
-L["Damage Numbers:"] = "Цифры урона:"
-L["Big numbers pop off a mob each time you hit it. The game's own numbers go away while this is on."] = "Большие цифры вылетают из врага каждый раз, когда ты его бьёшь. Пока это включено, цифры игры не показываются."
-L["How Big:"] = "Размер:"
-L["Damage numbers on or off, or how big they are."] = "Включить или выключить цифры урона, или выбрать их размер."
-L["Damage numbers on."] = "Цифры урона включены."
-L["Damage numbers off."] = "Цифры урона выключены."
 
 -- The loot feed (UI/LootFeed.lua)
 L["%d seconds"] = "%d сек."

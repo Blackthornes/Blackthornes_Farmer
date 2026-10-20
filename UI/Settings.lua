@@ -766,27 +766,6 @@ function SettingsUI:BuildTallyPage()
     local _, resetButton = CommandRow(pages, "tally", 2, L["XP Bar Position:"], nil,
         L["Set Default"], "xpbar reset")
     controls.xpBarReset = resetButton
-
-    -- Big damage numbers off mobs (UI/DamageNumbers.lua, the owner said
-    -- build it 2026-10-19).
-    pages:Section("tally", 2, L["DAMAGE NUMBERS"])
-
-    local numbersRow = pages:Row("tally", 2, L["Damage Numbers:"],
-        L["Big numbers pop off a mob each time you hit it. The game's own numbers go away while this is on."])
-    controls.damageNumbers = Widgets.CreateCheckbox(numbersRow, L["On"], function(checked)
-        ns.DamageNumbers:SetEnabled(checked)
-    end, false)
-    controls.damageNumbers:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local sizeNames = { some = L["Some"], more = L["More"], most = L["Most"] }
-    local numbersSizeRow = pages:Row("tally", 2, L["How Big:"], nil)
-    controls.damageNumbersSize = Widgets.CreateStepper(numbersSizeRow, {
-        min = 1, max = #ns.DamageNumbers.SIZES, step = 1, value = 3,
-        format = function(index) return sizeNames[ns.DamageNumbers.SIZES[index]] end,
-        onChange = function(index) ns.DamageNumbers:SetSize(ns.DamageNumbers.SIZES[index]) end,
-    })
-    ns.SettingsPages.FitStepper(controls.damageNumbersSize, sizeNames)
-    controls.damageNumbersSize:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Loot: recording what drops, its export, fishing and gathering.
@@ -1420,13 +1399,6 @@ function SettingsUI:Refresh()
         controls.xpBarCheer:SetChecked(ns.XPBarUI.CheerOn())
         controls.xpBarChime:SetChecked(ns.XPBarUI.ChimeOn())
         controls.xpBarHideGame:SetChecked(ns.XPBarUI.HidesGame())
-    end
-    if ns.DamageNumbers then
-        controls.damageNumbers:SetChecked(ns.DamageNumbers:IsEnabled())
-        local size = ns.DamageNumbers:Size()
-        for index, each in ipairs(ns.DamageNumbers.SIZES) do
-            if each == size then controls.damageNumbersSize:SetValue(index, true) end
-        end
     end
     controls.textSize:Sync()
     controls.windowStyle:Sync()

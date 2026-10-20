@@ -1567,14 +1567,6 @@ L["Shift"] = "Mayús"
 L["Always"] = "Siempre"
 L["Hold Shift for more."] = "Mantén Mayús para ver más."
 
--- Damage numbers (UI/DamageNumbers.lua).
-L["DAMAGE NUMBERS"] = "NÚMEROS DE DAÑO"
-L["Damage Numbers:"] = "Números de daño:"
-L["Big numbers pop off a mob each time you hit it. The game's own numbers go away while this is on."] = "Números grandes saltan de un enemigo cada vez que lo golpeas. Los números del juego desaparecen mientras esto está activado."
-L["How Big:"] = "Tamaño:"
-L["Damage numbers on or off, or how big they are."] = "Números de daño activados o no, o su tamaño."
-L["Damage numbers on."] = "Números de daño activados."
-L["Damage numbers off."] = "Números de daño desactivados."
 
 -- The loot feed (UI/LootFeed.lua)
 L["%d seconds"] = "%d segundos"
