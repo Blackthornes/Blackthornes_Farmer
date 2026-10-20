@@ -1243,8 +1243,7 @@ come from `UNIT_COMBAT` (the combat log is closed to addons), only a
 WOUND on a `nameplateN` unit, or on the target when it has no plate (then
 just above the character, `SPOT_X`/`SPOT_Y`; the owner said no setting
 for it), never a mob tapped by someone else or one you can't attack. A
-number pops and rises; a crit is bigger with a ring and sparks; hits on
-one mob count a combo (gold, orange from 5, violet from 10); a hit that
+number pops and rises; a crit is bigger with a ring and sparks; a hit that
 kills (`UnitIsDead` within `KILL_LOOK`, or the plate going) becomes a
 kill with rings, coins, a short slow motion of our own effects and the
 kill line ("8/20", then the count and worth from `KillTooltip:Read`, never
@@ -1254,8 +1253,9 @@ reads UNIT_COMBAT's school mask (a mixed one takes the first in
 `SCHOOL_ORDER`, one the client won't say is Physical), and `SCHOOLS` gives
 Physical steel sparks, Holy rays, Fire embers, Nature leaves, Frost shards,
 Shadow smoke with a ring that pulls in, Arcane stars (`Motes`, its own pool,
-`MOST_MOTES`); the kill stays gold for everyone. No words but COMBO and the count (the owner: "Let the
-numbers do the talking"). Window effects Subtle drops sparks and coins,
+`MOST_MOTES`); the kill stays gold for everyone. No words at all (the owner: "Let the
+numbers do the talking"), and no combo count (the owner took it out
+2026-10-20: he didn't like it on the mob; never add it back unasked). Window effects Subtle drops sparks and coins,
 Off shows numbers only. Pools have caps (`MOST_NUMBERS` and the like) and
 one driver runs only while something moves. While ticked the game's own
 numbers (`floatingCombatTextCombatDamage_v2`, `floatingCombatTextCombatDamage`)
@@ -1263,10 +1263,10 @@ are set to 0, the player's values kept in `damageNumbersCVars` and put
 back when unticked or at login while off, never in a fight. Art from
 `tools/make_damage_art.py` (HitRing, HitSpark, HitCoin, HitEmber, HitShard,
 HitLeaf, HitSmoke, HitStar); rerun it, never
-edit the TGAs. "Damage Numbers:" (`damageNumbers`, off unless ticked),
-"How Big:" (`damageNumbersSize`, some, more, most; most by default) and
-"Combo Counter:" (`damageNumbersCombo`, on unless unticked) under DAMAGE
-NUMBERS on the Kills page, account wide, never rename them; `/farm numbers
+edit the TGAs. "Damage Numbers:" (`damageNumbers`, off unless ticked)
+and "How Big:" (`damageNumbersSize`, some, more, most; most by default)
+under DAMAGE NUMBERS on the Kills page, account wide, never rename them
+(a saved `damageNumbersCombo` is kept but not read); `/farm numbers
 [on|off|some|more|most]`. Never announced. Tested in
 `tools/test_damagenumbers.lua`. Not yet seen in game.
 

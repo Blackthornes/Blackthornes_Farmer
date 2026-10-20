@@ -5,8 +5,6 @@
 --   a hit       a number that bounces up and fades, coloured by its kind
 --               of damage, with a few of that kind's motes
 --   a crit      bigger, a ring and a burst of that kind's motes, a shake
---   a combo     COMBO x5 over the mob, warming gold to orange to violet as
---               the hits keep coming, a ring every fifth
 --   the kill    bigger still and hot orange, two rings, sparks, coins, a moment of slow
 --               motion, and the kill count ("8/20") and what a kill is worth
 --
@@ -14,8 +12,9 @@
 -- "massive levels of dopamine", and picked where they show: on the mob
 -- when it has a nameplate, else (for the target) at one spot just above
 -- the character, with no setting for it (the owner, the same day). Never
--- announced. No words over the numbers but COMBO: "Let the numbers do
--- the talking" (the owner, the same day).
+-- announced. No words over the numbers: "Let the numbers do the talking"
+-- (the owner, the same day). The combo count over the mob was taken out
+-- (the owner, 2026-10-20: he didn't like it there).
 --
 -- Kinds of damage (the owner said build it, 2026-10-19, from a mockup:
 -- "cool dopamine for each class"): UNIT_COMBAT's school picks the colour
@@ -39,8 +38,9 @@
 -- `damageNumbersCVars` and put back when it is unticked (also at login,
 -- if a value was left there). Never in a fight: it waits for the fight to
 -- end. Saved, account wide, never renamed: `damageNumbers` (off unless
--- ticked), `damageNumbersSize` ("some", "more", "most"; "most" to start),
--- `damageNumbersCombo` (on unless unticked) and `damageNumbersCVars`.
+-- ticked), `damageNumbersSize` ("some", "more", "most"; "most" to start)
+-- and `damageNumbersCVars`. A `damageNumbersCombo` saved before is kept
+-- but no longer read.
 --
 -- Smooth play: every number, spark, ring and coin is Farmer's own frame or
 -- texture on UIParent, made once and used again from a pool with a cap
@@ -76,7 +76,7 @@ DamageNumbers.MOST_SPARKS = 48
 DamageNumbers.MOST_RINGS = 6
 DamageNumbers.MOST_COINS = 14
 DamageNumbers.MOST_MOTES = 40
-DamageNumbers.COMBO_WINDOW = 2.4    -- seconds between hits that keep a combo going
+DamageNumbers.SHARE_WINDOW = 2.4    -- seconds between hits on one mob that share its anchor
 DamageNumbers.KILL_LOOK = 0.5       -- seconds after a hit to see whether it killed
 DamageNumbers.SLOW = 0.25           -- how slow the moment after a kill runs
 DamageNumbers.SLOW_FOR = 0.45       -- for this long, in real seconds
@@ -89,13 +89,6 @@ local STYLES = {
     kill = { size = 50, life = 1.9,  pop = 2.6,  rise = 70, color = { 1, 0.56, 0.2 }, glow = { 1, 0.45, 0.12 } },
 }
 DamageNumbers.STYLES = STYLES
-
--- The combo's colour as it heats: gold, then orange from 5, violet from 10.
-local HEAT = {
-    { from = 10, color = { 0.824, 0.482, 1 } },
-    { from = 5,  color = { 1, 0.541, 0.165 } },
-    { from = 0,  color = { 1, 0.843, 0.353 } },
-}
 
 -- Each kind of damage: the number's colour, its glow and ring, its motes.
 local SCHOOLS = {
@@ -126,10 +119,9 @@ function DamageNumbers.School(mask)
 end
 
 local numbers, sparks, rings, coins, motes = {}, {}, {}, {}, {}
-local combos = {}       -- [guid] = { count, last }
+local recent = {}       -- [guid] = { last, anchor }: hits on one mob share an anchor
 local lastHit = {}      -- [guid] = { at, unit, crit, amount }, to show a hit once
 local pending = {}      -- [unit] = { guid, number, untilAt }
-local combo             -- the one combo label
 local driver
 local clock = 0         -- our own time, slowed for a moment after a kill
 local slowUntil = 0
@@ -197,10 +189,6 @@ end
 
 function DamageNumbers:Scale()
     return self.SCALE[self:Size()]
-end
-
-function DamageNumbers:ComboOn()
-    return not (ns.db and ns.db.damageNumbersCombo == false)
 end
 
 --- The spot's offset from the middle of the screen: just above your
@@ -624,24 +612,6 @@ local function StepMote(m, now, dt)
     return true
 end
 
-local function StepCombo(now)
-    if not combo or not combo.active then return false end
-    local age = now - combo.last
-    if age >= DamageNumbers.COMBO_WINDOW then
-        combo.active = nil
-        combo.frame:Hide()
-        return false
-    end
-    local x, y, base = Where(combo.anchor)
-    local scale = 1
-    local since = now - combo.bumped
-    if since < 0.18 then scale = 1.35 - 0.35 * Ease(since / 0.18) end
-    Place(combo.frame, x, y + 62 * combo.size, scale, base)
-    local left = DamageNumbers.COMBO_WINDOW - age
-    combo.frame:SetAlpha(left < 0.5 and left / 0.5 or 1)
-    return true
-end
-
 function DamageNumbers:CheckKills(now)
     for unit, look in pairs(pending) do
         if now > look.untilAt or not look.number.active then
@@ -679,7 +649,6 @@ function DamageNumbers:Step(elapsed)
     for _, m in ipairs(motes) do
         if m.active and StepMote(m, now, dt) then count = count + 1 end
     end
-    if StepCombo(now) then count = count + 1 end
     if next(pending) then count = count + 1 end
     active = count
     if count == 0 and driver then driver:SetScript("OnUpdate", nil) end
@@ -703,9 +672,9 @@ end
 
 --- How many things are moving, for the tests.
 function DamageNumbers:Active() return active end
---- The pools and the combo, for the tests.
+--- The pools, for the tests.
 function DamageNumbers:Pools()
-    return { numbers = numbers, sparks = sparks, rings = rings, coins = coins, motes = motes, combo = combo, pending = pending }
+    return { numbers = numbers, sparks = sparks, rings = rings, coins = coins, motes = motes, pending = pending }
 end
 
 --------------------------------------------------------------------------------
@@ -877,49 +846,18 @@ function DamageNumbers:Pop(anchor, amount, crit, school)
     return n
 end
 
---- The combo over the mob: COMBO and x5, warming as it climbs.
+--- Notes a hit on a mob, so its next hits share the anchor.
 function DamageNumbers:Bump(anchor, guid, now)
-    local entry = combos[guid]
-    if not entry or now - entry.last > self.COMBO_WINDOW then
+    local entry = recent[guid]
+    if not entry or now - entry.last > self.SHARE_WINDOW then
         -- Mobs long done are let go, so the list never grows.
-        for each, old in pairs(combos) do
-            if now - old.last > self.COMBO_WINDOW then combos[each] = nil end
+        for each, old in pairs(recent) do
+            if now - old.last > self.SHARE_WINDOW then recent[each] = nil end
         end
-        entry = { count = 0 }
-        combos[guid] = entry
+        entry = {}
+        recent[guid] = entry
     end
-    entry.count, entry.last = entry.count + 1, now
-    if not self:ComboOn() or entry.count < 2 then return entry.count end
-
-    if not combo then
-        local frame = CreateFrame("Frame", nil, UIParent)
-        frame:SetSize(10, 10)
-        Strata(frame)
-        local count = NewText(frame, 30)
-        count:SetPoint("CENTER")
-        local tag = NewText(frame, 12)
-        tag:SetPoint("BOTTOM", count, "TOP", 0, 0)
-        combo = { frame = frame, count = count, tag = tag }
-    end
-    local size = self:Scale()
-    combo.size, combo.anchor = size, anchor
-    combo.last, combo.bumped, combo.active = clock, clock, true
-    SetFont(combo.count, math.floor(30 * size + 0.5))
-    SetFont(combo.tag, math.max(8, math.floor(12 * size + 0.5)))
-    combo.tag:SetText(L["COMBO"])
-    combo.count:SetText(("x%d"):format(entry.count))
-    local color = HEAT[#HEAT].color
-    for _, heat in ipairs(HEAT) do
-        if entry.count >= heat.from then color = heat.color break end
-    end
-    combo.count:SetTextColor(color[1], color[2], color[3])
-    combo.tag:SetTextColor(color[1], color[2], color[3])
-    combo.frame:SetAlpha(1)
-    combo.frame:Show()
-    if entry.count % 5 == 0 and Level() ~= "off" then
-        self:Ring(anchor, size * 0.8, color, 0, 0, 62 * size)
-    end
-    return entry.count
+    entry.last, entry.anchor = now, anchor
 end
 
 --- Is this unit, still the same mob, dead?
@@ -1021,7 +959,7 @@ function DamageNumbers:OnHit(unit, kind, flag, amount, school)
     self.seen.shown = (self.seen.shown or 0) + 1
     local anchor = { unit = unit, plate = plate }
     -- Hits on one mob share an anchor, so they fan out around it.
-    local entry = combos[guid]
+    local entry = recent[guid]
     if entry and entry.anchor and entry.anchor.unit == unit and entry.anchor.plate == plate then
         anchor = entry.anchor
     end
@@ -1029,7 +967,6 @@ function DamageNumbers:OnHit(unit, kind, flag, amount, school)
 
     local n = self:Pop(anchor, shown, crit, self.School(school))
     self:Bump(anchor, guid, clock)
-    combos[guid].anchor = anchor
 
     local name
     if ns.KillTooltip and ns.KillTooltip.MobName then
@@ -1062,9 +999,8 @@ function DamageNumbers:Clear()
             each.frame:Hide()
         end
     end
-    if combo then combo.active = nil combo.frame:Hide() end
     for unit in pairs(pending) do pending[unit] = nil end
-    for guid in pairs(combos) do combos[guid] = nil end
+    for guid in pairs(recent) do recent[guid] = nil end
     for guid in pairs(lastHit) do lastHit[guid] = nil end
     active = 0
     if driver then driver:SetScript("OnUpdate", nil) end
@@ -1115,11 +1051,6 @@ end
 function DamageNumbers:SetSize(size)
     if not self.SCALE[size] then return end
     ns.db.damageNumbersSize = size
-end
-
-function DamageNumbers:SetComboOn(on)
-    ns.db.damageNumbersCombo = on and true or false
-    if not on and combo then combo.active = nil combo.frame:Hide() end
 end
 
 function DamageNumbers:OnEnable()
