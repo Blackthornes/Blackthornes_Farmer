@@ -52,6 +52,16 @@ local function Mob(token, name, guid, withPlate)
     end
 end
 
+-- Where a frame's middle is on screen, following its anchors.
+local function At(frame)
+    if frame == UIParent then return 0, 0 end
+    local p = rawget(frame, "_point")
+    if not p then return frame._cx or 0, frame._cy or 0 end
+    local scale = rawget(frame, "_scale") or 1
+    local bx, by = At(p[2])
+    return bx + p[4] * scale, by + p[5] * scale
+end
+
 local function Plain(text)
     return (text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 end
@@ -120,9 +130,28 @@ suite.check("a hit counts once", DN.seen["seen already"] == 1 and DN.seen.shown 
 Mob("target", "Bristleback", "Creature-0-1-2-3-3258-00000003", false)
 UIParent._width, UIParent._height = 1024, 768
 local spot = DN:OnHit("target", "WOUND", nil, 12)
-local sx, sy = DN.Where(spot.anchor)
+local sx, sy = At(spot.anchor.base)
 suite.check("one with none shows at the spot", spot and not spot.anchor.plate
     and sx == 512 + DN.SPOT_X and sy == 384 + DN.SPOT_Y, ("%s,%s"):format(sx, sy))
+
+-- A plate the game won't say the place of (Forever, 2026-10-19: the
+-- numbers sat in the bottom left corner): the number rides the plate.
+Mob("nameplate4", "Thunderhead", "Creature-0-1-2-3-3240-00000004", true)
+local hidden = plates.nameplate4
+hidden.GetCenter = function() return nil end
+local ridden = DN:OnHit("nameplate4", "WOUND", nil, 21)
+Run(0.05)
+local point = ridden and rawget(ridden.frame, "_point")
+suite.check("a plate with no place still carries its number",
+    point and point[2] == ridden.anchor.base and rawget(ridden.anchor.base, "_point")[2] == hidden)
+hidden._cx, hidden._cy = 700, 500
+Run(0.1)
+local hx, hy = At(ridden.frame)
+suite.check("and the number follows the plate", math.abs(hx - 700) < 60 and hy > 500, ("%s,%s"):format(hx, hy))
+plates.nameplate4 = nil
+Run(0.1)
+local gx, gy = At(ridden.frame)
+suite.check("never the bottom left corner", gx > 100 and gy > 100, ("%s,%s"):format(gx, gy))
 
 -- Combos heat up and a fifth hit rings.
 for amount = 1, 3 do DN:OnHit("nameplate1", "WOUND", nil, amount) end
