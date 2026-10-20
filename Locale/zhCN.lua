@@ -1565,14 +1565,6 @@ L["Shift"] = "Shift"
 L["Always"] = "总是"
 L["Hold Shift for more."] = "按住 Shift 查看更多。"
 
--- Damage numbers (UI/DamageNumbers.lua).
-L["DAMAGE NUMBERS"] = "伤害数字"
-L["Damage Numbers:"] = "伤害数字："
-L["Big numbers pop off a mob each time you hit it. The game's own numbers go away while this is on."] = "每次你击中怪物时，大大的数字会从它身上弹出。开启时，游戏自带的数字会消失。"
-L["How Big:"] = "大小："
-L["Damage numbers on or off, or how big they are."] = "开关伤害数字，或设置它们的大小。"
-L["Damage numbers on."] = "伤害数字已开启。"
-L["Damage numbers off."] = "伤害数字已关闭。"
 
 -- The loot feed (UI/LootFeed.lua)
 L["%d seconds"] = "%d 秒"
