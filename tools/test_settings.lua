@@ -224,6 +224,7 @@ local buttons = {
     lootFeedReset = "lootfeed reset",
     xpBarReset = "xpbar reset",
     statsTab = "charts",
+    killGoal = "killgoal", killGoalSummary = "killgoal summary",
 }
 local wrong = {}
 for key, command in pairs(buttons) do

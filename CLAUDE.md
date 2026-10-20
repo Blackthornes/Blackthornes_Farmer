@@ -166,6 +166,30 @@ is `drops` plus `grey` as priced when looted, never gathering or fishing.
 Tested in `tools/test_stats.lua`. Keep it stable; if it changes, change
 Tradeskills' `GoldGoal:Sources` too.
 
+## Kill goal
+
+A player asked, the owner said build it from a mockup (2026-10-20): a goal
+of a number of kills, of any mob or one, and a summary when it is done.
+`Logic/KillGoal.lua` keeps one per character by GUID in
+`killGoals[guid] = { goal, last }` (account wide, never rename it): the
+goal counts only kills from the moment Start is pressed
+(`KillGoal:Corpse`, from `Tracker:Record`, never skinning windows), each
+corpse once (a later window on it adds its new items, `corpse[3]`), its
+coin, items by mob, farming time (gaps under `BREAK`) and XP
+(`GainedXP`, from `XP:Update`). It lives apart from `ns.db.goals`, so
+Butler, Tradeskills and the arrow never see it. It shows first in the
+Goals panel (`GoalsUI:List`, a sword, "N to go" and time left at your
+pace) with the usual 25%, halfway and 75% tags; it never names or hints
+at the kill milestones. Done, `last` keeps the summary and
+`UI/KillGoal.lua` opens Goal Done! (Time, Gold, Gold an Hour, XP Gained,
+WHAT EACH MOB DROPPED, best drop); Got It takes it off the panel. The New
+Goal box (Item or Kills, How Many:, Which Mobs:) opens from the panel's
+Set another and `/farm killgoal`; `/farm killgoal 1000 [mob]`, `stop`,
+`summary`; Settings, Map & goals, "Kill Goal:" Open and Summary; a Kill
+Goal button on the Stats tab once one is done. Its windows share
+`killGoalScale` (never rename it). Tested in `tools/test_killgoal.lua`.
+Not yet seen in game.
+
 ## What Butler calls here
 
 Blackthornes Butler (`Blackthornes/Blackthornes_Butler`, 2026-10-10) tells

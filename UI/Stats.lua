@@ -233,6 +233,14 @@ function StatsUI:Build(frame)
         StatsUI:ViewChanged()
     end)
     self.switch = switch
+
+    -- The last kill goal's summary (UI/KillGoal.lua), left of the switch,
+    -- once one is finished.
+    local killGoal = ns.Widgets.CreateButton(view, L["Kill Goal"], function()
+        if ns.KillGoalUI then ns.KillGoalUI:ShowSummary() end
+    end, { height = 20 })
+    killGoal:Hide()
+    self.killGoalButton = killGoal
     self:PlaceSwitch()
 
     -- The window is as wide as the widest tab has needed, and every tab
@@ -328,6 +336,11 @@ function StatsUI:PlaceSwitch()
         self.switchPlaced = true
     else
         switch:SetPoint("TOPRIGHT", self.view, "TOPRIGHT", -(PADDING + 80), -(ns.UI.HEAD_TOP or 26))
+    end
+    local killGoal = self.killGoalButton
+    if killGoal then
+        killGoal:ClearAllPoints()
+        killGoal:SetPoint("RIGHT", switch, "LEFT", -12, 0)
     end
 end
 
@@ -1370,6 +1383,9 @@ function StatsUI:Render(arrive)
     local view = ns.Stats:View()
     if not self.switchPlaced then self:PlaceSwitch() end
     if self.switch.selected ~= view then self.switch:Select(view) end
+    if self.killGoalButton then
+        self.killGoalButton:SetShown(ns.KillGoal ~= nil and ns.KillGoal:Last() ~= nil)
+    end
     self.daysCard.sameTag:SetShown(view == "session")
     self.levelsCard.sameTag:SetShown(view == "session")
     local sessions = self.sessionsCard
