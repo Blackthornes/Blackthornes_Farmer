@@ -787,12 +787,6 @@ function SettingsUI:BuildTallyPage()
     })
     ns.SettingsPages.FitStepper(controls.damageNumbersSize, sizeNames)
     controls.damageNumbersSize:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local comboRow = pages:Row("tally", 2, L["Combo Counter:"], nil)
-    controls.damageNumbersCombo = Widgets.CreateCheckbox(comboRow, L["On"], function(checked)
-        ns.DamageNumbers:SetComboOn(checked)
-    end, true)
-    controls.damageNumbersCombo:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Loot: recording what drops, its export, fishing and gathering.
@@ -1433,7 +1427,6 @@ function SettingsUI:Refresh()
         for index, each in ipairs(ns.DamageNumbers.SIZES) do
             if each == size then controls.damageNumbersSize:SetValue(index, true) end
         end
-        controls.damageNumbersCombo:SetChecked(ns.DamageNumbers:ComboOn())
     end
     controls.textSize:Sync()
     controls.windowStyle:Sync()

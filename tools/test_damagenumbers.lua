@@ -6,10 +6,10 @@
 -- shows its number there, a crit bigger with a ring and sparks; the
 -- target with no nameplate shows just above the character, and one with a
 -- nameplate never twice; misses, heals, friends and other people's mobs
--- show nothing; hits in a row count a combo; a hit that kills becomes the
+-- show nothing; no combo count shows over the mob; a hit that kills becomes the
 -- killing blow with the kill count, rings and coins; a secret amount shows
 -- without raising; the pools never grow past their caps and the driver
--- stops once nothing moves; How Big and Combo are saved; /farm
+-- stops once nothing moves; How Big is saved; /farm
 -- numbers and the Settings rows turn it all on and off.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
@@ -104,8 +104,7 @@ suite.check("a crit is bigger", crit and crit.kind == "crit"
     and crit.text.fontSize > n.text.fontSize, crit and crit.text.fontSize)
 suite.check("with no word over it", crit and crit.tag == nil)
 suite.check("a ring and a burst of steel", Live(pools.rings) == 1 and Live(pools.motes) > 0)
-suite.check("the combo counts two hits", pools.combo and pools.combo.active
-    and pools.combo.count:GetText() == "x2", pools.combo and pools.combo.count:GetText())
+suite.check("no combo count over the mob", pools.combo == nil and Live(pools.numbers) == 2, Live(pools.numbers))
 
 suite.check("a miss shows nothing", DN:OnHit("nameplate1", "MISS", nil, 0) == nil)
 suite.check("a heal shows nothing", DN:OnHit("nameplate1", "HEAL", nil, 30) == nil)
@@ -153,14 +152,9 @@ Run(0.1)
 local gx, gy = At(ridden.frame)
 suite.check("never the bottom left corner", gx > 100 and gy > 100, ("%s,%s"):format(gx, gy))
 
--- Combos heat up and a fifth hit rings.
+-- Hits in a row show only their numbers.
 for amount = 1, 3 do DN:OnHit("nameplate1", "WOUND", nil, amount) end
-suite.check("five hits in a row are x5", pools.combo.count:GetText() == "x5", pools.combo.count:GetText())
-local r, g = pools.combo.count._color[1], pools.combo.count._color[2]
-suite.check("and the combo turns orange", r == 1 and g < 0.6, g)
-Run(DN.COMBO_WINDOW + 0.2)
-DN:OnHit("nameplate1", "WOUND", nil, 4)
-suite.check("a pause starts the combo over", not pools.combo.active)
+suite.check("five hits in a row show no combo", DN:Pools().combo == nil)
 
 -- The kill.
 ns.db.tracker = ns.db.tracker or {}
@@ -183,15 +177,11 @@ DN:PlateGone("nameplate1")
 suite.check("a kill heard as the plate goes", gone.kind == "kill")
 units.nameplate1.dead = false
 
--- Smaller and the combo off.
+-- Smaller.
 ns.HandleSlash("numbers some")
 suite.check("/farm numbers some saves it", ns.db.damageNumbersSize == "some")
 local small = DN:OnHit("nameplate1", "WOUND", nil, 9)
 suite.check("and the numbers come out smaller", small.text.fontSize < n.text.fontSize)
-DN:SetComboOn(false)
-DN:OnHit("nameplate1", "WOUND", nil, 9)
-suite.check("with the combo off, no counter", not pools.combo.active)
-DN:SetComboOn(true)
 ns.HandleSlash("numbers most")
 
 -- A secret amount shows as it is.
@@ -261,8 +251,7 @@ local controls = ns.SettingsUI.controls
 suite.check("the Settings box shows it off", not controls.damageNumbers:GetChecked())
 controls.damageNumbers:GetScript("OnClick")(controls.damageNumbers)
 suite.check("ticking it turns it on", ns.db.damageNumbers == true)
-controls.damageNumbersCombo:GetScript("OnClick")(controls.damageNumbersCombo)
-suite.check("the combo box turns the counter off", ns.db.damageNumbersCombo == false)
+suite.check("there is no Combo Counter row", controls.damageNumbersCombo == nil)
 -- The game raises on SetText until a font string has a font (seen in
 -- game, 2026-10-19), so every one is given a font when it is made.
 local unfonted = 0
@@ -270,14 +259,9 @@ for _, n in ipairs(pools.numbers) do
     if not n.text.fontSize then unfonted = unfonted + 1 end
     if not n.sub.fontSize then unfonted = unfonted + 1 end
 end
-if pools.combo then
-    if not pools.combo.count.fontSize then unfonted = unfonted + 1 end
-    if not pools.combo.tag.fontSize then unfonted = unfonted + 1 end
-end
 suite.check("every number has a font before its text", #pools.numbers > 0 and unfonted == 0, unfonted)
 
 DN:SetEnabled(false)
-DN:SetComboOn(true)
 
 _G.C_NamePlate, _G.C_CVar, _G.InCombatLockdown = nil, nil, nil
 suite.done()

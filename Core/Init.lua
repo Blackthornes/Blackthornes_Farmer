@@ -485,7 +485,6 @@ local DEFAULTS = {
     -- these, or damageNumbersCVars.
     damageNumbers = false,
     damageNumbersSize = "most",
-    damageNumbersCombo = true,
     -- Skinning spots and leather left out of what Farmer lists, drops only
     -- (DB:ShowsSkinning). The owner asked for it on by default.
     hideSkinning = true,
