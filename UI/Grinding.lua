@@ -267,6 +267,12 @@ function GrindingUI:Build(frame)
     local rule = Theme.CreateDivider(panel, "border")
     rule:SetPoint("TOPLEFT", 8, -20)
     rule:SetPoint("TOPRIGHT", -8, -20)
+    self.rule = rule
+
+    -- Gather to cap sits above the headings in the Ore, Herbs and Leather
+    -- views (UI/GatherToCap.lua); PlacePath makes room for it.
+    if ns.GatherToCapUI then ns.GatherToCapUI:Build(panel) end
+    self.pathRoom = 0
 
     local list = Widgets.CreateRowList(panel, {
         rowHeight = ROW_HEIGHT,
@@ -487,11 +493,34 @@ function GrindingUI:PlaceHeadings()
             x, w = x + math.max(0, math.floor((w - text) / 2)), math.min(w, text)
         end
         label:ClearAllPoints()
-        label:SetPoint("TOPLEFT", 8 + x, -8)
+        label:SetPoint("TOPLEFT", 8 + x, -8 - (self.pathRoom or 0))
         label:SetWidth(w)
         end
     end
     if self.sorter then self.sorter.Paint() end
+end
+
+--- Make `room` pixels at the top of the list for Gather to cap: the
+--- headings, their rule and the list move down under it.
+function GrindingUI:PlacePath(room)
+    room = room or 0
+    if room == self.pathRoom then return end
+    self.pathRoom = room
+    self.rule:ClearAllPoints()
+    self.rule:SetPoint("TOPLEFT", 8, -20 - room)
+    self.rule:SetPoint("TOPRIGHT", -8, -20 - room)
+    self.list:ClearAllPoints()
+    self.list:SetPoint("TOPLEFT", 8, -24 - room)
+    self.list:SetPoint("BOTTOMRIGHT", -8, 8)
+    self:PlaceHeadings()
+end
+
+--- The Gather to cap view for the list in `layout`: "ore", "herbs" or
+--- "skinning", or nil for the mob views.
+function GrindingUI.PathView(layout)
+    if layout == "nodes" then return ns.Grinding:Gives() end
+    if layout == "leather" then return "skinning" end
+    return nil
 end
 
 --- A heading's words in view `layout`.
@@ -1207,6 +1236,11 @@ function GrindingUI:Render(arrive)
     if ns.UI and ns.UI.frame and ns.UI.tab == "grind" then ns.UI:ApplySize() end
     self:PaintControls(low, high)
     self.footer:SetText(GrindingUI.FooterText(layout))
+    if ns.GatherToCapUI then
+        local ok, room = pcall(ns.GatherToCapUI.Update, ns.GatherToCapUI, GrindingUI.PathView(layout))
+        self:PlacePath(ok and room or 0)
+        if not ok and ns.Debug then ns.Debug("gather to cap: " .. tostring(room)) end
+    end
 
     local width = self:FitColumns(rows, layout)
 

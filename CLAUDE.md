@@ -366,6 +366,34 @@ any of it. The data rows are kept until `DB.hiddenVersion` or the counts
 move (`GrindGather:DataRows`). Tested in `tools/test_grindgather.lua`.
 Not yet seen in game.
 
+## Gather to cap
+
+The owner approved the mockup (2026-10-20): the Grind tab's Ore, Herbs and
+Leather views (Leather while the character knows Skinning) open with a
+path from your skill to 300. `Logic/GatherToCap.lua` works it out;
+`UI/GatherToCap.lua` draws it above the list (`GrindingUI:PlacePath`
+moves the headings and list down by its height). A heading ("MINING 87 /
+150", skill and cap from the client, `GatherToCap.ReadSkill`), a meter a
+segment a stop, then dark glass rows: the last stop done (dimmed, a
+check, "Done"), the one you are on (`glassActive`, gold edge, its item's
+icon, "now to N", your mapped spots there and about how many gathers are
+left, gold an hour and a primary Show the Way: `NodeCamp`, then
+`Arrow:Grind`) and up to three later ones ("Train RANK SKILL at N first."
+when they pass your cap, else the zone's mob levels). A footer and Set
+Goal (`Goals:Set` for the stop's item, at least `MIN_GOAL` (20) more than
+you have, then `GoalsUI:Show`). Stops are Classic's ladders
+(`GatherToCap.LADDERS`, the data's skill winning; Skinning by mob level
+bands, the camp you skinned most); the gathers left follow Classic's
+skill-up chance (`Chance`: sure to 25 over, none past 100, never under
+`MIN_CHANCE`); the zone is where you mapped the most (`gathering.spots`),
+else the data's nearest your level. Worth is your own pace
+(`gathering.pace`, `skinLog`) where you have it, else a typical hour.
+Nothing saved; it only reads. Laid out again only when the skill, cap,
+level, spots, `GrindGather.paceVersion` (moved by `NoteGather` and
+`NoteSkin`) or `DB.hiddenVersion` move. Hidden nodes and sources are left
+out, and guild data never reaches it. Tested in
+`tools/test_gathertocap.lua`. Not yet seen in game.
+
 ## The panel kept between sessions
 
 The owner asked (2026-10-11) for the kills and loot panel to stop starting

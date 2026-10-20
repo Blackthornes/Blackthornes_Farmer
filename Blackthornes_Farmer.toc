@@ -70,6 +70,7 @@ Logic\Arrow.lua
 Logic\TomTom.lua
 Logic\Grinding.lua
 Logic\GrindGather.lua
+Logic\GatherToCap.lua
 Logic\Share.lua
 Logic\Transfer.lua
 Logic\GuildShare.lua
@@ -95,6 +96,7 @@ UI\Rankings.lua
 UI\RankUp.lua
 UI\Recap.lua
 UI\Grinding.lua
+UI\GatherToCap.lua
 UI\Stats.lua
 UI\MapMarkers.lua
 UI\Heat.lua

@@ -82,6 +82,8 @@ function GrindGather:NoteGather(zone, node, items, quantities, now)
     if type(zone) ~= "string" or type(node) ~= "string" or node == "" then return end
     zone = ns.Spots.English(zone) or zone
     now = now or Clock()
+    -- Moves with every gather, so what reads the pace knows to look again.
+    GrindGather.paceVersion = (GrindGather.paceVersion or 0) + 1
 
     local store = self:PaceStore()
     local key = Key(zone, node)
@@ -127,6 +129,7 @@ function GrindGather:NoteSkin(mob, guid, items, quantities)
         self.skinned[guid] = true
     end
 
+    GrindGather.paceVersion = (GrindGather.paceVersion or 0) + 1
     local store = self:SkinStore()
     local entry = store[mob]
     if type(entry) ~= "table" then
