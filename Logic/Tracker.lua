@@ -530,6 +530,8 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     -- the corpse already gave (Ruined Leather Scraps looted, then skinned).
     -- Its amount counts; the corpse still held the item once.
     local locked = haul and haul.locked or {}
+    -- What this window gave that is yours, for the kill goal below.
+    local given = {}
     for _, name in ipairs(items or {}) do
         local fresh = not corpse[name]
         if fresh or skinning then
@@ -554,6 +556,7 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
             -- win it, so the session's loot leaves it out.
             local yours = quantity - (tonumber(locked[name]) or 0)
             if yours > 0 then
+                given[name] = (given[name] or 0) + yours
                 if ns.Stats then ns.Stats:Loot("drops", name, yours) end
                 self.sessionLoot[name] = (self.sessionLoot[name] or 0) + yours
                 self.sessionFrom[name] = self.sessionFrom[name] or {}
@@ -601,6 +604,13 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     -- later and never in a fight (Logic/RankUp.lua).
     if newKill and ns.RankUp then
         ns.RankUp:Killed(key)
+    end
+    -- The kill goal counts it, with what it gave (Logic/KillGoal.lua). A
+    -- skinning window is never a kill and its leather never a drop there.
+    if ns.KillGoal and not skinning then
+        local ok, err = pcall(ns.KillGoal.Corpse, ns.KillGoal, mobName, corpse, newKill, given,
+            newKill and copper or 0, newKill and haul or nil)
+        if not ok then ns.Debug("kill goal:", tostring(err)) end
     end
     -- Plates of the same mob show the new count (UI/KillPlates.lua).
     if newKill and ns.KillPlates then

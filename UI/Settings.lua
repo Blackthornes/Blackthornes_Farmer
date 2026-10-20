@@ -1085,6 +1085,10 @@ function SettingsUI:BuildMapPage()
     controls.goals = CommandButton(goalsRow, L["Show"], "goals", 64)
     controls.goalsDock = CommandButton(goalsRow, L["Dock"], "goals dock", 64, CONTROL_X + 70)
 
+    local killGoalRow = pages:Row("map", 2, L["Kill Goal:"], nil)
+    controls.killGoal = CommandButton(killGoalRow, L["Open"], "killgoal", 64)
+    controls.killGoalSummary = CommandButton(killGoalRow, L["Summary"], "killgoal summary", 64, CONTROL_X + 70)
+
     local bankRow = pages:Row("map", 2, L["Count the Bank:"],
         L["Goals count your bank as well as your bags."])
 

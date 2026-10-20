@@ -414,6 +414,10 @@ function XP:Update()
         gained = math.max(0, last.max - last.xp) + state.xp
     end
     if gained > 0 then self.session.gained = self.session.gained + gained end
+    -- The kill goal's XP Gained (Logic/KillGoal.lua).
+    if gained > 0 and ns.KillGoal then
+        pcall(ns.KillGoal.GainedXP, ns.KillGoal, gained, math.max(0, state.level - last.level))
+    end
 
     local tick
     if state.level == last.level and state.xp > last.xp then
