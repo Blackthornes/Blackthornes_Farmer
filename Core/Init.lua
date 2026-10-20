@@ -500,7 +500,6 @@ local DEFAULTS = {
     openNote = true,
     -- The loot feed (UI/LootFeed.lua): off until ticked.
     lootFeed = false,
-    lootFeedHold = 3,
     lootFeedWorth = true,
     lootFeedSeeThrough = 1,
     -- The Open button on the Kills & Loot panel, and opening clams, sacks

@@ -37,7 +37,7 @@ end
 do
     local ns = Load({ ui = true })
     suite.check("off by default", ns.db.lootFeed == false and not ns.LootFeed:Enabled())
-    suite.check("Show For starts at 3 seconds", ns.LootFeed:Hold() == 3)
+    suite.check("Show For starts at 5 seconds", ns.LootFeed:Hold() == 5 and ns.db.lootFeedHold == nil)
     suite.check("Show Worth starts on", ns.LootFeed:ShowsWorth())
     suite.check("Transparent starts at Some", ns.SeeThrough:Level("lootfeed") == 1)
     TakeAll(ns, { FANG })
@@ -51,6 +51,7 @@ do
     local Feed = ns.LootFeed
     ns.HandleSlash("lootfeed on")
     suite.check("/farm lootfeed on turns it on", Feed:Enabled())
+    Feed:SetHold(3)
 
     local take, close = Window(ns, { FANG, COIN, CLOTH })
     suite.check("nothing shows before a slot is taken", #Feed.rows == 0)
@@ -122,6 +123,35 @@ do
 
     ns.HandleSlash("lootfeed off")
     suite.check("/farm lootfeed off turns it off and empties it", not Feed:Enabled() and #Feed.rows == 0)
+end
+
+-- 2b. A 3 the first build saved, nobody picked, goes to 5; a picked one stays.
+do
+    local ns = Load({ ui = true })
+    ns.db.lootFeedHold = 3
+    suite.check("an unpicked 3 reads as 5", ns.LootFeed:Hold() == 5 and ns.db.lootFeedHold == nil, ns.LootFeed:Hold())
+    ns.db.lootFeedHold, ns.db.lootFeedHoldPicked = 3, true
+    suite.check("a picked 3 stays 3", ns.LootFeed:Hold() == 3)
+    ns.db.lootFeedHold, ns.db.lootFeedHoldPicked = 8, nil
+    suite.check("any other number stays", ns.LootFeed:Hold() == 8)
+end
+
+-- 2c. Nothing fades while the mouse is over it.
+do
+    local ns = Load({ ui = true })
+    local Feed = ns.LootFeed
+    Feed:SetEnabled(true)
+    now = 200
+    TakeAll(ns, { FANG })
+    local over = true
+    Feed.frame.IsMouseOver = function() return over end
+    now = 200 + 30
+    Feed:Tick(0)
+    suite.check("the mouse on it keeps the row", #Feed.rows == 1 and Feed.rows[1].at == now)
+    over = false
+    now = now + Feed:Hold() + 1
+    Feed:Tick(0)
+    suite.check("and it fades once the mouse leaves", #Feed.rows == 0)
 end
 
 -- 3. Locked slots, hidden things and secret values never go in.

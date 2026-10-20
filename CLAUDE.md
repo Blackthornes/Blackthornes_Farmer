@@ -863,7 +863,10 @@ approved word for word): a small feed of what you loot, off unless ticked.
 `UI/LootFeed.lua`: a dark glass row a thing (icon, name in its rarity
 colour, "x3"), newest on top with a gold edge; the same thing again adds
 to its count, moves to the top and holds again; rows fade after Show For
-(`lootFeedHold`, 2 to 10 seconds, 3); at most `MAX_ROWS` (6). A warm glass
+(`lootFeedHold`, 2 to 10 seconds, nil for `HOLD` 5; the owner, the same day:
+3 went too fast; a 3 the first build saved is read as 5 until
+`lootFeedHoldPicked` says one was picked); nothing fades while the mouse is
+over it (`IsMouseOver`, the feed still takes no mouse); at most `MAX_ROWS` (6). A warm glass
 foot under a gold rule says "Coin: X" and, with Show Worth on
 (`lootFeedWorth`), "Loot worth: X" (`Value:WorthOf` for each row's count,
 greys at vendor). It reads each loot window once through `ns.OnLootWindow`

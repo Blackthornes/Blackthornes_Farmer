@@ -17,10 +17,13 @@
 -- nothing under it is blocked; Move lets it be dragged and sized (the house
 -- size grip), and Move again puts it back to taking no mouse. Its OnUpdate
 -- runs only while it shows, and rows are laid out again only when one is
--- added, moves or goes; each frame only their alpha moves.
+-- added, moves or goes; each frame only their alpha moves. While the mouse
+-- is over it (asked without the feed taking the mouse), nothing fades, so
+-- there is time to reach Move.
 --
 -- Saved account wide, never rename them: `lootFeed` (off unless ticked),
--- `lootFeedHold` (seconds, 3), `lootFeedWorth` (on unless unticked),
+-- `lootFeedHold` (seconds, nil for the usual 5), `lootFeedHoldPicked`
+-- (true once Show For was picked), `lootFeedWorth` (on unless unticked),
 -- `lootFeedSeeThrough` (Transparent, UI/SeeThrough.lua), `lootFeedScale`,
 -- `lootFeedX` and `lootFeedY` (its top left, nil for the first place).
 -- Settings > Loot > LOOT FEED, and /farm lootfeed on, off, move or reset.
@@ -36,6 +39,8 @@ LootFeed.MAX_ROWS = 6
 LootFeed.FADE = 0.5
 --- Show For's steps, in seconds.
 LootFeed.HOLD_MIN, LootFeed.HOLD_MAX = 2, 10
+--- Show For until one is picked (the owner, 2026-10-19: 3 went too fast).
+LootFeed.HOLD = 5
 
 local ROW = 26
 local ICON = 20
@@ -73,12 +78,19 @@ end
 
 --- Show For, in whole seconds.
 function LootFeed:Hold()
-    local hold = math.floor(tonumber(ns.db and ns.db.lootFeedHold) or 3)
+    local db = ns.db
+    -- The first build wrote 3 into the save before anyone picked; a 3 nobody
+    -- picked goes back to the usual.
+    if db and db.lootFeedHold == 3 and not db.lootFeedHoldPicked then
+        db.lootFeedHold = nil
+    end
+    local hold = math.floor(tonumber(db and db.lootFeedHold) or LootFeed.HOLD)
     return math.max(LootFeed.HOLD_MIN, math.min(LootFeed.HOLD_MAX, hold))
 end
 
 function LootFeed:SetHold(seconds)
-    seconds = math.floor(tonumber(seconds) or 3)
+    seconds = math.floor(tonumber(seconds) or LootFeed.HOLD)
+    ns.db.lootFeedHoldPicked = true
     ns.db.lootFeedHold = math.max(LootFeed.HOLD_MIN, math.min(LootFeed.HOLD_MAX, seconds))
 end
 
@@ -473,6 +485,14 @@ function LootFeed:Tick()
     local now = Now()
     local gone = false
     local newest = 0
+
+    -- The mouse on it keeps every row up and holds them again from now.
+    local over = false
+    pcall(function() over = self.frame:IsMouseOver() == true end)
+    if over then
+        for _, row in ipairs(self.rows) do row.at = now end
+        if self.coinAt then self.coinAt = now end
+    end
 
     for index = #self.rows, 1, -1 do
         local row = self.rows[index]
