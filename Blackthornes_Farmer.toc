@@ -3,7 +3,7 @@
 ## Notes: Search for a material or item and get the mobs, zones and levels to farm it.
 ## Author: Blackthornes
 ## Version: @project-version@
-## X-License: MIT
+## X-License: All Rights Reserved
 ## SavedVariables: BlackthornesFarmerDB
 ## IconTexture: Interface\Icons\Trade_Mining
 
