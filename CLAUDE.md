@@ -717,6 +717,37 @@ the latest claim is drawn; the others wait hidden. The lines are the same
 in each dial's file (`ArrowUI:Claim`, `ArrowUI.Wins`); a change to them
 belongs in all three.
 
+## The way there (arrows across zones and the sea)
+
+The owner said build it (2026-10-21, from a mockup): an arrow aimed at a
+place in another zone or on the other continent leads the way step by
+step instead of pointing straight over mountains and sea. Off unless
+ticked: "Way There:" under GOAL ARROW on the Map & goals page
+(`arrowRoute`, account wide, never rename it) and `/farm arrow route
+[on|off]`. `Logic/Travel.lua` plans it: a shortest-time search over the
+flight masters this character knows (read when a flight master's map
+opens, `TAXIMAP_OPENED`, kept by GUID in `travelFlights[guid]`), the boats
+and zeppelins of its side, its Hearthstone once the landing spot has been
+seen (`travelHearth[bind]`) and walking. A walk through other zones aims at
+the spot you crossed that border before (`travelCrossings["From|To"]`,
+learned as you walk, averaged), else the nearest edge of the next zone,
+"toward NAME"; never a made up spot. Never rename any of these. Planned
+again on a new place, zone change, landing or flight learned, else every
+`REPLAN` seconds; held still on a flight (`UnitOnTaxi`) and in a fight.
+`Data/Travel.lua` (flight masters, flights, docks, rides) is written by
+`tools/make_travel.py <tables> <build>` from the Forever client's game
+tables (TaxiNodes, TaxiPath, GameObjects); never by hand, and each dock
+spot is a real row (`DOCKS`). The arrow's state carries `trip`
+(`Arrow:TripState`: "Step 2 of 3", the step's words); TomTom gets the next
+stop (`TomTomLink.Point`). `UI/TravelCard.lua` is "Your Way There"
+(`travelCardX`, `travelCardY`, `travelCardScale`), `UI/TravelMap.lua` the
+gold line on the world map (dotted flights, dashed boats, solid walks,
+never in a fight). Every copy signs up in `_G.BlackthornesTravel.copies`
+and the highest `FILE_VERSION` plans for all, so the same files go in
+Equipment, Pets, Tradeskills and Butler; a fix to one belongs in all.
+`/farm arrow check` has a "way there" line. Tested in
+`tools/test_travel.lua`. Not yet seen in game.
+
 ## Reading the probe
 
 The owner asked (2026-10-10) for check results without screenshots, in all
