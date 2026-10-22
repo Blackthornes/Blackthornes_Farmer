@@ -333,6 +333,7 @@ local FILES = {
     "Data/Harvest_Carryover.lua",
     "Logic/Search.lua",
     "Logic/Looted.lua",
+    "Logic/Legacy.lua",
     "Logic/Harvest.lua",
     "Logic/Tracker.lua",
     "Logic/Heat.lua",

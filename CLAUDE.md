@@ -393,6 +393,28 @@ any of it. The data rows are kept until `DB.hiddenVersion` or the counts
 move (`GrindGather:DataRows`). Tested in `tools/test_grindgather.lua`.
 Not yet seen in game.
 
+## Legacy perks (read only)
+
+The owner said build it (2026-10-22): Forever's Legacy trees give
+perks that change what a gather or a cast gives, and records made with
+them would push the shipped rates up. `Logic/Legacy.lua` reads, inside a
+pcall, the ranks the character has set in two of them, Bountiful Harvest
+(herbs, ore, skins) and Luremaster (fish, with a lure on). It never
+spends a point and never suggests one (the owner: "we just read what
+they have set"). The config is found by a trait system the client calls
+Legacy (`GetConfigIDBySystemID`), else by the trees holding nodes
+`NODE_FIRST` to `NODE_LAST` (a few trees a frame, never in a fight); the
+perks are told apart by English name, so other clients record as before.
+No rank read means nothing changes. A gather, skin or cast made with one
+is still counted in its record, and also noted beside it in `boosted`
+(the record's own shape: `{ gathers | casts | corpses, items, rank }`;
+never rename it); a skinned corpse moves aside whole. What leaves the
+save as a rate leaves those out: the export and the shipped data
+(`Harvest:ExportRecords`, `Fishing:CountCasts(true)`, `Legacy.Without`)
+and every share (Share's `CreditsFor`). `/farm gathering check` has a
+Legacy line. Never announced. Tested in `tools/test_legacy.lua`. Not
+yet seen in game.
+
 ## Gather to cap
 
 The owner approved the mockup (2026-10-20): the Grind tab's Ore, Herbs and
