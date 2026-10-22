@@ -966,7 +966,16 @@ function StatsUI:DrawLuck(card, arrive, view)
     end
     Empty(card, nil)
 
-    local words, color = StatsUI.LuckWords(luck.percent)
+    -- Only rare drops so far: no number and no needle until one is due.
+    for _, part in ipairs({ card.meter, card.lowLabel, card.highLabel }) do
+        part:SetShown(not luck.tooSoon)
+    end
+    local words, color
+    if luck.tooSoon then
+        words, color = L["Too soon to tell"], "muted"
+    else
+        words, color = StatsUI.LuckWords(luck.percent)
+    end
     card.headline:SetText(words)
     card.headline:SetTextColor(Theme.Unpack(color))
     card.sub:SetText(L.Format("Over %d kills", luck.kills))
@@ -980,6 +989,11 @@ function StatsUI:DrawLuck(card, arrive, view)
             row.value:SetText(L.Format("%s, about %s expected", StatsUI.Count(entry.got),
                 StatsUI.Count(entry.expected)))
         end
+    end
+
+    if luck.tooSoon then
+        ns.Motion:Stop(card, "draw")
+        return
     end
 
     local target = math.max(-1, math.min(1, luck.percent / 50))

@@ -1120,13 +1120,14 @@ local function PendingNote(entries)
     return kills and L["waiting on kills or prices"] or L["waiting on prices"]
 end
 
---- The board as list rows, for the chosen filter.
-function RankingsUI:Rows(board)
+--- The board as list rows, for the chosen filter, or with `all` for
+--- every chip but World Drops (what the columns are measured on).
+function RankingsUI:Rows(board, all)
     local rows = {}
-    local wanted = self.group
+    local wanted = not all and self.group or nil
 
     -- The World Drops chip has its own layout: tiles and band rows.
-    if self.world then return self:WorldViewRows(self.world) end
+    if self.world and not all then return self:WorldViewRows(self.world) end
 
     local function Add(group, emptyText)
         local entries = board[group]
@@ -1172,8 +1173,12 @@ function RankingsUI:Rows(board)
 end
 
 --- Widen the columns to fit these rows, and return the window width they want.
+--- All, Measured and Estimates are measured on the whole board, so a
+--- column stays put when the chip changes (2026-10-22: From, Best drop and
+--- Where moved with each).
 function RankingsUI:FitColumns(rows)
     if self.world then return self:FitWorldColumns(rows) end
+    if self.group and self.board then rows = self:Rows(self.board, true) end
     local widths = {}
     for key, w in pairs(BASE_WIDTH) do widths[key] = w end
 
@@ -1359,8 +1364,8 @@ function RankingsUI:Render(arrive)
 
     self:ShowWorld()
     local board = ns.Rankings:Build()
-    local rows = self:Rows(board)
     self.board = board
+    local rows = self:Rows(board)
 
     local width = math.max(self:FitColumns(rows), self:HeadWidth())
 

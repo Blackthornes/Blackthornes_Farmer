@@ -1106,6 +1106,7 @@ L["Loot a mob %d times to rank it by gold an hour."] = "拾取一个怪物 %d �
 L["Less lucky"] = "运气差一点"
 L["Luckier"] = "运气好一点"
 L["Right on the odds"] = "正好符合概率"
+L["Too soon to tell"] = "现在下结论还太早"
 L["%d%% luckier"] = "运气好 %d%%"
 L["%d%% less lucky"] = "运气差 %d%%"
 L["Loot %d kills from mobs with known drop rates and you'll see if luck is on your side."] = "拾取 %d 次有已知掉落率的怪物，就能看出运气站不站在你这边。"

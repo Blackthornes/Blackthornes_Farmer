@@ -256,6 +256,11 @@ store.pace = timed
 ns.DB:RegisterItem({ name = "Lucky Charm", id = 99501, category = "misc",
     sources = { { name = "Charm Gnoll", zone = "Nowhere", minLevel = 5, chance = 10 } } })
 AUCTION[99501] = 100
+-- A rare, pricey drop the gnoll gives 1 time in 100: 20 kills expect only
+-- 0.2 of it, so not getting it must not make the player "less lucky".
+ns.DB:RegisterItem({ name = "Gnoll Gem", id = 99502, category = "misc",
+    sources = { { name = "Charm Gnoll", zone = "Nowhere", minLevel = 5, chance = 1 } } })
+AUCTION[99502] = 100000
 Stats.luck = nil
 suite.check("no luck before enough kills", Stats:Luck() == nil)
 for index = 1, 20 do
@@ -270,6 +275,14 @@ suite.check("twice the expected drops is 100% luckier",
 suite.check("over the kills of rated mobs", luck and luck.kills == 20, luck and luck.kills)
 suite.check("with the item listed", luck and luck.rows[1] and luck.rows[1].name == "Lucky Charm"
     and luck.rows[1].got == 4 and math.abs(luck.rows[1].expected - 2) < 0.01)
+suite.check("a drop not yet expected once is left out of luck",
+    luck and #luck.rows == 1, luck and #luck.rows)
+local minExpected = Stats.LUCK_MIN_EXPECTED
+Stats.LUCK_MIN_EXPECTED = 3
+local early = Stats:Luck()
+suite.check("with only rare drops so far, it's too soon to tell",
+    early and early.tooSoon == true and early.percent == nil and early.kills == 20, early and early.percent)
+Stats.LUCK_MIN_EXPECTED = minExpected
 suite.check("words for it", StatsUI.LuckWords(100) == "100% luckier" and StatsUI.LuckWords(-20) == "20% less lucky"
     and StatsUI.LuckWords(2) == "Right on the odds")
 
@@ -377,6 +390,17 @@ suite.check("the mobs card lists the best", StatsUI.mobsCard.rows[1]:IsShown()
     and StatsUI.mobsCard.rows[1].name:GetText() == "Quick Boar", StatsUI.mobsCard.rows[1].name:GetText())
 suite.check("the luck card says how lucky", StatsUI.luckCard.headline:GetText() == "100% luckier",
     StatsUI.luckCard.headline:GetText())
+do
+    local minExpected = Stats.LUCK_MIN_EXPECTED
+    Stats.LUCK_MIN_EXPECTED = 1000
+    StatsUI:DrawLuck(StatsUI.luckCard, false, "session")
+    suite.check("with only rare drops so far, the card says it's too soon",
+        StatsUI.luckCard.headline:GetText() == "Too soon to tell" and not StatsUI.luckCard.meter:IsShown(),
+        StatsUI.luckCard.headline:GetText())
+    Stats.LUCK_MIN_EXPECTED = minExpected
+    StatsUI:DrawLuck(StatsUI.luckCard, false, "session")
+    suite.check("and the meter comes back once a drop is due", StatsUI.luckCard.meter:IsShown())
+end
 suite.check("the levels card names the fastest", StatsUI.levelsCard.headline:GetText():find("level 6", 1, true) ~= nil,
     StatsUI.levelsCard.headline:GetText())
 suite.check("the top shows days in a row", StatsUI.tiles[4].value:GetText() == tostring(Stats:Streak()))

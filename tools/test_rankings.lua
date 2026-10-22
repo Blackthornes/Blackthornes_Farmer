@@ -199,6 +199,30 @@ suite.check("the Measured filter leaves estimates out",
     not Kinds():find("estimate", 1, true), Kinds())
 RankingsUI.group = nil
 
+-- The columns stay put as the chips change (2026-10-22): they are measured
+-- on the whole board, not only the rows a chip shows.
+local function ColumnWidths()
+    local list = {}
+    for key, column in pairs(RankingsUI.columns) do
+        if type(column) == "table" and column.w then list[#list + 1] = key .. "=" .. column.w end
+    end
+    table.sort(list)
+    return table.concat(list, " ")
+end
+RankingsUI:Render()
+local allWidths = ColumnWidths()
+RankingsUI.group = "estimate"
+RankingsUI:Render()
+local estimateWidths = ColumnWidths()
+RankingsUI.group = "measured"
+RankingsUI:Render()
+local measuredWidths = ColumnWidths()
+RankingsUI.group = nil
+RankingsUI:Render()
+suite.check("a chip leaves the column widths as they were",
+    allWidths == estimateWidths and allWidths == measuredWidths,
+    allWidths .. " | " .. estimateWidths .. " | " .. measuredWidths)
+
 -- Text fits: a long mob name widens its column rather than being cut off,
 -- on a screen with room for it.
 UIParent._width = 1920

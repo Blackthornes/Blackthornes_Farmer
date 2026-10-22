@@ -1109,6 +1109,7 @@ L["Loot a mob %d times to rank it by gold an hour."] = "Обыщи против�
 L["Less lucky"] = "Меньше удачи"
 L["Luckier"] = "Больше удачи"
 L["Right on the odds"] = "Точно по шансам"
+L["Too soon to tell"] = "Пока рано судить"
 L["%d%% luckier"] = "На %d%% удачливее"
 L["%d%% less lucky"] = "На %d%% меньше удачи"
 L["Loot %d kills from mobs with known drop rates and you'll see if luck is on your side."] = "Обыщи %d убитых противников с известными шансами добычи, и увидишь, на твоей ли стороне удача."

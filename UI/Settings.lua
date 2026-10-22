@@ -32,6 +32,8 @@ local COLUMN_GAP = 18
 -- Where the controls start: room for a label like "Kills and Loot Size:" in the
 -- game's font, which runs wider than it looks.
 local CONTROL_X = 170
+-- As set above; FillBar may widen both to meet the switch along the top.
+local BASE_COLUMN_WIDTH, BASE_CONTROL_X = COLUMN_WIDTH, CONTROL_X
 
 -- Window sizes, in percent. Wide enough to matter on a 4K screen or a laptop,
 -- narrow enough that neither end breaks the layout.
@@ -285,6 +287,40 @@ end
 -- Construction
 --------------------------------------------------------------------------------
 
+
+--- When the switch along the top is wider than the two columns, the
+--- columns grow to meet it, so no empty strip is left down the right
+--- (2026-10-22). Half the room goes to the labels, half to the controls.
+function SettingsUI:FillBar()
+    local pages = self.pages
+    if not (pages and pages.BarWidth) then return end
+    COLUMN_WIDTH, CONTROL_X = BASE_COLUMN_WIDTH, BASE_CONTROL_X
+    local natural = PADDING * 2 + COLUMN_WIDTH * 2 + COLUMN_GAP
+    local ok, bar = pcall(pages.BarWidth, pages)
+    if not ok or type(bar) ~= "number" or bar <= natural then return end
+    local grow = math.floor((bar - natural) / 2)
+    COLUMN_WIDTH = COLUMN_WIDTH + grow
+    CONTROL_X = CONTROL_X + math.floor(grow / 2)
+    pages.opts.columnWidth = COLUMN_WIDTH
+    pages.opts.controlX = CONTROL_X
+    pages.columnX[2] = PADDING + COLUMN_WIDTH + COLUMN_GAP
+end
+
+--- Give every stepper the widest one's width, never past `room`.
+function SettingsUI.EvenSteppers(steppers, room)
+    local widest = 0
+    for _, stepper in ipairs(steppers) do
+        local width = stepper.GetWidth and stepper:GetWidth()
+        if type(width) == "number" and width > widest then widest = width end
+    end
+    if widest <= 0 then return end
+    if type(room) == "number" and room > 0 then widest = math.min(widest, room) end
+    for _, stepper in ipairs(steppers) do
+        if stepper.SetWidth then stepper:SetWidth(widest) end
+    end
+    return widest
+end
+
 function SettingsUI:Build()
     if self.frame then return self.frame end
 
@@ -345,13 +381,29 @@ function SettingsUI:Build()
         controlX = CONTROL_X,
         db = function() return ns.db end,
     })
-    self:BuildWindowsPage()
-    self:BuildTallyPage()
-    self:BuildLootPage()
-    self:BuildMapPage()
-    self:BuildSharingPage()
-    self:BuildAdvancedPage()
-    self:BuildAboutPage()
+    self:FillBar()
+
+    -- Every +/- box on every page comes out the same width, the widest
+    -- one's, so they line up down the page (2026-10-22).
+    local steppers = {}
+    local makeStepper = Widgets.CreateStepper
+    Widgets.CreateStepper = function(...)
+        local stepper = makeStepper(...)
+        steppers[#steppers + 1] = stepper
+        return stepper
+    end
+    local built, problem = pcall(function()
+        self:BuildWindowsPage()
+        self:BuildTallyPage()
+        self:BuildLootPage()
+        self:BuildMapPage()
+        self:BuildSharingPage()
+        self:BuildAdvancedPage()
+        self:BuildAboutPage()
+    end)
+    Widgets.CreateStepper = makeStepper
+    if not built then error(problem, 0) end
+    SettingsUI.EvenSteppers(steppers, COLUMN_WIDTH - CONTROL_X)
     self.pages:Fit()
 
     -- The house size grip under the bottom right corner

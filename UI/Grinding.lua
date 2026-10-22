@@ -2,7 +2,8 @@
 -- The Grind tab of the main window: where mobs of a level band and a kind
 -- gather (Logic/Grinding.lua).
 --
--- Across the top: the level band on two steppers, with My level to follow
+-- Across the top: the level band on two steppers (click a number to type
+-- one, or roll the mouse wheel), with My level to follow
 -- yours. Under it: the creature type (Any, Humanoid, Beast, ...), what they
 -- give (Cloth, Leather, Ore, Herbs), and the Sort menu (Busiest, Nearest,
 -- Level, Level then nearest). The list is one band per camp with its mobs
@@ -58,6 +59,9 @@ local MAX_WIDTH = { type = 110, mob = 320, gives = 240, worth = 160, skill = 160
 -- with each, and Herbs wrapped onto a second row). The columns fit it:
 -- spare room goes to the mob and what it gives, and long words give way.
 GrindingUI.WIDTH = 980
+
+-- The sort arrow beside a heading's words and the gap past it.
+GrindingUI.ARROW_ROOM = 16
 
 local BADGE_TEXT = "Forever"
 local INDENT = "     "
@@ -142,7 +146,7 @@ function GrindingUI:Build(frame)
     end
 
     self.low = Widgets.CreateStepper(band, {
-        min = Grinding.MIN_LEVEL, max = Grinding.MaxLevel(), step = 1, value = 1,
+        min = Grinding.MIN_LEVEL, max = Grinding.MaxLevel(), step = 1, value = 1, typed = true,
         onChange = function(value)
             -- The low end pushes the high one up rather than passing it.
             if value > (self.high:GetValue() or value) then self.high:SetValue(value, true) end
@@ -158,7 +162,7 @@ function GrindingUI:Build(frame)
     self.toLabel = to
 
     self.high = Widgets.CreateStepper(band, {
-        min = Grinding.MIN_LEVEL, max = Grinding.MaxLevel(), step = 1, value = Grinding.MaxLevel(),
+        min = Grinding.MIN_LEVEL, max = Grinding.MaxLevel(), step = 1, value = Grinding.MaxLevel(), typed = true,
         onChange = function(value)
             if value < (self.low:GetValue() or value) then self.low:SetValue(value, true) end
             Changed()
@@ -1110,49 +1114,55 @@ function GrindingUI:FitColumns(rows, layout)
     local widths = {}
     for key, w in pairs(BASE_WIDTH) do widths[key] = w end
 
-    -- Each heading fits its words, German included.
+    -- Each heading fits its words, German included. Level's words sit in
+    -- the middle of its column, so it keeps the sort arrow's room on both
+    -- sides, or the arrow ran into GIVES.
     for _, key in ipairs(GrindingUI.LAYOUTS[layout]) do
         if key ~= "badge" then
+            local pad = key == "level" and GrindingUI.ARROW_ROOM * 2 or 14
             widths[key] = math.max(widths[key],
-                Theme.TextWidth("tiny", GrindingUI.HeadingText(layout, key)) + 14)
+                math.ceil(Theme.TextWidth("tiny", GrindingUI.HeadingText(layout, key)) + pad))
         end
     end
 
+    -- Steady first: the headings' widths, with the room the window has
+    -- left shared between the mob and what it gives. These depend only on
+    -- the view, so picking Humanoid or Beast never moves a column
+    -- (2026-10-22: they jumped with the longest name on show).
+    local target = GrindingUI.TargetWidth()
+    local spare = target - (Columns(widths, layout).total + CHROME)
+    if spare > 0 then
+        local mobShare = math.floor(spare / 2)
+        widths.mob = widths.mob + mobShare
+        widths.gives = widths.gives + (spare - mobShare)
+    end
+
+    -- Then only a column whose words would not fit grows, never past its
+    -- most.
     for _, row in ipairs(rows) do
         local texts = row.type == "mob" and self:MobTexts(row.mob)
             or row.type == "node" and self:NodeTexts(row.node) or nil
         if texts then
             for _, key in ipairs({ "type", "mob", "gives", "worth", "skill", "count", "respawn", "hour" }) do
                 if texts[key] then
-                    widths[key] = math.max(widths[key], Theme.TextWidth("small", texts[key]) + 8)
+                    local want = math.ceil(Theme.TextWidth("small", texts[key]) + 8)
+                    if MAX_WIDTH[key] then want = math.min(MAX_WIDTH[key], want) end
+                    widths[key] = math.max(widths[key], want)
                 end
             end
         end
     end
 
-    for key, most in pairs(MAX_WIDTH) do
-        widths[key] = math.min(most, math.ceil(widths[key]))
-    end
-
-    -- Fit the one width every view shares: narrower columns than that
-    -- widen the mob and what it gives; wider ones give way, as they did
-    -- for a small screen.
-    local target = GrindingUI.TargetWidth()
+    -- A column that grew takes its room from the others, the mob and what
+    -- it gives first, as it did for a small screen.
     local over = Columns(widths, layout).total + CHROME - target
-    if over < 0 then
-        local spare = -over
-        local mobShare = math.floor(spare / 2)
-        widths.mob = widths.mob + mobShare
-        widths.gives = widths.gives + (spare - mobShare)
-    else
-        for _, key in ipairs({ "mob", "gives", "worth", "type" }) do
-            if over <= 0 then break end
-            if widths[key] then
-                local give = math.min(over, widths[key] - BASE_WIDTH[key])
-                if give > 0 then
-                    widths[key] = widths[key] - give
-                    over = over - give
-                end
+    for _, key in ipairs({ "mob", "gives", "worth", "type" }) do
+        if over <= 0 then break end
+        if widths[key] then
+            local give = math.min(over, widths[key] - BASE_WIDTH[key])
+            if give > 0 then
+                widths[key] = widths[key] - give
+                over = over - give
             end
         end
     end

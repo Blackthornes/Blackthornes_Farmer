@@ -521,4 +521,60 @@ local _, unknownWithGroup = Grinding:Camps({ low = 22, high = 26, type = "Humano
 check("a group row is known for one", Grinding.IsGroup("vale spiders") and not Grinding.IsGroup("Vale Thug"))
 check("and never counted as a mob of unknown type", unknownWithGroup == unknownBefore, unknownWithGroup)
 
+--------------------------------------------------------------------------------
+-- The level boxes take a typed number and the mouse wheel (2026-10-22)
+--------------------------------------------------------------------------------
+
+do
+    local low, high = GrindingUI.low, GrindingUI.high
+    check("the level boxes can be typed in", low.box ~= nil and high.box ~= nil)
+    low:Edit()
+    low.box:SetText("23")
+    low.Done(true)
+    check("a typed number sets the low end", low:GetValue() == 23, low:GetValue())
+    low:Edit()
+    low.box:SetText("999")
+    low.Done(true)
+    check("a number past the cap stops at the cap", low:GetValue() == Grinding.MaxLevel(), low:GetValue())
+    check("and pushes the high end up with it", high:GetValue() >= low:GetValue(), high:GetValue())
+    low:Edit()
+    low.box:SetText("12")
+    low.Done(false)
+    check("Escape keeps the number as it was", low:GetValue() == Grinding.MaxLevel(), low:GetValue())
+    low:SetValue(20)
+    low:GetScript("OnMouseWheel")(low, 1)
+    check("rolling the wheel up adds a level", low:GetValue() == 21, low:GetValue())
+    low:GetScript("OnMouseWheel")(low, -1)
+    check("and down takes one off", low:GetValue() == 20, low:GetValue())
+    Grinding:SetRange(22, 26)
+    GrindingUI:Render()
+end
+
+--------------------------------------------------------------------------------
+-- Columns stay put as the type chips change (2026-10-22)
+--------------------------------------------------------------------------------
+
+do
+    local function Widths()
+        local list = {}
+        for key, column in pairs(GrindingUI.columns) do
+            if type(column) == "table" and column.w then list[#list + 1] = key .. "=" .. column.w end
+        end
+        table.sort(list)
+        return table.concat(list, " ")
+    end
+    GrindingUI:Render()
+    local before = Widths()
+    Grinding:SetType("Humanoid")
+    GrindingUI:Render()
+    local after = Widths()
+    Grinding:SetType(nil)
+    GrindingUI:Render()
+    check("a type chip leaves the column widths as they were", before == after, before .. " | " .. after)
+    local level = GrindingUI.columns.level
+    check("the level column has room for its sort arrow",
+        level and level.w >= ns.Theme.TextWidth("tiny", L and L["LEVEL"] or "LEVEL") + GrindingUI.ARROW_ROOM * 2,
+        level and level.w)
+end
+
 suite.done()
