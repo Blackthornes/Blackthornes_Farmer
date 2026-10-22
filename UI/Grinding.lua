@@ -142,7 +142,7 @@ function GrindingUI:Build(frame)
     end
 
     self.low = Widgets.CreateStepper(band, {
-        min = Grinding.MIN_LEVEL, max = Grinding.MAX_LEVEL, step = 1, value = 1,
+        min = Grinding.MIN_LEVEL, max = Grinding.MaxLevel(), step = 1, value = 1,
         onChange = function(value)
             -- The low end pushes the high one up rather than passing it.
             if value > (self.high:GetValue() or value) then self.high:SetValue(value, true) end
@@ -158,7 +158,7 @@ function GrindingUI:Build(frame)
     self.toLabel = to
 
     self.high = Widgets.CreateStepper(band, {
-        min = Grinding.MIN_LEVEL, max = Grinding.MAX_LEVEL, step = 1, value = Grinding.MAX_LEVEL,
+        min = Grinding.MIN_LEVEL, max = Grinding.MaxLevel(), step = 1, value = Grinding.MaxLevel(),
         onChange = function(value)
             if value < (self.low:GetValue() or value) then self.low:SetValue(value, true) end
             Changed()

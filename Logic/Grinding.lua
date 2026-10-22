@@ -32,9 +32,17 @@ local Grinding = ns.NewModule("Grinding")
 
 local Util = ns.Util
 
--- Forever's level cap: the steppers go no higher.
+-- The level steppers' range. The top is the game's level cap, never under
+-- 60: mobs up to 60 are in the data even while the beta stops at 30.
 Grinding.MIN_LEVEL = 1
-Grinding.MAX_LEVEL = 30
+Grinding.MAX_LEVEL = 60
+
+--- The highest level the steppers reach: the game's cap, at least 60.
+function Grinding.MaxLevel()
+    local cap = ns.XP and ns.XP.MaxLevel and ns.XP.MaxLevel()
+    if type(cap) == "number" and cap > Grinding.MAX_LEVEL then return cap end
+    return Grinding.MAX_LEVEL
+end
 
 -- With no range picked, the band around your own level.
 Grinding.BELOW = 2
@@ -235,7 +243,7 @@ end
 
 local function Clamp(level)
     level = math.floor((tonumber(level) or Grinding.MIN_LEVEL) + 0.5)
-    return math.max(Grinding.MIN_LEVEL, math.min(Grinding.MAX_LEVEL, level))
+    return math.max(Grinding.MIN_LEVEL, math.min(Grinding.MaxLevel(), level))
 end
 Grinding.Clamp = Clamp
 
@@ -247,7 +255,7 @@ function Grinding:Range()
     if low and high then return Clamp(low), Clamp(high) end
 
     local level = ns.Spots:Player().level
-    if not level then return Grinding.MIN_LEVEL, Grinding.MAX_LEVEL end
+    if not level then return Grinding.MIN_LEVEL, Grinding.MaxLevel() end
     return Clamp(level - Grinding.BELOW), Clamp(level + Grinding.ABOVE)
 end
 
