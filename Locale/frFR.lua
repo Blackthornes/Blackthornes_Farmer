@@ -1107,6 +1107,7 @@ L["Loot a mob %d times to rank it by gold an hour."] = "Fouille un monstre %d fo
 L["Less lucky"] = "Moins de chance"
 L["Luckier"] = "Plus de chance"
 L["Right on the odds"] = "Pile dans les chances"
+L["Too soon to tell"] = "Trop tôt pour le dire"
 L["%d%% luckier"] = "%d%% de chance en plus"
 L["%d%% less lucky"] = "%d%% de chance en moins"
 L["Loot %d kills from mobs with known drop rates and you'll see if luck is on your side."] = "Fouille %d victimes de monstres aux taux de butin connus et tu verras si la chance est avec toi."

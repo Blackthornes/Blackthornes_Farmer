@@ -44,6 +44,8 @@ Stats.BEST_AGAINST = 3       -- sessions charted before a best is cheered
 Stats.KEEP_DAYS = 100
 Stats.KEEP_SESSIONS = 30
 Stats.LUCK_MIN_KILLS = 10
+-- A drop counts toward luck once it is expected this many times.
+Stats.LUCK_MIN_EXPECTED = 1
 Stats.LUCK_KEEP = 30         -- seconds the overall luck is kept before working it out again
 
 -- Where gold comes from, in the order the chart stacks them.
@@ -774,7 +776,9 @@ end
 --- This login's drops against the drop rates: { percent, kills, rows =
 --- { { name, got, expected, color } } }, percent by worth (an item with no
 --- price is listed but left out of it). Nil until LUCK_MIN_KILLS kills of
---- mobs the data has rates for.
+--- mobs the data has rates for. A drop not yet expected LUCK_MIN_EXPECTED
+--- times is left out, since one lucky or missing rare drop swung the whole
+--- number (2026-10-22); with none left, { tooSoon = true, kills }.
 function Stats:Luck(view)
     local Value, Tracker = ns.Value, ns.Tracker
     if not (ns.DB and Value) then return nil end
@@ -830,18 +834,24 @@ function Stats:Luck(view)
 
     local got, expected, rows = 0, 0, {}
     for _, row in pairs(items) do
-        local unit = Value:UnitPrice(row.id or Value:ItemID(row.name))
-        row.unit = unit
-        row.worth = unit and row.expected * unit or 0
-        if unit then
-            got = got + row.got * unit
-            expected = expected + row.expected * unit
+        if row.expected >= Stats.LUCK_MIN_EXPECTED then
+            local unit = Value:UnitPrice(row.id or Value:ItemID(row.name))
+            row.unit = unit
+            row.worth = unit and row.expected * unit or 0
+            if unit then
+                got = got + row.got * unit
+                expected = expected + row.expected * unit
+            end
+            local look = Tracker and Tracker:LookOf(row.name)
+            row.color = look and look.color
+            rows[#rows + 1] = row
         end
-        local look = Tracker and Tracker:LookOf(row.name)
-        row.color = look and look.color
-        rows[#rows + 1] = row
     end
-    if expected <= 0 then return nil end
+    if expected <= 0 then
+        local result = { tooSoon = true, kills = kills, rows = {} }
+        if view == "overall" then self.overallLuck = result end
+        return result
+    end
 
     table.sort(rows, function(a, b)
         if a.worth ~= b.worth then return a.worth > b.worth end

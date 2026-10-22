@@ -418,9 +418,11 @@ suite.check("no control on the page clears recorded loot",
 
 local hint = SettingsUI.exportHint
 local exportButton = hint._point[2]
--- 310 is a settings column's width.
+-- A settings column's width, 310 or more when the switch along the top
+-- makes the window wider.
+local columnWidth = SettingsUI.pages.opts.columnWidth
 suite.check("the export hint is kept to its column beside the button",
-    exportButton:GetWidth() + 8 + hint:GetWidth() <= 310, hint:GetWidth())
+    exportButton:GetWidth() + 8 + hint:GetWidth() <= columnWidth, hint:GetWidth())
 suite.check("and has room for its text on two lines",
     ns.Theme.TextWidth("tiny", hint:GetText()) <= 2 * hint:GetWidth(), hint:GetText())
 
@@ -456,6 +458,40 @@ do
     end
     suite.check("no setting is placed above the one before it", #upward == 0,
         table.concat(upward, " "))
+end
+
+--------------------------------------------------------------------------------
+-- Even +/- boxes and no empty strip on the right (2026-10-22)
+--------------------------------------------------------------------------------
+
+do
+    local pages = SettingsUI.pages
+    local opts = pages.opts
+    local columns = opts.padding * 2 + opts.columnWidth * 2 + opts.columnGap
+    suite.check("the two columns reach the switch's width, with no strip left over",
+        columns >= pages:BarWidth() - 1, columns .. " vs " .. pages:BarWidth())
+    suite.check("the second column starts after the first",
+        pages.columnX[2] == opts.padding + opts.columnWidth + opts.columnGap, pages.columnX[2])
+
+    local widths, count = {}, 0
+    local seen = {}
+    for _, control in pairs(SettingsUI.controls) do
+        if type(control) == "table" and control.SetValue and control.GetWidth
+            and rawget(control, "value") ~= nil and not seen[control] then
+            seen[control] = true
+            count = count + 1
+            widths[math.floor(control:GetWidth() + 0.5)] = true
+        end
+    end
+    local kinds = 0
+    for _ in pairs(widths) do kinds = kinds + 1 end
+    suite.check("every +/- box on the pages is one width", count > 0 and kinds == 1, count .. " boxes, " .. kinds .. " widths")
+
+    local made = SettingsUI.EvenSteppers({
+        { w = 100, GetWidth = function(s) return s.w end, SetWidth = function(s, w) s.w = w end },
+        { w = 160, GetWidth = function(s) return s.w end, SetWidth = function(s, w) s.w = w end },
+    }, 140)
+    suite.check("the widest wins, kept inside the column", made == 140, made)
 end
 
 suite.done()

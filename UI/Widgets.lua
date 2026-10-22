@@ -1639,6 +1639,7 @@ end
 --   min, max, step  the range, in the stored unit
 --   format          function(value) -> text shown between the buttons
 --   onChange        function(value)
+--   typed           a click on the number types one, the wheel steps it
 function Widgets.CreateStepper(parent, opts)
     opts = opts or {}
 
@@ -1705,6 +1706,59 @@ function Widgets.CreateStepper(parent, opts)
 
     minus:SetScript("OnClick", function() Nudge(-1) end)
     plus:SetScript("OnClick", function() Nudge(1) end)
+
+    -- opts.typed: a click on the number lets you type one, and the mouse
+    -- wheel steps it, for a number with a long range such as a level.
+    -- Enter, Tab or clicking away keeps what was typed (in range), Escape
+    -- puts the old one back.
+    if opts.typed then
+        local box = CreateFrame("EditBox", nil, well)
+        box:SetAllPoints(well)
+        box:SetAutoFocus(false)
+        box:SetFont(Theme.FONT, Theme.sizes.small, "")
+        box:SetTextColor(Theme.Unpack("text"))
+        box:SetJustifyH("CENTER")
+        box:SetMaxLetters(opts.letters or 3)
+        box:SetNumeric(true)
+        box:EnableMouse(false)
+        box:Hide()
+        stepper.box = box
+
+        local function Done(keep)
+            if not box:IsShown() then return end
+            local typed = tonumber(box:GetText())
+            box:Hide()
+            text:Show()
+            if keep and typed then
+                local wanted = Bound(typed)
+                if wanted ~= stepper.value then stepper:SetValue(wanted) return end
+            end
+            stepper:SetValue(stepper.value, true)
+        end
+        stepper.Done = Done
+
+        function stepper:Edit()
+            text:Hide()
+            box:SetText(tostring(self.value or low))
+            box:Show()
+            box:SetFocus()
+            box:HighlightText()
+        end
+
+        box:SetScript("OnEnterPressed", function() Done(true) box:ClearFocus() end)
+        box:SetScript("OnTabPressed", function() Done(true) box:ClearFocus() end)
+        box:SetScript("OnEscapePressed", function() Done(false) box:ClearFocus() end)
+        box:SetScript("OnEditFocusLost", function() Done(true) end)
+
+        well:EnableMouse(true)
+        well:SetScript("OnMouseDown", function() stepper:Edit() end)
+
+        stepper:EnableMouseWheel(true)
+        stepper:SetScript("OnMouseWheel", function(_, delta)
+            Done(true)
+            Nudge(delta > 0 and 1 or -1)
+        end)
+    end
 
     stepper:SetValue(opts.value or low, true)
     return stepper
