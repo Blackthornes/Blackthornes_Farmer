@@ -1130,7 +1130,7 @@ function SettingsUI:BuildMapPage()
 
     -- A trip step by step to a far place (Logic/Travel.lua), off unless
     -- ticked.
-    local routeRow = pages:Row("map", 2, L["Show the Way:"],
+    local routeRow = pages:Row("map", 2, L["Guide Me:"],
         L["When the place is in another zone or across the sea, the arrow leads you there step by step."])
 
     controls.arrowRoute = Widgets.CreateCheckbox(routeRow, L["On"], function(checked)

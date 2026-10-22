@@ -722,7 +722,7 @@ belongs in all three.
 The owner said build it (2026-10-21, from a mockup): an arrow aimed at a
 place in another zone or on the other continent leads the way step by
 step instead of pointing straight over mountains and sea. Off unless
-ticked: "Show the Way:" under GOAL ARROW on the Map & goals page
+ticked: "Guide Me:" under GOAL ARROW on the Map & goals page
 (`arrowRoute`, account wide, never rename it) and `/farm arrow route
 [on|off]`. `Logic/Travel.lua` plans it: a shortest-time search over the
 flight masters this character knows (read when a flight master's map
