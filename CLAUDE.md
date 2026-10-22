@@ -742,10 +742,23 @@ spot is a real row (`DOCKS`). The arrow's state carries `trip`
 stop (`TomTomLink.Point`). `UI/TravelCard.lua` is "Your Way There"
 (`travelCardX`, `travelCardY`, `travelCardScale`), `UI/TravelMap.lua` the
 gold line on the world map (dotted flights, dashed boats, solid walks,
-never in a fight). Every copy signs up in `_G.BlackthornesTravel.copies`
-and the highest `FILE_VERSION` plans for all, so the same files go in
-Equipment, Pets, Tradeskills and Butler; a fix to one belongs in all.
-`/farm arrow check` has a "way there" line. Tested in
+never in a fight, its dot `Media/Frame/TravelDot.tga`).
+
+The same files in every addon (a fix to one belongs in all):
+`Logic/Travel.lua`, `Data/Travel.lua`, `Data/TravelZones.lua` (the zones'
+map IDs, which border which, the capitals inside a zone and the flight
+masters' short zone names, written by `tools/make_travel_zones.py <Farmer
+folder>` from Farmer's zone data; never by hand) and, where an arrow takes
+trips, `UI/TravelCard.lua` and `UI/TravelMap.lua`. They never name an
+addon: what differs comes through `ns.TravelHost` (DB, Owner, ZoneOf,
+Show, Here, InInstance, Key, Changed, Refresh, State, Print; Farmer's is at
+the end of `Logic/Arrow.lua`), each left out falling back to
+`Travel.Defaults`. Each copy plans for its own arrow, keeps its own save,
+and signs up in `_G.BlackthornesTravel.copies`, so the flights, crossings
+and Hearthstone spot one addon learned count in all (`Travel:AllFlights`,
+`Travel:Kept`). An addon without a dial (Tradeskills, Butler) asks
+`Travel:Guide(target)` for its Show the Way: the steps as lines and the
+next stop as `{ map, x, y, name }` to pin. `/farm arrow check` has a "way there" line. Tested in
 `tools/test_travel.lua`. Not yet seen in game.
 
 ## Reading the probe

@@ -1,5 +1,5 @@
--- Blackthornes Farmer -- Logic/Travel.lua
--- Trips for the arrow (the owner, 2026-10-21: "guide players outside of
+-- Blackthornes -- Logic/Travel.lua
+-- Trips for the arrows (the owner, 2026-10-21: "guide players outside of
 -- current zones and across continents"). A place in another zone or on the
 -- other continent gets a way there, step by step, and the arrow points at
 -- the next stop instead of straight over mountains and sea.
@@ -15,10 +15,10 @@
 --   * Your Hearthstone, once the spot it lands on has been seen: kept,
 --     account wide, by the inn's name in `travelHearth[bind]`.
 --   * Walking between any two stops on one continent. When the walk passes
---     through other zones, the arrow aims at the spot you crossed that
---     border before (`travelCrossings["From|To"]`, account wide, learned as
---     you walk), else at the nearest edge of the next zone, "toward NAME".
---     Never a made up spot.
+--     through other zones (Data/TravelZones.lua), the arrow aims at the spot
+--     you crossed that border before (`travelCrossings["From|To"]`, account
+--     wide, learned as you walk), else at the nearest edge of the next zone,
+--     "toward NAME". Never a made up spot.
 --
 -- The quickest way is a shortest-path search over that map, cost in
 -- seconds. The plan is worked out again only when it could have changed (a
@@ -26,19 +26,23 @@
 -- seconds, never mid flight, never in a fight. The steps already behind you
 -- are counted so "Step 2 of 3" holds as you go.
 --
--- The same file goes in every Blackthornes addon with an arrow; each copy
--- signs up in `_G.BlackthornesTravel` and the one with the highest
--- FILE_VERSION plans for all of them. A fix to it belongs in all of them.
+-- The same file goes in every Blackthornes addon (a fix to it belongs in
+-- all of them). What is different in each addon comes through
+-- `ns.TravelHost` (see Host below), so this file never names one. Each copy
+-- signs up in `_G.BlackthornesTravel`, and what one copy has learned (the
+-- flights you know, where you crossed, where your Hearthstone lands) the
+-- others read too, so a flight learned with one addon loaded counts in all.
 --
--- Saved, never renamed: `arrowRoute` (off unless ticked), `travelFlights`,
--- `travelCrossings`, `travelHearth`. Nothing is shared with anyone.
+-- Saved in each addon's account save, never renamed: `arrowRoute` (off
+-- unless ticked), `travelFlights`, `travelCrossings`, `travelHearth`.
+-- Nothing is shared with anyone.
 
-local _, ns = ...
-local L = ns.L
+local addonName, ns = ...
+local L = ns.L or setmetatable({ Format = string.format }, { __index = function(_, key) return key end })
 
 local Travel = ns.NewModule("Travel")
 
-Travel.FILE_VERSION = 1
+Travel.FILE_VERSION = 2
 
 -- Rough speeds and waits, yards a second and seconds.
 Travel.WALK_SPEED = 8
@@ -62,11 +66,17 @@ Travel.HEARTH_SPELL = 8690
 -- A crossing keeps the average of at most this many walks.
 Travel.CROSSING_KEEP = 20
 
+-- The map type the client gives a continent.
+local CONTINENT = 2
+
 local DATA = ns.TRAVEL_DATA or { flights = {}, paths = {}, docks = {}, rides = {} }
 Travel.DATA = DATA
+local ZONES = ns.TRAVEL_ZONES or { maps = {}, borders = {}, inside = {}, aliases = {} }
+Travel.ZONES = ZONES
 
-local Readable = function(value) return ns.Harvest.Readable(value) end
-local Number = function(value) return ns.Harvest.ReadableNumber(value) end
+--------------------------------------------------------------------------------
+-- Reading the client
+--------------------------------------------------------------------------------
 
 local function Read(fn, ...)
     if type(fn) ~= "function" then return nil end
@@ -75,12 +85,177 @@ local function Read(fn, ...)
     return unpack(result, 2)
 end
 
+--- Text the client gave, or nil for nil, numbers and secret values.
+function Travel.Readable(value)
+    local kind = type(value)
+    if kind == "number" or kind == "boolean" or value == nil then return nil end
+    local ok, text = pcall(function() local copy = value .. "" return copy ~= "" and copy or nil end)
+    return ok and type(text) == "string" and text or nil
+end
+
+--- A number the client gave, or nil for anything else and secret values.
+function Travel.Number(value)
+    local kind = type(value)
+    if kind == "string" or kind == "boolean" or value == nil then return nil end
+    local ok, number = pcall(function() local copy = value + 0 return copy == copy and copy or nil end)
+    return ok and type(number) == "number" and number or nil
+end
+
+local Readable, Number = Travel.Readable, Travel.Number
+
 local function Clock()
     return type(GetTime) == "function" and (Read(GetTime) or 0) or 0
 end
 
+local function Map() return type(_G.C_Map) == "table" and _G.C_Map or nil end
+
+--- A point on map `mapID` (0 to 1 each way) as the world sees it:
+--- continent, north, west in yards, or nil when the client will not say.
+function Travel.WorldPos(mapID, x, y)
+    local map = Map()
+    if not (map and mapID and x and y) then return nil end
+    if type(map.GetWorldPosFromMapPos) ~= "function" or type(CreateVector2D) ~= "function" then return nil end
+    local ok, continent, position = pcall(map.GetWorldPosFromMapPos, mapID, CreateVector2D(x, y))
+    if not ok or type(position) ~= "table" then return nil end
+    local read, north, west = pcall(position.GetXY, position)
+    if not read then return nil end
+    continent, north, west = Number(continent), Number(north), Number(west)
+    if not (continent and north and west) then return nil end
+    return continent, north, west
+end
+
+--- A world point as a spot on the map it lies on: { map, x, y }, or nil.
+function Travel.MapPos(continent, north, west)
+    local map = Map()
+    if not (map and continent and north and west) then return nil end
+    if type(map.GetMapPosFromWorldPos) ~= "function" or type(CreateVector2D) ~= "function" then return nil end
+    local ok, mapID, position = pcall(map.GetMapPosFromWorldPos, continent, CreateVector2D(north, west))
+    if not ok or type(position) ~= "table" then return nil end
+    local read, x, y = pcall(position.GetXY, position)
+    mapID = Number(mapID)
+    if not (read and mapID) then return nil end
+    x, y = Number(x), Number(y)
+    if not (x and y) then return nil end
+    return { map = mapID, x = x, y = y }
+end
+
+--- The continent map the map `mapID` sits on, or nil.
+function Travel.ContinentOf(mapID)
+    local map = Map()
+    for _ = 1, 8 do
+        local info = map and mapID and Read(map.GetMapInfo, mapID)
+        if type(info) ~= "table" then return nil end
+        local ok, kind, parent = pcall(function() return info.mapType, info.parentMapID end)
+        if not ok then return nil end
+        if Number(kind) == CONTINENT then return mapID end
+        parent = Number(parent)
+        if not parent or parent <= 0 then return nil end
+        mapID = parent
+    end
+    return nil
+end
+
 --------------------------------------------------------------------------------
--- One planner for every addon
+-- What each addon fills in
+--------------------------------------------------------------------------------
+
+-- `ns.TravelHost` may give any of these; what it leaves out is done here.
+local Defaults = {}
+
+--- The account save this addon keeps its travel keys in.
+function Defaults.DB() return ns.db end
+
+--- The character playing, by GUID, or nil while the client will not say.
+function Defaults.Owner()
+    return type(UnitGUID) == "function" and Readable(Read(UnitGUID, "player")) or nil
+end
+
+--- A zone by its English name: "Elwynn" (a flight master's), a capital and
+--- the zone it sits in all become the zone itself.
+function Defaults.ZoneOf(zone)
+    if type(zone) ~= "string" then return nil end
+    zone = ZONES.aliases[zone] or zone
+    return ZONES.inside[zone] or zone
+end
+
+--- The zone's name as the client shows it, for the words on screen.
+function Defaults.Show(zone)
+    local mapID = type(zone) == "string" and ZONES.maps[zone]
+    local map = Map()
+    local info = mapID and map and Read(map.GetMapInfo, mapID)
+    local name = type(info) == "table" and Readable(Read(function() return info.name end))
+    return name or zone
+end
+
+--- The zone a map is, or sits in, by the zone list's map IDs.
+local MAP_ZONES = {}
+for zone, mapID in pairs(ZONES.maps) do MAP_ZONES[mapID] = zone end
+Travel.MAP_ZONES = MAP_ZONES
+
+function Travel.ZoneOfMap(mapID)
+    local map = Map()
+    for _ = 1, 6 do
+        if not mapID then return nil end
+        if MAP_ZONES[mapID] then return MAP_ZONES[mapID] end
+        local info = map and Read(map.GetMapInfo, mapID)
+        if type(info) ~= "table" then return nil end
+        local parent = Number(Read(function() return info.parentMapID end))
+        if not parent or parent <= 0 then return nil end
+        mapID = parent
+    end
+    return nil
+end
+
+--- Where you stand: { map, x, y, continent, north, west, zone }, or nil.
+function Defaults.Here()
+    local map = Map()
+    local mapID = map and Number(Read(map.GetBestMapForUnit, "player"))
+    if not mapID then return nil end
+    local position = Read(map.GetPlayerMapPosition, mapID, "player")
+    if type(position) ~= "table" then return nil end
+    local ok, x, y = pcall(position.GetXY, position)
+    x, y = ok and Number(x), ok and Number(y)
+    if not (x and y) or (x == 0 and y == 0) then return nil end
+    local here = { map = mapID, x = x, y = y }
+    here.continent, here.north, here.west = Travel.WorldPos(mapID, x, y)
+    here.zone = Travel.ZoneOfMap(mapID)
+    return here
+end
+
+--- Inside a dungeon, raid or battleground.
+function Defaults.InInstance()
+    return type(IsInInstance) == "function" and Read(IsInInstance) and true or false
+end
+
+--- What tells two places apart, for keeping a plan.
+function Defaults.Key(target)
+    return ("%s|%s|%s|%s|%s"):format(tostring(target.name), tostring(target.zone), tostring(target.map),
+        tostring(target.x or target.mx), tostring(target.y or target.my))
+end
+
+--- The arrow should work out what it shows again.
+function Defaults.Changed() end
+
+--- The arrow should draw again soon.
+function Defaults.Refresh() end
+
+--- The arrow's state as last drawn, for the card and the map line.
+function Defaults.State() return nil end
+
+function Defaults.Print(text) if ns.Print then ns.Print(text) end end
+
+local Host = setmetatable({}, {
+    __index = function(_, key)
+        local host = ns.TravelHost
+        local fn = type(host) == "table" and host[key]
+        return type(fn) == "function" and fn or Defaults[key]
+    end,
+})
+Travel.Host = Host
+Travel.Defaults = Defaults
+
+--------------------------------------------------------------------------------
+-- Every copy, for what the others learned
 --------------------------------------------------------------------------------
 
 local shared = _G.BlackthornesTravel
@@ -89,49 +264,78 @@ if type(shared) ~= "table" then
     _G.BlackthornesTravel = shared
 end
 shared.copies = type(shared.copies) == "table" and shared.copies or {}
-shared.copies["Blackthornes_Farmer"] = { version = Travel.FILE_VERSION, module = Travel }
+shared.copies[addonName or "?"] = { version = Travel.FILE_VERSION, module = Travel }
 
---- The copy that plans: the highest FILE_VERSION, Farmer's on a tie.
-function Travel.Planner()
-    local best
-    for addon, copy in pairs(shared.copies) do
-        if type(copy) == "table" and type(copy.module) == "table" then
-            if not best or (copy.version or 0) > (best.version or 0)
-                or ((copy.version or 0) == (best.version or 0) and addon == "Blackthornes_Farmer") then
-                best = copy
-            end
+--- Every copy's module, this one first.
+function Travel.Copies()
+    local list = { Travel }
+    for _, copy in pairs(shared.copies) do
+        if type(copy) == "table" and type(copy.module) == "table" and copy.module ~= Travel then
+            list[#list + 1] = copy.module
         end
     end
-    return best and best.module or Travel
+    return list
+end
+
+--- A table one copy keeps, read safely: its own save's `key`.
+function Travel:Saved(key)
+    local ok, value = pcall(function()
+        local db = self.Host.DB()
+        return type(db) == "table" and db[key] or nil
+    end)
+    return ok and type(value) == "table" and value or nil
 end
 
 --------------------------------------------------------------------------------
 -- Switches and what you have learned
 --------------------------------------------------------------------------------
 
+local function DB() return Host.DB() end
+
 function Travel.IsOn()
-    return ns.db ~= nil and ns.db.arrowRoute == true
+    local db = DB()
+    return type(db) == "table" and db.arrowRoute == true
 end
 
 function Travel:SetOn(on)
-    ns.db.arrowRoute = on and true or false
+    local db = DB()
+    if type(db) ~= "table" then return end
+    db.arrowRoute = on and true or false
     self:Forget()
-    if ns.Arrow and ns.Arrow.Changed then ns.Arrow:Changed() end
+    Host.Changed()
 end
 
 local function Store(key)
-    if type(ns.db[key]) ~= "table" then ns.db[key] = {} end
-    return ns.db[key]
+    local db = DB()
+    if type(db[key]) ~= "table" then db[key] = {} end
+    return db[key]
 end
 
---- The flights this character knows: { [node] = true }, or nil while the
---- client will not say who is playing.
+--- The flights this character knows, as this addon keeps them:
+--- { [node] = true }, or nil while the client will not say who is playing.
 function Travel:KnownFlights()
-    local guid = ns.Goals and ns.Goals:Owner()
-    if not guid then return nil end
+    local guid = Host.Owner()
+    if not guid or type(DB()) ~= "table" then return nil end
     local all = Store("travelFlights")
     if type(all[guid]) ~= "table" then all[guid] = {} end
     return all[guid]
+end
+
+--- The flights this character knows, as any loaded addon kept them.
+function Travel:AllFlights()
+    local guid = Host.Owner()
+    local known = {}
+    if not guid then return known end
+    for _, copy in ipairs(Travel.Copies()) do
+        local all = copy.Saved and copy:Saved("travelFlights")
+        local mine = all and all[guid]
+        if type(mine) == "table" then
+            for node, yes in pairs(mine) do
+                if yes == true then known[node] = true end
+            end
+        end
+    end
+    return known
 end
 
 --- "A", "H", or nil while the client will not say.
@@ -155,7 +359,8 @@ function Travel:ReadFlightMap()
     local added = 0
 
     local taxi = _G.C_TaxiMap
-    local mapID = ns.Harvest and ns.Harvest.PlayerMapPosition and ns.Harvest:PlayerMapPosition()
+    local map = Map()
+    local mapID = map and Number(Read(map.GetBestMapForUnit, "player"))
     local nodes = taxi and mapID and Read(taxi.GetAllTaxiNodes, mapID)
     if type(nodes) == "table" then
         for _, node in ipairs(nodes) do
@@ -185,9 +390,8 @@ end
 --- Keeps where you crossed from one zone into the next, on foot.
 function Travel:NoteCrossing(from, to, here)
     if not (from and to and from ~= to and here and here.continent) then return end
-    local borders = ns.Spots.BORDERS
     local near = false
-    for _, zone in ipairs(borders[from] or {}) do
+    for _, zone in ipairs(ZONES.borders[from] or {}) do
         if zone == to then near = true end
     end
     if not near then return end
@@ -205,10 +409,20 @@ function Travel:NoteCrossing(from, to, here)
     kept[4] = count + 1
 end
 
+--- The kept row `key` of the table `name`, this addon's first, else
+--- another loaded addon's.
+function Travel:Kept(name, key)
+    for _, copy in ipairs(Travel.Copies()) do
+        local all = copy.Saved and copy:Saved(name)
+        if all and type(all[key]) == "table" then return all[key] end
+    end
+    return nil
+end
+
 --- The spot you crossed from `from` into `to` before: continent, north, west.
 function Travel:Crossing(from, to)
-    local kept = type(ns.db.travelCrossings) == "table" and ns.db.travelCrossings[from .. "|" .. to]
-    if type(kept) ~= "table" then return nil end
+    local kept = self:Kept("travelCrossings", from .. "|" .. to)
+    if not kept then return nil end
     return tonumber(kept[1]), tonumber(kept[2]), tonumber(kept[3])
 end
 
@@ -216,8 +430,8 @@ end
 --- ready: { continent, north, west, zone, name }, or nil.
 function Travel:Hearth()
     local bind = type(GetBindLocation) == "function" and Readable(Read(GetBindLocation))
-    local kept = bind and type(ns.db.travelHearth) == "table" and ns.db.travelHearth[bind]
-    if type(kept) ~= "table" then return nil end
+    local kept = bind and self:Kept("travelHearth", bind)
+    if not kept then return nil end
 
     local count = Number(Read(_G.GetItemCount or (_G.C_Item and _G.C_Item.GetItemCount), Travel.HEARTHSTONE))
     if not count or count < 1 then return nil end
@@ -256,14 +470,14 @@ function Travel:Stops(side, known)
         if known and known[id] and SideAllows(row[2], side) then
             stops["f" .. id] = {
                 key = "f" .. id, kind = "flight", node = id, name = Travel.ShortName(row[1]),
-                continent = row[3], north = row[4], west = row[5], zone = row[6],
+                continent = row[3], north = row[4], west = row[5], zone = Defaults.ZoneOf(row[6]),
             }
         end
     end
     for key, row in pairs(DATA.docks or {}) do
         stops["d" .. key] = {
             key = "d" .. key, kind = "dock", dock = key, name = row[1],
-            continent = row[2], north = row[3], west = row[4], zone = row[5],
+            continent = row[2], north = row[3], west = row[4], zone = Defaults.ZoneOf(row[5]),
         }
     end
     return stops
@@ -366,9 +580,9 @@ function Travel.Steps(legs)
 end
 
 --- The zones a walk on one continent passes through, in order, by the zone
---- borders (Spots.BORDERS); nil when the borders do not join them.
+--- borders (Data/TravelZones.lua); nil when the borders do not join them.
 function Travel.ZonePath(from, to)
-    local borders = ns.Spots.BORDERS
+    local borders = ZONES.borders
     if not (from and to and borders[from] and borders[to]) then return nil end
     if from == to then return { from } end
     local back, queue, head = { [from] = false }, { from }, 1
@@ -395,19 +609,22 @@ function Travel.ZonePath(from, to)
 end
 
 --- A place as world coordinates: { continent, north, west, zone, name }.
+--- A target gives `map` with `x`, `y` (0 to 1) or `mx`, `my` (0 to 1), or a
+--- zone with `coords` (0 to 100), or only a zone (its middle).
 function Travel:WorldOf(target)
     if type(target) ~= "table" then return nil end
-    local zone = ns.Spots.ZoneOf(target.zone)
+    local zone = Host.ZoneOf(target.zone)
     local continent, north, west
-    if target.map and target.x and target.y then
-        continent, north, west = ns.Arrow.WorldPos(target.map, target.x, target.y)
+    local x, y = target.mx or target.x, target.my or target.y
+    if target.map and x and y and x <= 1 and y <= 1 then
+        continent, north, west = Travel.WorldPos(target.map, x, y)
     end
     if not continent and zone then
-        local mapID = ns.Spots.ZONE_MAPS[zone]
+        local mapID = ZONES.maps[zone]
         local coords = type(target.coords) == "table" and target.coords
-        local x = coords and tonumber(coords[1]) and coords[1] / 100 or 0.5
-        local y = coords and tonumber(coords[2]) and coords[2] / 100 or 0.5
-        if mapID then continent, north, west = ns.Arrow.WorldPos(mapID, x, y) end
+        local cx = coords and tonumber(coords[1]) and coords[1] / 100 or 0.5
+        local cy = coords and tonumber(coords[2]) and coords[2] / 100 or 0.5
+        if mapID then continent, north, west = Travel.WorldPos(mapID, cx, cy) end
     end
     if not continent then return nil end
     return { continent = continent, north = north, west = west, zone = zone, name = target.name }
@@ -418,7 +635,7 @@ end
 function Travel.WorthATrip(here, place)
     if not (here and place and here.continent) then return false end
     if place.continent ~= here.continent then return true end
-    local path = Travel.ZonePath(ns.Spots.ZoneOf(here.zone), place.zone)
+    local path = Travel.ZonePath(Host.ZoneOf(here.zone), place.zone)
     return path ~= nil and #path >= 3
 end
 
@@ -429,11 +646,9 @@ end
 --- Stop on the card: no trip for this place; the arrow points straight
 --- again until it is aimed somewhere else.
 function Travel:StopTrip()
-    local planner = Travel.Planner()
-    if planner ~= self then return planner:StopTrip() end
     self.stopped = self.plan and self.plan.key or self.lastKey
     self.plan = nil
-    if ns.Arrow and ns.Arrow.Changed then ns.Arrow:Changed() end
+    Host.Changed()
 end
 
 --- Works out the plan for `target` from `here` when it is due. Keeps the
@@ -441,7 +656,7 @@ end
 function Travel:Plan(target, here, clock)
     local place = self:WorldOf(target)
     if not place then self.plan = nil return nil end
-    local key = ns.Arrow.Key(target)
+    local key = Host.Key(target)
 
     local plan = self.plan
     if plan and plan.key ~= key then plan = nil end
@@ -456,7 +671,7 @@ function Travel:Plan(target, here, clock)
         return nil
     end
 
-    local legs, cost = self:Search(here, place, Travel.Side(), self:KnownFlights() or {}, self:Hearth())
+    local legs, cost = self:Search(here, place, Travel.Side(), self:AllFlights(), self:Hearth())
     local steps = Travel.Steps(legs)
     if not legs or #steps == 0 then
         self.plan = nil
@@ -487,7 +702,7 @@ end
 --- Returns continent, north, west and the zone it heads toward (or nil).
 function Travel:Toward(here, goal)
     if here.continent ~= goal.continent then return nil end
-    local path = Travel.ZonePath(ns.Spots.ZoneOf(here.zone), goal.zone)
+    local path = Travel.ZonePath(Host.ZoneOf(here.zone), Host.ZoneOf(goal.zone))
     if not path or #path < 3 then return goal.continent, goal.north, goal.west, nil end
 
     local nextZone = path[2]
@@ -495,14 +710,14 @@ function Travel:Toward(here, goal)
     if continent == here.continent then return continent, north, west, nextZone end
 
     -- The nearest edge of the next zone's map.
-    local mapID = ns.Spots.ZONE_MAPS[nextZone]
+    local mapID = ZONES.maps[nextZone]
     if mapID then
-        local c1, n1, w1 = ns.Arrow.WorldPos(mapID, 0, 0)
-        local c2, n2, w2 = ns.Arrow.WorldPos(mapID, 1, 1)
+        local c1, n1, w1 = Travel.WorldPos(mapID, 0, 0)
+        local c2, n2, w2 = Travel.WorldPos(mapID, 1, 1)
         if c1 == here.continent and c2 == here.continent then
-            local north = math.max(math.min(n1, n2), math.min(math.max(n1, n2), here.north))
-            local west = math.max(math.min(w1, w2), math.min(math.max(w1, w2), here.west))
-            return c1, north, west, nextZone
+            local edgeNorth = math.max(math.min(n1, n2), math.min(math.max(n1, n2), here.north))
+            local edgeWest = math.max(math.min(w1, w2), math.min(math.max(w1, w2), here.west))
+            return c1, edgeNorth, edgeWest, nextZone
         end
     end
     return goal.continent, goal.north, goal.west, nil
@@ -528,14 +743,12 @@ function Travel.StepWords(step, atStop, onTaxi)
 end
 
 --- Everything the arrow needs while a trip is on: { index, count, line,
---- small, continent, north, west, toward, step, plan }, or nil when the
---- arrow should point as it always has.
+--- small, continent, north, west, toward, step, plan, point }, or nil when
+--- the arrow should point as it always has.
 function Travel:Use(target, here, clock)
     if not Travel.IsOn() or not (here and here.continent) then return nil end
-    local planner = Travel.Planner()
-    if planner ~= self then return planner:Use(target, here, clock) end
 
-    local key = ns.Arrow.Key(target)
+    local key = Host.Key(target)
     self.lastKey = key
     if self.stopped then
         if self.stopped == key then return nil end
@@ -564,11 +777,33 @@ function Travel:Use(target, here, clock)
     end
     trip.line, trip.small = Travel.StepWords(step, atStop and step.kind ~= "walk", onTaxi)
     if trip.toward then
-        local toward = L.Format("toward %s", ns.Spots.Show(trip.toward))
+        local toward = L.Format("toward %s", Host.Show(trip.toward))
         trip.small = trip.small ~= "" and (trip.small .. ", " .. toward) or toward
     end
     trip.atStop = atStop
     return trip
+end
+
+--- The steps of a trip to `target` from where you stand, as lines to print,
+--- and the next stop as { map, x, y, name } for a map pin; nil when the
+--- place needs no trip. For the addons whose Show the Way pins a place.
+function Travel:Guide(target)
+    if not Travel.IsOn() then return nil end
+    local here = Host.Here()
+    if not (here and here.continent) or Host.InInstance() then return nil end
+    self.stopped, self.due = nil, true
+    local trip = self:Use(target, here, Clock())
+    if not trip then return nil end
+    local lines = {}
+    for index, step in ipairs(trip.plan.steps) do
+        lines[#lines + 1] = ("%d. %s"):format(trip.index + index - 1, (Travel.StepWords(step)))
+    end
+    local point
+    if trip.continent and trip.continent == here.continent then
+        point = Travel.MapPos(trip.continent, trip.north, trip.west)
+        if point then point.name = trip.line end
+    end
+    return { lines = lines, point = point, trip = trip }
 end
 
 --- Minutes the rest of the trip takes, about.
@@ -580,7 +815,7 @@ end
 function Travel:OnNext(step)
     if not step then return end
     local line = Travel.StepWords(step, false, false)
-    ns.Print(L.Format("Next: %s.", line))
+    Host.Print(L.Format("Next: %s.", line))
 end
 
 --------------------------------------------------------------------------------
@@ -589,14 +824,14 @@ end
 
 function Travel:Due()
     self.due = true
-    if ns.ArrowUI and ns.ArrowUI.Refresh then ns.ArrowUI:Refresh() end
+    Host.Refresh()
 end
 
 function Travel:OnZoneChanged()
-    local here = ns.Arrow and ns.Arrow:Here()
-    local zone = here and ns.Spots.ZoneOf(here.zone)
+    local here = Host.Here()
+    local zone = here and Host.ZoneOf(here.zone)
     local onTaxi = type(UnitOnTaxi) == "function" and Read(UnitOnTaxi, "player") == true
-    local inside = ns.Tracker and ns.Tracker.InInstance and ns.Tracker.InInstance()
+    local inside = Host.InInstance()
     if zone and self.lastZone and zone ~= self.lastZone and not onTaxi and not inside and not self.hearthing then
         self:NoteCrossing(self.lastZone, zone, here)
     end
@@ -610,20 +845,18 @@ function Travel:OnZoneChanged()
     self:Due()
 end
 
+local function Later(seconds, fn)
+    if C_Timer and C_Timer.After then C_Timer.After(seconds, fn) else fn() end
+end
+
 function Travel:OnEnable()
     ns.RegisterEvent(self, "TAXIMAP_OPENED", function() Travel:ReadFlightMap() end)
     ns.RegisterEvent(self, "ZONE_CHANGED_NEW_AREA", function()
-        if C_Timer and C_Timer.After then
-            C_Timer.After(1, function() Travel:OnZoneChanged() end)
-        else
-            Travel:OnZoneChanged()
-        end
+        Later(1, function() Travel:OnZoneChanged() end)
     end)
     ns.RegisterEvent(self, "PLAYER_CONTROL_GAINED", function() Travel:Due() end)
     ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", function()
-        if C_Timer and C_Timer.After then
-            C_Timer.After(2, function() Travel:OnZoneChanged() end)
-        end
+        Later(2, function() Travel:OnZoneChanged() end)
     end)
     local register = ns.RegisterPlayerEvent or ns.RegisterEvent
     register(self, "UNIT_SPELLCAST_SUCCEEDED", function(_, _, unit, _, spellID)

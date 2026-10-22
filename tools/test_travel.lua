@@ -156,4 +156,35 @@ suite.check("and keeps the average of the walks", ns.db.travelCrossings["Elwynn 
 Travel:NoteCrossing("Elwynn Forest", "Tanaris", { continent = 0, north = 0, west = 0 })
 suite.check("zones that don't touch keep nothing", ns.db.travelCrossings["Elwynn Forest|Tanaris"] == nil)
 
+--------------------------------------------------------------------------------
+-- The same file in every addon
+--------------------------------------------------------------------------------
+
+suite.check("a flight master's short zone is the zone", Travel.Defaults.ZoneOf("Elwynn") == "Elwynn Forest")
+suite.check("a capital is the zone it sits in", Travel.Host.ZoneOf("Stormwind City") == "Elwynn Forest",
+    tostring(Travel.Host.ZoneOf("Stormwind City")))
+
+-- Another addon's copy learned a flight this one has not.
+local otherDB = { travelFlights = { [UnitGUID("player")] = { [3] = true } } }
+local otherCopy = setmetatable({ Host = { DB = function() return otherDB end } }, { __index = Travel })
+_G.BlackthornesTravel.copies.Other = { version = 1, module = otherCopy }
+suite.check("flights another addon learned count", Travel:AllFlights()[3] == true and Travel:AllFlights()[1] == true)
+suite.check("but are kept in that addon's save", not ns.db.travelFlights[UnitGUID("player")][3])
+otherDB.travelCrossings = { ["Westfall|Duskwood"] = { 0, -500, 900, 1 } }
+suite.check("and where you crossed with it loaded", select(2, Travel:Crossing("Westfall", "Duskwood")) == -500)
+_G.BlackthornesTravel.copies.Other = nil
+
+-- Show the Way in an addon without a dial: the steps as lines and the
+-- next stop to pin.
+ns.TravelHost.Here = function() return start end
+local mapPos = Travel.MapPos
+Travel.MapPos = function(continent, north, west) return { map = 1429, x = 0.5, y = 0.5 } end
+local guide = Travel:Guide(target)
+suite.check("Guide gives the steps as lines", guide and #guide.lines == 3 and guide.lines[1] == "1. Fly to Menethil Harbor",
+    guide and guide.lines[1])
+suite.check("and the next stop to pin", guide.point and guide.point.map == 1429 and guide.point.name == "Fly to Menethil Harbor")
+ns.db.arrowRoute = false
+suite.check("Guide is off with the setting", Travel:Guide(target) == nil)
+Travel.MapPos = mapPos
+
 suite.done()

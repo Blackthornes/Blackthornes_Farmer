@@ -1,4 +1,4 @@
--- Blackthornes Farmer -- UI/TravelCard.lua
+-- Blackthornes -- UI/TravelCard.lua
 -- "Your Way There": the steps of the arrow's trip (Logic/Travel.lua) as
 -- dark glass rows, the one to do now lit with a gold edge, the ones behind
 -- you dimmed with Done, then about how long the rest takes, Stop and Show
@@ -9,14 +9,20 @@
 -- frame on UIParent; it can be dragged, and keeps its place in
 -- `travelCardX`/`travelCardY` and its size in `travelCardScale` (account
 -- wide, never rename them).
+--
+-- The same file in every addon whose arrow takes trips (a fix to it belongs
+-- in all of them); the addon's own parts come through Travel.Host.
 
-local _, ns = ...
-local L = ns.L
+local addonName, ns = ...
+local L = ns.L or setmetatable({ Format = string.format }, { __index = function(_, key) return key end })
 
 local TravelCard = ns.NewModule("TravelCard")
 
 local Theme = ns.Theme
 local Widgets = ns.Widgets
+
+local function Host() return ns.Travel.Host end
+local function DB() local db = Host().DB() return type(db) == "table" and db or nil end
 
 local WIDTH = 330
 local PADDING = 12
@@ -30,7 +36,7 @@ TravelCard.MAX_ROWS = 6
 function TravelCard:Build()
     if self.frame then return self.frame end
 
-    local frame = CreateFrame("Frame", "BlackthornesFarmerTravelCard", UIParent)
+    local frame = CreateFrame("Frame", tostring(addonName):gsub("_", "") .. "TravelCard", UIParent)
     frame:SetSize(WIDTH, TOP + ROW + FOOT)
     frame:SetFrameStrata("MEDIUM")
     frame:SetClampedToScreen(true)
@@ -57,12 +63,14 @@ function TravelCard:Build()
         TravelCard:SavePlace()
     end)
 
-    Widgets.ApplySize(frame, ns.db and ns.db.travelCardScale)
-    self.sizeGrip = Widgets.CreateSizeGrip(frame, {
-        below = trim and select(4, ns.Titanforged.Reach(trim)) or 0,
-        get = function() return ns.db and ns.db.travelCardScale end,
-        save = function(percent) if ns.db then ns.db.travelCardScale = percent end end,
-    })
+    if Widgets.ApplySize then Widgets.ApplySize(frame, DB() and DB().travelCardScale) end
+    if Widgets.CreateSizeGrip then
+        self.sizeGrip = Widgets.CreateSizeGrip(frame, {
+            below = trim and ns.Titanforged.Reach and select(4, ns.Titanforged.Reach(trim)) or 0,
+            get = function() return DB() and DB().travelCardScale end,
+            save = function(percent) if DB() then DB().travelCardScale = percent end end,
+        })
+    end
 
     self.rows = {}
     for index = 1, TravelCard.MAX_ROWS do
@@ -112,15 +120,17 @@ end
 
 function TravelCard:SavePlace()
     local frame = self.frame
-    if not (frame and ns.db) then return end
+    local db = DB()
+    if not (frame and db) then return end
     local ok, left, top = pcall(function() return frame:GetLeft(), frame:GetTop() end)
-    if ok and left and top then ns.db.travelCardX, ns.db.travelCardY = left, top end
+    if ok and left and top then db.travelCardX, db.travelCardY = left, top end
 end
 
 function TravelCard:RestorePlace()
     local frame = self.frame
     frame:ClearAllPoints()
-    local x, y = ns.db and tonumber(ns.db.travelCardX), ns.db and tonumber(ns.db.travelCardY)
+    local db = DB()
+    local x, y = db and tonumber(db.travelCardX), db and tonumber(db.travelCardY)
     if x and y then
         frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
     else
@@ -135,7 +145,7 @@ function TravelCard.SubLine(step)
     if step.kind == "hearth" then
         return L.Format("It takes you to %s", ns.Travel.ShortName(step.to and step.to.name) or "?")
     end
-    return step.to and step.to.zone and ns.Spots.Show(step.to.zone) or ""
+    return step.to and step.to.zone and Host().Show(step.to.zone) or ""
 end
 
 --- The rows for a plan: { title, sub, status, now, done }, the steps behind
@@ -219,15 +229,15 @@ end
 --- Opens the world map, on the whole world when the trip crosses the sea.
 function TravelCard:ShowOnMap()
     if type(InCombatLockdown) == "function" and InCombatLockdown() then return end
-    local state = ns.ArrowUI and ns.ArrowUI.state
-    local trip = state and state.trip
-    local here = ns.Arrow and ns.Arrow:Here()
+    local state = Host().State()
+    local trip = type(state) == "table" and state.trip
+    local here = Host().Here()
     local mapID
     local plan = trip and trip.plan
     if plan and here and plan.place and plan.place.continent ~= here.continent then
         mapID = ns.TravelMap and ns.TravelMap.WORLD
     elseif here then
-        mapID = ns.Arrow.ContinentOf(here.map)
+        mapID = ns.Travel.ContinentOf(here.map)
     end
     if type(OpenWorldMap) == "function" then
         pcall(OpenWorldMap, mapID)

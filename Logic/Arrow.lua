@@ -972,3 +972,24 @@ ns.RegisterCommand("arrow", L["an arrow to the nearest place to gather a goal (o
         end
     end
 end)
+
+--------------------------------------------------------------------------------
+-- What Logic/Travel.lua (the same file in every addon) asks of Farmer
+--------------------------------------------------------------------------------
+
+ns.TravelHost = {
+    DB = function() return ns.db end,
+    Owner = function() return ns.Goals and ns.Goals:Owner() end,
+    ZoneOf = function(zone)
+        local name = type(zone) == "string" and ns.Spots.ZoneOf(zone) or zone
+        return ns.Travel.Defaults.ZoneOf(name)
+    end,
+    Show = function(zone) return ns.Spots.Show(zone) end,
+    Here = function() return Arrow:Here() end,
+    InInstance = function() return ns.Tracker and ns.Tracker.InInstance and ns.Tracker.InInstance() or false end,
+    Key = function(target) return Arrow.Key(target) end,
+    Changed = function() Arrow:Changed() end,
+    Refresh = function() if ns.ArrowUI and ns.ArrowUI.Refresh then ns.ArrowUI:Refresh() end end,
+    State = function() return ns.ArrowUI and ns.ArrowUI.state end,
+    Print = function(text) ns.Print(text) end,
+}
