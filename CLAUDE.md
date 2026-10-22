@@ -274,9 +274,11 @@ want, records) through hooks on the partner state (`sections`, `store`,
 
 - Finding guildmates: each side says hello on the GUILD addon channel
   (`G<farmer id>:<hash of its drop records>`) 30 s after login and every
-  half hour, and once (at most a minute apart) to someone new. A hello whose
+  quarter hour (2026-10-22, a player's report), and once (at most a minute
+  apart) to someone new. A hello whose
   hash is not the one last taken in full (`guildIn[...].top`) queues that
-  guildmate; one is synced at a time, each at most every half hour, and a
+  guildmate; one is synced at a time, each at most every ten minutes, waited
+  on while its records keep coming (`STILL_COMING`), and a
   guildmate's whispers are heard only after their hello
   (`GuildShare:PartnerFor`, which `Share:PartnerFor` falls back to).
 - Only drop records ("h") go, only the sender's own, and they never join
@@ -300,8 +302,9 @@ want, records) through hooks on the partner state (`sections`, `store`,
   `guildIn` and turns it off; there is no Settings button for it, since
   Settings never deletes data.
 
-A tick box under YOUR GUILD on the Sharing page and `/farm share guild
-on|off`. Tested in `tools/test_guildshare.lua` (three accounts and an alt
+A tick box under YOUR GUILD on the Sharing page, "Guild Status:" under it
+(`GuildShare:Status`, from the save; the names box shows `Share:Status`
+the same way), and `/farm share guild on|off`. Tested in `tools/test_guildshare.lua` (three accounts and an alt
 over a pretend chat). Not yet seen in game.
 
 ## Sending drops to Blackthornes
