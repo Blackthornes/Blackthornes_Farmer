@@ -42,11 +42,12 @@ local GuildShare = ns.NewModule("GuildShare")
 local Comm = ns.Comm
 local Share = ns.Share
 
-GuildShare.HELLO_SECONDS = 1800   -- a hello to the guild every half hour
+GuildShare.HELLO_SECONDS = 900    -- a hello to the guild every quarter hour
 GuildShare.FIRST_HELLO = 30       -- and this long after login
 GuildShare.ANSWER_GAP = 60        -- at most one hello back a minute
-GuildShare.SYNC_GAP = 1800        -- one guildmate synced at most this often
-GuildShare.SYNC_TIMEOUT = 180     -- a sync left this long is given up
+GuildShare.SYNC_GAP = 600         -- one guildmate synced at most this often
+GuildShare.SYNC_TIMEOUT = 600     -- a sync left this long is given up
+GuildShare.STILL_COMING = 60      -- unless records came in this recently
 GuildShare.CONFIRM_AFTER = 30     -- quiet this long after records: compare again
 GuildShare.MAX_GUILDMATES = 20
 
@@ -211,7 +212,21 @@ function GuildShare:Next()
     if not self:On() then return end
     local current = self.current
     if current then
-        if current.online and time() - (current.syncStart or 0) < self.SYNC_TIMEOUT then return end
+        -- A big harvest takes longer than the timeout to send: while its
+        -- records keep coming, it is waited on, not given up halfway.
+        local now = time()
+        local busy = now - (current.syncStart or 0) < self.SYNC_TIMEOUT
+            or now - (current.lastRecordAt or 0) < self.STILL_COMING
+        if current.online and busy then
+            if not self.lookAgain then
+                self.lookAgain = true
+                C_Timer.After(self.STILL_COMING, function()
+                    GuildShare.lookAgain = nil
+                    GuildShare:Next()
+                end)
+            end
+            return
+        end
         self:Finish(current)
     end
 
@@ -224,7 +239,7 @@ function GuildShare:Next()
 
     self.current, state.syncStart, state.syncedAt = state, time(), time()
     Share:SendManifest(state)
-    C_Timer.After(self.SYNC_TIMEOUT + 1, function() GuildShare:Next() end)
+    C_Timer.After(self.STILL_COMING, function() GuildShare:Next() end)
 end
 
 --- Their manifest was compared with what is held (Share:OnManifest). Nothing
@@ -244,6 +259,7 @@ end
 function GuildShare:Received(state)
     state.lastRecordAt = time()
     self:PublishSoon()
+    if ns.SettingsUI and ns.SettingsUI.ShareStatusChanged then pcall(ns.SettingsUI.ShareStatusChanged, ns.SettingsUI) end
     if state.confirming then return end
     state.confirming = true
     local function Confirm()
@@ -475,6 +491,26 @@ function GuildShare:Counts()
     local records = 0
     for _ in pairs(Drops() or {}) do records = records + 1 end
     return heard, records
+end
+
+--- One line for Settings: how much came in from the guild, from how many
+--- guildmates, and when the last did. From the save, so it reads the same
+--- after a /reload.
+function GuildShare:Status(now)
+    if not self:On() then return L["Guild sharing is off."] end
+    if not InGuild() then return L["You're not in a guild on this character."] end
+    local mates, last = 0, nil
+    for key, held in pairs(Ledgers()) do
+        if type(key) == "string" and key:sub(1, 6) == "guild:" and type(held) == "table" and tonumber(held.at) then
+            mates = mates + 1
+            if not last or held.at > last then last = held.at end
+        end
+    end
+    local mobs = Share.MobsIn(Drops())
+    if mobs == 0 or mates == 0 then return L["Nothing from your guild yet. A guildmate needs this turned on too."] end
+    return L.Format("Got drops for %s from %s.", ns.Util.Plural(mobs, L["mob"], L["mobs"]),
+        ns.Util.Plural(mates, L["guildmate"], L["guildmates"]))
+        .. " " .. L.Format("The last came in %s.", Share.Ago(last, now))
 end
 
 function GuildShare:Describe()

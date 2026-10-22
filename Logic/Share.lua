@@ -55,6 +55,7 @@ local Share = ns.NewModule("Share")
 
 local Comm = ns.Comm
 local Serialize = ns.Serialize
+local Util = ns.Util
 
 Share.CHECK_SECONDS = 600
 -- Records worked per frame when lists are built, and sent per message.
@@ -839,6 +840,7 @@ function Share:Changed()
         if ns.Harvest then ns.Harvest.changes = (ns.Harvest.changes or 0) + 1 end
         if ns.TrackerUI and ns.TrackerUI.Refresh then pcall(ns.TrackerUI.Refresh, ns.TrackerUI) end
         if ns.UI and ns.UI.RefreshActive then pcall(ns.UI.RefreshActive, ns.UI) end
+        if ns.SettingsUI and ns.SettingsUI.ShareStatusChanged then pcall(ns.SettingsUI.ShareStatusChanged, ns.SettingsUI) end
     end)
 end
 
@@ -891,6 +893,50 @@ function Share:CountTaken(key)
         end
     end
     return total, counts
+end
+
+--- "just now", "12 min ago", "2 hours ago", "yesterday", "3 days ago".
+function Share.Ago(when, now)
+    when, now = tonumber(when), tonumber(now or time())
+    if not (when and now) then return nil end
+    local seconds = math.max(0, now - when)
+    if seconds < 60 then return L["just now"] end
+    if seconds < 3600 then return L.Format("%d min ago", math.floor(seconds / 60)) end
+    if seconds < 7200 then return L["an hour ago"] end
+    if seconds < 86400 then return L.Format("%d hours ago", math.floor(seconds / 3600)) end
+    local days = math.floor(seconds / 86400)
+    return days == 1 and L["yesterday"] or L.Format("%d days ago", days)
+end
+
+--- How many mobs drop records are held for, from the keys of a credit or
+--- record table (mob|zone|location).
+function Share.MobsIn(records)
+    local mobs, count = {}, 0
+    for key in pairs(type(records) == "table" and records or {}) do
+        local mob = type(key) == "string" and key:match("^(.-)|") or key
+        if mob and not mobs[mob] then mobs[mob] = true; count = count + 1 end
+    end
+    return count
+end
+
+--- One line for Settings, under the names typed: what came in, from whom
+--- and when. Empty while nothing has.
+function Share:Status(now)
+    if not ns.db then return "" end
+    if ns.db.shareData ~= true then return L["Sharing is off."] end
+    local partners = self:GetPartners()
+    if #partners == 0 then return L["Sharing is on, but you haven't named a character on your other account yet."] end
+    local best
+    for _, partner in ipairs(partners) do
+        local held = type(ns.db.shareIn) == "table" and ns.db.shareIn[partner.key]
+        if type(held) == "table" and tonumber(held.at) and (not best or held.at > best.at) then
+            best = { at = held.at, name = held.name or partner.name,
+                mobs = Share.MobsIn(type(held.credit) == "table" and held.credit.h) }
+        end
+    end
+    if not best or best.mobs == 0 then return "" end
+    return L.Format("Got drops for %s from %s.", Util.Plural(best.mobs, L["mob"], L["mobs"]), best.name)
+        .. " " .. L.Format("The last came in %s.", Share.Ago(best.at, now))
 end
 
 function Share:Describe()
