@@ -31,6 +31,8 @@ Data\Database.lua
 Data\NpcNames.lua
 Data\ForeverNpcNames.lua
 Data\Zones.lua
+Data\Travel.lua
+Data\TravelZones.lua
 Data\Data_Mining.lua
 Data\Data_Herbalism.lua
 Data\Data_Cloth.lua
@@ -69,6 +71,7 @@ Logic\DisenchantFarm.lua
 Logic\Spots.lua
 Logic\Arrow.lua
 Logic\TomTom.lua
+Logic\Travel.lua
 Logic\Grinding.lua
 Logic\GrindGather.lua
 Logic\GatherToCap.lua
@@ -104,6 +107,8 @@ UI\MapMarkers.lua
 UI\Heat.lua
 UI\GrindPins.lua
 UI\Arrow.lua
+UI\TravelCard.lua
+UI\TravelMap.lua
 UI\TooltipShift.lua
 UI\ItemTooltip.lua
 UI\KillTooltip.lua

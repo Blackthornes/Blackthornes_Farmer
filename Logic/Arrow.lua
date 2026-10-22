@@ -478,6 +478,8 @@ function Arrow:SpotTarget(spot, here, rank)
         minLevel = spot.minLevel, maxLevel = spot.maxLevel, hops = spot.hops,
         travel = spot.travel, rank = rank, forever = spot.forever,
     }
+    -- Kept for a trip to it from another continent (Logic/Travel.lua).
+    if type(spot.coords) == "table" and ns.Spots.English(spot.zone) == zone then target.coords = spot.coords end
 
     local mapID = zone and self:ZoneMap(zone, here)
     -- Coordinates in a dungeon or capital are on a map of its own, so
@@ -755,6 +757,11 @@ function Arrow:State(clock)
     state.place = Arrow.Place(target, here)
     state.note, state.noteColor = Arrow.Note(target, ns.Gathering.Clock())
 
+    -- A place in another zone or on the other continent: the way there,
+    -- step by step, the arrow on the next stop (Logic/Travel.lua).
+    local trip = ns.Travel and ns.Travel:Use(target, here, clock)
+    if trip then return self:TripState(state, trip, here) end
+
     if target.far then
         state.mode = "far"
         state.distance = ns.Spots.Show(target.zone) or L["far away"]
@@ -798,6 +805,46 @@ function Arrow:State(clock)
     return state
 end
 
+--- A world point as a spot on the map it lies on: { map, x, y }, or nil.
+function Arrow.MapPos(continent, north, west)
+    local map = Map()
+    if not (map and continent and north and west) then return nil end
+    if type(map.GetMapPosFromWorldPos) ~= "function" or type(CreateVector2D) ~= "function" then return nil end
+    local ok, mapID, position = pcall(map.GetMapPosFromWorldPos, continent, CreateVector2D(north, west))
+    if not ok or type(position) ~= "table" then return nil end
+    local read, x, y = pcall(position.GetXY, position)
+    mapID = Number(mapID)
+    if not (read and mapID) then return nil end
+    x, y = Number(x), Number(y)
+    if not (x and y) then return nil end
+    return { map = mapID, x = x, y = y }
+end
+
+--- The dial's words and turn for a step of a trip.
+function Arrow:TripState(state, trip, here)
+    state.trip = trip
+    state.distance = L.Format("Step %d of %d", trip.index, trip.count)
+    state.place = trip.line
+    state.note, state.noteColor = trip.small, "muted"
+
+    if trip.continent and trip.continent == here.continent and not trip.onTaxi then
+        local yards, bearing = Arrow.Measure(trip.north - here.north, trip.west - here.west)
+        state.yards, state.bearing = yards, bearing
+        local facing = Arrow.Facing()
+        state.turn = Arrow.Turn(bearing, facing)
+        state.facing = facing ~= nil
+        state.mode = "point"
+        trip.point = Arrow.MapPos(trip.continent, trip.north, trip.west)
+        if not trip.atStop then
+            local far = Arrow.Yards(yards)
+            state.note = state.note ~= "" and (state.note .. ", " .. far) or far
+        end
+        return state
+    end
+    state.mode = "trip"
+    return state
+end
+
 --------------------------------------------------------------------------------
 -- Checking what the client allows
 --------------------------------------------------------------------------------
@@ -833,6 +880,16 @@ function Arrow:Check()
     local inside = ns.Tracker and ns.Tracker.InInstance and ns.Tracker.InInstance()
     ns.PrintRaw(("  in an instance: %s"):format(inside and "yes, so the arrow hides" or "no"))
     if ns.TomTom then ns.PrintRaw(ns.TomTom.CheckLine()) end
+    if ns.Travel then
+        local known, count = ns.Travel:KnownFlights(), 0
+        for _ in pairs(known or {}) do count = count + 1 end
+        ns.PrintRaw(("  way there: %s, %d flight paths known%s"):format(ns.Travel.IsOn() and "on" or "off", count,
+            count == 0 and " (open a flight master's map to read them)" or ""))
+        local taxi = _G.C_TaxiMap
+        ns.PrintRaw(("  flight map calls: %s"):format(YesNo(taxi and type(taxi.GetAllTaxiNodes) == "function")))
+        local map = _G.C_Map
+        ns.PrintRaw(("  world to map: %s"):format(YesNo(map and type(map.GetMapPosFromWorldPos) == "function")))
+    end
 
     local state = self:State(GetTime and GetTime() or 0)
     if state.goal then
@@ -862,7 +919,7 @@ local function Status()
     end
 end
 
-ns.RegisterCommand("arrow", L["an arrow to the nearest place to gather a goal (on, off, next, check, tomtom, <goal>)"], function(rest)
+ns.RegisterCommand("arrow", L["an arrow to the nearest place to gather a goal (on, off, next, check, tomtom, route, <goal>)"], function(rest)
     local argument = Util.Trim(rest)
     local word = argument:lower()
 
@@ -892,6 +949,15 @@ ns.RegisterCommand("arrow", L["an arrow to the nearest place to gather a goal (o
             ns.Print(L["TomTom takes over once you install it."])
         end
         if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
+    elseif word == "route" or word == "route on" or word == "route off" then
+        local Travel = ns.Travel
+        if word == "route" then Travel:SetOn(not Travel.IsOn()) else Travel:SetOn(word == "route on") end
+        if Travel.IsOn() then
+            ns.Print(L["The arrow leads you step by step to places far away."])
+        else
+            ns.Print(L["The arrow points straight at places far away."])
+        end
+        if ns.SettingsUI then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
     elseif word == "reset" then
         if ns.ArrowUI and ns.ArrowUI.ResetPosition then ns.ArrowUI:ResetPosition() end
         ns.Print(L["goal arrow put back where it started."])
@@ -906,3 +972,24 @@ ns.RegisterCommand("arrow", L["an arrow to the nearest place to gather a goal (o
         end
     end
 end)
+
+--------------------------------------------------------------------------------
+-- What Logic/Travel.lua (the same file in every addon) asks of Farmer
+--------------------------------------------------------------------------------
+
+ns.TravelHost = {
+    DB = function() return ns.db end,
+    Owner = function() return ns.Goals and ns.Goals:Owner() end,
+    ZoneOf = function(zone)
+        local name = type(zone) == "string" and ns.Spots.ZoneOf(zone) or zone
+        return ns.Travel.Defaults.ZoneOf(name)
+    end,
+    Show = function(zone) return ns.Spots.Show(zone) end,
+    Here = function() return Arrow:Here() end,
+    InInstance = function() return ns.Tracker and ns.Tracker.InInstance and ns.Tracker.InInstance() or false end,
+    Key = function(target) return Arrow.Key(target) end,
+    Changed = function() Arrow:Changed() end,
+    Refresh = function() if ns.ArrowUI and ns.ArrowUI.Refresh then ns.ArrowUI:Refresh() end end,
+    State = function() return ns.ArrowUI and ns.ArrowUI.state end,
+    Print = function(text) ns.Print(text) end,
+}

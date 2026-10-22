@@ -357,6 +357,7 @@ function ArrowUI:Draw(force)
     if state.mode == "off" or state.mode == "inside" or state.mode == "none" then
         ArrowUI.Wins(false)
         ns.TomTom:Clear()
+        if ns.TravelCard then ns.TravelCard:Hide() end
         frame:Hide()
         return
     end
@@ -364,9 +365,13 @@ function ArrowUI:Draw(force)
     -- Another Blackthornes arrow was aimed more lately: wait, hidden.
     if not ArrowUI.Wins(true) then
         ns.TomTom:Clear()
+        if ns.TravelCard then ns.TravelCard:Hide() end
         frame:Hide()
         return
     end
+
+    -- The steps of a trip, beside the dial or TomTom's arrow alike.
+    if ns.TravelCard then ns.TravelCard:Update(state) end
 
     -- TomTom installed and used: its arrow shows the way, so the dial hides
     -- and only one arrow is on screen. The driver below keeps it current.

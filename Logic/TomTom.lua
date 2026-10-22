@@ -55,13 +55,21 @@ function TomTomLink.Fits(state)
     if type(state) ~= "table" or not (state.mode == "point" or state.mode == "arrived") then
         return false
     end
-    local target = state.target
+    local target = TomTomLink.Point(state)
     return type(target) == "table" and type(target.map) == "number"
         and type(target.x) == "number" and type(target.y) == "number"
 end
 
+--- The place TomTom is given: the next stop on a trip (Logic/Travel.lua),
+--- else the place itself.
+function TomTomLink.Point(state)
+    if type(state.trip) == "table" then return state.trip.point end
+    return state.target
+end
+
 --- What the waypoint is called: "Copper Ore: Copper Vein, Westfall".
 function TomTomLink.Title(state)
+    if type(state.trip) == "table" and state.trip.line then return state.trip.line end
     local place = ns.Arrow.Place(state.target)
     local item = state.goal and state.goal.item
     return item and (item .. ": " .. place) or place
@@ -84,8 +92,9 @@ function TomTomLink:Take(state)
         return false
     end
 
-    local target = state.target
-    local key = (state.goal and state.goal.item or "?") .. "|" .. ns.Arrow.Key(target)
+    local target = TomTomLink.Point(state)
+    local key = (state.goal and state.goal.item or "?") .. "|" .. ns.Arrow.Key(state.target)
+    if state.trip then key = key .. "|" .. (state.trip.index or 0) .. "|" .. (state.trip.line or "") end
     if self.uid and self.key == key then
         if TomTomLink.StillThere(self.uid) then return true end
         -- TomTom took it off itself (it clears a waypoint on arrival, or
