@@ -232,6 +232,7 @@ Switch(ana) Share:SetEnabled(true) Share:SetNames("Bob Smith")
 suite.check("on with a name, it listens", Comm.listening == true)
 suite.check("and says so", Share:Describe():find("Bob Smith", 1, true) ~= nil, Share:Describe())
 Settle()
+suite.check("Settings says nothing came in yet", Share:Status() == "", Share:Status())
 suite.check("Bob's side is off, so nothing was taken", ana.records[WOLF_KEY].corpses == 30
     and bob.records[WOLF_KEY].corpses == 20)
 
@@ -249,6 +250,11 @@ Check("and both accounts' kills", ana.db.tracker.mobs.Wolf.kills == 65, ana.db.t
 Check("and their coin", ana.db.tracker.mobs.Wolf.copper == 6500)
 Check("and a mob only Bob killed", ana.db.tracker.mobs.Boar and ana.db.tracker.mobs.Boar.kills == 5)
 Check("and Bob's fishing", ana.db.fishing.spots["Westfall||"] and ana.db.fishing.spots["Westfall||"].casts == 11)
+do
+    local status = Share:Status()
+    Check("Settings says what came in and from whom", status:match("^Got drops for %d+ mobs? from Bob Smith%.") ~= nil, status)
+    Check("and when", status:find("The last came in just now.", 1, true) ~= nil, status)
+end
 
 Switch(bob)
 Check("Bob has both accounts' corpses", bob.records[WOLF_KEY].corpses == 50, bob.records[WOLF_KEY].corpses)
@@ -332,6 +338,7 @@ Share:SetEnabled(false)
 Check("off, it stops listening", not Comm.listening)
 Check("and what was taken stays", bob.records[WOLF_KEY].corpses == 55)
 Check("and is not described as shared", Share:Describe() == "Sharing is off.", Share:Describe())
+Check("and Settings says it's off", Share:Status() == "Sharing is off.", Share:Status())
 
 -- A save from before this existed loads with it off and nothing changed.
 do

@@ -24,6 +24,7 @@ GuildShare:OnEnable()
 suite.check("guild sharing is off by default", ns.db.shareGuild == false and not GuildShare:On())
 suite.check("so nothing is listening", not Comm.listening)
 suite.check("and it says so", GuildShare:Describe() == "Guild sharing is off.", GuildShare:Describe())
+suite.check("and Settings says so", GuildShare:Status() == "Guild sharing is off.", GuildShare:Status())
 
 --------------------------------------------------------------------------------
 -- A pretend guild
@@ -208,6 +209,22 @@ Check("his kills do not add to hers", ana.db.tracker.mobs.Wolf.kills == 40, ana.
 Check("and his gathering does not come", ana.db.gathering.nodes["Elwynn Forest|Northshire|Peacebloom"] == nil)
 Check("and says who was heard", GuildShare:Describe():find("heard this session: 1", 1, true) ~= nil,
     GuildShare:Describe())
+do
+    local status = GuildShare:Status()
+    Check("Settings says what came in", status:find("Got drops for 1 mob from 1 guildmate.", 1, true) == 1, status)
+    Check("and when", status:find("The last came in just now.", 1, true) ~= nil, status)
+    Check("two hours on, it says so", GuildShare:Status(time() + 7300):find("2 hours ago", 1, true) ~= nil,
+        GuildShare:Status(time() + 7300))
+    local inGuild = _G.IsInGuild
+    _G.IsInGuild = function() return false end
+    Check("out of a guild, it says so", GuildShare:Status() == "You're not in a guild on this character.")
+    _G.IsInGuild = inGuild
+    local held = ns.db.guildDrops
+    ns.db.guildDrops = {}
+    Check("before anything comes in, it says what's needed",
+        GuildShare:Status() == "Nothing from your guild yet. A guildmate needs this turned on too.", GuildShare:Status())
+    ns.db.guildDrops = held
+end
 Switch(bob)
 Check("Bob has Ana's corpses, kept apart", Guild(bob) and Guild(bob).corpses == 30)
 Check("his own are his own", bob.records[WOLF].corpses == 20 and bob.db.tracker.mobs.Wolf.kills == 25)

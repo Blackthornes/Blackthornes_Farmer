@@ -1168,6 +1168,16 @@ function SettingsUI:BuildMapPage()
     controls.heatLevel:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
+--- A wrapping line of small text under a row's control, for a status.
+local function StatusText(row, y)
+    local text = Theme.CreateLabel(row, "tiny", "muted")
+    text:SetPoint("TOPLEFT", 0, y)
+    text:SetWidth(COLUMN_WIDTH)
+    text:SetJustifyH("LEFT")
+    if text.SetWordWrap then text:SetWordWrap(true) end
+    return text
+end
+
 --- Sharing: kills, drop rates and gathering with your other account.
 function SettingsUI:BuildSharingPage()
     local controls = self.controls
@@ -1194,6 +1204,9 @@ function SettingsUI:BuildSharingPage()
     names:SetWidth(COLUMN_WIDTH)
     names:SetHeight(20)
     controls.shareNames = names
+    -- What came in from the names typed, and when (Share:Status).
+    GrowRow(namesRow, 30)
+    controls.shareStatus = StatusText(namesRow, -50)
 
     local _, syncButton = CommandRow(pages, "sharing", 1, L["Sync Now:"],
         L["Swaps anything new right now. It also does this every ten minutes."], L["Sync"], "share sync")
@@ -1221,6 +1234,10 @@ function SettingsUI:BuildSharingPage()
     end, false)
     controls.shareGuild:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- What came in from the guild, and when (GuildShare:Status).
+    local guildStatusRow = pages:Row("sharing", 2, L["Guild Status:"], nil)
+    GrowRow(guildStatusRow, 30)
+    controls.guildStatus = StatusText(guildStatusRow, -18)
 end
 
 --- Advanced: debug output, the data the addon carries, and the commands.
@@ -1321,6 +1338,20 @@ end
 -- Called whenever the page opens and after any /farm command, because each
 -- of these can also be changed by typing, and a page showing a stale switch
 -- is worse than no page.
+--- Records came in: the status lines catch up, a moment later and only
+--- while Settings shows.
+function SettingsUI:ShareStatusChanged()
+    if self.statusSoon then return end
+    self.statusSoon = true
+    C_Timer.After(2, function()
+        SettingsUI.statusSoon = nil
+        local controls = SettingsUI.controls
+        if not (SettingsUI.frame and SettingsUI.frame:IsShown() and controls and controls.guildStatus) then return end
+        controls.shareStatus:SetText(ns.Share:Status() or "")
+        controls.guildStatus:SetText(ns.GuildShare:Status() or "")
+    end)
+end
+
 function SettingsUI:Refresh()
     if not (self.frame and self.frame:IsShown() and ns.db) then return end
 
@@ -1341,6 +1372,8 @@ function SettingsUI:Refresh()
     controls.share:SetChecked(db.shareData == true)
     controls.shareNames:SetText(db.shareNames or "")
     controls.shareGuild:SetChecked(db.shareGuild == true)
+    controls.shareStatus:SetText(ns.Share:Status() or "")
+    controls.guildStatus:SetText(ns.GuildShare:Status() or "")
     if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)

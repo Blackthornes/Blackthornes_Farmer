@@ -36,9 +36,11 @@ Comm.MAX_CHUNKS = 1500
 Comm.MAX_PARTIAL = 8
 local PARTIAL_TIMEOUT = 180
 
--- Pacing: a burst of this many, then one every this many seconds.
-local BURST = 6
-local REFILL_SECONDS = 1.2
+-- Pacing: a burst of this many, then one every this many seconds. The
+-- client allows about eight in a row and then about one a second a prefix
+-- (2026-10-22); a send it throttles anyway is tried again, not lost.
+local BURST = 8
+local REFILL_SECONDS = 1.0
 
 -- Send results the client calls a throttle: tried again later.
 local THROTTLE_CODES = { [3] = true, [8] = true }
