@@ -117,6 +117,17 @@ suite.check("the card: done, now, then the rest", #rows == 3 and rows[1].done an
 suite.check("numbered from the start", rows[1].title:find("^1%. ") and rows[2].title:find("^2%. "))
 suite.check("about how long", TravelCard.TimeText(trip.plan):find("minute") ~= nil)
 
+-- The card's close gem puts only the card away; the trip goes on.
+TravelCard:Update({ trip = trip })
+TravelCard:Close()
+suite.check("closing the card keeps the trip", Travel.stopped == nil and Travel.plan ~= nil)
+TravelCard:Update({ trip = trip })
+suite.check("and the card stays closed for this place", TravelCard.closedKey == trip.plan.key
+    and TravelCard.frame and not TravelCard.frame:IsShown())
+TravelCard:Update({ trip = { plan = { key = "elsewhere", steps = trip.plan.steps, done = 0 } } })
+suite.check("a new place brings it back", TravelCard.closedKey == nil and TravelCard.frame:IsShown())
+TravelCard:Hide()
+
 local mapLegs = TravelMap.Legs(trip.plan, dock)
 suite.check("the map line: to the boat, the boat, the walk",
     #mapLegs == 3 and mapLegs[2].kind == "boat" and mapLegs[3].kind == "walk", #mapLegs)
