@@ -200,7 +200,7 @@ end
 suite.check("an empty search lights nothing", lit == 0)
 
 -- Text size, saved as a word, waits for a reload.
-controls.textSize.plus:GetScript("OnClick")(controls.textSize.plus)
+controls.textSize:Pick(controls.textSize:GetValue() + 1)
 suite.check("Text size saves Large", ns.db.textSize == "large")
 suite.check("and offers Reload", controls.textSize.reload:IsShown())
 suite.check("under the stepper, at its right edge", controls.textSize.reload._point[1] == "TOPRIGHT"
@@ -209,7 +209,7 @@ suite.check("under the stepper, at its right edge", controls.textSize.reload._po
 suite.check("the Window style's Reload sits the same way", controls.windowStyle.reload._point[1] == "TOPRIGHT"
     and controls.windowStyle.reload._point[2] == controls.windowStyle
     and controls.windowStyle.reload._point[3] == "BOTTOMRIGHT")
-controls.textSize.minus:GetScript("OnClick")(controls.textSize.minus)
+controls.textSize:Pick(controls.textSize:GetValue() - 1)
 suite.check("back to Normal needs no reload", ns.db.textSize == "normal"
     and not controls.textSize.reload:IsShown())
 
@@ -495,7 +495,7 @@ do
     end
     local kinds = 0
     for _ in pairs(widths) do kinds = kinds + 1 end
-    suite.check("every +/- box on the pages is one width", count > 0 and kinds == 1, count .. " boxes, " .. kinds .. " widths")
+    suite.check("every +/- box and drop-down on the pages is one width", count > 0 and kinds == 1, count .. " boxes, " .. kinds .. " widths")
 
     local made = SettingsUI.EvenSteppers({
         { w = 100, GetWidth = function(s) return s.w end, SetWidth = function(s, w) s.w = w end },

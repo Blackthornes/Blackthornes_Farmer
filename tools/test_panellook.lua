@@ -318,9 +318,9 @@ Settle()
 ns.SettingsUI:Show()
 local controls = ns.SettingsUI.controls
 local effectsRow = controls.effects._parent
-controls.effects.minus:GetScript("OnClick")(controls.effects.minus)
+controls.effects:Pick(controls.effects:GetValue() - 1)
 local saved = ns.db.trackerEffects
-controls.effects.plus:GetScript("OnClick")(controls.effects.plus)
+controls.effects:Pick(controls.effects:GetValue() + 1)
 suite.check("Effects sits with the windows, not under the kill tally, and saves where it always has",
     effectsRow._parent == controls.windowScale._parent._parent
     and effectsRow._parent ~= controls.tracker._parent._parent and saved == "subtle", saved)

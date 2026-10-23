@@ -444,6 +444,302 @@ function Widgets.CreateButton(parent, text, onClick, opts)
 end
 
 --------------------------------------------------------------------------------
+-- Drop-down
+--
+-- Pets' (itself Tradeskills'), for the word choices in Settings: the owner,
+-- 2026-10-23, drop-downs, never < > pickers.
+--------------------------------------------------------------------------------
+
+local MENU_ROWS = 12
+local MENU_ROW_HEIGHT = 20
+
+--- A box that opens a menu of options, each { text, value }; a click on one
+--- picks it and calls onSelect(value, option). opts.width sets the box's
+--- width; Widgets.DropdownWidth measures one that fits every option.
+function Widgets.CreateDropdown(parent, options, onSelect, opts)
+    opts = opts or {}
+
+    local dropdown = Theme.CreatePanel(parent, "row")
+    dropdown:SetSize(opts.width or 140, 22)
+    dropdown:EnableMouse(true)
+    Theme.TopSheen(dropdown)
+
+    local label = Theme.CreateLabel(dropdown, "small", "text")
+    label:SetPoint("LEFT", 6, 0)
+    label:SetPoint("RIGHT", -18, 0)
+    dropdown.label = label
+
+    -- A small solid arrow pointing down, four rows of plain colour (7, 5, 3
+    -- and 1 pixels wide), so it needs no texture file.
+    local arrow = {}
+    for row = 0, 3 do
+        local bar = dropdown:CreateTexture(nil, "ARTWORK")
+        bar:SetSize(7 - row * 2, 1)
+        bar:SetPoint("TOPLEFT", dropdown, "RIGHT", -13 + row, 2 - row)
+        bar:SetColorTexture(Theme.Unpack("muted"))
+        arrow[#arrow + 1] = bar
+    end
+
+    local menu = Theme.CreatePanel(parent, "panel", "borderLit")
+    menu:SetFrameStrata("FULLSCREEN_DIALOG")
+    menu:SetPoint("TOPLEFT", dropdown, "BOTTOMLEFT", 0, -2)
+    menu:SetPoint("TOPRIGHT", dropdown, "BOTTOMRIGHT", 0, -2)
+    menu:EnableMouse(true)
+    menu:Hide()
+    dropdown.menu = menu
+
+    -- The first option a long menu shows, and a slim bar saying how far
+    -- through the list that is.
+    menu.first = 1
+    local thumb = menu:CreateTexture(nil, "OVERLAY")
+    thumb:SetWidth(3)
+    thumb:SetColorTexture(Theme.Unpack("borderLit"))
+    thumb:Hide()
+
+    dropdown.options = options or {}
+    dropdown.selected = nil
+
+    local entries = {}
+    dropdown.entries = entries
+
+    local function Rebuild()
+        local count = #dropdown.options
+        local shown = math.min(count, MENU_ROWS)
+        local scrolls = count > shown
+        menu.first = math.max(1, math.min(menu.first or 1, count - shown + 1))
+
+        for index, option in ipairs(dropdown.options) do
+            local entry = entries[index]
+            if not entry then
+                entry = CreateFrame("Button", nil, menu)
+                entry:SetHeight(MENU_ROW_HEIGHT)
+                -- Drawn in full and faded with SetAlpha: made with a colour
+                -- alpha of 0, no hover ever showed (Tradeskills).
+                entry.highlight = Theme.Fill(entry, "rowHover", nil, "ARTWORK")
+                entry.highlight:SetAlpha(0)
+                entry.label = Theme.CreateLabel(entry, "small", "text")
+                entry.label:SetPoint("LEFT", 8, 0)
+                entry.label:SetPoint("RIGHT", -8, 0)
+                entry.mark = Theme.AccentStripe(entry, 2)
+                entry.mark:Hide()
+
+                local function Light(value) entry.highlight:SetAlpha(value) end
+                entry:SetScript("OnEnter", function(self) Motion:Blend(self, "hover", 1, 0.08, Light) end)
+                entry:SetScript("OnLeave", function(self) Motion:Blend(self, "hover", 0, 0.15, Light) end)
+                entries[index] = entry
+            end
+
+            local slot = index - menu.first
+            if slot >= 0 and slot < shown then
+                local y = -4 - slot * MENU_ROW_HEIGHT
+                entry:SetPoint("TOPLEFT", 1, y)
+                entry:SetPoint("TOPRIGHT", scrolls and -7 or -1, y)
+                entry.label:SetText(option.text)
+                local on = option.value == dropdown.selected
+                entry.label:SetTextColor(Theme.Unpack(on and "accent" or "text"))
+                entry.mark:SetShown(on)
+                entry.option = option
+                entry:Show()
+            else
+                entry:Hide()
+            end
+
+            entry:SetScript("OnClick", function()
+                -- A choice (Widgets.CreateChoice) calls its own onChange.
+                if rawget(dropdown, "Pick") then return dropdown:Pick(option.value) end
+                dropdown:SetValue(option.value)
+                menu:Hide()
+                if onSelect then onSelect(option.value, option) end
+            end)
+        end
+        for index = count + 1, #entries do entries[index]:Hide() end
+
+        menu:SetHeight(math.max(8, shown * MENU_ROW_HEIGHT + 8))
+
+        thumb:SetShown(scrolls)
+        if scrolls then
+            local track = shown * MENU_ROW_HEIGHT
+            local size = math.max(12, math.floor(track * shown / count))
+            local offset = math.floor((track - size) * (menu.first - 1) / (count - shown) + 0.5)
+            thumb:SetHeight(size)
+            thumb:ClearAllPoints()
+            thumb:SetPoint("TOPRIGHT", -2, -4 - offset)
+        end
+    end
+
+    --- New options; the choice stays when it is still one of them.
+    function dropdown:SetOptions(newOptions)
+        self.options = newOptions or {}
+        local value = self.options[1] and self.options[1].value
+        for _, option in ipairs(self.options) do
+            if option.value == self.selected then value = self.selected break end
+        end
+        self:SetValue(value)
+        if menu:IsShown() then Rebuild() end
+    end
+
+    --- Show `value` as the choice, without calling onSelect.
+    function dropdown:SetValue(value)
+        self.selected = value
+        for _, option in ipairs(self.options) do
+            if option.value == value then
+                label:SetText(option.text)
+                return
+            end
+        end
+        label:SetText(opts.placeholder or "")
+    end
+
+    function dropdown:GetValue()
+        return self.selected
+    end
+
+    --- Down from the box, or up from it when the screen has no room below.
+    local function Place()
+        local up = false
+        pcall(function()
+            local scale = dropdown:GetEffectiveScale()
+            local need = (menu:GetHeight() + 2) * scale
+            local below = dropdown:GetBottom() * scale
+            local above = UIParent:GetTop() * UIParent:GetEffectiveScale() - dropdown:GetTop() * scale
+            up = below < need and above >= need
+        end)
+        menu:ClearAllPoints()
+        if up then
+            menu:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 0, 2)
+            menu:SetPoint("BOTTOMRIGHT", dropdown, "TOPRIGHT", 0, 2)
+        else
+            menu:SetPoint("TOPLEFT", dropdown, "BOTTOMLEFT", 0, -2)
+            menu:SetPoint("TOPRIGHT", dropdown, "BOTTOMRIGHT", 0, -2)
+        end
+    end
+
+    function dropdown:Toggle()
+        if menu:IsShown() then
+            menu:Hide()
+            return
+        end
+        -- A long menu opens with the choice in view, near its middle.
+        menu.first = 1
+        for index, option in ipairs(self.options) do
+            if option.value == self.selected then
+                menu.first = index - math.floor(MENU_ROWS / 2)
+                break
+            end
+        end
+        Rebuild()
+        Place()
+        menu:Show()
+        menu:Raise()
+        Motion:Run(menu, "open", 0.12, function(p) menu:SetAlpha(p) end)
+    end
+
+    dropdown:SetScript("OnMouseDown", function(self) self:Toggle() end)
+
+    -- The wheel moves a long menu a row at a time.
+    menu:EnableMouseWheel(true)
+    menu:SetScript("OnMouseWheel", function(_, delta)
+        local count = #dropdown.options
+        if count <= MENU_ROWS then return end
+        local step = (tonumber(delta) or 0) > 0 and -1 or 1
+        local first = math.max(1, math.min(count - MENU_ROWS + 1, menu.first + step))
+        if first ~= menu.first then
+            menu.first = first
+            Rebuild()
+        end
+    end)
+
+    -- A click anywhere else closes the menu, as the game's own menus do. The
+    -- event is asked for only while the menu is open, and inside a pcall: a
+    -- client that does not know it raises, and the menu then stays open
+    -- until picked from or clicked shut.
+    menu:SetScript("OnShow", function(self) pcall(self.RegisterEvent, self, "GLOBAL_MOUSE_DOWN") end)
+    menu:SetScript("OnHide", function(self) pcall(self.UnregisterEvent, self, "GLOBAL_MOUSE_DOWN") end)
+    menu:SetScript("OnEvent", function(self)
+        if self:IsMouseOver() or dropdown:IsMouseOver() then return end
+        self:Hide()
+    end)
+
+    -- Its window closing takes the menu with it.
+    dropdown:SetScript("OnHide", function() menu:Hide() end)
+
+    --- How lit the box is under the mouse: its edge and its arrow.
+    local function Light(p)
+        local r, g, b = Motion.Mix("border", "borderLit", p)
+        for _, edge in ipairs(dropdown.borderTextures or {}) do edge:SetColorTexture(r, g, b, 1) end
+        local ar, ag, ab = Motion.Mix("muted", "accent", p)
+        for _, bar in ipairs(arrow) do bar:SetColorTexture(ar, ag, ab, 1) end
+    end
+    dropdown:SetScript("OnEnter", function(self) Motion:Blend(self, "hover", 1, 0.12, Light) end)
+    dropdown:SetScript("OnLeave", function(self) Motion:Blend(self, "hover", 0, 0.18, Light) end)
+
+    dropdown:SetValue(nil)
+    return dropdown
+end
+
+--- A drop-down in a stepper's place, for a setting that picks one of a
+--- few words (the owner, 2026-10-23: drop-downs, never < > pickers). It
+--- takes a stepper's opts (min, max, step, value, format, onChange) and
+--- answers its calls: SetValue(value, silent), GetValue() and .text, so a
+--- row swaps one for the other and nothing else changes. Number boxes stay
+--- steppers. choice:Pick(value) is what a click on a line of its menu does.
+function Widgets.CreateChoice(parent, opts)
+    opts = opts or {}
+    local step = opts.step or 1
+    local low = opts.min or 0
+    local high = opts.max or 100
+
+    local function Clamp(value)
+        value = low + math.floor((value - low) / step + 0.5) * step
+        return math.max(low, math.min(high, value))
+    end
+    local function Words(value)
+        return opts.format and opts.format(value) or tostring(value)
+    end
+
+    local options = {}
+    for value = low, high, step do
+        options[#options + 1] = { text = Words(value), value = value }
+    end
+
+    local choice = Widgets.CreateDropdown(parent, options, nil,
+        { width = opts.width or Widgets.DropdownWidth(options, 100) })
+    choice.text = choice.label
+
+    local Show = choice.SetValue
+    function choice:SetValue(value, silent)
+        self.value = Clamp(tonumber(value) or low)
+        -- The words are read again each time, since some follow the game
+        -- (a level, a spec) and not only the value.
+        for _, option in ipairs(self.options) do option.text = Words(option.value) end
+        Show(self, self.value)
+        if not silent and opts.onChange then opts.onChange(self.value) end
+    end
+
+    function choice:GetValue()
+        return self.value
+    end
+
+    function choice:Pick(value)
+        if self.menu then self.menu:Hide() end
+        if Clamp(tonumber(value) or low) ~= self.value then self:SetValue(value) end
+    end
+
+    choice:SetValue(opts.value or low, true)
+    return choice
+end
+
+--- A dropdown width that fits every option's words, never below `least`.
+function Widgets.DropdownWidth(options, least)
+    local widest = 0
+    for _, option in ipairs(options or {}) do
+        widest = math.max(widest, Theme.TextWidth("small", option.text))
+    end
+    return math.max(least or 0, math.ceil(widest) + 30)
+end
+
+
+--------------------------------------------------------------------------------
 -- Search box
 --------------------------------------------------------------------------------
 

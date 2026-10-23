@@ -185,16 +185,16 @@ function KillGoalUI:BuildNew()
     which:SetPoint("TOPLEFT", PADDING, -112)
     which:SetText(L["Which Mobs:"])
 
-    local back = Widgets.CreateButton(frame, "<", function() KillGoalUI:Step(-1) end, { width = 24, height = 22 })
-    back:SetPoint("TOPLEFT", PADDING + 110, -106)
-    local forward = Widgets.CreateButton(frame, ">", function() KillGoalUI:Step(1) end, { width = 24, height = 22 })
-    forward:SetPoint("TOPRIGHT", -PADDING, -106)
-
-    local mob = Theme.CreateLabel(frame, "small", "accent", "CENTER")
-    mob:SetPoint("LEFT", back, "RIGHT", 4, 0)
-    mob:SetPoint("RIGHT", forward, "LEFT", -4, 0)
-    mob:SetWordWrap(true)
-    frame.mob = mob
+    -- A drop-down of the mobs (the owner, 2026-10-23: drop-downs, never
+    -- < > pickers).
+    local mobs = Widgets.CreateDropdown(frame, {}, function(value)
+        KillGoalUI.pick = value
+        KillGoalUI:ShowPick()
+    end, { width = 200 })
+    mobs:SetPoint("TOPLEFT", PADDING + 110, -106)
+    mobs:SetPoint("TOPRIGHT", -PADDING, -106)
+    frame.mobs = mobs
+    frame.mob = mobs.label
 
     local hint = Theme.CreateLabel(frame, "tiny", "muted")
     hint:SetPoint("TOPLEFT", PADDING, -138)
@@ -217,7 +217,7 @@ function KillGoalUI:BuildNew()
     return frame
 end
 
---- Which Mobs moved by `by` (the arrows).
+--- Which Mobs moved by `by`.
 function KillGoalUI:Step(by)
     local choices = self.choices or { false }
     self.pick = ((self.pick or 1) - 1 + by) % #choices + 1
@@ -233,7 +233,12 @@ function KillGoalUI:ShowPick()
     local frame = self.new
     if not frame then return end
     local mob = self:PickedMob()
-    frame.mob:SetText(mob or L["Any Mob"])
+    local options = {}
+    for index, name in ipairs(self.choices or { false }) do
+        options[index] = { text = name or L["Any Mob"], value = index }
+    end
+    frame.mobs.options = options
+    frame.mobs:SetValue(self.pick or 1)
     local first = (self.choices or {})[2]
     if not mob and first then
         frame.hint:SetText(L.Format("Or pick one mob, like %s.", first))
