@@ -91,12 +91,12 @@ local function CommandButton(row, text, command, width, x)
 end
 
 --- A row whose button runs a /farm command.
---- A "Transparent:" stepper for one panel (UI/SeeThrough.lua): Off, Some,
+--- A "Transparent:" drop-down for one panel (UI/SeeThrough.lua): Off, Some,
 --- More or Most clear.
 local function SeeThroughRow(pages, page, column, id, label, description)
     local row = pages:Row(page, column, label, description)
     local names = ns.SeeThrough.Names()
-    local stepper = Widgets.CreateStepper(row, {
+    local stepper = Widgets.CreateChoice(row, {
         min = 0, max = #ns.SeeThrough.LEVELS, step = 1, value = 0,
         format = function(index) return names[index] end,
         onChange = function(index) ns.SeeThrough:Set(id, index) end,
@@ -106,12 +106,12 @@ local function SeeThroughRow(pages, page, column, id, label, description)
     return stepper
 end
 
---- An Off, Shift or Always stepper for one tooltip line (UI/TooltipShift.lua).
+--- An Off, Shift or Always drop-down for one tooltip line (UI/TooltipShift.lua).
 --- `isOn()` reads the line's own setting and `setOn(on)` is its old tick box.
 local function TooltipShiftStepper(row, key, isOn, setOn)
     local Shift = ns.TooltipShift
     local names = Shift.NAMES
-    local stepper = Widgets.CreateStepper(row, {
+    local stepper = Widgets.CreateChoice(row, {
         min = 0, max = 2, step = 1, value = Shift:Mode(isOn(), key),
         format = function(index) return names[index] end,
         onChange = function(index) Shift:Apply(index, key, isOn(), setOn) end,
@@ -383,14 +383,19 @@ function SettingsUI:Build()
     })
     self:FillBar()
 
-    -- Every +/- box on every page comes out the same width, the widest
-    -- one's, so they line up down the page (2026-10-22).
+    -- Every +/- box and drop-down on every page comes out the same width,
+    -- the widest one's, so they line up down the page (2026-10-22).
     local steppers = {}
-    local makeStepper = Widgets.CreateStepper
+    local makeStepper, makeChoice = Widgets.CreateStepper, Widgets.CreateChoice
     Widgets.CreateStepper = function(...)
         local stepper = makeStepper(...)
         steppers[#steppers + 1] = stepper
         return stepper
+    end
+    Widgets.CreateChoice = function(...)
+        local choice = makeChoice(...)
+        steppers[#steppers + 1] = choice
+        return choice
     end
     local built, problem = pcall(function()
         self:BuildWindowsPage()
@@ -401,7 +406,7 @@ function SettingsUI:Build()
         self:BuildAdvancedPage()
         self:BuildAboutPage()
     end)
-    Widgets.CreateStepper = makeStepper
+    Widgets.CreateStepper, Widgets.CreateChoice = makeStepper, makeChoice
     if not built then error(problem, 0) end
     SettingsUI.EvenSteppers(steppers, COLUMN_WIDTH - CONTROL_X)
     self.pages:Fit()
@@ -545,7 +550,7 @@ function SettingsUI:BuildWindowsPage()
     local trackerRow = pages:Row("windows", 1, L["Kills & Loot:"],
         L["Lets the world show through the panel. It goes dark again while your mouse is on it."])
     local names = ns.SeeThrough.Names()
-    controls.seeThrough = Widgets.CreateStepper(trackerRow, {
+    controls.seeThrough = Widgets.CreateChoice(trackerRow, {
         min = 0, max = #ns.TrackerUI.SEE_THROUGH_LEVELS, step = 1, value = 0,
         format = function(index) return names[index] end,
         onChange = function(index)
@@ -570,7 +575,7 @@ function SettingsUI:BuildWindowsPage()
     local effectsRow = pages:Row("windows", 2, L["Effects:"], nil)
 
     local FX = ns.TrackerFX
-    controls.effects = Widgets.CreateStepper(effectsRow, {
+    controls.effects = Widgets.CreateChoice(effectsRow, {
         min = 1, max = #FX.LEVELS, step = 1, value = #FX.LEVELS,
         format = function(index) return FX.LEVEL_NAMES[FX.LEVELS[index]] end,
         onChange = function(index) FX:SetLevel(FX.LEVELS[index]) end,
@@ -625,16 +630,15 @@ end
 local WINDOW_STYLES = { "titanforged", "blizzard" }
 local WINDOW_STYLE_NAMES = { titanforged = "Titanforged", blizzard = "Blizzard" }
 
---- The Window style row's control: a stepper between Titanforged and
---- Blizzard (Farmer has no dropdown, and Text size beside it is a stepper
---- too), with Reload under it while the pick differs from what is
---- drawn. :Sync() reads the saved pick back.
+--- The Window style row's control: a drop-down of Titanforged and
+--- Blizzard, as Text size beside it is, with Reload under it while the
+--- pick differs from what is drawn. :Sync() reads the saved pick back.
 function SettingsUI:WindowStyleControl(row)
     local Look = ns.BlizzardLook
     local function Drawn() return Look and Look.Style() or "titanforged" end
 
     local reload
-    local stepper = Widgets.CreateStepper(row, {
+    local stepper = Widgets.CreateChoice(row, {
         min = 1, max = #WINDOW_STYLES, step = 1,
         format = function(value) return WINDOW_STYLE_NAMES[WINDOW_STYLES[value]] end,
         onChange = function(value)
@@ -1009,7 +1013,7 @@ function SettingsUI:BuildMapPage()
     local styleNames = { sparkles = L["Sparkles"], beacon = L["Beacon"] }
     local sparkleStyleRow = pages:Row("map", 1, L["Sparkle Look:"],
         L["Beacon is a beam of light. Sparkles twinkle instead."])
-    controls.sparkleStyle = Widgets.CreateStepper(sparkleStyleRow, {
+    controls.sparkleStyle = Widgets.CreateChoice(sparkleStyleRow, {
         min = 1, max = #ns.NodeSparkle.STYLES, step = 1, value = 1,
         format = function(index) return styleNames[ns.NodeSparkle.STYLES[index]] end,
         onChange = function(index) ns.NodeSparkle:SetStyle(ns.NodeSparkle.STYLES[index]) end,
@@ -1097,7 +1101,7 @@ function SettingsUI:BuildMapPage()
     -- Where the count sits by the plate (a player asked, 2026-10-18).
     local sideNames = { above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] }
     local platesSideRow = pages:Row("map", 1, L["Counter Position:"], nil)
-    controls.killPlatesSide = Widgets.CreateStepper(platesSideRow, {
+    controls.killPlatesSide = Widgets.CreateChoice(platesSideRow, {
         min = 1, max = #ns.KillPlates.SIDES, step = 1, value = 3,
         format = function(index) return sideNames[ns.KillPlates.SIDES[index]] end,
         onChange = function(index) ns.KillPlates:SetSide(ns.KillPlates.SIDES[index]) end,
@@ -1185,7 +1189,7 @@ function SettingsUI:BuildMapPage()
 
     local heatLevelRow = pages:Row("map", 2, L["Heat Strength:"], nil)
     local heatNames = { L["Some"], L["More"], L["Most"] }
-    controls.heatLevel = Widgets.CreateStepper(heatLevelRow, {
+    controls.heatLevel = Widgets.CreateChoice(heatLevelRow, {
         min = 1, max = #heatNames, step = 1, value = 2,
         format = function(index) return heatNames[index] end,
         onChange = function(index) ns.Heat:SetLevel(index) end,

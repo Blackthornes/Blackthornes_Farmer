@@ -516,7 +516,7 @@ end
 -- Text size
 --------------------------------------------------------------------------------
 
--- Stored as words, so a save reads plainly; shown on a stepper as a step.
+-- Stored as words, so a save reads plainly; picked from a drop-down.
 SettingsPages.TEXT_SIZES = { "normal", "large", "larger" }
 SettingsPages.TEXT_LABELS = { normal = L["Normal"], large = L["Large"], larger = L["Larger"] }
 
@@ -549,7 +549,7 @@ function SettingsPages.TextSizeControl(row, x, db)
     local sizes = SettingsPages.TEXT_SIZES
 
     local reload
-    local stepper = Widgets.CreateStepper(row, {
+    local stepper = Widgets.CreateChoice(row, {
         min = 1, max = #sizes, step = 1,
         format = function(value) return SettingsPages.TEXT_LABELS[sizes[value]] end,
         onChange = function(value)

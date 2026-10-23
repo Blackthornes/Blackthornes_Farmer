@@ -630,6 +630,11 @@ something (`pages:Row(..., nil)` shows none), never "Same as /farm ...",
 section headings ALL CAPS. The pages are UI, Kills, Loot, Map & goals,
 Sharing, Advanced and About. The minimap button always shows: no setting,
 no `/farm minimap`, and a saved `minimapHidden` is kept but not read.
+Word choices are drop-downs, never < > pickers or word steppers (the
+owner, 2026-10-23): `Widgets.CreateChoice` takes a stepper's opts
+(min, max, step, value, format, onChange) on Pets' `Widgets.CreateDropdown`
+and answers `SetValue(value, silent)`, `GetValue()`, `.text` and
+`:Pick(value)` (what a menu click does); only numbers keep a +/- stepper.
 
 ## The house frame (Titanforged)
 
@@ -681,8 +686,8 @@ gradient that fades goes through `Theme.LightGradient`, which hides it at
 The owner asked (2026-10-10) for a choice of the game's own look beside
 Titanforged, in all four addons. "Window style" in Settings (`windowStyle`,
 `titanforged` or `blizzard`, Titanforged by default; read once at login,
-so a change waits for /reload, as Text size does; a stepper on the Windows
-page, since Farmer has no dropdown). `UI/BlizzardLook.lua`
+so a change waits for /reload, as Text size does; a drop-down on the Windows
+page). `UI/BlizzardLook.lua`
 is the same file in all four (a fix to it belongs in all four): picked, it
 lays the game's colours over `Theme.colors` (grey metal, the game's gold,
 plain rows with a blue bar for the one picked) and puts out the halos;

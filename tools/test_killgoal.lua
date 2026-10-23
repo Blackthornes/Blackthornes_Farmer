@@ -114,6 +114,16 @@ suite.check("stop takes it off", KillGoal:Current() == nil)
 local box = KUI:ShowNew()
 suite.check("the box opens", box and box:IsShown())
 suite.check("it offers any mob first", KUI:PickedMob() == nil)
+suite.check("Which Mobs is a drop-down, Any Mob first", box.mobs.options[1].text == "Any Mob"
+    and box.mob:GetText() == "Any Mob" and #box.mobs.options == #KUI.choices)
+if #box.mobs.options > 1 then
+    box.mobs:GetScript("OnMouseDown")(box.mobs)
+    box.mobs.entries[2]:GetScript("OnClick")()
+    suite.check("a line of its menu picks that mob", KUI:PickedMob() == KUI.choices[2]
+        and box.mob:GetText() == KUI.choices[2])
+    box.mobs:GetScript("OnMouseDown")(box.mobs)
+    box.mobs.entries[1]:GetScript("OnClick")()
+end
 box.box:SetText("25")
 goal = KUI:StartGoal()
 suite.check("Start sets it", goal and goal.target == 25 and goal.mob == nil)
