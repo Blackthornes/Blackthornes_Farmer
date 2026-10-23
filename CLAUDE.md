@@ -622,7 +622,7 @@ fits its fullest page, so no page scrolls. Add a setting with
 checks `ns.commandOrder` against them), but never one that deletes data:
 resets stay typed `reset confirm` commands. Commands that only list things
 in chat are typed only (the owner, 2026-10-15; the test's `chatOnly`
-list); the checks keep their buttons. The owner's Settings standard
+list); checks and debug are typed only too (the owner, 2026-10-23). The owner's Settings standard
 (2026-10-15): labels in Title Case ending with ":" ("Text Size:"),
 one-word buttons ("Open", "Show", "On"), a hover only when it adds
 something (`pages:Row(..., nil)` shows none), never "Same as /farm ...",
@@ -798,7 +798,7 @@ adds "Saved for Claude, /reload to write it." It wraps `/bts probe`
 `/beq arrow check` (Equipment), `/bpet probe` and `/bpet arrow check`
 (Pets), and `/farm arrow check`, `/farm gathering check` and `/farm harvest
 check` (Farmer, which has no probe; the harvest check readies itself and
-runs on the next loot window, to see what a dungeon lets it read). Each has a Settings button. Never rename `lastProbe`; a new
+runs on the next loot window, to see what a dungeon lets it read). None has a Settings button (the owner, 2026-10-23: checks and debug are typed only, so players never see them; `RegisterHiddenCommand` keeps them out of help, Tradeskills' short help leaves them out). Never rename `lastProbe`; a new
 check that players run for a report goes through `ns.KeepCheck` too, and a
 fix to it belongs in all four.
 

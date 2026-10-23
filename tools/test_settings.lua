@@ -94,9 +94,19 @@ suite.check("the tally box writes the /farm tracker setting", ns.db.trackerHidde
 Toggle(controls.tracker)
 suite.check("and back", ns.db.trackerHidden == false)
 
-Toggle(controls.debug)
-suite.check("debug output", ns.db.debug == true)
-Toggle(controls.debug)
+-- Debug and the checks are typed only (the owner, 2026-10-23).
+suite.check("there is no debug box", controls.debug == nil)
+suite.check("nor a check button", controls.arrowCheck == nil and controls.sparkleCheck == nil
+    and controls.harvestCheck == nil and controls.gatheringCheck == nil)
+ns.HandleSlash("debug")
+suite.check("/farm debug turns debug output on", ns.db.debug == true)
+ns.HandleSlash("debug off")
+suite.check("and /farm debug off turns it off", ns.db.debug == false)
+local helpListsDebug = false
+for _, name in ipairs(ns.commandOrder) do
+    if name == "debug" then helpListsDebug = true end
+end
+suite.check("help does not list it", not helpListsDebug)
 
 suite.check("the sister addons box starts ticked", controls.sisters:GetChecked())
 Toggle(controls.sisters)
@@ -209,7 +219,6 @@ local realSlash = ns.HandleSlash
 ns.HandleSlash = function(text) ran[#ran + 1] = text end
 local buttons = {
     rankings = "rankings", lootTable = "loot",
-    harvestCheck = "harvest check", gatheringCheck = "gathering check",
     goals = "goals", goalsDock = "goals dock", arrowNext = "arrow next",
     shareSync = "share sync",
     shareGive = "give",
@@ -261,6 +270,8 @@ for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
 local chatOnly = {
     kills = true, value = true, fishing = true, where = true, goal = true,
     help = true, chat = true, stats = true, data = true, list = true,
+    -- The checks too (the owner, 2026-10-23).
+    harvest = true, gathering = true,
 }
 local missing = {}
 for _, name in ipairs(ns.commandOrder) do

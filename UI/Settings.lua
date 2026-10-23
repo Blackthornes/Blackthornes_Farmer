@@ -57,7 +57,7 @@ local PAGES = {
     { key = "sharing", text = L["SHARING"],
       tip = L["Share kills, drop rates and gathering with your other account"] },
     { key = "advanced", text = L["ADVANCED"],
-      tip = L["Debug, the sister addons and What's New"] },
+      tip = L["The sister addons and What's New"] },
     { key = "about", text = L["ABOUT"],
       tip = L["How these addons are made, the version, the Discord and the other Blackthornes addons"] },
 }
@@ -869,12 +869,8 @@ function SettingsUI:BuildLootPage()
         L["Export"], "export csv")
     controls.exportCsv = csvButton
 
-    -- The chat-only lists stay typed commands (the owner, 2026-10-15); the
-    -- checks keep their buttons.
-    local _, lootCheckButton = CommandRow(pages, "loot", 1, L["Loot Check:"],
-        L["Lists in chat what Farmer can read from the next corpse you loot."],
-        L["Ready"], "harvest check")
-    controls.harvestCheck = lootCheckButton
+    -- The checks are typed only, as /farm harvest check (the owner,
+    -- 2026-10-23); the chat-only lists are too (2026-10-15).
 
     -- Without Tradeskills (the owner asked 2026-10-12).
     pages:Section("loot", 1, L["PRICES"])
@@ -925,12 +921,6 @@ function SettingsUI:BuildLootPage()
     local placeRow = pages:Row("loot", 1, L["Feed Place:"], nil)
     controls.lootFeedMove = CommandButton(placeRow, L["Move"], "lootfeed move", 70)
     controls.lootFeedReset = CommandButton(placeRow, L["Reset"], "lootfeed reset", 70, CONTROL_X + 76)
-
-    pages:Section("loot", 2, L["FISHING AND GATHERING"])
-
-    local _, checkButton = CommandRow(pages, "loot", 2, L["Odd Gathers:"],
-        L["Lists in chat any gathers that look counted wrong."], L["Check"], "gathering check")
-    controls.gatheringCheck = checkButton
 
     -- Drops only (a player asked, the owner agreed 2026-10-11).
     pages:Section("loot", 2, L["SKINNING"])
@@ -1014,13 +1004,6 @@ function SettingsUI:BuildMapPage()
         ns.NodeSparkle:SetEnabled(checked)
     end, true)
     controls.nodeSparkle:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    -- Through the command, so the result is kept for "read the probe".
-    local sparkleCheck = Widgets.CreateButton(sparkleRow, L["Check"], function()
-        ns.HandleSlash("sparkle check")
-    end, { width = 60, height = 20 })
-    sparkleCheck:SetPoint("TOPRIGHT", sparkleRow, "TOPRIGHT", 0, 0)
-    controls.sparkleCheck = sparkleCheck
 
     -- Sparkles or a beacon, a beam of light rising off the spot (the owner
     -- asked 2026-10-13).
@@ -1158,14 +1141,6 @@ function SettingsUI:BuildMapPage()
         ns.Arrow:SetOn(checked)
     end, false)
     controls.arrow:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    -- Through the command, so the result is kept for "read the probe"
-    -- (ns.KeepCheck), as the typed `/farm arrow check` keeps it.
-    local check = Widgets.CreateButton(arrowRow, L["Check"], function()
-        ns.HandleSlash("arrow check")
-    end, { width = 60, height = 20 })
-    check:SetPoint("TOPRIGHT", arrowRow, "TOPRIGHT", 0, 0)
-    controls.arrowCheck = check
 
     local _, nextButton = CommandRow(pages, "map", 2, L["Next Place:"],
         L["Points the arrow at the next place for its goal."],
@@ -1340,13 +1315,8 @@ function SettingsUI:BuildAdvancedPage()
 
     pages:Section("advanced", 1, L["ADVANCED"])
 
-    local debugRow = pages:Row("advanced", 1, L["Debug:"],
-        L["Extra chat messages to help track down a problem."])
-
-    controls.debug = Widgets.CreateCheckbox(debugRow, L["On"], function(checked)
-        ns.db.debug = checked
-    end, false)
-    controls.debug:SetPoint("TOPLEFT", CONTROL_X, -2)
+    -- Debug and the checks are typed only (/farm debug, the owner,
+    -- 2026-10-23): players don't need them.
 
     -- Core/SisterNote.lua: one chat line, once, naming the Blackthornes
     -- addons the player does not have. Off here is off in all of them.
@@ -1417,7 +1387,6 @@ function SettingsUI:Refresh()
     for _, button in ipairs(controls.trackerSizes or {}) do
         button:SetLabelColor(button.percent == tallyPercent and "good" or nil)
     end
-    controls.debug:SetChecked(db.debug == true)
     controls.sisters:SetChecked(ns.SisterNote:IsOn())
     controls.whatsNewPopup:SetChecked(ns.WhatsNew:IsOn())
     controls.whatsNewMotion:SetChecked(ns.WhatsNew:IsMotionOn())

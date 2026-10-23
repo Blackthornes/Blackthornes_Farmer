@@ -158,17 +158,14 @@ suite.check("a long one goes small", GoalsUI.NameSize(("x"):rep(30), 200) == "sm
 suite.check("a longer one tiny", GoalsUI.NameSize(("x"):rep(38), 200) == "tiny")
 Theme.TextWidth = baseWidth
 
--- 10. The Settings arrow Check keeps its result for "read the probe".
+-- 10. The arrow check is typed only now (the owner, 2026-10-23) and still
+-- keeps its result for "read the probe".
 local kept
 local baseKeep = ns.KeepCheck
 ns.KeepCheck = function(name) kept = name end
-ns.SettingsUI:Show()
-local button = ns.SettingsUI.controls and ns.SettingsUI.controls.arrowCheck
-local click = button and button:GetScript("OnClick")
-if click then click(button) end
-ns.SettingsUI:Hide()
+ns.HandleSlash("arrow check")
 ns.KeepCheck = baseKeep
-suite.check("the Check button keeps the check", kept == "arrow check", tostring(kept))
+suite.check("/farm arrow check keeps the check", kept == "arrow check", tostring(kept))
 
 local UI = ns.UI
 UI:Build()
