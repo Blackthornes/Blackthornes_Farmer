@@ -40,6 +40,8 @@ local toUndercity, toGromgol = shipped.docks.orgrimmar, shipped.docks.orgrimmarg
 local apart = math.sqrt((toUndercity[3] - toGromgol[3]) ^ 2 + (toUndercity[4] - toGromgol[4]) ^ 2)
 suite.check("Orgrimmar's zeppelins leave from one tower", apart > 5 and apart < 50, apart)
 suite.check("not from the road sign", math.abs(toUndercity[4] - -4397.8) > 200, toUndercity[4])
+suite.check("Undercity's zeppelin leaves from its tower, not the sign below",
+    math.abs(shipped.docks.undercity[3] - 1981.6) > 50, shipped.docks.undercity[3])
 
 -- A small world: Stormwind and Menethil on one side of the sea, Theramore
 -- on the other.
