@@ -519,6 +519,12 @@ local function CreditsFor(section, key)
             and type(held.credit[section.key]) == "table" and held.credit[section.key][key]
         if type(taken) == "table" then list[#list + 1] = taken end
     end
+    -- What was gathered, skinned or caught with a Legacy perk stays here: it
+    -- is noted in the record's own shape (Logic/Legacy.lua), so it comes off
+    -- like anything taken.
+    local store = Share.Store(section.key)
+    local boosted = type(store) == "table" and type(store[key]) == "table" and store[key].boosted
+    if type(boosted) == "table" then list[#list + 1] = boosted end
     return list
 end
 

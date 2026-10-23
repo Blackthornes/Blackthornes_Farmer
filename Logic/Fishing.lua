@@ -290,6 +290,11 @@ function Fishing:Record(zone, location, school, items, quantities, skill, coords
         spot.coords = { coords[1], coords[2] }
     end
 
+    -- Made with Luremaster and a lure: noted beside the record, so it
+    -- never reaches anyone's rates (Logic/Legacy.lua).
+    local boost = ns.Legacy and ns.Legacy:CastBoost()
+    if boost then ns.Legacy.Note(spot, "casts", items, quantities, boost) end
+
     self.session[key] = (self.session[key] or 0) + 1
     self.sessionCasts = self.sessionCasts + 1
     self.clock = self.clock + 1
@@ -333,9 +338,11 @@ function Fishing:Celebrate(key)
 end
 
 --- One spot's catch, best-caught first.
-function Fishing:Summary(key)
+function Fishing:Summary(key, clean)
     local spot = self:Store()[key]
     if type(spot) ~= "table" then return nil end
+    -- For the export: casts made with Luremaster left out.
+    if clean and ns.Legacy then spot = ns.Legacy.Without(spot, "casts") end
 
     local casts = tonumber(spot.casts) or 0
     local items = {}
@@ -386,12 +393,13 @@ function Fishing:SessionSpots()
 end
 
 --- Every spot ever fished, most casts first; only those in `zone` if given.
-function Fishing:Spots(zone)
+-- `clean` leaves out casts made with Luremaster (the export).
+function Fishing:Spots(zone, clean)
     local spots = {}
 
     for key, spot in pairs(self:Store()) do
         if type(spot) == "table" and (not zone or spot.zone == zone) then
-            local summary = self:Summary(key)
+            local summary = self:Summary(key, clean)
             if summary and summary.casts > 0 then spots[#spots + 1] = summary end
         end
     end
@@ -404,10 +412,13 @@ function Fishing:Spots(zone)
     return spots
 end
 
-function Fishing:CountCasts()
+function Fishing:CountCasts(clean)
     local total = 0
     for _, spot in pairs(self:Store()) do
-        if type(spot) == "table" then total = total + (tonumber(spot.casts) or 0) end
+        if type(spot) == "table" then
+            if clean and ns.Legacy then spot = ns.Legacy.Without(spot, "casts") end
+            total = total + (tonumber(spot.casts) or 0)
+        end
     end
     return total
 end
@@ -526,10 +537,11 @@ function Fishing:ZoneBand(zone)
 end
 
 --- Every item caught, with the spots it came from: { name, id, rows }.
-function Fishing:Items()
+-- `clean` leaves out casts made with Luremaster (the export).
+function Fishing:Items(clean)
     local byName, order = {}, {}
 
-    for _, summary in ipairs(self:Spots()) do
+    for _, summary in ipairs(self:Spots(nil, clean)) do
         -- A spot the client would not name the zone of points nowhere, so it
         -- stays in the record and out of the data.
         local items = summary.spot.zone and summary.items or {}
@@ -621,7 +633,7 @@ end
 
 --- Every catch as data-file blocks, or nil when nothing has been caught.
 function Fishing:ExportBlocks()
-    local items = self:Items()
+    local items = self:Items(true)
     if #items == 0 then return nil end
 
     local out = {}

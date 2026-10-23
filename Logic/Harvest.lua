@@ -1025,6 +1025,14 @@ function Harvest:NameUnnamed()
                     into.items[itemName] = entry
                 end
             end
+            -- Corpses skinned with a Legacy perk stay noted as such.
+            if type(old.boosted) == "table" then
+                local rank = math.max(tonumber(type(into.boosted) == "table" and into.boosted.rank) or 0,
+                    tonumber(old.boosted.rank) or 0)
+                if type(into.boosted) ~= "table" then into.boosted = {} end
+                AddCounts(into.boosted, old.boosted)
+                into.boosted.rank = rank > 0 and rank or nil
+            end
             UndoTwice(into, twice, spec)
         end
     end
@@ -1271,6 +1279,8 @@ function Harvest:RecordCorpse()
             end
 
             entry.count = entry.count + (ReadableNumber(quantity) or 1)
+            corpse.counts = corpse.counts or {}
+            corpse.counts[name] = (corpse.counts[name] or 0) + (ReadableNumber(quantity) or 1)
 
             if not seenHere[name] then
                 seenHere[name] = true
@@ -1290,9 +1300,50 @@ function Harvest:RecordCorpse()
         end
     end
 
+    -- Skinned with Bountiful Harvest: the whole corpse is noted beside the
+    -- record, so it never reaches anyone's rates (Logic/Legacy.lua).
+    local skinning = ns.Gathering ~= nil and ns.Gathering:IsSkinning()
+    local boost = skinning and ns.Legacy and ns.Legacy:GatherBoost("skin")
+    if boost or corpse.boosted then self:NoteBoosted(record, corpse, boost) end
+
     self.dirty = true
     -- What the goal arrow's ranking was made from moved (Arrow:Sources).
     self.changes = (self.changes or 0) + 1
+end
+
+--- Move one corpse skinned with Bountiful Harvest into its record's
+--- `boosted` tally: the corpse once, and everything it gave, every opening
+--- of it (Logic/Legacy.lua). A later opening of the same corpse moves what
+--- it adds too.
+function Harvest:NoteBoosted(record, corpse, rank)
+    local boosted = ns.Legacy.Boosted(record, "corpses")
+    if rank then boosted.rank = math.max(tonumber(boosted.rank) or 0, rank) end
+
+    if not corpse.boosted then
+        corpse.boosted = {}
+        boosted.corpses = boosted.corpses + 1
+    end
+
+    for name, total in pairs(corpse.counts or {}) do
+        local moved = corpse.boosted[name]
+        local item = boosted.items[name]
+        if type(item) ~= "table" then
+            item = { corpses = 0, count = 0 }
+            boosted.items[name] = item
+        end
+        if moved == nil then
+            item.corpses = (tonumber(item.corpses) or 0) + 1
+            moved = 0
+        end
+        item.count = (tonumber(item.count) or 0) + total - moved
+        corpse.boosted[name] = total
+    end
+end
+
+--- The records the export is made from: Harvest's own, less every corpse
+--- skinned with a Legacy perk.
+function Harvest:ExportRecords()
+    return ns.Legacy and ns.Legacy.WithoutAll(self.records, "corpses") or self.records
 end
 
 --------------------------------------------------------------------------------
@@ -1433,9 +1484,9 @@ end
 -- Reading it back
 --------------------------------------------------------------------------------
 
-function Harvest:CountCorpses()
+function Harvest:CountCorpses(records)
     local total = 0
-    for _, record in pairs(self.records) do
+    for _, record in pairs(records or self.records) do
         total = total + record.corpses
     end
     return total
@@ -1443,9 +1494,9 @@ end
 
 --- How many mobs, by name. A mob looted in two places keeps a record for
 --- each, but it is still one mob.
-function Harvest:CountMobs()
+function Harvest:CountMobs(records)
     local seen, total = {}, 0
-    for _, record in pairs(self.records) do
+    for _, record in pairs(records or self.records) do
         if not seen[record.mob] then
             seen[record.mob] = true
             total = total + 1
@@ -1454,11 +1505,12 @@ function Harvest:CountMobs()
     return total
 end
 
---- Everything seen for one item, best-sampled first.
-function Harvest:ForItem(itemName)
+--- Everything seen for one item, best-sampled first. `records` are
+--- Harvest's own unless given (the export's, ExportRecords).
+function Harvest:ForItem(itemName, records)
     local rows = {}
 
-    for _, record in pairs(self.records) do
+    for _, record in pairs(records or self.records) do
         local entry = self:GroupedItems(record)[itemName]
 
         if entry then
@@ -1525,10 +1577,10 @@ function Harvest:ResolveItem(text)
 end
 
 --- Every item seen, with how many corpses back each one.
-function Harvest:Items()
+function Harvest:Items(records)
     local items, order = {}, {}
 
-    for _, record in pairs(self.records) do
+    for _, record in pairs(records or self.records) do
         for name, entry in pairs(self:GroupedItems(record)) do
             if not items[name] then
                 items[name] = { name = name, corpses = 0, count = 0 }
@@ -1579,9 +1631,9 @@ function Harvest.Unnamed(record)
     return type(record.mob) == "string" and record.mob:match("^Creature #%d+$") ~= nil
 end
 
-function Harvest:ExportItem(itemName)
+function Harvest:ExportItem(itemName, records)
     local rows = {}
-    for _, row in ipairs(self:ForItem(itemName)) do
+    for _, row in ipairs(self:ForItem(itemName, records or self:ExportRecords())) do
         if not Harvest.Unnamed(row.record) then rows[#rows + 1] = row end
     end
     if #rows == 0 then return nil end
@@ -1655,7 +1707,9 @@ end
 function Harvest:ExportAll(opts)
     opts = opts or {}
 
-    local items = self:Items()
+    -- Corpses skinned with a Legacy perk are left out of every rate.
+    local records = self:ExportRecords()
+    local items = self:Items(records)
 
     -- Catches go in the same file, as fishing rows (Logic/Fishing.lua).
     local fishing = ns.Fishing and ns.Fishing:ExportBlocks()
@@ -1666,13 +1720,13 @@ function Harvest:ExportAll(opts)
 
     local out = {
         "-- Harvested on WoW: Forever by Blackthornes Farmer.",
-        ("-- %d mobs, %d corpses looted."):format(self:CountMobs(), self:CountCorpses()),
+        ("-- %d mobs, %d corpses looted."):format(self:CountMobs(records), self:CountCorpses(records)),
     }
 
     -- Its own line, so tools/harvest_import.py can check casts never shrink
     -- the way it checks corpses.
     if fishing then
-        out[#out + 1] = ("-- %d fishing casts."):format(ns.Fishing:CountCasts())
+        out[#out + 1] = ("-- %d fishing casts."):format(ns.Fishing:CountCasts(true))
     end
 
     out[#out + 1] = "--"
@@ -1695,7 +1749,7 @@ function Harvest:ExportAll(opts)
         -- data knows only from nodes was picked with a corpse targeted, by a
         -- version before Logic/Gathering.lua, and stays out of the data.
         local nodeOnly = ns.Gathering ~= nil and ns.Gathering.IsNodeOnly(item.name)
-        local block = not nodeOnly and self:ExportItem(item.name)
+        local block = not nodeOnly and self:ExportItem(item.name, records)
         if block then
             out[#out + 1] = block
             out[#out + 1] = ""
