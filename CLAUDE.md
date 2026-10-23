@@ -733,6 +733,11 @@ with the creature types seen in game, as `if DB.CreatureTypes then ... end`
 so Equipment's and Pets' readers of `Data/Data_Harvested.lua`, whose `DB`
 has only `RegisterItem`, keep working.
 
+The dial takes no clicks and shows no hover text (the owner,
+2026-10-23: the clicks confused players): drag moves it, the red gem
+closes it, and nothing else. Never add a click or tooltip to it again
+unasked; the same in every addon with an arrow.
+
 Only one Blackthornes arrow is on screen at a time (the owner asked
 2026-10-08): Farmer's goal arrow, Equipment's quest arrow and Pets' beast
 arrow agree through one global table, `_G.BlackthornesArrows`

@@ -313,31 +313,15 @@ suite.check("the same frame touches nothing", coords == nil)
 suite.check("wide enough for its words",
     frame:GetWidth() >= ns.Theme.TextWidth("small", ArrowUI.place:GetText()))
 
--- Right-click on the dial: the next place.
-ArrowUI:OnClick("RightButton")
-suite.check("right-click on the dial steps on", Arrow.index == 2, Arrow.index)
--- A drag is not a click, whichever order the client sends the drop and the
--- button coming up in, and a drag never swallows the click after it.
-local before = Arrow:Goal()
+-- The dial takes no clicks and shows no tooltip: it only moves and closes.
+suite.check("no click on the dial", frame:GetScript("OnMouseUp") == nil and ArrowUI.OnClick == nil)
+suite.check("no tooltip on the dial", frame:GetScript("OnEnter") == nil and ArrowUI.ShowTooltip == nil)
+suite.check("it still drags", frame:GetScript("OnDragStart") ~= nil and frame:GetScript("OnDragStop") ~= nil)
+Arrow:NextSpot()
+suite.check("the next place is still there to step to", Arrow.index == 2, Arrow.index)
 frame:GetScript("OnDragStart")(frame)
 frame:GetScript("OnDragStop")(frame)
-frame:GetScript("OnMouseUp")(frame, "LeftButton")
-suite.check("letting go after a drag changes nothing", Arrow:Goal() == before)
-
-local wasIndex = Arrow.index
-frame:GetScript("OnDragStart")(frame)
-frame:GetScript("OnMouseUp")(frame, "RightButton")
-frame:GetScript("OnDragStop")(frame)
-suite.check("the button up before the drop is not a click either", Arrow.index == wasIndex, Arrow.index)
-
-local clock = 100
-_G.GetTime = function() return clock end
-frame:GetScript("OnDragStart")(frame)
-frame:GetScript("OnDragStop")(frame)
-clock = 101
-frame:GetScript("OnMouseUp")(frame, "RightButton")
-suite.check("a drop with no button up never costs the next click", Arrow.index ~= wasIndex, Arrow.index)
-_G.GetTime = nil
+suite.check("a drag changes nothing it points at", Arrow.index == 2, Arrow.index)
 
 -- No open goal left: it steps out of the way, still on for the next one.
 local savedList = ns.db.goals.list
@@ -541,8 +525,8 @@ do
     suite.check("the dial draws it", okDraw, errDraw)
     suite.check("with the camp on its plate", ArrowUI.title:GetText() == "Grind: Elwynn Forest, Test Camp",
         ArrowUI.title:GetText())
-    ArrowUI:OnClick("LeftButton")
-    suite.check("a click goes back to the goals", Arrow.grind == nil)
+    Arrow:NextGoal()
+    suite.check("the next goal goes back to the goals", Arrow.grind == nil)
 end
 
 -- Farmer's XP bar comes up after the arrow: the arrow hears it being built
