@@ -4,6 +4,16 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 0.45.0
+
+For WoW: Forever (interface 16001). Files were added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Kill goals:** set a goal for a number of kills, of any mob or one mob. It shows first in the Goals panel, and a summary opens when you finish. Start one with Set another in the Goals panel.
+- **Gather to cap:** the Ore, Herbs and Leather views on the Grind tab open with a path from your skill to 300.
+- **Goblin Gold:** with Tradeskills, its hover card shows this week's kills and what their loot was worth.
+- **Bug fixes:** several bug fixes for the Grind tab, Open After Loot, guild sharing and the Settings page.
+
 ## 0.44.0
 
 For WoW: Forever (interface 16001). Files were added and the TOC changed, so

@@ -23,6 +23,16 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 0.45.0
+
+- You can set a kill goal, for any mob or one mob. It shows first in your Goals panel, and a summary opens when you finish. Start one with Set another in the Goals panel.
+- The Ore, Herbs and Leather views on the Grind tab show your way from your skill to 300.
+- With Tradeskills, Goblin Gold's hover card shows this week's kills and what their loot was worth.
+
+Fixes and changes:
+
+- Several bug fixes for the Grind tab, Open After Loot, guild sharing and the Settings page.
+
 ## 0.44.0
 
 - Loot Feed shows what you loot in a small list, with the coin and what it's all worth. It's off until you tick it on the Loot page of Settings.
