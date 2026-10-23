@@ -32,8 +32,10 @@
 --
 -- Open after loot (`autoOpen`, off unless ticked) opens the next one from
 -- addon code each time a loot window closes, out of combat, away from those
--- places, with a free bag slot, and only once the test (/farm openbutton
--- test) found the game allows it (`openTest`). One that stays shut is tried
+-- places, with a free bag slot. The first one it opens is the check that
+-- the game allows it (`openTest`, the owner 2026-10-23: no Test button):
+-- once the game refuses the call it stays off; /farm openbutton test still
+-- runs the check by hand. One that stays shut is tried
 -- again (the game can refuse one while a loot window is still closing) and
 -- left for the session only after `STRIKES` tries in a row; one that opens,
 -- or a click on the button, starts the count again.
@@ -245,6 +247,20 @@ end
 function OpenButton:TestResult()
     local test = ns.db and ns.db.openTest
     return type(test) == "table" and test.result or nil
+end
+
+--- May Open after loot open things now? Until the game has refused it, yes:
+--- the first opening is the test.
+function OpenButton:MayAuto()
+    return self:AutoOn() and self:TestResult() ~= "blocked"
+end
+
+--- Keep what an opening from addon code showed, once: "works" when one
+--- opened, "blocked" when the game refused the call.
+function OpenButton:Learned(works, err)
+    if self:TestResult() == "works" then return end
+    ns.db.openTest = { at = time(), result = works and "works" or "blocked",
+        error = err and tostring(err):sub(1, 120) or nil, quiet = true }
 end
 
 --------------------------------------------------------------------------------
@@ -498,6 +514,7 @@ function OpenButton:Settle()
         self:Strike(last.itemID)
     else
         self.tried[last.itemID] = nil
+        self:Learned(true)
     end
 end
 
@@ -505,7 +522,7 @@ end
 --- last try did and open the next (BAG_UPDATE_DELAYED), or `BAG_WAIT`
 --- later when nothing came.
 function OpenButton:LootClosed()
-    if not (self:AutoOn() and self:TestResult() == "works") then
+    if not self:MayAuto() then
         self:Settle()
         return
     end
@@ -548,7 +565,7 @@ end
 
 --- Open the next one by itself, when that is allowed now.
 function OpenButton:OpenNext()
-    if not (self:AutoOn() and self:TestResult() == "works") then return false end
+    if not self:MayAuto() then return false end
     if InCombat() or OpenButton.Busy() or self.lootOpen then return false end
     local space = ns.Trash and ns.Trash.Space and ns.Trash.Space()
     if space and space.free < 1 then return false end
@@ -570,9 +587,15 @@ function OpenButton:OpenNext()
         OpenButton.retries = 0
         local last = { bag = item.bag, slot = item.slot, itemID = item.itemID, count = item.count }
         OpenButton.last = last
-        if not pcall(use, item.bag, item.slot) then
-            OpenButton:Strike(item.itemID)
+        local called, err = pcall(use, item.bag, item.slot)
+        if not called then
             OpenButton.last = nil
+            if OpenButton:TestResult() ~= "works" then
+                -- The game won't let addon code open things: stop trying.
+                OpenButton:Learned(false, err)
+                return
+            end
+            OpenButton:Strike(item.itemID)
             return
         end
         -- The game can refuse it with no loot window at all ("internal loot
@@ -626,6 +649,7 @@ function OpenButton:OnEnable()
     ns.RegisterEvent(self, "LOOT_OPENED", function()
         OpenButton.lootOpen = true
         if OpenButton.testing then OpenButton.testLoot = true end
+        if OpenButton.last then OpenButton:Learned(true) end
         if OpenButton.last or OpenButton.testing then OpenButton:TakeLoot() end
     end)
     ns.RegisterEvent(self, "LOOT_CLOSED", function()
@@ -634,7 +658,7 @@ function OpenButton:OnEnable()
     end)
 end
 
-ns.RegisterCommand("openbutton", L["the Open button for clams, sacks and lockboxes (on/off, test, auto on/off)"], function(rest)
+ns.RegisterCommand("openbutton", L["the Open button for clams, sacks and lockboxes (on/off, auto on/off)"], function(rest)
     local word, more = ns.Util.Trim(rest):lower():match("^(%S*)%s*(.-)$")
     if word == "test" then
         OpenButton:Test()
@@ -644,8 +668,8 @@ ns.RegisterCommand("openbutton", L["the Open button for clams, sacks and lockbox
         local on
         if more == "on" then on = true elseif more == "off" then on = false else on = not OpenButton:AutoOn() end
         OpenButton:SetAuto(on)
-        if on and OpenButton:TestResult() ~= "works" then
-            ns.Print(L["they open after you loot once /farm openbutton test says Farmer can."])
+        if on and OpenButton:TestResult() == "blocked" then
+            ns.Print(L["|cffe5604fthe game won't let Farmer open things by itself|r. The Open button still works."])
         else
             ns.Print(on and L["clams, sacks and lockboxes open after you loot."]
                 or L["nothing opens by itself."])

@@ -288,6 +288,40 @@ Open.tried = {}
 Fire("LOOT_CLOSED")
 suite.check("a blocked test means nothing opens by itself", #used == 0)
 
+-- No Test button (the owner, 2026-10-23): untested, the first one after
+-- loot is the test.
+ns.db.openTest = nil
+used = {}
+Open.tried = {}
+Fire("LOOT_CLOSED")
+suite.check("untested, the next one still opens after loot", used[1] == "0:1", tostring(used[1]))
+Open.last = { bag = 0, slot = 1, itemID = 7973, count = 3 }
+Fire("LOOT_OPENED")
+suite.check("and once one opens, that is kept as works",
+    ns.db.openTest and ns.db.openTest.result == "works" and ns.db.openTest.quiet == true)
+Open.last = nil
+Open.lootOpen = false
+
+ns.db.openTest = nil
+local realUse = _G.C_Container.UseContainerItem
+_G.C_Container.UseContainerItem = function() error("blocked") end
+Open.tried = {}
+Open.last = nil
+Fire("LOOT_CLOSED")
+suite.check("a call the game refuses is kept as blocked",
+    ns.db.openTest and ns.db.openTest.result == "blocked")
+_G.C_Container.UseContainerItem = realUse
+used = {}
+Fire("LOOT_CLOSED")
+suite.check("and then nothing opens by itself", #used == 0)
+ns.db.openTest = { result = "works" }
+_G.C_Container.UseContainerItem = function() error("busy") end
+Open.tried = {}
+Open.last = nil
+Fire("LOOT_CLOSED")
+suite.check("a refused call after it worked is only a strike", ns.db.openTest.result == "works")
+_G.C_Container.UseContainerItem = realUse
+
 -- Leave nothing behind for the next suite.
 _G.CreateFrame = realCreate
 _G.C_TooltipInfo, _G.LOCKED, _G.InCombatLockdown = nil, nil, nil
