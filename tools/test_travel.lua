@@ -28,6 +28,19 @@ local printed = {}
 local print = ns.Print
 ns.Print = function(text, ...) printed[#printed + 1] = tostring(text) return print(text, ...) end
 
+-- The shipped docks: every boat and zeppelin leaves from a dock that is
+-- there, and Orgrimmar's two zeppelins from their own platforms on the
+-- one tower (the Undercity one was a road sign out by Razor Hill).
+local shipped = Travel.DATA
+for _, ride in ipairs(shipped.rides) do
+    suite.check("the " .. ride[1] .. " to " .. ride[2] .. " ride has both docks",
+        shipped.docks[ride[1]] ~= nil and shipped.docks[ride[2]] ~= nil)
+end
+local toUndercity, toGromgol = shipped.docks.orgrimmar, shipped.docks.orgrimmargromgol
+local apart = math.sqrt((toUndercity[3] - toGromgol[3]) ^ 2 + (toUndercity[4] - toGromgol[4]) ^ 2)
+suite.check("Orgrimmar's zeppelins leave from one tower", apart > 5 and apart < 50, apart)
+suite.check("not from the road sign", math.abs(toUndercity[4] - -4397.8) > 200, toUndercity[4])
+
 -- A small world: Stormwind and Menethil on one side of the sea, Theramore
 -- on the other.
 local DATA = Travel.DATA
