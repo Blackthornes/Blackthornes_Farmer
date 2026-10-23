@@ -611,6 +611,26 @@ end
 
 ns.RegisterCommand("help", L["show this list"], ShowHelp)
 
+--- Typed only and left out of help (the owner, 2026-10-23): checks and debug
+--- are for tracking down a problem, not for players. Set straight in
+--- ns.commands, so help and Settings never list it.
+function ns.RegisterHiddenCommand(name, fn)
+    ns.commands[name] = { fn = fn, hidden = true }
+end
+
+ns.RegisterHiddenCommand("debug", function(rest)
+    if not ns.db then return end
+    local word = (rest or ""):lower():match("^%s*(%S*)")
+    if word == "on" then
+        ns.db.debug = true
+    elseif word == "off" then
+        ns.db.debug = false
+    else
+        ns.db.debug = not ns.db.debug
+    end
+    ns.Print(ns.db.debug and "debug on" or "debug off")
+end)
+
 SLASH_BLACKTHORNESFARMER1 = "/farm"
 SLASH_BLACKTHORNESFARMER2 = "/farmer"
 
