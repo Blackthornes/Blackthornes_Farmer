@@ -1154,14 +1154,14 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.tomtom:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    -- A trip step by step to a far place (Logic/Travel.lua), off unless
-    -- ticked.
+    -- A trip step by step to a far place (Logic/Travel.lua), on unless
+    -- unticked.
     local routeRow = pages:Row("map", 2, L["Guide Me:"],
         L["When the place is in another zone or across the sea, the arrow leads you there step by step."])
 
     controls.arrowRoute = Widgets.CreateCheckbox(routeRow, L["On"], function(checked)
         ns.Travel:SetOn(checked)
-    end, false)
+    end, true)
     controls.arrowRoute:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- A glow where you kill the most (Logic/Heat.lua, a test feature).
@@ -1431,7 +1431,7 @@ function SettingsUI:Refresh()
     controls.autoOpen:SetChecked(db.autoOpen == true)
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
-    controls.arrowRoute:SetChecked(db.arrowRoute == true)
+    controls.arrowRoute:SetChecked(db.arrowRoute ~= false)
     controls.grindPins:SetChecked(db.grindPins ~= false)
 
     controls.tracker:SetChecked(not db.trackerHidden)
