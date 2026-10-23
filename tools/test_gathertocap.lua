@@ -204,6 +204,26 @@ check("at the top everything is done", UIPath.frame:IsShown() and not UIPath.goa
     and GatherToCap:Path("ore").current == nil)
 
 --------------------------------------------------------------------------------
+-- Your side's zones
+--------------------------------------------------------------------------------
+
+local same = {
+    { zone = "Elwynn Forest", minLevel = 1, maxLevel = 10 },
+    { zone = "Durotar", minLevel = 1, maxLevel = 10 },
+}
+check("Horde is sent to its own zone", GatherToCap.PickZone(same, 5, "Horde").zone == "Durotar")
+check("Alliance is sent to its own zone", GatherToCap.PickZone(same, 5, "Alliance").zone == "Elwynn Forest")
+local onlyTheirs = { { zone = "Westfall", minLevel = 10, maxLevel = 20 } }
+check("the other side's zone when nothing else has it",
+    GatherToCap.PickZone(onlyTheirs, 12, "Horde").zone == "Westfall")
+local contested = {
+    { zone = "Darkshore", minLevel = 10, maxLevel = 20 },
+    { zone = "Ashenvale", minLevel = 18, maxLevel = 30 },
+}
+check("a shared zone beats the other side's", GatherToCap.PickZone(contested, 12, "Horde").zone == "Ashenvale")
+check("no side read keeps the nearest level", GatherToCap.PickZone(contested, 12).zone == "Darkshore")
+
+--------------------------------------------------------------------------------
 -- Skinning
 --------------------------------------------------------------------------------
 

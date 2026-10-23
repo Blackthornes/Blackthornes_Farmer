@@ -7,8 +7,8 @@
 -- A stop runs from its node's skill to the next stop's (the last to TOP).
 -- The data's skill for a node wins over the ladder's below. The zone for a
 -- stop is the one where you mapped the most spots of that node, else the
--- data's zone nearest your level among those you can reach, else the
--- lowest. "About N more gathers" uses Classic's skill-up chance: a node
+-- data's zone nearest your level among those you can reach, on your side
+-- (SIDE_ZONES), else the lowest. "About N more gathers" uses Classic's skill-up chance: a node
 -- gives a point for sure until you are SURE_FOR points over the skill it
 -- needs, then the chance falls in a straight line to nothing at GREY_AT
 -- over it (Chance, Gathers).
@@ -237,8 +237,41 @@ local function HourWorth(zone, node, itemID)
     return nil
 end
 
---- Of `zones` ({ zone, minLevel, maxLevel }), the one for a player of `level`.
-function GatherToCap.PickZone(zones, level)
+-- Zones that belong to one side: the other side's players are never sent
+-- there while a zone of their own or one both share has the node. Zones
+-- not listed (contested ones, Forever's own) are for both.
+GatherToCap.SIDE_ZONES = {
+    ["Elwynn Forest"] = "Alliance", ["Westfall"] = "Alliance",
+    ["Dun Morogh"] = "Alliance", ["Loch Modan"] = "Alliance",
+    ["Teldrassil"] = "Alliance", ["Darkshore"] = "Alliance",
+    ["Redridge Mountains"] = "Alliance", ["Duskwood"] = "Alliance",
+    ["Wetlands"] = "Alliance",
+    ["Durotar"] = "Horde", ["Mulgore"] = "Horde",
+    ["Tirisfal Glades"] = "Horde", ["Silverpine Forest"] = "Horde",
+    ["The Barrens"] = "Horde",
+}
+
+--- The player's side, "Alliance" or "Horde", or nil when the client won't say.
+function GatherToCap.PlayerSide()
+    if type(UnitFactionGroup) ~= "function" then return nil end
+    local ok, side = pcall(UnitFactionGroup, "player")
+    if not ok or type(side) ~= "string" then return nil end
+    local same, readable = pcall(function() return side == "Alliance" or side == "Horde" end)
+    if same and readable then return side end
+    return nil
+end
+
+--- Of `zones` ({ zone, minLevel, maxLevel }), the one for a player of `level`
+--- on `side`: the other side's own zones only when nothing else has it.
+function GatherToCap.PickZone(zones, level, side)
+    if side then
+        local ours = {}
+        for _, zone in ipairs(zones) do
+            local owner = GatherToCap.SIDE_ZONES[zone.zone]
+            if not owner or owner == side then ours[#ours + 1] = zone end
+        end
+        if #ours > 0 then zones = ours end
+    end
     local best, bestFar
     for _, zone in ipairs(zones) do
         local low = zone.minLevel
@@ -257,6 +290,7 @@ end
 
 --- The node stops for Mining or Herbalism.
 local function NodeStops(spec, level)
+    local side = GatherToCap.PlayerSide()
     local zonesOf, skillOf = {}, {}
     for _, row in ipairs(ns.GrindGather:DataRows(spec.data)) do
         local list = zonesOf[row.node]
@@ -294,7 +328,7 @@ local function NodeStops(spec, level)
                     if each.zone == mine then pick = each end
                 end
             else
-                pick = GatherToCap.PickZone(data, level)
+                pick = GatherToCap.PickZone(data, level, side)
             end
             if pick then
                 local spots = own[ns.GrindGather.Key(pick.zone, node)]
