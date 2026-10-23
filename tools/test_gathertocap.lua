@@ -222,6 +222,17 @@ local contested = {
 }
 check("a shared zone beats the other side's", GatherToCap.PickZone(contested, 12, "Horde").zone == "Ashenvale")
 check("no side read keeps the nearest level", GatherToCap.PickZone(contested, 12).zone == "Darkshore")
+local horde = {
+    { zone = "Durotar", minLevel = 1, maxLevel = 10 },
+    { zone = "Mulgore", minLevel = 1, maxLevel = 10 },
+}
+check("the zone you stand in wins a tie", GatherToCap.PickZone(horde, 5, "Horde", "Mulgore").zone == "Mulgore")
+check("standing elsewhere keeps the usual pick",
+    GatherToCap.PickZone(horde, 5, "Horde", "Orgrimmar").zone == "Durotar")
+check("the zone you stand in must be in reach",
+    GatherToCap.PickZone(contested, 5, nil, "Ashenvale").zone == "Darkshore")
+check("the other side's zone you stand in still gives way",
+    GatherToCap.PickZone(same, 5, "Horde", "Elwynn Forest").zone == "Durotar")
 
 --------------------------------------------------------------------------------
 -- Skinning

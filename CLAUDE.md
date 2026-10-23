@@ -435,7 +435,8 @@ you have, then `GoalsUI:Show`). Stops are Classic's ladders
 bands, the camp you skinned most); the gathers left follow Classic's
 skill-up chance (`Chance`: sure to 25 over, none past 100, never under
 `MIN_CHANCE`); the zone is where you mapped the most (`gathering.spots`),
-else the data's nearest your level. Worth is your own pace
+else the zone you stand in when it has the node and is in reach, else the
+data's nearest your level on your side (`SIDE_ZONES`). Worth is your own pace
 (`gathering.pace`, `skinLog`) where you have it, else a typical hour.
 Nothing saved; it only reads. Laid out again only when the skill, cap,
 level, spots, `GrindGather.paceVersion` (moved by `NoteGather` and
