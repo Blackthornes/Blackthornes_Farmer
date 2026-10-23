@@ -7,7 +7,8 @@
 -- A stop runs from its node's skill to the next stop's (the last to TOP).
 -- The data's skill for a node wins over the ladder's below. The zone for a
 -- stop is the one where you mapped the most spots of that node, else the
--- data's zone nearest your level among those you can reach, on your side
+-- zone you stand in when it has the node and is in reach, else the data's
+-- zone nearest your level among those you can reach, on your side
 -- (SIDE_ZONES), else the lowest. "About N more gathers" uses Classic's skill-up chance: a node
 -- gives a point for sure until you are SURE_FOR points over the skill it
 -- needs, then the chance falls in a straight line to nothing at GREY_AT
@@ -262,8 +263,9 @@ function GatherToCap.PlayerSide()
 end
 
 --- Of `zones` ({ zone, minLevel, maxLevel }), the one for a player of `level`
---- on `side`: the other side's own zones only when nothing else has it.
-function GatherToCap.PickZone(zones, level, side)
+--- on `side` standing in `here`: that zone when it is listed and in reach,
+--- the other side's own zones only when nothing else has it.
+function GatherToCap.PickZone(zones, level, side, here)
     if side then
         local ours = {}
         for _, zone in ipairs(zones) do
@@ -271,6 +273,14 @@ function GatherToCap.PickZone(zones, level, side)
             if not owner or owner == side then ours[#ours + 1] = zone end
         end
         if #ours > 0 then zones = ours end
+    end
+    if here then
+        for _, zone in ipairs(zones) do
+            if zone.zone == here and (not level or not zone.minLevel
+                or zone.minLevel <= level + GatherToCap.REACH) then
+                return zone
+            end
+        end
     end
     local best, bestFar
     for _, zone in ipairs(zones) do
@@ -289,7 +299,7 @@ function GatherToCap.PickZone(zones, level, side)
 end
 
 --- The node stops for Mining or Herbalism.
-local function NodeStops(spec, level)
+local function NodeStops(spec, level, here)
     local side = GatherToCap.PlayerSide()
     local zonesOf, skillOf = {}, {}
     for _, row in ipairs(ns.GrindGather:DataRows(spec.data)) do
@@ -328,7 +338,7 @@ local function NodeStops(spec, level)
                     if each.zone == mine then pick = each end
                 end
             else
-                pick = GatherToCap.PickZone(data, level, side)
+                pick = GatherToCap.PickZone(data, level, side, here)
             end
             if pick then
                 local spots = own[ns.GrindGather.Key(pick.zone, node)]
@@ -381,12 +391,12 @@ local function SkinStops()
     return stops
 end
 
---- What moves the path: your skill and cap, your level, your spots and
---- gathers, the hide list and the data.
-function GatherToCap:Key(view, skill, most, level)
+--- What moves the path: your skill and cap, your level, the zone you are
+--- in, your spots and gathers, the hide list and the data.
+function GatherToCap:Key(view, skill, most, level, here)
     local gathering = ns.db and type(ns.db.gathering) == "table" and ns.db.gathering or {}
     local spots = type(gathering.spots) == "table" and #gathering.spots or 0
-    return table.concat({ view, skill or "", most or "", level or "", spots,
+    return table.concat({ view, skill or "", most or "", level or "", here or "", spots,
         ns.GrindGather.paceVersion or 0, ns.DB.hiddenVersion or 0, ns.DB:CountSources() }, ":")
 end
 
@@ -402,13 +412,14 @@ function GatherToCap:Path(view)
     if not skill then return nil end
     local player = ns.Spots:Player()
     local level = player and player.level
+    local here = player and player.zone
 
-    local key = self:Key(view, skill, most, level)
+    local key = self:Key(view, skill, most, level, here)
     self.kept = self.kept or {}
     local kept = self.kept[view]
     if kept and kept.key == key then return kept.path end
 
-    local stops = spec.skill == "Skinning" and SkinStops() or NodeStops(spec, level)
+    local stops = spec.skill == "Skinning" and SkinStops() or NodeStops(spec, level, here)
     table.sort(stops, function(a, b)
         if a.skill ~= b.skill then return a.skill < b.skill end
         return a.node < b.node
