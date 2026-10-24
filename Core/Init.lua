@@ -461,6 +461,11 @@ local DEFAULTS = {
     -- The game's interact icon kept out of sight without a controller (the
     -- owner asked 2026-10-13). Never rename it.
     nodeSparkleHideIcon = true,
+    -- Sparkles take the colour of what they are on, herbs and ore by your
+    -- skill (the owner, 2026-10-24), and a skinnable corpse can sparkle,
+    -- off until ticked. Never rename either.
+    nodeSparkleColors = true,
+    nodeSparkleCorpses = false,
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,

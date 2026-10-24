@@ -1342,6 +1342,24 @@ puts `SoftTargetNameplateInteract` back to the player's own value (kept in
 fight. Looked at
 again `VEIL_AGAIN` after each event, since the game sets a plate up after
 telling us.
+Colours (the owner said build it, 2026-10-24, from a mockup): herbs and
+ore take the player's skill colour against the node's least `requires`
+in the data (`NodeSparkle:NodeNeeds`, `SkillColor`: orange under
+`ORANGE_TO` (25) over, yellow under `YELLOW_TO` (50), then green, never
+grey; grey when the skill is short or missing, and it still sparkles),
+quest objects blue, chests, schools and the bobber white, gold when no
+skill is read or "Sparkle Colors:" is unticked (`nodeSparkleColors`, on
+unless unticked, never rename it; `/farm sparkle colors [on|off]`). The
+beacon and the sparkles are tinted the same (`NodeSparkle:Tint`). "Skinnable
+Corpses:" (`nodeSparkleCorpses`, off unless ticked, never rename it;
+`/farm sparkle corpses [on|off]`) sparkles a dead creature the interact
+key picks while the player knows Skinning, whose tooltip says it can be
+skinned (`UNIT_SKINNABLE_LEATHER`) or whose kind the player has skinned
+before (`skinLog`), until `GrindGather.skinned` has it
+(`NodeSparkle:SkinnableCorpse`, `Skinned`), in the Skinning colour for
+its level (`Grinding.SkinSkill`); its plate stays on
+(`FitPlateToTarget`). Both rows sit under Sparkles on the Map & goals
+page. Not yet seen in game.
 Tested in `tools/test_nodesparkle.lua`.
 
 ## Quest count over quest mobs

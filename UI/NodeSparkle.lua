@@ -1,5 +1,14 @@
 -- Blackthornes Farmer -- UI/NodeSparkle.lua
--- Gold sparkles over the herb or ore node you are facing.
+-- Sparkles over the herb or ore node you are facing.
+--
+-- Colours (the owner, 2026-10-24): herbs and ore take your skill's colour,
+-- as recipes do (orange a sure point, yellow likely, green now and then,
+-- grey not yet gatherable, which still sparkles); quest objects are blue;
+-- chests, schools and the bobber white; gold when no skill can be read or
+-- "Sparkle Colors" is unticked (`nodeSparkleColors`, on unless unticked;
+-- never rename it). "Skinnable Corpses" (`nodeSparkleCorpses`, off unless
+-- ticked; never rename it) sparkles a dead beast you could skin, in your
+-- Skinning's colour, until you skin it.
 --
 -- The game tells addons nothing about the nodes around you: not where they
 -- are, not where they sit on screen. The one it does name is the node the
@@ -97,6 +106,19 @@ NodeSparkle.TWINKLE = 0.8          -- seconds to light up, and again to fade
 -- the game draws smaller (farther off) moves them less.
 NodeSparkle.DROP = 75
 NodeSparkle.GOLD = { 1.0, 0.84, 0.36 }
+-- What each thing sparkles in (see the top of the file).
+NodeSparkle.COLORS = {
+    orange = { 1.0, 0.5, 0.25 },
+    yellow = { 1.0, 1.0, 0.0 },
+    green = { 0.25, 0.75, 0.25 },
+    grey = { 0.62, 0.62, 0.62 },
+    quest = { 0.3, 0.65, 1.0 },
+    white = { 1.0, 1.0, 1.0 },
+}
+-- How far past a node's need each colour runs, as the skill-up chance does
+-- (GatherToCap: sure to 25 over). Green from 50 over on, never grey.
+NodeSparkle.ORANGE_TO = 25
+NodeSparkle.YELLOW_TO = 50
 NodeSparkle.GLOW = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Glow"
 -- A four-pointed star, drawn by tools/make_sparkle_art.py.
 NodeSparkle.STAR = "Interface\\AddOns\\Blackthornes_Farmer\\Media\\Frame\\Sparkle"
@@ -302,7 +324,7 @@ end
 -- Which objects are nodes
 --------------------------------------------------------------------------------
 
-local names, namesKey = nil, nil
+local names, namesKey, needs = nil, nil, nil
 
 local function GatherCount()
     local gathering = ns.db and ns.db.gathering
@@ -324,15 +346,27 @@ function NodeSparkle:Names()
     local key = ("%s:%s:%d"):format(tostring(DB and DB.changes), tostring(DB and DB.namesVersion), GatherCount())
     if names and namesKey == key then return names end
 
-    local set = {}
+    local set, need = {}, {}
+    -- The least skill a node asks for anywhere, by name in lower case.
+    local function Needs(name, requires)
+        if type(name) ~= "string" or name == "" or type(requires) ~= "string" then return end
+        local skill, number = requires:match("^(%a+)%s+(%d+)%s*$")
+        number = tonumber(number)
+        if not skill or not number then return end
+        local key, kept = name:lower(), need[name:lower()]
+        if not kept or number < kept.need then need[key] = { skill = skill, need = number } end
+    end
     if DB then
         for item in DB:Iterate() do
             for _, source in ipairs(item.sources or {}) do
                 if source.kind == "herb" then
                     Add(set, item.name)
                     Add(set, DB:ClientName(item))
+                    Needs(item.name, source.requires)
+                    Needs(DB:ClientName(item), source.requires)
                 elseif source.kind == "node" then
                     Add(set, source.name)
+                    Needs(source.name, source.requires)
                 end
             end
         end
@@ -347,8 +381,18 @@ function NodeSparkle:Names()
         end
     end
 
-    names, namesKey = set, key
+    names, namesKey, needs = set, key, need
     return set
+end
+
+--- The skill a node needs, as "Mining", 65, or nil when the data does not
+--- say (a node only the player has gathered).
+function NodeSparkle:NodeNeeds(name)
+    if type(name) ~= "string" or name == "" then return nil end
+    self:Names()
+    local entry = needs and needs[name:lower()]
+    if not entry then return nil end
+    return entry.skill, entry.need
 end
 
 -- Chests by the endings their names share (and the German word).
@@ -735,6 +779,7 @@ local function MakeSpark(parent, spec)
     holder:SetPoint("CENTER", parent, "CENTER", spec.x, spec.y)
 
     local r, g, b = NodeSparkle.GOLD[1], NodeSparkle.GOLD[2], NodeSparkle.GOLD[3]
+    local tinted = {}
     local pieces = {
         { file = NodeSparkle.GLOW, w = spec.size, h = spec.size, a = 0.45 },
         { file = NodeSparkle.STAR, w = spec.size * 2, h = spec.size * 2, a = 1 },
@@ -746,9 +791,10 @@ local function MakeSpark(parent, spec)
         texture:SetPoint("CENTER")
         pcall(texture.SetBlendMode, texture, "ADD")
         texture:SetVertexColor(r, g, b, piece.a)
+        tinted[#tinted + 1] = { texture = texture, a = piece.a }
     end
 
-    return { holder = holder, twinkle = Twinkle(holder, spec.delay) }
+    return { holder = holder, twinkle = Twinkle(holder, spec.delay), tinted = tinted }
 end
 
 --- The beacon: a beam standing on the spot, a soft flare at its foot, and
@@ -786,7 +832,8 @@ function NodeSparkle:MakeBeacon(parent)
         pulse = group
     end
     holder:Hide()
-    return { holder = holder, pulse = pulse }
+    return { holder = holder, pulse = pulse,
+        tinted = { { texture = beam, a = 1 }, { texture = flare, a = 0.8 } } }
 end
 
 function NodeSparkle:Build()
@@ -834,8 +881,62 @@ function NodeSparkle:Drop(plate)
     return self.DROP * math.min(2, math.max(0.25, ratio))
 end
 
-function NodeSparkle:ShowSparkle(plate, guid)
+--- Tint every sparkle and the beacon, only when the colour changed.
+function NodeSparkle:Tint(color)
+    color = color or self.GOLD
+    if self.tint == color then return end
+    self.tint = color
+    local all = { self.beacon }
+    for _, spark in ipairs(self.sparks or {}) do all[#all + 1] = spark end
+    for _, light in ipairs(all) do
+        for _, piece in ipairs(light.tinted or {}) do
+            pcall(piece.texture.SetVertexColor, piece.texture, color[1], color[2], color[3], piece.a)
+        end
+    end
+end
+
+--- The colour for a skill against what a thing needs: orange, yellow,
+--- green or grey (you lack the skill, or it is too low). Nil when the
+--- skills could not be read at all.
+function NodeSparkle.SkillColor(have, need, read)
+    local colors = NodeSparkle.COLORS
+    if type(need) ~= "number" then return nil end
+    if type(have) ~= "number" then return read and colors.grey or nil end
+    local over = have - need
+    if over < 0 then return colors.grey end
+    if over < NodeSparkle.ORANGE_TO then return colors.orange end
+    if over < NodeSparkle.YELLOW_TO then return colors.yellow end
+    return colors.green
+end
+
+function NodeSparkle:ColorsOn()
+    return not (ns.db and ns.db.nodeSparkleColors == false)
+end
+
+--- What a thing of `kind` sparkles in. `level` is a corpse's.
+function NodeSparkle:ColorFor(kind, name, level)
+    if not self:ColorsOn() then return self.GOLD end
+    local colors = self.COLORS
+    if kind == "quest" then return colors.quest end
+    if kind == "chest" or kind == "school" or kind == "bobber" then return colors.white end
+    local skills = ns.Spots and ns.Spots.Skills and ns.Spots.Skills()
+    local read = type(skills) == "table"
+    if kind == "node" then
+        local skill, need = self:NodeNeeds(name)
+        if skill then
+            return self.SkillColor(read and skills[skill] or nil, need, read) or self.GOLD
+        end
+    elseif kind == "corpse" then
+        local need = ns.Grinding and ns.Grinding.SkinSkill(level)
+        return self.SkillColor(read and skills.Skinning or nil, need, read) or self.GOLD
+    end
+    return self.GOLD
+end
+
+function NodeSparkle:ShowSparkle(plate, guid, color)
     local frame = self:Build()
+    if color then self.shownColor = color end
+    self:Tint(self.shownColor)
     if self.shownOn ~= plate then
         frame:ClearAllPoints()
         local icon = self.Icon(plate)
@@ -890,16 +991,86 @@ function NodeSparkle:HideSparkle()
     frame:Hide()
 end
 
+--------------------------------------------------------------------------------
+-- Skinnable corpses
+--------------------------------------------------------------------------------
+
+function NodeSparkle:CorpsesOn()
+    return ns.db and ns.db.nodeSparkleCorpses == true or false
+end
+
+-- The game's tooltip line on a beast that can be skinned, and the English
+-- word, in case a client has no global for it.
+NodeSparkle.SKINNABLE_WORDS = { "Skinnable" }
+
+local function SaysSkinnable(text)
+    if type(text) ~= "string" or text == "" then return false end
+    local own = Readable(_G.UNIT_SKINNABLE_LEATHER)
+    if type(own) == "string" and own ~= "" and text == own then return true end
+    for _, word in ipairs(NodeSparkle.SKINNABLE_WORDS) do
+        if text == word then return true end
+    end
+    return false
+end
+
+--- The tooltip of what the interact key picks says it can be skinned.
+function NodeSparkle:TooltipSkinnable()
+    local get = Field(_G.C_TooltipInfo, "GetUnit")
+    if type(get) ~= "function" then return false end
+    local ok, data = pcall(get, UNIT)
+    if not ok or type(data) ~= "table" or type(data.lines) ~= "table" then return false end
+    for _, line in ipairs(data.lines) do
+        local text = type(line) == "table" and Readable(line.leftText) or nil
+        if SaysSkinnable(text) then return true end
+    end
+    return false
+end
+
+--- A dead creature you could skin and have not: its level, or nil. Only
+--- while "Skinnable Corpses" is ticked and you know Skinning.
+function NodeSparkle:SkinnableCorpse(guid, name)
+    if not self:CorpsesOn() then return nil end
+    if type(guid) ~= "string" or not guid:find("^Creature%-") then return nil end
+    if type(name) ~= "string" or name == "" then return nil end
+    if not (ns.Grinding and ns.Grinding.SkinningSkill()) then return nil end
+    local skinned = ns.GrindGather and ns.GrindGather.skinned
+    if type(skinned) == "table" and skinned[guid] then return nil end
+    if ns.DB and ns.DB:IsHiddenSource(name) then return nil end
+    if type(UnitIsDead) ~= "function" then return nil end
+    local ok, dead = pcall(UnitIsDead, UNIT)
+    if not (ok and dead == true) then return nil end
+    local log = ns.db and ns.db.skinLog
+    if not (self:TooltipSkinnable() or (type(log) == "table" and type(log[name]) == "table")) then
+        return nil
+    end
+    local level = 1
+    if type(UnitLevel) == "function" then
+        local got, value = pcall(UnitLevel, UNIT)
+        value = got and ns.Harvest and ns.Harvest.ReadableNumber(value) or nil
+        if type(value) == "number" and value > 0 then level = value end
+    end
+    return level
+end
+
 --- Look again at what the interact key points at.
 -- @return "shown", "off", "nothing", "notnode" or "noplate"
 function NodeSparkle:Refresh()
     if not self:IsEnabled() then self:HideSparkle(); return "off" end
     local guid, name, object = self:Facing()
-    if not guid or not object then self:HideSparkle(); return "nothing" end
-    if not self:Kind(name) then self:HideSparkle(); return "notnode" end
+    if guid and not object then
+        local level = self:SkinnableCorpse(guid, name)
+        if not level then self:HideSparkle(); return "nothing" end
+        local plate = self:Plate(guid)
+        if not plate then self:HideSparkle(); return "noplate" end
+        self:ShowSparkle(plate, guid, self:ColorFor("corpse", name, level))
+        return "shown"
+    end
+    if not guid then self:HideSparkle(); return "nothing" end
+    local kind = self:Kind(name)
+    if not kind then self:HideSparkle(); return "notnode" end
     local plate = self:Plate(guid)
     if not plate then self:HideSparkle(); return "noplate" end
-    self:ShowSparkle(plate, guid)
+    self:ShowSparkle(plate, guid, self:ColorFor(kind, name))
     return "shown"
 end
 
@@ -916,8 +1087,10 @@ function NodeSparkle:FitPlateToTarget()
     local saved = db.nodeSparkleCVars
     local own = type(saved) == "table" and saved.SoftTargetNameplateInteract or nil
     if own == nil then return nil end
-    local guid, _, object = self:Facing()
-    local want = (guid and not object) and own or "1"
+    local guid, name, object = self:Facing()
+    -- A corpse to skin keeps the plate: the sparkle hangs on it.
+    local creature = guid and not object and not self:SkinnableCorpse(guid, name)
+    local want = creature and own or "1"
     if self.GetCVar("SoftTargetNameplateInteract") ~= want then
         self.SetCVar("SoftTargetNameplateInteract", want)
     end
@@ -1022,6 +1195,12 @@ function NodeSparkle:Check()
     ns.PrintRaw(("  facing: %s (%s)"):format(tostring(name), tostring(kind or (guid and "?" or "nothing"))))
     ns.PrintRaw(("  a node Farmer knows: %s"):format(name and (self:IsNode(name) and "yes" or "no") or "-"))
     ns.PrintRaw(("  kind: %s"):format(name and tostring(self:Kind(name) or "none") or "-"))
+    local skill, need = self:NodeNeeds(name)
+    local color = self.shownColor or self.GOLD
+    ns.PrintRaw(("  colors: %s, needs %s %s, corpses %s, skinnable corpse: %s, colour %.2f %.2f %.2f"):format(
+        self:ColorsOn() and "on" or "off", tostring(skill or "-"), tostring(need or "-"),
+        self:CorpsesOn() and "on" or "off", tostring(self:SkinnableCorpse(guid, name) or "no"),
+        color[1], color[2], color[3]))
     ns.PrintRaw(("  quest: tooltip %s, looted before %s"):format(self:QuestInTooltip() and "yes" or "no",
         name and (self:QuestByLoot(name) and "yes" or "no") or "-"))
     local forUnit = Field(_G.C_NamePlate, "GetNamePlateForUnit")
@@ -1046,8 +1225,44 @@ function NodeSparkle:Check()
     ns.PrintRaw(("  sparkle: %s"):format(self:SafeRefresh()))
 end
 
-ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, icon, check)"], function(rest)
+function NodeSparkle:SetColors(on)
+    ns.db.nodeSparkleColors = on and true or false
+    self:SafeRefresh()
+end
+
+function NodeSparkle:SetCorpses(on)
+    ns.db.nodeSparkleCorpses = on and true or false
+    self:SafeRefresh()
+end
+
+--- A corpse was just skinned: its sparkle goes.
+function NodeSparkle:Skinned(guid)
+    if guid and self.shownGuid == guid then self:SafeRefresh() end
+end
+
+ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, icon, check)"], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
+    local word, value = argument:match("^(%a+)%s*(%a*)$")
+    if word == "colors" or word == "colours" then
+        local on
+        if value == "on" then on = true
+        elseif value == "off" then on = false
+        else on = not NodeSparkle:ColorsOn() end
+        NodeSparkle:SetColors(on)
+        ns.Print(on and L["sparkles show your skill color."] or L["sparkles are all gold."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "corpses" then
+        local on
+        if value == "on" then on = true
+        elseif value == "off" then on = false
+        else on = not NodeSparkle:CorpsesOn() end
+        NodeSparkle:SetCorpses(on)
+        ns.Print(on and L["corpses you can skin sparkle."] or L["corpses don't sparkle."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
     if argument == "beacon" or argument == "sparkles" then
         NodeSparkle:SetStyle(argument)
         ns.Print(argument == "beacon" and L["a beacon shows the spot."] or L["sparkles show the spot."])
