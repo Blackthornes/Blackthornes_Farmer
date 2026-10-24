@@ -127,6 +127,7 @@ function GrindGather:NoteSkin(mob, guid, items, quantities)
     if guid then
         if self.skinned[guid] then return end
         self.skinned[guid] = true
+        if ns.NodeSparkle and ns.NodeSparkle.Skinned then pcall(ns.NodeSparkle.Skinned, ns.NodeSparkle, guid) end
     end
 
     GrindGather.paceVersion = (GrindGather.paceVersion or 0) + 1

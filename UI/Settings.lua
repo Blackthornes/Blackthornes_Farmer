@@ -1021,6 +1021,22 @@ function SettingsUI:BuildMapPage()
     ns.SettingsPages.FitStepper(controls.sparkleStyle, styleNames)
     controls.sparkleStyle:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Each thing in its own colour, herbs and ore by your skill, and a
+    -- corpse to skin (the owner, 2026-10-24).
+    local sparkleColorsRow = pages:Row("map", 1, L["Sparkle Colors:"],
+        L["Herbs and ore show your skill color. Quest things are blue. Chests, fish and your bobber are white."])
+    controls.nodeSparkleColors = Widgets.CreateCheckbox(sparkleColorsRow, L["On"], function(checked)
+        ns.NodeSparkle:SetColors(checked)
+    end, true)
+    controls.nodeSparkleColors:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local sparkleCorpsesRow = pages:Row("map", 1, L["Skinnable Corpses:"],
+        L["A dead beast you can skin sparkles until you skin it."])
+    controls.nodeSparkleCorpses = Widgets.CreateCheckbox(sparkleCorpsesRow, L["On"], function(checked)
+        ns.NodeSparkle:SetCorpses(checked)
+    end, true)
+    controls.nodeSparkleCorpses:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- The game's interact icon, out of sight without a controller (the
     -- owner asked 2026-10-13).
     local sparkleIconRow = pages:Row("map", 1, L["Hide Game Icon:"],
@@ -1407,6 +1423,8 @@ function SettingsUI:Refresh()
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
     controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)
+    controls.nodeSparkleColors:SetChecked(db.nodeSparkleColors ~= false)
+    controls.nodeSparkleCorpses:SetChecked(db.nodeSparkleCorpses == true)
     for _, name in ipairs({ "itemTooltip", "itemTooltipCraft", "killTooltip", "killTooltipDrops" }) do
         local stepper = controls[name]
         stepper:SetValue(ns.TooltipShift:Mode(stepper.isOn(), stepper.shiftKey), true)

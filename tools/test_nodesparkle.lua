@@ -380,6 +380,81 @@ NodeSparkle.fishing = nil   -- the game closed mid-cast
 NodeSparkle:LowerReach()
 suite.check("a reach left raised is put back at the next login", cvars.SoftTargetInteractRange == "15")
 
+-- Colours (the owner, 2026-10-24): herbs and ore by your skill, quest
+-- things blue, chests, schools and the bobber white, gold when off.
+local C = NodeSparkle.COLORS
+local realSkills = ns.Spots.Skills
+local skills = { Mining = 10 }
+ns.Spots.Skills = function() return skills end
+suite.check("colours on by default", ns.DEFAULTS.nodeSparkleColors == true)
+suite.check("corpses off by default", ns.DEFAULTS.nodeSparkleCorpses == false)
+local skill, need = NodeSparkle:NodeNeeds("Copper Vein")
+suite.check("a vein knows its need", skill == "Mining" and need == 1)
+Face("Copper Vein", VEIN)
+suite.check("a vein just reached is orange", NodeSparkle.tint == C.orange)
+skills.Mining = 30
+Face("Copper Vein", VEIN)
+suite.check("further on it is yellow", NodeSparkle.tint == C.yellow)
+skills.Mining = 200
+Face("Copper Vein", VEIN)
+suite.check("far past it stays green", NodeSparkle.tint == C.green)
+skills = { Herbalism = 50 }
+Face("Copper Vein", VEIN)
+suite.check("without Mining it is grey and still shows", NodeSparkle.tint == C.grey and NodeSparkle.frame:IsShown())
+suite.check("too low is grey", NodeSparkle.SkillColor(40, 65, true) == C.grey)
+skills = nil
+Face("Copper Vein", VEIN)
+suite.check("no skills read is gold", NodeSparkle.tint == NodeSparkle.GOLD)
+Face("Battered Chest", VEIN)
+suite.check("a chest is white", NodeSparkle.tint == C.white)
+Face("Fishing Bobber", VEIN)
+suite.check("the bobber is white", NodeSparkle.tint == C.white)
+skills = { Mining = 30 }
+ns.HandleSlash("sparkle colors off")
+suite.check("colors off is saved", ns.db.nodeSparkleColors == false)
+Face("Copper Vein", VEIN)
+suite.check("and everything is gold", NodeSparkle.tint == NodeSparkle.GOLD)
+ns.HandleSlash("sparkle colors on")
+Face("Copper Vein", VEIN)
+suite.check("colors come back", NodeSparkle.tint == C.yellow)
+NodeSparkle:SetStyle("sparkles")
+suite.check("a new look keeps the colour", NodeSparkle.tint == C.yellow and #NodeSparkle.sparks[1].tinted == 2)
+NodeSparkle:SetStyle("beacon")
+
+-- A corpse you can skin (off until ticked).
+local CORPSE = "Creature-0-1-2-3-3099-0000000002"
+local dead, level = true, 12
+local realDead, realLevel = _G.UnitIsDead, _G.UnitLevel
+_G.UnitIsDead = function(unit) if unit == "softinteract" then return dead end return realDead and realDead(unit) end
+_G.UnitLevel = function(unit) if unit == "softinteract" then return level end return realLevel and realLevel(unit) end
+local realTips = _G.C_TooltipInfo
+local tipLines = { { leftText = "Dire Mottled Boar" }, { leftText = "Skinnable" } }
+_G.C_TooltipInfo = { GetUnit = function() return { lines = tipLines } end }
+skills = { Skinning = 30 }
+suite.check("a corpse gets nothing while it is off", Face("Dire Mottled Boar", CORPSE) == "nothing")
+ns.HandleSlash("sparkle corpses on")
+suite.check("corpses on is saved", ns.db.nodeSparkleCorpses == true)
+suite.check("a skinnable corpse sparkles", Face("Dire Mottled Boar", CORPSE) == "shown")
+suite.check("in your Skinning's colour", NodeSparkle.tint == C.orange)
+suite.check("its plate stays on", NodeSparkle:FitPlateToTarget() == "1")
+dead = false
+suite.check("a live beast does not", Face("Dire Mottled Boar", CORPSE) == "nothing")
+dead = true
+tipLines = { { leftText = "Dire Mottled Boar" } }
+suite.check("one that can't be skinned does not", Face("Dire Mottled Boar", CORPSE) == "nothing")
+tipLines = { { leftText = "Dire Mottled Boar" }, { leftText = "Skinnable" } }
+skills = { Mining = 30 }
+suite.check("not without Skinning", Face("Dire Mottled Boar", CORPSE) == "nothing")
+skills = { Skinning = 30 }
+Face("Dire Mottled Boar", CORPSE)
+ns.GrindGather:NoteSkin("Dire Mottled Boar", CORPSE, {}, {})
+suite.check("once skinned it goes", not NodeSparkle.frame:IsShown()
+    and Face("Dire Mottled Boar", CORPSE) == "nothing")
+ns.HandleSlash("sparkle corpses off")
+suite.check("corpses off again", ns.db.nodeSparkleCorpses == false)
+_G.UnitIsDead, _G.UnitLevel, _G.C_TooltipInfo = realDead, realLevel, realTips
+ns.Spots.Skills = realSkills
+
 ns.HandleSlash("sparkle check")
 suite.check("the check is kept for a report", ns.db.lastProbe and ns.db.lastProbe.check == "sparkle check")
 
