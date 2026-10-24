@@ -66,7 +66,7 @@ If you would rather keep the client's copy separate from the repo:
 .\deploy.ps1 -SkipCheck   # skip the checks (not recommended)
 ```
 
-Both scripts default to `D:\Blizzard\World of Warcraft\_classic_beta_`. Pass
+Both scripts default to `D:\Blizzard\World of Warcraft\_forever_`. Pass
 `-GamePath` if the client lives somewhere else.
 
 The addon folder name has to stay `Blackthornes_Farmer`, matching the `.toc`
