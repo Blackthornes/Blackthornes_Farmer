@@ -1269,6 +1269,36 @@ L["Zones with herbs, and what yours were worth. Click again for mobs."] = "Зо�
 L["Zones with mining nodes, and what yours were worth. Click again for mobs."] = "Зоны с рудными жилами и сколько стоили твои. Щёлкни ещё раз для противников."
 L["node"] = "жила"
 L["nodes"] = "жил"
+
+-- Grind: the Fish view (2026-10-24)
+L["%d so far"] = "%d пока что"
+L["%s, %d so far"] = "%s, %d пока что"
+L["%s, %d%%"] = "%s, %d%%"
+L["%s: Farmer didn't read where you fished it."] = "%s: Farmer не прочитал, где ты рыбачил."
+L["A cast"] = "Один заброс"
+L["BEST CATCH"] = "ЛУЧШИЙ УЛОВ"
+L["CASTS"] = "ЗАБРОСЫ"
+L["Click a spot to point the arrow where you fished it. Mouse over a pool before you cast so your catch counts there."] =
+    "Щёлкни по месту, чтобы стрелка указала туда, где ты рыбачил. Наведи курсор на стаю рыб перед забросом, тогда улов зачтётся там."
+L["Fish"] = "Рыба"
+L["Fish a while longer"] = "Порыбачь ещё немного"
+L["Fish here a while longer to see what an hour is worth."] =
+    "Порыбачь здесь ещё немного, и ты увидишь, сколько стоит час."
+L["PER CAST"] = "ЗА ЗАБРОС"
+L["SPOT"] = "МЕСТО"
+L["Sort each zone's spots by how often you cast there."] =
+    "Сортирует места каждой зоны по числу твоих забросов там."
+L["Sort each zone's spots by name."] = "Сортирует места каждой зоны по названию."
+L["Sort each zone's spots by their best catch."] = "Сортирует места каждой зоны по лучшему улову."
+L["Sort each zone's spots by what a cast is worth."] =
+    "Сортирует места каждой зоны по тому, сколько стоит заброс."
+L["Sort each zone's spots by what an hour of them is worth."] =
+    "Сортирует места каждой зоны по тому, сколько стоит час там."
+L["The spots you fished, and what your casts were worth. Click again for mobs."] =
+    "Места, где ты рыбачил, и сколько стоили твои забросы. Щёлкни снова, чтобы увидеть противников."
+L["WHAT YOU CAUGHT"] = "ЧТО ТЫ ПОЙМАЛ"
+L["You haven't fished anywhere yet. Cast a few times and your spots show up here."] =
+    "Ты ещё нигде не рыбачил. Сделай несколько забросов, и твои места появятся здесь."
 L["Name this mob"] = "Назвать этого противника"
 L["Its name, as your tooltip shows it"] = "Его имя, как в подсказке"
 L["Save"] = "Сохранить"

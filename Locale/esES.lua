@@ -1268,6 +1268,36 @@ L["Zones with herbs, and what yours were worth. Click again for mobs."] = "Zonas
 L["Zones with mining nodes, and what yours were worth. Click again for mobs."] = "Zonas con filones, y lo que valieron los tuyos. Haz clic otra vez para enemigos."
 L["node"] = "punto"
 L["nodes"] = "puntos"
+
+-- Grind: the Fish view (2026-10-24)
+L["%d so far"] = "%d hasta ahora"
+L["%s, %d so far"] = "%s, %d hasta ahora"
+L["%s, %d%%"] = "%s, %d%%"
+L["%s: Farmer didn't read where you fished it."] = "%s: Farmer no pudo leer dónde pescaste."
+L["A cast"] = "Un lanzamiento"
+L["BEST CATCH"] = "MEJOR PESCA"
+L["CASTS"] = "LANZAMIENTOS"
+L["Click a spot to point the arrow where you fished it. Mouse over a pool before you cast so your catch counts there."] =
+    "Haz clic en un lugar para que la flecha apunte a donde pescaste. Pasa el ratón por un banco de peces antes de lanzar para que tu pesca cuente ahí."
+L["Fish"] = "Peces"
+L["Fish a while longer"] = "Pesca un rato más"
+L["Fish here a while longer to see what an hour is worth."] =
+    "Pesca aquí un rato más y verás lo que vale una hora."
+L["PER CAST"] = "POR LANZAMIENTO"
+L["SPOT"] = "LUGAR"
+L["Sort each zone's spots by how often you cast there."] =
+    "Ordena los lugares de cada zona por las veces que lanzaste ahí."
+L["Sort each zone's spots by name."] = "Ordena los lugares de cada zona por nombre."
+L["Sort each zone's spots by their best catch."] = "Ordena los lugares de cada zona por su mejor pesca."
+L["Sort each zone's spots by what a cast is worth."] =
+    "Ordena los lugares de cada zona por lo que vale un lanzamiento."
+L["Sort each zone's spots by what an hour of them is worth."] =
+    "Ordena los lugares de cada zona por lo que vale una hora ahí."
+L["The spots you fished, and what your casts were worth. Click again for mobs."] =
+    "Los lugares donde pescaste, y lo que valieron tus lanzamientos. Haz clic de nuevo para ver enemigos."
+L["WHAT YOU CAUGHT"] = "LO QUE PESCASTE"
+L["You haven't fished anywhere yet. Cast a few times and your spots show up here."] =
+    "Todavía no has pescado en ningún sitio. Lanza unas cuantas veces y tus lugares aparecerán aquí."
 L["Name this mob"] = "Poner nombre a este enemigo"
 L["Its name, as your tooltip shows it"] = "Su nombre, tal como sale en tu descripción"
 L["Save"] = "Guardar"

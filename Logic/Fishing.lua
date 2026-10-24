@@ -46,12 +46,21 @@ local OPEN_WATER = "open water"
 Fishing.MIN_CASTS = MIN_CASTS
 Fishing.OPEN_WATER = OPEN_WATER
 
+-- A gap longer than this between two casts at the same spot is a break, not
+-- fishing, so it never counts toward what an hour is worth.
+Fishing.BREAK = 300
+-- Time counted at a spot before an hour's worth is shown.
+Fishing.MIN_SECONDS = 600
+
 -- A spot's name as shown: open water in the client's words, a school as the
 -- client named it. The kept name stays English (OPEN_WATER).
 local function Shown(name)
     if name == OPEN_WATER then return L["open water"] end
     return name
 end
+
+-- The same, for the windows: the Grind tab's Fish view shows spot names.
+Fishing.ShowName = Shown
 
 -- This session only: casts per spot, the order spots were last fished in, and
 -- how many casts in all. The panel's Fishing section shows only while
@@ -255,6 +264,61 @@ function Fishing.SpotName(spot)
     return spot.school or OPEN_WATER
 end
 
+--------------------------------------------------------------------------------
+-- How long your casts take
+--
+-- The time between two casts at the same spot, when it is under BREAK, so
+-- a walk away and back, a flight or a night off never count. Only your own
+-- casts reach it, and only the seconds and how many casts they covered are
+-- kept: what the casts gave is already in the spot's record.
+--
+-- Kept account wide in `fishing.pace[spot key]`, never renamed.
+--------------------------------------------------------------------------------
+
+function Fishing:PaceStore()
+    local db = ns.db
+    if type(db.fishing) ~= "table" then db.fishing = {} end
+    if type(db.fishing.pace) ~= "table" then db.fishing.pace = {} end
+    return db.fishing.pace
+end
+
+--- One cast at `key`: the gap since the one before it there.
+function Fishing:NotePace(key, now)
+    if type(key) ~= "string" then return end
+    now = now or Now()
+
+    local store = self:PaceStore()
+    local entry = store[key]
+    if type(entry) ~= "table" then
+        entry = {}
+        store[key] = entry
+    end
+    entry.seconds = tonumber(entry.seconds) or 0
+    entry.casts = (tonumber(entry.casts) or 0) + 1
+
+    local last = self.lastCast
+    if now and last and last.key == key then
+        local gap = now - last.at
+        if gap > 0 and gap < Fishing.BREAK then entry.seconds = entry.seconds + gap end
+    end
+    if now then self.lastCast = { key = key, at = now } end
+
+    -- Moves with every cast, so what reads the pace knows to look again.
+    Fishing.paceVersion = (Fishing.paceVersion or 0) + 1
+end
+
+--- How long one cast at `key` takes, in seconds, once MIN_SECONDS of
+--- fishing are behind it. Nil before that.
+function Fishing:SecondsPerCast(key)
+    local entry = type(ns.db.fishing) == "table" and type(ns.db.fishing.pace) == "table"
+        and ns.db.fishing.pace[key]
+    if type(entry) ~= "table" then return nil end
+    local seconds = tonumber(entry.seconds) or 0
+    local casts = tonumber(entry.casts) or 0
+    if seconds < Fishing.MIN_SECONDS or casts <= 0 then return nil end
+    return seconds / casts
+end
+
 --- Count one cast that landed something. Returns the spot.
 --
 -- `items` are names, each once; `quantities` how many of each came up.
@@ -294,6 +358,8 @@ function Fishing:Record(zone, location, school, items, quantities, skill, coords
     -- never reaches anyone's rates (Logic/Legacy.lua).
     local boost = ns.Legacy and ns.Legacy:CastBoost()
     if boost then ns.Legacy.Note(spot, "casts", items, quantities, boost) end
+
+    self:NotePace(key)
 
     self.session[key] = (self.session[key] or 0) + 1
     self.sessionCasts = self.sessionCasts + 1
@@ -446,6 +512,15 @@ function Fishing:WorthPerCast(key)
     return total
 end
 
+--- What an hour at a spot is worth, in copper: a cast's worth over how
+--- long a cast takes there. Nil until the spot has both.
+function Fishing:WorthPerHour(key)
+    local perCast = self:WorthPerCast(key)
+    local seconds = self:SecondsPerCast(key)
+    if not (perCast and seconds and seconds > 0) then return nil end
+    return perCast * 3600 / seconds
+end
+
 function Fishing:Reset()
     -- Shared and imported counts went with the records: their ledgers too.
     if ns.Share and ns.Share.ForgetSection then ns.Share:ForgetSection("f") end
@@ -456,6 +531,8 @@ function Fishing:Reset()
     self.sessionCasts = 0
     self.cast = nil
     self.lastSchool = nil
+    self.lastCast = nil
+    Fishing.paceVersion = (Fishing.paceVersion or 0) + 1
 
     if ns.TrackerUI then ns.TrackerUI:Refresh() end
 end

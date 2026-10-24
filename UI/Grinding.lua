@@ -45,6 +45,7 @@ GrindingUI.LAYOUTS = {
     mobs = { "type", "mob", "level", "gives", "worth", "badge" },
     leather = { "type", "mob", "level", "skill", "gives", "worth", "count", "badge" },
     nodes = { "mob", "skill", "gives", "count", "spots", "respawn", "worth", "hour" },
+    fish = { "mob", "count", "gives", "worth", "hour" },
 }
 -- Every column any view has.
 local ALL_KEYS = { "type", "mob", "level", "skill", "gives", "worth", "count", "spots", "respawn", "hour", "badge" }
@@ -54,7 +55,7 @@ local BASE_WIDTH = { type = 74, mob = 190, level = 46, gives = 110, worth = 90, 
 local MAX_WIDTH = { type = 110, mob = 320, gives = 240, worth = 160, skill = 160, count = 90,
     respawn = 110, hour = 120 }
 
--- One window width for every view (Cloth, Leather, Ore, Herbs), so a
+-- One window width for every view (Cloth, Leather, Ore, Herbs, Fish), so a
 -- click on one never resizes or shifts the window (2026-10-14: it moved
 -- with each, and Herbs wrapped onto a second row). The columns fit it:
 -- spare room goes to the mob and what it gives, and long words give way.
@@ -66,10 +67,11 @@ GrindingUI.ARROW_ROOM = 16
 local BADGE_TEXT = "Forever"
 local INDENT = "     "
 
---- The view the list is in: "mobs", "leather" or "nodes".
+--- The view the list is in: "mobs", "leather", "nodes" or "fish".
 function GrindingUI.Layout()
     local gives = ns.Grinding:Gives()
     if ns.Grinding.IsNodeView(gives) then return "nodes" end
+    if ns.Grinding.IsFishView(gives) then return "fish" end
     if gives == "skinning" then return "leather" end
     return "mobs"
 end
@@ -400,9 +402,10 @@ function GrindingUI:LayoutChips()
     end
 
     local chips = {}
-    -- Ore and Herbs are nodes: no creature types. Their chips stay in
-    -- place, greyed and not clickable, so the chips after them never move.
-    local nodes = ns.Grinding.IsNodeView(ns.Grinding:Gives())
+    -- Ore, Herbs and Fish list no mobs: no creature types. Their chips stay
+    -- in place, greyed and not clickable, so the chips after them never move.
+    local gives = ns.Grinding:Gives()
+    local nodes = ns.Grinding.IsNodeView(gives) or ns.Grinding.IsFishView(gives)
     for _, chip in ipairs(self.typeChips) do
         chip:Show()
         chip.resting = nodes
@@ -533,15 +536,25 @@ function GrindingUI.HeadingText(layout, key)
         if layout == "nodes" then
             return ns.Grinding:Gives() == "herbs" and L["HERB"] or L["NODE"]
         end
+        if layout == "fish" then return L["SPOT"] end
         return L["MOB"]
     end
-    if key == "gives" then return layout == "leather" and L["LEATHER"] or L["GIVES"] end
+    if key == "gives" then
+        if layout == "leather" then return L["LEATHER"] end
+        if layout == "fish" then return L["BEST CATCH"] end
+        return L["GIVES"]
+    end
     if key == "worth" then
         if layout == "leather" then return L["PER SKIN"] end
         if layout == "nodes" then return L["PER GATHER"] end
+        if layout == "fish" then return L["PER CAST"] end
         return L["PER KILL"]
     end
-    if key == "count" then return layout == "leather" and L["SKINNED"] or L["GATHERED"] end
+    if key == "count" then
+        if layout == "leather" then return L["SKINNED"] end
+        if layout == "fish" then return L["CASTS"] end
+        return L["GATHERED"]
+    end
     local words = { type = L["TYPE"], level = L["LEVEL"], skill = L["SKILL"], spots = L["SPOTS"],
         respawn = L["GROWS BACK"], hour = L["AN HOUR"] }
     return words[key] or ""
@@ -559,6 +572,14 @@ function GrindingUI.FillTips(tips, layout)
         tips.respawn = L["Sort each zone's nodes by how soon they grow back."]
         tips.worth = L["Sort each zone's nodes by what a gather is worth."]
         tips.hour = L["Sort each zone's nodes by what an hour of them is worth."]
+        return
+    end
+    if layout == "fish" then
+        tips.mob = L["Sort each zone's spots by name."]
+        tips.count = L["Sort each zone's spots by how often you cast there."]
+        tips.gives = L["Sort each zone's spots by their best catch."]
+        tips.worth = L["Sort each zone's spots by what a cast is worth."]
+        tips.hour = L["Sort each zone's spots by what an hour of them is worth."]
         return
     end
     tips.type = L["Sort each camp's mobs by type."]
@@ -580,6 +601,7 @@ GrindingUI.GIVES_TIPS = {
     skinning = { L["Leather"], L["Beasts to skin, with the Skinning each needs. Click again for any."] },
     ore = { L["Ore"], L["Zones with mining nodes, and what yours were worth. Click again for mobs."] },
     herbs = { L["Herbs"], L["Zones with herbs, and what yours were worth. Click again for mobs."] },
+    fish = { L["Fish"], L["The spots you fished, and what your casts were worth. Click again for mobs."] },
 }
 
 --------------------------------------------------------------------------------
@@ -759,6 +781,41 @@ function GrindingUI:NodeTexts(node)
     }
 end
 
+--- The best catch of a spot, in words: its name, then how often it bites
+--- once the spot has enough casts behind it, else how many you have had.
+function GrindingUI.CatchText(spot)
+    local best = spot.best
+    if not best then return "" end
+    if spot.rated then
+        return L.Format("%s, %d%%", best.name, math.floor(best.chance + 0.5))
+    end
+    return L.Format("%s, %d so far", best.name, best.casts)
+end
+
+--- The texts a fishing spot's row shows, by column.
+function GrindingUI:FishTexts(spot)
+    local hour = spot.perHour and ns.Value.Coins(spot.perHour)
+        or (spot.casts > 0 and L["Fish a while longer"] or "")
+    return {
+        mob = spot.shown,
+        count = spot.casts > 0 and tostring(spot.casts) or "",
+        gives = GrindingUI.CatchText(spot),
+        worth = spot.perCast and ns.Value.Coins(spot.perCast) or "",
+        hour = hour,
+        waiting = spot.perHour == nil,
+    }
+end
+
+--- A zone's band in the Fish view: "Stranglethorn Vale  (3 spots, 412 casts, you're here)".
+function GrindingUI.FishZoneText(zone)
+    local parts = { Util.Plural(zone.count, L["spot"], L["spots"]),
+        Util.Plural(zone.casts, L["cast"], L["casts"]) }
+    local distance = ns.Spots.DistanceText(zone.hops, zone.zone, zone.travel)
+    if distance ~= "" then parts[#parts + 1] = distance end
+    return ("%s  %s"):format(ns.Spots.Show(zone.zone),
+        Util.Colored("muted", ("(%s)"):format(table.concat(parts, ", "))))
+end
+
 --- A zone's band in the node views: "The Barrens  (10-25, 3 nodes, you're here)".
 function GrindingUI.ZoneText(zone)
     local parts = {}
@@ -773,13 +830,23 @@ end
 --- The footer: your skill for the view, then what a click does.
 function GrindingUI.FooterText(layout)
     local hint
-    if layout == "nodes" then
+    if layout == "fish" then
+        hint = L["Click a spot to point the arrow where you fished it. Mouse over a pool before you cast so your catch counts there."]
+    elseif layout == "nodes" then
         hint = L["Click a node to point the arrow at the spots you marked for it. Levels are the zone's levels."]
     elseif layout == "leather" then
         hint = L["Click a camp to point the arrow there. The Skinning a mob needs comes from its level."]
     else
         return L["Click a camp to point the arrow there. Camps show on your world map too. Target or hover a mob to learn its type."]
     end
+    -- Fishing is read the way the kills panel reads it, not from the
+    -- gathering skills, so "Angeln" on a German client counts too.
+    if layout == "fish" then
+        local skill = ns.Fishing and ns.Fishing:Skill()
+        if skill then return L.Format("Your %s: %d.", L["Fishing"], skill) .. " " .. hint end
+        return hint
+    end
+
     local skillName = layout == "leather" and "Skinning"
         or (ns.GrindGather.VIEWS[ns.Grinding:Gives()] or {}).skill
     local have, read = ns.GrindGather.PlayerSkill(skillName)
@@ -808,17 +875,48 @@ function GrindingUI:UpdateRow(row, data)
     row.bandStripe:Hide()
     for _, key in ipairs(CELLS) do row[key]:Hide() end
 
-    if data.type == "camp" or data.type == "zone" then
+    if data.type == "camp" or data.type == "zone" or data.type == "fishzone" then
         row.band:Show()
         row.bandGlow:Show()
         row.bandStripe:Show()
         row.heading:SetTextColor(Theme.Unpack("accent"))
-        row.heading:SetText(data.type == "zone" and GrindingUI.ZoneText(data.zone) or GrindingUI.CampText(data.camp))
+        local text
+        if data.type == "zone" then
+            text = GrindingUI.ZoneText(data.zone)
+        elseif data.type == "fishzone" then
+            text = GrindingUI.FishZoneText(data.zone)
+        else
+            text = GrindingUI.CampText(data.camp)
+        end
+        row.heading:SetText(text)
         row.heading:Show()
         return
     end
 
     local columns = self.columns
+
+    if data.type == "spot" then
+        local spot = data.spot
+        local texts = self:FishTexts(spot)
+        for key in pairs(columns.shown) do
+            if texts[key] then
+                row[key]:SetText(texts[key])
+                row[key]:Show()
+            end
+        end
+        -- The catch keeps its rarity colour, so the best catch reads as the
+        -- item it is; a pool's name is blue, open water the usual text.
+        if columns.shown.gives and spot.best then
+            local tail = texts.gives:sub(#spot.best.name + 1)
+            row.gives:SetText(ns.Util.ColorItem(spot.best.name) .. tail)
+        end
+        row.mob:SetTextColor(Theme.Unpack(spot.school and "pool" or "text"))
+        row.count:SetTextColor(Theme.Unpack("text"))
+        row.gives:SetTextColor(Theme.Unpack("muted"))
+        row.worth:SetTextColor(Theme.Unpack("good"))
+        row.hour:SetTextColor(Theme.Unpack(texts.waiting and "dim" or "good"))
+        return
+    end
 
     if data.type == "node" then
         local texts = self:NodeTexts(data.node)
@@ -886,6 +984,44 @@ function GrindingUI:ShowRowTooltip(row, data)
         return
     end
 
+    if data.type == "spot" then
+        local spot = data.spot
+        local texts = self:FishTexts(spot)
+        GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(("%s, %s"):format(spot.shown, ns.Spots.Show(spot.zone)),
+            Theme.Unpack(spot.school and "pool" or "accent"))
+        GameTooltip:AddDoubleLine(L["Casts"], tostring(spot.casts), 1, 1, 1, 1, 1, 1)
+        if #spot.items > 0 then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(L["WHAT YOU CAUGHT"], Theme.Unpack("accent"))
+            for index, item in ipairs(spot.items) do
+                if index > 8 then break end
+                local right = spot.rated and ("%d%%"):format(math.floor(item.chance + 0.5))
+                    or L.Format("%d so far", item.casts)
+                GameTooltip:AddDoubleLine(ns.Util.ColorItem(item.name), right,
+                    1, 1, 1, Theme.Unpack("muted"))
+            end
+        end
+        if not spot.rated and spot.needed > 0 then
+            GameTooltip:AddLine(spot.needed == 1
+                and L.Format("%d more cast for catch rates", spot.needed)
+                or L.Format("%d more casts for catch rates", spot.needed), Theme.Unpack("muted"), true)
+        end
+        if texts.worth ~= "" then
+            GameTooltip:AddDoubleLine(L["A cast"], texts.worth, 1, 1, 1, Theme.Unpack("good"))
+        end
+        if spot.perHour then
+            GameTooltip:AddDoubleLine(L["An hour"], ns.Value.Coins(spot.perHour), 1, 1, 1, Theme.Unpack("good"))
+        elseif spot.casts > 0 then
+            GameTooltip:AddLine(L["Fish here a while longer to see what an hour is worth."], Theme.Unpack("muted"), true)
+        end
+        if spot.coords then
+            GameTooltip:AddLine(L["Click to point the arrow here."], Theme.Unpack("good"))
+        end
+        GameTooltip:Show()
+        return
+    end
+
     if data.type == "node" then
         local node = data.node
         local texts = self:NodeTexts(node)
@@ -937,7 +1073,34 @@ function GrindingUI:OnRowClick(data, button)
             ns.HideMenu:Open({ { kind = "source", name = data.mob.name } })
         elseif data.type == "node" then
             ns.HideMenu:Open({ { kind = "source", name = data.node.name } })
+        elseif data.type == "spot" then
+            ns.HideMenu:Open({ { kind = "source", name = data.spot.name } })
         end
+        return
+    end
+
+    if data.type == "spot" or data.type == "fishzone" then
+        local spot = data.spot
+        -- A click on the zone's band takes the spot you cast at most there.
+        if data.type == "fishzone" then
+            for _, each in ipairs(data.zone.spots) do
+                if each.coords then
+                    spot = each
+                    break
+                end
+            end
+            if not spot then
+                ns.Print(ns.Spots.Show(data.zone.zone))
+                return
+            end
+        end
+        if not spot.coords then
+            ns.Print(L.Format("%s: Farmer didn't read where you fished it.",
+                Util.Colored("accent", spot.shown)))
+            return
+        end
+        ns.Arrow:Grind(ns.GrindGather.FishCamp(spot))
+        ns.Print(ns.GrindGather.FishLine(spot))
         return
     end
 
@@ -993,6 +1156,39 @@ function GrindingUI:NodeSortValue(node, key)
     if key == "worth" then return node.perGather or -1 end
     if key == "hour" then return node.perHour or -1 end
     return 0
+end
+
+--- What a fishing spot sorts by under heading `key`; spots with nothing go last.
+function GrindingUI:FishSortValue(spot, key)
+    if key == "mob" then return spot.shown:lower() end
+    if key == "count" then return spot.casts end
+    if key == "gives" then
+        local text = GrindingUI.CatchText(spot)
+        return text ~= "" and text:lower() or "~"
+    end
+    if key == "worth" then return spot.perCast or -1 end
+    if key == "hour" then return spot.perHour or -1 end
+    return 0
+end
+
+--- A zone's spots in the order the headings ask for (a copy).
+function GrindingUI:SortedSpots(spots)
+    local saved = ns.db.grindColumns
+    local key = type(saved) == "table" and saved.key
+    if not (key and self.columns.shown[key]) then return spots end
+    local up = saved.ascending and true or false
+    local sorted = {}
+    for index, spot in ipairs(spots) do sorted[index] = spot end
+    table.sort(sorted, function(a, b)
+        local va, vb = self:FishSortValue(a, key), self:FishSortValue(b, key)
+        if type(va) ~= type(vb) then return tostring(va) < tostring(vb) end
+        if va ~= vb then
+            if up then return va < vb end
+            return va > vb
+        end
+        return a.shown < b.shown
+    end)
+    return sorted
 end
 
 --- A zone's nodes in the order the headings ask for (a copy).
@@ -1108,6 +1304,22 @@ function GrindingUI:NodeRows(zones, low, high)
     return rows
 end
 
+--- The Fish view's rows: a band per zone, the spots you fished under it.
+function GrindingUI:FishRows(zones)
+    local rows = {}
+    for _, zone in ipairs(zones) do
+        rows[#rows + 1] = { type = "fishzone", zone = zone }
+        for _, spot in ipairs(self:SortedSpots(zone.spots)) do
+            rows[#rows + 1] = { type = "spot", spot = spot, zone = zone }
+        end
+    end
+    if #zones == 0 then
+        rows[#rows + 1] = { type = "note",
+            text = L["You haven't fished anywhere yet. Cast a few times and your spots show up here."] }
+    end
+    return rows
+end
+
 --- Widen the columns to fit these rows, and return the window width they want.
 function GrindingUI:FitColumns(rows, layout)
     layout = layout or "mobs"
@@ -1141,7 +1353,8 @@ function GrindingUI:FitColumns(rows, layout)
     -- most.
     for _, row in ipairs(rows) do
         local texts = row.type == "mob" and self:MobTexts(row.mob)
-            or row.type == "node" and self:NodeTexts(row.node) or nil
+            or row.type == "node" and self:NodeTexts(row.node)
+            or row.type == "spot" and self:FishTexts(row.spot) or nil
         if texts then
             for _, key in ipairs({ "type", "mob", "gives", "worth", "skill", "count", "respawn", "hour" }) do
                 if texts[key] then
@@ -1236,6 +1449,11 @@ function GrindingUI:Render(arrive)
         self.zones = zones
         camps = {}
         rows = self:NodeRows(zones, low, high)
+    elseif layout == "fish" then
+        -- Your own casts, whatever the level boxes say: a spot has no level.
+        self.zones = nil
+        camps = {}
+        rows = self:FishRows(ns.GrindGather:FishZones())
     else
         self.zones = nil
         rows = self:Rows(camps, unknown, low, high)

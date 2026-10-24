@@ -419,3 +419,118 @@ function GrindGather.NodeLine(node)
     if #parts > 0 then text = text .. ": " .. table.concat(parts, ", ") end
     return text
 end
+
+--------------------------------------------------------------------------------
+-- The Fish view
+--
+-- The spots you fished, grouped by the zone they are in, from your own
+-- casts alone (Logic/Fishing.lua): the pools you moused over before
+-- casting, and open water for the rest. Nothing shipped and nothing from
+-- the guild ever reaches it.
+--
+-- A spot shows catch rates and what a cast is worth from MIN_CASTS casts,
+-- the same number as a mob's kills, and an hour's worth once it has timed
+-- MIN_SECONDS of your fishing there.
+--------------------------------------------------------------------------------
+
+--- One spot as the Fish view shows it, or nil when it is hidden or has no
+--- casts yet.
+function GrindGather:FishSpot(summary)
+    local spot = summary.spot
+    local name = summary.name
+    if ns.DB:IsHiddenSource(name) then return nil end
+
+    local items, best = {}, nil
+    for _, item in ipairs(summary.items) do
+        if not ns.DB:IsHiddenItem(item.name) then
+            items[#items + 1] = item
+            if not best then best = item end
+        end
+    end
+
+    local Fishing = ns.Fishing
+    return {
+        key = summary.key,
+        name = name,
+        -- "open water" starts a row, so it starts with a capital, the way the
+        -- kills panel's fishing lines do.
+        shown = (Fishing.ShowName(name):gsub("^%l", string.upper)),
+        school = spot.school ~= nil,
+        zone = ns.Spots.English(spot.zone) or spot.zone,
+        location = spot.location,
+        coords = type(spot.coords) == "table" and spot.coords or nil,
+        casts = summary.casts,
+        rated = summary.rated,
+        needed = summary.needed,
+        items = items,
+        best = best,
+        minSkill = tonumber(spot.minSkill),
+        maxSkill = tonumber(spot.maxSkill),
+        perCast = Fishing:WorthPerCast(summary.key),
+        perHour = Fishing:WorthPerHour(summary.key),
+        timed = Fishing:SecondsPerCast(summary.key) ~= nil,
+    }
+end
+
+--- The zones you fished, each { zone, spots, count, casts, hops, travel },
+--- in the order the Sort menu asks for.
+function GrindGather:FishZones()
+    local Fishing = ns.Fishing
+    if not Fishing then return {} end
+
+    local zones, byZone = {}, {}
+    for _, summary in ipairs(Fishing:Spots()) do
+        local spot = self:FishSpot(summary)
+        -- A spot the client never named the zone of points nowhere.
+        if spot and type(spot.zone) == "string" and spot.zone ~= "" then
+            local zone = byZone[spot.zone]
+            if not zone then
+                zone = { zone = spot.zone, spots = {}, casts = 0 }
+                byZone[spot.zone] = zone
+                zones[#zones + 1] = zone
+            end
+            zone.spots[#zone.spots + 1] = spot
+            zone.casts = zone.casts + spot.casts
+        end
+    end
+
+    local player = ns.Spots:Player()
+    for _, zone in ipairs(zones) do
+        zone.count = #zone.spots
+        table.sort(zone.spots, function(a, b)
+            if a.casts ~= b.casts then return a.casts > b.casts end
+            return a.shown < b.shown
+        end)
+        if ns.Spots.ZoneOf(zone.zone) and player.zone then
+            zone.hops, zone.travel = ns.Spots.Hops(player.zone, zone.zone)
+        end
+    end
+
+    local order = ns.Grinding.Sort()
+    local FAR = 99
+    table.sort(zones, function(a, b)
+        local hopsA, hopsB = a.hops or FAR, b.hops or FAR
+        -- There are no levels to go by here, so Level sorts as Nearest does.
+        if order ~= "busiest" and hopsA ~= hopsB then return hopsA < hopsB end
+        if a.casts ~= b.casts then return a.casts > b.casts end
+        if a.count ~= b.count then return a.count > b.count end
+        if hopsA ~= hopsB then return hopsA < hopsB end
+        return a.zone < b.zone
+    end)
+
+    return zones
+end
+
+--- A spot as a camp the arrow follows: where you fished it.
+function GrindGather.FishCamp(spot)
+    local mob = { name = spot.shown, zone = spot.zone, location = spot.location,
+        coords = spot.coords }
+    return { zone = spot.zone, label = spot.shown, mobs = { mob }, count = 1,
+        coords = spot.coords }
+end
+
+--- "Oily Blackmouth School in Stranglethorn Vale: 96 casts" for chat.
+function GrindGather.FishLine(spot)
+    local text = L.Format("%s in %s", ns.Util.Colored("accent", spot.shown), ns.Spots.Show(spot.zone))
+    return ("%s: %s"):format(text, ns.Util.Plural(spot.casts, L["cast"], L["casts"]))
+end

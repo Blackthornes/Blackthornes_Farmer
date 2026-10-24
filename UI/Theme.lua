@@ -45,6 +45,10 @@ Theme.colors = {
     warn      = { 0.910, 0.757, 0.353 },
     loss      = { 0.898, 0.376, 0.310 },   -- #E5604F, a close button under the mouse
 
+    -- A fishing pool's name on the Grind tab's Fish view, so a pool reads
+    -- apart from the open water of the same zone at a glance.
+    pool      = { 0.424, 0.690, 0.941 },   -- #6CB0F0
+
     text      = { 0.902, 0.910, 0.925 },   -- #E6E8EC
     -- Tradeskills' greys: Farmer's had drifted darker, and its hints and
     -- column headings were hard to read on the window's near-black.

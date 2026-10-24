@@ -57,18 +57,25 @@ Grinding.TYPES = { "Humanoid", "Beast", "Undead", "Demon", "Elemental" }
 Grinding.OTHER = "Other"
 
 -- What a mob gives, as facts in the data; Ore and Herbs list nodes rather
--- than mobs (Logic/GrindGather.lua). The leather view keeps the key
--- "skinning", as saved in grindGives before it was called Leather.
+-- than mobs, and Fish the spots you fished (Logic/GrindGather.lua). The
+-- leather view keeps the key "skinning", as saved in grindGives before it
+-- was called Leather.
 Grinding.GIVES = {
     { key = "cloth", label = L["Cloth"] },
     { key = "skinning", label = L["Leather"] },
     { key = "ore", label = L["Ore"] },
     { key = "herbs", label = L["Herbs"] },
+    { key = "fish", label = L["Fish"] },
 }
 
 --- Does the Grind tab list nodes, not mobs, for `gives`?
 function Grinding.IsNodeView(gives)
     return gives == "ore" or gives == "herbs"
+end
+
+--- Does it list the spots you fished?
+function Grinding.IsFishView(gives)
+    return gives == "fish"
 end
 
 --- Your Skinning skill, or nil when you lack it or the client will not say.
@@ -754,6 +761,8 @@ function Grinding:Command(rest)
             self:SetGives(word == "cloth" and "cloth" or "skinning")
         elseif word == "ore" or word == "mining" or word == "herbs" or word == "herb" or word == "herbalism" then
             self:SetGives((word == "ore" or word == "mining") and "ore" or "herbs")
+        elseif word == "fish" or word == "fishing" then
+            self:SetGives("fish")
         else
             local typed = word:gsub("s$", "")
             for _, kind in ipairs(Grinding.TYPES) do
