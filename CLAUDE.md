@@ -393,6 +393,38 @@ any of it. The data rows are kept until `DB.hiddenVersion` or the counts
 move (`GrindGather:DataRows`). Tested in `tools/test_grindgather.lua`.
 Not yet seen in game.
 
+## Grind: Fish
+
+The owner said build it (2026-10-24, from a mockup): a **Fish** chip on the
+Grind tab beside Cloth, Leather, Ore and Herbs (`grindGives` "fish"; never
+rename it). It lists the spots you fished, grouped by zone, from your own
+casts alone: the pools you moused over before casting in `Theme.colors.pool`
+(a new palette entry) and open water for the rest of each zone. Nothing
+shipped and nothing from the guild ever reaches it, and the level boxes are
+ignored, since a spot has no level.
+
+Columns SPOT, CASTS, BEST CATCH, PER CAST and AN HOUR, sortable as the other
+views are (`GrindingUI:SortedSpots`, the same `grindColumns`). Catch rates
+and a cast's worth wait for `Fishing.MIN_CASTS` casts, as a mob's kills do;
+before that BEST CATCH counts ("Oily Blackmouth, 12 so far"). The hover card
+is WHAT YOU CAUGHT, a click aims the arrow where you fished
+(`GrindGather.FishCamp`, `Arrow:Grind`) and a right-click hides the spot
+through the usual hide list.
+
+AN HOUR is new: one saved key, account wide, never renamed,
+`fishing.pace[spot key]` = `{ seconds, casts }`. `Fishing:NotePace` counts
+the gap between two casts at the same spot only while it is under
+`Fishing.BREAK` (300), so a walk away, a flight or a night off never count;
+`Fishing:SecondsPerCast` answers nothing until `Fishing.MIN_SECONDS` (600)
+are behind it, and the row says "Fish a while longer" until then.
+`Fishing:WorthPerHour` is a cast's worth at that pace. `Fishing.paceVersion`
+moves with every cast. Sharing carries only `fishing.spots` (Share's
+section "f"), so the pace never leaves the account.
+`Logic/GrindGather.lua` has `FishSpot`, `FishZones`, `FishCamp` and
+`FishLine`; `UI/Grinding.lua` the `fish` layout, `CatchText`, `FishTexts`,
+`FishZoneText`, `FishRows`. `/farm grind fish`. Tested in
+`tools/test_fishview.lua`. Not yet seen in game.
+
 ## Legacy perks (read only)
 
 The owner said build it (2026-10-22): Forever's Legacy trees give

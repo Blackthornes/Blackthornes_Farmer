@@ -1274,6 +1274,32 @@ L["Zones with herbs, and what yours were worth. Click again for mobs."] = "有�
 L["Zones with mining nodes, and what yours were worth. Click again for mobs."] = "有矿点的区域，以及你挖到的值多少。再点一次看怪物。"
 L["node"] = "资源点"
 L["nodes"] = "资源点"
+
+-- Grind: the Fish view (2026-10-24)
+L["%d so far"] = "目前 %d 次"
+L["%s, %d so far"] = "%s，目前 %d 次"
+L["%s, %d%%"] = "%s，%d%%"
+L["%s: Farmer didn't read where you fished it."] = "%s：Farmer 没有读到你在哪里钓的。"
+L["A cast"] = "一次抛竿"
+L["BEST CATCH"] = "最佳渔获"
+L["CASTS"] = "抛竿次数"
+L["Click a spot to point the arrow where you fished it. Mouse over a pool before you cast so your catch counts there."] =
+    "点击一个地点，让箭头指向你钓鱼的地方。抛竿前把鼠标移到鱼群上，渔获就会记在那里。"
+L["Fish"] = "鱼"
+L["Fish a while longer"] = "再钓一会儿"
+L["Fish here a while longer to see what an hour is worth."] = "在这里再钓一会儿，就能看到一小时值多少。"
+L["PER CAST"] = "每次抛竿"
+L["SPOT"] = "地点"
+L["Sort each zone's spots by how often you cast there."] = "按你在那里抛竿的次数排列每个区域的地点。"
+L["Sort each zone's spots by name."] = "按名称排列每个区域的地点。"
+L["Sort each zone's spots by their best catch."] = "按最佳渔获排列每个区域的地点。"
+L["Sort each zone's spots by what a cast is worth."] = "按一次抛竿的价值排列每个区域的地点。"
+L["Sort each zone's spots by what an hour of them is worth."] = "按在那里钓一小时的价值排列每个区域的地点。"
+L["The spots you fished, and what your casts were worth. Click again for mobs."] =
+    "你钓过鱼的地点，以及你的抛竿值多少。再点一次看怪物。"
+L["WHAT YOU CAUGHT"] = "你钓到了什么"
+L["You haven't fished anywhere yet. Cast a few times and your spots show up here."] =
+    "你还没有在任何地方钓过鱼。抛几次竿，你的地点就会出现在这里。"
 L["Name this mob"] = "给这个怪物取名"
 L["Its name, as your tooltip shows it"] = "它的名字，照你的鼠标提示上显示的写"
 L["Save"] = "保存"
