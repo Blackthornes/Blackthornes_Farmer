@@ -606,11 +606,25 @@ function DB:IsHiddenSource(name)
     return key ~= nil and self:HiddenList("source")[key] ~= nil
 end
 
---- Is the item (or item named `name`) on the hide list?
+--- Is the item (or item named `name`) on the hide list? A random suffix
+--- ("Primal Leggings of the Monkey") is hidden with its item: the lists
+--- show the item once (Harvest.RollBase), so that is the name hidden, while
+--- the tally keeps each suffix under its own name.
 function DB:IsHiddenItem(name)
     if not self:HidesAny("item") then return false end
     local key = ItemKey(name)
-    return key ~= nil and self:HiddenList("item")[key] ~= nil
+    if key == nil then return false end
+    local list = self:HiddenList("item")
+    if list[key] ~= nil then return true end
+
+    local Harvest = ns.Harvest
+    if type(name) ~= "string" or not (Harvest and Harvest.RollBase) then return false end
+    local look = ns.Tracker and ns.Tracker.LookOf and ns.Tracker:LookOf(name)
+    local item = DB:GetItem(name)
+    local id = type(look) == "table" and look.id or type(item) == "table" and item.id or nil
+    local base = Harvest.RollBase(name, id)
+    local baseKey = base and ItemKey(base)
+    return baseKey ~= nil and list[baseKey] ~= nil
 end
 
 --- Is the item named `name` (or the item itself) left out right now: from

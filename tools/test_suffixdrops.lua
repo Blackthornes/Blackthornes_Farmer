@@ -103,5 +103,46 @@ local folded = ns.Value.FoldSuffixes({
 suite.check("best drops name the item once", #folded == 2 and folded[1].name == "Lead Band", #folded)
 suite.check("with the suffixes' worth together", folded[1].perKill == 6 and folded[1].chance == 6)
 
+--------------------------------------------------------------------------------
+-- Hiding the item hides every suffix (2026-10-24: a hidden green still made
+-- a mob's worth per kill and best drop, since the tally keeps it by suffix)
+--------------------------------------------------------------------------------
+
+local Value, DB = ns.Value, ns.DB
+local savedUnit = Value.UnitPrice
+Value.UnitPrice = function(_, id)
+    if id == BAND then return 5000000, "auction" end
+    return 10, "vendor"
+end
+local function Names(details)
+    local names = {}
+    for _, entry in ipairs(details and details.priced or {}) do names[entry.name] = true end
+    return names
+end
+
+local before, beforeDetails = Value:FromTally("Defias Thug")
+suite.check("shown, the band counts in the worth", Names(beforeDetails)["Lead Band"] == true)
+
+DB:Hide("item", "Lead Band")
+suite.check("a suffix is hidden with its item", DB:IsHiddenItem("Lead Band of the Owl"))
+suite.check("and so left out", DB:HidesItem("Lead Band of the Monkey"))
+suite.check("other items are not", not DB:IsHiddenItem("Linen Cloth"))
+
+local after, afterDetails = Value:FromTally("Defias Thug")
+suite.check("hidden, the band is out of the worth per kill", not Names(afterDetails)["Lead Band"]
+    and not Names(afterDetails)["Lead Band of the Owl"] and not Names(afterDetails)["Lead Band of the Monkey"])
+suite.check("and the worth drops with it", after and before and after < before, tostring(after))
+suite.check("the best drop is something else", afterDetails.priced[1].name == "Linen Cloth",
+    afterDetails.priced[1] and afterDetails.priced[1].name)
+local hiddenSummary = Tracker:Summary("Defias Thug")
+for _, item in ipairs(hiddenSummary.items) do
+    suite.check("the panel leaves it out", item.name ~= "Lead Band", item.name)
+end
+suite.check("the tally still keeps it", mob.items["Lead Band of the Owl"] == 1)
+
+DB:Unhide("item", "Lead Band")
+suite.check("shown again, it counts again", Names(select(2, Value:FromTally("Defias Thug")))["Lead Band"] == true)
+Value.UnitPrice = savedUnit
+
 C_Item = savedItem
 suite.done()
