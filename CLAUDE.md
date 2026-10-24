@@ -1413,6 +1413,22 @@ its level (`Grinding.SkinSkill`); its plate stays on
 page. Not yet seen in game.
 Tested in `tools/test_nodesparkle.lua`.
 
+## Gathered spots on the maps
+
+The world map marker where you gathered shows the item you got there (the
+owner said build it, 2026-10-24, from a mockup): `spot.item` is kept by
+`Gathering:AddSpot` from the loot (`Gathering.TopItem`), and a spot saved
+before then finds it by its node's name from your own records, else the
+data (`MapMarkers:SpotItem`, `IconFor`; the plain herb, ore or fish icon
+when nothing is known). The icon stays grey until `Respawn:BackAt` says the
+node should be back, then shows in full colour at full strength; a once a
+second look (`MapMarkers:WakeWorld`) recolours pins already placed and
+places nothing again. Fishing schools you moused over before casting are
+marked too (`kind = "fish"`, from `Fishing:OnLoot`), with the fish, "Fished"
+on the hover, never a grow-back time and never coloured in. The minimap
+keeps its hollow corners. Nothing new is saved beyond `item` on a spot.
+Tested in `tools/test_markers.lua`. Not yet seen in game.
+
 ## Quest count over quest mobs
 
 The owner picked it (2026-10-13, from a mockup of three light touches):

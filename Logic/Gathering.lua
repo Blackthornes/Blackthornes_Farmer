@@ -694,9 +694,29 @@ end
 
 Gathering.SameSpot = SameSpot
 
+--- The item one loot window gave most of, by its id: what a spot's marker
+--- shows. Nil when no item in it has a known id.
+function Gathering.TopItem(items, quantities)
+    local best, most
+    for _, name in ipairs(items or {}) do
+        local look = ns.Tracker and ns.Tracker:LookOf(name) or {}
+        local id = tonumber(look.id)
+        if not id and ns.DB then
+            local item = ns.DB:GetItem(name)
+            id = item and tonumber(item.id)
+        end
+        local count = tonumber(quantities and quantities[name]) or 1
+        if id and (not most or count > most) then best, most = id, count end
+    end
+    return best
+end
+
 --- Mark a gather on the map. `x` and `y` are fractions of map `mapID`.
+-- `item` is the id of what it gave most of, for the marker's icon. A cast
+-- into a fishing school is marked too, as kind "fish"; a school never grows
+-- back, so it teaches Logic/Respawn.lua nothing.
 -- Returns the spot.
-function Gathering:AddSpot(mapID, x, y, node, kind)
+function Gathering:AddSpot(mapID, x, y, node, kind, item)
     if not (mapID and x and y) then return nil end
 
     local spots = self:Spots()
@@ -707,8 +727,11 @@ function Gathering:AddSpot(mapID, x, y, node, kind)
             -- Back at a spot already taken: how long it took is what
             -- Logic/Respawn.lua learns grow-back times from.
             local last = tonumber(spot.last)
-            if now and last and ns.Respawn then ns.Respawn:Learn(mapID, node, now - last) end
+            if now and last and ns.Respawn and kind ~= "fish" then
+                ns.Respawn:Learn(mapID, node, now - last)
+            end
 
+            if item then spot.item = item end
             spot.gathers = (tonumber(spot.gathers) or 1) + 1
             spot.last = now or spot.last
             self:SpotsChanged()
@@ -717,7 +740,7 @@ function Gathering:AddSpot(mapID, x, y, node, kind)
     end
 
     local spot = {
-        map = mapID, x = x, y = y, node = node, kind = kind,
+        map = mapID, x = x, y = y, node = node, kind = kind, item = item,
         gathers = 1, first = now, last = now,
     }
     spots[#spots + 1] = spot
@@ -793,7 +816,9 @@ function Gathering:OnLoot()
     local items, quantities = ns.Tracker:LootedItems(true)
     local mapID, x, y = ns.Harvest:PlayerMapPosition()
 
-    if mapID then self:AddSpot(mapID, x, y, cast.node, cast.kind) end
+    if mapID then
+        self:AddSpot(mapID, x, y, cast.node, cast.kind, Gathering.TopItem(items, quantities))
+    end
 
     return self:Record(zone, location, cast.node, cast.kind, items, quantities,
         mapID and { x * 100, y * 100 } or nil)
