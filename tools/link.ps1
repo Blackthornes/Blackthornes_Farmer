@@ -29,7 +29,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$GamePath = 'D:\Blizzard\World of Warcraft\_classic_beta_',
+    [string]$GamePath = 'D:\Blizzard\World of Warcraft\_forever_',
     [switch]$Force
 )
 
