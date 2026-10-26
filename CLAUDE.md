@@ -325,15 +325,15 @@ sharing's conversation one way: the sender whispers a hello (`Q<id>:<hash>`)
 to each name in `Contribute.RECIPIENTS` (full names, kept only in code;
 never shown in chat or Settings; the game's "No player named" line is
 hidden, so a player can't tell whether a name exists on their realm) 30 s
-after login and every half hour. Only those characters answer, by full
+after login and every five minutes (the owner, 2026-10-26). Only those characters answer, by full
 name (`Contribute:Receiving`). Share's states carry `giveOnly` (the sender
 never asks for anything) and `takeOnly` (the receiver never says what it
 has), so nothing comes back to the player. Only the sender's own "h"
 records go, checked by `GuildShare.Plausible`, kept apart on the receiver
 in `sharedDrops` with ledgers by Farmer id in `sharedIn` (never rename
 either; at most `MAX_SENDERS`); they never join the receiver's own counts
-or show in the windows. One sender is synced at a time, each at most every
-half hour, and a chat line says "Got drops for N mobs from NAME."
+or show in the windows. One sender is synced at a time, the next as soon
+as one finishes, each at most every five minutes (`SYNC_GAP`), and a chat line says "Got drops for N mobs from NAME."
 Each finished share is kept on the receiving account in `sharedLog`
 (`{ at, name, mobs }`, the newest `LOG_KEEP`; never rename it) and read
 back with `/farm share drops log` (typed only, not in the help line). Only

@@ -8,7 +8,7 @@
 --
 -- It is guild sharing's conversation (Logic/Share.lua), one way:
 --   * A player with it ticked whispers a short hello ("Q<farmer id>:<hash>")
---     to each name in RECIPIENTS, soon after login and every half hour.
+--     to each name in RECIPIENTS, soon after login and every five minutes.
 --     Nothing in chat or Settings says whether anyone was there: the game's
 --     "No player named ..." line is hidden (Comm.FilterNotFound), and the
 --     names are never shown.
@@ -22,8 +22,9 @@
 --     with a ledger per sender in `sharedIn`, as guild drops are. They never
 --     join the receiver's own kills, loot or drop records, and nothing in
 --     the windows shows them. They are checked for being play
---     (GuildShare.Plausible), one sender is synced at a time, each at most
---     every half hour, and at most MAX_SENDERS are kept.
+--     (GuildShare.Plausible), one sender is synced at a time, the next taken
+--     as soon as one is done, each at most every SYNC_GAP, and at most
+--     MAX_SENDERS are kept.
 --   * When a sender's records finish coming in, one chat line says so, with
 --     a sound and a note on screen (Alert).
 --   * Only North American players send (InRegion), and only English
@@ -56,9 +57,9 @@ Contribute.RECIPIENTS = {
 Contribute.REGIONS = { [1] = true, [110] = true }
 Contribute.REGION_NAME = "US"
 
-Contribute.HELLO_SECONDS = 1800   -- a hello every half hour
+Contribute.HELLO_SECONDS = 300    -- a hello every five minutes (the owner, 2026-10-26)
 Contribute.FIRST_HELLO = 30       -- and this long after login
-Contribute.SYNC_GAP = 1800        -- one sender synced at most this often
+Contribute.SYNC_GAP = 300         -- one sender synced at most this often
 Contribute.SYNC_TIMEOUT = 180     -- a sync left this long is given up
 Contribute.CONFIRM_AFTER = 30     -- quiet this long after records: compare again
 Contribute.MAX_SENDERS = 200
