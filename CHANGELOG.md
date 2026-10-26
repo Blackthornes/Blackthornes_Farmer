@@ -14,7 +14,7 @@ restart the game fully after updating (`/reload` is not enough).
 - **Map pins:** a gathered spot shows the item you got there, in a round icon. Close pins of one kind join into one with a count.
 - **Sparkle colors:** sparkles on nodes take your skill's color, and you can sparkle corpses you can skin. Both are on the Map & goals page.
 - **Nameplate kill count:** the count by a mob's nameplate is bigger and pops when you get a kill.
-- **Price Order:** on the Loot page, pick whether TSM or Auctionator is asked first.
+- **Price Order:** on the Loot page, pick whether TSM or Auctionator is asked first. TSM comes first unless you change it.
 - **Arrow Size:** pick 50%, 75% or 100% for the guide arrow.
 - **Fold gem:** a small gem beside the close button folds a window down to its title and opens it again.
 - **Settings:** word choices are drop-downs.

@@ -11,7 +11,7 @@ ns.WHATS_NEW = {
         "Map pins show the item you gathered there, and close pins join into one with a count.",
         "Sparkles on nodes take the color of your skill, and you can add sparkles on corpses you can skin. Both are on the Map & goals page.",
         "The kill count by a mob's nameplate is bigger and pops when you get a kill.",
-        "Price Order on the Loot page lets you ask Auctionator before TSM.",
+        "Price Order on the Loot page picks whether TSM or Auctionator is asked first. TSM comes first unless you change it.",
         "Arrow Size picks 50%, 75% or 100% for the guide arrow.",
         "A small gem beside the close button folds a window down to its title.",
     } },
