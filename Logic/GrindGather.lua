@@ -404,7 +404,7 @@ function GrindGather.NodeCamp(node)
     local mobs = {}
     for index, coords in ipairs(list) do
         if index > GrindGather.MAX_SPOTS then break end
-        mobs[#mobs + 1] = { name = node.name, zone = node.zone, coords = coords }
+        mobs[#mobs + 1] = { name = node.name, zone = node.zone, coords = coords, kind = "node" }
     end
     if #mobs == 0 then mobs[1] = { name = node.name, zone = node.zone } end
     return { zone = node.zone, label = node.name, mobs = mobs, count = #mobs,

@@ -8,7 +8,8 @@
 --   * A spot you gathered the item at yourself (the map markers' spots,
 --     Logic/Gathering.lua), nearest first. Exact to a few yards. One you
 --     picked in the last few minutes goes to the back: it has not grown
---     back yet.
+--     back yet. So does one you walked up to in that time, gathered or not:
+--     its node may not be there yet, so the arrow moves on to the next.
 --   * A place the data has a spot for (a mob's coordinates from Forever
 --     loot), nearest first.
 --   * A zone the data names with no spot in it: the arrow points at the
@@ -52,6 +53,18 @@ local MAX_TARGETS = 10
 -- How often the list of places is worked out again while you move, seconds.
 -- Pointing and distance are redone every frame the dial draws.
 Arrow.REFRESH = 2
+
+-- A node spot you came within ARRIVED_NODE of counts as checked this long
+-- (seconds), gathered or not, so the arrow goes on to the next one and not
+-- back (the owner, 2026-10-24: sometimes the node isn't there yet).
+Arrow.CHECKED = RESTING
+
+-- How often the node spots in the list are measured for being reached,
+-- seconds. Passing by one on the way to another checks it too.
+Arrow.SWEEP = 0.5
+
+-- Node spots reached, for this session only: [Arrow.Key] = Gathering.Clock().
+Arrow.checked = {}
 
 Arrow.ARRIVED_NODE = ARRIVED_NODE
 Arrow.ARRIVED_MOB = ARRIVED_MOB
@@ -212,7 +225,7 @@ function Arrow:GrindTargets(camp, here)
 
     for rank, mob in ipairs(camp.mobs or {}) do
         local target, group = self:SpotTarget({
-            name = mob.name, zone = mob.zone, location = mob.location, kind = "mob",
+            name = mob.name, zone = mob.zone, location = mob.location, kind = mob.kind or "mob",
             coords = mob.coords, minLevel = mob.minLevel, maxLevel = mob.maxLevel,
             forever = mob.forever,
         }, here, rank)
@@ -226,7 +239,13 @@ function Arrow:GrindTargets(camp, here)
         end
     end
 
-    table.sort(exact, function(a, b) return a.yards < b.yards end)
+    -- Nearest first, with a node spot you just checked after the rest.
+    local now = ns.Gathering.Clock() or 0
+    for _, target in ipairs(exact) do target.checked = self:WasChecked(target, now) end
+    table.sort(exact, function(a, b)
+        if (a.checked and true or false) ~= (b.checked and true or false) then return not a.checked end
+        return a.yards < b.yards
+    end)
 
     local list = {}
     for _, group in ipairs({ exact, areas, far }) do
@@ -271,6 +290,41 @@ end
 function Arrow.Key(target)
     return ("%s|%s|%s|%s|%s"):format(target.name or "?", target.zone or "?",
         tostring(target.map), tostring(target.x), tostring(target.y))
+end
+
+--- True while the node spot `target` was reached in the last Arrow.CHECKED
+--- seconds. An older note is let go.
+function Arrow:WasChecked(target, now)
+    if not NODE_KINDS[target.kind or ""] then return nil end
+    local key = Arrow.Key(target)
+    local at = Arrow.checked[key]
+    if not at then return nil end
+    if now - at < Arrow.CHECKED and now >= at then return true end
+    Arrow.checked[key] = nil
+    return nil
+end
+
+--- Note every node spot in the list you stand within ARRIVED_NODE of as
+--- checked. One you had picked with a right-click, or from the Where?
+--- panel, is let go, so the nearest one left comes next. True when one was
+--- newly checked.
+function Arrow:NoteArrivals(here, now)
+    local any = false
+    for _, target in ipairs(self.targets or {}) do
+        if target.exact and NODE_KINDS[target.kind or ""] then
+            local north, west = Arrow.Offset(here, target.map, target.x, target.y)
+            if north and Arrow.Measure(north, west) <= ARRIVED_NODE then
+                local key = Arrow.Key(target)
+                if not self:WasChecked(target, now) then any = true end
+                Arrow.checked[key] = now
+                if self.choice == key then self.choice = nil end
+                if self.pinned and self.pinned.name == target.name and self.pinned.zone == target.zone then
+                    self.pinned = nil
+                end
+            end
+        end
+    end
+    return any
 end
 
 --- Something the arrow shows changed: work it out again on the next draw.
@@ -572,6 +626,7 @@ function Arrow:Targets(item, here)
         }
         local last = target.last
         target.resting = last and now - last < RESTING and now - last >= 0 or nil
+        target.checked = self:WasChecked(target, now)
         local north, west
         if kept.continent and here and here.continent then
             if kept.continent == here.continent then
@@ -604,14 +659,17 @@ function Arrow:Targets(item, here)
     for rank, spot in ipairs(ranked) do
         local target, group = self:SpotTarget(spot, here, rank)
         if not (group == "exact" and Mine(target)) then
+            if group == "exact" then target.checked = self:WasChecked(target, now) end
             local into = group == "exact" and exact or group == "area" and areas or far
             into[#into + 1] = target
         end
     end
 
-    -- Nearest first, with a spot that has not grown back after the rest.
+    -- Nearest first, with a spot that has not grown back, or that you just
+    -- checked, after the rest.
+    local function Later(target) return (target.resting or target.checked) and true or false end
     table.sort(exact, function(a, b)
-        if (a.resting and true or false) ~= (b.resting and true or false) then return not a.resting end
+        if Later(a) ~= Later(b) then return not Later(a) end
         return a.yards < b.yards
     end)
 
@@ -741,6 +799,13 @@ function Arrow:State(clock)
     if not here then
         state.mode = "blind"
         return state
+    end
+
+    -- Node spots you reached, or passed on the way to another, are checked:
+    -- the next list puts them after the rest.
+    if not self.sweptAt or clock - self.sweptAt >= Arrow.SWEEP or clock < self.sweptAt then
+        self.sweptAt = clock
+        self:NoteArrivals(here, ns.Gathering.Clock() or 0)
     end
 
     local targets = self.targets or {}

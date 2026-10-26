@@ -207,6 +207,39 @@ clock = clock + Arrow.REFRESH
 state = Arrow:State(clock)
 suite.check("close enough is there", state.mode == "arrived" and state.distance == "You're there",
     state.mode .. " " .. tostring(state.yards))
+
+-- Reached but not gathered (the node may not be up yet): on to the next,
+-- and not back to it while it counts as checked.
+clock = clock + Arrow.REFRESH
+state = Arrow:State(clock)
+suite.check("a spot reached sends the arrow on to the next", near(state.target.x, 0.80), state.target.x)
+env.world.position = { 0.60, 0.50 }
+clock = clock + Arrow.REFRESH
+state = Arrow:State(clock)
+suite.check("and it does not go back to it", near(state.target.x, 0.80), state.target.x)
+wall = wall + Arrow.CHECKED + 1
+clock = clock + Arrow.REFRESH
+state = Arrow:State(clock)
+suite.check("a while later it counts again", near(state.target.x, 0.50), state.target.x)
+
+-- Picked the far one with a right-click and reached it: the pick is let go,
+-- and the arrow follows the nearest spot not yet checked.
+Arrow.checked = {}
+env.world.position = { 0.45, 0.50 }
+clock = clock + Arrow.REFRESH
+Arrow:State(clock)
+for index, target in ipairs(Arrow.targets) do
+    if near(target.x, 0.80) then Arrow.index, Arrow.choice = index, Arrow.Key(target) end
+end
+env.world.position = { 0.798, 0.50 }
+clock = clock + Arrow.REFRESH
+Arrow:State(clock)
+clock = clock + Arrow.REFRESH
+state = Arrow:State(clock)
+suite.check("reaching the spot picked lets the pick go", Arrow.choice == nil)
+suite.check("and the arrow points on from there", near(state.target.x, 0.50) and state.index == 1,
+    state.target.x)
+Arrow.checked = {}
 env.world.position = { 0.45, 0.50 }
 
 --------------------------------------------------------------------------------
@@ -527,6 +560,31 @@ do
         ArrowUI.title:GetText())
     Arrow:NextGoal()
     suite.check("the next goal goes back to the goals", Arrow.grind == nil)
+end
+
+-- A node from the Grind tab: its spots are nodes, so a spot
+-- reached and empty moves the arrow on to the next.
+do
+    env.world.position = { 0.45, 0.50 }
+    local camp = ns.GrindGather.NodeCamp({ name = "Silverleaf", zone = "Elwynn Forest",
+        spotList = { { 50, 50, map = 37 }, { 70, 50, map = 37 } } })
+    suite.check("a node camp's spots are nodes", camp.mobs[1].kind == "node")
+    Arrow:Grind(camp)
+    clock = clock + 100
+    local grind = Arrow:State(clock)
+    suite.check("it points at the nearest spot", grind.target and near(grind.target.x, 0.50),
+        grind.target and grind.target.x)
+    env.world.position = { 0.502, 0.50 }
+    clock = clock + Arrow.REFRESH
+    grind = Arrow:State(clock)
+    suite.check("standing on it is there, at a node's reach", grind.mode == "arrived", grind.mode)
+    clock = clock + Arrow.REFRESH
+    grind = Arrow:State(clock)
+    suite.check("then it points at the next spot", grind.target and near(grind.target.x, 0.70),
+        grind.target and grind.target.x)
+    Arrow:StopGrind()
+    Arrow.checked = {}
+    env.world.position = { 0.45, 0.50 }
 end
 
 -- Farmer's XP bar comes up after the arrow: the arrow hears it being built

@@ -785,7 +785,19 @@ one belongs in all three.
 
 Farmer's arrow can also follow a camp from the Grind tab (a player asked,
 the owner agreed 2026-10-09; `Arrow:Grind`, `Logic/Grinding.lua`). That is
-Farmer's own feature, not part of the shared dial. The harvest file now ends
+Farmer's own feature, not part of the shared dial.
+
+The arrow moves on past empty spots (the owner said yes, 2026-10-26,
+from the cross-game check): a node spot you come within
+`Arrow.ARRIVED_NODE` (12 yards) of, gathered or not, counts as checked
+for `Arrow.CHECKED` (3 minutes) and sorts after the rest, as a spot just
+picked does (`Arrow:NoteArrivals`, looked at every `Arrow.SWEEP` seconds
+over the listed spots only; `WasChecked`; session only, nothing saved).
+Passing one on the way checks it too; reaching a right-click pick lets
+the pick go. Grind tab and Gather to cap spots are nodes
+(`GrindGather.NodeCamp`'s `kind = "node"`), so they arrive at 12 yards
+too. Farmer's own; the other dials are untouched. Tested in
+`tools/test_arrow.lua`. Not yet seen in game. The harvest file now ends
 with the creature types seen in game, as `if DB.CreatureTypes then ... end`
 so Equipment's and Pets' readers of `Data/Data_Harvested.lua`, whose `DB`
 has only `RegisterItem`, keep working.
