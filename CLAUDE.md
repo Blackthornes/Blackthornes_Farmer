@@ -1446,7 +1446,8 @@ questcount`. Tested in `tools/test_questmobs.lua`. Not yet seen in game.
 
 A player asked, the owner said build it (2026-10-15): the tooltip's kill
 count to the left of a mob's nameplate. `UI/KillPlates.lua` shows "7/20"
-in red under `Tracker.MIN_KILLS`, then the whole count, and with "Worth
+in bright gold, a size up and outlined (the owner, 2026-10-26: red got
+lost on red ground), under `Tracker.MIN_KILLS`, then the whole count, and with "Worth
 on nameplates" ticked what a kill is worth after it, only from your own
 kills (`KillTooltip:Read`'s kept answer, never an estimate). The same
 mobs as the tooltip (`KillTooltip:Attackable`, `MobName`, hidden ones
@@ -1463,6 +1464,9 @@ yes 2026-10-18: it covered another nameplate addon's text) picks Above
 (over the name), Below (under the cast bar, else the health bar), Left
 or Right (past the quest count when one shows, `QuestMobs:LabelFor`):
 `killPlatesSide`, "left" unless picked, account wide, never rename it.
+A kill that moves the count pops it, a grow and settle with a gold glow
+(`KillPlates:Cheer`, the game's own animations, Window effects Full only);
+nothing floats off it (the owner, 2026-10-26: no "+1").
 Tested in `tools/test_killplates.lua`.
 The crown the kills panel puts after a mob's name (`TrackerUI.MarkFor`,
 through `KillTooltip.Crown`) follows the count on its plate and on the
