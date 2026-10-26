@@ -149,6 +149,44 @@ function Respawn:SpotLine(spot, now)
     return L.Format("Back in about %s  (from %s)", Respawn.Duration(left), From(estimate)), true
 end
 
+--- The lines for a map pin that stands for several spots: how many should
+--- be back by now and when the next one is, from your own returns. `node`
+--- names the pin, for the "learning" line when no spot's time is known.
+--- Returns { { text, known } }.
+function Respawn:GroupLines(spots, now, node)
+    local clock = tonumber(now)
+    local backCount, backEstimate, nextLeft, learning = 0, nil, nil, nil
+
+    for _, spot in ipairs(spots) do
+        local estimate = self:Estimate(spot.map, spot.node)
+        local last = tonumber(spot.last)
+        if estimate.seconds and last and clock then
+            local left = last + estimate.seconds - clock
+            if left <= 0 then
+                backCount = backCount + 1
+                if not backEstimate or estimate.returns > backEstimate.returns then backEstimate = estimate end
+            elseif not nextLeft or left < nextLeft then
+                nextLeft = left
+            end
+        elseif not learning or spot.node == node then
+            learning = estimate
+        end
+    end
+
+    local lines = {}
+    if backCount > 0 then
+        lines[#lines + 1] = { text = L.Format("%d should be back by now  (from %s)", backCount, From(backEstimate)),
+            known = true }
+    end
+    if nextLeft then
+        lines[#lines + 1] = { text = L.Format("Next back in about %s", Respawn.Duration(nextLeft)), known = true }
+    end
+    if #lines == 0 and learning then
+        lines[#lines + 1] = { text = Learning(learning), known = false }
+    end
+    return lines
+end
+
 --- The line for a node under the mouse in the world: how long it takes to
 --- grow back on this map. Nil for anything never gathered on this map.
 function Respawn:NodeLine(mapID, node)
@@ -189,6 +227,13 @@ function Respawn:OnTooltipShown(tooltip, unitOrItem)
 
     if unitOrItem == nil then unitOrItem = ns.Harvest.TooltipShowsUnitOrItem(tooltip) end
     if unitOrItem then return end
+
+    -- Farmer's own map pin, named for its node: its card already says when
+    -- the spot is back, and this line read as a second answer under it.
+    if type(tooltip.GetOwner) == "function" then
+        local okOwner, owner = pcall(tooltip.GetOwner, tooltip)
+        if okOwner and type(owner) == "table" and rawget(owner, "farmerMarker") then return end
+    end
 
     local first = _G.GameTooltipTextLeft1
     if not first or type(first.GetText) ~= "function" then return end

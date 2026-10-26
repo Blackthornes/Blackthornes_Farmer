@@ -92,7 +92,7 @@ local function CreatePin(parent)
     icon:SetPoint("TOPLEFT", 2, -2)
     icon:SetPoint("BOTTOMRIGHT", -2, 2)
     icon:SetTexture(ICON)
-    pcall(icon.SetMask, icon, ROUND)
+    ns.MapMarkers.RoundIcon(pin, icon)
 
     pin:SetScript("OnEnter", ShowTooltip)
     pin:SetScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
