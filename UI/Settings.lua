@@ -926,6 +926,17 @@ function SettingsUI:BuildLootPage()
     controls.lootFeedMove = CommandButton(placeRow, L["Move"], "lootfeed move", 70)
     controls.lootFeedReset = CommandButton(placeRow, L["Reset"], "lootfeed reset", 70, CONTROL_X + 76)
 
+    -- Cast and Add Lure while a fishing pole is held (the owner said build
+    -- it 2026-10-26).
+    pages:Section("loot", 1, L["FISHING"])
+
+    local fishBarRow = pages:Row("loot", 1, L["Fishing Buttons:"],
+        L["Shows Cast and Add Lure while you hold a fishing pole."])
+    controls.fishingBar = Widgets.CreateCheckbox(fishBarRow, L["On"], function(checked)
+        ns.FishingBar:SetEnabled(checked)
+    end, false)
+    controls.fishingBar:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Drops only (a player asked, the owner agreed 2026-10-11).
     pages:Section("loot", 2, L["SKINNING"])
 
@@ -1446,6 +1457,7 @@ function SettingsUI:Refresh()
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.openNote:SetChecked(db.openNote ~= false)
     controls.lootFeed:SetChecked(db.lootFeed == true)
+    controls.fishingBar:SetChecked(db.fishingBar == true)
     controls.lootFeedHold:SetValue(ns.LootFeed:Hold(), true)
     controls.lootFeedWorth:SetChecked(db.lootFeedWorth ~= false)
     controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)

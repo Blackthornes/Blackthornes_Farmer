@@ -425,6 +425,29 @@ section "f"), so the pace never leaves the account.
 `FishZoneText`, `FishRows`. `/farm grind fish`. Tested in
 `tools/test_fishview.lua`. Not yet seen in game.
 
+## The Fishing window
+
+The owner said build it (2026-10-26, from a mockup): a small window with
+Cast and Add Lure while a fishing pole (item class 2, subclass 20) is in
+the main hand. `UI/FishingBar.lua`: Cast is a secure spell button for
+Fishing (7620, by the client's name) laid over a dark metal house button;
+Add Lure opens YOUR LURES, the lures in the bags best first
+(`FishingBar.LURES`), each row a secure macro `/use item:ID` then `/use
+16`. A lure whose tooltip asks for more Fishing than you have
+(`ITEM_MIN_SKILL`, kept in `FishingBar.needs`) is greyed and does nothing.
+Under them "Lure:" (`GetWeaponEnchantInfo`: "+75, 8:42 left", "None on"
+with Add Lure glowing, or "No lures in your bags"; the bonus by enchant ID
+in `LURE_ENCHANTS`, not yet seen in game) and "Fishing Skill:"
+(`GatherToCap.ReadSkill`). Attributes are set only out of combat; at
+`PLAYER_REGEN_DISABLED` it hides while it still may, and it hides at a
+vendor, bank, mailbox, auction house or trade. The close gem keeps it shut
+until the pole comes off. House frame, fold gem, size grip, drag. Off
+unless ticked: "Fishing Buttons:" under FISHING on the Loot page
+(`fishingBar`), place `fishingBarX`/`fishingBarY`, size `fishingBarScale`,
+all account wide, never rename them; `/farm fishbar [on|off]`. Luremaster
+(`Logic/Legacy.lua`) is untouched. Tested in `tools/test_fishingbar.lua`.
+Not yet seen in game.
+
 ## Legacy perks (read only)
 
 The owner said build it (2026-10-22): Forever's Legacy trees give

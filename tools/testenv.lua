@@ -422,6 +422,7 @@ local UI_FILES = {
     "UI/BagsFull.lua",
     "UI/Veil.lua",
     "UI/XPBar.lua",
+    "UI/FishingBar.lua",
     "UI/Settings.lua",
 }
 
