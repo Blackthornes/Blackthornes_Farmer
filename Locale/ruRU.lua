@@ -1700,6 +1700,7 @@ L["Use your Hearthstone"] = "Используй камень возвращен�
 L["It takes you to %s"] = "Он перенесет тебя в %s"
 L["Next: %s."] = "Дальше: %s."
 L["Guide Me:"] = "Веди меня:"
+L["Arrow Size:"] = "Размер стрелки:"
 L["When the place is in another zone or across the sea, the arrow leads you there step by step."] = "Если место в другой зоне или за морем, стрелка ведет тебя туда шаг за шагом."
 L["The arrow leads you step by step to places far away."] = "Стрелка ведет тебя шаг за шагом в дальние места."
 L["The arrow points straight at places far away."] = "Стрелка показывает прямо на дальние места."

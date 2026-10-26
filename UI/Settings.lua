@@ -1196,6 +1196,19 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.arrowRoute:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- How big the whole arrow is drawn, 100% unless picked (the owner,
+    -- 2026-10-26). The arrow keeps its spot.
+    local arrowSizeRow = pages:Row("map", 2, L["Arrow Size:"], nil)
+    controls.arrowSize = Widgets.CreateChoice(arrowSizeRow, {
+        min = 50, max = 100, step = 25, value = 100,
+        format = function(percent) return ("%d%%"):format(percent) end,
+        onChange = function(percent)
+            if ns.ArrowUI then ns.ArrowUI:SetSize(percent) end
+        end,
+    })
+    ns.SettingsPages.FitStepper(controls.arrowSize, { "50%", "75%", "100%" })
+    controls.arrowSize:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- A glow where you kill the most (Logic/Heat.lua, a test feature).
     pages:Section("map", 2, L["KILL HEAT"])
 
@@ -1467,6 +1480,7 @@ function SettingsUI:Refresh()
     controls.arrow:SetChecked(db.arrowShown == true)
     controls.tomtom:SetChecked(db.useTomTom ~= false)
     controls.arrowRoute:SetChecked(db.arrowRoute ~= false)
+    controls.arrowSize:SetValue(ns.ArrowUI and ns.ArrowUI.Size() or 100, true)
     controls.grindPins:SetChecked(db.grindPins ~= false)
 
     controls.tracker:SetChecked(not db.trackerHidden)
