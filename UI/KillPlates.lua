@@ -1,7 +1,7 @@
 -- Blackthornes Farmer -- UI/KillPlates.lua
 -- Your kill count to the left of a mob's nameplate, as its tooltip has it.
 --
---   7/20 [Plainstrider]           (red, until drop rates unlock at 20)
+--   7/20 [Plainstrider]           (until drop rates unlock at 20)
 --   134 [Plainstrider]            (your kills from 20 on)
 --   134  1s 20c [Plainstrider]    (with "Worth on nameplates" ticked)
 --   134 (crown) [Plainstrider]    (from 100 kills, the kills panel's mark)
@@ -32,8 +32,16 @@
 -- name is killed, a setting changes or the hide list moves; the worth is
 -- the tooltip's kept answer, and the text is set only when it changed. No
 -- OnUpdate, no ticker. Every client value is read in a pcall.
+--
+-- Easy to see on any ground (the owner said yes, 2026-10-26, after the red
+-- count got lost on Durotar's red earth): the count is bright gold, a size
+-- up, with a dark outline. When a kill moves it, it pops: it grows, glows
+-- gold behind it and settles back (`KillPlates:Cheer`). The game plays the
+-- animations, so nothing runs per frame here. Window effects Full only;
+-- Subtle and Off show the new number with no motion. Nothing floats off
+-- it. Like the other kill marks, never announced.
 
-local _, ns = ...
+local ADDON, ns = ...
 local L = ns.L
 
 local KillPlates = ns.NewModule("KillPlates")
@@ -42,8 +50,7 @@ local labels = {}      -- [plate] = { frame, text, shown }
 local plateOf = {}     -- [unit token] = plate
 local nameOf = {}      -- [unit token] = the mob's name, as its kills are kept
 
-local RED = "ffe5604f"
-local WHITE = "ffe6e8ec"
+local GOLD = "ffffe7a0"
 
 local function Field(object, key)
     if type(object) ~= "table" then return nil end
@@ -80,9 +87,9 @@ function KillPlates:TextFor(name)
     local kills = Tooltip.Kills(name)
     local need = ns.Tracker.MIN_KILLS
     if kills < need then
-        return ("|c%s%d/%d|r"):format(RED, kills, need)
+        return ("|c%s%d/%d|r"):format(GOLD, kills, need)
     end
-    local text = ("|c%s%d|r"):format(WHITE, kills)
+    local text = ("|c%s%d|r"):format(GOLD, kills)
     if self:WorthEnabled() then
         local ok, entry = pcall(Tooltip.Read, Tooltip, name, kills)
         if ok and type(entry) == "table" and entry.text and not entry.estimate then
@@ -141,11 +148,85 @@ local function Label(plate)
     frame:SetSize(80, 16)
     pcall(frame.EnableMouse, frame, false)
     local text = ns.Theme.CreateLabel(frame, "normal", "text")
+    local size = (ns.Theme.sizes and ns.Theme.sizes.normal or 12) + KillPlates.SIZE_UP
+    pcall(text.SetFont, text, ns.Theme.FONT, size, "OUTLINE")
     pcall(text.SetShadowOffset, text, 1, -1)
     frame:Hide()
     entry = { frame = frame, text = text }
     labels[plate] = entry
     return entry
+end
+
+KillPlates.SIZE_UP = 2         -- points over the usual label size
+KillPlates.POP = 1.3           -- how big the count grows on a kill
+KillPlates.GROW = 0.12         -- seconds to grow
+KillPlates.SETTLE = 0.3        -- seconds to settle back
+
+--- A scale step, by the older calls where the client has no SetScale.
+local function Grow(piece, by)
+    if piece.SetScale then piece:SetScale(by, by)
+    else piece:SetScaleFrom(1, 1); piece:SetScaleTo(by, by) end
+end
+
+--- The pop and the glow, made the first time a kill moves this count.
+--- Each is left out when the client will not make it.
+local function Cheers(entry)
+    if entry.cheers then return entry.cheers end
+    local frame, cheers = entry.frame, {}
+    pcall(function()
+        local glow = frame:CreateTexture(nil, "BACKGROUND")
+        glow:SetTexture(([[Interface\AddOns\%s\Media\Frame\Glow]]):format(ADDON))
+        glow:SetBlendMode("ADD")
+        glow:SetVertexColor(1, 0.82, 0.3)
+        glow:SetPoint("TOPLEFT", entry.text, "TOPLEFT", -10, 8)
+        glow:SetPoint("BOTTOMRIGHT", entry.text, "BOTTOMRIGHT", 10, -8)
+        glow:SetAlpha(0)
+        local group = glow:CreateAnimationGroup()
+        local up = group:CreateAnimation("Alpha")
+        up:SetFromAlpha(0); up:SetToAlpha(1); up:SetDuration(KillPlates.GROW); up:SetOrder(1)
+        local down = group:CreateAnimation("Alpha")
+        down:SetFromAlpha(1); down:SetToAlpha(0); down:SetDuration(0.4); down:SetOrder(2)
+        if group.Play then cheers.glow = group end
+    end)
+    pcall(function()
+        local group = frame:CreateAnimationGroup()
+        local grow = group:CreateAnimation("Scale")
+        Grow(grow, KillPlates.POP)
+        grow:SetDuration(KillPlates.GROW); grow:SetSmoothing("OUT"); grow:SetOrder(1)
+        local settle = group:CreateAnimation("Scale")
+        Grow(settle, 1 / KillPlates.POP)
+        settle:SetDuration(KillPlates.SETTLE); settle:SetSmoothing("IN_OUT"); settle:SetOrder(2)
+        cheers.steps = { grow, settle }
+        if group.Play then cheers.pop = group end
+    end)
+    entry.cheers = cheers
+    return cheers
+end
+
+local function Replay(group)
+    if not group then return end
+    pcall(group.Stop, group)
+    pcall(group.Play, group)
+end
+
+-- The pop grows from the side that faces the plate, so the count never
+-- slides over the mob's name.
+local ORIGIN = { left = "RIGHT", right = "LEFT", above = "BOTTOM", below = "TOP" }
+
+--- A kill moved this count: pop it with a gold glow.
+-- @return true when it played
+function KillPlates:Cheer(entry)
+    if not entry or not entry.frame:IsShown() then return nil end
+    local level = ns.Motion and ns.Motion.Level and ns.Motion.Level() or "full"
+    if level ~= "full" then return nil end
+    local cheers = Cheers(entry)
+    local point = ORIGIN[entry.placed or self:Side()] or "CENTER"
+    for _, step in ipairs(cheers.steps or {}) do
+        pcall(step.SetOrigin, step, point, 0, 0)
+    end
+    Replay(cheers.pop)
+    Replay(cheers.glow)
+    return true
 end
 
 local JUSTIFY = { left = "RIGHT", right = "LEFT", above = "CENTER", below = "CENTER" }
@@ -269,7 +350,13 @@ end
 function KillPlates:Killed(name)
     if not self:IsEnabled() or type(name) ~= "string" then return end
     for unit, shown in pairs(nameOf) do
-        if shown == name then self:Update(unit) end
+        if shown == name then
+            local before = self:Shown(plateOf[unit])
+            local text = self:Update(unit)
+            if before and text and text ~= before then
+                self:Cheer(labels[plateOf[unit]])
+            end
+        end
     end
 end
 
