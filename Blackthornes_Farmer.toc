@@ -127,5 +127,6 @@ UI\BagsFull.lua
 UI\OpenButton.lua
 UI\Veil.lua
 UI\XPBar.lua
+UI\FishingBar.lua
 UI\Settings.lua
 Data\Data_Harvested.lua
