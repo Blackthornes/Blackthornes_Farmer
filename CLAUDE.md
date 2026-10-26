@@ -795,6 +795,14 @@ The dial takes no clicks and shows no hover text (the owner,
 closes it, and nothing else. Never add a click or tooltip to it again
 unasked; the same in every addon with an arrow.
 
+Arrow Size (the owner, 2026-10-26, in every addon with an arrow): "Arrow
+Size:" under "Guide Me:" picks 50%, 75% or 100% for the whole dial,
+plate and words (`ArrowUI.SIZES`, `Scale`, `Size`, `SetSize`; `arrowSize`,
+account wide, nil for 100, never rename it). The saved spot is kept in
+the screen's own units (stored times the scale), so a new size keeps the
+arrow where it was. No hover. Tested in `tools/test_arrowsize.lua`. A fix
+belongs in all five.
+
 Only one Blackthornes arrow is on screen at a time (the owner asked
 2026-10-08): Farmer's goal arrow, Equipment's quest arrow and Pets' beast
 arrow agree through one global table, `_G.BlackthornesArrows`
