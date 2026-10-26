@@ -887,6 +887,18 @@ function SettingsUI:BuildLootPage()
     end, true)
     controls.otherPriceAddons:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Which of them is asked first (the owner, 2026-10-26).
+    local orderRow = pages:Row("loot", 1, L["Price Order:"],
+        L["Which one to ask first when both have a price for your drops."])
+    local orderNames = { L["TSM First"], L["Auctionator First"] }
+    controls.priceOrder = Widgets.CreateChoice(orderRow, {
+        min = 1, max = 2, step = 1, value = 1,
+        format = function(index) return orderNames[index] end,
+        onChange = function(index) ns.Value:SetPriceOrder(index == 2 and "auctionator" or "tsm") end,
+    })
+    ns.SettingsPages.FitStepper(controls.priceOrder, orderNames)
+    controls.priceOrder:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- How often green gear and better drops, by mob level (2026-10-13).
     pages:Section("loot", 1, L["WORLD DROPS"])
 
@@ -1440,6 +1452,7 @@ function SettingsUI:Refresh()
     end
     controls.hideSkinning:SetChecked(db.hideSkinning ~= false)
     controls.otherPriceAddons:SetChecked(db.otherPriceAddons ~= false)
+    controls.priceOrder:SetValue(ns.Value:PriceOrder() == "auctionator" and 2 or 1, true)
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
     controls.rankingsSkipUncommon:SetChecked(db.rankingsSkipUncommon == true)

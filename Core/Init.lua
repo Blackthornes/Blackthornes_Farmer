@@ -491,6 +491,9 @@ local DEFAULTS = {
     -- Without Tradeskills, read TradeSkillMaster's or Auctionator's prices
     -- (Value:OtherPrice; the owner asked 2026-10-12). Never rename it.
     otherPriceAddons = true,
+    -- Which of those two is asked first: "tsm" or "auctionator"
+    -- (Value:PriceOrder, the owner 2026-10-26). Never rename it.
+    priceOrder = "tsm",
     -- A small can on the item worth the least while the bags are full
     -- (UI/Trash.lua, the owner asked 2026-10-13). Never rename it.
     trashCan = true,

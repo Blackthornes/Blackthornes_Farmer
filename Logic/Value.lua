@@ -59,7 +59,9 @@ end
 -- it has not priced, so they are read here only without it:
 --   TSM_API.GetCustomPriceValue("DBMarket", "i:<itemID>")
 --   Auctionator.API.v1.GetAuctionPriceByItemID("Blackthornes_Farmer", itemID)
--- TSM first. Prices are read many times a draw, so each answer is kept
+-- TSM first unless the player picked Auctionator first ("Price Order:",
+-- `priceOrder`, "tsm" or nil, else "auctionator"; the owner 2026-10-26).
+-- Prices are read many times a draw, so each answer is kept
 -- OTHER_CACHE_FOR seconds.
 
 Value.OTHER_CACHE_FOR = 60
@@ -70,6 +72,18 @@ local function Clock()
     if type(GetTime) ~= "function" then return 0 end
     local ok, now = pcall(GetTime)
     return ok and tonumber(now) or 0
+end
+
+--- "auctionator" when the player asked for Auctionator first, else "tsm".
+function Value:PriceOrder()
+    return ns.db and ns.db.priceOrder == "auctionator" and "auctionator" or "tsm"
+end
+
+--- Ask TSM or Auctionator first; "tsm" (the default) or "auctionator".
+function Value:SetPriceOrder(order)
+    if not ns.db then return end
+    ns.db.priceOrder = order == "auctionator" and "auctionator" or "tsm"
+    otherCache = {}
 end
 
 function Value:UsesOtherAddons()
@@ -96,16 +110,19 @@ local function Copper(ok, value)
 end
 
 --- Where auction prices come from now: "tradeskills", "tsm", "auctionator"
---- ("tsm" when both of the last two are loaded), or nil for vendor only.
+--- (with both of the last two loaded, the one Price Order asks first), or
+--- nil for vendor only.
 function Value:PriceSource()
     if self:Prices() then return "tradeskills" end
     if not self:UsesOtherAddons() then return nil end
+    if self:PriceOrder() == "auctionator" and AuctionatorCall() then return "auctionator" end
     if TSMCall() then return "tsm" end
     if AuctionatorCall() then return "auctionator" end
     return nil
 end
 
---- TradeSkillMaster's, else Auctionator's market value for one, in copper.
+--- TradeSkillMaster's, else Auctionator's market value for one, in copper
+--- (the other way round with Auctionator first).
 function Value:OtherPrice(itemID)
     if type(itemID) ~= "number" or not self:UsesOtherAddons() then return nil end
     local tsm, auctionator = TSMCall(), AuctionatorCall()
@@ -117,10 +134,17 @@ function Value:OtherPrice(itemID)
         return kept[1] or nil
     end
 
+    local function FromTSM()
+        return tsm and Copper(pcall(tsm, "DBMarket", "i:" .. itemID)) or nil
+    end
+    local function FromAuctionator()
+        return auctionator and Copper(pcall(auctionator, "Blackthornes_Farmer", itemID)) or nil
+    end
     local copper
-    if tsm then copper = Copper(pcall(tsm, "DBMarket", "i:" .. itemID)) end
-    if not copper and auctionator then
-        copper = Copper(pcall(auctionator, "Blackthornes_Farmer", itemID))
+    if self:PriceOrder() == "auctionator" then
+        copper = FromAuctionator() or FromTSM()
+    else
+        copper = FromTSM() or FromAuctionator()
     end
     otherCache[itemID] = { copper or false, now }
     return copper
