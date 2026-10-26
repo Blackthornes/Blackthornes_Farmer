@@ -23,6 +23,22 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.0.0
+
+- You can fish with a small window that has Cast and Add Lure buttons while you hold a fishing pole. Turn it on with Fishing Buttons on the Loot page.
+- The Grind tab has a Fish view for the spots you've fished.
+- Map pins show the item you gathered there, and close pins join into one with a count.
+- Sparkles on nodes take the color of your skill, and you can add sparkles on corpses you can skin. Both are on the Map & goals page.
+- The kill count by a mob's nameplate is bigger and pops when you get a kill.
+- Price Order on the Loot page lets you ask Auctionator before TSM.
+- Arrow Size picks 50%, 75% or 100% for the guide arrow.
+- A small gem beside the close button folds a window down to its title.
+
+Fixes and changes:
+
+- Several bug fixes for the loot table, hidden items, the gather arrow and the Settings page.
+- Word choices in Settings are now drop-downs.
+
 ## 0.45.0
 
 - You can set a kill goal, for any mob or one mob. It shows first in your Goals panel, and a summary opens when you finish. Start one with Set another in the Goals panel.

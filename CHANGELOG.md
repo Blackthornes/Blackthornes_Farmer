@@ -4,6 +4,22 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.0.0
+
+For WoW: Forever (interface 16001). Files were added and the TOC changed, so
+restart the game fully after updating (`/reload` is not enough).
+
+- **Fishing window:** a small window with Cast and Add Lure buttons shows while you hold a fishing pole. It's off until you tick Fishing Buttons on the Loot page.
+- **Fish view:** the Grind tab has a Fish view for the spots you've fished.
+- **Map pins:** a gathered spot shows the item you got there, in a round icon. Close pins of one kind join into one with a count.
+- **Sparkle colors:** sparkles on nodes take your skill's color, and you can sparkle corpses you can skin. Both are on the Map & goals page.
+- **Nameplate kill count:** the count by a mob's nameplate is bigger and pops when you get a kill.
+- **Price Order:** on the Loot page, pick whether TSM or Auctionator is asked first.
+- **Arrow Size:** pick 50%, 75% or 100% for the guide arrow.
+- **Fold gem:** a small gem beside the close button folds a window down to its title and opens it again.
+- **Settings:** word choices are drop-downs.
+- **Bug fixes:** several bug fixes for the loot table, hidden items, the gather arrow and the Settings page.
+
 ## 0.45.0
 
 For WoW: Forever (interface 16001). Files were added and the TOC changed, so
