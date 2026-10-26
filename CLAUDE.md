@@ -35,7 +35,12 @@ Farmer reads them itself (`Value:OtherPrice`: `TSM_API.GetCustomPriceValue
 ("DBMarket", "i:<id>")`, then `Auctionator.API.v1.GetAuctionPriceByItemID
 ("Blackthornes_Farmer", id)`, in a pcall, kept 60 s), "TSM and Auctionator"
 on the Loot page (`otherPriceAddons`, on unless unticked, never rename it;
-`tools/test_otherprices.lua`); with none of them, the vendor price. Tradeskills'
+`tools/test_otherprices.lua`); with none of them, the vendor price.
+"Price Order:" under it (the owner, 2026-10-26) picks TSM First (the
+default) or Auctionator First (`priceOrder`, "tsm" or "auctionator", nil
+reads as TSM; account wide, never rename it; `Value:PriceOrder`,
+`SetPriceOrder` forgets the kept answers). Tradeskills has the same choice
+for its own order. Tradeskills'
 `CLAUDE.md` asks its side to keep that global, `Prices` and `GetValue(itemID)`
 stable; if Farmer needs more from it, change both repos together.
 

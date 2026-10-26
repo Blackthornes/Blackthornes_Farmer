@@ -77,6 +77,18 @@ suite.check("unticked: no source", Value:PriceSource() == nil)
 suite.check("unticked: neither is asked", Value:AuctionPrice(5637) == nil and #tsmAsked == before)
 Value:SetUsesOtherAddons(true)
 
+-- Price Order (the owner, 2026-10-26): TSM first unless picked otherwise.
+suite.check("TSM is first by default", Value:PriceOrder() == "tsm")
+ns.db.priceOrder = nil
+suite.check("an empty order reads as TSM first", Value:PriceOrder() == "tsm")
+Value:SetPriceOrder("auctionator")
+suite.check("Auctionator first is kept", ns.db.priceOrder == "auctionator" and Value:PriceOrder() == "auctionator")
+suite.check("with Auctionator first, it is named", Value:PriceSource() == "auctionator")
+suite.check("and its price comes first", Value:AuctionPrice(5637) == 300, Value:AuctionPrice(5637))
+suite.check("TSM's own price fills a gap", Value:OtherPrice(4000) == 50, Value:OtherPrice(4000))
+Value:SetPriceOrder("tsm")
+suite.check("back to TSM first, the kept answer is forgotten", Value:AuctionPrice(5637) == 400)
+
 _G.TSM_API.GetCustomPriceValue = function() error("boom") end
 _G.Auctionator = nil
 Forget()
