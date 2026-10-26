@@ -1445,6 +1445,17 @@ marked too (`kind = "fish"`, from `Fishing:OnLoot`), with the fish, "Fished"
 on the hover, never a grow-back time and never coloured in. The minimap
 keeps its hollow corners. Nothing new is saved beyond `item` on a spot.
 Tested in `tools/test_markers.lua`. Not yet seen in game.
+Round and joined (the owner said build it, 2026-10-26, from a mockup, as
+Retail's): an icon is cut round with a mask texture
+(`MapMarkers.RoundIcon`, also for the Grind pins; `SetMask` only where the
+client has no mask textures). World map pins of one kind closer than
+`JOIN_PIXELS` on screen at the zoom shown draw as one with a count
+(`MapMarkers.Group`, `GroupItems`, `GroupIcon`, `GroupNode`; drawing only,
+the save is unchanged; a herb and an ore never join), in color once any of
+its spots is back; its hover says how many spots and `Respawn:GroupLines`
+(how many are back, when the next is). A pin is `farmerMarker`, and
+`Respawn:OnTooltipShown` adds no second grow-back line to its card. Tested
+in `tools/test_mapicons.lua`. Not yet seen in game.
 
 ## Quest count over quest mobs
 
