@@ -46,8 +46,9 @@ local Share = ns.Share
 -- The characters drops are sent to: full names, first and last. Kept only
 -- here, never shown to players. Empty sends nothing.
 Contribute.RECIPIENTS = {
-    "Blackthornes Farmer",
-    "Blackthorne Wither",
+    "Blackthornes Farms",
+    "Blackthornes Wither",
+    "Blackthornes Tradeskills",
 }
 
 -- Only players on this region send (the owner, 2026-10-17: North America),
