@@ -1091,7 +1091,7 @@ end
 --- How long a first click on Clear waits for the second, in seconds.
 TrackerUI.CLEAR_ARMED = 4
 
---- A Clear panel button: the first click asks "Sure?", a second within
+--- A Clear panel button: the first click asks "Click Again", a second within
 --- CLEAR_ARMED seconds empties what the panel shows (Session:Clear). Only
 --- the view goes; every tally, rate and ranking stays. Used on the panel and
 --- in Settings.
@@ -1108,9 +1108,9 @@ function TrackerUI.ClearButton(parent, width, height)
     local function Arm(on, at)
         button.armed, armedAt = on, at
         if button.SetText then
-            button:SetText(on and L["Sure?"] or L["Clear"])
+            button:SetText(on and L["Click Again"] or L["Clear"])
         elseif button.label then
-            button.label:SetText(on and L["Sure?"] or L["Clear"])
+            button.label:SetText(on and L["Click Again"] or L["Clear"])
         end
     end
 
