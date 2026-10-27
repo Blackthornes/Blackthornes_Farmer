@@ -1,8 +1,8 @@
 -- Blackthornes Farmer -- UI/FishingBar.lua
 -- The Fishing window: Cast and Add Lure while a fishing pole is in the main
 -- hand (the owner said build it 2026-10-26, from a mockup whose words he
--- approved). Under the buttons, the lure on the pole and its time left, and
--- the Fishing skill.
+-- approved). Both wear the gold plaque, Cast with the Fishing skill under
+-- it; under them, the lure on the pole and its time left.
 --
 -- Addon code may not cast or use an item, but the player's own click on a
 -- secure button may. So Cast is a secure button that casts Fishing by the
@@ -36,8 +36,9 @@ local FishingBar = ns.NewModule("FishingBar")
 local Theme = ns.Theme
 local Widgets = ns.Widgets
 
-FishingBar.WIDTH = 236
+FishingBar.WIDTH = 300
 FishingBar.HEIGHT = 124
+FishingBar.BUTTON_HEIGHT = 46
 FishingBar.PADDING = 14
 FishingBar.ROW = 26
 -- After the last bag, gear or skill event, how long before it reads again.
@@ -48,6 +49,8 @@ FishingBar.FIRST_Y = -80
 
 -- Fishing (Apprentice). The client casts the rank the player knows by name.
 FishingBar.SPELL = 7620
+-- Its icon, on the Cast plaque.
+FishingBar.FISHING_ICON = 136245
 -- The main hand, and a fishing pole: weapon (2), fishing pole (20).
 FishingBar.MAIN_HAND = 16
 FishingBar.POLE_CLASS = 2
@@ -281,22 +284,6 @@ end
 -- The window
 --------------------------------------------------------------------------------
 
---- A secure button over a house button of the same size: the house button
---- is what shows, the secure one takes the click.
-local function SecureOver(visual, name)
-    local secure = CreateFrame("Button", name, visual, "SecureActionButtonTemplate")
-    secure:SetAllPoints(visual)
-    secure:RegisterForClicks("AnyUp")
-    secure:SetAttribute("useOnKeyDown", false)
-    for _, script in ipairs({ "OnEnter", "OnLeave", "OnMouseDown", "OnMouseUp" }) do
-        secure:HookScript(script, function()
-            local fn = visual:GetScript(script)
-            if fn then fn(visual) end
-        end)
-    end
-    return secure
-end
-
 local function Tooltip(owner, text)
     owner:HookScript("OnEnter", function(self)
         if not GameTooltip then return end
@@ -347,7 +334,10 @@ function FishingBar:Build()
         self:StopMovingOrSizing()
         FishingBar:SavePlace()
     end)
-    frame:SetScript("OnHide", function() FishingBar:StopClock() end)
+    frame:SetScript("OnHide", function()
+        FishingBar:StopClock()
+        FishingBar.lureGlowing = nil
+    end)
     self.frame = frame
 
     Widgets.ApplySize(frame, ns.db and ns.db.fishingBarScale)
@@ -359,46 +349,40 @@ function FishingBar:Build()
 
     local half = math.floor((self.WIDTH - PAD * 2 - 8) / 2)
 
-    -- Cast: dark metal with a gold label, as Add Lure (the owner, 2026-10-26).
-    local cast = Widgets.CreateButton(frame, L["Cast"], nil, { width = half, height = 26 })
-    cast:SetPoint("TOPLEFT", PAD, -40)
-    cast:EnableMouse(false)
+    -- The gold plaque (UI/Plaque.lua, the owner's pick, 2026-10-27): an
+    -- icon, what the click does, and a second line under it. Cast is
+    -- itself the secure button.
+    local cast = ns.Plaque.Create(frame, {
+        name = "BlackthornesFarmerFishingCast",
+        template = "SecureActionButtonTemplate",
+        width = half,
+        height = self.BUTTON_HEIGHT,
+    })
+    cast:RegisterForClicks("AnyUp")
+    cast:SetAttribute("useOnKeyDown", false)
+    cast:SetPoint("TOPLEFT", PAD, -36)
+    cast:SetIcon(self.FISHING_ICON)
+    cast:SetLines(L["Cast"])
+    Tooltip(cast, L["Cast your line."])
     self.cast = cast
-    local castSecure = SecureOver(cast, "BlackthornesFarmerFishingCast")
-    Tooltip(castSecure, L["Cast your line."])
-    self.castSecure = castSecure
+    self.castSecure = cast
 
-    local lure = Widgets.CreateButton(frame, L["Add Lure"], function()
-        FishingBar:ToggleList()
-    end, { width = half, height = 26 })
-    lure:SetPoint("TOPRIGHT", -PAD, -40)
+    local lure = ns.Plaque.Create(frame, { width = half, height = self.BUTTON_HEIGHT })
+    lure:SetScript("OnClick", function() FishingBar:ToggleList() end)
+    lure:SetPoint("TOPRIGHT", -PAD, -36)
+    lure:SetIcon(134400)
+    lure:SetLines(L["Add Lure"])
     Tooltip(lure, L["Pick a lure to put on your pole."])
     self.lureButton = lure
 
-    -- A soft gold glow round Add Lure while no lure is on.
-    local glow = CreateFrame("Frame", nil, lure)
-    glow:SetAllPoints(lure)
-    glow:EnableMouse(false)
-    Theme.Halo(glow, 6, 0.35, "accent")
-    glow:Hide()
-    self.lureGlow = glow
-
     local lureLabel = Theme.CreateLabel(frame, "small", "muted")
-    lureLabel:SetPoint("TOPLEFT", PAD, -78)
+    lureLabel:SetPoint("TOPLEFT", PAD, -94)
     lureLabel:SetText(L["Lure:"])
     local lureValue = Theme.CreateLabel(frame, "small", "good", "RIGHT")
-    lureValue:SetPoint("TOPRIGHT", -PAD, -78)
+    lureValue:SetPoint("TOPRIGHT", -PAD, -94)
     lureValue:SetPoint("LEFT", lureLabel, "RIGHT", 6, 0)
     lureValue:SetWordWrap(true)
     self.lureValue = lureValue
-
-    local skillLabel = Theme.CreateLabel(frame, "small", "muted")
-    skillLabel:SetPoint("TOPLEFT", PAD, -98)
-    skillLabel:SetText(L["Fishing Skill:"])
-    local skillValue = Theme.CreateLabel(frame, "small", "text", "RIGHT")
-    skillValue:SetPoint("TOPRIGHT", -PAD, -98)
-    skillValue:SetPoint("LEFT", skillLabel, "RIGHT", 6, 0)
-    self.skillValue = skillValue
 
     if ns.FoldWindow then
         ns.FoldWindow:Add(frame, {
@@ -618,18 +602,17 @@ function FishingBar:DrawLines()
     local text, color, glow = self:LureText(lures)
     self.lureValue:SetText(text)
     self.lureValue:SetTextColor(Theme.Unpack(color))
-    self.lureGlow:SetShown(glow and true or false)
-    self.lureButton:SetAlpha(#lures == 0 and 0.55 or 1)
+    self:Glow(glow)
+    local best = lures[1]
+    local button = self.lureButton
+    button:SetIcon(best and ItemIcon(best.id) or 134400)
+    button:SetLines(L["Add Lure"], best and L.Format("%s, %d left", best.name, best.count) or nil)
+    button:SetAlpha(#lures == 0 and 0.55 or 1)
 
+    -- The skill sits on the Cast plaque.
     local skill, cap
     if ns.GatherToCap then skill, cap = ns.GatherToCap.ReadSkill("Fishing") end
-    if skill and cap then
-        self.skillValue:SetText(("%d / %d"):format(skill, cap))
-    elseif skill then
-        self.skillValue:SetText(tostring(skill))
-    else
-        self.skillValue:SetText("")
-    end
+    self.cast:SetLines(L["Cast"], skill and L.Format("Fishing %d / %d", skill, cap or skill) or nil)
 
     -- The time left moves once a second, only while a lure is on.
     if self.LureOnPole() then self:StartClock() else self:StopClock() end
@@ -645,9 +628,23 @@ function FishingBar:StartClock()
         local text, color, glow = FishingBar:LureText(FishingBar:Lures(nil))
         FishingBar.lureValue:SetText(text)
         FishingBar.lureValue:SetTextColor(Theme.Unpack(color))
-        FishingBar.lureGlow:SetShown(glow and true or false)
+        FishingBar:Glow(glow)
         if color ~= "good" then FishingBar:StopClock() end
     end)
+end
+
+--- Add Lure's glow breathes while no lure is on and one is in the bags.
+function FishingBar:Glow(on)
+    on = on and true or false
+    if on == self.lureGlowing then return end
+    self.lureGlowing = on
+    self.lureButton:SetGlowing(on)
+end
+
+--- A catch came in: the Cast plaque flashes gold, a small cheer.
+function FishingBar:Caught()
+    local cast = rawget(self, "cast")
+    if cast and self.frame and self.frame:IsShown() then cast:Flash() end
 end
 
 function FishingBar:StopClock()

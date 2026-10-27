@@ -95,6 +95,14 @@ suite.check("best lure first", table.concat(order, ",") == "6533,6532,6529", tab
 suite.check("counts from the bags", lures[1].count == 1 and lures[3].count == 3)
 suite.check("a lure needing more skill can't be used", lures[2].usable == false and lures[2].need == 200)
 suite.check("one the skill reaches can", lures[1].usable == true and lures[3].usable == true)
+-- The gold plaques: the best lure and how many on Add Lure, the skill on Cast.
+local lureLine = Bar.lureButton.second:GetText()
+suite.check("Add Lure names the best lure and how many",
+    Bar.lureButton.first:GetText() == "Add Lure" and lureLine == "Aquadynamic Fish Attractor, 1 left", tostring(lureLine))
+suite.check("Cast shows the Fishing skill", Bar.cast.first:GetText() == "Cast"
+    and Bar.cast.second:GetText() == "Fishing 120 / 150", tostring(Bar.cast.second:GetText()))
+suite.check("Add Lure glows while none is on", Bar.lureGlowing == true)
+suite.check("a catch flashes the Cast plaque without an error", pcall(Bar.Caught, Bar))
 
 Bar:ToggleList()
 suite.check("Add Lure opens the list", Bar.list and Bar.list:IsShown())

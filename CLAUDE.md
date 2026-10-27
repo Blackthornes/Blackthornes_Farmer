@@ -453,6 +453,23 @@ all account wide, never rename them; `/farm fishbar [on|off]`. Luremaster
 (`Logic/Legacy.lua`) is untouched. Tested in `tools/test_fishingbar.lua`.
 Not yet seen in game.
 
+
+## The gold plaque
+
+Buttons that sit out on the screen on their own wear the gold plaque (the
+owner picked it from a mockup, 2026-10-27, as the Classic addons have it):
+a gold rim with a red gem at each end round dark glass, the item's icon in
+a small gold frame, a first line saying what the click does and a second
+under it, and a soft glow that breathes while it waits (Effects Full;
+still on Subtle, none on Off). `UI/Plaque.lua` is the same file in Pets,
+Equipment and Farmer (a fix to it belongs in all three):
+`Plaque.Create(parent, { name, template, width, height, minWidth })` and
+`:SetLines`, `:SetSecondColor`, `:SetIcon`, `:SetGlowing`, `:Flash`. Here
+it is the Fishing window's Cast ("Fishing 87 / 150" under it, the skill
+row is gone) and Add Lure ("Bright Baubles, 3 left"; it glows while no
+lure is on and one is in the bags, `FishingBar:Glow`). Each catch flashes
+Cast gold (`FishingBar:Caught`, from `Fishing:OnLoot`). Tested in
+`tools/test_fishingbar.lua`. Not yet seen in game.
 ## Legacy perks (read only)
 
 The owner said build it (2026-10-22): Forever's Legacy trees give
