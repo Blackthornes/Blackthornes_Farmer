@@ -291,11 +291,11 @@ function GoalsUI:Build()
     title:SetPoint("LEFT", PADDING + 4, 0)
     title:SetText(L["Goals"])
 
-    local close = Widgets.CreateButton(header, "X", function()
+    local close = Widgets.HeaderCloseGem(header, function()
         ns.db.goalsHidden = true
         GoalsUI:Refresh()
         ns.Print(L["goals panel hidden. /farm goals brings it back."])
-    end, { width = 18, height = 16, danger = true })
+    end)
     close:SetPoint("RIGHT", -6, 0)
 
     local rule = Theme.CreateDivider(frame, "borderLit")
