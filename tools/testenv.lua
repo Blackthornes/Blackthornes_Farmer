@@ -380,6 +380,7 @@ local UI_FILES = {
     "UI/Theme.lua",
     "UI/BlizzardLook.lua",
     "UI/Widgets.lua",
+    "UI/Plaque.lua",
     "UI/SeeThrough.lua",
     "UI/Titanforged.lua",
     "UI/FoldWindow.lua",
