@@ -1685,7 +1685,10 @@ function GoalsUI:OpenSpots(item, anchor)
     panel:SetWidth(math.min(480, math.max(SPOTS_WIDTH, math.ceil(needs))))
 
     panel.empty:SetShown(#spots == 0)
-    panel:SetHeight(SPOTS_TOP + math.max(1, #spots) * SPOT_ROW + 44)
+    -- The hint under the places wraps (German runs longer); the panel
+    -- grows to hold it so it never sits on the last place.
+    local hintTall = Theme.WrappedHeight(panel.hint, "tiny", (tonumber(panel:GetWidth()) or SPOTS_WIDTH) - 22)
+    panel:SetHeight(SPOTS_TOP + math.max(1, #spots) * SPOT_ROW + math.max(44, hintTall + 8))
 
     panel:ClearAllPoints()
     if anchor and anchor.IsShown and anchor:IsShown() then

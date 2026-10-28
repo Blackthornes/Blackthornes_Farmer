@@ -74,11 +74,15 @@ function UI:BuildImport()
     hint:SetPoint("TOPRIGHT", -PADDING, -42)
     hint:SetWordWrap(true)
     hint:SetText(L["Click the box and press Ctrl+V to paste what another player sent you (the whole line, starting BFR1). Nothing is added until you press Apply."])
+    -- A longer hint (German runs about 30% longer) pushes the rest down
+    -- and the window grows, so nothing lies over it.
+    local down = math.max(0, Theme.WrappedHeight(hint, "small", WIDTH - PADDING * 2) - 32)
+    frame:SetHeight(HEIGHT + down)
 
     -- The paste box.
     local panel = Theme.CreatePanel(frame, "panel", "border")
-    panel:SetPoint("TOPLEFT", PADDING, -76)
-    panel:SetPoint("TOPRIGHT", -PADDING, -76)
+    panel:SetPoint("TOPLEFT", PADDING, -76 - down)
+    panel:SetPoint("TOPRIGHT", -PADDING, -76 - down)
     panel:SetHeight(96)
 
     local scroll = CreateFrame("ScrollFrame", nil, panel)
@@ -109,8 +113,8 @@ function UI:BuildImport()
 
     -- What it would do.
     local preview = Theme.CreateLabel(frame, "small", "text")
-    preview:SetPoint("TOPLEFT", PADDING, -182)
-    preview:SetPoint("TOPRIGHT", -PADDING, -182)
+    preview:SetPoint("TOPLEFT", PADDING, -182 - down)
+    preview:SetPoint("TOPRIGHT", -PADDING, -182 - down)
     preview:SetHeight(100)
     preview:SetJustifyV("TOP")
     preview:SetWordWrap(true)
@@ -118,13 +122,13 @@ function UI:BuildImport()
 
     -- Taken in before.
     local heading = Theme.CreateLabel(frame, "small", "accent")
-    heading:SetPoint("TOPLEFT", PADDING, -296)
+    heading:SetPoint("TOPLEFT", PADDING, -296 - down)
     heading:SetText(L["TAKEN IN BEFORE"])
     self.importRows = {}
     for i = 1, ROWS do
         local row = CreateFrame("Frame", nil, frame)
-        row:SetPoint("TOPLEFT", PADDING, -316 - (i - 1) * 26)
-        row:SetPoint("TOPRIGHT", -PADDING, -316 - (i - 1) * 26)
+        row:SetPoint("TOPLEFT", PADDING, -316 - down - (i - 1) * 26)
+        row:SetPoint("TOPRIGHT", -PADDING, -316 - down - (i - 1) * 26)
         row:SetHeight(24)
         row.label = Theme.CreateLabel(row, "small", "text")
         row.label:SetPoint("LEFT", 0, 0)
@@ -137,13 +141,13 @@ function UI:BuildImport()
         self.importRows[i] = row
     end
     local none = Theme.CreateLabel(frame, "small", "dim")
-    none:SetPoint("TOPLEFT", PADDING, -316)
+    none:SetPoint("TOPLEFT", PADDING, -316 - down)
     none:SetText(L["Nothing yet."])
     self.importNone = none
 
     local more = Theme.CreateLabel(frame, "tiny", "dim")
-    more:SetPoint("TOPLEFT", PADDING, -316 - ROWS * 26)
-    more:SetPoint("TOPRIGHT", -PADDING, -316 - ROWS * 26)
+    more:SetPoint("TOPLEFT", PADDING, -316 - down - ROWS * 26)
+    more:SetPoint("TOPRIGHT", -PADDING, -316 - down - ROWS * 26)
     more:SetWordWrap(true)
     more:SetText(L["Remove takes back exactly what that text added. Your own counts are never touched."])
 

@@ -75,8 +75,13 @@ function HiddenUI:Build()
     hint:SetWordWrap(true)
     hint:SetText(L["Mobs, nodes and items you hid are left out of the search, Rankings, Grind and the kills panel. Nothing you recorded is lost."])
 
+    -- A longer hint (German runs about 30% longer) pushes the list down
+    -- and the window grows, so nothing lies over it.
+    local down = math.max(0, Theme.WrappedHeight(hint, "small", WIDTH - PADDING * 2) - 44)
+    frame:SetHeight(HEIGHT + down)
+
     local panel = Theme.CreatePanel(frame, "panel", "border")
-    panel:SetPoint("TOPLEFT", PADDING, -84)
+    panel:SetPoint("TOPLEFT", PADDING, -84 - down)
     panel:SetPoint("BOTTOMRIGHT", -PADDING, PADDING)
     if Theme.Recess then Theme.Recess(panel) end
 

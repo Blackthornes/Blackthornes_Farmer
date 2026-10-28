@@ -291,10 +291,27 @@ function RankUpUI:Fit(items)
     return layout
 end
 
+--- The line under the board, and the board made tall enough for it: a
+--- long one (two mob names, or German) wraps onto a second line and the
+--- board grows under the rows, never over them.
+function RankUpUI:SetFoot(text)
+    self.foot:SetText(text)
+    self:FitFoot()
+end
+
+function RankUpUI:FitFoot()
+    local frame = self.frame
+    if not (frame and self.foot) then return end
+    local width = (tonumber(frame:GetWidth()) or 360) - PADDING * 2 - 4
+    local tall = Theme.WrappedHeight(self.foot, "small", width)
+    frame:SetHeight(HEAD + ROW * (self.shown or ns.RankUp.TOP) + math.max(FOOT, tall + 11))
+end
+
 function RankUpUI:ApplyLayout(layout, shown)
     local frame = self.frame
     frame:SetWidth(layout.width)
-    frame:SetHeight(HEAD + ROW * shown + FOOT)
+    self.shown = shown
+    self:FitFoot()
     self.list:SetHeight(ROW * shown)
 
     local c = self.columnLabels
@@ -529,21 +546,21 @@ function RankUpUI:Show(move)
 
     if move.newTop then
         if move.lead then
-            self.foot:SetText(L.Format("%s is your best farm now: %s a kill, %d%% more than %s.", ns.Tracker.ShowKey(move.mob),
+            self:SetFoot(L.Format("%s is your best farm now: %s a kill, %d%% more than %s.", ns.Tracker.ShowKey(move.mob),
                 ns.Value.Coins(picked and picked.value or 0), math.floor(move.lead * 100 + 0.5), move.passed and ns.Tracker.ShowKey(move.passed) or ""))
         else
-            self.foot:SetText(L.Format("%s is your best farm now: %s a kill.", ns.Tracker.ShowKey(move.mob),
+            self:SetFoot(L.Format("%s is your best farm now: %s a kill.", ns.Tracker.ShowKey(move.mob),
                 ns.Value.Coins(picked and picked.value or 0)))
         end
     elseif move.scan then
-        self.foot:SetText(L["New prices from your auction scan moved your best mobs."])
+        self:SetFoot(L["New prices from your auction scan moved your best mobs."])
     elseif not move.mob then
-        self.foot:SetText("")
+        self:SetFoot("")
     elseif move.new then
-        self.foot:SetText(L.Format("%s is on your board now: %s a kill.", ns.Tracker.ShowKey(move.mob),
+        self:SetFoot(L.Format("%s is on your board now: %s a kill.", ns.Tracker.ShowKey(move.mob),
             ns.Value.Coins(picked and picked.value or 0)))
     else
-        self.foot:SetText(L.Format("%s moved up: %s to %s a kill.", ns.Tracker.ShowKey(move.mob),
+        self:SetFoot(L.Format("%s moved up: %s to %s a kill.", ns.Tracker.ShowKey(move.mob),
             ns.Value.Coins(picked and picked.fromValue or 0), ns.Value.Coins(picked and picked.value or 0)))
     end
 
@@ -726,5 +743,5 @@ function RankUpUI:ShowCurrent()
     end
 
     self:Show({ before = top, after = top })
-    self.foot:SetText(L["Your best mobs by worth per kill, from your own kills."])
+    self:SetFoot(L["Your best mobs by worth per kill, from your own kills."])
 end
