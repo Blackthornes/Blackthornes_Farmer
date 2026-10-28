@@ -495,7 +495,7 @@ function OpenButton:Test()
             ns.db.openTest = { at = time(), result = works and "works" or "blocked",
                 error = (not called and err) and tostring(err):sub(1, 120) or nil }
             if works then
-                ns.Print(L["|cff4fd18bopening from Farmer works|r. Tick Open after loot on the Loot page and they open as you loot."])
+                ns.Print(L["|cff4fd18bopening from Farmer works|r. Tick Open Automatically on the Loot page and they open as you loot."])
             else
                 ns.Print(L["|cffe5604fthe game won't let Farmer open things by itself|r. The Open button still works."])
             end

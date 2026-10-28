@@ -1208,7 +1208,7 @@ own `Butler:Advise`), what Tradeskills' queue needs (its `Butler:Advise`
 keep, bank or mail, `Quests:Reason`), quest items and a lockbox whose
 tooltip says `LOCKED`; each sister read in a pcall, none required. In a
 fight it hides and goes back to UIParent, so the panel can still move;
-hidden at a vendor, bank, mailbox, auction house or trade. "Open after
+hidden at a vendor, bank, mailbox, auction house or trade. "Open Automatically" (once "Open after
 loot" (`autoOpen`, off unless ticked) opens the next one each
 `LOOT_CLOSED`, out of combat, with a free slot, until the game refuses
 the call (no Test button since the owner, 2026-10-23: the first opening
