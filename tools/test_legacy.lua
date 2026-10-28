@@ -129,6 +129,29 @@ suite.check("the tree holding Legacy nodes is found", Legacy.configs and #Legacy
 suite.check("and read the same", Legacy:Rank("harvest") == 2 and Legacy:Rank("lure") == 1)
 suite.check("nothing was spent", not spent)
 
+-- The later perks sit past 110319 (113506 to 113513): a tree holding only
+-- those is still found, and its ranks read.
+suite.check("113511 is a Legacy node", Legacy.InRange(113511) and not Legacy.InRange(110320))
+do
+    local later = Traits()
+    later.GetTreeNodes = function(treeID)
+        if treeID == 812 then return { 113511 } end
+        return {}
+    end
+    NODES[113511] = { def = 504, rank = 3, name = "Luremaster" }
+    _G.C_Traits = later
+    Legacy.ranks, Legacy.configs = nil, nil
+    Legacy:Find()
+    suite.check("a tree of later perks is found", Legacy.configs and #Legacy.configs == 1)
+    suite.check("and its perk is read", Legacy:Rank("lure") == 3, Legacy:Rank("lure"))
+    suite.check("with no tree list the later ones are read too",
+        (Legacy:ReadConfig(CONFIG) or {}).lure == 3)
+    NODES[113511] = nil
+    _G.C_Traits = Traits()
+    Legacy.ranks, Legacy.configs = nil, nil
+    Legacy:Find()
+end
+
 --------------------------------------------------------------------------------
 -- What counts as boosted
 --------------------------------------------------------------------------------

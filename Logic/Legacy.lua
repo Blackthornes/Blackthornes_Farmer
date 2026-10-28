@@ -25,7 +25,7 @@
 --
 -- Legacy is a trait config, like the class talents. Its tree is found once a
 -- session: by a trait system the client names Legacy, else by looking for
--- the trees that hold its nodes (NODE_FIRST to NODE_LAST), a few trees a
+-- the trees that hold its nodes (NODE_RANGES), a few trees a
 -- frame and never in a fight. The perks are told apart by name, so only an
 -- English client reads them for now; another client keeps today's records.
 
@@ -39,9 +39,12 @@ Legacy.PERKS = {
     lure = "Luremaster",
 }
 
--- Where the Legacy trees' nodes sit in the client's numbering.
-Legacy.NODE_FIRST = 110284
-Legacy.NODE_LAST = 110319
+-- Where the Legacy trees' nodes sit in the client's numbering. The Forever
+-- client's game tables put them in trees 1187 to 1189: 110284 to 110319,
+-- and the later perks 113506 to 113513.
+Legacy.NODE_RANGES = { { 110284, 110319 }, { 113506, 113513 } }
+Legacy.NODE_FIRST = Legacy.NODE_RANGES[1][1]
+Legacy.NODE_LAST = Legacy.NODE_RANGES[1][2]
 -- Trees looked at for them, how many a frame, and how far past the last one
 -- found the look goes on.
 Legacy.TREE_LAST = 3000
@@ -83,8 +86,13 @@ local function InCombat()
 end
 
 local function InRange(nodeID)
-    return type(nodeID) == "number" and nodeID >= Legacy.NODE_FIRST and nodeID <= Legacy.NODE_LAST
+    if type(nodeID) ~= "number" then return false end
+    for _, range in ipairs(Legacy.NODE_RANGES) do
+        if nodeID >= range[1] and nodeID <= range[2] then return true end
+    end
+    return false
 end
+Legacy.InRange = InRange
 
 --------------------------------------------------------------------------------
 -- Finding the config
@@ -174,14 +182,16 @@ end
 
 --- The ranks of every perk in PERKS from one config: { [key] = rank } with a
 --- 0 for a perk read and not taken, or nil when no Legacy node could be read.
--- `nodes` are the node IDs to look at (NODE_FIRST to NODE_LAST when nil).
+-- `nodes` are the node IDs to look at (every one in NODE_RANGES when nil).
 function Legacy:ReadConfig(configID, nodes)
     local traits = Traits()
     if not (traits and configID and type(traits.GetNodeInfo) == "function") then return nil end
 
     if not nodes then
         nodes = {}
-        for nodeID = Legacy.NODE_FIRST, Legacy.NODE_LAST do nodes[#nodes + 1] = nodeID end
+        for _, range in ipairs(Legacy.NODE_RANGES) do
+            for nodeID = range[1], range[2] do nodes[#nodes + 1] = nodeID end
+        end
     end
 
     local wanted = {}
