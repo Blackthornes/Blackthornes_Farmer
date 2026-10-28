@@ -19,6 +19,11 @@ local Util = ns.Util
 local WIDTH = 320
 local HEIGHT = 150
 local PADDING = 14
+-- Where the question starts, and what the box, buttons and gaps under it
+-- take; the window grows with the question so nothing sits on it.
+local ASK_TOP = 38
+local ASK_ROOM = 28
+local BELOW_ASK = 76
 
 function NamePrompt:Build()
     if self.frame then return self.frame end
@@ -91,11 +96,25 @@ function NamePrompt:Open(npcID)
     local frame = self:Build()
     self.npcID = npcID
     frame.ask:SetText(L.Format("What is Creature #%d called? Hover or target it and type the name its tooltip shows. Your kills and loot move to the name the next time you log in.", npcID))
+    self:Fit()
     frame.box:SetText("")
     local edit = frame.box.editBox
     if edit then pcall(edit.SetFocus, edit) end
     frame:Show()
     return true
+end
+
+--- Puts the box under the question, however many lines it takes, and
+--- makes the window tall enough for both.
+function NamePrompt:Fit()
+    local frame = self.frame
+    if not frame then return end
+    local tall = Theme.WrappedHeight(frame.ask, "small", WIDTH - PADDING * 2)
+    local boxTop = ASK_TOP + math.max(ASK_ROOM, tall) + 8
+    frame.box:ClearAllPoints()
+    frame.box:SetPoint("TOPLEFT", PADDING, -boxTop)
+    frame.box:SetPoint("TOPRIGHT", -PADDING, -boxTop)
+    frame:SetHeight(math.max(HEIGHT, boxTop + BELOW_ASK))
 end
 
 function NamePrompt:Hide()

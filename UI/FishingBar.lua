@@ -357,6 +357,7 @@ function FishingBar:Build()
         template = "SecureActionButtonTemplate",
         width = half,
         height = self.BUTTON_HEIGHT,
+        onResize = function() FishingBar:FitButtons() end,
     })
     cast:RegisterForClicks("AnyUp")
     cast:SetAttribute("useOnKeyDown", false)
@@ -367,7 +368,11 @@ function FishingBar:Build()
     self.cast = cast
     self.castSecure = cast
 
-    local lure = ns.Plaque.Create(frame, { width = half, height = self.BUTTON_HEIGHT })
+    local lure = ns.Plaque.Create(frame, {
+        width = half,
+        height = self.BUTTON_HEIGHT,
+        onResize = function() FishingBar:FitButtons() end,
+    })
     lure:SetScript("OnClick", function() FishingBar:ToggleList() end)
     lure:SetPoint("TOPRIGHT", -PAD, -36)
     lure:SetIcon(134400)
@@ -378,6 +383,7 @@ function FishingBar:Build()
     local lureLabel = Theme.CreateLabel(frame, "small", "muted")
     lureLabel:SetPoint("TOPLEFT", PAD, -94)
     lureLabel:SetText(L["Lure:"])
+    self.lureLabel = lureLabel
     local lureValue = Theme.CreateLabel(frame, "small", "good", "RIGHT")
     lureValue:SetPoint("TOPRIGHT", -PAD, -94)
     lureValue:SetPoint("LEFT", lureLabel, "RIGHT", 6, 0)
@@ -393,6 +399,29 @@ function FishingBar:Build()
 
     self:Place()
     return frame
+end
+
+--- A plaque whose second line wraps (a long lure name, or German) grows
+--- taller; the Lure: line and the window move down with it, so nothing
+--- sits on the words.
+function FishingBar:FitButtons()
+    local frame, label = self.frame, self.lureLabel
+    if not (frame and label and self.cast and self.lureButton) then return end
+    if InCombat() then return end
+    local PAD = self.PADDING
+    local tall = math.max(self.BUTTON_HEIGHT,
+        tonumber(self.cast:GetHeight()) or 0, tonumber(self.lureButton:GetHeight()) or 0)
+    local grow = tall - self.BUTTON_HEIGHT
+    label:ClearAllPoints()
+    label:SetPoint("TOPLEFT", PAD, -94 - grow)
+    local value = self.lureValue
+    if value then
+        value:ClearAllPoints()
+        value:SetPoint("TOPRIGHT", -PAD, -94 - grow)
+        value:SetPoint("LEFT", label, "RIGHT", 6, 0)
+    end
+    local folded = ns.FoldWindow and ns.FoldWindow:IsFolded(frame)
+    if not folded then frame:SetHeight(self.HEIGHT + grow) end
 end
 
 --- Put it where it was left, else in its first place.

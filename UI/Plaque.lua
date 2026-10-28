@@ -12,7 +12,9 @@
 --
 -- `Plaque.Create(parent, opts)` makes the button (opts: name, template for
 -- a secure button, width for a fixed width whose second line wraps, else
--- it grows to fit its words). It answers:
+-- it grows to fit its words; with a fixed width the plaque grows taller
+-- for a second line that wraps, and onResize(button) hears of it). It
+-- answers:
 --   :SetLines(first, second)   the two lines; second may be nil
 --   :SetSecondColor(r, g, b)   the second line's colour (nil for the usual)
 --   :SetIcon(texture)          a file ID or path; nil hides the frame
@@ -66,6 +68,28 @@ local function Gradient(texture, bottom, top)
 end
 Plaque.Gradient = Gradient
 
+--- How tall a wrapping label is at `width`: what the game says, never
+--- less than the lines its words take, so a long second line (German runs
+--- longer) makes the plaque taller instead of spilling out under it.
+local function WrappedHeight(label, size, width)
+    local Theme = ns.Theme
+    local line = ((Theme.sizes and Theme.sizes[size]) or 11) + 2
+    local text = label:GetText()
+    if type(text) ~= "string" or text == "" then return 0 end
+    local lines = math.max(1, math.ceil((Theme.TextWidth(size, text) or 0) / math.max(1, width)))
+    local ok, height = pcall(label.GetStringHeight, label)
+    height = ok and tonumber(height) or 0
+    return math.ceil(math.max(lines * line, height)), line
+end
+Plaque.WrappedHeight = WrappedHeight
+
+--- A plaque may change size only out of a fight when the game guards it.
+local function MayResize(button)
+    if type(InCombatLockdown) ~= "function" or not InCombatLockdown() then return true end
+    local ok, protected = pcall(button.IsProtected, button)
+    return not (ok and protected)
+end
+
 local function Level()
     local Motion = ns.Motion
     return Motion and Motion.Level and Motion.Level() or "full"
@@ -105,7 +129,8 @@ function Plaque.Create(parent, opts)
     local RIM, PAD, ICON = Plaque.RIM, Plaque.PAD, Plaque.ICON
 
     local button = CreateFrame("Button", opts.name, parent, opts.template)
-    button:SetHeight(opts.height or Plaque.HEIGHT)
+    local baseHeight = opts.height or Plaque.HEIGHT
+    button:SetHeight(baseHeight)
     local fixedWidth = opts.width
     if opts.width then button:SetWidth(opts.width) end
 
@@ -191,17 +216,37 @@ function Plaque.Create(parent, opts)
         first:ClearAllPoints()
         second:ClearAllPoints()
         local hasSecond = (second:GetText() or "") ~= ""
-        if hasSecond then
+        local room = fixedWidth and math.max(20, fixedWidth - left - right)
+        if room then
+            first:SetWidth(room)
+            second:SetWidth(room)
+        end
+        local tall, line = 0, 0
+        if hasSecond and room then tall, line = WrappedHeight(second, "small", room) end
+        if hasSecond and tall > line then
+            -- A second line that wraps: both lines sit as one block in the
+            -- middle, and the plaque grows to hold it.
+            local firstTall = ((Theme.sizes and Theme.sizes.normal) or 12) + 2
+            local block = firstTall + 2 + tall
+            first:SetPoint("TOPLEFT", button, "LEFT", left, math.floor(block / 2))
+            second:SetPoint("TOPLEFT", first, "BOTTOMLEFT", 0, -2)
+        elseif hasSecond then
             first:SetPoint("BOTTOMLEFT", button, "LEFT", left, 1)
             second:SetPoint("TOPLEFT", button, "LEFT", left, -1)
         else
             first:SetPoint("LEFT", button, "LEFT", left, 0)
         end
         second:SetShown(hasSecond)
-        if fixedWidth then
-            local room = math.max(20, fixedWidth - left - right)
-            first:SetWidth(room)
-            second:SetWidth(room)
+        if room then
+            local height = baseHeight
+            if hasSecond and tall > line then
+                local block = ((Theme.sizes and Theme.sizes.normal) or 12) + 4 + tall
+                height = math.max(baseHeight, block + (RIM + PAD) * 2)
+            end
+            if math.abs((tonumber(button:GetHeight()) or 0) - height) >= 1 and MayResize(button) then
+                button:SetHeight(height)
+                if opts.onResize then pcall(opts.onResize, button) end
+            end
             return
         end
         local wide = Theme.TextWidth("normal", first:GetText() or "")

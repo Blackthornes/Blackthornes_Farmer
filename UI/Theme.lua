@@ -212,6 +212,25 @@ function Theme.TextWidth(size, text)
     return math.ceil(width or 0)
 end
 
+--- How tall a wrapping label is once its words fill `width`: what the
+--- game says, never less than the lines its words take at that width, so
+--- whatever sits under it can be placed below it and never on it.
+function Theme.WrappedHeight(label, size, width)
+    local line = (Theme.sizes[size] or tonumber(size) or Theme.sizes.normal) + 2
+    local text = label and label.GetText and label:GetText()
+    if type(text) ~= "string" or text == "" then return 0 end
+    local lines = 1
+    width = tonumber(width)
+    if width and width > 0 then
+        lines = math.max(1, math.ceil(Theme.TextWidth(size, text) / width))
+    end
+    local _, breaks = text:gsub("\n", "")
+    local guess = (lines + breaks) * line
+    local ok, height = pcall(label.GetStringHeight, label)
+    height = ok and tonumber(height) or 0
+    return math.ceil(math.max(guess, height))
+end
+
 --- Sink a panel into the window, as the game's inset panels sit: a darker
 --- well, a shadow falling from its top edge and a faint light along its foot.
 function Theme.Recess(frame)
