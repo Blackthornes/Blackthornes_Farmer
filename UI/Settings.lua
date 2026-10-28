@@ -1054,8 +1054,8 @@ function SettingsUI:BuildLootPage()
         ns.OpenButton:SetEnabled(checked)
     end, true)
     controls.openButton:SetPoint("TOPLEFT", CONTROL_X, -2)
-    local autoOpenRow = pages:Row("loot", 2, L["Open After Loot:"],
-        L["Opens the next clam, sack or lockbox each time you close a loot window."])
+    local autoOpenRow = pages:Row("loot", 2, L["Open Automatically:"],
+        L["This setting will open clams and bags you loot automatically."])
     controls.autoOpen = Widgets.CreateCheckbox(autoOpenRow, L["On"], function(checked)
         ns.OpenButton:SetAuto(checked)
     end, false)
