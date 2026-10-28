@@ -480,8 +480,10 @@ pcall, the ranks the character has set in two of them, Bountiful Harvest
 (herbs, ore, skins) and Luremaster (fish, with a lure on). It never
 spends a point and never suggests one (the owner: "we just read what
 they have set"). The config is found by a trait system the client calls
-Legacy (`GetConfigIDBySystemID`), else by the trees holding nodes
-`NODE_FIRST` to `NODE_LAST` (a few trees a frame, never in a fight); the
+Legacy (`GetConfigIDBySystemID`), else by the trees holding nodes in
+`NODE_RANGES` (110284 to 110319 and 113506 to 113513, trees 1187 to 1189
+in the Forever client's game tables, 2026-10-28; a few trees a frame,
+never in a fight); the
 perks are told apart by English name, so other clients record as before.
 No rank read means nothing changes. A gather, skin or cast made with one
 is still counted in its record, and also noted beside it in `boosted`
