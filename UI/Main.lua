@@ -104,14 +104,14 @@ end
 
 -- The window's tabs, left to right.
 local TABS = {
-    { key = "search", text = L["SEARCH"] },
-    { key = "rankings", text = L["RANKINGS"] },
-    { key = "grind", text = L["GRIND"] },
-    { key = "stats", text = L["STATS"] },
+    { key = "search", text = L["Search"] },
+    { key = "rankings", text = L["Rankings"] },
+    { key = "grind", text = L["Grind"] },
+    { key = "stats", text = L["Stats"] },
     -- Always last, on the right (the owner, 2026-10-27: "Last tab on bottom
     -- right will always be settings"). It opens Settings in the window's
     -- place, at the same size (UI/Settings.lua).
-    { key = "settings", text = L["SETTINGS"], right = true },
+    { key = "settings", text = L["Settings"], right = true },
 }
 
 --- The tabs, for Settings to hang the same ones under itself.

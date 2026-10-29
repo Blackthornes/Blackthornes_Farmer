@@ -157,7 +157,6 @@ L["Node markers, grinding camps, goals and the goal arrow"] = "资源点标记�
 L["SHARING"] = "共享"
 L["Share kills, drop rates and gathering with your other account"] = "和你的另一个账号共享击杀、掉落率和采集"
 L["ADVANCED"] = "高级"
-L["Farmer Settings"] = "Farmer 设置"
 L["Changes save as you make them. Nothing here can delete your data. Clearing tallies or recorded loot takes a typed command."] =
     "改动会马上保存。这里没有任何东西会删除你的数据。清除计数或记录的战利品要输入命令。"
 L["Reload"] = "重新载入"
@@ -782,9 +781,9 @@ L["show or hide the goals panel (dock puts it back under the kills panel)"] = "�
 L["goals panel back under the kills panel."] = "目标面板已放回击杀面板下面。"
 
 -- UI/Main
-L["SEARCH"] = "搜索"
-L["RANKINGS"] = "排行"
-L["GRIND"] = "刷怪"
+L["Search"] = "搜索"
+L["Rankings"] = "排行"
+L["Grind"] = "刷怪"
 L["1 spot"] = "1 个地点"
 L["%d spots"] = "%d 个地点"
 L["an item, a zone, a mob, or a place"] = "物品、区域、怪物或地方"
@@ -1076,8 +1075,8 @@ L["XP bar %s."] = "经验条%s。"
 L["XP BAR"] = "经验条"
 
 -- The Stats tab
-L["STATS"] = "统计"
-L["SETTINGS"] = "设置"
+L["Stats"] = "统计"
+L["Settings"] = "设置"
 L["the Stats tab: your farming in charts (session|overall, cheer on|off)"] = "统计页：用图表看你的刷怪成果（session|overall, cheer on|off）"
 L["Best session cheer is on."] = "最佳记录欢呼已打开。"
 L["Best session cheer is off."] = "最佳记录欢呼已关闭。"

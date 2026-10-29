@@ -159,7 +159,6 @@ L["Node markers, grinding camps, goals and the goal arrow"] = "Marcas de puntos 
 L["SHARING"] = "COMPARTIR"
 L["Share kills, drop rates and gathering with your other account"] = "Comparte muertes, probabilidades de botín y recolección con tu otra cuenta"
 L["ADVANCED"] = "AVANZADO"
-L["Farmer Settings"] = "Ajustes de Farmer"
 L["Changes save as you make them. Nothing here can delete your data. Clearing tallies or recorded loot takes a typed command."] =
     "Los cambios se guardan al momento. Nada aquí puede borrar tus datos. Para borrar conteos o botín grabado hace falta escribir un comando."
 L["Reload"] = "Recargar"
@@ -784,9 +783,9 @@ L["show or hide the goals panel (dock puts it back under the kills panel)"] = "m
 L["goals panel back under the kills panel."] = "panel de objetivos de vuelta bajo el panel de muertes."
 
 -- UI/Main
-L["SEARCH"] = "BUSCAR"
-L["RANKINGS"] = "CLASIFICACIÓN"
-L["GRIND"] = "FARMEO"
+L["Search"] = "Buscar"
+L["Rankings"] = "Clasificación"
+L["Grind"] = "Farmeo"
 L["1 spot"] = "1 lugar"
 L["%d spots"] = "%d lugares"
 L["an item, a zone, a mob, or a place"] = "un objeto, una zona, un enemigo o un lugar"
@@ -1078,8 +1077,8 @@ L["XP bar %s."] = "barra de PX %s."
 L["XP BAR"] = "BARRA DE PX"
 
 -- The Stats tab
-L["STATS"] = "ESTADÍSTICAS"
-L["SETTINGS"] = "AJUSTES"
+L["Stats"] = "Estadísticas"
+L["Settings"] = "Ajustes"
 L["the Stats tab: your farming in charts (session|overall, cheer on|off)"] = "la pestaña Estadísticas: tu farmeo en gráficos (session|overall, cheer on|off)"
 L["Best session cheer is on."] = "La celebración de la mejor sesión está activada."
 L["Best session cheer is off."] = "La celebración de la mejor sesión está desactivada."

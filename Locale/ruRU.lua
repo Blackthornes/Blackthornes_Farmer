@@ -160,7 +160,6 @@ L["Node markers, grinding camps, goals and the goal arrow"] = "Метки жил
 L["SHARING"] = "ОБМЕН"
 L["Share kills, drop rates and gathering with your other account"] = "Делись убийствами, шансами добычи и сбором с другой учётной записью"
 L["ADVANCED"] = "ДОПОЛНИТЕЛЬНО"
-L["Farmer Settings"] = "Настройки Farmer"
 L["Changes save as you make them. Nothing here can delete your data. Clearing tallies or recorded loot takes a typed command."] =
     "Изменения сохраняются сразу. Здесь ничего не может удалить твои данные. Счётчики или записанную добычу можно стереть только набранной командой."
 L["Reload"] = "Перезагрузить"
@@ -785,9 +784,9 @@ L["show or hide the goals panel (dock puts it back under the kills panel)"] = "�
 L["goals panel back under the kills panel."] = "панель целей снова под панелью убийств."
 
 -- UI/Main
-L["SEARCH"] = "ПОИСК"
-L["RANKINGS"] = "РЕЙТИНГ"
-L["GRIND"] = "ФАРМ"
+L["Search"] = "Поиск"
+L["Rankings"] = "Рейтинг"
+L["Grind"] = "Фарм"
 L["1 spot"] = "1 место"
 L["%d spots"] = "мест: %d"
 L["an item, a zone, a mob, or a place"] = "предмет, зону, противника или место"
@@ -1079,8 +1078,8 @@ L["XP bar %s."] = "полоса опыта: %s."
 L["XP BAR"] = "ПОЛОСА ОПЫТА"
 
 -- The Stats tab
-L["STATS"] = "СТАТИСТИКА"
-L["SETTINGS"] = "НАСТРОЙКИ"
+L["Stats"] = "Статистика"
+L["Settings"] = "Настройки"
 L["the Stats tab: your farming in charts (session|overall, cheer on|off)"] = "вкладка статистики: твой фарм на графиках (session|overall, cheer on|off)"
 L["Best session cheer is on."] = "Праздник лучшей сессии включён."
 L["Best session cheer is off."] = "Праздник лучшей сессии выключен."

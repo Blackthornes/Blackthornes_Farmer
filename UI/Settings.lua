@@ -375,7 +375,8 @@ function SettingsUI:Build()
     -- the name on a plate across the top and a red close gem.
     if ns.Titanforged then
         self.trim = ns.Titanforged:Dress(frame, {
-            title = L["Farmer Settings"],
+            -- The plate reads the addon's name on every tab.
+            title = "Blackthornes Farmer",
             close = function() SettingsUI:Hide() end,
         })
         local left, right, top, bottom = ns.Titanforged.Reach(self.trim)
@@ -386,6 +387,14 @@ function SettingsUI:Build()
         Theme.Border(frame, "borderLit")
     end
     Theme.Halo(frame, 8, 0.10)
+
+    -- The fold gem beside the close gem, as on every other tab
+    -- (UI/FoldWindow.lua), so the corner never changes between tabs.
+    if ns.FoldWindow then
+        ns.FoldWindow:Add(frame, { onToggle = function(folded)
+            if not folded then SettingsUI:Refresh() end
+        end })
+    end
 
     frame:SetScript("OnDragStart", function(self)
         -- Land an opening still running, or it would pull the window back.
