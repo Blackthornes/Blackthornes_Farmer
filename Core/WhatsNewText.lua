@@ -5,6 +5,10 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "1.1.0", lines = {
+        "One minimap button now covers every Blackthornes addon you have. Click it to pick one. Turn it off with Combine Addon Buttons on the Windows page.",
+        "Show on Map in Where to farm puts a gold marker with the name on the spot.",
+    } },
     { version = "1.0.1", lines = {
         "Settings is now the last tab, at the bottom right.",
         "The Fishing window's Cast and Add Lure buttons have the gold plaque look.",
@@ -18,10 +22,5 @@ ns.WHATS_NEW = {
         "Price Order on the Loot page picks whether TSM or Auctionator is asked first. TSM comes first unless you change it.",
         "Arrow Size picks 50%, 75% or 100% for the guide arrow.",
         "A small gem beside the close button folds a window down to its title.",
-    } },
-    { version = "0.45.0", lines = {
-        "You can set a kill goal, for any mob or one mob. It shows first in your Goals panel, and a summary opens when you finish. Start one with Set another in the Goals panel.",
-        "The Ore, Herbs and Leather views on the Grind tab show your way from your skill to 300.",
-        "With Tradeskills, Goblin Gold's hover card shows this week's kills and what their loot was worth.",
     } },
 }
