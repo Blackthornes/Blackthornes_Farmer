@@ -1820,7 +1820,7 @@ function GoalsUI:BuildPicker()
     bank:SetPoint("TOPLEFT", 10, -74)
     picker.bank = bank
 
-    local set = Widgets.CreateButton(picker, L["Set goal"], function() GoalsUI:PickerSet() end,
+    local set = Widgets.CreateButton(picker, L["Set Goal"], function() GoalsUI:PickerSet() end,
         { width = 80, height = 22, primary = true })
     set:SetPoint("BOTTOMLEFT", 10, 10)
     picker.set = set
@@ -1884,7 +1884,7 @@ function GoalsUI:FillPicker()
         chip.label:SetText(tostring(amount))
     end
 
-    picker.set:SetText(goal and L["Change goal"] or L["Set goal"])
+    picker.set:SetText(goal and L["Change goal"] or L["Set Goal"])
     picker.remove:SetShown(goal ~= nil)
 
     if not GoalsUI.choice or GoalsUI.choice <= have then
