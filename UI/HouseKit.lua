@@ -317,6 +317,7 @@ local function GemButton(parent, art, glowKey, size)
     end
     Light(0)
     button.Light = Light
+    button.glow = glow
     return button
 end
 
