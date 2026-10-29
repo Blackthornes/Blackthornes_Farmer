@@ -723,6 +723,7 @@ function SettingsUI:WindowStyleControl(row)
         format = function(value) return WINDOW_STYLE_NAMES[WINDOW_STYLES[value]] end,
         onChange = function(value)
             ns.db.windowStyle = WINDOW_STYLES[value]
+            if ns.SharedChoices then ns.SharedChoices:Changed("windowStyle", WINDOW_STYLES[value]) end
             reload:SetShown(WINDOW_STYLES[value] ~= Drawn())
         end,
     })
@@ -1806,3 +1807,28 @@ end)
 -- list, which would otherwise print the same line three times.
 ns.commands.options = ns.commands.settings
 ns.commands.config = ns.commands.settings
+
+--------------------------------------------------------------------------------
+-- Choices every Blackthornes addon shares (UI/SharedChoices.lua): a change
+-- made in a sister is written here the way this addon writes it itself.
+--------------------------------------------------------------------------------
+
+if ns.SharedChoices then
+    ns.SharedChoices:Join("Farmer", function(choice, value)
+        if not ns.db then return end
+        if choice == "textSize" then
+            if ns.Theme.TEXT_STEPS and ns.Theme.TEXT_STEPS[value] then ns.db.textSize = value end
+        elseif choice == "windowStyle" then
+            if value == "titanforged" or value == "blizzard" then ns.db.windowStyle = value end
+        elseif choice == "effects" then
+            if value == "full" or value == "subtle" or value == "off" then if ns.TrackerFX then ns.TrackerFX:SetLevel(value) end end
+        elseif choice == "useTomTom" then
+            if ns.TomTom then ns.TomTom:SetOn(value and true or false) end
+        elseif choice == "arrowRoute" then
+            if ns.Travel then ns.Travel:SetOn(value and true or false) end
+        elseif choice == "arrowSize" then
+            if ns.ArrowUI then ns.ArrowUI:SetSize(value) end
+        end
+        if ns.SettingsUI and ns.SettingsUI.Refresh and ns.SettingsUI.frame and ns.SettingsUI.frame:IsShown() then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
+    end)
+end
