@@ -68,6 +68,16 @@ local function Gradient(texture, bottom, top)
 end
 Plaque.Gradient = Gradient
 
+--- How wide `text` is at `size`: the addon's own measure, Tradeskills'
+--- MeasureText or the others' TextWidth(size, text), 0 when it can't say.
+local function TextWidth(size, text)
+    local Theme = ns.Theme
+    local measure = Theme.MeasureText or Theme.TextWidth
+    local ok, width = pcall(measure, size, text)
+    return (ok and type(width) == "number") and width or 0
+end
+Plaque.TextWidth = TextWidth
+
 --- How tall a wrapping label is at `width`: what the game says, never
 --- less than the lines its words take, so a long second line (German runs
 --- longer) makes the plaque taller instead of spilling out under it.
@@ -76,7 +86,7 @@ local function WrappedHeight(label, size, width)
     local line = ((Theme.sizes and Theme.sizes[size]) or 11) + 2
     local text = label:GetText()
     if type(text) ~= "string" or text == "" then return 0 end
-    local lines = math.max(1, math.ceil((Theme.TextWidth(size, text) or 0) / math.max(1, width)))
+    local lines = math.max(1, math.ceil(TextWidth(size, text) / math.max(1, width)))
     local ok, height = pcall(label.GetStringHeight, label)
     height = ok and tonumber(height) or 0
     return math.ceil(math.max(lines * line, height)), line
@@ -249,8 +259,8 @@ function Plaque.Create(parent, opts)
             end
             return
         end
-        local wide = Theme.TextWidth("normal", first:GetText() or "")
-        if hasSecond then wide = math.max(wide, Theme.TextWidth("small", second:GetText() or "")) end
+        local wide = TextWidth("normal", first:GetText() or "")
+        if hasSecond then wide = math.max(wide, TextWidth("small", second:GetText() or "")) end
         button:SetWidth(math.max(opts.minWidth or 60, left + wide + right + 4))
     end
     button.Layout = Layout
