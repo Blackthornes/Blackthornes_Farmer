@@ -25,13 +25,13 @@ tool prints a note for a shipped line that reads like an advert.
 
 ## 1.2.0
 
-- Drop the Goals panel near the bottom of Kills & Loot and it hangs under it. Drop Where to Farm under Goals and it opens there. Turn it off with Snap Panels on the General page.
-- A right-click on a row puts its own action first, like Open Loot Table or Show the Way.
+- Drop Goals under Kills & Loot and it stays there. Drop Where to Farm under Goals and it opens there. You can turn this off with Snap Panels on the General page.
+- Right-click a row and the thing you most likely want comes first, like Open Loot Table.
 
 Fixes and changes:
 
 - The UI and Advanced pages are now one General page.
-- Sort on Kills & Loot opens a menu. This Session and Overall on Stats are tabs. The Search, Rankings and Grind footers show only a count or your skill. Bags full and clam notes share one spot on the screen.
+- Sort on Kills & Loot is a menu. Stats has This Session and Overall tabs. Notes like Bags Full share one spot on the screen.
 
 ## 1.1.0
 

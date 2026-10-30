@@ -8,10 +8,10 @@ the top; a release is refused if its version has no section here.
 
 For WoW: Forever (interface 16001). Files were added, so restart the game fully after updating (`/reload` is not enough).
 
-- **Snap Panels:** Drop the Goals panel near the bottom of Kills & Loot and it hangs under it. Drop Where to Farm under Goals and it opens there. Turn it off with Snap Panels on the General page.
-- **Right-click:** A right-click on a row puts its own action first, like Open Loot Table or Show the Way.
+- **Snap Panels:** Drop Goals under Kills & Loot and it stays there. Drop Where to Farm under Goals and it opens there. You can turn this off with Snap Panels on the General page.
+- **Right-click:** Right-click a row and the thing you most likely want comes first, like Open Loot Table.
 - **Settings:** The UI and Advanced pages are now one General page.
-- **Look:** Sort on Kills & Loot opens a menu. This Session and Overall on Stats are tabs. The Search, Rankings and Grind footers show only a count or your skill. Bags full and clam notes share one spot on the screen.
+- **Look:** Sort on Kills & Loot is a menu. Stats has This Session and Overall tabs. Notes like Bags Full share one spot on the screen.
 
 ## 1.1.0
 

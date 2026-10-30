@@ -6,8 +6,8 @@ local _, ns = ...
 
 ns.WHATS_NEW = {
     { version = "1.2.0", lines = {
-        "Drop the Goals panel near the bottom of Kills & Loot and it hangs under it. Drop Where to Farm under Goals and it opens there. Turn it off with Snap Panels on the General page.",
-        "A right-click on a row puts its own action first, like Open Loot Table or Show the Way.",
+        "Drop Goals under Kills & Loot and it stays there. Drop Where to Farm under Goals and it opens there. You can turn this off with Snap Panels on the General page.",
+        "Right-click a row and the thing you most likely want comes first, like Open Loot Table.",
     } },
     { version = "1.1.0", lines = {
         "One minimap button now covers every Blackthornes addon you have. Click it to pick one. Turn it off with Combine Addon Buttons on the Windows page.",
