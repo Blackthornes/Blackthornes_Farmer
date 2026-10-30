@@ -1820,6 +1820,16 @@ function UI:JoinSharedMinimap()
         middle = function() UI:BringBackPanels() end,
         db = function() return ns.db end,
     })
+    -- And the one Blackthornes window (UI/SharedWindow.lua). Until this
+    -- addon's pages move in, its rail button opens its own window.
+    if ns.SharedWindow then
+        ns.SharedWindow:Join({
+            key = "farmer", order = 1, name = "Farmer", icon = [[Interface\Icons\Trade_Mining]],
+            open = function() UI:Toggle() end,
+            settings = function() if ns.SettingsUI then ns.SettingsUI:Toggle() end end,
+            db = function() return ns.db end,
+        })
+    end
 end
 
 --- Re-seat the button at its stored angle, using the current radius.
