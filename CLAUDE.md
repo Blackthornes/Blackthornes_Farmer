@@ -724,6 +724,18 @@ close event for the same place changes nothing. At the auction house only
 Tradeskills is needed (`PLACES.auction.only`). Tested in
 `tools/test_sharedwindow.lua`. Not yet seen in game.
 
+Farmer's tabs have moved in (2026-10-30): the host is `FarmerTabs` in
+`UI/Main.lua` (`FarmerTabs.host`, given to `SharedWindow:Join`). With One
+Window on, opening Search, Rankings, Grind, Stats or Settings opens the one
+window on Farmer (`FarmerTabs:Route`, from `UI:Show` and
+`SettingsUI:Show`), each laid into its area bare of its own rim and grip,
+its tabs hung under the one window. A tab hiding only closes the one
+window when it is a Farmer tab in the area and no tab change or swap is
+under way (`FarmerTabs:Closed`, `switching`, `leaving`), so picking
+another addon on the rail never drops Farmer back to its own window.
+Kills & Loot, Goals and the other panels stay their own. "One Window:"
+sits on the General page. Tested in `tools/test_onewindow.lua`.
+
 ## The shared minimap button
 
 A player asked, the owner said build it from a mockup (2026-10-28), in all

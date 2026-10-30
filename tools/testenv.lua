@@ -60,6 +60,8 @@ local function Stub(fields)
 
     -- Recorded so a test can check where something was anchored.
     function frame:SetPoint(...) self._point = { ... } end
+    function frame:SetParent(parent) self._parent = parent end
+    function frame:GetParent() return rawget(self, "_parent") end
     function frame:GetCenter() return self._cx or 0, self._cy or 0 end
     function frame:GetEffectiveScale() return 1 end
 
@@ -389,6 +391,8 @@ local UI_FILES = {
     "UI/RowMenu.lua",
     "UI/Notice.lua",
     "UI/SharedChoices.lua",
+    "UI/SharedMinimap.lua",
+    "UI/SharedWindow.lua",
     "UI/About.lua",
     "UI/WhatsNew.lua",
     "UI/SettingsPages.lua",
@@ -448,6 +452,10 @@ end
 function env.Load(opts)
     opts = opts or {}
 
+    -- The suites share one Lua state; a one window left by an earlier suite
+    -- would hold that suite's save.
+    _G.BlackthornesWindow = nil
+
     env.InstallClient()
     if opts.unknownEvents then
         local unknown, create = opts.unknownEvents, _G.CreateFrame
@@ -489,6 +497,10 @@ function env.Load(opts)
     -- written before it test the whole picture, so they see it all.
     -- tools/test_showskinning.lua loads with { hideSkinning = true }.
     if not opts.hideSkinning then ns.db.hideSkinning = false end
+
+    -- The one window is on unless unticked; the suites written before it
+    -- test each window in its own place. tools/test_onewindow.lua turns it on.
+    ns.db.oneWindow = false
 
     env.ns = ns
     return ns
