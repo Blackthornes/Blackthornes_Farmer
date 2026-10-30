@@ -26,7 +26,6 @@ tool prints a note for a shipped line that reads like an advert.
 ## 1.2.0
 
 - Drop the Goals panel near the bottom of Kills & Loot and it hangs under it. Drop Where to Farm under Goals and it opens there. Turn it off with Snap Panels on the General page.
-- Kills & Loot and Goals have a gold fold gem and a red close gem.
 - A right-click on a row puts its own action first, like Open Loot Table or Show the Way.
 
 Fixes and changes:
