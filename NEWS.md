@@ -23,6 +23,17 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.2.0
+
+- Drop the Goals panel near the bottom of Kills & Loot and it hangs under it. Drop Where to Farm under Goals and it opens there. Turn it off with Snap Panels on the General page.
+- Kills & Loot and Goals have a gold fold gem and a red close gem.
+- A right-click on a row puts its own action first, like Open Loot Table or Show the Way.
+
+Fixes and changes:
+
+- The UI and Advanced pages are now one General page.
+- Sort on Kills & Loot opens a menu. This Session and Overall on Stats are tabs. The Search, Rankings and Grind footers show only a count or your skill. Bags full and clam notes share one spot on the screen.
+
 ## 1.1.0
 
 - One minimap button now covers every Blackthornes addon you have. Click it to pick one. Turn it off with Combine Addon Buttons on the Windows page.
