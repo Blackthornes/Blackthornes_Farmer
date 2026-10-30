@@ -30,8 +30,7 @@ tool prints a note for a shipped line that reads like an advert.
 
 Fixes and changes:
 
-- The UI and Advanced pages are now one General page.
-- Sort on Kills & Loot is a menu. Stats has This Session and Overall tabs. Notes like Bags Full share one spot on the screen.
+- Various bug fixes for Farmer.
 
 ## 1.1.0
 
