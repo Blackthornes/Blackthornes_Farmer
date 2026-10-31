@@ -472,6 +472,7 @@ function Theme.CreateItemIcon(parent, size)
     icon:SetSize(size or 16, size or 16)
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     icon:Hide()
+    if ns.ItemLook then ns.ItemLook.Attach(icon) end
     return icon
 end
 
@@ -486,5 +487,19 @@ function Theme.SetItemIcon(icon, itemID)
     end
 
     icon:SetTexture(Theme.ItemIcon(itemID) or FALLBACK_ICON)
+    Theme.RingItem(icon, nil, itemID)
     icon:Show()
+end
+
+--- Ring an item's icon in its quality colour (UI/ItemLook.lua), by name or
+--- item ID; nothing when the quality is not known yet.
+function Theme.RingItem(icon, name, itemID)
+    if not icon or not ns.ItemLook then return end
+    local quality
+    if ns.Util and ns.Util.ItemQuality then
+        local ok, found = pcall(ns.Util.ItemQuality, name, itemID)
+        if ok then quality = found end
+    end
+    if quality == nil and itemID then quality = ns.ItemLook.QualityOf(itemID) end
+    ns.ItemLook.SetQuality(icon, quality)
 end

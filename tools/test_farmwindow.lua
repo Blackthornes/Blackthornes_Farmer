@@ -158,7 +158,7 @@ end
 suite.check("best earners first", rows[1] and rows[1].item == "Wool Cloth"
     and rows[2].item == "Large Fang", rows[1] and rows[1].item)
 suite.check("ranked", rows[1].rank == 1 and rows[2].rank == 2)
-suite.check("with how many", rows[1].right == "x6", rows[1].right)
+suite.check("with how many", rows[1].count == 6, rows[1].count)
 suite.check("and what they are worth, in coin colours", rows[1].below == Value.Coins(360), rows[1].below)
 suite.check("and where they came from", rows[1].sub == "Kobold Worker 6", rows[1].sub)
 local scraps
