@@ -1748,3 +1748,11 @@ L["Best Worth"] = "最高价值"
 L["Camps that earn the most an hour first."] = "每小时收益最高的营地在前。"
 L["Sort each camp's mobs by how many you killed there."] = "按你在这里的击杀数排序每个营地的怪物。"
 L["sort by busiest, nearest, level, level nearest, or worth."] = "按 busiest、nearest、level、level nearest 或 worth 排序。"
+
+-- One Key Fishing
+L["Blackthornes Farmer"] = "Blackthornes Farmer"
+L["Fish (key binding)"] = "钓鱼"
+L["Face your bobber to reel in."] = "面向你的鱼漂才能收竿。"
+L["One Key Fishing:"] = "一键钓鱼："
+L["Press your Fish key to put on a lure, cast, and reel in. Set the key in the game's Key Bindings."] = "按下钓鱼键即可装上鱼饵、抛竿和收竿。请在游戏的按键设置中设定按键。"
+L["Pick a key for Fish in the game's Key Bindings, under Blackthornes Farmer."] = "请在游戏的按键设置中，于 Blackthornes Farmer 下为钓鱼设定一个按键。"

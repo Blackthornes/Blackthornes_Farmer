@@ -1,0 +1,6 @@
+<!-- The game loads this file by itself; it is not listed in the TOC.
+     One Key Fishing's key (UI/OneKeyFishing.lua) clicks a hidden secure
+     button, named on the Key Bindings page as Fish. -->
+<Bindings>
+    <Binding name="CLICK BlackthornesFarmerFishKey:LeftButton" header="BLACKTHORNESFARMER" category="ADDONS"/>
+</Bindings>

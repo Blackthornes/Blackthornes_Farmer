@@ -475,6 +475,32 @@ all account wide, never rename them; `/farm fishbar [on|off]`. Luremaster
 Not yet seen in game.
 
 
+## One key fishing
+
+Brought over from Classic Farmer (the owner said yes, 2026-10-31, on the
+rule that it only does what applies on Forever and breaks nothing here):
+one key puts on a lure, casts and reels in. `UI/OneKeyFishing.lua`: a
+hidden secure button, `BlackthornesFarmerFishKey`, bound in `Bindings.xml`
+("Fish" under "Blackthornes Farmer" in the game's Key Bindings; the file
+is read by the client and is not in the TOC). Out of combat it is a lure
+macro (`OneKeyFishing.LureMacro`: `/use item:ID` then `/use 16`) when
+`FishingBar.LureOnPole()` says none is on and `FishingBar:Lures(skill)`
+has a usable one, best first, else a cast of `FishingBar.SpellName()`; a
+pole must be held (`HoldsPole`). It only reads the Fishing window's
+calls, never changes `UI/FishingBar.lua`. While Fishing channels the key
+is pointed (`SetOverrideBinding`) at the game's interact action only
+while the soft interact target is the bobber (entry 35591 in its guid, or
+`NodeSparkle:IsBobber` by name); facing anything else it clicks
+`BlackthornesFarmerFishNote`, which shows "Face your bobber to reel in."
+in the shared note slot and opens nothing. Soft interact is raised to 3
+(the old value kept in `oneKeyFishingInteract`) and its reach through
+`NodeSparkle:RaiseReach(true)`, all put back when the channel ends or a
+fight starts; nothing changes in a fight. Off unless ticked: "One Key
+Fishing:" under FISHING on the Loot page (`oneKeyFishing`); turned on
+with no key set, chat says where to set one. Both keys account wide,
+never rename them. Tested in `tools/test_onekeyfishing.lua`. Not yet seen
+in game.
+
 ## The gold plaque
 
 Buttons that sit out on the screen on their own wear the gold plaque (the

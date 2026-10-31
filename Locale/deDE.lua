@@ -1754,3 +1754,11 @@ L["Best Worth"] = "Bester Wert"
 L["Camps that earn the most an hour first."] = "Lager, die pro Stunde am meisten bringen, zuerst."
 L["Sort each camp's mobs by how many you killed there."] = "Sortiert die Gegner jedes Lagers danach, wie viele du dort getötet hast."
 L["sort by busiest, nearest, level, level nearest, or worth."] = "sortiere nach busiest, nearest, level, level nearest oder worth."
+
+-- One Key Fishing
+L["Blackthornes Farmer"] = "Blackthornes Farmer"
+L["Fish (key binding)"] = "Angeln"
+L["Face your bobber to reel in."] = "Schau zu deinem Schwimmer, um ihn einzuholen."
+L["One Key Fishing:"] = "Ein-Tasten-Angeln:"
+L["Press your Fish key to put on a lure, cast, and reel in. Set the key in the game's Key Bindings."] = "Drück deine Angeln-Taste, um einen Köder anzubringen, die Angel auszuwerfen und einzuholen. Leg die Taste in der Tastenbelegung des Spiels fest."
+L["Pick a key for Fish in the game's Key Bindings, under Blackthornes Farmer."] = "Leg in der Tastenbelegung des Spiels eine Taste für Angeln fest, unter Blackthornes Farmer."

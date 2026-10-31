@@ -1064,6 +1064,14 @@ function SettingsUI:BuildLootPage()
     end, false)
     controls.fishingBar:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- One key to lure, cast and reel in (from Classic Era Farmer, 2026-10-31).
+    local oneKeyRow = pages:Row("loot", 1, L["One Key Fishing:"],
+        L["Press your Fish key to put on a lure, cast, and reel in. Set the key in the game's Key Bindings."])
+    controls.oneKeyFishing = Widgets.CreateCheckbox(oneKeyRow, L["On"], function(checked)
+        ns.OneKeyFishing:SetEnabled(checked)
+    end, false)
+    controls.oneKeyFishing:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Drops only (a player asked, the owner agreed 2026-10-11).
     pages:Section("loot", 2, L["SKINNING"])
 
@@ -1599,6 +1607,7 @@ function SettingsUI:Refresh()
     controls.openNote:SetChecked(db.openNote ~= false)
     controls.lootFeed:SetChecked(db.lootFeed == true)
     controls.fishingBar:SetChecked(db.fishingBar == true)
+    controls.oneKeyFishing:SetChecked(db.oneKeyFishing == true)
     controls.lootFeedHold:SetValue(ns.LootFeed:Hold(), true)
     controls.lootFeedWorth:SetChecked(db.lootFeedWorth ~= false)
     controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)
