@@ -75,6 +75,15 @@ local PLACES = {
     AUCTION_HOUSE_SHOW = "AUCTION_HOUSE_CLOSED",
     TRADE_SHOW = "TRADE_CLOSED",
 }
+-- The game's window for each, read only: a close the client never said
+-- (walking away from a mailbox) left the window hidden until a /reload.
+local PLACE_FRAMES = {
+    MERCHANT_SHOW = { "MerchantFrame" },
+    BANKFRAME_OPENED = { "BankFrame" },
+    MAIL_SHOW = { "MailFrame" },
+    AUCTION_HOUSE_SHOW = { "AuctionHouseFrame", "AuctionFrame" },
+    TRADE_SHOW = { "TradeFrame" },
+}
 FishingBar.at = {}
 -- The skill each lure needs, as its tooltip says: [itemID] = number, or
 -- false when it needs none.
@@ -265,6 +274,27 @@ function FishingBar:SetEnabled(on)
     ns.db.fishingBar = on and true or false
     self.closed = nil
     self:Update()
+end
+
+--- Is the game's window for a place still up? Nil when it has none to read.
+function FishingBar.PlaceShown(open)
+    local found
+    for _, name in ipairs(PLACE_FRAMES[open] or {}) do
+        local frame = rawget(_G, name)
+        if type(frame) == "table" and type(frame.IsShown) == "function" then
+            local ok, shown = pcall(frame.IsShown, frame)
+            if ok and shown then return true end
+            if ok then found = false end
+        end
+    end
+    return found
+end
+
+--- Let go of a place whose window has closed without saying so.
+function FishingBar:ForgetClosedPlaces()
+    for open in pairs(self.at) do
+        if self.PlaceShown(open) == false then self.at[open] = nil end
+    end
 end
 
 function FishingBar.Busy()
@@ -686,6 +716,7 @@ end
 --- Show or hide it for how things stand, and draw what shows.
 function FishingBar:Update()
     if self.fighting or InCombat() then return end
+    self:ForgetClosedPlaces()
     local holds = self.HoldsPole()
     -- Taking the pole off lets the close gem's choice go.
     if not holds then self.closed = nil end
@@ -710,6 +741,8 @@ function FishingBar:Changed()
     self.pending = true
     C_Timer.After(self.SETTLE, function()
         FishingBar.pending = nil
+        -- A fight's end the client never said leaves no lock behind.
+        if not InCombat() then FishingBar.fighting = false end
         FishingBar:Update()
     end)
 end
@@ -727,6 +760,8 @@ function FishingBar:OnEnable()
     end)
     ns.RegisterEvent(self, "BAG_UPDATE_DELAYED", Changed)
     ns.RegisterEvent(self, "SKILL_LINES_CHANGED", Changed)
+    -- Walking away from a mailbox or shop; nothing on a client without it.
+    ns.RegisterEvent(self, "PLAYER_INTERACTION_MANAGER_FRAME_HIDE", Changed)
 
     -- Just before combat locks secure frames: hidden while it still may be.
     ns.RegisterEvent(self, "PLAYER_REGEN_DISABLED", function()

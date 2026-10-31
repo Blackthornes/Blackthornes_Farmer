@@ -7,7 +7,8 @@
 --      nothing.
 --   3. The lure line says what is on and how long it has left, or that
 --      none is on (Add Lure glows), or that the bags have none.
---   4. Hidden in a fight and at a vendor, back after; the close gem holds
+--   4. Hidden in a fight and at a vendor, back after (also when the client
+--      never says the mailbox or shop closed); the close gem holds
 --      until the pole comes off.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
@@ -134,6 +135,18 @@ Fire("MERCHANT_SHOW")
 suite.check("hidden at a vendor", not Up())
 Fire("MERCHANT_CLOSED")
 suite.check("back after the vendor", Up())
+
+-- A mailbox whose close the client never said: the window comes back once
+-- the game's own window is gone, without a /reload.
+_G.MailFrame = { shown = true, IsShown = function(self) return self.shown end }
+Fire("MAIL_SHOW")
+suite.check("hidden at a mailbox", not Up())
+Fire("BAG_UPDATE_DELAYED")
+suite.check("still hidden while the mailbox shows", not Up())
+_G.MailFrame.shown = false
+Fire("PLAYER_INTERACTION_MANAGER_FRAME_HIDE")
+suite.check("back once the mailbox is gone, no close heard", Up())
+_G.MailFrame = nil
 
 Bar:Close()
 suite.check("the close gem hides it", not Up())
