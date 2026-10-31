@@ -435,6 +435,7 @@ local UI_FILES = {
     "UI/Veil.lua",
     "UI/XPBar.lua",
     "UI/FishingBar.lua",
+    "UI/OneKeyFishing.lua",
     "UI/Settings.lua",
 }
 
