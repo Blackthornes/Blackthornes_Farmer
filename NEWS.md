@@ -23,6 +23,12 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.4.1
+
+Fixes and changes:
+
+- Settings in the one window now fit all their text.
+
 ## 1.4.0
 
 - One key can now put on a lure, cast and reel in your line.
