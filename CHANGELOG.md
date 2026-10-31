@@ -4,6 +4,17 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.4.0
+
+For WoW: Forever (interface 16001). Files were added, so restart the game fully after updating (`/reload` is not enough).
+
+- **One Key Fishing:** One key puts on a lure, casts and reels in. Tick One Key Fishing under FISHING on the Loot page, then set a key under Fish in the game's Key Bindings.
+- **Camp worth:** The Grind tab shows what each camp earns an hour, from your own kills and what you picked there. Sort by Best Worth to find the best one.
+- **Item icons:** Quality rings, corner counts and coin columns on item icons.
+- **One Window:** Stays beside the auction house, and Settings drop-down lists stay on top.
+- **Fishing window:** Comes back when a mailbox or shop closes without saying so.
+- **Bug fixes:** Various bug fixes for Farmer.
+
 ## 1.3.0
 
 For WoW: Forever (interface 16001). Files were added, so restart the game fully after updating (`/reload` is not enough).
