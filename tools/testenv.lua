@@ -381,6 +381,8 @@ local HARVESTED = "Data/Data_Harvested.lua"
 
 local UI_FILES = {
     "UI/Theme.lua",
+    "UI/ItemLook.lua",
+    "UI/Coins.lua",
     "UI/BlizzardLook.lua",
     "UI/Widgets.lua",
     "UI/SpotMarker.lua",
