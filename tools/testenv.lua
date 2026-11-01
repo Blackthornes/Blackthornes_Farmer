@@ -95,7 +95,7 @@ env.Stub = Stub
 function env.InstallClient()
     env.chat = {}
 
-    _G.UIParent = Stub()
+    _G.UIParent = Stub({ _height = 2160 })
     -- The arrows' shared table (one Blackthornes arrow at a time) would
     -- carry one suite's arrow into the next.
     _G.BlackthornesArrows = nil
