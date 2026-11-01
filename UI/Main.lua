@@ -72,7 +72,22 @@ end
 
 --- The height every tab draws at: the Stats tab's charts want the most.
 function UI:WindowHeight()
-    return math.max(HEIGHT, ns.StatsUI and ns.StatsUI.HEIGHT or 0, UI.SettingsNeed(2))
+    local want = math.max(HEIGHT, ns.StatsUI and ns.StatsUI.HEIGHT or 0, UI.SettingsNeed(2))
+    local room = UI:ScreenHeightRoom()
+    if room then want = math.min(want, math.max(room, HEIGHT)) end
+    return want
+end
+
+--- How tall the window can be and still fit on screen, in its own units;
+--- nil before the screen's size is known. Taller pages scroll instead.
+function UI:ScreenHeightRoom()
+    local ok, height, scale = pcall(function()
+        return UIParent:GetHeight(), self.frame and self.frame:GetScale() or 1
+    end)
+    if not (ok and type(height) == "number" and height > 0 and type(scale) == "number" and scale > 0) then
+        return nil
+    end
+    return math.floor(height / scale) - 80
 end
 
 --- What the Settings tab needs at least (1 its width, 2 its height), or 0.
@@ -2024,6 +2039,7 @@ function FarmerTabs:Grow()
     if okH and type(areaH) == "number" and areaH > 0 and areaH < height then
         one:SetHeight(one:GetHeight() + (height - areaH))
     end
+    if ns.SharedWindow and ns.SharedWindow.Fit then ns.SharedWindow.Fit(one) end
 end
 
 --- Open a tab inside the one window.
