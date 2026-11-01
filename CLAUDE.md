@@ -1678,6 +1678,17 @@ its spots is back; its hover says how many spots and `Respawn:GroupLines`
 (how many are back, when the next is). A pin is `farmerMarker`, and
 `Respawn:OnTooltipShown` adds no second grow-back line to its card. Tested
 in `tools/test_mapicons.lua`. Not yet seen in game.
+My Professions Only (Flau asked on Discord, the owner said it is the
+default, 2026-11-01: other characters' nodes are of no use): the world map
+and minimap markers show only herb, ore and fish spots for the gathering
+skills the character playing knows (`MapMarkers.MineOnly`, `ShownKinds`,
+`ReadKnown` from `GetProfessions` by skill line, else the skill lines;
+read again on `SKILL_LINES_CHANGED` or after `KNOWN_EVERY` seconds). When
+the client won't say, every spot shows. Nothing saved changes. "My
+Professions Only:" under the markers on the Map & goals page
+(`markersMyProfessions`, on unless unticked, account wide, never rename
+it) and `/farm markers mine [on|off]`. Tested in
+`tools/test_myprofessions.lua`. Not yet seen in game.
 
 ## Quest count over quest mobs
 
