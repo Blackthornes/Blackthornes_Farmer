@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.4.3
+
+For WoW: Forever (interface 16001). A full restart is needed after updating.
+
+- **Gathered node markers:** The world map and minimap now show only the herb, ore and fish spots for the gathering skills the character you're playing knows. It's on by default. Turn it off with "My Professions Only:" under Gathered Node Markers on the Map & goals page of Settings, or with `/farm markers mine off`.
+
 ## 1.4.2
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
