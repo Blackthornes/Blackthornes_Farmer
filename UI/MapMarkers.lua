@@ -122,9 +122,9 @@ function MapMarkers:SetMinimap(on)
     self:Refresh()
 end
 
---- Only the spots for the gathering skills this character knows (Trent,
---- 2026-11-01: they are of no use on another character). On unless
---- unticked; nil reads as on.
+--- Only the spots for the gathering skills this character knows (2026-11-01:
+--- they are of no use on another character). On unless unticked; nil reads
+--- as on.
 function MapMarkers.MineOnly()
     return ns.db and ns.db.markersMyProfessions ~= false
 end
