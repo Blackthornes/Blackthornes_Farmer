@@ -246,10 +246,23 @@ function StatsUI:Build(frame)
     -- adds a little room either side.
     local layoutWidth = math.max(StatsUI.WIDTH,
         ns.UI and ns.UI.WindowWidth and ns.UI:WindowWidth() or 0)
-    local canvas = CreateFrame("Frame", nil, view)
-    canvas:SetPoint("TOP", view, "TOP")
-    canvas:SetPoint("BOTTOM", view, "BOTTOM")
+    -- The charts keep their own height; on a short screen the window is
+    -- capped and the wheel scrolls them instead.
+    local scroll = CreateFrame("ScrollFrame", nil, view)
+    scroll:SetPoint("TOP", view, "TOP")
+    scroll:SetPoint("BOTTOM", view, "BOTTOM")
+    scroll:SetWidth(layoutWidth)
+    scroll:EnableMouseWheel(true)
+    scroll:SetScript("OnMouseWheel", function(frame, delta)
+        local range = tonumber(frame:GetVerticalScrollRange()) or 0
+        local now = tonumber(frame:GetVerticalScroll()) or 0
+        frame:SetVerticalScroll(math.max(0, math.min(range, now - (delta or 0) * 48)))
+    end)
+    self.scroll = scroll
+    local canvas = CreateFrame("Frame", nil, scroll)
     canvas:SetWidth(layoutWidth)
+    canvas:SetHeight(StatsUI.HEIGHT)
+    scroll:SetScrollChild(canvas)
     self.canvas = canvas
 
     local width = layoutWidth - 2 * PADDING

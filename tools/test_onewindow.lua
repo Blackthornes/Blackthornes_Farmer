@@ -66,7 +66,9 @@ do
     -- The test's frames don't follow their anchors, so the area keeps its
     -- old height; the one window around it is what grows.
     suite.check("and the one window grows to hold them",
-        hub.frame:GetHeight() - oneBefore >= need[2] - before)
+        hub.frame:GetHeight() - oneBefore >= need[2] - before
+        or hub.frame:GetHeight() >= SW.Room(hub.frame))
+    suite.check("but never taller than the screen", hub.frame:GetHeight() <= SW.Room(hub.frame))
     SettingsUI.pages:ShowDescriptions(false)
     frame.GetWidth, frame.GetHeight = getW, getH
 end
