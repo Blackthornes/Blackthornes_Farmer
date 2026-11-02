@@ -1451,11 +1451,11 @@ function SettingsUI:BuildSharingPage()
 
     local _, giveButton = CommandRow(pages, "sharing", 1, L["Give My Data:"],
         L["Turns your counts into text you can send to another player."],
-        L["Make Text"], "give")
+        L["Export"], "give")
     controls.shareGive = giveButton
 
     local _, takeButton = CommandRow(pages, "sharing", 1, L["Take Their Data:"],
-        L["Paste what another player gave you. You'll see what it adds before anything changes."], L["Paste"], "take")
+        L["Paste what another player gave you. You'll see what it adds before anything changes."], L["Import"], "take")
     controls.shareTake = takeButton
 
     -- Logic/GuildShare.lua: the same with guildmates who use Farmer.
