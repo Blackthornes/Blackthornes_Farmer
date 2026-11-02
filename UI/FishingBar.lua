@@ -428,6 +428,7 @@ function FishingBar:Build()
     end
 
     self:Place()
+    self:FitButtons()
     return frame
 end
 
@@ -450,8 +451,11 @@ function FishingBar:FitButtons()
         value:SetPoint("TOPRIGHT", -PAD, -94 - grow)
         value:SetPoint("LEFT", label, "RIGHT", 6, 0)
     end
+    -- The fishing panel's strip sits under the Lure: line while it is on.
+    local strip = ns.FishingPanel and ns.FishingPanel:StripHeight() or 0
     local folded = ns.FoldWindow and ns.FoldWindow:IsFolded(frame)
-    if not folded then frame:SetHeight(self.HEIGHT + grow) end
+    if ns.FishingPanel and not folded then ns.FishingPanel:PlaceStrip(frame, -114 - grow) end
+    if not folded then frame:SetHeight(self.HEIGHT + grow + strip) end
 end
 
 --- Put it where it was left, else in its first place.
@@ -733,6 +737,7 @@ function FishingBar:Update()
     if not frame:IsShown() then frame:Show() end
     self:DrawLines()
     self:DrawList()
+    self:FitButtons()
 end
 
 --- Bag, gear and skill events come in bursts: one read after they settle.

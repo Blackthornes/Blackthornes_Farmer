@@ -1085,6 +1085,13 @@ function SettingsUI:BuildLootPage()
     end, false)
     controls.oneKeyFishing:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- What you catch while you fish (a player asked, the owner said build it, 2026-11-02).
+    local fishPanelRow = pages:Row("loot", 1, L["Fishing Panel:"], nil)
+    controls.fishingPanel = Widgets.CreateCheckbox(fishPanelRow, L["On"], function(checked)
+        ns.FishingPanel:SetEnabled(checked)
+    end, false)
+    controls.fishingPanel:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Drops only (a player asked, the owner agreed 2026-10-11).
     pages:Section("loot", 2, L["SKINNING"])
 
@@ -1632,6 +1639,7 @@ function SettingsUI:Refresh()
     controls.lootFeed:SetChecked(db.lootFeed == true)
     controls.fishingBar:SetChecked(db.fishingBar == true)
     controls.oneKeyFishing:SetChecked(db.oneKeyFishing == true)
+    controls.fishingPanel:SetChecked(db.fishingPanel == true)
     controls.lootFeedHold:SetValue(ns.LootFeed:Hold(), true)
     controls.lootFeedWorth:SetChecked(db.lootFeedWorth ~= false)
     controls.bagsFull:SetChecked(db.bagsFullNotice ~= false)

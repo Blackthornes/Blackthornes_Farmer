@@ -140,6 +140,7 @@ UI\OpenButton.lua
 UI\Veil.lua
 UI\XPBar.lua
 UI\FishingBar.lua
+UI\FishingPanel.lua
 UI\OneKeyFishing.lua
 UI\Settings.lua
 Data\Data_Harvested.lua

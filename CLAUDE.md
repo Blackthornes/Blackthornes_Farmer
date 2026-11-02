@@ -504,6 +504,27 @@ with no key set, chat says where to set one. Both keys account wide,
 never rename them. Tested in `tools/test_onekeyfishing.lua`. Not yet seen
 in game.
 
+## The fishing panel
+
+A player asked, the owner said build it (2026-11-02, from a mockup whose
+words he approved): a slim strip under the Fishing window's Cast and Add
+Lure opens a panel with three tabs. This Session (time, casts, catches,
+gold, gold an hour, with Pause and Start Over), This Spot (catch rates
+once 20 casts are behind them, "Best hour here:") and Fish Log (every
+fish ever caught, from `fishing.spots`). The lifts: New Catch ("First one
+you've ever caught.", a fish no spot has yet, `FishingPanel:Fresh`, read
+before `Fishing:Record` counts it), Best Hour Yet ("Your best here was
+X.", once a spot has `BEST_AFTER` seconds of casts close together, gaps
+over `Fishing.BREAK` left out, cheered once a session a spot), the Next
+Rate Unlock bar, coins counting up and a gold glow on new fish.
+`UI/FishingPanel.lua`; `Fishing:Record` calls `FishingPanel:Caught`. The
+session is kept in memory only. Off unless ticked: "Fishing Panel:" under
+FISHING on the Loot page and `/farm fishpanel [on|off]`. Saved, account
+wide, never rename them: `fishingPanel`, `fishingPanelBest` (`[spot key]`
+= the best gold an hour seen there, copper) and `fishingPanelScale`.
+Never name or copy the addon the player showed. Tested in
+`tools/test_fishingpanel.lua`. Not yet seen in game.
+
 ## The gold plaque
 
 Buttons that sit out on the screen on their own wear the gold plaque (the
