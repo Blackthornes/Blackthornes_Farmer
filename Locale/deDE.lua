@@ -1762,6 +1762,7 @@ L["sort by busiest, nearest, level, level nearest, or worth."] = "sortiere nach 
 L["Blackthornes Farmer"] = "Blackthornes Farmer"
 L["Fish (key binding)"] = "Angeln"
 L["Face your bobber to reel in."] = "Schau zu deinem Schwimmer, um ihn einzuholen."
+L["Your bobber is too far to reel in. Cast again from closer."] = "Dein Schwimmer ist zu weit weg zum Einholen. Wirf noch einmal aus der Nähe aus."
 L["One Key Fishing:"] = "Ein-Tasten-Angeln:"
 L["Press your Fish key to put on a lure, cast, and reel in. Set the key in the game's Key Bindings."] = "Drück deine Angeln-Taste, um einen Köder anzubringen, die Angel auszuwerfen und einzuholen. Leg die Taste in der Tastenbelegung des Spiels fest."
 L["Pick a key for Fish in the game's Key Bindings, under Blackthornes Farmer."] = "Leg in der Tastenbelegung des Spiels eine Taste für Angeln fest, unter Blackthornes Farmer."
