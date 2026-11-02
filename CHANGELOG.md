@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.5.0
+
+For WoW: Forever (interface 16001). A full restart is needed after updating.
+
+- **Fishing panel.** A slim strip under the Fishing window opens a panel with This Session, This Spot and Fish Log tabs. Off unless ticked: "Fishing Panel:" under FISHING on the Loot page, or `/farm fishpanel`.
+- **Bobber too far.** One Key Fishing now says "Your bobber is too far to reel in. Cast again from closer." when nothing is in reach.
+
 ## 1.4.4
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
