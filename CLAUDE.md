@@ -491,8 +491,11 @@ calls, never changes `UI/FishingBar.lua`. While Fishing channels the key
 is pointed (`SetOverrideBinding`) at the game's interact action only
 while the soft interact target is the bobber (entry 35591 in its guid, or
 `NodeSparkle:IsBobber` by name); facing anything else it clicks
-`BlackthornesFarmerFishNote`, which shows "Face your bobber to reel in."
-in the shared note slot and opens nothing. Soft interact is raised to 3
+`BlackthornesFarmerFishNote`, which opens nothing and shows in the shared
+note slot "Face your bobber to reel in." when the key picks something else,
+or "Your bobber is too far to reel in. Cast again from closer." when it
+picks nothing at all (it reaches all round, so nothing means out of reach;
+2026-11-02). Soft interact is raised to 3
 (the old value kept in `oneKeyFishingInteract`) and its reach through
 `NodeSparkle:RaiseReach(true)`, all put back when the channel ends or a
 fight starts; nothing changes in a fight. Off unless ticked: "One Key
