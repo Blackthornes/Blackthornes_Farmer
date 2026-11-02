@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.5.0
+
+- There's a new fishing panel. It shows your session, how each spot is doing and every fish you've caught. It's off until you tick "Fishing Panel:" in the Loot settings.
+
+Fixes and changes:
+
+- One key fishing tells you when your bobber is too far to reel in.
+
 ## 1.4.4
 
 Fixes and changes:
