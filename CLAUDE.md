@@ -2261,3 +2261,37 @@ same.
 - **The client is WoW: Forever, a retail engine** (`## Interface: 16001`,
   modern Lua), not 1.12. Read client values inside a pcall; instances hand out
   secret values that raise when touched.
+
+## Big files (read these in pieces)
+
+Reading a huge file whole fills the context and the thread dies. Sizes are
+from 2026-11-03 and only grow. Find more with `find . -name '*.lua' | xargs wc -lc | sort -n`.
+
+- Never read a file below whole. Use `grep -n` to find the spot, then read
+  about 150 lines at a time (Read with `offset` and `limit`).
+- Never read data tables or locale files whole. Grep them for one key.
+- CLAUDE.md is big too. Grep it for a heading, then read that part only.
+- Generated files (`Data/`) are written by their `tools/` script. Never edit
+  them by hand, and never open them to see what they hold.
+
+Data tables (generated, grep only):
+- `Data/Data_Harvested.lua` 8214 lines, 475 KB: shipped drop records.
+- `Data/Data_ClassicDrops.lua` 4611 lines, 470 KB: Classic drops for the search.
+- `Data/NpcNames.lua` 3365 lines, 115 KB and `Data/ForeverNpcNames.lua` 1215 lines, 39 KB: mob names by ID.
+
+Locale (grep one key, never read): `Locale/ruRU.lua` 1785 lines, 150 KB; `frFR`, `esES`, `deDE`, `zhCN` are each about 1780 lines, 115 to 120 KB.
+
+Code over 1500 lines:
+- `UI/Tracker.lua` 3557 lines, 137 KB: the Kills & Loot panel.
+- `UI/Widgets.lua` 2496 lines, 94 KB: shared widgets.
+- `Logic/Harvest.lua` 2345 lines, 92 KB: drop records.
+- `UI/Main.lua` 2119 lines, 79 KB: main window and its tabs.
+- `UI/Goals.lua` 2100 lines, 79 KB: goals panel.
+- `UI/Settings.lua` 1944 lines, 86 KB: Settings pages.
+- `Logic/Tracker.lua` 1824 lines, 72 KB: kill tally.
+- `UI/TrackerFX.lua` 1830 lines, 68 KB: panel effects.
+- `UI/Grinding.lua` 1743 lines, 71 KB: Grind tab.
+
+Over 800 lines or 30 KB, same rule: `UI/Rankings.lua`, `UI/Stats.lua`, `UI/XPBar.lua`, `UI/NodeSparkle.lua`, `UI/WhatsNew.lua`, `UI/MapMarkers.lua`, `UI/SharedWindow.lua`, `UI/LootTable.lua`, `UI/Heat.lua`, `UI/SettingsPages.lua`, `UI/FishingBar.lua`, `Logic/Share.lua`, `Logic/Arrow.lua`, `Logic/Search.lua`, `Logic/Gathering.lua`, `Logic/Stats.lua`, `Logic/Travel.lua`, `Logic/Value.lua`, `Logic/Fishing.lua`, `CHANGELOG.md` (1169 lines).
+
+The same file lives in several addons: `UI/SharedWindow.lua`, `UI/WhatsNew.lua`, `UI/SettingsPages.lua`, `Logic/Travel.lua`. A fix to one belongs in all.
