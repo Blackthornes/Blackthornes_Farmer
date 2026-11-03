@@ -568,6 +568,7 @@ function UI:ShowEmpty()
     for _, chip in ipairs(self.suggestChips) do chip:Hide() end
 
     local total = 0
+    local waiting = false
     for index, item in ipairs(picks) do
         local chip = self.suggestChips[index]
         if not chip then
@@ -581,9 +582,11 @@ function UI:ShowEmpty()
             self.suggestChips[index] = chip
         end
 
-        chip.itemName = item.name
-        chip:SetText(item.name)
-        chip:SetWidth(Theme.TextWidth("small", item.name) + 32)
+        local shown = UI.SuggestName(item)
+        waiting = waiting or UI.MayRename(item)
+        chip.itemName = shown
+        chip:SetText(shown)
+        chip:SetWidth(Theme.TextWidth("small", shown) + 32)
         Theme.SetItemIcon(chip.icon, item.id)
 
         chip:ClearAllPoints()
@@ -600,6 +603,49 @@ function UI:ShowEmpty()
         empty:Show()
         ns.Motion:Run(empty, "fade", 0.25, function(p) empty:SetAlpha(p) end)
     end
+    self:WatchSuggestNames(waiting)
+end
+
+--- The name a suggestion shows: the client's own on a client in another
+--- language, once it gives one, else the data's. English clients are untouched.
+function UI.SuggestName(item)
+    if Util.EnglishClient() then return item.name end
+    local DB = ns.DB
+    DB:LearnClientNames()
+    DB:NoteClientName(item)
+    return DB:ClientName(item) or item.name
+end
+
+--- True while the client has not named `item` yet, so its name may still change.
+function UI.MayRename(item)
+    if Util.EnglishClient() or not item.id then return false end
+    return not ns.DB.clientNamed[item.id]
+end
+
+-- How often, and how many times, the suggestions look again for names.
+UI.SUGGEST_LOOK = 0.5
+UI.SUGGEST_LOOKS = 10
+
+--- While a suggestion still waits on its name, look again now and then and
+--- redraw the chips once a name has come in; only while the panel shows.
+function UI:WatchSuggestNames(waiting)
+    if not waiting then self.suggestLooks = nil return end
+    if self.suggestWatching then return end
+    if not (type(C_Timer) == "table" and type(C_Timer.After) == "function") then return end
+    self.suggestLooks = (self.suggestLooks or UI.SUGGEST_LOOKS)
+    if self.suggestLooks <= 0 then return end
+    self.suggestLooks = self.suggestLooks - 1
+    self.suggestWatching = true
+    local at = ns.DB.namesVersion
+    C_Timer.After(UI.SUGGEST_LOOK, function()
+        UI.suggestWatching = nil
+        if not (UI.empty and UI.empty:IsShown()) then UI.suggestLooks = nil return end
+        if ns.DB.namesVersion ~= at then
+            UI:ShowEmpty()
+        else
+            UI:WatchSuggestNames(true)
+        end
+    end)
 end
 
 function UI:PlaceHeadings()

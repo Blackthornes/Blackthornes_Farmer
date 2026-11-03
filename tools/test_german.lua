@@ -69,6 +69,7 @@ end
 local ns = env.Load({ ui = true })
 
 suite.check("English: Linen Cloth by its name", ns.DB:GetItem("Linen Cloth").id == LINEN)
+suite.check("English: a suggestion stays English", ns.UI.SuggestName(ns.DB:GetItem("Linen Cloth")) == "Linen Cloth")
 suite.check("English: an unknown name is nothing", ns.DB:GetItem("Leinenstoff") == nil)
 suite.check("English: the client's names are never read", not ns.DB.learning)
 suite.check("English: the coin is read as before", ns.Tracker.CoinCopper("1 Gold 2 Silver 3 Copper") == 10203)
@@ -198,6 +199,18 @@ _G.UnitCreatureType = nil
 suite.check("German coin", ns.Tracker.CoinCopper("1 Gold 2 Silber 3 Kupfer") == 10203)
 suite.check("English coin still", ns.Tracker.CoinCopper("3 Copper") == 3)
 suite.check("Kupfererz is no coin", not ns.Harvest:NameLooksLikeMoney("Kupfererz"))
+
+-- The "Good at level" suggestions show the client's names.
+suite.check("a suggestion shows the German name", ns.UI.SuggestName(linen) == "Leinenstoff")
+local copper = DB:GetItem("Copper Ore")
+suite.check("a suggestion named as it is drawn", ns.UI.SuggestName(copper) == "Kupfererz")
+local wool = DB:GetItem("Wool Cloth")
+suite.check("an unnamed one shows English for now", wool and ns.UI.SuggestName(wool) == "Wool Cloth")
+suite.check("and waits for its name", ns.UI.MayRename(wool) == true)
+ITEM_NAMES[wool.id] = "Wollstoff"
+fireEvent(ns.eventFrame, "GET_ITEM_INFO_RECEIVED", wool.id, true)
+suite.check("then shows it once it comes in", ns.UI.SuggestName(wool) == "Wollstoff")
+suite.check("and waits no more", ns.UI.MayRename(wool) == false)
 
 -- Back to an English client for the suites after this one.
 _G.GetLocale, _G.C_TradeSkillUI, _G.C_CreatureInfo, _G.C_Spell = nil, nil, nil, nil
