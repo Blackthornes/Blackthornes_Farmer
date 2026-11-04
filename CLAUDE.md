@@ -298,7 +298,17 @@ want, records) through hooks on the partner state (`sections`, `store`,
   `DB:RemoveSource` puts it back), a few records
   a frame and only the changed ones (`GuildShare:Publish`). A mob's loot
   table shows no rate before the player's own (the owner, 2026-10-15), the
-  guild's included. Nothing in the windows says "guild" (the owner, 2026-10-13:
+  guild's included. From the player's own `Tracker.MIN_KILLS` on (the
+  owner, 2026-11-04), the loot table's Drop Rate and Per Kill blend the
+  guild's corpses in, counted the same as the player's with no cap, for
+  the items already on the player's table only (`GuildShare:LootFor`, a
+  lookup by mob laid out once `dropsVersion` moves; `LootTableUI.Blend`):
+  rate = (own + guild corpses with it) / (own + guild kills), Per Kill =
+  that rate times the blended amount a drop times `Value:WorthOf`, and the
+  worth a kill at the top follows the rows. A zone's line takes that
+  zone's guild records only; suffixes group as the player's do. Kills,
+  "12 of 40", "x57", which rows show, the kills panel, Rankings, tooltips
+  and every saved count are untouched; no new rows. Nothing in the windows says "guild" (the owner, 2026-10-13:
   "The UI should be all about the player"): no tag, no note; only Settings
   and `/farm share` name it. Turned off, the rows leave and the data stays.
 - Safety: records must pass `GuildShare.Plausible`, at most `MAX_GUILDMATES`
@@ -1571,7 +1581,9 @@ shipped data's, the guild's or Classic's. Always on, no setting, never
 announced (no CHANGELOG, NEWS or What's New line). The player's own
 records are never touched; at 20 kills their own rates show. The search
 (where an item drops), Rankings' estimates, worth per kill "(est.)" and
-the other addons still read the shipped data. Tested in
+the other addons still read the shipped data. From 20 kills the loot
+table's rates also take the guild's corpses in (see "Sharing with the
+guild"), silently. Tested in
 `tools/test_killtooltip.lua` and `tools/test_guildshare.lua`.
 
 ## World drops
