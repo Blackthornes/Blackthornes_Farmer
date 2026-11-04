@@ -179,7 +179,7 @@ def build_sandbox(saved_text):
     # A real install nests the flavour folder and the account name, which is
     # what the script has to search through.
     saved_dir = os.path.join(
-        sandbox, "client", "_classic_beta_", "WTF", "Account", "BLACKTHORNES",
+        sandbox, "client", "_forever_", "WTF", "Account", "BLACKTHORNES",
         "SavedVariables")
     os.makedirs(saved_dir)
 
@@ -200,7 +200,7 @@ def run_import(repo, client, *extra):
 def write_saved(client, text):
     """Replace what the fake client last wrote at logout."""
     path = os.path.join(
-        client, "_classic_beta_", "WTF", "Account", "BLACKTHORNES",
+        client, "_forever_", "WTF", "Account", "BLACKTHORNES",
         "SavedVariables", "Blackthornes_Farmer.lua")
 
     with open(path, "w", encoding="utf-8") as handle:
@@ -346,7 +346,7 @@ def main():
               "chance = 40" in text, text)
         check("no sender's name reaches the data", "Zed Sender" not in text)
         saved_now = open(os.path.join(
-            client, "_classic_beta_", "WTF", "Account", "BLACKTHORNES",
+            client, "_forever_", "WTF", "Account", "BLACKTHORNES",
             "SavedVariables", "Blackthornes_Farmer.lua"), encoding="utf-8").read()
         check("the save itself is not changed", saved_now == stamped(shared_text))
     finally:
