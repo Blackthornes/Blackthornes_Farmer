@@ -16,7 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "sync_all.ps1")
 REPOS = {
     "Blackthornes_Farmer": "main",
-    "Blackthornes_Tradeskills": "testing",
+    "Blackthornes_Tradeskills": "main",
     "Blackthornes_Equipment": "main",
     "Blackthornes_Pets": "main",
     "Blackthornes_Butler": "main",
@@ -113,8 +113,8 @@ def main():
 
         # Farmer: a change to an existing file only, so /reload.
         push_from_upstream(top, "Blackthornes_Farmer", "main", {"Core/Init.lua": "local a = 2\n"})
-        # Tradeskills on testing: a new file, so a full restart.
-        push_from_upstream(top, "Blackthornes_Tradeskills", "testing", {"UI/New.lua": "local b\n"})
+        # Tradeskills on main: a new file, so a full restart.
+        push_from_upstream(top, "Blackthornes_Tradeskills", "main", {"UI/New.lua": "local b\n"})
         # Equipment: a .tga changed, so a full restart.
         push_from_upstream(top, "Blackthornes_Equipment", "main", {"Media/a.tga": "x"})
         eq = os.path.join(root, "Blackthornes_Equipment")
@@ -134,7 +134,7 @@ def main():
         farmer = line_for(out, "Blackthornes_Farmer")
         expect("farmer updated", "updated" in farmer and "/reload is enough" in farmer)
         ts = line_for(out, "Blackthornes_Tradeskills")
-        expect("tradeskills on testing", "(testing)" in ts and "full restart" in ts)
+        expect("tradeskills on main", "(main)" in ts and "full restart" in ts)
         expect("tga needs restart", "full restart" in line_for(out, "Blackthornes_Equipment"))
         expect("equipment moved", git(eq, "rev-parse", "HEAD") == git(eq, "rev-parse", "origin/main"))
         expect("pets skipped", "changed on this PC" in line_for(out, "Blackthornes_Pets"))

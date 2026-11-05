@@ -3,9 +3,8 @@
     Bring every Blackthornes repo on this PC up to date with GitHub, safely.
 
 .DESCRIPTION
-    For each of the five addon repos, fetches its play branch and moves the
-    checkout forward to it (Tradeskills plays from testing, the others from
-    main). Then prints one line per repo and a summary saying whether /reload
+    For each of the five addon repos, fetches main and moves the checkout
+    forward to it. Then prints one line per repo and a summary saying whether /reload
     is enough or the game needs a full restart.
 
     It only ever fast-forwards. It never stashes, resets, merges, forces or
@@ -43,7 +42,7 @@ $env:GIT_TERMINAL_PROMPT = '0'
 # Each repo and the branch the owner plays from.
 $Repos = [ordered]@{
     'Blackthornes_Farmer'      = 'main'
-    'Blackthornes_Tradeskills' = 'testing'
+    'Blackthornes_Tradeskills' = 'main'
     'Blackthornes_Equipment'   = 'main'
     'Blackthornes_Pets'        = 'main'
     'Blackthornes_Butler'      = 'main'
