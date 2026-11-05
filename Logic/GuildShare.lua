@@ -136,15 +136,22 @@ end
 
 --- Say to the guild who this Farmer is and what it has.
 function GuildShare:Hello()
-    if not self:On() or not InGuild() or self.building then return end
+    self.helloTried = (self.helloTried or 0) + 1
+    if not self:On() then self.helloSkipped = "sharing off" return end
+    if not InGuild() then self.helloSkipped = "not in a guild yet" return end
+    if self.building then self.helloSkipped = "still building the last one" return end
     self.building = true
     self.helloAt = time()
     Share:Build(self.me, function(manifest)
         self.building = nil
-        if not self:On() or not InGuild() then return end
-        local top = Comm.Hash(ns.Serialize.EncodeCanonical(manifest))
-        Comm:Send("G", ns.Transfer:SourceId() .. ":" .. top, "GUILD")
+        if not self:On() or not InGuild() then self.helloSkipped = "off or out of the guild while building" return end
+        local ok, err = pcall(function()
+            local top = Comm.Hash(ns.Serialize.EncodeCanonical(manifest))
+            Comm:Send("G", ns.Transfer:SourceId() .. ":" .. top, "GUILD")
+        end)
+        if not ok then self.helloSkipped = "error: " .. tostring(err) return end
         self.helloSent = (self.helloSent or 0) + 1
+        self.helloSkipped = nil
     end)
 end
 
@@ -644,8 +651,10 @@ function GuildShare:Check()
     if okCount then Line("guild members: %s, online %s", tostring(total), tostring(online)) end
     Line("my name reads %q, farmer id %s", tostring(Comm.PlayerName()), tostring(ns.Transfer:SourceId()))
     local ago = self.helloAt and (time() - self.helloAt) or nil
-    Line("hellos sent this session: %d, last %s s ago, building %s",
-        self.helloSent or 0, tostring(ago), tostring(self.building == true))
+    Line("this session started %s s ago", tostring(self.enabledAt and (time() - self.enabledAt)))
+    Line("hellos tried %d, sent %d, last %s s ago, building %s, timer set %s, last skip %s",
+        self.helloTried or 0, self.helloSent or 0, tostring(ago), tostring(self.building == true),
+        tostring(self.ticker ~= nil), tostring(self.helloSkipped))
     Line("addon messages sent %d, refused %d, retried %d, waiting %d, last refusal %s",
         Comm.sent or 0, Comm.refused or 0, Comm.retried or 0, #Comm.queue, tostring(Comm.lastRefusal))
     Line("Farmer messages heard in all: %d", Comm.received or 0)
@@ -666,10 +675,42 @@ function GuildShare:Check()
         self.helloAt = nil
         self:Hello()
         Line("a hello was just sent to your guild")
+        self:FollowUp()
     end
 end
 
+GuildShare.FOLLOW_UP = 30   -- seconds the check waits before adding what came back
+
+--- After the check's hello, add what happened next to the same saved
+--- probe, so one check and a /reload a minute later tell the whole story.
+function GuildShare:FollowUp()
+    if type(C_Timer) ~= "table" then return end
+    local sentBefore, heardBefore = Comm.sent or 0, Comm.received or 0
+    C_Timer.After(self.FOLLOW_UP, function()
+        -- The check is saved once it returns, so the probe is read now.
+        local probe = type(ns.db) == "table" and ns.db.lastProbe
+        if type(probe) ~= "table" or probe.check ~= "guild check" or type(probe.lines) ~= "table" then return end
+        local function Add(...) probe.lines[#probe.lines + 1] = string.format(...) end
+        Add("%d s later: hellos tried %d, sent %d, last skip %s", GuildShare.FOLLOW_UP,
+            GuildShare.helloTried or 0, GuildShare.helloSent or 0, tostring(GuildShare.helloSkipped))
+        Add("%d s later: addon messages sent %d more (refused %d, last refusal %s), heard %d more",
+            GuildShare.FOLLOW_UP, (Comm.sent or 0) - sentBefore, Comm.refused or 0,
+            tostring(Comm.lastRefusal), (Comm.received or 0) - heardBefore)
+        local any = false
+        for _, entry in pairs(Comm.guildHeard) do
+            any = true
+            Add("%d s later: heard on guild %q, kinds %s, %d message(s)", GuildShare.FOLLOW_UP,
+                tostring(entry.name), entry.kinds, entry.count)
+        end
+        if not any then Add("%d s later: heard on guild: nobody", GuildShare.FOLLOW_UP) end
+        for sender, why in pairs(GuildShare.passed) do
+            Add("%d s later: hello not taken from %q: %s", GuildShare.FOLLOW_UP, sender, why)
+        end
+    end)
+end
+
 function GuildShare:OnEnable()
+    self.enabledAt = time()
     Comm:On("G", function(...) GuildShare:OnHello(...) end)
     -- Share:OnEnable ran first (the TOC's order) and called Apply before this
     -- module had its handler; this starts the hellos and shows the guild's
