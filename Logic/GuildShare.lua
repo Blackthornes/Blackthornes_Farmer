@@ -144,6 +144,7 @@ function GuildShare:Hello()
         if not self:On() or not InGuild() then return end
         local top = Comm.Hash(ns.Serialize.EncodeCanonical(manifest))
         Comm:Send("G", ns.Transfer:SourceId() .. ":" .. top, "GUILD")
+        self.helloSent = (self.helloSent or 0) + 1
     end)
 end
 
@@ -156,13 +157,22 @@ function GuildShare:AnswerSoon()
     C_Timer.After(3 + math.random() * 10, function() GuildShare:Hello() end)
 end
 
+GuildShare.passed = {}   -- [sender] = why a hello was not taken, for the check
+
 function GuildShare:OnHello(sender, body, channel)
-    if channel ~= "GUILD" or not self:On() or Comm.IsMe(sender) then return end
+    local function Pass(why)
+        if type(sender) == "string" then self.passed[sender] = why end
+    end
+    if channel ~= "GUILD" then return Pass("not on the guild channel") end
+    if not self:On() then return Pass("guild sharing is off here") end
+    if Comm.IsMe(sender) then return Pass("read as this character") end
     local id, top = (body or ""):match("^(%x+):(%w+)$")
-    if not ValidId(id) or #top > 12 then return end
-    if id == ns.Transfer:SourceId() or LinkedAccount(id) then return end
+    if not ValidId(id) or #top > 12 then return Pass("hello not read") end
+    if id == ns.Transfer:SourceId() then return Pass("same Farmer as this one") end
+    if LinkedAccount(id) then return Pass("your other account, shared by name") end
     local senderKey = Comm.NameKey(sender)
-    if not senderKey then return end
+    if not senderKey then return Pass("no name") end
+    self.passed[sender] = nil
 
     local state = self.byId[id]
     local new = state == nil
@@ -610,6 +620,8 @@ function GuildShare:Command(text)
     if word == "on" or word == "off" then
         self:SetOn(word == "on")
         ns.Print(word == "on" and L["sharing with your guild is on"] or L["sharing with your guild is off"])
+    elseif word == "check" then
+        ns.KeepCheck("guild check", GuildShare.Check, self)
     elseif word == "forget" then
         if (rest or ""):lower() ~= "confirm" then
             ns.Print(L["This deletes the drop rates your guild gave and turns guild sharing off. Your own kills and loot stay as they are. Type /farm share guild forget confirm to do it."])
@@ -619,6 +631,41 @@ function GuildShare:Command(text)
         ns.Print(L.Format("Deleted your guild's drops for %d mobs. Guild sharing is off.", count))
     else
         ns.Print(self:Describe())
+    end
+end
+
+--- `/farm share guild check`: what guild sharing sees, for a report. Typed
+--- only, kept as lastProbe. Says hello now too, so guildmates answer.
+function GuildShare:Check()
+    local function Line(...) ns.Print(string.format(...)) end
+    Line("guild check: sharing %s, in a guild %s, listening %s, prefix %s",
+        tostring(self:On()), tostring(InGuild()), tostring(Comm.listening == true), tostring(Comm.registered))
+    local okCount, total, online = pcall(GetNumGuildMembers)
+    if okCount then Line("guild members: %s, online %s", tostring(total), tostring(online)) end
+    Line("my name reads %q, farmer id %s", tostring(Comm.PlayerName()), tostring(ns.Transfer:SourceId()))
+    local ago = self.helloAt and (time() - self.helloAt) or nil
+    Line("hellos sent this session: %d, last %s s ago, building %s",
+        self.helloSent or 0, tostring(ago), tostring(self.building == true))
+    Line("addon messages sent %d, refused %d, retried %d, waiting %d, last refusal %s",
+        Comm.sent or 0, Comm.refused or 0, Comm.retried or 0, #Comm.queue, tostring(Comm.lastRefusal))
+    Line("Farmer messages heard in all: %d", Comm.received or 0)
+    local any = false
+    for _, entry in pairs(Comm.guildHeard) do
+        any = true
+        Line("heard on guild: %q, kinds %s, %d message(s), %d s ago",
+            tostring(entry.name), entry.kinds, entry.count, time() - (entry.at or time()))
+    end
+    if not any then Line("heard on guild: nobody") end
+    for sender, why in pairs(self.passed) do Line("hello not taken from %q: %s", sender, why) end
+    for _, state in pairs(self.byId) do
+        Line("guildmate %q id %s, heard %s s ago, queued %s, syncing %s, last sync %s",
+            tostring(state.name), tostring(state.id), tostring(state.heardAt and time() - state.heardAt),
+            tostring(state.queued == true), tostring(self.current == state), tostring(state.syncedAt))
+    end
+    if self:On() and InGuild() then
+        self.helloAt = nil
+        self:Hello()
+        Line("a hello was just sent to your guild")
     end
 end
 
