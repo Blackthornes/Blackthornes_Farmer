@@ -239,6 +239,10 @@ function NodeSparkle:ApplySettings()
         elseif low then
             if saved[name] == nil then saved[name] = now end
             self.SetCVar(name, cvar.value)
+        elseif now ~= nil and cvar.moves and saved[name] == nil then
+            -- Already on before Farmer came to it: keep the player's value
+            -- to put back, so FitPlateToTarget may take the plate off NPCs.
+            saved[name] = now
         elseif now ~= nil and cvar.lower and saved[name] ~= nil and (tonumber(now) or 0) > cvar.atLeast then
             -- Farmer set it higher before: bring it to what it sets now.
             self.SetCVar(name, cvar.value)
@@ -1123,7 +1127,14 @@ function NodeSparkle:FitPlateToTarget()
     local guid, name, object = self:Facing()
     -- A corpse to skin keeps the plate: the sparkle hangs on it.
     local creature = guid and not object and not self:SkinnableCorpse(guid, name)
-    local want = creature and own or "1"
+    -- Facing an NPC, the plate goes back to the player's own value; when
+    -- that was already on but they show no friendly NPC nameplates, it goes
+    -- off, so an NPC gets no bar only Farmer's setting asked for.
+    local onCreature = own
+    if (tonumber(own) or 0) >= 1 and self.GetCVar("nameplateShowFriendlyNPCs") ~= "1" then
+        onCreature = "0"
+    end
+    local want = creature and onCreature or "1"
     if self.GetCVar("SoftTargetNameplateInteract") ~= want then
         self.SetCVar("SoftTargetNameplateInteract", want)
     end

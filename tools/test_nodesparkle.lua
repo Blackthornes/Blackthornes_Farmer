@@ -367,6 +367,31 @@ Face("Kaja", NPC)
 suite.check("a plate the player turned on is left alone", cvars.SoftTargetNameplateInteract == "1")
 ns.db.nodeSparkleCVars = keep
 
+-- Already on before Farmer came to it, with friendly NPC nameplates off:
+-- the player's value is kept to put back, NPCs lose the plate and nodes
+-- keep it while sparkles are on.
+ns.NodeSparkle:SetEnabled(false)
+keep = ns.db.nodeSparkleCVars
+ns.db.nodeSparkleCVars = {}
+cvars.SoftTargetNameplateInteract = "1"
+cvars.nameplateShowFriendlyNPCs = "0"
+ns.NodeSparkle:SetEnabled(true)
+suite.check("a plate already on is kept to put back", ns.db.nodeSparkleCVars.SoftTargetNameplateInteract == "1")
+Face("Kaja", NPC)
+suite.check("an NPC loses the plate when friendly NPC nameplates are off", cvars.SoftTargetNameplateInteract == "0")
+Face("Copper Vein", VEIN)
+suite.check("a node still gets it", cvars.SoftTargetNameplateInteract == "1")
+cvars.nameplateShowFriendlyNPCs = "1"
+Face("Kaja", NPC)
+suite.check("with friendly NPC nameplates on it stays", cvars.SoftTargetNameplateInteract == "1")
+cvars.nameplateShowFriendlyNPCs = "0"
+Face("Kaja", NPC)
+ns.NodeSparkle:SetEnabled(false)
+suite.check("turning sparkles off puts the player's own back", cvars.SoftTargetNameplateInteract == "1")
+cvars.nameplateShowFriendlyNPCs = nil
+cvars.SoftTargetNameplateInteract = "0"
+ns.db.nodeSparkleCVars = keep
+
 -- Fishing: a cast lands past the usual reach, so the reach goes up while
 -- the Fishing channel runs, and comes back when it ends.
 NodeSparkle:SetEnabled(true)

@@ -1648,7 +1648,11 @@ theirs: the next `ApplySettings` (every loading screen) notes it in
 `nodeSparkleCVarsLeft` (never rename it) and never sets it again, and with
 the interact key off the nameplate setting goes back too; only ticking the
 sparkles box again clears it. `SoftTargetNameplateInteract` (`moves`) is
-never judged, since Farmer turns it down itself. A node is a herb or vein the data knows, the client's
+never judged, since Farmer turns it down itself. When that plate was already on
+before Farmer came to it (2026-11-05, a player's NPCs kept a bar with
+friendly NPC nameplates off), its value is kept to put back too, and
+while the player shows no friendly NPC nameplates
+(`nameplateShowFriendlyNPCs`) `FitPlateToTarget` takes it off NPCs. A node is a herb or vein the data knows, the client's
 herb name, or a node the player gathered; a hidden source gets nothing.
 `/farm sparkle check` (`ns.KeepCheck`) reports what the client gives.
 Seen in game 2026-10-13 round the icon. Since then (the owner asked the
