@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.6.2
+
+Fixes and changes:
+
+- The quest count on nameplates no longer covers the mob's level.
+- Sparkles no longer turn the game's Interact Key back on after you turn it off.
+
 ## 1.6.1
 
 Fixes and changes:
