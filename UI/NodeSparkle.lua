@@ -422,12 +422,54 @@ function NodeSparkle:Names()
     return set
 end
 
+-- Forever puts a word in front of some nodes ("Wilted Peacebloom",
+-- "Stunted Silverleaf", a player's report 2026-11-05). Such a name counts
+-- as the node it ends with, so it sparkles and takes that node's skill.
+NodeSparkle.MAX_LEADING_WORDS = 3
+local bases, basesKey = {}, nil
+
+--- The node a name stands for, in lower case: the name itself when Farmer
+--- knows it, else the known node it ends with once up to
+--- MAX_LEADING_WORDS words come off the front. Nil when neither.
+function NodeSparkle:BaseKey(name)
+    if type(name) ~= "string" or name == "" then return nil end
+    local set = self:Names()
+    if basesKey ~= namesKey then bases, basesKey = {}, namesKey end
+    local lower = name:lower()
+    local kept = bases[lower]
+    if kept ~= nil then return kept or nil end
+    local found = set[lower] and lower or nil
+    local rest = lower
+    for _ = 1, self.MAX_LEADING_WORDS do
+        if found then break end
+        local after = rest:match("^%S+%s+(.+)$")
+        if not after then break end
+        rest = after
+        if set[rest] then found = rest end
+    end
+    bases[lower] = found or false
+    return found
+end
+
 --- The skill a node needs, as "Mining", 65, or nil when the data does not
 --- say (a node only the player has gathered).
 function NodeSparkle:NodeNeeds(name)
     if type(name) ~= "string" or name == "" then return nil end
     self:Names()
-    local entry = needs and needs[name:lower()]
+    local lower = name:lower()
+    local entry = needs and needs[lower]
+    if not entry then
+        -- A gathered "Wilted Peacebloom" is known by name but not its need:
+        -- take the need of the node it ends with.
+        local rest = lower
+        for _ = 1, self.MAX_LEADING_WORDS do
+            local after = rest:match("^%S+%s+(.+)$")
+            if not after then break end
+            rest = after
+            entry = needs and needs[rest]
+            if entry then break end
+        end
+    end
     if not entry then return nil end
     return entry.skill, entry.need
 end
@@ -590,8 +632,9 @@ end
 
 function NodeSparkle:IsNode(name)
     if type(name) ~= "string" or name == "" then return false end
-    if not self:Names()[name:lower()] then return false end
-    if ns.DB and ns.DB:IsHiddenSource(name) then return false end
+    local key = self:BaseKey(name)
+    if not key then return false end
+    if ns.DB and (ns.DB:IsHiddenSource(name) or ns.DB:IsHiddenSource(self:Names()[key])) then return false end
     return true
 end
 
