@@ -45,6 +45,7 @@ local Share = ns.Share
 GuildShare.HELLO_SECONDS = 900    -- a hello to the guild every quarter hour
 GuildShare.FIRST_HELLO = 30       -- and this long after login
 GuildShare.ANSWER_GAP = 60        -- at most one hello back a minute
+GuildShare.QUIET_ANSWER = 300     -- a guildmate not heard this long has likely reloaded: answer them
 GuildShare.SYNC_GAP = 600         -- one guildmate synced at most this often
 GuildShare.SYNC_TIMEOUT = 600     -- a sync left this long is given up
 GuildShare.STILL_COMING = 60      -- unless records came in this recently
@@ -201,9 +202,14 @@ function GuildShare:OnHello(sender, body, channel)
     if other and other ~= state then other.senderKey = nil end
     state.name, state.senderKey = sender, senderKey
     self.bySender[senderKey] = state
+    -- Someone already known who was quiet a while, or went offline, has
+    -- reloaded or logged back in and no longer knows this side: answer
+    -- them too, or they wait up to a quarter hour to hear it.
+    local back = not state.online or not state.heardAt
+        or time() - state.heardAt > self.QUIET_ANSWER
     state.online, state.heardAt, state.top = true, time(), top
 
-    if new then self:AnswerSoon() end
+    if new or back then self:AnswerSoon() end
     local held = Ledgers()[state.key]
     if not (type(held) == "table" and held.top == top) then self:Want(state) end
 end
