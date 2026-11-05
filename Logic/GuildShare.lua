@@ -295,7 +295,20 @@ end
 function GuildShare:PartnerFor(sender)
     if not self:On() then return nil end
     local key = Comm.NameKey(sender)
-    return key and self.bySender[key] or nil
+    if not key then return nil end
+    if self.bySender[key] then return self.bySender[key] end
+    -- A whisper can name its sender by the first name alone, or the guild
+    -- channel can: then the one guildmate heard with that first name, and
+    -- only when no other shares it.
+    local first = key:match("^(%S+)")
+    local found
+    for heard, state in pairs(self.bySender) do
+        if heard:match("^(%S+)") == first then
+            if found then return nil end
+            found = state
+        end
+    end
+    return found
 end
 
 function GuildShare:OnOffline(key)
@@ -666,15 +679,19 @@ function GuildShare:Check()
     end
     if not any then Line("heard on guild: nobody") end
     for sender, why in pairs(self.passed) do Line("hello not taken from %q: %s", sender, why) end
-    for _, state in pairs(self.byId) do
-        Line("guildmate %q id %s, heard %s s ago, queued %s, syncing %s, last sync %s",
-            tostring(state.name), tostring(state.id), tostring(state.heardAt and time() - state.heardAt),
-            tostring(state.queued == true), tostring(self.current == state), tostring(state.syncedAt))
-    end
+    for _, line in ipairs(self:WhisperLines()) do Line("%s", line) end
+    for _, line in ipairs(self:MateLines()) do Line("%s", line) end
     if self:On() and InGuild() then
         self.helloAt = nil
         self:Hello()
         Line("a hello was just sent to your guild")
+        -- And a whispered hello to each guildmate heard: their "A" back,
+        -- in the 30 s lines, says whispers go both ways.
+        local whispered = 0
+        for _, state in pairs(self.byId) do
+            if state.online and state.name then Share:Hello(state.name) whispered = whispered + 1 end
+        end
+        Line("a whispered hello went to %d guildmate(s)", whispered)
         self:FollowUp()
     end
 end
@@ -706,7 +723,40 @@ function GuildShare:FollowUp()
         for sender, why in pairs(GuildShare.passed) do
             Add("%d s later: hello not taken from %q: %s", GuildShare.FOLLOW_UP, sender, why)
         end
+        for _, line in ipairs(GuildShare:WhisperLines()) do Add("%d s later: %s", GuildShare.FOLLOW_UP, line) end
+        for _, line in ipairs(GuildShare:MateLines()) do Add("%d s later: %s", GuildShare.FOLLOW_UP, line) end
     end)
+end
+
+--- The check's lines on whispers: who was heard off the guild channel (the
+--- name as the game gave it), and whose whispers no sharing knew.
+function GuildShare:WhisperLines()
+    local lines = {}
+    for _, entry in pairs(Comm.otherHeard or {}) do
+        lines[#lines + 1] = string.format("heard by %s: %q, kinds %s, %d message(s), %d s ago",
+            tostring(entry.channel), tostring(entry.name), entry.kinds, entry.count, time() - (entry.at or time()))
+    end
+    if #lines == 0 then lines[1] = "heard by whisper: nobody" end
+    for sender, count in pairs(Share.unmatched or {}) do
+        lines[#lines + 1] = string.format("whispers not matched to anyone: %q, %d", sender, count)
+    end
+    return lines
+end
+
+--- The check's lines on each guildmate heard: where their sync stands.
+function GuildShare:MateLines()
+    local lines = {}
+    for _, state in pairs(self.byId) do
+        local held = Ledgers()[state.key]
+        lines[#lines + 1] = string.format(
+            "guildmate %q id %s, heard %s s ago, online %s, queued %s, syncing %s, last sync %s s ago, their manifest %s, records in %s, taken %s",
+            tostring(state.name), tostring(state.id), tostring(state.heardAt and time() - state.heardAt),
+            tostring(state.online == true), tostring(state.queued == true), tostring(self.current == state),
+            tostring(state.syncedAt and time() - state.syncedAt),
+            state.manifestIn and (state.manifestRefused or "in") or "none",
+            tostring(state.lastRecordAt ~= nil), tostring(type(held) == "table"))
+    end
+    return lines
 end
 
 function GuildShare:OnEnable()
