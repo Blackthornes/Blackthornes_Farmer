@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.6.2
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Quest count on nameplates.** It no longer covers the mob's level.
+- **Sparkles.** They no longer turn the game's Interact Key back on after you turn it off.
+
 ## 1.6.1
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
