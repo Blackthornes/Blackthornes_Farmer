@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.6.3
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Fishing window.** Fish in Your Catch show their icons.
+- **Add Lure.** The button shows a dimmed lure icon when you have no lures.
+
 ## 1.6.2
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.

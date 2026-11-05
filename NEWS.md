@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.6.3
+
+Fixes and changes:
+
+- Fish in the Fishing panel show their icons.
+- The Add Lure button shows a dimmed lure icon when you have no lures.
+
 ## 1.6.2
 
 Fixes and changes:
