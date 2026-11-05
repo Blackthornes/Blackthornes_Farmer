@@ -110,4 +110,15 @@ local rows = Panel:LogRows()
 suite.check("the log lists what was caught", #rows >= 2)
 suite.check("most caught first", rows[1].count >= rows[2].count)
 
+-- Icons come from C_Item (the old GetItemIcon global is gone on Forever),
+-- else the loot slot's own icon kept with the item's look; never a "?".
+local oldItem, oldIcon = _G.C_Item, _G.GetItemIcon
+_G.GetItemIcon = nil
+_G.C_Item = { GetItemIconByID = function(id) return id == 6303 and 133888 or nil end }
+suite.check("icon by ID through C_Item", Panel.IconOf({ id = 6303 }) == 133888)
+_G.C_Item = {}
+ns.Tracker:Looks()["Raw Longjaw Mud Snapper"] = { icon = 133889 }
+suite.check("icon from the loot slot's look", Panel.IconOf({ name = "Raw Longjaw Mud Snapper" }) == 133889)
+_G.C_Item, _G.GetItemIcon = oldItem, oldIcon
+
 suite.done()

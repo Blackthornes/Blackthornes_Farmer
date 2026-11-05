@@ -43,11 +43,48 @@ local function Coins(copper)
     return tostring(copper or 0)
 end
 
+--- The item ID for a catch: the loot's look or the data first, else the
+--- ID the fishing records kept from the loot window (a fish no mob drops
+--- and the data does not list, such as Raw Longjaw Mud Snapper).
+local idOf = {}
+function FishingPanel.IdOf(name)
+    if not name then return nil end
+    if idOf[name] then return idOf[name] end
+    local id
+    if ns.Value then
+        local ok, value = pcall(ns.Value.ItemID, ns.Value, name)
+        if ok then id = tonumber(value) end
+    end
+    if not id and ns.Fishing and ns.Fishing.Store then
+        local ok, store = pcall(ns.Fishing.Store, ns.Fishing)
+        for _, spot in pairs(ok and type(store) == "table" and store or {}) do
+            local entry = type(spot) == "table" and type(spot.items) == "table" and spot.items[name]
+            id = type(entry) == "table" and tonumber(entry.id) or nil
+            if id then break end
+        end
+    end
+    idOf[name] = id
+    return id
+end
+
+--- A catch's icon: the client's by item ID (C_Item first, since the old
+--- GetItemIcon global is gone on Forever), else the loot slot's own icon
+--- kept with the item's look.
+function FishingPanel.IconOf(line)
+    if type(line) ~= "table" then return nil end
+    local icon = line.id and Theme.ItemIcon and Theme.ItemIcon(line.id)
+    if not icon and line.name and ns.Tracker and ns.Tracker.LookOf then
+        local ok, look = pcall(ns.Tracker.LookOf, ns.Tracker, line.name)
+        icon = ok and type(look) == "table" and look.icon or nil
+    end
+    return icon
+end
+
 local function PriceOf(name)
     local Value = ns.Value
     if not (Value and name) then return 0 end
     local ok, price = pcall(function()
-        local id = Value:ItemID(name)
+        local id = FishingPanel.IdOf(name)
         return id and Value:UnitPrice(id) or 0
     end)
     return ok and tonumber(price) or 0
@@ -578,8 +615,7 @@ local function FillRow(row, line)
     row.name:SetText(line.name or "")
     row.value:SetText(line.value or "")
     row.tag:SetText(line.new and L["New"] or "")
-    local icon = line.id and type(GetItemIcon) == "function" and GetItemIcon(line.id)
-    row.icon:SetTexture(icon or 134400)
+    row.icon:SetTexture(FishingPanel.IconOf(line) or 134400)
     row.edge:SetShown(line.new and true or false)
     if row.pulse then
         if line.new and MotionLevel() == "full" then
@@ -598,7 +634,7 @@ function FishingPanel:SessionLines()
         lines[#lines + 1] = {
             name = name,
             count = count,
-            id = ns.Value and ns.Value:ItemID(name) or nil,
+            id = FishingPanel.IdOf(name),
             value = tostring(count),
             new = s.new[name],
         }

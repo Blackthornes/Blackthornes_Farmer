@@ -668,7 +668,9 @@ function FishingBar:DrawLines()
     self:Glow(glow)
     local best = lures[1]
     local button = self.lureButton
-    button:SetIcon(best and ItemIcon(best.id) or 134400)
+    -- With none in the bags it wears a lure's look, dimmed, never a "?".
+    local looks = FishingBar.LURES[#FishingBar.LURES]
+    button:SetIcon(ItemIcon(best and best.id or looks.id))
     button:SetLines(L["Add Lure"], best and L.Format("%s, %d left", best.name, best.count) or nil)
     button:SetAlpha(#lures == 0 and 0.55 or 1)
 
