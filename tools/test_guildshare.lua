@@ -286,6 +286,7 @@ bob.db.shareIn = bob.db.shareIn or {}
 bob.db.shareIn["dee smith"] = { name = "Dee Smith", account = "0123456789ab", hashes = {}, credit = {} }
 GuildShare:OnHello("Dee Smith", "0123456789ab:zz", "GUILD")
 Check("a guildmate who is your other account is left to account sharing", GuildShare.byId["0123456789ab"] == nil)
+Check("and the check says why", GuildShare.passed["Dee Smith"] == "your other account, shared by name")
 bob.db.shareIn["dee smith"] = nil
 
 -- Counts that are not play are refused.
@@ -463,6 +464,14 @@ do
     local corpses = Guild(cid).corpses
     ns.HandleSlash("share guild forget")
     Check("forget without confirm only explains", ns.db.shareGuild == true and Guild(cid).corpses == corpses)
+    printed = {}
+    ns.Comm:NoteGuild("Gus Smith", "G")
+    ns.Comm:NoteGuild("Gus Smith", "P")
+    ns.HandleSlash("share guild check")
+    local all = table.concat(printed, "\n")
+    Check("the guild check lists who was heard on the guild channel",
+        all:find('heard on guild: "Gus Smith", kinds GP, 2 message', 1, true) ~= nil, all)
+    Check("and is kept for Claude", ns.db.lastProbe and ns.db.lastProbe.check == "guild check")
     ns.Print = print
 end
 

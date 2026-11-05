@@ -416,6 +416,26 @@ local function ReceiveChunk(sender, body, channel)
     end
 end
 
+--- Who was heard on the guild channel this session, for `/farm share guild
+--- check`: { [name key] = { name, kinds, count, at } }, at most GUILD_KEEP.
+Comm.guildHeard, Comm.guildHeardCount = {}, 0
+Comm.GUILD_KEEP = 40
+
+function Comm:NoteGuild(sender, kind)
+    local key = Comm.NameKey(sender)
+    if not key then return end
+    local entry = self.guildHeard[key]
+    if not entry then
+        if self.guildHeardCount >= Comm.GUILD_KEEP then return end
+        entry = { name = sender, kinds = "", count = 0 }
+        self.guildHeard[key] = entry
+        self.guildHeardCount = self.guildHeardCount + 1
+    end
+    entry.count = entry.count + 1
+    entry.at = time()
+    if not entry.kinds:find(kind, 1, true) and #entry.kinds < 12 then entry.kinds = entry.kinds .. kind end
+end
+
 --- One addon message arrived. Everything about it is read as plain data.
 function Comm:CHAT_MSG_ADDON(_, prefix, text, channel, sender)
     -- The prefix first: most messages are other addons', and theirs are
@@ -429,6 +449,7 @@ function Comm:CHAT_MSG_ADDON(_, prefix, text, channel, sender)
     self.received = self.received + 1
 
     local kind, body = text:sub(1, 1), text:sub(2)
+    if channel == "GUILD" then Comm:NoteGuild(sender, kind) end
     if kind == "D" then
         ReceiveChunk(sender, body, channel)
     elseif self.handlers[kind] then
