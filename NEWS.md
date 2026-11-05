@@ -23,6 +23,12 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.6.6
+
+Fixes and changes:
+
+- Herbs with Forever's new names, like Wilted Peacebloom, now always get a beam in the right skill color.
+
 ## 1.6.5
 
 Fixes and changes:

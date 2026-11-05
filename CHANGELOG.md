@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.6.6
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Sparkles.** Herbs with Forever's new names, like Wilted Peacebloom, now always get a beam in the right skill color.
+
 ## 1.6.5
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
