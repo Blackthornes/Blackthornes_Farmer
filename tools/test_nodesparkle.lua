@@ -173,6 +173,36 @@ fighting = false
 NodeSparkle:ApplySettings()
 suite.check("after the fight it is", cvars.SoftTargetInteract == "3")
 
+-- The player turns the game's Interact Key off after Farmer turned it on:
+-- Farmer leaves it off from then on, and its nameplate goes back too.
+cvars.SoftTargetInteract = "0"
+before = sets
+NodeSparkle:ApplySettings()
+suite.check("an interact key the player turned off stays off", cvars.SoftTargetInteract == "0", cvars.SoftTargetInteract)
+suite.check("and is noted as theirs", ns.db.nodeSparkleCVarsLeft.SoftTargetInteract == true)
+suite.check("and nothing is kept to put back for it", ns.db.nodeSparkleCVars.SoftTargetInteract == nil)
+suite.check("its nameplate goes back as they had it", cvars.SoftTargetNameplateInteract == "0")
+NodeSparkle:ApplySettings()
+NodeSparkle:ApplySettings()
+suite.check("a loading screen later it is still off", cvars.SoftTargetInteract == "0")
+suite.check("and the other settings are untouched", cvars.SoftTargetInteractRange == "15" and cvars.SoftTargetIconGameObject == "1")
+NodeSparkle:SetEnabled(false)
+suite.check("off leaves the interact key as the player set it", cvars.SoftTargetInteract == "0")
+suite.check("and puts the rest back", cvars.SoftTargetInteractRange == "10")
+NodeSparkle:SetEnabled(true)
+suite.check("ticking the box again turns it on again", cvars.SoftTargetInteract == "3")
+suite.check("and forgets it was left", next(ns.db.nodeSparkleCVarsLeft or {}) == nil)
+
+-- Farmer turning the nameplate down itself (facing a creature) is no sign
+-- the player changed it.
+cvars.SoftTargetNameplateInteract = "0"
+NodeSparkle:ApplySettings()
+suite.check("the nameplate Farmer moves is not taken as the player's", cvars.SoftTargetNameplateInteract == "1"
+    and not (ns.db.nodeSparkleCVarsLeft and ns.db.nodeSparkleCVarsLeft.SoftTargetNameplateInteract))
+NodeSparkle:SetEnabled(false)
+cvars.SoftTargetInteract = "1"
+NodeSparkle:SetEnabled(true)
+
 -- The command and the Settings box.
 ns.HandleSlash("sparkle")
 suite.check("/farm sparkle turns it off", ns.db.nodeSparkle == false)
