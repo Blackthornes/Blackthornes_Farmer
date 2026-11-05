@@ -23,6 +23,12 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.6.5
+
+Fixes and changes:
+
+- The interact plate stays off NPCs when friendly NPC nameplates are off. Beams still show on herbs and ore.
+
 ## 1.6.4
 
 Fixes and changes:
