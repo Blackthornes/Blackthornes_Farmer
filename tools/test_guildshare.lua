@@ -472,6 +472,16 @@ do
     Check("the guild check lists who was heard on the guild channel",
         all:find('heard on guild: "Gus Smith", kinds GP, 2 message', 1, true) ~= nil, all)
     Check("and is kept for Claude", ns.db.lastProbe and ns.db.lastProbe.check == "guild check")
+    Check("it says how old the session is and what the hellos did",
+        all:find("this session started", 1, true) ~= nil and all:find("hellos tried", 1, true) ~= nil, all)
+    timers = {}
+    GuildShare:FollowUp()
+    for _, timer in ipairs(timers) do timer.fn() end
+    timers = {}
+    local kept = table.concat(ns.db.lastProbe.lines, "\n")
+    Check("a while later it adds what came back to the same probe",
+        kept:find("30 s later: hellos tried", 1, true) ~= nil
+        and kept:find('30 s later: heard on guild "Gus Smith"', 1, true) ~= nil, kept)
     ns.Print = print
 end
 
