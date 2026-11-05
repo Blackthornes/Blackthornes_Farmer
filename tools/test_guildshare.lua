@@ -467,6 +467,8 @@ do
     printed = {}
     ns.Comm:NoteGuild("Gus Smith", "G")
     ns.Comm:NoteGuild("Gus Smith", "P")
+    ns.Comm:NoteGuild("Gus Smith-Realm", "M", "WHISPER")
+    ns.Share:NoteUnmatched("Zed")
     ns.HandleSlash("share guild check")
     local all = table.concat(printed, "\n")
     Check("the guild check lists who was heard on the guild channel",
@@ -474,6 +476,12 @@ do
     Check("and is kept for Claude", ns.db.lastProbe and ns.db.lastProbe.check == "guild check")
     Check("it says how old the session is and what the hellos did",
         all:find("this session started", 1, true) ~= nil and all:find("hellos tried", 1, true) ~= nil, all)
+    Check("it lists whispers by the name the game gave",
+        all:find('heard by WHISPER: "Gus Smith-Realm", kinds M, 1 message', 1, true) ~= nil, all)
+    Check("and whispers no sharing knew",
+        all:find('whispers not matched to anyone: "Zed", 1', 1, true) ~= nil, all)
+    Check("and each guildmate's sync", all:find("guildmate ", 1, true) ~= nil
+        and all:find("their manifest", 1, true) ~= nil and all:find("whispered hello went to", 1, true) ~= nil, all)
     timers = {}
     GuildShare:FollowUp()
     for _, timer in ipairs(timers) do timer.fn() end
@@ -483,6 +491,22 @@ do
         kept:find("30 s later: hellos tried", 1, true) ~= nil
         and kept:find('30 s later: heard on guild "Gus Smith"', 1, true) ~= nil, kept)
     ns.Print = print
+end
+
+-- A whisper that names its sender by the first name alone still finds the
+-- guildmate heard on the guild channel, but only when no other shares it.
+do
+    Switch(cid)
+    local saved = GuildShare.bySender
+    local ana, other = { name = "Ana Smith" }, { name = "Ana Jones" }
+    GuildShare.bySender = { ["ana smith"] = ana }
+    Check("an exact name finds them", GuildShare:PartnerFor("Ana Smith-Realm") == ana)
+    Check("so does the first name alone", GuildShare:PartnerFor("Ana") == ana)
+    Check("another first name does not", GuildShare:PartnerFor("Bob") == nil)
+    GuildShare.bySender["ana jones"] = other
+    Check("two guildmates with that first name: neither is guessed", GuildShare:PartnerFor("Ana") == nil)
+    Check("their whole names still work", GuildShare:PartnerFor("Ana Jones") == other)
+    GuildShare.bySender = saved
 end
 
 -- A save from before this existed loads with it off.

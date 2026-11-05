@@ -418,18 +418,25 @@ end
 
 --- Who was heard on the guild channel this session, for `/farm share guild
 --- check`: { [name key] = { name, kinds, count, at } }, at most GUILD_KEEP.
+--- Whispers and the rest go in `otherHeard` the same way, by channel and
+--- name as they came, so the check shows how a whisper's sender reads.
 Comm.guildHeard, Comm.guildHeardCount = {}, 0
+Comm.otherHeard, Comm.otherHeardCount = {}, 0
 Comm.GUILD_KEEP = 40
 
-function Comm:NoteGuild(sender, kind)
+function Comm:NoteGuild(sender, kind, channel)
     local key = Comm.NameKey(sender)
     if not key then return end
-    local entry = self.guildHeard[key]
+    local list, countField = self.guildHeard, "guildHeardCount"
+    if channel and channel ~= "GUILD" then
+        list, countField, key = self.otherHeard, "otherHeardCount", channel .. "\001" .. sender
+    end
+    local entry = list[key]
     if not entry then
-        if self.guildHeardCount >= Comm.GUILD_KEEP then return end
-        entry = { name = sender, kinds = "", count = 0 }
-        self.guildHeard[key] = entry
-        self.guildHeardCount = self.guildHeardCount + 1
+        if self[countField] >= Comm.GUILD_KEEP then return end
+        entry = { name = sender, channel = channel or "GUILD", kinds = "", count = 0 }
+        list[key] = entry
+        self[countField] = self[countField] + 1
     end
     entry.count = entry.count + 1
     entry.at = time()
@@ -449,7 +456,7 @@ function Comm:CHAT_MSG_ADDON(_, prefix, text, channel, sender)
     self.received = self.received + 1
 
     local kind, body = text:sub(1, 1), text:sub(2)
-    if channel == "GUILD" then Comm:NoteGuild(sender, kind) end
+    Comm:NoteGuild(sender, kind == "D" and body:sub(1, 1) or kind, channel)
     if kind == "D" then
         ReceiveChunk(sender, body, channel)
     elseif self.handlers[kind] then
