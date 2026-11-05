@@ -14,8 +14,8 @@
 -- questcount`.
 --
 -- Nothing is written on a game frame: each count is Farmer's own frame on
--- UIParent, anchored to the nameplate's name (or the plate), never
--- parented to it. Smooth play: a plate is read when it appears, and every
+-- UIParent, anchored past the nameplate's level (else its name, else the
+-- plate), never parented to it. Smooth play: a plate is read when it appears, and every
 -- plate showing is read again once, 0.3 s after a burst of quest log
 -- events; the text is set only when it changed. No OnUpdate, no ticker.
 -- Every client value is read in a pcall.
@@ -144,6 +144,28 @@ local function NameOf(plate)
     return nil
 end
 
+local function Showing(piece)
+    if type(piece) ~= "table" then return false end
+    local ok, shown = pcall(function() return piece:IsShown() end)
+    return ok and shown == true
+end
+
+--- What sits furthest right on the plate's name line. Forever's plate
+--- draws the name inside the health bar and the mob's level just past
+--- the bar's end, so a count laid beside the name landed on the level
+--- (a player saw "0/8" over the "6", 2026-11-05). The level's frame or
+--- text when it shows, else the name; nil when neither can be read.
+function QuestMobs.RightOf(plate)
+    local unitFrame = Field(plate, "UnitFrame")
+    local levelFrame = Field(unitFrame, "LevelFrame")
+    local pieces = { levelFrame, Field(levelFrame, "levelText"),
+        Field(unitFrame, "levelText"), Field(unitFrame, "LevelText") }
+    for i = 1, 4 do
+        if Showing(pieces[i]) then return pieces[i] end
+    end
+    return NameOf(plate)
+end
+
 local function Label(plate)
     local entry = labels[plate]
     if entry then return entry end
@@ -167,9 +189,9 @@ function QuestMobs:Show(plate, count)
     end
     if not entry.placed then
         entry.frame:ClearAllPoints()
-        local name = NameOf(plate)
-        if name then
-            entry.frame:SetPoint("LEFT", name, "RIGHT", 4, 0)
+        local edge = QuestMobs.RightOf(plate)
+        if edge then
+            entry.frame:SetPoint("LEFT", edge, "RIGHT", 4, 0)
         else
             entry.frame:SetPoint("LEFT", plate, "RIGHT", 2, 0)
         end

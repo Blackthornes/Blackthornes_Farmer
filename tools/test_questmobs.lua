@@ -59,6 +59,22 @@ units.nameplate7.lines = { "Galak Centaur", "Galak Centaur slain: 1/6" }
 QuestMobs:UpdateAll()
 suite.check("read again after the log changes", QuestMobs:Update("nameplate7") == "1/6")
 
+-- Forever's plate puts the level just past the bar, where the name ends:
+-- the count goes past the level, never on it.
+local function Text() local t = env.Stub(); t.GetObjectType = function() return "FontString" end; return t end
+local levelPlate = CreateFrame("Frame")
+levelPlate.UnitFrame = { name = Text(), LevelFrame = env.Stub({ _shown = true }) }
+plates.nameplate8 = levelPlate
+Mob("nameplate8", "Strigid Owl", { "Strigid Owl", "Strigid Owl slain: 0/8" })
+local label = QuestMobs:LabelFor(levelPlate)
+suite.check("the count sits past the level", label and label.frame._point[2] == levelPlate.UnitFrame.LevelFrame)
+local namePlate = CreateFrame("Frame")
+namePlate.UnitFrame = { name = Text(), LevelFrame = env.Stub({ _shown = false }) }
+plates.nameplate9 = namePlate
+Mob("nameplate9", "Strigid Owl", { "Strigid Owl", "Strigid Owl slain: 0/8" })
+label = QuestMobs:LabelFor(namePlate)
+suite.check("with no level showing, beside the name", label and label.frame._point[2] == namePlate.UnitFrame.name)
+
 ns.HandleSlash("questcount")
 suite.check("/farm questcount turns it off", ns.db.questMobCount == false)
 suite.check("and nothing shows", QuestMobs:Update("nameplate7") == nil)
