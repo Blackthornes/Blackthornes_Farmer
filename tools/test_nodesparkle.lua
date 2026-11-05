@@ -460,6 +460,25 @@ suite.check("too low is grey", NodeSparkle.SkillColor(40, 65, true) == C.grey)
 skills = nil
 Face("Copper Vein", VEIN)
 suite.check("no skills read is gold", NodeSparkle.tint == NodeSparkle.GOLD)
+
+-- Forever's "Wilted Peacebloom" and "Stunted Silverleaf" (a player's
+-- report, 2026-11-05): a word in front of a known node still sparkles, in
+-- that node's skill colour.
+skills = { Herbalism = 200 }
+suite.check("a wilted herb is a node", NodeSparkle:IsNode("Wilted Peacebloom"))
+suite.check("a stunted herb is a node", NodeSparkle:IsNode("Stunted Silverleaf"))
+local herbSkill, herbNeed = NodeSparkle:NodeNeeds("Wilted Peacebloom")
+suite.check("a wilted herb takes its herb's need", herbSkill == "Herbalism" and herbNeed == 1)
+Face("Wilted Peacebloom", VEIN)
+suite.check("a wilted herb sparkles green far past it", NodeSparkle.frame:IsShown() and NodeSparkle.tint == C.green)
+suite.check("a name that only ends in a word is not a node", not NodeSparkle:IsNode("Copper Veinstone"))
+suite.check("an unknown name is still not a node", not NodeSparkle:IsNode("Wilted Old Statue"))
+ns.db.gathering = ns.db.gathering or {}
+ns.db.gathering.nodes = ns.db.gathering.nodes or {}
+ns.db.gathering.nodes["test|Stunted Silverleaf"] = { node = "Stunted Silverleaf", kind = "herb" }
+local leafSkill = NodeSparkle:NodeNeeds("Stunted Silverleaf")
+suite.check("a gathered stunted herb still takes its herb's need", leafSkill == "Herbalism")
+ns.db.gathering.nodes["test|Stunted Silverleaf"] = nil
 Face("Battered Chest", VEIN)
 suite.check("a chest is white", NodeSparkle.tint == C.white)
 Face("Fishing Bobber", VEIN)
