@@ -38,6 +38,7 @@ end
 local KEPT = {
     { Share, "partners" }, { GuildShare, "byId" }, { GuildShare, "bySender" }, { GuildShare, "queue" },
     { GuildShare, "current" }, { GuildShare, "helloAt" }, { GuildShare, "answerAt" },
+    { GuildShare, "answerPending" }, { GuildShare, "sentAt" },
     { GuildShare, "building" }, { GuildShare, "ticker" }, { GuildShare, "me" },
     { GuildShare, "shown" }, { GuildShare, "publishing" }, { GuildShare, "publishAgain" },
     { GuildShare, "publishQueued" },
@@ -103,6 +104,7 @@ _G.C_Timer = {
 }
 
 local guildSent = 0
+local guildKinds = {}   -- kind -> how many went to the guild
 
 --- Let time pass until everything is quiet. A guild message reaches every
 --- other account online; a whisper only its target, if online.
@@ -129,6 +131,8 @@ local function Settle()
         for _, message in ipairs(mail) do
             if message.channel == "GUILD" then
                 guildSent = guildSent + 1
+                local kind = message.text:sub(1, 1)
+                guildKinds[kind] = (guildKinds[kind] or 0) + 1
                 for _, to in ipairs(accounts) do
                     if to.online and to ~= message.from then
                         Switch(to)
@@ -200,6 +204,10 @@ Check("on, it listens", Comm.listening == true)
 Switch(bob) GuildShare:SetOn(true)
 Settle()
 
+Check("a copy that just loaded says hello and that it is fresh", (guildKinds.G or 0) >= 2 and (guildKinds.N or 0) >= 2,
+    tostring(guildKinds.G) .. " G, " .. tostring(guildKinds.N) .. " N")
+local freshHellos = guildKinds.N
+
 Switch(ana)
 Check("Ana has Bob's corpses, kept apart", Guild(ana) and Guild(ana).corpses == 20, Guild(ana) and Guild(ana).corpses)
 Check("and his drops", Guild(ana).items["Wolf Pelt"].count == 5, Guild(ana).items["Wolf Pelt"].count)
@@ -240,6 +248,7 @@ HalfHour()
 HalfHour()
 Check("syncing again counts nothing twice", Guild(ana).corpses == 20 and Guild(bob).corpses == 30
     and ana.records[WOLF].corpses == 30 and bob.records[WOLF].corpses == 20)
+Check("the quarter hour hello does not say fresh", guildKinds.N == freshHellos, guildKinds.N)
 
 -- New kills reach the other side once.
 ana.db.tracker.mobs.Wolf.kills = ana.db.tracker.mobs.Wolf.kills + 5
@@ -283,21 +292,49 @@ Check("a hello that does not read is ignored", GuildShare.bySender["eve smith"] 
 
 -- A guildmate already known who was quiet a while has reloaded and no
 -- longer knows this side: their hello is answered, not only a new one's.
+-- One that says it just loaded is answered whatever was heard before.
 do
     local state = GuildShare.bySender["cid smith"]
     local hello = state.id .. ":" .. (state.top or "zz")
-    GuildShare.answerAt, GuildShare.helloAt = nil, nil
+    local anaHello = GuildShare.bySender["ann smith"].id .. ":zz"
+    GuildShare.answerAt, GuildShare.helloAt, GuildShare.answerPending, GuildShare.sentAt = nil, nil, nil, nil
     state.heardAt = time() - 10
     GuildShare:OnHello("Cid Smith", hello, "GUILD")
-    Check("a guildmate heard a moment ago is not answered again", GuildShare.answerAt == nil)
+    Check("a guildmate heard a moment ago is not answered again", not GuildShare.answerPending)
     state.heardAt = time() - GuildShare.QUIET_ANSWER - 1
     GuildShare:OnHello("Cid Smith", hello, "GUILD")
-    Check("one quiet for a while is answered", GuildShare.answerAt ~= nil)
-    GuildShare.answerAt = nil
+    Check("one quiet for a while is answered", GuildShare.answerPending == true)
+    GuildShare.answerPending = nil
     state.online = false
     GuildShare:OnHello("Cid Smith", hello, "GUILD")
-    Check("and so is one back online", GuildShare.answerAt ~= nil)
+    Check("and so is one back online", GuildShare.answerPending == true)
+    GuildShare.answerPending = nil
+    -- Our own hello went out a moment ago, so theirs is the answer to it.
+    GuildShare.sentAt = time() - 5
+    state.heardAt = time() - GuildShare.QUIET_ANSWER - 1
+    GuildShare:OnHello("Cid Smith", hello, "GUILD")
+    Check("one heard right after our own hello is not answered", not GuildShare.answerPending)
+    GuildShare:OnHello("Cid Smith", hello, "GUILD", true)
+    Check("unless they say they just loaded", GuildShare.answerPending == true)
+    GuildShare.answerPending, GuildShare.sentAt = nil, nil
+    state.heardAt = time() - 10
+    Comm:CHAT_MSG_ADDON(nil, Comm.PREFIX, "N" .. hello, "GUILD", "Cid Smith")
+    Check("and on the guild channel that reads as a fresh hello", GuildShare.answerPending == true)
+    -- An answer asked for within a minute of the last waits for the minute
+    -- to pass; it is not dropped, and one answer covers everyone heard.
+    GuildShare.answerPending = nil
+    GuildShare.answerAt = time() - 10
+    local before = #timers
+    GuildShare:OnHello("Cid Smith", hello, "GUILD", true)
+    GuildShare:OnHello("Ann Smith", anaHello, "GUILD", true)
+    Check("a hello back asked for within a minute of the last waits instead of being dropped",
+        GuildShare.answerPending == true)
+    local tried = GuildShare.helloTried or 0
+    for i = before + 1, #timers do timers[i].fn() end
+    Check("and goes out once for everyone heard meanwhile", (GuildShare.helloTried or 0) == tried + 1
+        and not GuildShare.answerPending, GuildShare.helloTried)
     GuildShare.answerAt = nil
+    GuildShare.bySender["ann smith"].top = nil
 end
 
 -- The other account already named in Settings is not taken again.

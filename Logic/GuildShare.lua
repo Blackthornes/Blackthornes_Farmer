@@ -44,8 +44,9 @@ local Share = ns.Share
 
 GuildShare.HELLO_SECONDS = 900    -- a hello to the guild every quarter hour
 GuildShare.FIRST_HELLO = 30       -- and this long after login
-GuildShare.ANSWER_GAP = 60        -- at most one hello back a minute
+GuildShare.ANSWER_GAP = 60        -- at most one hello back a minute; answers held past it are not dropped
 GuildShare.QUIET_ANSWER = 300     -- a guildmate not heard this long has likely reloaded: answer them
+GuildShare.HEARD_US = 60          -- a hello this soon after ours arrived while they were up: they heard ours
 GuildShare.SYNC_GAP = 600         -- one guildmate synced at most this often
 GuildShare.SYNC_TIMEOUT = 600     -- a sync left this long is given up
 GuildShare.STILL_COMING = 60      -- unless records came in this recently
@@ -135,8 +136,10 @@ end
 -- Hellos
 --------------------------------------------------------------------------------
 
---- Say to the guild who this Farmer is and what it has.
-function GuildShare:Hello()
+--- Say to the guild who this Farmer is and what it has. `fresh` is a copy
+--- that just loaded (login, a reload, the check) and knows nobody yet: it
+--- says so too ("N"), and every guildmate answers, heard lately or not.
+function GuildShare:Hello(fresh)
     self.helloTried = (self.helloTried or 0) + 1
     if not self:On() then self.helloSkipped = "sharing off" return end
     if not InGuild() then self.helloSkipped = "not in a guild yet" return end
@@ -148,26 +151,42 @@ function GuildShare:Hello()
         if not self:On() or not InGuild() then self.helloSkipped = "off or out of the guild while building" return end
         local ok, err = pcall(function()
             local top = Comm.Hash(ns.Serialize.EncodeCanonical(manifest))
-            Comm:Send("G", ns.Transfer:SourceId() .. ":" .. top, "GUILD")
+            local body = ns.Transfer:SourceId() .. ":" .. top
+            Comm:Send("G", body, "GUILD")
+            if fresh then Comm:Send("N", body, "GUILD") end
         end)
         if not ok then self.helloSkipped = "error: " .. tostring(err) return end
         self.helloSent = (self.helloSent or 0) + 1
+        self.sentAt = time()
         self.helloSkipped = nil
     end)
 end
 
---- Someone new was heard: say hello back soon, unless one just went out.
+--- Someone was heard who may not know this side: say hello back soon. At
+--- most one goes out an ANSWER_GAP; one asked for sooner waits for the gap
+--- to pass rather than being dropped, and one answer covers everyone heard
+--- while it waited (a reload used to go unanswered when two guildmates said
+--- hello within a minute of each other).
 function GuildShare:AnswerSoon()
+    if self.answerPending then return end
     local now = time()
-    if self.answerAt and now - self.answerAt < self.ANSWER_GAP then return end
-    if self.helloAt and now - self.helloAt < 20 then return end
-    self.answerAt = now
-    C_Timer.After(3 + math.random() * 10, function() GuildShare:Hello() end)
+    local wait = 3 + math.random() * 10
+    if self.answerAt and now - self.answerAt < self.ANSWER_GAP then
+        wait = wait + (self.ANSWER_GAP - (now - self.answerAt))
+    end
+    self.answerPending = true
+    C_Timer.After(wait, function()
+        GuildShare.answerPending = nil
+        GuildShare.answerAt = time()
+        GuildShare:Hello()
+    end)
 end
 
 GuildShare.passed = {}   -- [sender] = why a hello was not taken, for the check
 
-function GuildShare:OnHello(sender, body, channel)
+--- A hello on the guild channel: "G" every quarter hour and as an answer,
+--- "N" (`fresh`) from a copy that just loaded and knows nobody.
+function GuildShare:OnHello(sender, body, channel, fresh)
     local function Pass(why)
         if type(sender) == "string" then self.passed[sender] = why end
     end
@@ -202,14 +221,17 @@ function GuildShare:OnHello(sender, body, channel)
     if other and other ~= state then other.senderKey = nil end
     state.name, state.senderKey = sender, senderKey
     self.bySender[senderKey] = state
-    -- Someone already known who was quiet a while, or went offline, has
-    -- reloaded or logged back in and no longer knows this side: answer
-    -- them too, or they wait up to a quarter hour to hear it.
-    local back = not state.online or not state.heardAt
-        or time() - state.heardAt > self.QUIET_ANSWER
-    state.online, state.heardAt, state.top = true, time(), top
+    -- A copy that just loaded knows nobody: it is always answered. Someone
+    -- already known who was quiet a while, or went offline, has likely
+    -- reloaded too and is answered as well, unless our own hello went out
+    -- a moment ago, which they were up to hear (their hello is an answer
+    -- to it, not a question); or they wait up to a quarter hour.
+    local now = time()
+    local back = not state.online or not state.heardAt or now - state.heardAt > self.QUIET_ANSWER
+    local heardUs = self.sentAt and now - self.sentAt < self.HEARD_US
+    state.online, state.heardAt, state.top = true, now, top
 
-    if new or back then self:AnswerSoon() end
+    if fresh or ((new or back) and not heardUs) then self:AnswerSoon() end
     local held = Ledgers()[state.key]
     if not (type(held) == "table" and held.top == top) then self:Want(state) end
 end
@@ -564,7 +586,7 @@ function GuildShare:Apply()
     if self:On() then
         if not self.ticker and type(C_Timer) == "table" then
             self.ticker = C_Timer.NewTicker(self.HELLO_SECONDS, function() GuildShare:Hello() end)
-            C_Timer.After(self.FIRST_HELLO, function() GuildShare:Hello() end)
+            C_Timer.After(self.FIRST_HELLO, function() GuildShare:Hello(true) end)
         end
     else
         if self.ticker then
@@ -689,7 +711,7 @@ function GuildShare:Check()
     for _, line in ipairs(self:MateLines()) do Line("%s", line) end
     if self:On() and InGuild() then
         self.helloAt = nil
-        self:Hello()
+        self:Hello(true)
         Line("a hello was just sent to your guild")
         -- And a whispered hello to each guildmate heard: their "A" back,
         -- in the 30 s lines, says whispers go both ways.
@@ -768,6 +790,7 @@ end
 function GuildShare:OnEnable()
     self.enabledAt = time()
     Comm:On("G", function(...) GuildShare:OnHello(...) end)
+    Comm:On("N", function(sender, body, channel) GuildShare:OnHello(sender, body, channel, true) end)
     -- Share:OnEnable ran first (the TOC's order) and called Apply before this
     -- module had its handler; this starts the hellos and shows the guild's
     -- rows if it is on.

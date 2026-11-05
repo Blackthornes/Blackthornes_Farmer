@@ -279,8 +279,16 @@ want, records) through hooks on the partner state (`sections`, `store`,
 
 - Finding guildmates: each side says hello on the GUILD addon channel
   (`G<farmer id>:<hash of its drop records>`) 30 s after login and every
-  quarter hour (2026-10-22, a player's report), and once (at most a minute
-  apart) to someone new. A hello whose
+  quarter hour (2026-10-22, a player's report), and a hello back to
+  someone new or quiet a while (`AnswerSoon`, at most one a minute; one
+  asked for sooner waits for the minute and covers everyone heard
+  meanwhile, never dropped). A copy that just loaded (login, reload, the
+  check) also says `N<id>:<hash>` right after its `G` (2026-11-05, the
+  owner's guild saw nothing: he reloads often, and an answer held by the
+  minute rule was dropped, so after a reload nobody answered him); every
+  copy answers an `N` whatever it heard before, an older copy ignores it,
+  and a `G` heard within `HEARD_US` seconds of our own hello is taken as
+  the answer to it, not asked back. A hello whose
   hash is not the one last taken in full (`guildIn[...].top`) queues that
   guildmate; one is synced at a time, each at most every ten minutes, waited
   on while its records keep coming (`STILL_COMING`), and a
