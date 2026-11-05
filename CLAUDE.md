@@ -1642,7 +1642,13 @@ round that icon (`NodeSparkle.Icon`, the plate's `UnitFrame.SoftTargetFrame`,
 read only) when the plate lets us read it. So while "Sparkle on nodes" (`nodeSparkle`, on unless unticked, Map & goals
 page, `/farm sparkle`) is ticked Farmer raises them out of combat, keeping
 the old values in `nodeSparkleCVars` (never rename either) and putting them
-back when unticked. A node is a herb or vein the data knows, the client's
+back when unticked. A setting the player turns back after Farmer set it
+(the game's Interact Key unticked, a player's report, 2026-11-05) is
+theirs: the next `ApplySettings` (every loading screen) notes it in
+`nodeSparkleCVarsLeft` (never rename it) and never sets it again, and with
+the interact key off the nameplate setting goes back too; only ticking the
+sparkles box again clears it. `SoftTargetNameplateInteract` (`moves`) is
+never judged, since Farmer turns it down itself. A node is a herb or vein the data knows, the client's
 herb name, or a node the player gathered; a hidden source gets nothing.
 `/farm sparkle check` (`ns.KeepCheck`) reports what the client gives.
 Seen in game 2026-10-13 round the icon. Since then (the owner asked the
