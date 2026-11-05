@@ -281,6 +281,25 @@ Check("a hello that was not on the guild channel is ignored", GuildShare.byId["a
 GuildShare:OnHello("Eve Smith", "not an id:zz", "GUILD")
 Check("a hello that does not read is ignored", GuildShare.bySender["eve smith"] == nil)
 
+-- A guildmate already known who was quiet a while has reloaded and no
+-- longer knows this side: their hello is answered, not only a new one's.
+do
+    local state = GuildShare.bySender["cid smith"]
+    local hello = state.id .. ":" .. (state.top or "zz")
+    GuildShare.answerAt, GuildShare.helloAt = nil, nil
+    state.heardAt = time() - 10
+    GuildShare:OnHello("Cid Smith", hello, "GUILD")
+    Check("a guildmate heard a moment ago is not answered again", GuildShare.answerAt == nil)
+    state.heardAt = time() - GuildShare.QUIET_ANSWER - 1
+    GuildShare:OnHello("Cid Smith", hello, "GUILD")
+    Check("one quiet for a while is answered", GuildShare.answerAt ~= nil)
+    GuildShare.answerAt = nil
+    state.online = false
+    GuildShare:OnHello("Cid Smith", hello, "GUILD")
+    Check("and so is one back online", GuildShare.answerAt ~= nil)
+    GuildShare.answerAt = nil
+end
+
 -- The other account already named in Settings is not taken again.
 bob.db.shareIn = bob.db.shareIn or {}
 bob.db.shareIn["dee smith"] = { name = "Dee Smith", account = "0123456789ab", hashes = {}, credit = {} }
