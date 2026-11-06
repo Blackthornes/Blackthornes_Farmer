@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.7.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Top 15 window.** You can drag the YOUR TOP 15 window anywhere, and it opens there from then on. To put it back beside Kills & Loot, go to Settings, the Kills page, under TOP 15: Top 15 Position: Set Default.
+
 ## 1.6.6
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
