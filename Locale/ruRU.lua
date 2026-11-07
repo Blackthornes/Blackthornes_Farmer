@@ -921,8 +921,8 @@ L["HOW THESE ADDONS ARE MADE"] = "КАК ДЕЛАЮТСЯ ЭТИ АДДОНЫ"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Как делаются эти аддоны, версия, Discord и другие аддоны Blackthornes"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, bobber, icon, check)"] =
-    "включает или выключает искры на жиле, траве, косяке рыбы, сундуке или предмете задания перед тобой (beacon, sparkles, colors, corpses, bobber, icon, check)"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, mine, bobber, icon, check)"] =
+    "включает или выключает искры на жиле, траве, косяке рыбы, сундуке или предмете задания перед тобой (beacon, sparkles, colors, corpses, mine, bobber, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "значок взаимодействия игры скрыт, если ты не играешь с контроллером."
 L["the game's interact icon shows."] = "значок взаимодействия игры показывается."
 L["a beacon shows the spot."] = "место показывает маяк."
@@ -1788,3 +1788,6 @@ L["Your best here was %s."] = "Твой лучший здесь: %s."
 L["Next Rate Unlock"] = "Следующий шанс"
 L["Fishing Panel:"] = "Панель рыбалки:"
 L["Show what you catch while you fish."] = "Показывает, что ты ловишь на рыбалке."
+L["Herbs, ore and fish light up only when you know the skill."] = "Травы, руда и рыба светятся, только если ты знаешь профессию."
+L["only herbs, ore and fish for your professions light up."] = "светятся только травы, руда и рыба твоих профессий."
+L["every herb, vein and fish school lights up."] = "светятся все травы, жилы и косяки рыбы."

@@ -918,8 +918,8 @@ L["HOW THESE ADDONS ARE MADE"] = "这些插件是怎么做的"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "这些插件是怎么做的、版本、Discord 和其他 Blackthornes 插件"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, bobber, icon, check)"] =
-    "打开或关闭你面前的资源点、鱼群、宝箱或任务物件上的闪光（beacon, sparkles, colors, corpses, bobber, icon, check）"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, mine, bobber, icon, check)"] =
+    "打开或关闭你面前的资源点、鱼群、宝箱或任务物件上的闪光（beacon, sparkles, colors, corpses, mine, bobber, icon, check）"
 L["the game's interact icon is hidden unless you play with a controller."] = "除非你用手柄玩，否则游戏的互动图标会被隐藏。"
 L["the game's interact icon shows."] = "游戏的互动图标会显示。"
 L["a beacon shows the spot."] = "用光柱标出位置。"
@@ -1781,3 +1781,6 @@ L["Your best here was %s."] = "你在这里最好的是 %s。"
 L["Next Rate Unlock"] = "下一个几率"
 L["Fishing Panel:"] = "钓鱼面板："
 L["Show what you catch while you fish."] = "显示你钓鱼时钓到的东西。"
+L["Herbs, ore and fish light up only when you know the skill."] = "只有你会的专业对应的草药、矿石和鱼群才会发光。"
+L["only herbs, ore and fish for your professions light up."] = "只有你的专业对应的草药、矿石和鱼会发光。"
+L["every herb, vein and fish school lights up."] = "所有草药、矿脉和鱼群都会发光。"

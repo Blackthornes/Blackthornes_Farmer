@@ -474,6 +474,9 @@ local DEFAULTS = {
     -- The bobber's beam or sparkles, on unless unticked (a player found it
     -- hid the bob, 2026-11-07). Never rename it.
     nodeSparkleBobber = true,
+    -- Herbs, veins and schools light up only for your own professions,
+    -- off unless ticked (a player's report, 2026-11-07). Never rename it.
+    nodeSparkleMine = false,
 
     -- The best place to farm a material, on its tooltip.
     itemTooltip = true,
