@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.9.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **My Professions Only.** A new tick box under Bobber Beam on the Map & goals page (or `/farm sparkle mine`). Ticked, herbs, veins and fish schools light up only for skills your character knows. It starts unticked.
+- **Veins in Deutsch (German) and other languages.** Veins and herbs now get their beam on clients that are not English, and the colour follows your skill.
+
 ## 1.8.2
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
