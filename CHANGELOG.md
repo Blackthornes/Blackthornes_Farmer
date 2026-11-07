@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.8.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Bobber Beam.** Settings, Map & goals, under SPARKLES, has a new Bobber Beam: row. It is on. Untick it if the beam hides your bobber.
+
 ## 1.7.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
