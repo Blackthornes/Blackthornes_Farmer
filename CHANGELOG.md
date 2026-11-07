@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.8.1
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Sharing your drops.** If you chose to share your drops, they now go to one more of our collecting characters. It is still off until you turn it on, and what gets sent is the same.
+
 ## 1.8.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
