@@ -1716,6 +1716,11 @@ before (`skinLog`), until `GrindGather.skinned` has it
 its level (`Grinding.SkinSkill`); its plate stays on
 (`FitPlateToTarget`). Both rows sit under Sparkles on the Map & goals
 page. Not yet seen in game.
+"Bobber Beam:" under them (a player found the beam hid the bob, the owner
+said add it, 2026-11-07): `nodeSparkleBobber`, on unless unticked, account
+wide, never rename it; `/farm sparkle bobber [on|off]`. Unticked,
+`NodeSparkle:Kind` gives the bobber nothing, so no beam or sparkles;
+`IsBobber`, the reach and one key fishing are untouched.
 Tested in `tools/test_nodesparkle.lua`.
 
 ## Gathered spots on the maps
