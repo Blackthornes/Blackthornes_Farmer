@@ -23,6 +23,10 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.8.0
+
+- You can turn off the beam over your fishing bobber if it hides the bob. It is in Settings, on the Map & goals page, under Sparkles.
+
 ## 1.7.0
 
 - You can drag the Top 15 window where you want it. Set Default in Settings, on the Kills page, puts it back.
