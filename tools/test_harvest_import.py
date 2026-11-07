@@ -613,15 +613,6 @@ def main():
         again = run_import(repo, client, "--keep-published")
         check("keep: a second run changes nothing",
               again.returncode == 0 and open(data, encoding="utf-8").read() == merged)
-
-        # --add-sv puts another save's corpses on top of this save's.
-        other = os.path.join(sandbox, "older.lua")
-        with open(other, "w", encoding="utf-8") as handle:
-            handle.write(stamped(SAVED))
-        added = run_import(repo, client, "--add-sv", other, "--allow-smaller")
-        check("keep: --add-sv works", added.returncode == 0, added.stderr)
-        check("keep: --add-sv adds the corpses",
-              "%d corpses looted" % (total * 2) in open(data, encoding="utf-8").read())
     finally:
         shutil.rmtree(sandbox, ignore_errors=True)
 

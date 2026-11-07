@@ -36,8 +36,6 @@ Options:
     --allow-smaller  write even if it has fewer corpses than the file it replaces
     --shared         also fold in the drops players sent (sharedDrops,
                      Logic/Contribute.lua); the save itself is never changed
-    --add-sv PATH    also add the drops in this other save, one that never
-                     shared a corpse with --sv (an older game's); can repeat
     --keep-published also keep what the file being replaced knows: each spot
                      keeps whichever side saw more corpses, so nothing shrinks
                      and nothing counts twice
@@ -274,8 +272,8 @@ def fold_shared(lua, records, shared):
 
 
 # Reading the file this tool wrote, so --keep-published can keep what it knows.
-# A save can hold less than the shipped file: drops folded in from a save that
-# isn't this one (the beta's, a character's that moved). Each mob at each spot keeps
+# The live save can hold less than the shipped file: it began at Forever's
+# launch, and the file also holds older drops. Each mob at each spot keeps
 # whichever side saw more corpses. Adding them instead would count twice every
 # corpse both sides saw, and the shipped file does not say which those are.
 SOURCE_FIELD = r'%s = "((?:[^"\\]|\\.)*)"'
@@ -477,8 +475,6 @@ def main():
                         help="report what was found and write nothing")
     parser.add_argument("--shared", action="store_true",
                         help="also fold in the drops players sent (sharedDrops)")
-    parser.add_argument("--add-sv", action="append", default=[], metavar="PATH",
-                        help="also add the drops in this other save; can repeat")
     parser.add_argument("--keep-published", action="store_true",
                         help="each spot keeps the larger of the save and the file")
     parser.add_argument("--allow-smaller", action="store_true",
@@ -533,13 +529,6 @@ def main():
     if args.shared:
         added = fold_shared(lua, records, saved["sharedDrops"])
         print("folded in %d records players sent" % added)
-
-    for other in args.add_sv:
-        older = read_saved_variables(lua, other)
-        print("added %d records from %s"
-              % (fold_shared(lua, records, older["harvest"]), os.path.basename(other)))
-        if args.shared:
-            fold_shared(lua, records, older["sharedDrops"])
 
     published = read_published(os.path.abspath(args.output)) if args.keep_published else None
 
