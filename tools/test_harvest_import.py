@@ -579,6 +579,52 @@ def main():
         finally:
             shutil.rmtree(sandbox, ignore_errors=True)
 
+    # -- Keeping what the shipped file knows -----------------------------------
+    sandbox, repo, client = build_sandbox(stamped(SAVED))
+    try:
+        data = os.path.join(repo, "Data", "Data_Harvested.lua")
+        first = run_import(repo, client)
+        check("keep: the first import works", first.returncode == 0, first.stderr)
+        original = open(data, encoding="utf-8").read()
+        total = int(re.search(r"(\d+) corpses looted", original).group(1))
+
+        # A shipped spot this save does not have.
+        extra = ('DB:RegisterItem({\n    name = "Old Tooth",\n    id = 777,\n    sources = {\n'
+                 '        { name = "Old Wolf", zone = "Durotar", provenance = "forever" },\n'
+                 '            -- 3 of 40 corpses\n    },\n})\n\n')
+        marked = original.replace("DB:RegisterItem(", extra + "DB:RegisterItem(", 1)
+        marked = re.sub(r"(\d+) corpses looted", "%d corpses looted" % (total + 40), marked, count=1)
+        with open(data, "w", encoding="utf-8") as handle:
+            handle.write(marked)
+
+        refused = run_import(repo, client)
+        check("keep: without the flag a smaller save is refused",
+              refused.returncode != 0 and "--keep-published" in refused.stderr, refused.stderr)
+
+        kept = run_import(repo, client, "--keep-published")
+        check("keep: with the flag it works", kept.returncode == 0, kept.stderr)
+        merged = open(data, encoding="utf-8").read()
+        check("keep: the shipped spot is still there",
+              'name = "Old Wolf"' in merged and "-- 3 of 40 corpses" in merged)
+        check("keep: the item keeps its id", "id = 777," in merged)
+        check("keep: the header counts both sides",
+              "%d corpses looted" % (total + 40) in merged, merged[:120])
+
+        again = run_import(repo, client, "--keep-published")
+        check("keep: a second run changes nothing",
+              again.returncode == 0 and open(data, encoding="utf-8").read() == merged)
+
+        # --add-sv puts another save's corpses on top of this save's.
+        other = os.path.join(sandbox, "older.lua")
+        with open(other, "w", encoding="utf-8") as handle:
+            handle.write(stamped(SAVED))
+        added = run_import(repo, client, "--add-sv", other, "--allow-smaller")
+        check("keep: --add-sv works", added.returncode == 0, added.stderr)
+        check("keep: --add-sv adds the corpses",
+              "%d corpses looted" % (total * 2) in open(data, encoding="utf-8").read())
+    finally:
+        shutil.rmtree(sandbox, ignore_errors=True)
+
     for failure in failures:
         print("FAIL -- %s" % failure, file=sys.stderr)
 

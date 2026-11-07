@@ -2320,8 +2320,13 @@ first.
 Farmer goes first, before Equipment or Pets ship, since their boss drops
 and beasts read `Data/Data_Harvested.lua`:
 
-- `tools/harvest_import.py --shared --sv <Blackthornes_Farmer.lua>`
-  (`Data/Data_Harvested.lua`, with the drops players sent in).
+- `tools/harvest_import.py --shared --keep-published --sv <Blackthornes_Farmer.lua>
+  --add-sv <the beta backup's Blackthornes_Farmer.lua>`
+  (`Data/Data_Harvested.lua`, with the drops players sent in). The live save
+  began at Forever's launch, so it holds less than the shipped file. `--add-sv`
+  adds the beta save's drops on top (the two never shared a corpse), and
+  `--keep-published` then lets each mob at each spot keep the larger of that
+  and the shipped file, so a release never loses drops.
 - `tools/forever_npc_names.py <save> <creaturecache.wdb>`
   (`Data/ForeverNpcNames.lua`).
 
