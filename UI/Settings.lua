@@ -1217,6 +1217,15 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.nodeSparkleCorpses:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Herbs, ore and fish only for the professions you know, off unless
+    -- ticked (a player's report, 2026-11-07).
+    local sparkleMineRow = pages:Row("map", 1, L["My Professions Only:"],
+        L["Herbs, ore and fish light up only when you know the skill."])
+    controls.nodeSparkleMine = Widgets.CreateCheckbox(sparkleMineRow, L["On"], function(checked)
+        ns.NodeSparkle:SetMine(checked)
+    end, true)
+    controls.nodeSparkleMine:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- The bobber's own switch (a player found the beam hid the bob,
     -- 2026-11-07).
     local sparkleBobberRow = pages:Row("map", 1, L["Bobber Beam:"], nil)
@@ -1628,6 +1637,7 @@ function SettingsUI:Refresh()
     controls.nodeSparkleColors:SetChecked(db.nodeSparkleColors ~= false)
     controls.nodeSparkleCorpses:SetChecked(db.nodeSparkleCorpses == true)
     controls.nodeSparkleBobber:SetChecked(db.nodeSparkleBobber ~= false)
+    controls.nodeSparkleMine:SetChecked(db.nodeSparkleMine == true)
     for _, name in ipairs({ "itemTooltip", "itemTooltipCraft", "killTooltip", "killTooltipDrops" }) do
         local stepper = controls[name]
         stepper:SetValue(ns.TooltipShift:Mode(stepper.isOn(), stepper.shiftKey), true)

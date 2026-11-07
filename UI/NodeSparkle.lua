@@ -610,10 +610,14 @@ end
 
 --- What kind of thing worth a sparkle the object is: "node", "school",
 --- "chest", "bobber" or "quest", or nil. A hidden source is nothing.
-function NodeSparkle:Kind(name)
+function NodeSparkle:Kind(name, guid)
     if type(name) ~= "string" or name == "" then return nil end
     if ns.DB and ns.DB:IsHiddenSource(name) then return nil end
     if self:IsNode(name) then return "node" end
+    -- A vein or herb the data names only in English (a German client says
+    -- "Kupfervorkommen", the data "Copper Vein"): the game's own tooltip
+    -- names the skill it needs in the client's words.
+    if guid and self:TooltipGathers(guid) then return "node" end
     if ns.Fishing and ns.Fishing.IsSchool and ns.Fishing.IsSchool(name) then return "school" end
     if self.IsChest(name) then return "chest" end
     if self:IsBobber(name) then
@@ -646,6 +650,156 @@ function NodeSparkle:IsNode(name)
     if not key then return false end
     if ns.DB and (ns.DB:IsHiddenSource(name) or ns.DB:IsHiddenSource(self:Names()[key])) then return false end
     return true
+end
+
+--------------------------------------------------------------------------------
+-- Nodes told by the game's tooltip
+--
+-- Herbs are known on any client by their item's client name, but veins are
+-- known only by the data's English name, so a German "Kupfervorkommen" never
+-- matched "Copper Vein" until the player had mined one (a player's report,
+-- 2026-11-07). The game's tooltip for a vein or herb names the skill it
+-- needs ("Requires Mining", "Benötigt Bergbau"), and the client names the
+-- skills by ID (Gathering.ClientNames, the Professions book), so a line
+-- under the name that holds one of those words makes the object a node, in
+-- any language. Read only when the name alone did not say, kept a second a
+-- guid. Brought over from Retail Farmer.
+--------------------------------------------------------------------------------
+
+NodeSparkle.GATHER_SKILLS = { "Herbalism", "Mining" }
+-- The Professions book's skill lines, by the English skill.
+NodeSparkle.BOOK_LINES = { [182] = "Herbalism", [186] = "Mining", [2944] = "Herbalism", [2946] = "Mining" }
+
+--- The words the client may use for the gathering skills, lower case:
+--- { [word] = English skill }. Built each time a tooltip is read (at most
+--- once a second a guid), since the client may name a skill only later.
+function NodeSparkle:SkillWords()
+    local book = {}
+    if type(GetProfessions) == "function" and type(GetProfessionInfo) == "function" then
+        local ok, first, second = pcall(GetProfessions)
+        if ok then
+            for _, index in ipairs({ ns.Harvest.ReadableNumber(first) or false, ns.Harvest.ReadableNumber(second) or false }) do
+                if index then
+                    local got, name, _, _, _, _, _, line = pcall(GetProfessionInfo, index)
+                    name = got and Readable(name) or nil
+                    local english = self.BOOK_LINES[ns.Harvest.ReadableNumber(line) or 0]
+                    if name and english then book[#book + 1] = { name, english } end
+                end
+            end
+        end
+    end
+    local words = {}
+    local function Keep(word, english)
+        if type(word) == "string" and #word >= 4 then words[word:lower()] = english end
+    end
+    for _, english in ipairs(self.GATHER_SKILLS) do
+        Keep(english, english)
+        if ns.Gathering and ns.Gathering.ClientNames then
+            for word in pairs(ns.Gathering.ClientNames(english)) do Keep(word, english) end
+        end
+    end
+    for _, entry in ipairs(book) do Keep(entry[1], entry[2]) end
+    return words
+end
+
+--- Whether the tooltip of the game object the interact key picks names a
+--- gathering skill under its name. Also keeps the skill (English) and the
+--- number on that line, if any, for the colour (`tipSkill`, `tipNeed`).
+function NodeSparkle:TooltipGathers(guid)
+    if type(guid) ~= "string" or not guid:find("^GameObject%-") then return false end
+    if self.tipGuid == guid and self.tipAt and type(GetTime) == "function" and (GetTime() - self.tipAt) < 1 then
+        return self.tipAnswer
+    end
+    local answer, skill, need = false, nil, nil
+    local get = Field(_G.C_TooltipInfo, "GetUnit")
+    if type(get) == "function" then
+        local ok, data = pcall(get, UNIT)
+        local lines = ok and Field(data, "lines")
+        if type(lines) == "table" then
+            local words = self:SkillWords()
+            for index = 2, #lines do
+                local text = Readable(Field(lines[index], "leftText"))
+                if type(text) == "string" and text ~= "" then
+                    local lower = text:lower()
+                    for word, english in pairs(words) do
+                        if lower:find(word, 1, true) then
+                            answer, skill = true, english
+                            need = tonumber(text:match("(%d+)"))
+                            break
+                        end
+                    end
+                end
+                if answer then break end
+            end
+        end
+    end
+    self.tipGuid, self.tipAnswer, self.tipSkill, self.tipNeed = guid, answer, skill, need
+    self.tipAt = type(GetTime) == "function" and GetTime() or nil
+    return answer
+end
+
+--------------------------------------------------------------------------------
+-- My Professions Only
+--
+-- Off unless ticked (`nodeSparkleMine`, never rename it): every herb, vein
+-- and fish school lights up for every character, as before. Ticked, a herb
+-- lights up only for a character who knows Herbalism, a vein for Mining and
+-- a school for Fishing (a player expected the map markers' box to do it,
+-- 2026-11-07). Chests, quest things and the bobber are never held back, and
+-- a node whose skill can't be told, or a character whose skills the client
+-- won't give, still lights up. The skills are read by skill line, so any
+-- language works (MapMarkers.ReadKnown).
+--------------------------------------------------------------------------------
+
+NodeSparkle.KNOWN_EVERY = 10
+NodeSparkle.KIND_OF_NODE = { herb = "Herbalism", ore = "Mining" }
+
+function NodeSparkle:MineOnly()
+    return ns.db and ns.db.nodeSparkleMine == true or false
+end
+
+--- The gathering skills this character knows, { [English] = true }, or
+--- nil when the client won't say. Read again every KNOWN_EVERY seconds.
+function NodeSparkle:KnownSkills()
+    local now = type(GetTime) == "function" and GetTime() or 0
+    local kept = self.known
+    if kept and now - kept.at < self.KNOWN_EVERY then return kept.skills end
+    local skills = ns.MapMarkers and ns.MapMarkers.ReadKnown and ns.MapMarkers.ReadKnown() or nil
+    self.known = { at = now, skills = skills }
+    return skills
+end
+
+--- The English skill a node named `name` needs: the data's, else what the
+--- player gathered there, else what its tooltip names. Nil when none says.
+function NodeSparkle:NodeSkill(name, guid)
+    local skill = self:NodeNeeds(name)
+    if skill then return skill end
+    local key = self:BaseKey(name)
+    local gathering = ns.db and ns.db.gathering
+    if key and type(gathering) == "table" and type(gathering.nodes) == "table" then
+        for _, entry in pairs(gathering.nodes) do
+            if type(entry) == "table" and type(entry.node) == "string" and entry.node:lower() == key then
+                local found = self.KIND_OF_NODE[entry.kind]
+                if found then return found end
+            end
+        end
+    end
+    if guid and self:TooltipGathers(guid) then return self.tipSkill end
+    return nil
+end
+
+--- Whether a thing of `kind` lights up for this character: always, unless
+--- "My Professions Only" is ticked and it is a herb, vein or school whose
+--- skill the character lacks.
+function NodeSparkle:ForMyProfessions(kind, name, guid)
+    if not self:MineOnly() then return true end
+    local skill
+    if kind == "node" then skill = self:NodeSkill(name, guid)
+    elseif kind == "school" then skill = "Fishing" end
+    if not skill then return true end
+    local known = self:KnownSkills()
+    if type(known) ~= "table" then return true end
+    return known[skill] == true
 end
 
 --- What the interact key points at: its guid, its name, and whether it is a
@@ -1004,7 +1158,7 @@ function NodeSparkle:ColorsOn()
 end
 
 --- What a thing of `kind` sparkles in. `level` is a corpse's.
-function NodeSparkle:ColorFor(kind, name, level)
+function NodeSparkle:ColorFor(kind, name, level, guid)
     if not self:ColorsOn() then return self.GOLD end
     local colors = self.COLORS
     if kind == "quest" then return colors.quest end
@@ -1013,6 +1167,10 @@ function NodeSparkle:ColorFor(kind, name, level)
     local read = type(skills) == "table"
     if kind == "node" then
         local skill, need = self:NodeNeeds(name)
+        if not skill and guid and self.tipGuid == guid and self.tipAnswer then
+            -- Told by its tooltip: the skill it names and the number on that line.
+            skill, need = self.tipSkill, self.tipNeed
+        end
         if skill then
             return self.SkillColor(read and skills[skill] or nil, need, read) or self.GOLD
         end
@@ -1156,11 +1314,12 @@ function NodeSparkle:Refresh()
         return "shown"
     end
     if not guid then self:HideSparkle(); return "nothing" end
-    local kind = self:Kind(name)
+    local kind = self:Kind(name, guid)
+    if kind and not self:ForMyProfessions(kind, name, guid) then kind = nil end
     if not kind then self:HideSparkle(); return "notnode" end
     local plate = self:Plate(guid)
     if not plate then self:HideSparkle(); return "noplate" end
-    self:ShowSparkle(plate, guid, self:ColorFor(kind, name))
+    self:ShowSparkle(plate, guid, self:ColorFor(kind, name, nil, guid))
     return "shown"
 end
 
@@ -1297,7 +1456,12 @@ function NodeSparkle:Check()
     local kind = type(guid) == "string" and guid:match("^(%a+)%-") or nil
     ns.PrintRaw(("  facing: %s (%s)"):format(tostring(name), tostring(kind or (guid and "?" or "nothing"))))
     ns.PrintRaw(("  a node Farmer knows: %s"):format(name and (self:IsNode(name) and "yes" or "no") or "-"))
-    ns.PrintRaw(("  kind: %s"):format(name and tostring(self:Kind(name) or "none") or "-"))
+    ns.PrintRaw(("  kind: %s"):format(name and tostring(self:Kind(name, guid) or "none") or "-"))
+    ns.PrintRaw(("  my professions only: %s, lights up here: %s"):format(self:MineOnly() and "on" or "off",
+        name and (self:ForMyProfessions(self:Kind(name, guid) or "none", name, guid) and "yes" or "no") or "-"))
+    ns.PrintRaw(("  tooltip names a gathering skill: %s%s"):format(
+        guid and (self:TooltipGathers(guid) and "yes" or "no") or "-",
+        self.tipAnswer and (" (" .. tostring(self.tipSkill) .. " " .. tostring(self.tipNeed or "-") .. ")") or ""))
     local skill, need = self:NodeNeeds(name)
     local color = self.shownColor or self.GOLD
     ns.PrintRaw(("  colors: %s, needs %s %s, corpses %s, skinnable corpse: %s, colour %.2f %.2f %.2f"):format(
@@ -1338,6 +1502,12 @@ function NodeSparkle:SetCorpses(on)
     self:SafeRefresh()
 end
 
+function NodeSparkle:SetMine(on)
+    ns.db.nodeSparkleMine = on and true or false
+    self.known = nil
+    self:SafeRefresh()
+end
+
 function NodeSparkle:SetBobber(on)
     ns.db.nodeSparkleBobber = on and true or false
     self:SafeRefresh()
@@ -1348,7 +1518,7 @@ function NodeSparkle:Skinned(guid)
     if guid and self.shownGuid == guid then self:SafeRefresh() end
 end
 
-ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, bobber, icon, check)"], function(rest)
+ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, mine, bobber, icon, check)"], function(rest)
     local argument = ns.Util.Trim(rest or ""):lower()
     local word, value = argument:match("^(%a+)%s*(%a*)$")
     if word == "colors" or word == "colours" then
@@ -1368,6 +1538,17 @@ ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, c
         else on = not NodeSparkle:CorpsesOn() end
         NodeSparkle:SetCorpses(on)
         ns.Print(on and L["corpses you can skin sparkle."] or L["corpses don't sparkle."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "mine" then
+        local on
+        if value == "on" then on = true
+        elseif value == "off" then on = false
+        else on = not NodeSparkle:MineOnly() end
+        NodeSparkle:SetMine(on)
+        ns.Print(on and L["only herbs, ore and fish for your professions light up."]
+            or L["every herb, vein and fish school lights up."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end

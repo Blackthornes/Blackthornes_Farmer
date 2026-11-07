@@ -1723,6 +1723,25 @@ wide, never rename it; `/farm sparkle bobber [on|off]`. Unticked,
 `NodeSparkle:Kind` gives the bobber nothing, so no beam or sparkles;
 `IsBobber`, the reach and one key fishing are untouched.
 Tested in `tools/test_nodesparkle.lua`.
+Other languages (a player's report, 2026-11-07: German veins had no beam
+while herbs did): veins were known only by the data's English names, herbs
+also by the client's item names. When the name alone says nothing, a game
+object's tooltip line under the name that holds the client's word for
+Herbalism or Mining (`Gathering.ClientNames`, the Professions book by skill
+line, `NodeSparkle.BOOK_LINES`) makes it a node, and the number on that
+line sets the colour (`NodeSparkle:TooltipGathers`, kept a second a guid,
+`tipSkill`, `tipNeed`). A hidden name still gets nothing. Skinnable
+corpses already read the client's own `UNIT_SKINNABLE_LEATHER`.
+"My Professions Only:" under Bobber Beam (the owner picked a box of its
+own, 2026-11-07): `nodeSparkleMine`, off unless ticked, account wide,
+never rename it; `/farm sparkle mine [on|off]`. Unticked, every herb, vein
+and school lights up for any character, as before. Ticked, a herb needs
+Herbalism, a vein Mining and a school Fishing (`NodeSparkle:NodeSkill`,
+`ForMyProfessions`, skills from `MapMarkers.ReadKnown` kept
+`KNOWN_EVERY` seconds); chests, quest objects and the bobber never wait,
+and a character whose skills the client won't give sees everything. The
+map markers' own box is untouched. Tested in `tools/test_germanveins.lua`.
+Not yet seen in game.
 
 ## Gathered spots on the maps
 

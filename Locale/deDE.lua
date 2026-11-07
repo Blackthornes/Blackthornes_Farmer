@@ -919,8 +919,8 @@ L["HOW THESE ADDONS ARE MADE"] = "WIE DIESE ADDONS ENTSTEHEN"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Wie diese Addons entstehen, die Version, der Discord und die anderen Blackthornes-Addons"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, bobber, icon, check)"] =
-    "Funkeln an Vorkommen, Fischschwarm, Truhe oder Questobjekt vor dir ein- oder ausschalten (beacon, sparkles, colors, corpses, bobber, icon, check)"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, mine, bobber, icon, check)"] =
+    "Funkeln an Vorkommen, Fischschwarm, Truhe oder Questobjekt vor dir ein- oder ausschalten (beacon, sparkles, colors, corpses, mine, bobber, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "Das Interaktionssymbol des Spiels bleibt verborgen, außer du spielst mit einem Controller."
 L["the game's interact icon shows."] = "Das Interaktionssymbol des Spiels wird angezeigt."
 L["a beacon shows the spot."] = "Ein Leuchtfeuer zeigt die Stelle."
@@ -1787,3 +1787,6 @@ L["Your best here was %s."] = "Deine beste hier war %s."
 L["Next Rate Unlock"] = "Nächste Rate"
 L["Fishing Panel:"] = "Angel-Fenster:"
 L["Show what you catch while you fish."] = "Zeigt, was du beim Angeln fängst."
+L["Herbs, ore and fish light up only when you know the skill."] = "Kräuter, Erze und Fischschwärme leuchten nur auf, wenn du den Beruf kannst."
+L["only herbs, ore and fish for your professions light up."] = "nur Kräuter, Erze und Fische für deine Berufe leuchten auf."
+L["every herb, vein and fish school lights up."] = "jedes Kraut, jedes Vorkommen und jeder Fischschwarm leuchtet auf."
