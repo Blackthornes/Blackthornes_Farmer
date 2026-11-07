@@ -36,6 +36,9 @@ Options:
     --allow-smaller  write even if it has fewer corpses than the file it replaces
     --shared         also fold in the drops players sent (sharedDrops,
                      Logic/Contribute.lua); the save itself is never changed
+    --keep-published also keep what the file being replaced knows: each spot
+                     keeps whichever side saw more corpses, so nothing shrinks
+                     and nothing counts twice
 """
 
 import argparse
@@ -268,6 +271,156 @@ def fold_shared(lua, records, shared):
     return int(lua.execute(FOLD_LUA)(records, shared))
 
 
+# Reading the file this tool wrote, so --keep-published can keep what it knows.
+# The live save can hold less than the shipped file: it began at Forever's
+# launch, and the file also holds older drops. Each mob at each spot keeps
+# whichever side saw more corpses. Adding them instead would count twice every
+# corpse both sides saw, and the shipped file does not say which those are.
+SOURCE_FIELD = r'%s = "((?:[^"\\]|\\.)*)"'
+SOURCE_LINE = re.compile(r'^\s+\{ ' + SOURCE_FIELD % "name")
+CORPSES_LINE = re.compile(r"^\s+-- (\d+) of (\d+) corpses")
+
+
+def lua_unescape(text):
+    return text.replace('\\"', '"').replace("\\\\", "\\")
+
+
+def read_published(path):
+    """What the data file at `path` knows, or None if there is no such file."""
+    if not os.path.isfile(path):
+        return None
+
+    with open(path, encoding="utf-8") as handle:
+        lines = handle.read().split("\n")
+
+    records, types, qualities = {}, {}, {}
+    item, item_id, source, section = None, None, None, "items"
+
+    for line in lines:
+        if line.startswith("if DB.CreatureTypes"):
+            section = "types"
+        elif line.startswith("if DB.WorldDrops"):
+            section = "world"
+        elif line.startswith("}) end"):
+            section = "items"
+        elif section == "types":
+            match = re.match(r'\s+\["(.*)"\] = "(.*)",$', line)
+            if match:
+                types[lua_unescape(match.group(1))] = lua_unescape(match.group(2))
+        elif section == "world":
+            match = re.match(r"\s+\{ \d+, (\d+), (\d+), \d+, ", line)
+            if match:
+                qualities[int(match.group(1))] = int(match.group(2))
+        elif line.startswith("DB:RegisterItem"):
+            item, item_id, source = None, None, None
+        elif line.startswith('    name = "'):
+            item = lua_unescape(re.match(r'    ' + SOURCE_FIELD % "name", line).group(1))
+        elif line.startswith("    id = "):
+            item_id = int(re.search(r"\d+", line).group())
+        elif SOURCE_LINE.match(line):
+            # Fishing rows count casts, not corpses, and are kept whole below.
+            source = None
+            if 'kind = "fishing"' not in line:
+                source = {"mob": lua_unescape(SOURCE_LINE.match(line).group(1))}
+                for field in ("zone", "location"):
+                    match = re.search(SOURCE_FIELD % field, line)
+                    if match:
+                        source[field] = lua_unescape(match.group(1))
+                match = re.search(r"coords = \{ ([\d.]+), ([\d.]+) \}", line)
+                if match:
+                    source["coords"] = [float(match.group(1)), float(match.group(2))]
+                for field in ("minLevel", "maxLevel"):
+                    match = re.search(field + r" = (\d+)", line)
+                    if match:
+                        source[field] = int(match.group(1))
+        elif source is not None and CORPSES_LINE.match(line):
+            held, corpses = (int(n) for n in CORPSES_LINE.match(line).groups())
+            key = "%s|%s|%s" % (source["mob"], source.get("zone", "?"),
+                                source.get("location", ""))
+            record = records.setdefault(key, dict(source, corpses=corpses, items={}))
+            record["corpses"] = max(record["corpses"], corpses)
+            entry = {"name": item, "count": held, "corpses": held}
+            if item_id:
+                entry["id"] = item_id
+            record["items"][item] = entry
+            source = None
+
+    return {"records": records, "types": types, "qualities": qualities}
+
+
+def to_lua(lua, value):
+    if isinstance(value, dict):
+        return lua.table_from({key: to_lua(lua, inner) for key, inner in value.items()})
+    if isinstance(value, list):
+        return lua.table_from(value)
+    return value
+
+
+def keep_published(lua, saved, records, published):
+    """Keep each spot's larger side. Only the copy in memory changes."""
+    kept = 0
+    for key, record in published["records"].items():
+        own = records[key]
+        if own is None or (own["corpses"] or 0) < record["corpses"]:
+            records[key] = to_lua(lua, record)
+            kept += 1
+
+    if published["types"]:
+        types = saved["creatureTypes"]
+        if types is None:
+            types = lua.table()
+            saved["creatureTypes"] = types
+        for name, kind in published["types"].items():
+            if types[name] is None:
+                types[name] = kind
+
+    return kept
+
+
+def know_qualities(lua, qualities):
+    """Let the world drop counts know the colour of what the file already had.
+
+    In game the client knows an item's quality. Here only the save's loot
+    links do, and a spot kept from the file may have no link in this save.
+    """
+    if not qualities:
+        return
+    lua.eval(r"""function(known)
+        local before = C_Item and C_Item.GetItemQualityByID
+        C_Item = C_Item or {}
+        C_Item.GetItemQualityByID = function(id)
+            if known[id] then return known[id] end
+            if before then return before(id) end
+        end
+    end""")(lua.table_from(qualities))
+
+
+FISHING_SECTION = re.compile(r"-- Fishing\n.*?(?=\n-- Creature types|\n-- World drops|\Z)", re.S)
+CASTS_LINE = re.compile(r"^-- \d+ fishing casts\.$", re.M)
+
+
+def keep_fishing(text, path, casts_now, casts_before):
+    """Fishing keeps whole, from whichever side made more casts."""
+    if casts_before is None or casts_now >= casts_before:
+        return text
+
+    with open(path, encoding="utf-8") as handle:
+        old = FISHING_SECTION.search(handle.read())
+
+    if old is None:
+        return text
+
+    line = "-- %d fishing casts." % casts_before
+    if FISHING_SECTION.search(text):
+        text = FISHING_SECTION.sub(lambda _: old.group(0), text, count=1)
+        return CASTS_LINE.sub(line, text, count=1)
+
+    text = text.replace("\n--\n", "\n%s\n--\n" % line, 1)
+    match = re.search(r"\n-- Creature types|\n-- World drops", text)
+    at = match.start() if match else len(text)
+    return text[:at].rstrip("\n") + "\n\n" + old.group(0) + "\n" + text[at:]
+
+
 def describe(ns):
     harvest = ns.Harvest
     items = harvest.Items(harvest)
@@ -322,6 +475,8 @@ def main():
                         help="report what was found and write nothing")
     parser.add_argument("--shared", action="store_true",
                         help="also fold in the drops players sent (sharedDrops)")
+    parser.add_argument("--keep-published", action="store_true",
+                        help="each spot keeps the larger of the save and the file")
     parser.add_argument("--allow-smaller", action="store_true",
                         help="write even if it has fewer corpses than before")
     args = parser.parse_args()
@@ -375,8 +530,17 @@ def main():
         added = fold_shared(lua, records, saved["sharedDrops"])
         print("folded in %d records players sent" % added)
 
+    published = read_published(os.path.abspath(args.output)) if args.keep_published else None
+
+    if published:
+        print("kept %d spots from the file being replaced"
+              % keep_published(lua, saved, records, published))
+
     ns, restored = load_addon(lua, records, saved["fishing"], saved["creatureTypes"],
                               saved["tracker"])
+
+    if published:
+        know_qualities(lua, published["qualities"])
 
     if restored == 0:
         raise SystemExit("the saved harvest holds no usable records.")
@@ -394,11 +558,12 @@ def main():
     now = int(harvest.CountCorpses(harvest))
 
     if (before is not None and now < before and not args.allow_smaller
-            and not (args.list or args.stdout)):
+            and not args.keep_published and not (args.list or args.stdout)):
         raise SystemExit(
             "\nthe saved harvest has %d corpses but %s was built from %d.\n"
-            "Nothing has been changed. If you cleared the harvest on purpose,\n"
-            "run this again with --allow-smaller. If not, send this to Claude."
+            "Nothing has been changed. To keep what that file knows too, run this\n"
+            "again with --keep-published. If you cleared the harvest on purpose,\n"
+            "use --allow-smaller. If not, send this to Claude."
             % (now, os.path.basename(output), before))
 
     # The same for fishing casts.
@@ -406,7 +571,7 @@ def main():
     casts_now = int(ns.Fishing.CountCasts(ns.Fishing))
 
     if (casts_before is not None and casts_now < casts_before and not args.allow_smaller
-            and not (args.list or args.stdout)):
+            and not args.keep_published and not (args.list or args.stdout)):
         raise SystemExit(
             "\nthe saved fishing record has %d casts but %s was built from %d.\n"
             "Nothing has been changed. If you cleared it on purpose,\n"
@@ -414,6 +579,9 @@ def main():
             % (casts_now, os.path.basename(output), casts_before))
 
     text = harvest.ExportAll(harvest, lua.table(generated=True))
+
+    if published:
+        text = keep_fishing(text, output, casts_now, casts_before)
 
     if args.list:
         return 0
