@@ -23,6 +23,12 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.8.1
+
+Fixes and changes:
+
+- If you share your drops, they now go to one more of our characters. It is still off until you turn it on.
+
 ## 1.8.0
 
 - You can turn off the beam over your fishing bobber if it hides the bob. It is in Settings, on the Map & goals page, under Sparkles.
