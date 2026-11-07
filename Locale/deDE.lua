@@ -919,8 +919,8 @@ L["HOW THESE ADDONS ARE MADE"] = "WIE DIESE ADDONS ENTSTEHEN"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Wie diese Addons entstehen, die Version, der Discord und die anderen Blackthornes-Addons"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, icon, check)"] =
-    "Funkeln an Vorkommen, Fischschwarm, Truhe oder Questobjekt vor dir ein- oder ausschalten (beacon, sparkles, colors, corpses, icon, check)"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, bobber, icon, check)"] =
+    "Funkeln an Vorkommen, Fischschwarm, Truhe oder Questobjekt vor dir ein- oder ausschalten (beacon, sparkles, colors, corpses, bobber, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "Das Interaktionssymbol des Spiels bleibt verborgen, außer du spielst mit einem Controller."
 L["the game's interact icon shows."] = "Das Interaktionssymbol des Spiels wird angezeigt."
 L["a beacon shows the spot."] = "Ein Leuchtfeuer zeigt die Stelle."
@@ -937,6 +937,9 @@ L["sparkles show your skill color."] = "Funkeln zeigt die Farbe deiner Fertigkei
 L["sparkles are all gold."] = "Funkeln ist ganz golden."
 L["corpses you can skin sparkle."] = "Leichen, die du häuten kannst, funkeln."
 L["corpses don't sparkle."] = "Leichen funkeln nicht."
+L["Bobber Beam:"] = "Schwimmer-Strahl:"
+L["your bobber lights up."] = "dein Schwimmer leuchtet."
+L["your bobber stays plain."] = "dein Schwimmer bleibt schlicht."
 L["open the kills panel first, then try again."] = "öffne zuerst das Kill-Fenster und versuch es dann noch mal."
 L["Training Dummy"] = "Trainingsattrappe"
 L["%d kills of %s! You're the bane of its kind now."] = "%1$d Kills: %2$s! Du bist jetzt die Geißel seiner Art."

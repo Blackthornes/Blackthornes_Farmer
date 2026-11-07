@@ -1217,6 +1217,14 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.nodeSparkleCorpses:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The bobber's own switch (a player found the beam hid the bob,
+    -- 2026-11-07).
+    local sparkleBobberRow = pages:Row("map", 1, L["Bobber Beam:"], nil)
+    controls.nodeSparkleBobber = Widgets.CreateCheckbox(sparkleBobberRow, L["On"], function(checked)
+        ns.NodeSparkle:SetBobber(checked)
+    end, true)
+    controls.nodeSparkleBobber:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- The game's interact icon, out of sight without a controller (the
     -- owner asked 2026-10-13).
     local sparkleIconRow = pages:Row("map", 1, L["Hide Game Icon:"],
@@ -1619,6 +1627,7 @@ function SettingsUI:Refresh()
     controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)
     controls.nodeSparkleColors:SetChecked(db.nodeSparkleColors ~= false)
     controls.nodeSparkleCorpses:SetChecked(db.nodeSparkleCorpses == true)
+    controls.nodeSparkleBobber:SetChecked(db.nodeSparkleBobber ~= false)
     for _, name in ipairs({ "itemTooltip", "itemTooltipCraft", "killTooltip", "killTooltipDrops" }) do
         local stepper = controls[name]
         stepper:SetValue(ns.TooltipShift:Mode(stepper.isOn(), stepper.shiftKey), true)

@@ -919,8 +919,8 @@ L["HOW THESE ADDONS ARE MADE"] = "COMMENT CES ADDONS SONT FAITS"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "Comment ces addons sont faits, la version, le Discord et les autres addons Blackthornes"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, icon, check)"] =
-    "active ou coupe les étincelles sur le gisement, le banc de poissons, le coffre ou l'objet de quête devant toi (beacon, sparkles, colors, corpses, icon, check)"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, bobber, icon, check)"] =
+    "active ou coupe les étincelles sur le gisement, le banc de poissons, le coffre ou l'objet de quête devant toi (beacon, sparkles, colors, corpses, bobber, icon, check)"
 L["the game's interact icon is hidden unless you play with a controller."] = "l'icône d'interaction du jeu est cachée, sauf si tu joues à la manette."
 L["the game's interact icon shows."] = "l'icône d'interaction du jeu s'affiche."
 L["a beacon shows the spot."] = "un phare montre l'endroit."
@@ -937,6 +937,9 @@ L["sparkles show your skill color."] = "les étincelles prennent la couleur de t
 L["sparkles are all gold."] = "les étincelles sont toutes dorées."
 L["corpses you can skin sparkle."] = "les cadavres que tu peux dépecer brillent."
 L["corpses don't sparkle."] = "les cadavres ne brillent pas."
+L["Bobber Beam:"] = "Rayon du bouchon :"
+L["your bobber lights up."] = "ton bouchon s'illumine."
+L["your bobber stays plain."] = "ton bouchon reste sobre."
 L["open the kills panel first, then try again."] = "ouvre d'abord le panneau des victimes, puis réessaie."
 L["Training Dummy"] = "Mannequin d'entraînement"
 L["%d kills of %s! You're the bane of its kind now."] = "%1$d victimes : %2$s ! Tu es maintenant le fléau de son espèce."

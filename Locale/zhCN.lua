@@ -918,8 +918,8 @@ L["HOW THESE ADDONS ARE MADE"] = "这些插件是怎么做的"
 L["How these addons are made, the version, the Discord and the other Blackthornes addons"] = "这些插件是怎么做的、版本、Discord 和其他 Blackthornes 插件"
 
 -- Sparkles on the node you face (UI/NodeSparkle.lua).
-L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, icon, check)"] =
-    "打开或关闭你面前的资源点、鱼群、宝箱或任务物件上的闪光（beacon, sparkles, colors, corpses, icon, check）"
+L["turn sparkles on or off for the node, school, chest or quest object you face (beacon, sparkles, colors, corpses, bobber, icon, check)"] =
+    "打开或关闭你面前的资源点、鱼群、宝箱或任务物件上的闪光（beacon, sparkles, colors, corpses, bobber, icon, check）"
 L["the game's interact icon is hidden unless you play with a controller."] = "除非你用手柄玩，否则游戏的互动图标会被隐藏。"
 L["the game's interact icon shows."] = "游戏的互动图标会显示。"
 L["a beacon shows the spot."] = "用光柱标出位置。"
@@ -936,6 +936,9 @@ L["sparkles show your skill color."] = "闪光显示你的技能颜色。"
 L["sparkles are all gold."] = "闪光全部为金色。"
 L["corpses you can skin sparkle."] = "你能剥皮的尸体会闪光。"
 L["corpses don't sparkle."] = "尸体不会闪光。"
+L["Bobber Beam:"] = "鱼漂光柱："
+L["your bobber lights up."] = "你的鱼漂会发光。"
+L["your bobber stays plain."] = "你的鱼漂不再发光。"
 L["open the kills panel first, then try again."] = "请先打开击杀面板，然后再试。"
 L["Training Dummy"] = "训练假人"
 L["%d kills of %s! You're the bane of its kind now."] = "%2$s 已击杀 %1$d 次！你现在是它们一族的克星了。"
