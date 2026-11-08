@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.9.1
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Quest count clear of the level.** The quest count over a mob no longer lands on its level number on nameplates that show the level late or under another name.
+
 ## 1.9.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
