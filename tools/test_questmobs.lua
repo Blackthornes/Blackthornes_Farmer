@@ -74,6 +74,16 @@ plates.nameplate9 = namePlate
 Mob("nameplate9", "Strigid Owl", { "Strigid Owl", "Strigid Owl slain: 0/8" })
 label = QuestMobs:LabelFor(namePlate)
 suite.check("with no level showing, beside the name", label and label.frame._point[2] == namePlate.UnitFrame.name)
+suite.check("and past where the level would be", label and (label.frame._point[4] or 0) >= QuestMobs.LEVEL_ROOM)
+local scanPlate = CreateFrame("Frame")
+local lvl = Text(); lvl._shown = true; lvl.IsShown = function() return true end; lvl.GetText = function() return "10" end
+scanPlate.UnitFrame = env.Stub({ name = Text() })
+scanPlate.UnitFrame.GetRegions = function() return lvl end
+scanPlate.UnitFrame.GetChildren = function() end
+plates.nameplate10 = scanPlate
+Mob("nameplate10", "Kobold Tunneler", { "Kobold Tunneler", "Kobold Tunneler slain: 1/10" })
+label = QuestMobs:LabelFor(scanPlate)
+suite.check("a level under another name is found too", label and label.frame._point[2] == lvl)
 
 ns.HandleSlash("questcount")
 suite.check("/farm questcount turns it off", ns.db.questMobCount == false)

@@ -153,17 +153,67 @@ end
 --- What sits furthest right on the plate's name line. Forever's plate
 --- draws the name inside the health bar and the mob's level just past
 --- the bar's end, so a count laid beside the name landed on the level
---- (a player saw "0/8" over the "6", 2026-11-05). The level's frame or
---- text when it shows, else the name; nil when neither can be read.
+--- (a player saw "0/8" over the "6", 2026-11-05, and "1/10" over the
+--- "10" again on 2026-11-08). The level's frame or text when it shows,
+--- else any short number the plate shows on its own (the level under
+--- another field name), else the name. The second answer is true when
+--- the edge is the level; nil when nothing can be read.
+local LEVEL_FIELDS = { "LevelFrame", "levelText", "LevelText", "level", "Level" }
+
+local function LevelLike(piece)
+    if not Showing(piece) then return false end
+    local ok, kind = pcall(function() return piece:GetObjectType() end)
+    if not ok or kind ~= "FontString" then return false end
+    local read, text = pcall(function() return piece:GetText() end)
+    if not read or type(text) ~= "string" then return false end
+    local same, matched = pcall(string.match, text, "^%s*[%d%?]+%+?%s*$")
+    return same and matched ~= nil
+end
+
+local function ScanForLevel(frame, depth)
+    if type(frame) ~= "table" or depth > 2 then return nil end
+    local ok, regions = pcall(function() return { frame:GetRegions() } end)
+    if ok then
+        for _, region in ipairs(regions) do
+            if LevelLike(region) then return region end
+        end
+    end
+    local okKids, kids = pcall(function() return { frame:GetChildren() } end)
+    if okKids then
+        for _, kid in ipairs(kids) do
+            local found = ScanForLevel(kid, depth + 1)
+            if found then return found end
+        end
+    end
+    return nil
+end
+
 function QuestMobs.RightOf(plate)
     local unitFrame = Field(plate, "UnitFrame")
     local levelFrame = Field(unitFrame, "LevelFrame")
-    local pieces = { levelFrame, Field(levelFrame, "levelText"),
-        Field(unitFrame, "levelText"), Field(unitFrame, "LevelText") }
-    for i = 1, 4 do
-        if Showing(pieces[i]) then return pieces[i] end
+    local pieces = { levelFrame, Field(levelFrame, "levelText") }
+    for _, key in ipairs(LEVEL_FIELDS) do
+        pieces[#pieces + 1] = Field(unitFrame, key)
+        pieces[#pieces + 1] = Field(Field(unitFrame, "healthBar"), key)
     end
-    return NameOf(plate)
+    for i = 1, #pieces do
+        if Showing(pieces[i]) then return pieces[i], true end
+    end
+    local found = ScanForLevel(unitFrame, 0)
+    if found then return found, true end
+    return NameOf(plate), false
+end
+
+--- Room left past the name for a level the plate shows but won't name:
+--- as wide as "60" in the plate's own font, and a little more.
+QuestMobs.LEVEL_ROOM = 22
+
+local function LevelRoom()
+    local ok, width = pcall(ns.Theme.TextWidth, "normal", "60")
+    if ok and type(width) == "number" and width > 0 then
+        return math.max(QuestMobs.LEVEL_ROOM, math.ceil(width) + 8)
+    end
+    return QuestMobs.LEVEL_ROOM
 end
 
 local function Label(plate)
@@ -187,15 +237,15 @@ function QuestMobs:Show(plate, count)
         entry.text:SetText(count)
         entry.shown = count
     end
-    if not entry.placed then
+    -- Looked at again each time, since the game can show the level a
+    -- moment after the plate; points are set only when the spot moved.
+    local edge, isLevel = QuestMobs.RightOf(plate)
+    local anchor, gap = edge or plate, 4
+    if not edge then gap = 2 elseif not isLevel then gap = 4 + LevelRoom() end
+    if entry.placed ~= anchor or entry.gap ~= gap then
         entry.frame:ClearAllPoints()
-        local edge = QuestMobs.RightOf(plate)
-        if edge then
-            entry.frame:SetPoint("LEFT", edge, "RIGHT", 4, 0)
-        else
-            entry.frame:SetPoint("LEFT", plate, "RIGHT", 2, 0)
-        end
-        entry.placed = true
+        entry.frame:SetPoint("LEFT", anchor, "RIGHT", gap, 0)
+        entry.placed, entry.gap = anchor, gap
     end
     local was = entry.frame:IsShown()
     entry.frame:Show()
@@ -222,7 +272,7 @@ function QuestMobs:Hide(plate)
     local was = entry.frame:IsShown()
     entry.frame:Hide()
     entry.frame:ClearAllPoints()
-    entry.placed, entry.shown = nil, nil
+    entry.placed, entry.gap, entry.shown = nil, nil, nil
     if was and ns.KillPlates then ns.KillPlates:QuestMoved(plate) end
 end
 
