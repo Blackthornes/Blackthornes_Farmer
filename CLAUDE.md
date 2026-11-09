@@ -1742,6 +1742,25 @@ Herbalism, a vein Mining and a school Fishing (`NodeSparkle:NodeSkill`,
 and a character whose skills the client won't give sees everything. The
 map markers' own box is untouched. Tested in `tools/test_germanveins.lua`.
 Not yet seen in game.
+Loot beacons (a player asked on Discord, the owner said build it from a
+mockup, 2026-11-09): a beam over the body the interact key picks while it
+still has loot, with settings of its own. `NodeSparkle:LootableCorpse`: a
+dead `Creature-` guid, not hidden, `CanLootUnit` read in a pcall (a
+secret answer tested in a pcall too), else not opened yet
+(`Harvest.opened`, `Tracker.corpses`). It beats the skinnable sparkle;
+once looted, the skinnable sparkle takes over, and the body is looked at
+again `LOOT_AGAIN` after `LOOT_CLOSED` (looting does not move the soft
+target). Its plate stays on (`FitPlateToTarget`). The CVars follow
+`Active()` (sparkles or loot beacons on), so it works with sparkles off;
+the fishing reach still follows the sparkles box. LOOT BEACONS on the
+Loot page: "Loot Beacons:" (`lootBeacon`, off unless ticked), "Beacon
+Color:" (`lootBeaconColor`, nil for gold; Gold, White, Green, Blue,
+Purple, Red, `LOOT_COLORS`, the words in `LOOT_COLOR_WORDS` by client),
+"Beacon Height:" and "Beacon Width:" (`lootBeaconHeight`,
+`lootBeaconWidth`, 50 to 200 in steps of 25, nil for 100). All account
+wide, never rename them. `/farm lootbeacon [on|off|color <name>|height
+<n>|width <n>]`; `/farm sparkle check` has a loot beacon line. Tested in
+`tools/test_lootbeacon.lua`. Not yet seen in game.
 
 ## Gathered spots on the maps
 
