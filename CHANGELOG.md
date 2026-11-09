@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.9.3
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Kill error gone.** Killing a mob no longer throws a Lua error from the quest count on nameplates.
+
 ## 1.9.2
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
