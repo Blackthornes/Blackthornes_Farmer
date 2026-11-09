@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.10.1
+
+Fixes and changes:
+
+- The fishing panel shows what you caught, not a cast count.
+- Cast and Add Lure are the same height now.
+
 ## 1.10.0
 
 - Loot Beacons put a beam over the body in front of you while it still has loot. You can pick the color and size. Turn it on in Settings, on the Loot page.
