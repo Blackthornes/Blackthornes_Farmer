@@ -2119,6 +2119,15 @@ the client" below. Creature types are kept in English (`Grinding.EnglishType`,
 `COPPER_AMOUNT` and the like (`Harvest.CoinValue`). Loot records stay keyed
 by the client's mob name, and fishing schools are still told by English
 name endings. Tested in `tools/test_german.lua`. Not yet seen in game.
+Item names start coming in `DB.NAMES_START` seconds after login
+(`DB:OnEnable`), not at the first search; an item the client does not know
+is asked for (`DB.AskForItem`, `RequestLoadItemDataByID`) and asked again
+every `NAMES_RETRY` seconds, `NAMES_PASSES` passes in all, since the server
+drops some of a burst (2026-11-09, a German player's "Wollstoff",
+"Mittleres Leder" and "Zinnerz" found nothing). When names come in,
+`DB.namesWatchers` are told once a burst settles, and the Search tab runs
+again (`UI:NamesArrived`); its item heading shows the client's name.
+Tested in `tools/test_germansearch.lua`.
 
 The translation (the owner said yes, 2026-10-11, after Pets' pilot):
 Farmer's own words are in German on a German client. Players are told

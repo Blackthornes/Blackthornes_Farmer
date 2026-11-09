@@ -324,6 +324,18 @@ DB.NAMES_PER_FRAME = 25
 -- so a name asked for again and again (the rankings value every drop) asks
 -- the client once until a new name comes in.
 DB.clientMisses = {}
+-- Seconds after login the names start coming in, so the first search on a
+-- client in another language already knows them.
+DB.NAMES_START = 3
+-- Items the client did not name on a pass are asked for again this many
+-- seconds later, up to NAMES_PASSES passes in all: the server answers a
+-- burst of asks slowly and drops some.
+DB.NAMES_RETRY = 6
+DB.NAMES_PASSES = 4
+-- Seconds the lists wait after a name comes in, so a burst redraws once.
+DB.NAMES_SETTLE = 0.5
+-- [key] = function, called (in a pcall) once names have come in.
+DB.namesWatchers = {}
 
 --- Every item with an ID, by ID. Built again only after the data changed.
 function DB:ByID()
@@ -360,6 +372,30 @@ function DB.ClientItemName(id)
     return nil
 end
 
+--- Ask the server to send item `id`, so its name comes in by
+--- GET_ITEM_INFO_RECEIVED. Asking twice is harmless.
+function DB.AskForItem(id)
+    local item = type(C_Item) == "table" and C_Item or nil
+    if item and type(item.RequestLoadItemDataByID) == "function" then
+        pcall(item.RequestLoadItemDataByID, id)
+    end
+end
+
+--- Names came in: tell the watchers once the burst settles.
+function DB:NamesMoved()
+    if self.namesTold then return end
+    local function Tell()
+        DB.namesTold = nil
+        for _, fn in pairs(DB.namesWatchers) do pcall(fn) end
+    end
+    if type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+        self.namesTold = true
+        C_Timer.After(DB.NAMES_SETTLE, Tell)
+    else
+        Tell()
+    end
+end
+
 --- Keep the client's name for `item`, when it gives one. True once named.
 function DB:NoteClientName(item)
     if not (item and item.id) then return false end
@@ -374,6 +410,7 @@ function DB:NoteClientName(item)
         self.clientNames[key] = self.clientNames[key] or item
         self.clientNameOf[item] = name
         self.namesVersion = self.namesVersion + 1
+        self:NamesMoved()
     end
     return true
 end
@@ -390,19 +427,46 @@ function DB:LearnClientNames()
         if item then DB:NoteClientName(item) end
     end)
 
-    local index = 0
+    local timer = type(C_Timer) == "table" and type(C_Timer.After) == "function"
+    -- The first pass reads every item; a later one only those still unnamed.
+    local list = {}
+    for _, key in ipairs(self.order) do
+        local item = self.items[key]
+        if item.id then list[#list + 1] = item end
+    end
+    local pass, index, missed = 1, 0, {}
+
     local function Step()
-        local stop = math.min(#self.order, index + DB.NAMES_PER_FRAME)
+        local stop = math.min(#list, index + DB.NAMES_PER_FRAME)
         for i = index + 1, stop do
-            local item = self.items[self.order[i]]
-            if item.id then self:NoteClientName(item) end
+            local item = list[i]
+            if not self:NoteClientName(item) then
+                missed[#missed + 1] = item
+                DB.AskForItem(item.id)
+            end
         end
         index = stop
-        if index < #self.order and type(C_Timer) == "table" and type(C_Timer.After) == "function" then
-            C_Timer.After(0, Step)
+        if index < #list then
+            if timer then C_Timer.After(0, Step) end
+            return
         end
+        -- A pass done: ask again later for the ones the server left out.
+        if #missed == 0 or pass >= DB.NAMES_PASSES or not timer then return end
+        list, index, missed, pass = missed, 0, {}, pass + 1
+        C_Timer.After(DB.NAMES_RETRY, Step)
     end
     Step()
+end
+
+--- On a client in another language, the names start coming in a moment
+--- after login, not on the first search.
+function DB:OnEnable()
+    if Util.EnglishClient() then return end
+    if type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+        C_Timer.After(DB.NAMES_START, function() DB:LearnClientNames() end)
+    else
+        self:LearnClientNames()
+    end
 end
 
 --- The item whose client name is `key` (lower case), or nil.

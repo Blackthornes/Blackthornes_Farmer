@@ -1110,7 +1110,7 @@ function UI:UpdateRow(row, data, index)
         -- and a recycled row keeps whatever the last one left on it.
         PlaceHeading(row, data.item.id and 38 or 18)
         row.heading:SetTextColor(Theme.Unpack("accent"))
-        row.heading:SetText(("%s  %s"):format(data.item.name,
+        row.heading:SetText(("%s  %s"):format(ns.DB:ClientName(data.item) or data.item.name,
             Util.Colored("muted", ("(%s, %s)"):format(
                 data.item.category, ns.Search:SpotsText(data.count, #data.item.sources)))))
         row.heading:Show()
@@ -1443,6 +1443,22 @@ function UI:SkinningChanged()
 end
 
 ns.DB.hideWatchers.search = function() UI:SkinningChanged() end
+
+--- Names came in from the client (another language): a search that found
+--- little before may find more now, so it runs again while it shows, and
+--- is marked stale for when it does.
+function UI:NamesArrived()
+    if not (self.frame and self.list) then return end
+    if self.lastQuery == nil or self.lastQuery == "" then return end
+    if self.frame:IsShown() and self.tab == "search" then
+        self:BuildChips(self.lastQuery)
+        self:Render()
+    else
+        self.searchStale = true
+    end
+end
+
+ns.DB.namesWatchers.search = function() UI:NamesArrived() end
 
 --- Chips for the source kinds this search turned up, plus All.
 function UI:BuildChips(query)
