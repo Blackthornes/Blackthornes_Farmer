@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.10.0
+
+- Loot Beacons put a beam over the body in front of you while it still has loot. You can pick the color and size. Turn it on in Settings, on the Loot page.
+
+Fixes and changes:
+
+- Search finds items by their Deutsch names on a Deutsch client.
+
 ## 1.9.3
 
 Fixes and changes:

@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.10.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Loot Beacons.** A beam rises off the body in front of you while it still has loot, then moves on to the next one. Pick its color, height and width. Turn it on under Loot Beacons on the Loot page of Settings. It starts off.
+- **Search finds Deutsch item names.** On a Deutsch (German) client, searching names like Wollstoff or Zinnerz finds the item. Results show the item's name as your game says it.
+
 ## 1.9.3
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
