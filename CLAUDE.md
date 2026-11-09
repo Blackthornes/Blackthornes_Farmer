@@ -1744,6 +1744,20 @@ Herbalism, a vein Mining and a school Fishing (`NodeSparkle:NodeSkill`,
 and a character whose skills the client won't give sees everything. The
 map markers' own box is untouched. Tested in `tools/test_germanveins.lua`.
 Not yet seen in game.
+Node Sound (players liked Classic Farmer's peon line, the owner said
+build it, 2026-11-09): a sound when the interact key picks a node that
+lights up (`NodeSparkle:SayFound`, from `Refresh` after `ShowSparkle`;
+never the bobber, never in a fight, once a node, at most every
+`VOICE_GAP` (20) seconds). Game files by ID, nothing shipped: Character
+is your race's "Follow me!" (`FOLLOW_ME`, by `UnitRace` and `UnitSex`;
+Skyborne and other races Classic lacks use Human), Peon is "Ready to
+work!" (`PEON_READY`, 558137), Ping the map's ping (`PING_KIT`, 3175).
+A file the game won't play (`willPlay` false) counts as not said.
+"Node Sound:" under the Sparkles rows on the Map & goals page, Off,
+Character, Peon or Ping (`nodeVoice`, off unless picked, account wide,
+never rename it); `/farm sparkle sound [off|character|peon|ping|try]`.
+Copied from Classic Farmer. Tested in `tools/test_nodesound.lua`. Not
+yet heard in game.
 Loot beacons (a player asked on Discord, the owner said build it from a
 mockup, 2026-11-09): a beam over the body the interact key picks while it
 still has loot, with settings of its own. `NodeSparkle:LootableCorpse`: a

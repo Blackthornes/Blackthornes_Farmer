@@ -1508,6 +1508,7 @@ function NodeSparkle:Refresh()
     local plate = self:Plate(guid)
     if not plate then self:HideSparkle(); return "noplate" end
     self:ShowSparkle(plate, guid, self:ColorFor(kind, name, nil, guid))
+    if kind ~= "bobber" then self:SayFound(guid) end
     return "shown"
 end
 
@@ -1725,6 +1726,86 @@ function NodeSparkle:SetBobber(on)
     self:SafeRefresh()
 end
 
+-- A sound when the light finds a node (brought over from Classic Farmer,
+-- 2026-11-09): your own character's "Follow me!" in its race and voice,
+-- the orc peon's "Ready to work!", or the map's ping. The game's own
+-- files and sounds by ID, nothing shipped. `nodeVoice` is "off",
+-- "character", "peon" or "ping", account wide, off unless picked; never
+-- rename it. Once a node, not again for VOICE_GAP seconds, never in a
+-- fight, and never for your own bobber.
+NodeSparkle.VOICES = { "off", "character", "peon", "ping" }
+NodeSparkle.VOICE_GAP = 20
+NodeSparkle.FOLLOW_ME = {   -- [race] = { male, female }
+    Human = { 540711, 540631 }, Dwarf = { 540057, 540004 },
+    NightElf = { 541086, 541066 }, Gnome = { 540474, 540419 },
+    Orc = { 541410, 541337 }, Scourge = { 542744, 542695 },
+    Tauren = { 543048, 542972 }, Troll = { 543288, 543258 },
+}
+NodeSparkle.PEON_READY = 558137
+NodeSparkle.PING_KIT = 3175   -- SOUNDKIT.MAP_PING
+
+function NodeSparkle:Voice()
+    local voice = ns.db and ns.db.nodeVoice
+    if voice == "character" or voice == "peon" or voice == "ping" then return voice end
+    return "off"
+end
+
+function NodeSparkle:SetVoice(voice)
+    ns.db.nodeVoice = (voice == "character" or voice == "peon" or voice == "ping") and voice or "off"
+end
+
+--- The file the picked voice plays, or nil. A race with no line of its
+--- own (Forever's Skyborne) says the human's.
+function NodeSparkle:VoiceFile(voice)
+    voice = voice or self:Voice()
+    if voice == "peon" then return self.PEON_READY end
+    if voice ~= "character" then return nil end
+    local race, sex
+    if type(UnitRace) == "function" then
+        local ok, _, file = pcall(UnitRace, "player")
+        if ok and type(file) == "string" then race = file end
+    end
+    if type(UnitSex) == "function" then
+        local ok, value = pcall(UnitSex, "player")
+        if ok and type(value) == "number" then sex = value end
+    end
+    local pair = race and self.FOLLOW_ME[race] or self.FOLLOW_ME.Human
+    return sex == 3 and pair[2] or pair[1]
+end
+
+--- Play the sound for the node `guid`, once, unless one played lately.
+--- `force` plays it now (picking it in Settings, `try`). True when the
+--- client says it will play.
+function NodeSparkle:SayFound(guid, force)
+    local voice = self:Voice()
+    if voice == "off" then return false end
+    local id = voice ~= "ping" and self:VoiceFile(voice) or nil
+    if voice == "ping" then
+        if type(PlaySound) ~= "function" then return false end
+    elseif not id or type(PlaySoundFile) ~= "function" then
+        return false
+    end
+    local now = type(GetTime) == "function" and GetTime() or 0
+    if not force then
+        if InCombat() then return false end
+        if guid and guid == self.saidGuid then return false end
+        if self.saidAt and now - self.saidAt < self.VOICE_GAP then
+            self.saidGuid = guid
+            return false
+        end
+    end
+    local ok, willPlay
+    if voice == "ping" then
+        local kit = type(SOUNDKIT) == "table" and SOUNDKIT.MAP_PING or self.PING_KIT
+        ok, willPlay = pcall(PlaySound, kit, "SFX")
+    else
+        ok, willPlay = pcall(PlaySoundFile, id, "Dialog")
+    end
+    if not (ok and willPlay) then return false end
+    self.saidGuid, self.saidAt = guid, now
+    return true
+end
+
 --- A corpse was just skinned: its sparkle goes.
 function NodeSparkle:Skinned(guid)
     if guid and self.shownGuid == guid then self:SafeRefresh() end
@@ -1771,6 +1852,26 @@ ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, c
         else on = not NodeSparkle:BobberOn() end
         NodeSparkle:SetBobber(on)
         ns.Print(on and L["your bobber lights up."] or L["your bobber stays plain."])
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "sound" then
+        if value == "try" then
+            if not NodeSparkle:SayFound(nil, true) then ns.Print(L["pick a sound first."]) end
+            return
+        end
+        local voice = (value == "off" or value == "character" or value == "peon" or value == "ping") and value or nil
+        if not voice then
+            local voices, now = NodeSparkle.VOICES, NodeSparkle:Voice()
+            for index, name in ipairs(voices) do
+                if name == now then voice = voices[index % #voices + 1] end
+            end
+        end
+        NodeSparkle:SetVoice(voice)
+        ns.Print(voice == "character" and L["your character says \"Follow me!\" when you find a node."]
+            or voice == "peon" and L["a peon speaks up when you find a node."]
+            or voice == "ping" and L["a ping plays when you find a node."]
+            or L["no sound when you find a node."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end

@@ -1284,6 +1284,21 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.nodeSparkleHideIcon:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- A sound when the light finds a node (from Classic Farmer, 2026-11-09).
+    local voiceNames = { off = L["Off"], character = L["Character"], peon = L["Peon"], ping = L["Ping"] }
+    local nodeVoiceRow = pages:Row("map", 1, L["Node Sound:"],
+        L["A sound plays when you find a node. Your character says \"Follow me!\", a peon says \"Ready to work!\", or the map's ping plays."])
+    controls.nodeVoice = Widgets.CreateChoice(nodeVoiceRow, {
+        min = 1, max = #ns.NodeSparkle.VOICES, step = 1, value = 1,
+        format = function(index) return voiceNames[ns.NodeSparkle.VOICES[index]] end,
+        onChange = function(index)
+            ns.NodeSparkle:SetVoice(ns.NodeSparkle.VOICES[index])
+            ns.NodeSparkle:SayFound(nil, true)
+        end,
+    })
+    ns.SettingsPages.FitStepper(controls.nodeVoice, voiceNames)
+    controls.nodeVoice:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- The Grind tab (a player asked, the owner agreed 2026-10-09).
     pages:Section("map", 1, L["GRINDING"])
 
@@ -1679,6 +1694,9 @@ function SettingsUI:Refresh()
     controls.nodeSparkleCorpses:SetChecked(db.nodeSparkleCorpses == true)
     controls.nodeSparkleBobber:SetChecked(db.nodeSparkleBobber ~= false)
     controls.nodeSparkleMine:SetChecked(db.nodeSparkleMine == true)
+    for index, voice in ipairs(ns.NodeSparkle.VOICES) do
+        if voice == ns.NodeSparkle:Voice() then controls.nodeVoice:SetValue(index, true) end
+    end
     controls.lootBeacon:SetChecked(db.lootBeacon == true)
     for i, key in ipairs(ns.NodeSparkle.LOOT_COLOR_ORDER) do
         if key == ns.NodeSparkle:LootColorName() then controls.lootBeaconColor:SetValue(i, true) end
