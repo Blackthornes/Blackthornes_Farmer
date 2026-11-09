@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.10.2
+
+Fixes and changes:
+
+- A goal keeps the item you named, so Salt stays Salt.
+- The quest count shows over quest mobs again.
+- Holding Shift over a tooltip no longer causes an error.
+
 ## 1.10.1
 
 Fixes and changes:

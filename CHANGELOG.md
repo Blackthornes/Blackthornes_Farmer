@@ -4,6 +4,14 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.10.2
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Goals keep the item you named.** A goal for Salt no longer turns into a goal for Salty Scorpid Venom. The exact name or item ID wins, and a loose match only counts whole words.
+- **Quest count on nameplates.** The quest count over quest mobs shows again.
+- **Shift tooltips.** Holding Shift over a tooltip no longer throws a Lua error.
+
 ## 1.10.1
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
