@@ -1805,3 +1805,15 @@ L["loot beacons are %d%% tall."] = "высота маяков добычи: %d%%
 L["loot beacons are %d%% wide."] = "ширина маяков добычи: %d%%."
 L["loot beacons on."] = "маяки добычи включены."
 L["loot beacons off."] = "маяки добычи выключены."
+
+-- Node Sound
+L["Character"] = "Персонаж"
+L["Peon"] = "Батрак"
+L["Ping"] = "Сигнал"
+L["Node Sound:"] = "Звук находки:"
+L["A sound plays when you find a node. Your character says \"Follow me!\", a peon says \"Ready to work!\", or the map's ping plays."] = "Звучит, когда ты находишь жилу или траву. Твой персонаж говорит «За мной!», батрак говорит «Готов вкалывать!», или звучит сигнал карты."
+L["pick a sound first."] = "сначала выбери звук."
+L["your character says \"Follow me!\" when you find a node."] = "твой персонаж говорит «За мной!», когда ты находишь жилу или траву."
+L["a peon speaks up when you find a node."] = "батрак подаёт голос, когда ты находишь жилу или траву."
+L["a ping plays when you find a node."] = "звучит сигнал, когда ты находишь жилу или траву."
+L["no sound when you find a node."] = "нет звука, когда ты находишь жилу или траву."
