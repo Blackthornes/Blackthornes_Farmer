@@ -183,4 +183,70 @@ mob = MobTooltip()
 KillTooltip:OnTooltip(mob, { guid = hovered.guid })
 suite.check("on Always it shows with Shift up", Has(mob, "Kills: 0/20") and not Has(mob, "Hold Shift"))
 
+--------------------------------------------------------------------------------
+-- Shift redraws the tooltip only when its lines can be read
+--------------------------------------------------------------------------------
+
+local shared = _G.BlackthornesTooltipShift
+Shift:Apply(Shift.SHIFT, "killCount", true, function(on) KillTooltip:SetEnabled(on) end)
+suite.check("a line is on Shift for the redraw", shared.AnyShift())
+
+local lines
+local savedTooltipInfo = _G.C_TooltipInfo
+_G.C_TooltipInfo = { GetUnit = function() return { lines = lines } end }
+
+local function RedrawTooltip()
+    local tooltip = Tooltip()
+    tooltip._refreshed = 0
+    tooltip.GetPrimaryTooltipInfo = function() return { getterName = "GetUnit", getterArgs = { "mouseover" } } end
+    tooltip.RefreshData = function(self) self._refreshed = self._refreshed + 1 end
+    return tooltip
+end
+
+local plain = { GetRGB = function() return 1, 1, 1 end }
+lines = { { leftColor = plain }, { leftColor = plain, rightColor = plain } }
+local redraw = RedrawTooltip()
+shared.OnModifier("LSHIFT")
+suite.check("plain lines are redrawn on Shift", redraw._refreshed == 1, redraw._refreshed)
+shared.OnModifier("LCTRL")
+suite.check("another key redraws nothing", redraw._refreshed == 1)
+
+lines = { { leftColor = plain }, { leftColor = env.Secret("a secret color") } }
+redraw = RedrawTooltip()
+local ok = pcall(shared.OnModifier, "RSHIFT")
+suite.check("a secret color raises nothing", ok)
+suite.check("and the tooltip is left as it is", redraw._refreshed == 0, redraw._refreshed)
+
+lines = { { leftColor = plain, rightColor = env.Secret("a secret color") } }
+redraw = RedrawTooltip()
+ok = pcall(shared.OnModifier, "LSHIFT")
+suite.check("a secret right color too", ok and redraw._refreshed == 0)
+
+redraw = RedrawTooltip()
+redraw.GetPrimaryTooltipInfo = function() return nil end
+shared.OnModifier("LSHIFT")
+suite.check("a tooltip with no info is left alone", redraw._refreshed == 0)
+
+lines = { { leftColor = plain } }
+redraw = RedrawTooltip()
+redraw.GetPrimaryTooltipInfo = nil
+redraw.infoList = { { getterName = "GetUnit", getterArgs = { "mouseover" } } }
+shared.OnModifier("LSHIFT")
+suite.check("an older client's info list reads the same", redraw._refreshed == 1)
+
+Shift:Apply(Shift.ALWAYS, "killCount", true, function(on) KillTooltip:SetEnabled(on) end)
+redraw = RedrawTooltip()
+shared.OnModifier("LSHIFT")
+suite.check("with no line on Shift nothing is redrawn", redraw._refreshed == 0)
+
+-- An older copy of this file, loaded after, writes its handler plainly.
+local newest = shared.OnModifier
+shared.OnModifier = function() error("the old handler ran") end
+suite.check("an older copy cannot put its handler back", shared.OnModifier == newest)
+suite.check("the newest copy's version is kept", shared.handlers.version == Shift.FILE_VERSION)
+suite.check("nor an older AnyShift", shared.AnyShift ~= nil and shared.AnyShift() == false)
+suite.check("the frame still finds the handler", _G.BlackthornesTooltipShift.OnModifier == newest)
+
+_G.C_TooltipInfo = savedTooltipInfo
+
 suite.done()
