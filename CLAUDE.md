@@ -527,7 +527,7 @@ in game.
 
 A player asked, the owner said build it (2026-11-02, from a mockup whose
 words he approved): a slim strip under the Fishing window's Cast and Add
-Lure opens a panel with three tabs. This Session (time, casts, catches,
+Lure opens a panel with three tabs. This Session (time, catches,
 gold, gold an hour, with Pause and Start Over), This Spot (catch rates
 once 20 casts are behind them, "Best hour here:") and Fish Log (every
 fish ever caught, from `fishing.spots`). The lifts: New Catch ("First one
@@ -558,7 +558,9 @@ Equipment and Farmer (a fix to it belongs in all three):
 it is the Fishing window's Cast ("Fishing 87 / 150" under it, the skill
 row is gone) and Add Lure ("Bright Baubles, 3 left"; it glows while no
 lure is on and one is in the bags, `FishingBar:Glow`). Each catch flashes
-Cast gold (`FishingBar:Caught`, from `Fishing:OnLoot`). Tested in
+Cast gold (`FishingBar:Caught`, from `Fishing:OnLoot`). Here the two
+plaques hide their red gems and always share one height, the taller one
+wants (`FishingBar:Resized`, `FitButtons`; the owner, 2026-11-09). Tested in
 `tools/test_fishingbar.lua`. Not yet seen in game.
 ## Legacy perks (read only)
 

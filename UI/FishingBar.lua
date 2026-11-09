@@ -387,7 +387,7 @@ function FishingBar:Build()
         template = "SecureActionButtonTemplate",
         width = half,
         height = self.BUTTON_HEIGHT,
-        onResize = function() FishingBar:FitButtons() end,
+        onResize = function(button) FishingBar:Resized(button) end,
     })
     cast:RegisterForClicks("AnyUp")
     cast:SetAttribute("useOnKeyDown", false)
@@ -401,7 +401,7 @@ function FishingBar:Build()
     local lure = ns.Plaque.Create(frame, {
         width = half,
         height = self.BUTTON_HEIGHT,
-        onResize = function() FishingBar:FitButtons() end,
+        onResize = function(button) FishingBar:Resized(button) end,
     })
     lure:SetScript("OnClick", function() FishingBar:ToggleList() end)
     lure:SetPoint("TOPRIGHT", -PAD, -36)
@@ -409,6 +409,13 @@ function FishingBar:Build()
     lure:SetLines(L["Add Lure"])
     Tooltip(lure, L["Pick a lure to put on your pole."])
     self.lureButton = lure
+
+    -- No end gems here: the two buttons sit side by side and the gems
+    -- crowded the gap between them.
+    for _, button in ipairs({ cast, lure }) do
+        button.natural = self.BUTTON_HEIGHT
+        for _, gem in ipairs(button.gems or {}) do gem:Hide() end
+    end
 
     local lureLabel = Theme.CreateLabel(frame, "small", "muted")
     lureLabel:SetPoint("TOPLEFT", PAD, -94)
@@ -435,13 +442,25 @@ end
 --- A plaque whose second line wraps (a long lure name, or German) grows
 --- taller; the Lure: line and the window move down with it, so nothing
 --- sits on the words.
+--- The plaque sets its own height to fit its words; keep that as the
+--- height it wants, then size both buttons alike.
+function FishingBar:Resized(button)
+    if button then button.natural = tonumber(button:GetHeight()) or self.BUTTON_HEIGHT end
+    self:FitButtons()
+end
+
 function FishingBar:FitButtons()
     local frame, label = self.frame, self.lureLabel
     if not (frame and label and self.cast and self.lureButton) then return end
     if InCombat() then return end
     local PAD = self.PADDING
     local tall = math.max(self.BUTTON_HEIGHT,
-        tonumber(self.cast:GetHeight()) or 0, tonumber(self.lureButton:GetHeight()) or 0)
+        self.cast.natural or self.BUTTON_HEIGHT, self.lureButton.natural or self.BUTTON_HEIGHT)
+    -- Cast and Add Lure always match, so a two-line lure never leaves
+    -- Cast looking short beside it.
+    for _, button in ipairs({ self.cast, self.lureButton }) do
+        if math.abs((tonumber(button:GetHeight()) or 0) - tall) >= 1 then button:SetHeight(tall) end
+    end
     local grow = tall - self.BUTTON_HEIGHT
     label:ClearAllPoints()
     label:SetPoint("TOPLEFT", PAD, -94 - grow)

@@ -104,6 +104,24 @@ suite.check("Cast shows the Fishing skill", Bar.cast.first:GetText() == "Cast"
     and Bar.cast.second:GetText() == "Fishing 120 / 150", tostring(Bar.cast.second:GetText()))
 suite.check("Add Lure glows while none is on", Bar.lureGlowing == true)
 suite.check("a catch flashes the Cast plaque without an error", pcall(Bar.Caught, Bar))
+local gemShown = false
+for _, button in ipairs({ Bar.cast, Bar.lureButton }) do
+    for _, gem in ipairs(button.gems or {}) do if gem:IsShown() then gemShown = true end end
+end
+suite.check("no red gems on Cast or Add Lure", not gemShown)
+local castNatural = Bar.cast.natural
+Bar.cast.natural = Bar.BUTTON_HEIGHT
+Bar.lureButton.natural = Bar.BUTTON_HEIGHT + 12
+Bar:FitButtons()
+suite.check("Cast and Add Lure are the same size",
+    Bar.cast:GetHeight() == Bar.lureButton:GetHeight() and Bar.cast:GetHeight() == Bar.BUTTON_HEIGHT + 12,
+    tostring(Bar.cast:GetHeight()) .. " " .. tostring(Bar.lureButton:GetHeight()))
+Bar.lureButton.natural = Bar.BUTTON_HEIGHT
+Bar:FitButtons()
+suite.check("they shrink back together", Bar.cast:GetHeight() == Bar.BUTTON_HEIGHT
+    and Bar.lureButton:GetHeight() == Bar.BUTTON_HEIGHT)
+Bar.cast.natural = castNatural
+Bar:FitButtons()
 
 Bar:ToggleList()
 suite.check("Add Lure opens the list", Bar.list and Bar.list:IsShown())
