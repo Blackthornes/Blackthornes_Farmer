@@ -12,6 +12,15 @@
 -- on unless unticked; never rename it) is the bobber's own switch, since a
 -- player found the beam hid the bob (2026-11-07).
 --
+-- Loot beacons (a player asked, the owner said build it, 2026-11-09): a
+-- beam on a dead creature the interact key picks while it still has loot,
+-- whatever "Sparkle Look" says, in its own colour, height and width
+-- (`lootBeacon`, off unless ticked; `lootBeaconColor`, nil for gold;
+-- `lootBeaconHeight` and `lootBeaconWidth`, percent, nil for 100; all
+-- account wide, never rename them). It needs the same game settings as the
+-- sparkles, so they are kept on while either is ticked (`Active`). Once the
+-- body is looted, a skinnable corpse's sparkle takes over.
+--
 -- The game tells addons nothing about the nodes around you: not where they
 -- are, not where they sit on screen. The one it does name is the node the
 -- interact key would pick, "softinteract": the one in front of you, close
@@ -141,6 +150,19 @@ NodeSparkle.STYLES = { "sparkles", "beacon" }
 NodeSparkle.BEACON_WIDTH, NodeSparkle.BEACON_HEIGHT = 22, 240
 NodeSparkle.PULSE = 1.2            -- seconds for the beacon to dim, and again to brighten
 
+-- Loot beacons: the colours to pick from, in the drop-down's order, and
+-- how tall and wide the beam may be, in percent of the usual beacon.
+NodeSparkle.LOOT_COLOR_ORDER = { "gold", "white", "green", "blue", "purple", "red" }
+NodeSparkle.LOOT_COLORS = {
+    gold = { 1.0, 0.84, 0.36 },
+    white = { 1.0, 1.0, 1.0 },
+    green = { 0.3, 0.9, 0.3 },
+    blue = { 0.3, 0.65, 1.0 },
+    purple = { 0.75, 0.4, 1.0 },
+    red = { 1.0, 0.3, 0.25 },
+}
+NodeSparkle.LOOT_SIZE_MIN, NodeSparkle.LOOT_SIZE_MAX, NodeSparkle.LOOT_SIZE_STEP = 50, 200, 25
+
 function NodeSparkle:Style()
     local db = ns.db
     if not db then return "beacon" end
@@ -156,7 +178,7 @@ function NodeSparkle:SetStyle(style)
     ns.db.nodeSparkleStylePicked = true
     if self.shownOn then
         local plate, guid = self.shownOn, self.shownGuid
-        self:ShowSparkle(plate, guid)
+        self:ShowSparkle(plate, guid, nil, self.shownLoot)
     end
 end
 
@@ -179,6 +201,62 @@ end
 
 function NodeSparkle:IsEnabled()
     return not (ns.db and ns.db.nodeSparkle == false)
+end
+
+--- Loot beacons are on (off unless ticked).
+function NodeSparkle:LootOn()
+    return ns.db and ns.db.lootBeacon == true or false
+end
+
+--- Sparkles or loot beacons: either needs the game's interact settings.
+function NodeSparkle:Active()
+    return self:IsEnabled() or self:LootOn()
+end
+
+function NodeSparkle:LootColorName()
+    local name = ns.db and ns.db.lootBeaconColor
+    if type(name) == "string" and self.LOOT_COLORS[name] then return name end
+    return "gold"
+end
+
+function NodeSparkle:LootColor()
+    return self.LOOT_COLORS[self:LootColorName()]
+end
+
+-- The colours' names by client language. Kept here rather than in the
+-- locale files, since "Gold" there is money and "Blue" an item quality.
+NodeSparkle.LOOT_COLOR_WORDS = {
+    enUS = { gold = "Gold", white = "White", green = "Green", blue = "Blue", purple = "Purple", red = "Red" },
+    deDE = { gold = "Gold", white = "Weiß", green = "Grün", blue = "Blau", purple = "Lila", red = "Rot" },
+    frFR = { gold = "Doré", white = "Blanc", green = "Vert", blue = "Bleu", purple = "Violet", red = "Rouge" },
+    esES = { gold = "Dorado", white = "Blanco", green = "Verde", blue = "Azul", purple = "Morado", red = "Rojo" },
+    ruRU = { gold = "Золотой", white = "Белый", green = "Зелёный", blue = "Синий", purple = "Фиолетовый", red = "Красный" },
+    zhCN = { gold = "金色", white = "白色", green = "绿色", blue = "蓝色", purple = "紫色", red = "红色" },
+}
+NodeSparkle.LOOT_COLOR_WORDS.esMX = NodeSparkle.LOOT_COLOR_WORDS.esES
+
+--- The colour's name as the player reads it.
+function NodeSparkle.LootColorLabel(key)
+    local locale = type(GetLocale) == "function" and GetLocale() or "enUS"
+    local words = NodeSparkle.LOOT_COLOR_WORDS[locale] or NodeSparkle.LOOT_COLOR_WORDS.enUS
+    return words[key] or words.gold
+end
+
+local function SizeOf(value)
+    value = tonumber(value)
+    if not value then return 100 end
+    local step = NodeSparkle.LOOT_SIZE_STEP
+    value = math.floor(value / step + 0.5) * step
+    return math.max(NodeSparkle.LOOT_SIZE_MIN, math.min(NodeSparkle.LOOT_SIZE_MAX, value))
+end
+NodeSparkle.LootSize = SizeOf
+
+function NodeSparkle:LootHeight()
+    return SizeOf(ns.db and ns.db.lootBeaconHeight)
+end
+
+function NodeSparkle:LootWidth()
+    return SizeOf(ns.db and ns.db.lootBeaconWidth)
 end
 
 --------------------------------------------------------------------------------
@@ -221,7 +299,7 @@ end
 --- Farmer turned on that is now lower again was turned back by the
 --- player: it is left as they have it, now and later.
 function NodeSparkle:ApplySettings()
-    if not ns.db or not self:IsEnabled() then return false end
+    if not ns.db or not self:Active() then return false end
     if InCombat() then
         self.applyAfterCombat = true
         return false
@@ -286,12 +364,50 @@ function NodeSparkle:SetEnabled(on)
         self:ApplySettings()
         self:Refresh()
     else
-        self.applyAfterCombat = nil
         self:LowerReach()
+        if self:LootOn() then
+            -- Loot beacons still need the game's settings.
+            self:SafeRefresh()
+            return
+        end
+        self.applyAfterCombat = nil
         self:RestoreSettings()
         self:HideSparkle()
         pcall(self.VeilIcon, self)
     end
+end
+
+function NodeSparkle:SetLoot(on)
+    ns.db.lootBeacon = on and true or false
+    if on then
+        self.restoreAfterCombat = nil
+        ns.db.nodeSparkleCVarsLeft = nil
+        self:ApplySettings()
+    elseif not self:IsEnabled() then
+        self.applyAfterCombat = nil
+        self:RestoreSettings()
+        self:HideSparkle()
+        pcall(self.VeilIcon, self)
+        return
+    end
+    self:SafeRefresh()
+end
+
+function NodeSparkle:SetLootColor(name)
+    ns.db.lootBeaconColor = (name ~= "gold" and self.LOOT_COLORS[name]) and name or nil
+    self:SafeRefresh()
+end
+
+function NodeSparkle:SetLootHeight(value)
+    value = SizeOf(value)
+    ns.db.lootBeaconHeight = value ~= 100 and value or nil
+    self:SafeRefresh()
+end
+
+function NodeSparkle:SetLootWidth(value)
+    value = SizeOf(value)
+    ns.db.lootBeaconWidth = value ~= 100 and value or nil
+    self:SafeRefresh()
 end
 
 --------------------------------------------------------------------------------
@@ -864,7 +980,7 @@ end
 --- one that turned it on, and nobody plays with a controller.
 function NodeSparkle:HidesIcon()
     local db = ns.db
-    if not db or not self:IsEnabled() or db.nodeSparkleHideIcon == false then return false end
+    if not db or not self:Active() or db.nodeSparkleHideIcon == false then return false end
     local saved = db.nodeSparkleCVars
     if type(saved) ~= "table" then return false end
     local ours = false
@@ -888,7 +1004,7 @@ end
 --- picks? Only then are those plates its own doing to keep out of sight.
 function NodeSparkle:OwnsPlates()
     local db = ns.db
-    if not db or not self:IsEnabled() then return false end
+    if not db or not self:Active() then return false end
     local saved = db.nodeSparkleCVars
     return type(saved) == "table"
         and (saved.SoftTargetNameplateInteract ~= nil or saved.SoftTargetInteract ~= nil)
@@ -1076,7 +1192,7 @@ function NodeSparkle:MakeBeacon(parent)
         pulse = group
     end
     holder:Hide()
-    return { holder = holder, pulse = pulse,
+    return { holder = holder, pulse = pulse, beam = beam, flare = flare, size = "100:100",
         tinted = { { texture = beam, a = 1 }, { texture = flare, a = 0.8 } } }
 end
 
@@ -1181,9 +1297,31 @@ function NodeSparkle:ColorFor(kind, name, level, guid)
     return self.GOLD
 end
 
-function NodeSparkle:ShowSparkle(plate, guid, color)
+--- Size the beacon, in percent of the usual one; only when it changed.
+function NodeSparkle:SizeBeacon(width, height)
+    local light = self.beacon
+    if not light then return end
+    local key = width .. ":" .. height
+    if light.size == key then return end
+    light.size = key
+    local w = self.BEACON_WIDTH * width / 100
+    local h = self.BEACON_HEIGHT * height / 100
+    pcall(light.holder.SetSize, light.holder, w * 3, h)
+    if light.beam then pcall(light.beam.SetSize, light.beam, w, h) end
+    if light.flare then pcall(light.flare.SetSize, light.flare, w * 3, w * 1.4) end
+end
+
+--- Show the light on the plate. With `loot`, the loot beacon: always the
+--- beam, at the loot beacon's own size.
+function NodeSparkle:ShowSparkle(plate, guid, color, loot)
     local frame = self:Build()
     if color then self.shownColor = color end
+    self.shownLoot = loot and true or nil
+    if loot then
+        self:SizeBeacon(self:LootWidth(), self:LootHeight())
+    else
+        self:SizeBeacon(100, 100)
+    end
     self:Tint(self.shownColor)
     if self.shownOn ~= plate then
         frame:ClearAllPoints()
@@ -1199,7 +1337,7 @@ function NodeSparkle:ShowSparkle(plate, guid, color)
     self.shownOn, self.shownGuid = plate, guid
 
     local moving = Moving()
-    local beacon = self.Style(self) == "beacon"
+    local beacon = loot or self.Style(self) == "beacon"
     local light = self.beacon
     if light then
         light.holder:SetShown(beacon)
@@ -1228,7 +1366,7 @@ function NodeSparkle:ShowSparkle(plate, guid, color)
 end
 
 function NodeSparkle:HideSparkle()
-    self.shownOn, self.shownGuid = nil, nil
+    self.shownOn, self.shownGuid, self.shownLoot = nil, nil, nil
     local frame = self.frame
     if not frame then return end
     for _, spark in ipairs(self.sparks or {}) do
@@ -1300,19 +1438,69 @@ function NodeSparkle:SkinnableCorpse(guid, name)
     return level
 end
 
+--------------------------------------------------------------------------------
+-- Loot beacons
+--------------------------------------------------------------------------------
+
+--- What the client says about loot on a body: true, false, or nil when it
+--- has no call for it (or will not say).
+function NodeSparkle.CanLoot(guid)
+    local can = _G.CanLootUnit
+    if type(can) ~= "function" then return nil end
+    local ok, hasLoot = pcall(can, guid)
+    if not ok then return nil end
+    -- A secret value raises when it is tested, so test it inside a pcall.
+    local read, answer = pcall(function()
+        if hasLoot == true then return true end
+        if hasLoot == false then return false end
+        return nil
+    end)
+    if not read then return nil end
+    return answer
+end
+
+--- Did Farmer already open this body's loot window this session?
+function NodeSparkle.Opened(guid)
+    local opened = ns.Harvest and ns.Harvest.opened
+    if type(opened) == "table" and opened[guid] then return true end
+    local corpses = ns.Tracker and ns.Tracker.corpses
+    return type(corpses) == "table" and corpses[guid] ~= nil or false
+end
+
+--- A dead creature the interact key picks that still has loot. Only while
+--- "Loot Beacons" is ticked; a hidden mob gets nothing.
+function NodeSparkle:LootableCorpse(guid, name)
+    if not self:LootOn() then return false end
+    if type(guid) ~= "string" or not guid:find("^Creature%-") then return false end
+    if type(name) == "string" and name ~= "" and ns.DB and ns.DB:IsHiddenSource(name) then return false end
+    if type(UnitIsDead) ~= "function" then return false end
+    local ok, dead = pcall(UnitIsDead, UNIT)
+    if not (ok and dead == true) then return false end
+    local can = self.CanLoot(guid)
+    if can ~= nil then return can end
+    return not self.Opened(guid)
+end
+
 --- Look again at what the interact key points at.
 -- @return "shown", "off", "nothing", "notnode" or "noplate"
 function NodeSparkle:Refresh()
-    if not self:IsEnabled() then self:HideSparkle(); return "off" end
+    if not self:Active() then self:HideSparkle(); return "off" end
     local guid, name, object = self:Facing()
     if guid and not object then
-        local level = self:SkinnableCorpse(guid, name)
+        if self:LootableCorpse(guid, name) then
+            local plate = self:Plate(guid)
+            if not plate then self:HideSparkle(); return "noplate" end
+            self:ShowSparkle(plate, guid, self:LootColor(), true)
+            return "shown"
+        end
+        local level = self:IsEnabled() and self:SkinnableCorpse(guid, name)
         if not level then self:HideSparkle(); return "nothing" end
         local plate = self:Plate(guid)
         if not plate then self:HideSparkle(); return "noplate" end
         self:ShowSparkle(plate, guid, self:ColorFor("corpse", name, level))
         return "shown"
     end
+    if not self:IsEnabled() then self:HideSparkle(); return "off" end
     if not guid then self:HideSparkle(); return "nothing" end
     local kind = self:Kind(name, guid)
     if kind and not self:ForMyProfessions(kind, name, guid) then kind = nil end
@@ -1332,13 +1520,14 @@ end
 -- @return the value the setting should have now, or nil when left alone
 function NodeSparkle:FitPlateToTarget()
     local db = ns.db
-    if not db or not self:IsEnabled() or InCombat() then return nil end
+    if not db or not self:Active() or InCombat() then return nil end
     local saved = db.nodeSparkleCVars
     local own = type(saved) == "table" and saved.SoftTargetNameplateInteract or nil
     if own == nil then return nil end
     local guid, name, object = self:Facing()
-    -- A corpse to skin keeps the plate: the sparkle hangs on it.
-    local creature = guid and not object and not self:SkinnableCorpse(guid, name)
+    -- A corpse to loot or skin keeps the plate: the light hangs on it.
+    local creature = guid and not object and not self:LootableCorpse(guid, name)
+        and not (self:IsEnabled() and self:SkinnableCorpse(guid, name))
     -- Facing an NPC, the plate goes back to the player's own value; when
     -- that was already on but they show no friendly NPC nameplates, it goes
     -- off, so an NPC gets no bar only Farmer's setting asked for.
@@ -1356,6 +1545,8 @@ end
 -- The game sets up a plate after the events that tell us about it, and may
 -- light its pieces again then: look once more a moment later.
 NodeSparkle.VEIL_AGAIN = 0.1
+-- How long after a loot window closes to look at the body again.
+NodeSparkle.LOOT_AGAIN = 0.2
 
 function NodeSparkle:SafeRefresh()
     pcall(self.FitPlateToTarget, self)
@@ -1412,7 +1603,18 @@ function NodeSparkle:OnEnable()
     ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", function()
         -- A cast the game closed on keeps a raised reach: put it back first.
         if not NodeSparkle.fishing then NodeSparkle:LowerReach() end
-        if NodeSparkle:IsEnabled() then NodeSparkle:ApplySettings() end
+        if NodeSparkle:Active() then NodeSparkle:ApplySettings() end
+    end)
+    -- A body looted keeps the interact key on it: look again once the
+    -- game has marked it empty, so the beacon goes (or the skinning
+    -- sparkle takes over).
+    ns.RegisterEvent(self, "LOOT_CLOSED", function()
+        if not NodeSparkle:LootOn() or NodeSparkle.lootAgain then return end
+        NodeSparkle.lootAgain = true
+        After(NodeSparkle.LOOT_AGAIN, function()
+            NodeSparkle.lootAgain = nil
+            NodeSparkle:SafeRefresh()
+        end)
     end)
     ns.RegisterPlayerEvent(self, "UNIT_SPELLCAST_CHANNEL_START", function(_, _, unit, _, spellID)
         if Readable(unit) == "player" then NodeSparkle:FishingStarted(spellID) end
@@ -1468,6 +1670,16 @@ function NodeSparkle:Check()
         self:ColorsOn() and "on" or "off", tostring(skill or "-"), tostring(need or "-"),
         self:CorpsesOn() and "on" or "off", tostring(self:SkinnableCorpse(guid, name) or "no"),
         color[1], color[2], color[3]))
+    local deadOk, deadNow = false, nil
+    if type(UnitIsDead) == "function" then deadOk, deadNow = pcall(UnitIsDead, UNIT) end
+    local canLoot = guid and self.CanLoot(guid)
+    local lootPlate = guid and not object and self:Plate(guid) or nil
+    ns.PrintRaw(("  loot beacons: %s, dead %s, can loot %s, plate %s, loot beacon %s"):format(
+        self:LootOn() and "on" or "off",
+        (deadOk and deadNow == true) and "yes" or "no",
+        type(_G.CanLootUnit) ~= "function" and "no call" or tostring(canLoot == nil and "?" or (canLoot and "yes" or "no")),
+        guid and not object and (lootPlate and "yes" or "no") or "-",
+        self:LootableCorpse(guid, name) and "yes" or "no"))
     ns.PrintRaw(("  quest: tooltip %s, looted before %s"):format(self:QuestInTooltip() and "yes" or "no",
         name and (self:QuestByLoot(name) and "yes" or "no") or "-"))
     local forUnit = Field(_G.C_NamePlate, "GetNamePlateForUnit")
@@ -1589,5 +1801,45 @@ ns.RegisterCommand("sparkle", L["turn sparkles on or off for the node, school, c
     else on = not NodeSparkle:IsEnabled() end
     NodeSparkle:SetEnabled(on)
     ns.Print(on and L["sparkles on."] or L["sparkles off."])
+    if ns.SettingsUI then ns.SettingsUI:Refresh() end
+end)
+
+-- Loot beacons have their own settings and command (the owner, 2026-11-09).
+ns.RegisterCommand("lootbeacon", L["light a beam over the body you can loot (on, off, color, height, width)"], function(rest)
+    local argument = ns.Util.Trim(rest or ""):lower()
+    local word, value = argument:match("^(%a+)%s*(%w*)%%?$")
+    if word == "color" or word == "colour" then
+        if not NodeSparkle.LOOT_COLORS[value] then
+            ns.Print(L["pick gold, white, green, blue, purple or red."])
+            return
+        end
+        NodeSparkle:SetLootColor(value)
+        ns.Print(L.Format("loot beacon color: %s.", NodeSparkle.LootColorLabel(value)))
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "height" or word == "width" then
+        local number = tonumber(value)
+        if not number then
+            ns.Print(L["pick a size from 50 to 200."])
+            return
+        end
+        number = NodeSparkle.LootSize(number)
+        if word == "height" then
+            NodeSparkle:SetLootHeight(number)
+            ns.Print(L.Format("loot beacons are %d%% tall.", number))
+        else
+            NodeSparkle:SetLootWidth(number)
+            ns.Print(L.Format("loot beacons are %d%% wide.", number))
+        end
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    local on
+    if argument == "on" then on = true
+    elseif argument == "off" then on = false
+    else on = not NodeSparkle:LootOn() end
+    NodeSparkle:SetLoot(on)
+    ns.Print(on and L["loot beacons on."] or L["loot beacons off."])
     if ns.SettingsUI then ns.SettingsUI:Refresh() end
 end)
