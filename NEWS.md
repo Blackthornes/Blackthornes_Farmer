@@ -23,6 +23,12 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.12.0
+
+- There is a new little gold gem on the world map. One click hides all of Farmer's marks, and another brings them back.
+- Right-click the gem to choose which marks to hide.
+- Camp swords now only show while the Grind tab is open.
+
 ## 1.11.0
 
 - Pick a sound for when you find a node. Your character can call out, a peon can say he is ready to work, or you can get a little ping.

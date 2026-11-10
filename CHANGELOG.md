@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.12.0
+
+For WoW: Forever (interface 16001). A file was added, so quit the game and start it again after updating.
+
+- **Map Button.** A small gold gem at the top right of the world map hides every Farmer mark at once: camps, gathered nodes and kill heat. Click it again to bring back the ones that were on. Right-click it to pick each one. Map Button: on the Map & goals page (or `/farm markers button on|off`) hides the gem. It starts on.
+- **Camps only with the Grind tab.** Camps now show on the world map only while the Grind tab is open, plus the camp your arrow follows. They no longer stay on the map all session.
+
 ## 1.11.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
