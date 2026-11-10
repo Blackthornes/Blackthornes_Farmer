@@ -1816,3 +1816,12 @@ L["your character says \"Follow me!\" when you find a node."] = "tu personaje di
 L["a peon speaks up when you find a node."] = "un peón habla cuando encuentras un punto."
 L["a ping plays when you find a node."] = "suena un ping cuando encuentras un punto."
 L["no sound when you find a node."] = "no suena nada cuando encuentras un punto."
+
+-- The map gem (2026-11-10)
+L["Grinding Camps"] = "Campamentos de farmeo"
+L["Gathered Nodes"] = "Puntos recolectados"
+L["FARMER MAP MARKS"] = "MARCAS DE MAPA DE FARMER"
+L["Farmer Map Marks"] = "Marcas de mapa de Farmer"
+L["Click to hide them. Right-click to pick which."] = "Haz clic para ocultarlas. Clic derecho para elegir cuáles."
+L["Click to show them. Right-click to pick which."] = "Haz clic para mostrarlas. Clic derecho para elegir cuáles."
+L["Map Button:"] = "Botón del mapa:"
