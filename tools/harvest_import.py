@@ -463,6 +463,36 @@ def ensure_toc_line():
     return True
 
 
+def node_items():
+    """Names of every herb and ore the data knows as a node, from the Classic drops file."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Data", "Data_ClassicDrops.lua")
+    names = set()
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                found = re.search(r'name = "([^"]+)", id = \d+, category = "(Herbalism|Mining)"', line)
+                if found:
+                    names.add(found.group(1))
+    except OSError:
+        pass
+    return names
+
+
+def drop_node_items(records):
+    """A herb or vein picked while a corpse was open is never a mob's drop."""
+    nodes = node_items()
+    removed = 0
+    for key in list(records.keys()):
+        items = records[key]["items"]
+        if items is None:
+            continue
+        for name in list(items.keys()):
+            if name in nodes:
+                items[name] = None
+                removed += 1
+    return removed
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Write Data/Data_Harvested.lua from your in-game harvest.")
@@ -535,6 +565,10 @@ def main():
     if published:
         print("kept %d spots from the file being replaced"
               % keep_published(lua, saved, records, published))
+
+    dropped = drop_node_items(records)
+    if dropped:
+        print("left out %d herb or ore entries that were not mob drops" % dropped)
 
     ns, restored = load_addon(lua, records, saved["fishing"], saved["creatureTypes"],
                               saved["tracker"])
