@@ -1817,3 +1817,12 @@ L["your character says \"Follow me!\" when you find a node."] = "твой пер
 L["a peon speaks up when you find a node."] = "батрак подаёт голос, когда ты находишь жилу или траву."
 L["a ping plays when you find a node."] = "звучит сигнал, когда ты находишь жилу или траву."
 L["no sound when you find a node."] = "нет звука, когда ты находишь жилу или траву."
+
+-- The map gem (2026-11-10)
+L["Grinding Camps"] = "Места для фарма"
+L["Gathered Nodes"] = "Собранные залежи"
+L["FARMER MAP MARKS"] = "МЕТКИ FARMER НА КАРТЕ"
+L["Farmer Map Marks"] = "Метки Farmer на карте"
+L["Click to hide them. Right-click to pick which."] = "Нажми, чтобы скрыть их. Правый клик, чтобы выбрать, какие."
+L["Click to show them. Right-click to pick which."] = "Нажми, чтобы показать их. Правый клик, чтобы выбрать, какие."
+L["Map Button:"] = "Кнопка на карте:"

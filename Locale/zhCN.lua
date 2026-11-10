@@ -1810,3 +1810,12 @@ L["your character says \"Follow me!\" when you find a node."] = "发现资源点
 L["a peon speaks up when you find a node."] = "发现资源点时，苦工会开口。"
 L["a ping plays when you find a node."] = "发现资源点时会播放提示音。"
 L["no sound when you find a node."] = "发现资源点时不播放声音。"
+
+-- The map gem (2026-11-10)
+L["Grinding Camps"] = "刷怪营地"
+L["Gathered Nodes"] = "采集过的资源点"
+L["FARMER MAP MARKS"] = "FARMER地图标记"
+L["Farmer Map Marks"] = "Farmer地图标记"
+L["Click to hide them. Right-click to pick which."] = "点击隐藏它们。右键点击选择要显示哪些。"
+L["Click to show them. Right-click to pick which."] = "点击显示它们。右键点击选择要显示哪些。"
+L["Map Button:"] = "地图按钮："
