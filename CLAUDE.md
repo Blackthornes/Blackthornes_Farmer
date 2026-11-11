@@ -363,12 +363,13 @@ Never announce the fold-in. Tested in `tools/test_contribute.lua` and
 first name trips `check_package.py`'s owner's-name check would stop the
 release; check before adding names. Three recipients since 2026-10-27
 (the owner renamed his characters for Forever's release), four since
-2026-11-07 (Blackthornes Farms added); a recipient on
+2026-11-07 (Blackthornes Farms added), five since 2026-11-11
+(Blackthornes Farmera added); a recipient on
 an account another one shares a save with takes a share while the other
 skips it. Tradeskills and Equipment have the same choice (their
 `Logic/Contribute.lua`, "Sending data to Blackthornes" and "Sending
 vendors and quests to Blackthornes" in their `CLAUDE.md`), with the same
-four names; change all three lists together.
+five names; change all three lists together.
 
 ## Giving data to another player
 
