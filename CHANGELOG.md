@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.13.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Quest Count Position.** A new Quest Count Position: row under Quest count on the Map & goals page (or `/farm questcount above|below|left|right`) puts the quest count Above, Below, Left or Right of the mob's name. It starts on Right, as before.
+- **Brighter quest counts.** The quest count is now bright gold, a size up and outlined, like the kill count. When both sit on the same side, the kill count moves past the quest count, so they never share a spot.
+
 ## 1.12.0
 
 For WoW: Forever (interface 16001). A file was added, so quit the game and start it again after updating.

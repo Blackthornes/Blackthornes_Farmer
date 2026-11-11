@@ -23,6 +23,12 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.13.0
+
+- Pick where the quest count sits next to a mob's name: above, below, left or right.
+- The quest count is bigger and brighter, so it is easier to read.
+- It still starts on the right, so nothing moves unless you pick a new spot.
+
 ## 1.12.0
 
 - There is a new little gold gem on the world map. One click hides all of Farmer's marks, and another brings them back.
