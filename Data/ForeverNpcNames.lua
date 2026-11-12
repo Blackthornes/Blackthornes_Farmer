@@ -2502,6 +2502,7 @@ ns.FOREVER_NPC_NAMES = {
     [264074] = "Mazu'kon",
     [264078] = "Sutara Plainstalker",
     [264079] = "Gloomrise Hatchling",
+    [264081] = "Gloomrise Spinner",
     [264083] = "Gloomrise Soldier",
     [264172] = "Umbra",
     [264177] = "Gill",
