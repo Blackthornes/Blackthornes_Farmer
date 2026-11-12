@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.15.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Window Spots.** Windows now remember where you drag them, and the one window remembers its spot beside each game window it docks to (the auction house, mailbox, vendor and trainer). Every window stays on screen. A new Window Spots: Set Default row on the General page (or `/farm windows reset`) puts every Blackthornes window back where it started. Sizes, settings and data stay as they are.
+
 ## 1.14.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
