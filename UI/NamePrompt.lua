@@ -87,6 +87,7 @@ function NamePrompt:Build()
         { width = 90 })
     cancel:SetPoint("RIGHT", save, "LEFT", -8, 0)
 
+    if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, "farmer.nameprompt") end
     return frame
 end
 

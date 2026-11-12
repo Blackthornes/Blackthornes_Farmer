@@ -2475,3 +2475,23 @@ Code over 1500 lines:
 Over 800 lines or 30 KB, same rule: `UI/Rankings.lua`, `UI/Stats.lua`, `UI/XPBar.lua`, `UI/NodeSparkle.lua`, `UI/WhatsNew.lua`, `UI/MapMarkers.lua`, `UI/SharedWindow.lua`, `UI/LootTable.lua`, `UI/Heat.lua`, `UI/SettingsPages.lua`, `UI/FishingBar.lua`, `Logic/Share.lua`, `Logic/Arrow.lua`, `Logic/Search.lua`, `Logic/Gathering.lua`, `Logic/Stats.lua`, `Logic/Travel.lua`, `Logic/Value.lua`, `Logic/Fishing.lua`, `CHANGELOG.md` (1169 lines).
 
 The same file lives in several addons: `UI/SharedWindow.lua`, `UI/WhatsNew.lua`, `UI/SettingsPages.lua`, `Logic/Travel.lua`. A fix to one belongs in all.
+
+## Window spots
+
+A player asked, the owner said build it (2026-11-12), in all five
+addons: windows remember where they were dragged. `UI/SharedWindow.lua`
+(FILE_VERSION 7; `UI/WhatsNew.lua` FILE_VERSION 7 too) keeps the one
+window's spot beside each game window it docks to, once the player drags
+it there (`SharedWindow.Dropped`, account wide in every save as
+`oneWindowDockSpots[place]`), and small windows signed up with
+`SharedWindow.KeepSpot(frame, key)` keep their top left in
+`windowSpots[key] = { x, y }`, kept on screen when placed again. Never
+rename either. Tradeskills' sell list drawer can be dragged too
+(`PostPanel:MakeDraggable`, `SaveSpot`, `ns.db.postPanelSpot`). "Window
+Spots:" Set Default on the General page (Tradeskills: its look page) and
+`windows reset` on each addon's command run `SharedWindow.ResetAllSpots`,
+which clears both keys and calls each addon's own reset
+(`SharedWindow.AddSpotReset(name, fn)`); sizes, settings and data stay.
+Chat says "Every window is back in its first spot." Tested in
+`tools/test_sharedwindow.lua` and each addon's settings test
+(Tradeskills: `tools/test_resetwindows.lua`).
