@@ -23,6 +23,10 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.14.0
+
+- There is a new box that mutes every sound from all the Blackthornes addons at once. It starts off, so nothing changes until you tick it.
+
 ## 1.13.0
 
 - Pick where the quest count sits next to a mob's name: above, below, left or right.
