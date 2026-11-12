@@ -1824,3 +1824,9 @@ L["Farmer Map Marks"] = "Farmer地图标记"
 L["Click to hide them. Right-click to pick which."] = "点击隐藏它们。右键点击选择要显示哪些。"
 L["Click to show them. Right-click to pick which."] = "点击显示它们。右键点击选择要显示哪些。"
 L["Map Button:"] = "地图按钮："
+
+-- Mute All Sounds (2026-11-12)
+L["Mute All Sounds:"] = "全部静音："
+L["turn every Blackthornes sound off or back on (on/off)"] = "关闭或重新打开所有 Blackthornes 音效（on/off）"
+L["All Blackthornes sounds are off. /farm mute off turns them back on."] = "所有 Blackthornes 音效已关闭。输入 /farm mute off 可重新打开。"
+L["Blackthornes sounds are back on."] = "Blackthornes 音效已重新打开。"

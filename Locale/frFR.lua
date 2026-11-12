@@ -1830,3 +1830,9 @@ L["Farmer Map Marks"] = "Marques de carte Farmer"
 L["Click to hide them. Right-click to pick which."] = "Clique pour les cacher. Clic droit pour choisir lesquelles."
 L["Click to show them. Right-click to pick which."] = "Clique pour les montrer. Clic droit pour choisir lesquelles."
 L["Map Button:"] = "Bouton de carte :"
+
+-- Mute All Sounds (2026-11-12)
+L["Mute All Sounds:"] = "Couper tous les sons :"
+L["turn every Blackthornes sound off or back on (on/off)"] = "couper ou remettre tous les sons Blackthornes (on/off)"
+L["All Blackthornes sounds are off. /farm mute off turns them back on."] = "Tous les sons Blackthornes sont coupés. /farm mute off les remet."
+L["Blackthornes sounds are back on."] = "Les sons Blackthornes sont de retour."
