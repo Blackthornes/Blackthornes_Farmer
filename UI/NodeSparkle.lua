@@ -1779,6 +1779,7 @@ end
 function NodeSparkle:SayFound(guid, force)
     local voice = self:Voice()
     if voice == "off" then return false end
+    if ns.Muted and ns.Muted() then return false end
     local id = voice ~= "ping" and self:VoiceFile(voice) or nil
     if voice == "ping" then
         if type(PlaySound) ~= "function" then return false end
