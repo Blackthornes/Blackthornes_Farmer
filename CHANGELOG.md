@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.16.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **TSM Price Source.** A new TSM Price Source: box on the Loot page picks which TSM price to use: DBRecent, DBMarket, DBMinBuyout or your own TSM price. It starts on DBRecent.
+- **Price Order hover.** The Price Order: row now says when it applies.
+- **Group loot.** In a group, loot counts only what you actually got.
+- **Loot icons.** Items that showed a "?" in the loot lists now show their icon.
+
 ## 1.15.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.

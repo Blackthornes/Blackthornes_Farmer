@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.16.0
+
+- You can pick which TSM price to use, on the Loot page. It starts on the recent price.
+- In a group, only the loot you really got counts now.
+Fixes and changes:
+- Items that showed a question mark in the loot lists now show their icon.
+- The Price Order row explains when it applies.
+
 ## 1.15.0
 
 - Windows now remember where you drag them, so they come back in the same spot.
