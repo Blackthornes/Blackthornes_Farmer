@@ -61,12 +61,20 @@ end
 --   Auctionator.API.v1.GetAuctionPriceByItemID("Blackthornes_Farmer", itemID)
 -- TSM first unless the player picked Auctionator first ("Price Order:",
 -- `priceOrder`, "tsm" or nil, else "auctionator"; the owner 2026-10-26).
+-- "TSM Price Source:" (a player asked, the owner said build it, 2026-11-13)
+-- names the TSM price read instead of DBMarket: DBMinBuyout, DBRecent or
+-- one of the player's own TSM custom prices (`tsmPriceSource`, account
+-- wide, nil or empty for DBMarket, never rename it). A source TSM says is
+-- not valid (TSM_API.IsCustomPriceValid), or one that gives no price for an
+-- item, falls back to DBMarket.
 -- Prices are read many times a draw, so each answer is kept
 -- OTHER_CACHE_FOR seconds.
 
 Value.OTHER_CACHE_FOR = 60
 Value.OTHER_MAX_PRICE = 1e11   -- above this is not a price (10 million gold)
+Value.TSM_DEFAULT_SOURCE = "DBMarket"
 local otherCache = {}          -- [itemID] = { copper or false, at }
+local sourceValid = {}         -- [source text] = true or false
 
 local function Clock()
     if type(GetTime) ~= "function" then return 0 end
@@ -94,6 +102,52 @@ local function TSMCall()
     local api = rawget(_G, "TSM_API")
     if type(api) ~= "table" or type(api.GetCustomPriceValue) ~= "function" then return nil end
     return api.GetCustomPriceValue
+end
+
+--- The TSM source the player typed, trimmed, or nil for DBMarket.
+function Value:TSMSourceTyped()
+    local text = ns.db and ns.db.tsmPriceSource
+    if type(text) ~= "string" then return nil end
+    text = text:match("^%s*(.-)%s*$")
+    if text == "" or text:lower() == Value.TSM_DEFAULT_SOURCE:lower() then return nil end
+    return text
+end
+
+--- false when TSM says the typed source is not one it knows; true when it
+--- is, or when TSM can't say.
+function Value:TSMSourceValid(text)
+    text = text or self:TSMSourceTyped()
+    if not text then return true end
+    local api = rawget(_G, "TSM_API")
+    if type(api) ~= "table" or type(api.IsCustomPriceValid) ~= "function" then return true end
+    if sourceValid[text] == nil then
+        local ok, valid = pcall(api.IsCustomPriceValid, text)
+        sourceValid[text] = (not ok) or (valid and true or false)
+    end
+    return sourceValid[text]
+end
+
+--- The TSM source read: the player's own when TSM knows it, else DBMarket.
+function Value:TSMSource()
+    local text = self:TSMSourceTyped()
+    if text and self:TSMSourceValid(text) then return text end
+    return Value.TSM_DEFAULT_SOURCE
+end
+
+--- True while a typed source is one TSM says it doesn't know.
+function Value:TSMSourceRefused()
+    local text = self:TSMSourceTyped()
+    return text ~= nil and TSMCall() ~= nil and not self:TSMSourceValid(text)
+end
+
+--- Save the TSM source (nil or empty for DBMarket) and forget kept prices.
+function Value:SetTSMSource(text)
+    if not ns.db then return end
+    if type(text) == "string" then text = text:match("^%s*(.-)%s*$") end
+    if text == "" then text = nil end
+    ns.db.tsmPriceSource = text
+    otherCache = {}
+    sourceValid = {}
 end
 
 local function AuctionatorCall()
@@ -134,8 +188,14 @@ function Value:OtherPrice(itemID)
         return kept[1] or nil
     end
 
+    local source = tsm and self:TSMSource()
     local function FromTSM()
-        return tsm and Copper(pcall(tsm, "DBMarket", "i:" .. itemID)) or nil
+        if not tsm then return nil end
+        local copper
+        if source ~= Value.TSM_DEFAULT_SOURCE then
+            copper = Copper(pcall(tsm, source, "i:" .. itemID))
+        end
+        return copper or Copper(pcall(tsm, Value.TSM_DEFAULT_SOURCE, "i:" .. itemID))
     end
     local function FromAuctionator()
         return auctionator and Copper(pcall(auctionator, "Blackthornes_Farmer", itemID)) or nil
@@ -155,6 +215,7 @@ function Value:SetUsesOtherAddons(on)
     if not ns.db then return end
     ns.db.otherPriceAddons = on and true or false
     otherCache = {}
+    sourceValid = {}
 end
 
 -- What item tooltips said a vendor pays, kept for the session.
