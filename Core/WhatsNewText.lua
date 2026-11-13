@@ -5,16 +5,15 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "1.16.0", lines = {
+        "You can pick which TSM price to use, on the Loot page. It starts on the recent price.",
+        "In a group, only the loot you really got counts now.",
+    } },
     { version = "1.15.0", lines = {
         "Windows now remember where you drag them, so they come back in the same spot.",
         "A new button on the General page puts every window back where it started.",
     } },
     { version = "1.14.0", lines = {
         "There is a new box that mutes every sound from all the Blackthornes addons at once. It starts off, so nothing changes until you tick it.",
-    } },
-    { version = "1.13.0", lines = {
-        "Pick where the quest count sits next to a mob's name: above, below, left or right.",
-        "The quest count is bigger and brighter, so it is easier to read.",
-        "It still starts on the right, so nothing moves unless you pick a new spot.",
     } },
 }
