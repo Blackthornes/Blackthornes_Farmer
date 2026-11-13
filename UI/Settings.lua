@@ -1046,7 +1046,7 @@ function SettingsUI:BuildLootPage()
 
     -- Which of them is asked first (the owner, 2026-10-26).
     local orderRow = pages:Row("loot", 1, L["Price Order:"],
-        L["Which one to ask first when both have a price for your drops."])
+        L["Only used when Tradeskills is off. With Tradeskills on, Farmer uses the same prices Tradeskills shows."])
     local orderNames = { L["TSM First"], L["Auctionator First"] }
     controls.priceOrder = Widgets.CreateChoice(orderRow, {
         min = 1, max = 2, step = 1, value = 1,
