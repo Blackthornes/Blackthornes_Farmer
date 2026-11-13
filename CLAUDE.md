@@ -1,12 +1,10 @@
 # Notes for Claude
 
-Read this before working in this repo. The owner runs two Claude projects, one per
-addon: this one (**Blackthornes_Farmer**) and **Blackthornes_Tradeskills**
-(`Blackthornes/Blackthornes_Tradeskills`). They cannot read each other's
-memory, so what one needs to know about the other lives in the repos, in this
-file and in Tradeskills' `CLAUDE.md`. Keep both current: when a change here
-leans on something new in Tradeskills, or a standing rule from the owner applies to
-both addons, add it to both files.
+Read this before working in this repo. It is one of five Blackthornes addons
+(Farmer, Tradeskills, Equipment, Pets, Butler), each in its own repo. What one
+needs to know about another lives in the repos, in this file and in theirs.
+Keep them current: when a change here leans on something new in a sister, or a
+standing rule from the owner applies to all of them, add it to each file.
 
 Nothing private goes in this file (no local paths, emails or account names).
 It never ships: `.pkgmeta` leaves it out of the zip and
@@ -2402,7 +2400,7 @@ marks, streaks, "Up to #N!", "Goal done: X!"), and `About.NOTE` is the
 owner's own wording. This rule is in every addon's notes; keep them the
 same.
 
-## The owner's standing rules (both addons)
+## The owner's standing rules (all the addons)
 
 - **Every list is dark glass** (the owner, 2026-10-12: "keep this as the
   standard across all Blackthornes addons", after Farmer's Kills & Loot
@@ -2426,10 +2424,11 @@ same.
   writes the CHANGELOG section changes it too; `tools/check_release.py`
   refuses a tag it does not match, and `tools/test_check_release.py` fails
   while the two disagree. This rule is in every addon's notes.
-- **Every reply that ships code ends with the GitHub Desktop steps,** naming
-  the branch: merge the PR on github.com, switch **Current branch** to
-  **main**, **Pull origin**, then `/reload` or a full restart (a full restart
-  when a file is added, removed or renamed, or the TOC changes).
+- **Every reply that ships code says the PR is ready and whether the game
+  needs `/reload` or a full restart** (a full restart when a file is added,
+  removed or renamed, or the TOC changes). Merging, pulling and tagging go
+  through the project's own steps, never by hand on github.com or in
+  GitHub Desktop.
 - **Grey (poor quality) items are priced at vendor only;** everything else is
   max(auction, vendor).
 - **CurseForge descriptions are features only:** no privacy notes and no
@@ -2452,7 +2451,7 @@ same.
   craft pane in one frame (now `Recipes:NothingNewMidCraft` skips the
   re-read mid-run and `CraftPanel:RefreshInSlices` spreads the pane over
   frames). Visuals and usability are never traded away for speed. This
-  rule is in all four addons' notes; keep them the same.
+  rule is in every addon's notes; keep them the same.
 - **The client is WoW: Forever, a retail engine** (`## Interface: 16001`,
   modern Lua), not 1.12. Read client values inside a pcall; instances hand out
   secret values that raise when touched.
