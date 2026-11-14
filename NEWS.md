@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.17.0
+
+- In a group, the quest count over a mob can now show only your own quests. It's a box on the Map & goals page.
+- Gear that binds when worn can use its own TSM price. You pick it on the Loot page.
+Fixes and changes:
+- The search rows lost their extra hint line.
+- Farmer uses less memory now.
+
 ## 1.16.0
 
 - You can pick which TSM price to use, on the Loot page. It starts on the recent price.

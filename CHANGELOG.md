@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.17.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Only My Quests.** A new Only My Quests: box under Quest Count Position on the Map & goals page. Ticked, the quest count over a mob counts only your own quests, not your group's. It starts off.
+- **TSM BoE Price Source.** A new TSM BoE Price Source: box under TSM Price Source on the Loot page picks the TSM price for gear that binds when worn. Empty, it uses your TSM Price Source.
+- **Search hover.** The hint line on a search row's hover is gone.
+- **Memory.** Farmer holds on to less memory while you play.
+
 ## 1.16.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
