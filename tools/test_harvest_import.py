@@ -174,7 +174,8 @@ def build_sandbox(saved_text):
     # harvest, and a sandbox that inherited it would be testing against his
     # data instead of its own.
     shutil.copytree(ROOT, repo,
-                    ignore=shutil.ignore_patterns(".git", "Data_Harvested.lua"))
+                    ignore=shutil.ignore_patterns(".git", "Data_Harvested.lua",
+                                                  "Data_Harvested_corpses.txt"))
 
     # A real install nests the flavour folder and the account name, which is
     # what the script has to search through.
@@ -188,6 +189,14 @@ def build_sandbox(saved_text):
         handle.write(saved_text)
 
     return sandbox, repo, os.path.join(sandbox, "client")
+
+
+def side_notes(repo):
+    """The corpse notes the import keeps beside the data, in tools/."""
+    path = os.path.join(repo, "tools", "Data_Harvested_corpses.txt")
+    if not os.path.isfile(path):
+        return ""
+    return open(path, encoding="utf-8").read()
 
 
 def run_import(repo, client, *extra):
@@ -605,7 +614,8 @@ def main():
         check("keep: with the flag it works", kept.returncode == 0, kept.stderr)
         merged = open(data, encoding="utf-8").read()
         check("keep: the shipped spot is still there",
-              'name = "Old Wolf"' in merged and "-- 3 of 40 corpses" in merged)
+              'name = "Old Wolf"' in merged and "-- 3 of 40 corpses" in side_notes(repo))
+        check("keep: the notes leave the data file", "corpses\n" not in merged.replace("corpses looted", ""))
         check("keep: the item keeps its id", "id = 777," in merged)
         check("keep: the header counts both sides",
               "%d corpses looted" % (total + 40) in merged, merged[:120])
