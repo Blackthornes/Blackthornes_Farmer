@@ -2494,6 +2494,11 @@ and beasts read `Data/Data_Harvested.lua`:
   drops were merged in once and that is not repeated). The shipped file still
   holds them, so it is bigger than the save; `--keep-published` lets each mob
   at each spot keep the larger of the two, so a release never loses drops.
+  The "-- N of M corpses" notes under each row live beside the data in
+  `tools/Data_Harvested_corpses.txt` (written by the import, never shipped,
+  2026-11-14), so the game reads a smaller file; `--keep-published` reads
+  them from there, or inline from an older file. Commit both together.
+  `tools/harvest_notes.py` moves inline notes out of an older file.
 - `tools/forever_npc_names.py <save> <creaturecache.wdb>`
   (`Data/ForeverNpcNames.lua`).
 

@@ -49,6 +49,8 @@ import sys
 
 from lupa import lua51 as luamod
 
+import harvest_notes
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SAVED_VARIABLE = "BlackthornesFarmerDB"
@@ -295,6 +297,22 @@ def read_published(path):
 
     records, types, qualities = {}, {}, {}
     item, item_id, source, section = None, None, None, "items"
+    item_line = ""
+
+    # The corpse notes live beside the file in tools/; an older file still
+    # carries them inline, and both are read.
+    side = harvest_notes.read_notes(harvest_notes.notes_path(path))
+
+    def take_note(note):
+        held, corpses = (int(n) for n in CORPSES_LINE.match("  " + note).groups())
+        key = "%s|%s|%s" % (source["mob"], source.get("zone", "?"),
+                            source.get("location", ""))
+        record = records.setdefault(key, dict(source, corpses=corpses, items={}))
+        record["corpses"] = max(record["corpses"], corpses)
+        entry = {"name": item, "count": held, "corpses": held}
+        if item_id:
+            entry["id"] = item_id
+        record["items"][item] = entry
 
     for line in lines:
         if line.startswith("if DB.CreatureTypes"):
@@ -314,6 +332,7 @@ def read_published(path):
         elif line.startswith("DB:RegisterItem"):
             item, item_id, source = None, None, None
         elif line.startswith('    name = "'):
+            item_line = line.strip()
             item = lua_unescape(re.match(r'    ' + SOURCE_FIELD % "name", line).group(1))
         elif line.startswith("    id = "):
             item_id = int(re.search(r"\d+", line).group())
@@ -333,16 +352,12 @@ def read_published(path):
                     match = re.search(field + r" = (\d+)", line)
                     if match:
                         source[field] = int(match.group(1))
+                waiting = side.get((item_line, line.strip()))
+                if waiting:
+                    take_note(waiting.pop(0))
+                    source = None
         elif source is not None and CORPSES_LINE.match(line):
-            held, corpses = (int(n) for n in CORPSES_LINE.match(line).groups())
-            key = "%s|%s|%s" % (source["mob"], source.get("zone", "?"),
-                                source.get("location", ""))
-            record = records.setdefault(key, dict(source, corpses=corpses, items={}))
-            record["corpses"] = max(record["corpses"], corpses)
-            entry = {"name": item, "count": held, "corpses": held}
-            if item_id:
-                entry["id"] = item_id
-            record["items"][item] = entry
+            take_note(line.strip())
             source = None
 
     return {"records": records, "types": types, "qualities": qualities}
@@ -626,6 +641,11 @@ def main():
         return 0
 
     os.makedirs(os.path.dirname(output), exist_ok=True)
+
+    # The corpse notes go beside the file in tools/, not in what the game loads.
+    text, notes = harvest_notes.split_notes(text)
+    if notes:
+        harvest_notes.write_notes(harvest_notes.notes_path(output), notes)
 
     with open(output, "w", encoding="utf-8") as handle:
         handle.write(text.rstrip("\n") + "\n")
