@@ -244,7 +244,9 @@ def main():
         # 29 of 47 corpses is 62%, and the eight-corpse mob is under the
         # twenty-corpse floor, so exactly one rate should appear.
         check("a well-sampled mob gets its rate", "chance = 62" in text, text)
-        check("a thin sample gets none", "too few for a rate" in text, text)
+        notes = open(os.path.join(repo, "tools", "Data_Harvested_corpses.txt"),
+                     encoding="utf-8").read()
+        check("a thin sample gets none", "too few for a rate" in notes, notes)
         check("exactly one rate is published",
               text.count("chance = ") == 1, text.count("chance = "))
 
