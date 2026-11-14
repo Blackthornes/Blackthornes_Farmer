@@ -464,10 +464,7 @@ function UI:BuildBody()
         createRow = function(row) UI:CreateRow(row) end,
         updateRow = function(row, data, index) UI:UpdateRow(row, data, index) end,
         onClick = function(data, button) UI:OnRowClick(data, button) end,
-        onEnter = function(row)
-            UI:ShowValueTooltip(row)
-            UI:AddRowHint(row)
-        end,
+        onEnter = function(row) UI:ShowValueTooltip(row) end,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
         -- The colour of the well the rows sit in.
         fadeKey = "well",
@@ -866,20 +863,6 @@ function UI:ShowValueTooltip(row)
     local key = data.source.name
     if ns.Tracker then key = ns.Tracker:KeyFor(key, data.source.zone) end
     self:ShowMobTooltip(row, key)
-end
-
---- A spot's hover ends with what a click does, dim (2026-10-29; it was
---- the search footer).
-function UI:AddRowHint(row)
-    local data = row and row.data
-    if not (GameTooltip and data and data.type == "source") then return end
-    if not (GameTooltip.IsOwned and GameTooltip:IsOwned(row)) then
-        GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(data.source.name or data.item.name, Theme.Unpack("accent"))
-    end
-    GameTooltip:AddLine(L["Unmarked spots are from Classic and not yet seen on Forever. Click a row to put it in chat."],
-        Theme.Unpack("dim"), true)
-    GameTooltip:Show()
 end
 
 --- What a kill of `mobName` is worth and what makes it up, beside `owner`.
