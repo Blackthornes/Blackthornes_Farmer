@@ -1298,6 +1298,23 @@ and the rank-up order follow (it moves `outsideVersion`). `Value:ForMob` is
 untouched, so tooltips and the loot table still count every drop. Tested in
 `tools/test_rankingsuncommon.lua`. Not yet seen in game.
 
+## Rankings at vendor prices
+
+A player asked, the owner said build it (2026-11-15): a tick box on the
+Rankings tab that prices every drop at what a vendor pays. "Vendor prices
+only" sits after "Skip Uncommon and better" (the three tick boxes now sit
+on a row of their own under the chips, `RankingsUI.ticks`, so the window
+never grows wider for them), with "Vendor Prices Only:" under "Skip
+Uncommon Drops:" on the General page of Settings and `/farm rankings
+vendor [on|off]`; off unless ticked, `rankingsVendorOnly`, account wide,
+never rename it. `Rankings:Entry` reprices the drops
+(`Rankings.WithVendorPrices`, `Rankings.VendorOf` through
+`Value:VendorPrice`); a drop a vendor won't buy counts as 0, so the
+order, the best drop, the row's hover, the price note ("vendor prices")
+and the rank-up order follow (it moves `outsideVersion`). `Value:ForMob`
+is untouched, so tooltips and the loot table still use the usual prices.
+Tested in `tools/test_rankingsvendor.lua`. Not yet seen in game.
+
 ## Your top 15 after an auction scan
 
 The owner asked (2026-10-14): an alert after an auction scan when there is

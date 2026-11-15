@@ -125,13 +125,24 @@ function RankingsUI:Build(frame)
         self.chips[index] = chip
     end
 
+    local chipsEnd = offset
+
+    -- The tick boxes sit on a row of their own under the chips, so the
+    -- window never has to grow wider for them (2026-11-15, with the third).
+    local ticks = CreateFrame("Frame", nil, view)
+    ticks:SetPoint("TOPLEFT", filters, "BOTTOMLEFT", 0, -4)
+    ticks:SetPoint("TOPRIGHT", filters, "BOTTOMRIGHT", 0, -4)
+    ticks:SetHeight(18)
+    self.ticks = ticks
+    offset = -8
+
     -- Mobs found only in dungeons and raids left out (the owner, 2026-10-14),
     -- after the chips. Off unless ticked; Rankings:SetOutsideOnly redraws.
-    local outside = Widgets.CreateCheckbox(filters, L["Outside dungeons only"], function(checked)
+    local outside = Widgets.CreateCheckbox(ticks, L["Outside dungeons only"], function(checked)
         ns.Rankings:SetOutsideOnly(checked)
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
     end, ns.Rankings.OutsideOnly())
-    outside:SetPoint("LEFT", filters, "LEFT", offset + 8, 0)
+    outside:SetPoint("LEFT", ticks, "LEFT", offset + 8, 0)
     outside:HookScript("OnEnter", function(box)
         if not GameTooltip then return end
         GameTooltip:SetOwner(box, "ANCHOR_BOTTOMLEFT")
@@ -144,11 +155,11 @@ function RankingsUI:Build(frame)
 
     -- Uncommon and better drops left out of worth per kill (the owner,
     -- 2026-10-18). Off unless ticked; Rankings:SetSkipUncommon redraws.
-    local uncommon = Widgets.CreateCheckbox(filters, L["Skip Uncommon and better"], function(checked)
+    local uncommon = Widgets.CreateCheckbox(ticks, L["Skip Uncommon and better"], function(checked)
         ns.Rankings:SetSkipUncommon(checked)
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
     end, ns.Rankings.SkipUncommon())
-    uncommon:SetPoint("LEFT", filters, "LEFT", offset + 12, 0)
+    uncommon:SetPoint("LEFT", ticks, "LEFT", offset + 12, 0)
     uncommon:HookScript("OnEnter", function(box)
         if not GameTooltip then return end
         GameTooltip:SetOwner(box, "ANCHOR_BOTTOMLEFT")
@@ -158,16 +169,33 @@ function RankingsUI:Build(frame)
     uncommon:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
     self.uncommon = uncommon
     offset = offset + 12 + uncommon:GetWidth()
-    self.headOffset = offset
+
+    -- Every drop at its vendor price (the owner, 2026-11-15). Off unless
+    -- ticked; Rankings:SetVendorOnly redraws.
+    local vendor = Widgets.CreateCheckbox(ticks, L["Vendor prices only"], function(checked)
+        ns.Rankings:SetVendorOnly(checked)
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+    end, ns.Rankings.VendorOnly())
+    vendor:SetPoint("LEFT", ticks, "LEFT", offset + 12, 0)
+    vendor:HookScript("OnEnter", function(box)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(box, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:SetText(L["Worth per kill counts what a vendor pays, not the auction house. Things a vendor won't buy count as nothing."], 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    vendor:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    self.vendor = vendor
+    offset = offset + 12 + vendor:GetWidth()
+    self.headOffset = math.max(chipsEnd, offset)
 
     -- Where the prices come from, on the right of the chips.
     local summary = Theme.CreateLabel(view, "small", "muted", "RIGHT")
-    summary:SetPoint("LEFT", filters, "LEFT", offset + 8, 0)
+    summary:SetPoint("LEFT", filters, "LEFT", chipsEnd + 8, 0)
     summary:SetPoint("RIGHT", filters, "RIGHT", -2, 0)
     self.summary = summary
 
     -- Below the portrait, as wide as the Search tab's results.
-    self.panelTop = top + 18 + 8
+    self.panelTop = top + 18 + 4 + 18 + 8
     local panel = Theme.CreatePanel(view, "panel", "border")
     self.panel = panel
     self:PlacePanel(false)
@@ -1321,6 +1349,7 @@ function RankingsUI:HeadWidth()
 end
 
 function RankingsUI:PriceText()
+    if ns.Rankings.VendorOnly() then return L["vendor prices"] end
     local source = ns.Value:PriceSource()
     if source == "tradeskills" then
         return L["Tradeskills auction prices"]
@@ -1371,6 +1400,7 @@ function RankingsUI:Render(arrive)
     end
     if self.outside then self.outside:SetChecked(ns.Rankings.OutsideOnly()) end
     if self.uncommon then self.uncommon:SetChecked(ns.Rankings.SkipUncommon()) end
+    if self.vendor then self.vendor:SetChecked(ns.Rankings.VendorOnly()) end
 
     self:ShowWorld()
     local board = ns.Rankings:Build()
