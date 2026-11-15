@@ -213,4 +213,34 @@ do
         and ns.db.lootFeedScale == nil)
 end
 
+-- 6. A row shows the item's own tooltip under the mouse; clicks pass by.
+do
+    local ns = Load({ ui = true })
+    local Feed = ns.LootFeed
+    ns.HandleSlash("lootfeed on")
+    local tip = { owner = nil, link = nil, shown = false }
+    _G.GameTooltip = {
+        SetOwner = function(_, owner) tip.owner = owner end,
+        GetOwner = function() return tip.owner end,
+        SetHyperlink = function(_, link) tip.link = link end,
+        Show = function() tip.shown = true end,
+        Hide = function() tip.shown = false end,
+    }
+    TakeAll(ns, { FANG })
+    local line = Feed.lines[1]
+    suite.check("the row has a hover script", line:GetScript("OnEnter") ~= nil
+        and line:GetScript("OnLeave") ~= nil)
+    line:GetScript("OnEnter")(line)
+    suite.check("hover shows the item's tooltip from its link", tip.shown and tip.owner == line
+        and type(tip.link) == "string" and tip.link:find("item:5637") ~= nil, tip.link)
+    line:GetScript("OnLeave")(line)
+    suite.check("leaving hides it", not tip.shown)
+
+    ns.HandleSlash("lootfeed move")
+    Feed.rows = {}
+    Feed:Layout()
+    line:GetScript("OnEnter")(line)
+    suite.check("the Move sample shows no tooltip", not tip.shown)
+end
+
 suite.done()

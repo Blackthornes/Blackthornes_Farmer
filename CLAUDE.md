@@ -1384,13 +1384,17 @@ greys at vendor). It reads each loot window once through `ns.OnLootWindow`
 (ahead of fast-loot addons) and shows a slot when `LOOT_SLOT_CLEARED` says
 it was taken (a client without the event shows the window as read);
 locked slots, hidden items and secret values never go in. Its own frame on
-UIParent that never takes the mouse, except in Move, which shows a sample
+UIParent that never takes a click, except in Move, which shows a sample
 row, the gold edge and the house size grip (`lootFeedScale`); its top left
 is kept in `lootFeedX`/`lootFeedY` (nil for the first place). Transparent
 is `lootFeedSeeThrough` (`UI/SeeThrough.lua`'s "lootfeed", Some unless
 picked). All account wide; never rename them. Settings > Loot > LOOT FEED
 ("Loot Feed:", "Show For:", "Show Worth:", "Feed Place:" Move and Reset),
 "Loot Feed:" under TRANSPARENT, and `/farm lootfeed on|off|move|reset`.
+Its rows hear only the mouse moving (`SetMouseMotionEnabled` on,
+`SetMouseClickEnabled` off), so hovering one shows the item's own tooltip
+from the loot link kept on the row (`LootFeed.ShowTip`, `HideTip`; a
+digest idea, 2026-11-15), while clicks still go through to the world.
 Tested in `tools/test_lootfeed.lua`. Not yet seen in game.
 
 ## Clams and sacks worth what's inside
