@@ -120,13 +120,14 @@ local function IsTrue(value)
     return ok and yes
 end
 
---- The item ID in a loot slot, from its link, else by its name.
+--- The item ID in a loot slot, from its link, else by its name. The link
+--- comes back too, so a random suffix shows its own tooltip.
 local function SlotID(slot, name)
     if type(GetLootSlotLink) == "function" then
         local ok, link = pcall(GetLootSlotLink, slot)
         local text = ok and Readable(link) or nil
         local id = text and tonumber(text:match("item:(%d+)"))
-        if id then return id end
+        if id then return id, text end
     end
     local ok, id = pcall(ns.Value.ItemID, ns.Value, name)
     return ok and tonumber(id) or nil
@@ -149,13 +150,13 @@ function LootFeed.ReadSlot(slot)
     local okHidden, hidden = pcall(ns.DB.IsHiddenItem, ns.DB, text)
     if okHidden and hidden then return nil end
 
-    local id = SlotID(slot, text)
+    local id, link = SlotID(slot, text)
     local shown = ns.Theme.ItemIcon(id)
     if not shown then
         local okIcon, value = pcall(function() return icon + 0 end)
         shown = okIcon and value or (type(icon) == "string" and icon) or nil
     end
-    return { name = text, id = id, icon = shown, count = ReadableNumber(quantity) or 1 }
+    return { name = text, id = id, link = link, icon = shown, count = ReadableNumber(quantity) or 1 }
 end
 
 --- Read the window's slots, to show each as it is taken.
@@ -213,7 +214,7 @@ function LootFeed:Add(entry)
     if row then
         row.count = row.count + (entry.count or 1)
     else
-        row = { key = key, name = entry.name, id = entry.id, icon = entry.icon,
+        row = { key = key, name = entry.name, id = entry.id, link = entry.link, icon = entry.icon,
             count = entry.count or 1, unit = UnitWorth(entry.name, entry.id) }
     end
     row.at = Now()
@@ -251,6 +252,33 @@ end
 -- Drawing
 --------------------------------------------------------------------------------
 
+--- The item's own tooltip while the mouse is on its row. Rows only hear the
+--- mouse move: clicks still go through the feed to the world under it.
+function LootFeed.ShowTip(line)
+    local row = line and line.row
+    local tip = _G.GameTooltip
+    if not row or row.sample or not tip then return end
+    local ok = pcall(tip.SetOwner, tip, line, "ANCHOR_RIGHT")
+    if not ok then return end
+    local shown = false
+    if row.link then shown = pcall(tip.SetHyperlink, tip, row.link) end
+    if not shown and row.id then
+        if type(tip.SetItemByID) == "function" then
+            shown = pcall(tip.SetItemByID, tip, row.id)
+        else
+            shown = pcall(tip.SetHyperlink, tip, "item:" .. row.id)
+        end
+    end
+    if shown then pcall(tip.Show, tip) else pcall(tip.Hide, tip) end
+end
+
+function LootFeed.HideTip(line)
+    local tip = _G.GameTooltip
+    if not tip then return end
+    local ok, owner = pcall(tip.GetOwner, tip)
+    if ok and owner == line then pcall(tip.Hide, tip) end
+end
+
 local function MakeLine(frame, index)
     local Theme = ns.Theme
     local line = CreateFrame("Frame", nil, frame)
@@ -286,6 +314,16 @@ local function MakeLine(frame, index)
     line.name:SetPoint("LEFT", icon, "RIGHT", 6, 0)
     line.name:SetPoint("RIGHT", line.count, "LEFT", -6, 0)
     line.name:SetWordWrap(true)
+
+    if type(line.SetMouseMotionEnabled) == "function" then
+        pcall(line.SetMouseMotionEnabled, line, true)
+        if type(line.SetMouseClickEnabled) == "function" then
+            pcall(line.SetMouseClickEnabled, line, false)
+        end
+        line:SetScript("OnEnter", LootFeed.ShowTip)
+        line:SetScript("OnLeave", LootFeed.HideTip)
+        line:SetScript("OnHide", LootFeed.HideTip)
+    end
 
     ns.SeeThrough:AddGlass("lootfeed", stripe)
     ns.SeeThrough:AddGlass("lootfeed", rule)
@@ -427,7 +465,10 @@ function LootFeed:Layout()
     local width = MIN_WIDTH
     for index, line in ipairs(self.lines) do
         local row = rows[index]
+        local had = line.row
+        line.row = row
         if row then
+            if had ~= row then LootFeed.HideTip(line) end
             line.icon:SetTexture(row.icon or 134400)
             local name = row.sample and row.name or Util.ColorItem(row.name, row.id)
             line.name:SetText(name)
