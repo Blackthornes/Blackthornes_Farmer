@@ -374,6 +374,12 @@ function RouteMap.Ahead(plan)
     return list
 end
 
+--- A minimap dot only where something should be up to gather: never on a
+--- stop you reached or picked, one resting, or one still growing back.
+function RouteMap.ShowsDot(stop)
+    return stop and stop.back == true and not stop.done and not stop.resting or false
+end
+
 function RouteMap:DrawMinimap(plan)
     local minimap = _G.Minimap
     local mapID, px, py = ns.Harvest:PlayerMapPosition()
@@ -394,7 +400,7 @@ function RouteMap:DrawMinimap(plan)
     local parts = { mapID, ("%.4f"):format(px), ("%.4f"):format(py),
         tostring(facing and ("%.2f"):format(facing)), tostring(square), tostring(radius), tostring(size),
         ns.GatherRoute.version }
-    for _, stop in ipairs(ahead) do parts[#parts + 1] = stop.n .. (stop.back and "u" or "d") end
+    for _, stop in ipairs(ahead) do parts[#parts + 1] = stop.n .. (RouteMap.ShowsDot(stop) and "u" or "d") end
     local key = table.concat(parts, "|")
     if key == self.miniKey then return end
     self.miniKey = key
@@ -429,12 +435,12 @@ function RouteMap:DrawMinimap(plan)
                 end
             end
             -- A dot where the stop shows inside the rim.
-            if x2 == toE and y2 == toN then
+            if x2 == toE and y2 == toN and RouteMap.ShowsDot(stop) then
                 dots = dots + 1
                 local dot = Dot(layer, dots)
                 local dotSize = stop.next and 10 or 7
                 dot:SetSize(dotSize, dotSize)
-                local colour = stop.back and GOLD or GREY
+                local colour = GOLD
                 dot:SetVertexColor(colour[1], colour[2], colour[3], 1)
                 dot:ClearAllPoints()
                 dot:SetPoint("CENTER", minimap, "CENTER", toE * scale, toN * scale)

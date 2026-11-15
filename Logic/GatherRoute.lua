@@ -18,6 +18,7 @@ GatherRoute.GATHER_SECONDS = 3  -- a gather, a stop
 GatherRoute.ARRIVED = 12        -- yards: a stop you reach counts as checked
 GatherRoute.LOOK = 1            -- seconds between looks while a route runs
 GatherRoute.PASSES = 4          -- 2-opt passes over the loop
+GatherRoute.COOLDOWN = 300      -- seconds a reached stop waits when its grow-back time isn't learned
 
 -- Kinds of spot, the skill each needs and the tick that shows it.
 GatherRoute.KINDS = {
@@ -249,6 +250,43 @@ function GatherRoute.IsBack(spot, now)
     return at <= now, at
 end
 
+-- Stops you reached or gathered rest until they should be back, kept for the
+-- session by place (spot tables are laid out again as spots move), so the
+-- arrow never sends you back to a node still growing.
+GatherRoute.cooldown = {}
+
+function GatherRoute.SpotKey(spot)
+    return table.concat({ tostring(spot.map), tostring(spot.x), tostring(spot.y), tostring(spot.node) }, "|")
+end
+
+--- When a stop reached or gathered at `now` should be back.
+function GatherRoute.RestUntil(spot, now, gathered)
+    if gathered then
+        local ok, at = pcall(ns.Respawn.BackAt, ns.Respawn, spot)
+        at = ok and Number(at) or nil
+        if at and at > now then return at end
+    end
+    local seconds
+    local ok, estimate = pcall(ns.Respawn.Estimate, ns.Respawn, spot.map, spot.node)
+    if ok and type(estimate) == "table" then seconds = Number(estimate.seconds) end
+    return now + (seconds or GatherRoute.COOLDOWN)
+end
+
+function GatherRoute:Rest(spot, now, gathered)
+    if not now then return end
+    local key = GatherRoute.SpotKey(spot)
+    local untilAt = GatherRoute.RestUntil(spot, now, gathered)
+    local had = GatherRoute.cooldown[key]
+    if not had or untilAt > had then GatherRoute.cooldown[key] = untilAt end
+end
+
+--- The time a stop rests until, or nil once it may be up again.
+function GatherRoute.Resting(spot, now)
+    local untilAt = GatherRoute.cooldown[GatherRoute.SpotKey(spot)]
+    if untilAt and now and untilAt > now then return untilAt end
+    return nil
+end
+
 --- Order `spots` into a short path from (x, y): nearest each time, then
 --- 2-opt. Up spots first, then the ones still growing back.
 function GatherRoute.Order(mapID, spots, x, y, now)
@@ -365,6 +403,30 @@ local function Stamp()
     }, "|")
 end
 
+--- The stop to go to next: of those not done, the one you can be gathering
+--- soonest, the walk there from where you stand against when it should be
+--- back; ties keep the loop's order. Away from the route's zone, the first
+--- one up in the loop, else the one back soonest.
+function GatherRoute.PickNext(stops, map, x, y, now)
+    local best, bestScore
+    local here = map and x and y and now
+    for _, stop in ipairs(stops) do
+        if not stop.done then
+            local score
+            if here then
+                local walk = GatherRoute.Yards(map, x, y, stop.spot.x, stop.spot.y) / GatherRoute.RUN_SPEED
+                score = math.max(stop.back and now or (stop.at or now), now + walk)
+            elseif stop.back then
+                score = -math.huge
+            else
+                score = stop.at or math.huge
+            end
+            if not bestScore or score < bestScore then best, bestScore = stop, score end
+        end
+    end
+    return best
+end
+
 --- What the Route view shows. Laid out again when your spots, the settings
 --- or the zone you stand in move, or once a second while it runs.
 --- { zone, map, here (map you stand on), spotsHere, stops = { { spot, n,
@@ -415,12 +477,17 @@ function GatherRoute:Plan()
     local run = self.run
     local walked, previous = 0, fromX and { x = fromX, y = fromY } or nil
     local worth = 0
-    local nextSet = false
     for n, spot in ipairs(order) do
         local stop = { spot = spot, n = n }
         stop.done = run and run.map == routeMap and run.visited[spot] or false
         if stop.done and run.picked[spot] then stop.picked = true end
         local back, at = GatherRoute.IsBack(spot, now)
+        local resting = GatherRoute.Resting(spot, now)
+        if resting then
+            back = false
+            if not at or resting > at then at = resting end
+            stop.resting = true
+        end
         stop.back = back
         stop.at = at
         if previous then
@@ -430,20 +497,13 @@ function GatherRoute:Plan()
         if fromX then
             stop.yards = math.floor(GatherRoute.Yards(routeMap, fromX, fromY, spot.x, spot.y) + 0.5)
         end
-        if not stop.done and not nextSet and (back or n == #order) then
-            stop.next, nextSet = true, true
-            plan.nextStop = stop
-        end
         local each = GatherRoute.WorthEach(plan.zone or "", spot.node)
         if each then worth = worth + each end
         previous = spot
         plan.stops[n] = stop
     end
-    if not nextSet then
-        for _, stop in ipairs(plan.stops) do
-            if not stop.done then stop.next = true; plan.nextStop = stop; break end
-        end
-    end
+    local pick = GatherRoute.PickNext(plan.stops, routeMap, fromX, fromY, now)
+    if pick then pick.next, plan.nextStop = true, pick end
 
     -- Back to the start closes the loop.
     local first, last = order[1], order[#order]
@@ -594,16 +654,21 @@ function GatherRoute:Look()
     end
     local map, x, y = GatherRoute.Here()
     local started = run.started or 0
+    local now = Clock()
     local moved = false
     for _, spot in ipairs(self.order and self.order.list or {}) do
         if not run.visited[spot] then
             local last = Number(spot.last)
             if last and last >= started then
                 run.visited[spot], run.picked[spot] = true, true
+                self:Rest(spot, now, true)
                 moved = true
-            elseif spot == run.aimed and map == spot.map and x and y
+            elseif map == spot.map and x and y
                 and GatherRoute.Yards(map, x, y, spot.x, spot.y) <= GatherRoute.ARRIVED then
+                -- Reached, gathered or not: on to the next, and this one
+                -- rests until it should be back.
                 run.visited[spot] = true
+                self:Rest(spot, now, false)
                 moved = true
             end
         end
