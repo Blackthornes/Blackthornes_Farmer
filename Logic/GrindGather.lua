@@ -129,6 +129,8 @@ function GrindGather:NoteSkin(mob, guid, items, quantities)
         self.skinned[guid] = true
         if ns.NodeSparkle and ns.NodeSparkle.Skinned then pcall(ns.NodeSparkle.Skinned, ns.NodeSparkle, guid) end
     end
+    -- Where you skinned, for Leather's route.
+    if ns.GatherRoute and ns.GatherRoute.NoteSkin then pcall(ns.GatherRoute.NoteSkin, ns.GatherRoute, mob) end
 
     GrindGather.paceVersion = (GrindGather.paceVersion or 0) + 1
     local store = self:SkinStore()

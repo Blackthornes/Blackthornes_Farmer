@@ -6,8 +6,10 @@ local L = ns.L
 -- gathered yourself into one short loop, spots that should be back first,
 -- and the arrow walks you round it. Only your own spots (Gathering:Spots),
 -- only for gathering skills this character knows, never shipped or guild
--- data. Nothing new is saved but the four settings: gatherRoute (off unless
--- ticked), gatherRouteZoneOnly, gatherRouteDraw and gatherRouteKinds.
+-- data. Saved: the four settings, gatherRoute (off unless ticked),
+-- gatherRouteZoneOnly, gatherRouteDraw and gatherRouteKinds; Route Mode's
+-- tick on the Herbs, Ore and Leather pages (grindRouteMode, by page, off
+-- unless ticked); and where you skinned (skinSpots), for Leather's route.
 
 local GatherRoute = ns.NewModule("GatherRoute")
 
@@ -24,7 +26,18 @@ GatherRoute.COOLDOWN = 300      -- seconds a reached stop waits when its grow-ba
 GatherRoute.KINDS = {
     herb = { skill = "Herbalism", tick = "herbs", done = L["Picked"] },
     ore = { skill = "Mining", tick = "ore", done = L["Mined"] },
+    skin = { skill = "Skinning", tick = "skins", done = L["Skinned"] },
 }
+
+-- The Grind page each kind's Route Mode tick sits on, and back.
+GatherRoute.PAGES = { herbs = "herb", ore = "ore", skinning = "skin" }
+
+GatherRoute.SKIN_JOIN = 30      -- yards: a skin this close to a spot of that mob joins it
+GatherRoute.MAX_SKIN_SPOTS = 500
+
+-- The kind the Grind page shows the route for (herb, ore or skin), or nil
+-- for every ticked kind.
+GatherRoute.page = nil
 
 GatherRoute.version = 0
 
@@ -44,9 +57,12 @@ end
 
 function GatherRoute:SetOn(on)
     ns.db.gatherRoute = on and true or nil
-    if not on then self:Stop() end
+    if not on then
+        self:Stop()
+        self.page = nil
+    end
     self:Changed()
-    -- The Route chip comes or goes on the Grind tab.
+    -- Route Mode's tick comes or goes on the Grind tab.
     local grind = ns.GrindingUI
     if grind and grind.view then
         pcall(grind.LayoutChips, grind)
@@ -94,6 +110,37 @@ function GatherRoute:SetTicked(tick, on)
     self:Changed()
 end
 
+--- Route Mode on the Grind page `gives` (herbs, ore or skinning): off
+--- unless ticked, kept for each page.
+function GatherRoute.RouteMode(gives)
+    local modes = ns.db and type(ns.db.grindRouteMode) == "table" and ns.db.grindRouteMode
+    return GatherRoute.PAGES[gives] ~= nil and modes and modes[gives] == true or false
+end
+
+function GatherRoute:SetRouteMode(gives, on)
+    if not GatherRoute.PAGES[gives] then return end
+    if type(ns.db.grindRouteMode) ~= "table" then ns.db.grindRouteMode = {} end
+    ns.db.grindRouteMode[gives] = on and true or nil
+    if next(ns.db.grindRouteMode) == nil then ns.db.grindRouteMode = nil end
+    -- Unticked on the page the route follows: the route ends and leaves
+    -- the maps.
+    if not on and self.page == GatherRoute.PAGES[gives] then
+        self:Stop()
+        self.page = nil
+    end
+    self:Changed()
+end
+
+--- The route follows one kind of spot (herb, ore or skin), or every ticked
+--- kind with nil.
+function GatherRoute:SetPage(kind)
+    if kind ~= nil and not GatherRoute.KINDS[kind] then kind = nil end
+    if self.page == kind then return end
+    if self.run then self:Stop() end
+    self.page = kind
+    self:Changed()
+end
+
 function GatherRoute:Changed()
     GatherRoute.version = GatherRoute.version + 1
     self.cache = nil
@@ -116,6 +163,12 @@ end
 function GatherRoute.Kinds()
     local skills, read = GatherRoute.Skills()
     local kinds = {}
+    local page = GatherRoute.page
+    if page then
+        local info = GatherRoute.KINDS[page]
+        if info and (not read or skills[info.skill]) then kinds[page] = true end
+        return kinds
+    end
     for kind, info in pairs(GatherRoute.KINDS) do
         if GatherRoute.Ticked(info.tick) and (not read or skills[info.skill]) then
             kinds[kind] = true
@@ -165,10 +218,51 @@ function GatherRoute.Yards(mapID, ax, ay, bx, by)
     return math.sqrt(dx * dx + dy * dy) * 1000, false
 end
 
+--- Where you skinned: { { map, x, y, node = mob, kind = "skin", gathers,
+--- first, last } }, kept apart from your herb and ore spots so skins never
+--- push them out.
+function GatherRoute.SkinSpots()
+    local db = ns.db
+    if type(db.skinSpots) ~= "table" then db.skinSpots = {} end
+    return db.skinSpots
+end
+
+--- A skin of `mob` where you stand, from GrindGather:NoteSkin: joins a spot
+--- of that mob close by, else a new one. Only your own play.
+function GatherRoute:NoteSkin(mob)
+    if type(mob) ~= "string" or mob == "" or not ns.db then return end
+    local map, x, y = GatherRoute.Here()
+    if not (map and x and y) then return end
+    local spots = GatherRoute.SkinSpots()
+    local now = Clock()
+    for _, spot in ipairs(spots) do
+        if type(spot) == "table" and spot.map == map and spot.node == mob
+            and Number(spot.x) and Number(spot.y)
+            and GatherRoute.Yards(map, x, y, spot.x, spot.y) <= GatherRoute.SKIN_JOIN then
+            spot.gathers = (Number(spot.gathers) or 1) + 1
+            spot.last = now or spot.last
+            ns.Gathering.spotsVersion = (ns.Gathering.spotsVersion or 0) + 1
+            return spot
+        end
+    end
+    local spot = { map = map, x = x, y = y, node = mob, kind = "skin", gathers = 1, first = now, last = now }
+    spots[#spots + 1] = spot
+    while #spots > GatherRoute.MAX_SKIN_SPOTS do
+        local oldest, at = 1, math.huge
+        for index, candidate in ipairs(spots) do
+            local when = type(candidate) == "table" and Number(candidate.last) or 0
+            if when < at then oldest, at = index, when end
+        end
+        table.remove(spots, oldest)
+    end
+    ns.Gathering.spotsVersion = (ns.Gathering.spotsVersion or 0) + 1
+    return spot
+end
+
 --- Your spots for a route, by map ID: { [map] = { spot, ... } }.
 function GatherRoute:SpotsByMap(kinds)
     local byMap = {}
-    for _, spot in ipairs(ns.Gathering:Spots()) do
+    local function Add(spot)
         if type(spot) == "table" and kinds[spot.kind] and Number(spot.map)
             and Number(spot.x) and Number(spot.y)
             and not (ns.DB.HidesSource and ns.DB:HidesSource(spot.node)) then
@@ -176,6 +270,10 @@ function GatherRoute:SpotsByMap(kinds)
             if not list then list = {}; byMap[spot.map] = list end
             list[#list + 1] = spot
         end
+    end
+    for _, spot in ipairs(ns.Gathering:Spots()) do Add(spot) end
+    if kinds.skin and ns.db and type(ns.db.skinSpots) == "table" then
+        for _, spot in ipairs(ns.db.skinSpots) do Add(spot) end
     end
     return byMap
 end
@@ -374,13 +472,17 @@ end
 --- Every zone you could route, best first: { zone, map, spots, hour }.
 function GatherRoute:Zones(byMap)
     local zones = {}
-    local skins = GatherRoute.Ticked("skins") and GatherRoute.KnowsSkinning()
+    local page = GatherRoute.page
+    local skins
+    if page then skins = page == "skin" else skins = GatherRoute.Ticked("skins") and GatherRoute.KnowsSkinning() end
     for map, spots in pairs(byMap) do
         local zone = GatherRoute.ZoneOf(map)
         if zone and #spots >= GatherRoute.MIN_SPOTS then
-            local nodes = {}
-            for _, spot in ipairs(spots) do nodes[spot.node] = true end
-            local hour = GatherRoute.ZoneHour(zone, nodes)
+            local nodes, gathered = {}, false
+            for _, spot in ipairs(spots) do
+                if spot.kind ~= "skin" then nodes[spot.node] = true; gathered = true end
+            end
+            local hour = gathered and GatherRoute.ZoneHour(zone, nodes) or nil
             if skins then
                 local skin = GatherRoute.SkinHour(zone)
                 if skin then hour = (hour or 0) + skin end
@@ -497,7 +599,13 @@ function GatherRoute:Plan()
         if fromX then
             stop.yards = math.floor(GatherRoute.Yards(routeMap, fromX, fromY, spot.x, spot.y) + 0.5)
         end
-        local each = GatherRoute.WorthEach(plan.zone or "", spot.node)
+        local each
+        if spot.kind == "skin" then
+            local ok, skin = pcall(ns.GrindGather.SkinWorth, ns.GrindGather, spot.node)
+            each = ok and Number(skin) or nil
+        else
+            each = GatherRoute.WorthEach(plan.zone or "", spot.node)
+        end
         if each then worth = worth + each end
         previous = spot
         plan.stops[n] = stop
@@ -731,7 +839,7 @@ ns.RegisterCommand("route", L["Gather Route on the Grind tab: on or off"], funct
         GatherRoute:SetOn(not GatherRoute.IsOn())
     end
     if GatherRoute.IsOn() then
-        ns.Print(L["Gather Route is on. Pick Route on the Grind tab."])
+        ns.Print(L["Gather Route is on. Tick Route Mode on the Grind tab."])
     else
         ns.Print(L["Gather Route is off."])
     end

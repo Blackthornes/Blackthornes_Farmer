@@ -73,7 +73,14 @@ local INDENT = "     "
 --- The view the list is in: "mobs", "leather", "nodes" or "fish".
 function GrindingUI.Layout()
     local gives = ns.Grinding:Gives()
-    if gives == "route" then return "route" end
+    -- Route Mode ticked on Herbs, Ore or Leather swaps the list for the
+    -- route of that page's spots.
+    local route = ns.GatherRoute
+    local page = route and route.PAGES and route.PAGES[gives]
+    if page and route.IsOn() and route.RouteMode(gives) then
+        route:SetPage(page)
+        return "route"
+    end
     if ns.Grinding.IsNodeView(gives) then return "nodes" end
     if ns.Grinding.IsFishView(gives) then return "fish" end
     if gives == "skinning" then return "leather" end
@@ -230,6 +237,32 @@ function GrindingUI:Build(frame)
         chip.givesKey = entry.key
         self.givesChips[#self.givesChips + 1] = chip
     end
+
+    -- Route Mode (Herbs, Ore and Leather): the route of that page's spots
+    -- in the list's place while ticked.
+    local routeTick = Widgets.CreateCheckbox(filters, L["Route Mode:"], function(checked)
+        local gives = Grinding:Gives()
+        if ns.GatherRoute then ns.GatherRoute:SetRouteMode(gives, checked) end
+        GrindingUI:Render(true)
+    end)
+    routeTick:HookScript("OnEnter", function(box)
+        local tip = GrindingUI.ROUTE_TIPS[Grinding:Gives() or ""]
+        if not tip or not GameTooltip then return end
+        GameTooltip:SetOwner(box, "ANCHOR_BOTTOM")
+        GameTooltip:SetText(tip, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    routeTick:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    routeTick.ownWidth = true
+    do
+        -- Wide enough for its words as the game draws them, in any language.
+        local ok, drawn = pcall(routeTick.label.GetStringWidth, routeTick.label)
+        if ok and type(drawn) == "number" and drawn + 24 > routeTick:GetWidth() then
+            routeTick:SetWidth(math.ceil(drawn) + 24)
+        end
+    end
+    routeTick:Hide()
+    self.routeTick = routeTick
 
     -- The order of the camps. Up in the top row beside My level, where
     -- there is room: on the chip row it ran into Skinning (2026-10-10).
@@ -411,7 +444,8 @@ function GrindingUI:LayoutChips()
     -- Ore, Herbs and Fish list no mobs: no creature types. Their chips stay
     -- in place, greyed and not clickable, so the chips after them never move.
     local gives = ns.Grinding:Gives()
-    local nodes = ns.Grinding.IsNodeView(gives) or ns.Grinding.IsFishView(gives) or gives == "route"
+    local nodes = ns.Grinding.IsNodeView(gives) or ns.Grinding.IsFishView(gives)
+        or GrindingUI.Layout() == "route"
     for _, chip in ipairs(self.typeChips) do
         chip:Show()
         chip.resting = nodes
@@ -422,13 +456,24 @@ function GrindingUI:LayoutChips()
     -- The Leather chip goes while skinning is left out (DB:ShowsSkinning)
     -- and you do not know Skinning.
     local leather = ns.Grinding.OffersLeather()
-    local route = ns.Grinding.OffersRoute()
     for index, chip in ipairs(self.givesChips) do
-        if (chip.givesKey == "skinning" and not leather) or (chip.givesKey == "route" and not route) then
+        if chip.givesKey == "skinning" and not leather then
             chip:Hide()
         else
             chip:Show()
             chips[#chips + 1] = { chip, index == 1 and GROUP_GAP or 0 }
+        end
+    end
+    -- Route Mode: at the end of the chip row on Herbs, Ore and Leather,
+    -- only while the Gather Route is on in Settings.
+    local routeTick = self.routeTick
+    if routeTick then
+        if GrindingUI.OffersRouteMode(gives) then
+            routeTick:Show()
+            routeTick:SetChecked(ns.GatherRoute.RouteMode(gives))
+            chips[#chips + 1] = { routeTick, GROUP_GAP }
+        else
+            routeTick:Hide()
         end
     end
 
@@ -450,8 +495,8 @@ function GrindingUI:LayoutChips()
     local x, line = 0, 0
     for _, entry in ipairs(chips) do
         local chip, gap = entry[1], entry[2]
-        local width = ChipWidth(chip)
-        chip:SetWidth(width)
+        local width = chip.ownWidth and chip:GetWidth() or ChipWidth(chip)
+        if not chip.ownWidth then chip:SetWidth(width) end
         if x > 0 and x + gap + width > room then
             x, line, gap = 0, line + 1, 0
         elseif x == 0 then
@@ -610,8 +655,23 @@ GrindingUI.GIVES_TIPS = {
     ore = { L["Ore"], L["Zones with mining nodes, and what yours were worth. Click again for mobs."] },
     herbs = { L["Herbs"], L["Zones with herbs, and what yours were worth. Click again for mobs."] },
     fish = { L["Fish"], L["The spots you fished, and what your casts were worth. Click again for mobs."] },
-    route = { L["Route"], L["A loop round your own herb, ore and skin spots. Click again for mobs."] },
 }
+
+-- Route Mode's hover on each page.
+GrindingUI.ROUTE_TIPS = {
+    herbs = L["Plan a loop through your herb spots here. The arrow leads you stop to stop. Untick it to see the list again."],
+    ore = L["Plan a loop through your vein spots here. The arrow leads you stop to stop. Untick it to see the list again."],
+    skinning = L["Plan a loop through your skinning spots here. The arrow leads you stop to stop. Untick it to see the list again."],
+}
+
+--- Does page `gives` show the Route Mode tick? Herbs, Ore and Leather, while
+--- the Gather Route is on in Settings.
+function GrindingUI.OffersRouteMode(gives)
+    local route = ns.GatherRoute
+    if not (route and route.PAGES and route.PAGES[gives] and route.IsOn()) then return false end
+    if gives == "skinning" and not ns.Grinding.OffersLeather() then return false end
+    return true
+end
 
 --------------------------------------------------------------------------------
 -- Rows
