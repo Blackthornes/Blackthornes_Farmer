@@ -63,6 +63,7 @@ FishingBar.LURES = {
     { id = 7307, bonus = 75, name = "Flesh Eating Worm" },
     { id = 6530, bonus = 50, name = "Nightcrawlers" },
     { id = 6811, bonus = 50, name = "Aquadynamic Fish Lens" },
+    { id = 268880, bonus = 25, name = "\"Secret\" Bait" },
     { id = 6529, bonus = 25, name = "Shiny Bauble" },
 }
 -- What each lure's enchant on the pole adds, by the enchant's ID.
