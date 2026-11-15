@@ -494,7 +494,8 @@ Cast and Add Lure while a fishing pole (item class 2, subclass 20) is in
 the main hand. `UI/FishingBar.lua`: Cast is a secure spell button for
 Fishing (7620, by the client's name) laid over a dark metal house button;
 Add Lure opens YOUR LURES, the lures in the bags best first
-(`FishingBar.LURES`), each row a secure macro `/use item:ID` then `/use
+(`FishingBar.LURES`; Forever's own "Secret" Bait, 268880, +25, joined
+it 2026-11-15), each row a secure macro `/use item:ID` then `/use
 16`. A lure whose tooltip asks for more Fishing than you have
 (`ITEM_MIN_SKILL`, kept in `FishingBar.needs`) is greyed and does nothing.
 Under them "Lure:" (`GetWeaponEnchantInfo`: "+75, 8:42 left", "None on"
