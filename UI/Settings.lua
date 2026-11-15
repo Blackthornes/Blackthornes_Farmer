@@ -1627,7 +1627,7 @@ function SettingsUI:BuildMapPage()
     pages:Section("map", 2, L["GATHER ROUTE"])
 
     local gatherRouteRow = pages:Row("map", 2, L["Gather Route:"],
-        L["Adds Route to the Grind tab. It plans a loop through the spots you gathered and the arrow leads you round."])
+        L["Adds Route Mode to the Grind tab's Herbs, Ore and Leather pages. It plans a loop through the spots you gathered and the arrow leads you round."])
     controls.gatherRoute = Widgets.CreateCheckbox(gatherRouteRow, L["On"], function(checked)
         if ns.GatherRoute then ns.GatherRoute:SetOn(checked) end
         SettingsUI:Refresh()

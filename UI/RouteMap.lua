@@ -54,6 +54,8 @@ end
 function RouteMap.Plan()
     local route = ns.GatherRoute
     if not (route and route.IsOn() and route.DrawsOnMaps()) then return nil end
+    -- Only once Route Mode showed a route for a page.
+    if not route.page then return nil end
     local ok, plan = pcall(route.Plan, route)
     if not ok or type(plan) ~= "table" or not plan.map then return nil end
     if #(plan.stops or {}) < 2 then return nil end

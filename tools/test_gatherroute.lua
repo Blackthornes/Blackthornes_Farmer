@@ -4,7 +4,7 @@
 -- unless unticked; only your own spots for the skills you know; a zone
 -- needs five spots; the loop visits spots that are up first and is short;
 -- Current Zone Only keeps the route where you stand, unticked it takes the
--- best zone; the Route chip shows only while it is on; and the map lines
+-- best zone; Route Mode shows on Herbs, Ore and Leather only while it is on; and the map lines
 -- close the loop, dash the legs, cut to the minimap and look ahead.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
@@ -23,13 +23,34 @@ check("Current Zone Only on by default", GatherRoute.ZoneOnly() == true)
 check("Draw on Maps on by default", GatherRoute.DrawsOnMaps() == true)
 check("herbs and ore on, skins off", GatherRoute.Ticked("herbs") and GatherRoute.Ticked("ore")
     and not GatherRoute.Ticked("skins"))
-check("no Route chip while off", Grinding.OffersRoute() == false)
+local GrindingUI = ns.GrindingUI
+check("no Route Mode while off", GrindingUI.OffersRouteMode("herbs") == false)
 ns.db.grindGives = "route"
-check("a saved Route view waits while off", Grinding:Gives() == nil)
+check("an old saved Route view reads as any mob", Grinding:Gives() == nil)
 
 GatherRoute:SetOn(true)
 check("on saves true", ns.db.gatherRoute == true)
-check("the Route chip shows while on", Grinding.OffersRoute() == true and Grinding:Gives() == "route")
+check("Route Mode shows on Herbs and Ore while on", GrindingUI.OffersRouteMode("herbs")
+    and GrindingUI.OffersRouteMode("ore") and not GrindingUI.OffersRouteMode("cloth")
+    and not GrindingUI.OffersRouteMode("fish"))
+check("Route Mode is off unless ticked", GatherRoute.RouteMode("herbs") == false and ns.db.grindRouteMode == nil)
+ns.db.grindGives = "herbs"
+check("unticked, Herbs shows its list", GrindingUI.Layout() == "nodes")
+GatherRoute:SetRouteMode("herbs", true)
+check("ticking saves it for that page only", ns.db.grindRouteMode and ns.db.grindRouteMode.herbs == true
+    and GatherRoute.RouteMode("ore") == false)
+check("ticked, Herbs shows the route", GrindingUI.Layout() == "route" and GatherRoute.page == "herb")
+check("the page keeps to herbs", (function()
+    local k = GatherRoute.Kinds()
+    return not k.ore and not k.skin
+end)())
+ns.db.grindGives = "ore"
+check("Ore stays a list while only Herbs is ticked", GrindingUI.Layout() == "nodes")
+ns.db.grindGives = "herbs"
+GatherRoute:SetRouteMode("herbs", false)
+check("unticking leaves nothing saved", ns.db.grindRouteMode == nil and GatherRoute.page == nil)
+check("unticked, the list comes back", GrindingUI.Layout() == "nodes")
+ns.db.grindGives = nil
 GatherRoute:SetZoneOnly(false)
 check("unticked Current Zone Only saves false", ns.db.gatherRouteZoneOnly == false)
 GatherRoute:SetZoneOnly(true)
@@ -134,6 +155,8 @@ check("far away there are no yards from you", plan.stops[1].yards == nil)
 GatherRoute:SetZoneOnly(true)
 
 -- Map lines -----------------------------------------------------------------------
+check("no lines until Route Mode picks a page", RouteMap.Plan() == nil)
+GatherRoute:SetPage("herb")
 GatherRoute:Changed()
 plan = GatherRoute:Plan()
 local mapPlan = RouteMap.Plan()
@@ -209,7 +232,43 @@ do
 end
 
 GatherRoute:SetOn(false)
-check("off again draws nothing", RouteMap.Plan() == nil and Grinding.OffersRoute() == false)
+-- Skin spots: your own skins, joined when close, capped.
+do
+    ns.db.skinSpots = nil
+    here[1], here[2], here[3] = 1, 0.5, 0.5
+    local first = GatherRoute:NoteSkin("Test Wolf")
+    here[2] = 0.51 -- 10 yards on a 1000 yard map
+    local again = GatherRoute:NoteSkin("Test Wolf")
+    check("a close skin joins its spot", first == again and first.gathers == 2 and #ns.db.skinSpots == 1)
+    here[2] = 0.6
+    GatherRoute:NoteSkin("Test Wolf")
+    check("a far skin makes a new spot", #ns.db.skinSpots == 2)
+    GatherRoute:NoteSkin("Test Bear")
+    check("another mob makes its own spot", #ns.db.skinSpots == 3)
+    local keep = GatherRoute.MAX_SKIN_SPOTS
+    GatherRoute.MAX_SKIN_SPOTS = 3
+    here[2] = 0.9
+    GatherRoute:NoteSkin("Test Cat")
+    check("skin spots are capped", #ns.db.skinSpots == 3)
+    GatherRoute.MAX_SKIN_SPOTS = keep
+    skills.Skinning = 100
+    GatherRoute:SetPage(nil)
+    check("skins stay off the herb route", not GatherRoute.Kinds().skin)
+    GatherRoute:SetPage("skin")
+    check("the Leather page takes only skins", GatherRoute.Kinds().skin and not GatherRoute.Kinds().herb)
+    skills.Skinning = nil
+    check("no Skinning, no skin route", not GatherRoute.Kinds().skin)
+    GatherRoute:SetPage(nil)
+    ns.db.skinSpots = nil
+    here[1], here[2], here[3] = 1, 0.1, 0.1
+end
+
+GatherRoute:SetPage("herb")
+check("a page set before turning off", GatherRoute.page == "herb")
+GatherRoute:SetOn(true)
+GatherRoute:SetOn(false)
+check("off again draws nothing", RouteMap.Plan() == nil and GrindingUI.OffersRouteMode("herbs") == false
+    and GatherRoute.page == nil)
 check("off saves nothing", ns.db.gatherRoute == nil)
 
 suite.done()

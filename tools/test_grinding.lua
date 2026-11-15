@@ -498,12 +498,13 @@ do
         chip.label.GetStringWidth = function(label) return #(label._text or "") * 13 end
     end
 
-    GrindingUI.filters._width = 682
+    -- Narrow enough that the chips can't all fit on one line.
+    GrindingUI.filters._width = 560
     GrindingUI:LayoutChips()
     check("each chip is as wide as its words",
         GrindingUI.sortChip:GetWidth() >= #GrindingUI.sortChip.label:GetText() * 13 + 16,
         GrindingUI.sortChip:GetWidth())
-    check("no chip runs into another", Overlaps(682) == nil, Overlaps(682))
+    check("no chip runs into another", Overlaps(560) == nil, Overlaps(560))
     check("they wrap onto another line rather than overlap", GrindingUI.chipLines >= 2, GrindingUI.chipLines)
     check("and the list moves down with them",
         GrindingUI.filters:GetHeight() >= 18 + 22 * (GrindingUI.chipLines - 1))

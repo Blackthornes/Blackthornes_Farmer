@@ -637,10 +637,9 @@ out, and guild data never reaches it. Tested in
 ## Gather Route
 
 The owner said build it (2026-11-15, from a mockup whose words he
-approved): a **Route** chip on the Grind tab, shown only while "Gather
-Route:" is ticked, plans a short loop through the player's own herb, ore
-and skin spots (`gathering.spots`, only kinds for skills the character
-knows, `GatherRoute.Kinds`) in the zone they stand in, once
+approved): plans a short loop through the player's own herb, ore and
+skin spots (`gathering.spots`, only kinds for skills the character knows,
+`GatherRoute.Kinds`) in the zone they stand in, once
 `GatherRoute.MIN_SPOTS` (5) are known. Spots that should be up
 (`Respawn:BackAt`) come first, the rest last; the loop is nearest first,
 then untangled (`GatherRoute.Order`). The arrow leads stop to stop
@@ -657,6 +656,23 @@ ROUTE, and `/farm route [on|off]`. Saved, account wide, never rename them:
 on unless false, skins only when true; dropped when empty). Own data only,
 never shipped or guild data; nothing shared or announced. Tested in
 `tools/test_gatherroute.lua`. Not yet seen in game.
+
+Route Mode (the owner said build it from a mockup whose words he
+approved, 2026-11-15, in place of the Route chip, which is gone with
+`Grinding.OffersRoute`): a "Route Mode:" tick at the end of the Grind
+tab's chip row, on the Herbs, Ore and Leather pages only, shown only
+while "Gather Route:" is ticked (`GrindingUI.OffersRouteMode`). Ticked,
+that page's list swaps to the route view (`GrindingUI.Layout` gives
+"route"), for that page's kind only (`GatherRoute.PAGES`, `SetPage`,
+`GatherRoute.page`, which `Kinds` and the map lines follow); unticked,
+the list comes back. Kept per page, account wide, in
+`grindRouteMode[gives] = true` (off unless ticked; never rename it). An
+old saved `grindGives` of "route" reads as the default. Leather's stops
+are where you skinned (`skinSpots`, account wide, never rename it;
+`GatherRoute:NoteSkin` from `GrindGather:NoteSkin`; a spot within
+`SKIN_JOIN` yards of one for the same mob joins it, at most
+`MAX_SKIN_SPOTS`). Turning Gather Route off stops the run and clears the
+page. Tested in `tools/test_gatherroute.lua`. Not yet seen in game.
 
 ## The session timer
 

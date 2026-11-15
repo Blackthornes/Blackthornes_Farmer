@@ -343,7 +343,7 @@ end
 
 local function Key(plan, now)
     local parts = { tostring(plan), tostring(plan.zone), tostring(plan.needs), tostring(#plan.stops),
-        tostring(GatherRouteUI.offset), tostring(Route().Running()) }
+        tostring(GatherRouteUI.offset), tostring(Route().Running()), tostring(Route().page) }
     for _, stop in ipairs(plan.stops) do
         local words = Route().Status(stop, now)
         parts[#parts + 1] = table.concat({ tostring(stop.yards), words, tostring(stop.next) }, ",")
@@ -367,12 +367,21 @@ function GatherRouteUI:Update()
     self.head:SetText(GatherRouteUI.HeadText(plan))
     self.skills:SetText(Route().SkillLine())
 
-    -- Tick boxes, Skins only for a skinner.
+    -- Tick boxes, Skins only for a skinner. A page's Route Mode picks
+    -- the kind itself, so Herbs, Ore and Skins step aside there.
     local x = 0
     local top = -(self.HEAD_H + 4)
+    local page = Route().page
     for _, box in ipairs(self.ticks) do
         box:SetChecked(box.getter())
-        local shown = box ~= self.ticks.skins or Route().KnowsSkinning()
+        local shown
+        if box == self.ticks.herbs or box == self.ticks.ore then
+            shown = not page
+        elseif box == self.ticks.skins then
+            shown = not page and Route().KnowsSkinning()
+        else
+            shown = true
+        end
         box:SetShown(shown)
         if shown then
             box:ClearAllPoints()
