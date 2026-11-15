@@ -157,6 +157,57 @@ check("a square minimap clips too", RouteMap.Clip(-500, 0, 500, 0, 100, true) ~=
 local ahead = RouteMap.Ahead({ stops = { { n = 1 }, { n = 2 }, { n = 3 }, { n = 4 } }, nextStop = { n = 4 } })
 check("the minimap looks ahead and wraps", #ahead == 3 and ahead[1].n == 4 and ahead[2].n == 1)
 
+-- Reaching a stop -------------------------------------------------------------
+do
+    local picks = {
+        { spot = { x = 0.9, y = 0.1 }, back = true },
+        { spot = { x = 0.12, y = 0.1 }, back = true },
+        { spot = { x = 0.11, y = 0.1 }, back = false, at = clock + 900 },
+        { spot = { x = 0.1, y = 0.1 }, back = true, done = true },
+    }
+    check("smart pathing picks the nearest stop that is up",
+        GatherRoute.PickNext(picks, 1, 0.1, 0.1, clock) == picks[2])
+    check("away from the zone the first stop up is next",
+        GatherRoute.PickNext(picks, nil, nil, nil, clock) == picks[1])
+
+    check("a dot only where something is up", RouteMap.ShowsDot({ back = true }) == true
+        and RouteMap.ShowsDot({ back = false }) == false
+        and RouteMap.ShowsDot({ back = true, done = true }) == false
+        and RouteMap.ShowsDot({ back = true, resting = true }) == false)
+
+    GatherRoute.cooldown = {}
+    GatherRoute.order, GatherRoute.cache = nil, nil
+    GatherRoute:Changed()
+    GatherRoute:Start()
+    local first = GatherRoute:Plan().nextStop.spot
+    check("the route aims at its next stop", GatherRoute.run and GatherRoute.run.aimed == first)
+    here[1], here[2], here[3] = first.map, first.x, first.y
+    GatherRoute:Look()
+    check("reaching a stop points to the next", GatherRoute.run.aimed ~= first, tostring(GatherRoute.run.aimed))
+    check("the stop reached rests", GatherRoute.Resting(first, clock) ~= nil)
+
+    -- A new loop never sends you back to a stop still resting.
+    GatherRoute.run.visited, GatherRoute.run.picked = {}, {}
+    GatherRoute.cache = nil
+    local plan2 = GatherRoute:Plan()
+    check("a resting stop is not next", plan2.nextStop and plan2.nextStop.spot ~= first)
+    local restingStop
+    for _, stop in ipairs(plan2.stops) do if stop.spot == first then restingStop = stop end end
+    check("a resting stop shows no dot", restingStop and not RouteMap.ShowsDot(restingStop))
+
+    -- A gathered stop with no grow-back time learned still waits.
+    local other = plan2.nextStop.spot
+    other.last = clock
+    GatherRoute:Look()
+    check("a gathered stop rests", GatherRoute.Resting(other, clock) ~= nil
+        and GatherRoute.Resting(other, clock) >= clock + GatherRoute.COOLDOWN)
+
+    clock = clock + GatherRoute.COOLDOWN + 1
+    check("the rest ends after its window", GatherRoute.Resting(first, clock) == nil)
+    GatherRoute:Stop()
+    here[1], here[2], here[3] = 1, 0.1, 0.1
+end
+
 GatherRoute:SetOn(false)
 check("off again draws nothing", RouteMap.Plan() == nil and Grinding.OffersRoute() == false)
 check("off saves nothing", ns.db.gatherRoute == nil)

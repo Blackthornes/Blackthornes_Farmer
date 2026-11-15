@@ -646,9 +646,9 @@ knows, `GatherRoute.Kinds`) in the zone they stand in, once
 then untangled (`GatherRoute.Order`). The arrow leads stop to stop
 (Start Route, Skip Stop, Redo Route; `Arrow:Grind`). With "Current Zone
 Only:" unticked it takes the zone worth most an hour (`ZoneHour`), else it
-names it. "Draw on Maps:" lays a gold line on the world map and minimap
+names it. A stop you reach or gather rests until its grow-back time, else `GatherRoute.COOLDOWN` (`GatherRoute.cooldown`, by place, session only), and the arrow moves to the next (`GatherRoute.PickNext`: the stop that is up and nearest you, a resting one never). "Draw on Maps:" lays a gold line on the world map and minimap
 (`UI/RouteMap.lua`: the loop closed, legs into spots still growing back as
-grey dashes, the minimap clipped and looking a few stops ahead), never in
+grey dashes, the minimap clipped, a dot only where something is up (`RouteMap.ShowsDot`) and looking a few stops ahead), never in
 a fight and redrawn only when the plan's key moves. `Logic/GatherRoute.lua`,
 `UI/GatherRoute.lua`, `UI/RouteMap.lua`. Settings, Map & goals, GATHER
 ROUTE, and `/farm route [on|off]`. Saved, account wide, never rename them:
