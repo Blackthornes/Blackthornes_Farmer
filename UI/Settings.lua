@@ -1620,6 +1620,33 @@ function SettingsUI:BuildMapPage()
     })
     ns.SettingsPages.FitStepper(controls.heatLevel, heatNames)
     controls.heatLevel:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- Gather Route: a loop over your own herb and ore spots on the Grind
+    -- tab, the arrow from stop to stop and a line on the maps (the owner
+    -- said build it from a mockup, 2026-11-15). Off unless ticked.
+    pages:Section("map", 2, L["GATHER ROUTE"])
+
+    local gatherRouteRow = pages:Row("map", 2, L["Gather Route:"],
+        L["Adds Route to the Grind tab. It plans a loop through the spots you gathered and the arrow leads you round."])
+    controls.gatherRoute = Widgets.CreateCheckbox(gatherRouteRow, L["On"], function(checked)
+        if ns.GatherRoute then ns.GatherRoute:SetOn(checked) end
+        SettingsUI:Refresh()
+    end, false)
+    controls.gatherRoute:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local routeZoneRow = pages:Row("map", 2, L["Current Zone Only:"],
+        L["Keeps the route in the zone you are in. Unticked, it shows the best zone for you too."])
+    controls.gatherRouteZoneOnly = Widgets.CreateCheckbox(routeZoneRow, L["On"], function(checked)
+        if ns.GatherRoute then ns.GatherRoute:SetZoneOnly(checked) end
+    end, true)
+    controls.gatherRouteZoneOnly:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local routeDrawRow = pages:Row("map", 2, L["Draw on Maps:"],
+        L["Draws the route on the world map and the minimap. Gold is up, grey dashes are still growing back."])
+    controls.gatherRouteDraw = Widgets.CreateCheckbox(routeDrawRow, L["On"], function(checked)
+        if ns.GatherRoute then ns.GatherRoute:SetDraw(checked) end
+    end, true)
+    controls.gatherRouteDraw:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 --- Sharing: kills, drop rates and gathering with your other account.
@@ -1820,6 +1847,14 @@ function SettingsUI:Refresh()
     controls.heatWorld:SetChecked(db.heatWorld == true)
     controls.heatMinimap:SetChecked(db.heatMinimap == true)
     controls.heatLevel:SetValue(ns.Heat:Level(), true)
+    if controls.gatherRoute and ns.GatherRoute then
+        local routeOn = ns.GatherRoute.IsOn()
+        controls.gatherRoute:SetChecked(routeOn)
+        controls.gatherRouteZoneOnly:SetChecked(ns.GatherRoute.ZoneOnly())
+        controls.gatherRouteDraw:SetChecked(ns.GatherRoute.DrawsOnMaps())
+        controls.gatherRouteZoneOnly:SetDisabled(not routeOn)
+        controls.gatherRouteDraw:SetDisabled(not routeOn)
+    end
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
     controls.nodeSparkleHideIcon:SetChecked(db.nodeSparkleHideIcon ~= false)

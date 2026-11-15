@@ -78,6 +78,7 @@ Logic\Grinding.lua
 Logic\GrindGather.lua
 Logic\CampWorth.lua
 Logic\GatherToCap.lua
+Logic\GatherRoute.lua
 Logic\Share.lua
 Logic\Transfer.lua
 Logic\GuildShare.lua
@@ -118,6 +119,7 @@ UI\SessionTimer.lua
 UI\KillGoal.lua
 UI\Grinding.lua
 UI\GatherToCap.lua
+UI\GatherRoute.lua
 UI\Stats.lua
 UI\MapMarkers.lua
 UI\Heat.lua
@@ -126,6 +128,7 @@ UI\MapToggle.lua
 UI\Arrow.lua
 UI\TravelCard.lua
 UI\TravelMap.lua
+UI\RouteMap.lua
 UI\TooltipShift.lua
 UI\ItemTooltip.lua
 UI\KillTooltip.lua
