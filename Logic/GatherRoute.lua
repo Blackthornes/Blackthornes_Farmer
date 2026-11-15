@@ -45,6 +45,12 @@ function GatherRoute:SetOn(on)
     ns.db.gatherRoute = on and true or nil
     if not on then self:Stop() end
     self:Changed()
+    -- The Route chip comes or goes on the Grind tab.
+    local grind = ns.GrindingUI
+    if grind and grind.view then
+        pcall(grind.LayoutChips, grind)
+        pcall(grind.Refresh, grind)
+    end
 end
 
 --- Current Zone Only: on unless unticked.

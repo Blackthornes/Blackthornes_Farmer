@@ -314,12 +314,18 @@ function GatherRouteUI:Toggle(grinding, on)
     if not self.frame then return end
     self.frame:SetShown(on and true or false)
     if grinding then
-        for _, piece in ipairs({ grinding.list, grinding.rule, grinding.headings }) do
+        -- The list and its headings go while the route shows; turned off,
+        -- the Grind tab lays its headings out again (PlaceHeadings).
+        for _, piece in ipairs({ grinding.list, grinding.rule }) do
             if type(piece) == "table" and piece.SetShown then piece:SetShown(not on) end
         end
-        if type(grinding.headingFrames) == "table" then
-            for _, piece in pairs(grinding.headingFrames) do
-                if type(piece) == "table" and piece.SetShown then piece:SetShown(not on) end
+        if on then
+            for _, label in pairs(type(grinding.headings) == "table" and grinding.headings or {}) do
+                if type(label) == "table" and label.Hide then label:Hide() end
+            end
+            local buttons = type(grinding.sorter) == "table" and grinding.sorter.buttons
+            for _, button in pairs(type(buttons) == "table" and buttons or {}) do
+                if type(button) == "table" and button.Hide then button:Hide() end
             end
         end
     end
