@@ -417,6 +417,7 @@ local UI_FILES = {
     "UI/Grinding.lua",
     "UI/GatherToCap.lua",
     "UI/GatherRoute.lua",
+    "UI/RouteWindow.lua",
     "UI/Stats.lua",
     "UI/MapMarkers.lua",
     "UI/Heat.lua",

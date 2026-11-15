@@ -233,6 +233,7 @@ local buttons = {
     topFarmTry = "topfarm test",
     lootFeedMove = "lootfeed move",
     lootFeedReset = "lootfeed reset",
+    routeWindowReset = "routewindow reset",
     xpBarReset = "xpbar reset",
     statsTab = "charts",
     killGoal = "killgoal", killGoalSummary = "killgoal summary",

@@ -437,6 +437,7 @@ local DEFAULTS = {
     rankUpSeeThrough = 0,
     recapSeeThrough = 0,
     xpBarSeeThrough = 0,
+    routeWindowSeeThrough = 0,
     -- No longer read: the milestone emote went (2026-10-13). Kept so a
     -- saved value is never dropped.
     trackerAnnounce = true,

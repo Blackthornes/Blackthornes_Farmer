@@ -674,6 +674,35 @@ are where you skinned (`skinSpots`, account wide, never rename it;
 `MAX_SKIN_SPOTS`). Turning Gather Route off stops the run and clears the
 page. Tested in `tools/test_gatherroute.lua`. Not yet seen in game.
 
+The Route Window, Leveling Mode and the train line (a player asked, the
+owner said build it from a mockup whose words he approved, 2026-11-15):
+`UI/RouteWindow.lua` floats on screen only while Route Mode is on and a
+route runs (`RouteWindow:Wanted`), off unless ticked ("Route Window:"
+under GATHER ROUTE on the Map & goals page, `routeWindow`). It lists the
+next `ROWS` (4) stops (`RouteWindow.Stops`, the next one first and
+`glassActive`, wrapping round the loop): icon, name in its skill colour
+(`GatherRoute.TierColor`), yards and "Go here next", "Should be up" (green),
+"Back in N min" or "No skill here" (`GatherRoute.Status`). Under them
+"Leveling Mode:", Skip Stop and Stop, the foot line (`GatherRoute.FootText`:
+"Stop 3 of 14. One loop: about 6 min.", with Leveling Mode "Herbalism 72 /
+75. Stop 1 of 14.") and the train box. Title "ROUTE <zone>", folded "ROUTE
+<next stop>, 40 yd" (`RouteWindow.Title`). Fold gem, close gem (put away
+until the next route, `RouteWindow.closed`), size grip
+(`routeWindowScale`), spot kept as `windowSpots["farmer.routewindow"]`,
+"Route Window Place:" Set Default and `/farm routewindow [on|off|reset]`.
+Transparent is "Route Window:" under TRANSPARENT on the General page
+(`routeWindowSeeThrough`, `UI/SeeThrough.lua`'s "route"). Redrawn only when
+its key moves (`RouteWindow.Key`), never in a fight (`waiting`, then
+`PLAYER_REGEN_ENABLED`). Leveling Mode, kept per page in
+`grindRouteLeveling[gives] = true` (off unless ticked), puts the spots that
+still give skill first (`GatherRoute.Tier`, `ByTier`, `BestTier`; orange,
+yellow, green, then grey). The train line (`GatherRoute.TrainText`, from
+5 under the cap: "Train Journeyman Herbalism to keep going. Your skill stops
+at 75.", at the cap "You've hit 75. Train ... at a trainer to get more
+skill.") shows in the window and under the Grind route list. All account
+wide, never rename them. Tested in `tools/test_routewindow.lua`. Not yet
+seen in game.
+
 ## The session timer
 
 A player asked, the owner said build it from a mockup (2026-11-15), off

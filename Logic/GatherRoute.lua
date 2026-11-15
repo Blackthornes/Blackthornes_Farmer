@@ -131,6 +131,39 @@ function GatherRoute:SetRouteMode(gives, on)
     self:Changed()
 end
 
+--- Leveling Mode on the Grind page `gives`: spots that still give skill
+--- come first. Off unless ticked, kept for each page.
+function GatherRoute.Leveling(gives)
+    local modes = ns.db and type(ns.db.grindRouteLeveling) == "table" and ns.db.grindRouteLeveling
+    return GatherRoute.PAGES[gives] ~= nil and modes and modes[gives] == true or false
+end
+
+function GatherRoute:SetLeveling(gives, on)
+    if not GatherRoute.PAGES[gives] then return end
+    if type(ns.db.grindRouteLeveling) ~= "table" then ns.db.grindRouteLeveling = {} end
+    ns.db.grindRouteLeveling[gives] = on and true or nil
+    if next(ns.db.grindRouteLeveling) == nil then ns.db.grindRouteLeveling = nil end
+    self.order = nil
+    self:Changed()
+    if self.run then self:Aim(self:Plan()) end
+end
+
+--- The Grind page the route follows ("herbs", "ore", "skinning"), or nil.
+function GatherRoute.PageGives()
+    local page = GatherRoute.page
+    if not page then return nil end
+    for gives, kind in pairs(GatherRoute.PAGES) do
+        if kind == page then return gives end
+    end
+    return nil
+end
+
+--- Leveling Mode for the page the route follows.
+function GatherRoute.LevelingOn()
+    local gives = GatherRoute.PageGives()
+    return gives ~= nil and GatherRoute.Leveling(gives)
+end
+
 --- The route follows one kind of spot (herb, ore or skin), or every ticked
 --- kind with nil.
 function GatherRoute:SetPage(kind)
@@ -141,10 +174,17 @@ function GatherRoute:SetPage(kind)
     self:Changed()
 end
 
+--- Tell what draws the route that it moved: the map lines and the Route
+--- Window. Each is read in a pcall, so one never stops the other.
+function GatherRoute.Tell()
+    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    if ns.RouteWindow and ns.RouteWindow.Refresh then pcall(ns.RouteWindow.Refresh, ns.RouteWindow) end
+end
+
 function GatherRoute:Changed()
     GatherRoute.version = GatherRoute.version + 1
     self.cache = nil
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
 end
 
 --------------------------------------------------------------------------------
@@ -575,12 +615,17 @@ function GatherRoute:Plan()
     local fromX, fromY = nil, nil
     if routeMap == map then fromX, fromY = x, y end
     local order = self:Kept(routeMap, spots, fromX, fromY, now)
+    local tiers
+    if GatherRoute.LevelingOn() then
+        order, tiers = GatherRoute.ByTier(order)
+        plan.leveling = true
+    end
 
     local run = self.run
     local walked, previous = 0, fromX and { x = fromX, y = fromY } or nil
     local worth = 0
     for n, spot in ipairs(order) do
-        local stop = { spot = spot, n = n }
+        local stop = { spot = spot, n = n, tier = tiers and tiers[spot] or nil }
         stop.done = run and run.map == routeMap and run.visited[spot] or false
         if stop.done and run.picked[spot] then stop.picked = true end
         local back, at = GatherRoute.IsBack(spot, now)
@@ -610,7 +655,7 @@ function GatherRoute:Plan()
         previous = spot
         plan.stops[n] = stop
     end
-    local pick = GatherRoute.PickNext(plan.stops, routeMap, fromX, fromY, now)
+    local pick = GatherRoute.PickNext(GatherRoute.BestTier(plan.stops), routeMap, fromX, fromY, now)
     if pick then pick.next, plan.nextStop = true, pick end
 
     -- Back to the start closes the loop.
@@ -623,6 +668,146 @@ function GatherRoute:Plan()
 
     self.cache = { stamp = stamp, at = now, plan = plan }
     return plan
+end
+
+--------------------------------------------------------------------------------
+-- Leveling Mode
+--------------------------------------------------------------------------------
+
+-- 1 orange, 2 yellow, 3 green, 4 grey: the skill colour a spot gathers in.
+GatherRoute.TIER_COLORS = { "orange", "yellow", "green", "grey" }
+
+--- The skill colour of a stop in Leveling Mode ({ r, g, b }), or nil.
+function GatherRoute.TierColor(stop)
+    if type(stop) ~= "table" or not stop.tier then return nil end
+    local name = GatherRoute.TIER_COLORS[stop.tier]
+    local colors = ns.NodeSparkle and ns.NodeSparkle.COLORS
+    local color = name and type(colors) == "table" and colors[name]
+    if type(color) ~= "table" then return nil end
+    return color
+end
+
+local skinLevels, skinLevelsAt
+
+--- The lowest level you saw a mob at, from your own loot records.
+function GatherRoute.SkinLevel(mob)
+    local harvest = ns.Harvest
+    if not (harvest and type(mob) == "string") then return nil end
+    local stamp = harvest.changes or 0
+    if not skinLevels or skinLevelsAt ~= stamp then
+        skinLevels, skinLevelsAt = {}, stamp
+        for _, record in pairs(harvest.records or {}) do
+            if type(record) == "table" and type(record.mob) == "string" then
+                local level = Number(record.minLevel)
+                if level and (not skinLevels[record.mob] or level < skinLevels[record.mob]) then
+                    skinLevels[record.mob] = level
+                end
+            end
+        end
+    end
+    return skinLevels[mob]
+end
+
+--- The skill a spot needs, or nil when nothing says.
+function GatherRoute.Need(spot)
+    if type(spot) ~= "table" then return nil end
+    if spot.kind == "skin" then
+        local level = GatherRoute.SkinLevel(spot.node)
+        return level and ns.Grinding and ns.Grinding.SkinSkill(level) or nil
+    end
+    local sparkle = ns.NodeSparkle
+    if not (sparkle and sparkle.NodeNeeds) then return nil end
+    local ok, _, need = pcall(sparkle.NodeNeeds, sparkle, spot.node)
+    return ok and Number(need) or nil
+end
+
+--- Which colour a spot gathers in at `skill`: 1 orange, 2 yellow, 3 green
+--- (also when its need isn't known), 4 grey (nothing to learn, or out of
+--- reach).
+function GatherRoute.Tier(spot, skill)
+    local need = GatherRoute.Need(spot)
+    skill = Number(skill)
+    if not (need and skill) then return 3 end
+    local over = skill - need
+    if over < 0 then return 4 end
+    if over < ns.GatherToCap.SURE_FOR then return 1 end
+    if over < 50 then return 2 end
+    if over < ns.GatherToCap.GREY_AT then return 3 end
+    return 4
+end
+
+--- The loop sorted orange first, grey last, keeping the loop's order inside
+--- each colour. Gives the new list and each spot's tier.
+function GatherRoute.ByTier(order)
+    local skills = GatherRoute.Skills()
+    local tiers, list = {}, {}
+    for index, spot in ipairs(order) do
+        local info = GatherRoute.KINDS[spot.kind]
+        local skill = type(skills) == "table" and info and skills[info.skill] or nil
+        tiers[spot] = GatherRoute.Tier(spot, skill)
+        list[index] = spot
+    end
+    local place = {}
+    for index, spot in ipairs(order) do place[spot] = index end
+    table.sort(list, function(a, b)
+        if tiers[a] ~= tiers[b] then return tiers[a] < tiers[b] end
+        return place[a] < place[b]
+    end)
+    return list, tiers
+end
+
+--- The stops still to do in the best colour left; all of them without
+--- Leveling Mode.
+function GatherRoute.BestTier(stops)
+    local best
+    for _, stop in ipairs(stops) do
+        if not stop.done and stop.tier and (not best or stop.tier < best) then best = stop.tier end
+    end
+    if not best then return stops end
+    local out = {}
+    for _, stop in ipairs(stops) do
+        if not stop.done and stop.tier == best then out[#out + 1] = stop end
+    end
+    return out
+end
+
+--- When to train: { skill, cap, rank, english, at (at the cap), near } for
+--- the page's skill within 5 of its cap, else nil.
+function GatherRoute.TrainInfo()
+    local info = GatherRoute.page and GatherRoute.KINDS[GatherRoute.page]
+    if not info then return nil end
+    local skill, cap = ns.GatherToCap.ReadSkill(info.skill)
+    if not (skill and cap) then return nil end
+    local rank = ns.GatherToCap.NextRank(cap)
+    if not rank or skill < cap - 5 then return nil end
+    return { skill = skill, cap = cap, rank = rank.key, english = info.skill, at = skill >= cap }
+end
+
+--- The train line's words and colour key, or nil.
+function GatherRoute.TrainText()
+    local train = GatherRoute.TrainInfo()
+    if not train then return nil end
+    local rank = ns.GatherToCap.RankLabel(train.rank)
+    local skill = ns.GatherToCap.SkillLabel(train.english)
+    if train.at then
+        return L.Format("You've hit %d. Train %s %s at a trainer to get more skill.", train.cap, rank, skill), "loss"
+    end
+    return L.Format("Train %s %s to keep going. Your skill stops at %d.", rank, skill, train.cap), "warn"
+end
+
+--- "Stop 3 of 14. One loop: about 6 min.", or with Leveling Mode
+--- "Herbalism 72 / 75. Stop 1 of 14."
+function GatherRoute.FootText(plan)
+    if not (plan and plan.nextStop and plan.stops and #plan.stops > 0) then return "" end
+    local n, total = plan.nextStop.n, #plan.stops
+    local info = plan.leveling and GatherRoute.page and GatherRoute.KINDS[GatherRoute.page]
+    if info then
+        local skill, cap = ns.GatherToCap.ReadSkill(info.skill)
+        if skill and cap then
+            return L.Format("%s %d / %d. Stop %d of %d.", ns.GatherToCap.SkillLabel(info.skill), skill, cap, n, total)
+        end
+    end
+    return L.Format("Stop %d of %d. One loop: about %s.", n, total, ns.Respawn.Duration(plan.loopSeconds or 0))
 end
 
 --- The order for a map, kept until Redo Route, the spots or the settings
@@ -645,7 +830,7 @@ function GatherRoute:Redo()
     end
     local plan = self:Plan()
     if self.run then self:Aim(plan) end
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
     return plan
 end
 
@@ -707,7 +892,7 @@ function GatherRoute:Start()
     self.cache = nil
     local ok = self:Aim(self:Plan())
     self:Watch(true)
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
     return ok
 end
 
@@ -717,7 +902,7 @@ function GatherRoute:Stop()
     self:Watch(false)
     if had and ns.Arrow.grind and ns.Arrow.grind == self.camp then ns.Arrow:StopGrind() end
     self.camp, self.cache = nil, nil
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
     return had
 end
 
@@ -746,7 +931,7 @@ function GatherRoute:Advance()
         plan = self:Plan()
     end
     self:Aim(plan)
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
     return true
 end
 
@@ -808,6 +993,7 @@ function GatherRoute.Status(stop, now)
         return L["Checked"], "muted"
     end
     if stop.next then return L["Go here next"], "accentHi" end
+    if stop.tier == 4 then return L["No skill here"], "muted" end
     if stop.back or not stop.at or not now then return L["Should be up"], "text" end
     return L.Format("Back in %s", ns.Respawn.Duration(stop.at - now)), "muted"
 end
