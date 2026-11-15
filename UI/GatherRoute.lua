@@ -25,6 +25,7 @@ GatherRouteUI.BEST_H = 26
 GatherRouteUI.HEADING_H = 18
 GatherRouteUI.ROW_H = 24
 GatherRouteUI.FOOT_H = 30
+GatherRouteUI.TRAIN_H = 30
 GatherRouteUI.AWAY_X = 300
 GatherRouteUI.STATUS_X = 400
 
@@ -81,6 +82,58 @@ end
 -- Building
 --------------------------------------------------------------------------------
 
+--- The Leveling Mode tick's hover.
+function GatherRouteUI.TipLeveling(box)
+    if not (box and box.SetScript) then return end
+    box:HookScript("OnEnter", function(self)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine(L["Leveling Mode:"], 1, 0.82, 0)
+        GameTooltip:AddLine(L["Go to the spots that still give you skill first. Spots that give nothing are left for last."],
+            1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    box:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+end
+
+--- A box for the train line: amber edge, warm dark glass, wrapped words.
+function GatherRouteUI.TrainBox(parent)
+    local box = CreateFrame("Frame", nil, parent)
+    box:SetHeight(GatherRouteUI.TRAIN_H)
+    box.back = box:CreateTexture(nil, "BACKGROUND")
+    box.back:SetAllPoints()
+    box.back:SetColorTexture(0.14, 0.11, 0.05, 0.92)
+    box.edges = {}
+    for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+        local edge = box:CreateTexture(nil, "BORDER")
+        edge:SetColorTexture(0.48, 0.35, 0.10, 1)
+        if side == "TOP" or side == "BOTTOM" then
+            edge:SetPoint(side .. "LEFT")
+            edge:SetPoint(side .. "RIGHT")
+            edge:SetHeight(1)
+        else
+            edge:SetPoint("TOP" .. side)
+            edge:SetPoint("BOTTOM" .. side)
+            edge:SetWidth(1)
+        end
+        box.edges[#box.edges + 1] = edge
+    end
+    box.text = Theme.CreateLabel(box, "small", "warn", "LEFT")
+    box.text:SetPoint("LEFT", 8, 0)
+    box.text:SetPoint("RIGHT", -8, 0)
+    if box.text.SetWordWrap then box.text:SetWordWrap(true) end
+    box:Hide()
+    return box
+end
+
+--- Put the train line in its box; false when there is none.
+function GatherRouteUI.FillTrain(box, text, color)
+    if not (box and text and text ~= "") then return false end
+    box.text:SetText(text)
+    box.text:SetTextColor(Theme.Unpack(color == "loss" and "loss" or "warn"))
+    return true
+end
+
 function GatherRouteUI:Build(panel)
     if self.frame then return self.frame end
     local frame = CreateFrame("Frame", nil, panel)
@@ -129,6 +182,10 @@ function GatherRouteUI:Build(panel)
             Route():SetDraw(on)
             if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
         end)
+    local leveling = Tick("leveling", L["Leveling Mode:"],
+        function() local gives = Route().PageGives(); return gives ~= nil and Route().Leveling(gives) end,
+        function(on) local gives = Route().PageGives(); if gives then Route():SetLeveling(gives, on) end end)
+    GatherRouteUI.TipLeveling(leveling)
 
     -- The best zone strip.
     local best = CreateFrame("Frame", nil, frame)
@@ -166,6 +223,9 @@ function GatherRouteUI:Build(panel)
     end)
     self.list = list
     self.rows = {}
+
+    -- The train line, in a box under the list.
+    self.train = GatherRouteUI.TrainBox(frame)
 
     -- The foot: buttons and the loop line.
     local foot = CreateFrame("Frame", nil, frame)
@@ -298,7 +358,12 @@ function GatherRouteUI:FillRow(row, stop, index, now)
     local item = ns.MapMarkers and ns.MapMarkers.SpotItem and ns.MapMarkers:SpotItem(stop.spot)
     Theme.SetItemIcon(row.icon, item)
     row.name:SetText(stop.spot.node or "?")
-    row.name:SetTextColor(Theme.Unpack(stop.next and "accentHi" or "text"))
+    local tier = Route().TierColor(stop)
+    if tier then
+        row.name:SetTextColor(tier[1], tier[2], tier[3])
+    else
+        row.name:SetTextColor(Theme.Unpack(stop.next and "accentHi" or "text"))
+    end
     row.away:SetText(stop.yards and L.Format("%d yd", stop.yards) or "")
     local words, color = Route().Status(stop, now)
     row.status:SetText(words)
@@ -343,10 +408,11 @@ end
 
 local function Key(plan, now)
     local parts = { tostring(plan), tostring(plan.zone), tostring(plan.needs), tostring(#plan.stops),
-        tostring(GatherRouteUI.offset), tostring(Route().Running()), tostring(Route().page) }
+        tostring(GatherRouteUI.offset), tostring(Route().Running()), tostring(Route().page),
+        tostring(plan.leveling), tostring((Route().TrainText())) }
     for _, stop in ipairs(plan.stops) do
         local words = Route().Status(stop, now)
-        parts[#parts + 1] = table.concat({ tostring(stop.yards), words, tostring(stop.next) }, ",")
+        parts[#parts + 1] = table.concat({ tostring(stop.yards), words, tostring(stop.next), tostring(stop.tier) }, ",")
     end
     for _, box in ipairs(GatherRouteUI.ticks or {}) do
         parts[#parts + 1] = tostring(box.getter())
@@ -379,6 +445,8 @@ function GatherRouteUI:Update()
             shown = not page
         elseif box == self.ticks.skins then
             shown = not page and Route().KnowsSkinning()
+        elseif box == self.ticks.leveling then
+            shown = page ~= nil
         else
             shown = true
         end
@@ -396,6 +464,9 @@ function GatherRouteUI:Update()
     self.headings:SetShown(not empty)
     self.list:SetShown(not empty)
     self.foot:SetShown(not empty)
+    local trainText, trainColor = Route().TrainText()
+    local trainShown = (not empty) and GatherRouteUI.FillTrain(self.train, trainText, trainColor)
+    self.train:SetShown(trainShown and true or false)
 
     -- The best zone strip, when there is a better one than here.
     local showBest = (not empty) and plan.best ~= nil
@@ -430,7 +501,14 @@ function GatherRouteUI:Update()
 
     self.list:ClearAllPoints()
     self.list:SetPoint("TOPLEFT", 0, top)
-    self.list:SetPoint("BOTTOMRIGHT", 0, self.FOOT_H + 4)
+    local below = self.FOOT_H + 4
+    if trainShown then
+        self.train:ClearAllPoints()
+        self.train:SetPoint("BOTTOMLEFT", 0, below)
+        self.train:SetPoint("BOTTOMRIGHT", 0, below)
+        below = below + self.TRAIN_H + 4
+    end
+    self.list:SetPoint("BOTTOMRIGHT", 0, below)
     local height = self.list:GetHeight()
     if type(height) ~= "number" or height <= 0 then height = 10 * self.ROW_H end
     local fits = math.max(1, math.floor(height / self.ROW_H))

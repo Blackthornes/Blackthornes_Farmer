@@ -174,10 +174,17 @@ function GatherRoute:SetPage(kind)
     self:Changed()
 end
 
+--- Tell what draws the route that it moved: the map lines and the Route
+--- Window. Each is read in a pcall, so one never stops the other.
+function GatherRoute.Tell()
+    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    if ns.RouteWindow and ns.RouteWindow.Refresh then pcall(ns.RouteWindow.Refresh, ns.RouteWindow) end
+end
+
 function GatherRoute:Changed()
     GatherRoute.version = GatherRoute.version + 1
     self.cache = nil
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
 end
 
 --------------------------------------------------------------------------------
@@ -670,6 +677,16 @@ end
 -- 1 orange, 2 yellow, 3 green, 4 grey: the skill colour a spot gathers in.
 GatherRoute.TIER_COLORS = { "orange", "yellow", "green", "grey" }
 
+--- The skill colour of a stop in Leveling Mode ({ r, g, b }), or nil.
+function GatherRoute.TierColor(stop)
+    if type(stop) ~= "table" or not stop.tier then return nil end
+    local name = GatherRoute.TIER_COLORS[stop.tier]
+    local colors = ns.NodeSparkle and ns.NodeSparkle.COLORS
+    local color = name and type(colors) == "table" and colors[name]
+    if type(color) ~= "table" then return nil end
+    return color
+end
+
 local skinLevels, skinLevelsAt
 
 --- The lowest level you saw a mob at, from your own loot records.
@@ -813,7 +830,7 @@ function GatherRoute:Redo()
     end
     local plan = self:Plan()
     if self.run then self:Aim(plan) end
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
     return plan
 end
 
@@ -875,7 +892,7 @@ function GatherRoute:Start()
     self.cache = nil
     local ok = self:Aim(self:Plan())
     self:Watch(true)
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
     return ok
 end
 
@@ -885,7 +902,7 @@ function GatherRoute:Stop()
     self:Watch(false)
     if had and ns.Arrow.grind and ns.Arrow.grind == self.camp then ns.Arrow:StopGrind() end
     self.camp, self.cache = nil, nil
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
     return had
 end
 
@@ -914,7 +931,7 @@ function GatherRoute:Advance()
         plan = self:Plan()
     end
     self:Aim(plan)
-    if ns.RouteMap and ns.RouteMap.Refresh then pcall(ns.RouteMap.Refresh, ns.RouteMap) end
+    GatherRoute.Tell()
     return true
 end
 
