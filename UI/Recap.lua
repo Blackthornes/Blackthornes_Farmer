@@ -21,7 +21,7 @@ local PADDING = 10
 local ROW = 20
 local HEAD = 30
 local WIDTH = 280
-local LINES = 5
+local LINES = 6
 
 RecapUI.HOLD = 14
 RecapUI.FADE = 0.7
@@ -132,6 +132,13 @@ function RecapUI.Rows(summary)
     end
     rows[#rows + 1] = { L["Gold an hour"], rate }
 
+    -- The session timer's run (Logic/SessionTimer.lua): how long it sat paused.
+    local paused = tonumber(summary.paused)
+    if paused and paused > 0 then
+        rows[#rows + 1] = { L["Time paused:"], ns.XP and ns.XP.Duration and ns.XP.Duration(paused)
+            or tostring(math.floor(paused / 60)) }
+    end
+
     if summary.best then
         local look = ns.Tracker and ns.Tracker:LookOf(summary.best)
         local color = look and type(look.color) == "string" and #look.color == 8 and look.color
@@ -164,6 +171,9 @@ function RecapUI:Show(summary, title)
 
     local foot = type(summary.lucky) == "string" and summary.lucky or ""
     self.foot:SetText(foot)
+    self.foot:ClearAllPoints()
+    self.foot:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING + 4, -(HEAD + #rows * ROW + 6))
+    self.foot:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -PADDING, -(HEAD + #rows * ROW + 6))
     local footHeight = 0
     if foot ~= "" then
         local ok, height = pcall(self.foot.GetStringHeight, self.foot)

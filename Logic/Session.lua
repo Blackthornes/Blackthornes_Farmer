@@ -166,6 +166,9 @@ function Session:Snapshot()
         end
     end
 
+    -- The session timer's clock (Logic/SessionTimer.lua), when one runs.
+    if ns.SessionTimer and ns.SessionTimer.Snapshot then saved.timer = ns.SessionTimer:Snapshot() end
+
     return saved
 end
 
@@ -267,6 +270,7 @@ function Session:Restore()
     if played and now and TrackerUI then
         TrackerUI.startedAt = (TrackerUI.startedAt or now) - played
     end
+    if ns.SessionTimer and ns.SessionTimer.Restore then ns.SessionTimer:Restore(saved.timer) end
 
     -- Drawn as it was: none of this is new loot, so no effects for it.
     if ns.TrackerFX and ns.TrackerFX.Rebase then ns.TrackerFX:Rebase() end
@@ -303,6 +307,7 @@ function Session:Clear()
         Tracker.streakAt = nil
     end
     ns.lastLoot = nil
+    if ns.SessionTimer and ns.SessionTimer.Cleared then ns.SessionTimer:Cleared() end
 
     local owner = self:Owner()
     if owner and type(ns.db.panelSessions) == "table" then ns.db.panelSessions[owner] = nil end
