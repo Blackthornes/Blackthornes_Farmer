@@ -634,6 +634,30 @@ level, spots, `GrindGather.paceVersion` (moved by `NoteGather` and
 out, and guild data never reaches it. Tested in
 `tools/test_gathertocap.lua`. Not yet seen in game.
 
+## Gather Route
+
+The owner said build it (2026-11-15, from a mockup whose words he
+approved): a **Route** chip on the Grind tab, shown only while "Gather
+Route:" is ticked, plans a short loop through the player's own herb, ore
+and skin spots (`gathering.spots`, only kinds for skills the character
+knows, `GatherRoute.Kinds`) in the zone they stand in, once
+`GatherRoute.MIN_SPOTS` (5) are known. Spots that should be up
+(`Respawn:BackAt`) come first, the rest last; the loop is nearest first,
+then untangled (`GatherRoute.Order`). The arrow leads stop to stop
+(Start Route, Skip Stop, Redo Route; `Arrow:Grind`). With "Current Zone
+Only:" unticked it takes the zone worth most an hour (`ZoneHour`), else it
+names it. "Draw on Maps:" lays a gold line on the world map and minimap
+(`UI/RouteMap.lua`: the loop closed, legs into spots still growing back as
+grey dashes, the minimap clipped and looking a few stops ahead), never in
+a fight and redrawn only when the plan's key moves. `Logic/GatherRoute.lua`,
+`UI/GatherRoute.lua`, `UI/RouteMap.lua`. Settings, Map & goals, GATHER
+ROUTE, and `/farm route [on|off]`. Saved, account wide, never rename them:
+`gatherRoute` (nil off, true on), `gatherRouteZoneOnly` and
+`gatherRouteDraw` (nil on, false off), `gatherRouteKinds` (herbs and ore
+on unless false, skins only when true; dropped when empty). Own data only,
+never shipped or guild data; nothing shared or announced. Tested in
+`tools/test_gatherroute.lua`. Not yet seen in game.
+
 ## The session timer
 
 A player asked, the owner said build it from a mockup (2026-11-15), off

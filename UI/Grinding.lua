@@ -46,6 +46,8 @@ GrindingUI.LAYOUTS = {
     leather = { "type", "mob", "level", "skill", "gives", "worth", "count", "kills", "badge" },
     nodes = { "mob", "skill", "gives", "count", "spots", "respawn", "worth", "hour" },
     fish = { "mob", "count", "gives", "worth", "hour" },
+    -- The Gather Route draws its own view (UI/GatherRoute.lua) over the list.
+    route = { "mob" },
 }
 -- Every column any view has.
 local ALL_KEYS = { "type", "mob", "level", "skill", "gives", "worth", "count", "kills", "spots", "respawn", "hour",
@@ -71,6 +73,7 @@ local INDENT = "     "
 --- The view the list is in: "mobs", "leather", "nodes" or "fish".
 function GrindingUI.Layout()
     local gives = ns.Grinding:Gives()
+    if gives == "route" then return "route" end
     if ns.Grinding.IsNodeView(gives) then return "nodes" end
     if ns.Grinding.IsFishView(gives) then return "fish" end
     if gives == "skinning" then return "leather" end
@@ -280,6 +283,8 @@ function GrindingUI:Build(frame)
     -- views (UI/GatherToCap.lua); PlacePath makes room for it.
     if ns.GatherToCapUI then ns.GatherToCapUI:Build(panel) end
     self.pathRoom = 0
+    -- The Gather Route's view covers the list while its chip is picked.
+    if ns.GatherRouteUI then ns.GatherRouteUI:Build(panel) end
 
     local list = Widgets.CreateRowList(panel, {
         rowHeight = ROW_HEIGHT,
@@ -406,7 +411,7 @@ function GrindingUI:LayoutChips()
     -- Ore, Herbs and Fish list no mobs: no creature types. Their chips stay
     -- in place, greyed and not clickable, so the chips after them never move.
     local gives = ns.Grinding:Gives()
-    local nodes = ns.Grinding.IsNodeView(gives) or ns.Grinding.IsFishView(gives)
+    local nodes = ns.Grinding.IsNodeView(gives) or ns.Grinding.IsFishView(gives) or gives == "route"
     for _, chip in ipairs(self.typeChips) do
         chip:Show()
         chip.resting = nodes
@@ -417,8 +422,9 @@ function GrindingUI:LayoutChips()
     -- The Leather chip goes while skinning is left out (DB:ShowsSkinning)
     -- and you do not know Skinning.
     local leather = ns.Grinding.OffersLeather()
+    local route = ns.Grinding.OffersRoute()
     for index, chip in ipairs(self.givesChips) do
-        if chip.givesKey == "skinning" and not leather then
+        if (chip.givesKey == "skinning" and not leather) or (chip.givesKey == "route" and not route) then
             chip:Hide()
         else
             chip:Show()
@@ -604,6 +610,7 @@ GrindingUI.GIVES_TIPS = {
     ore = { L["Ore"], L["Zones with mining nodes, and what yours were worth. Click again for mobs."] },
     herbs = { L["Herbs"], L["Zones with herbs, and what yours were worth. Click again for mobs."] },
     fish = { L["Fish"], L["The spots you fished, and what your casts were worth. Click again for mobs."] },
+    route = { L["Route"], L["A loop round your own herb, ore and skin spots. Click again for mobs."] },
 }
 
 --------------------------------------------------------------------------------
@@ -1647,6 +1654,11 @@ function GrindingUI:Render(arrive)
         self.zones = zones
         camps = {}
         rows = self:NodeRows(zones, low, high)
+    elseif layout == "route" then
+        -- The route draws itself over the list (UI/GatherRoute.lua).
+        self.zones = nil
+        camps = {}
+        rows = {}
     elseif layout == "fish" then
         -- Your own casts, whatever the level boxes say: a spot has no level.
         self.zones = nil
@@ -1669,6 +1681,7 @@ function GrindingUI:Render(arrive)
     end
 
     local width = self:FitColumns(rows, layout)
+    self:ShowRoute(layout == "route")
 
     self.list:SetData(rows, not arrive)
     if arrive then self.list:Arrive() end
@@ -1680,6 +1693,22 @@ function GrindingUI:Render(arrive)
     if ns.UI and ns.UI.frame and ns.UI.tab == "grind" then ns.UI:ApplySize() end
 
     return width
+end
+
+--- Show the Gather Route's view over the list, or put the list back.
+function GrindingUI:ShowRoute(on)
+    local routeUI = ns.GatherRouteUI
+    if not routeUI or not routeUI.frame then return end
+    local was = self.routeShown
+    self.routeShown = on
+    routeUI:Toggle(self, on)
+    if on then
+        local ok, words = pcall(routeUI.Update, routeUI)
+        if ok and type(words) == "string" then self.footer:SetText(words) end
+        if not ok and ns.Debug then ns.Debug("gather route: " .. tostring(words)) end
+    elseif was then
+        self:PlaceHeadings()
+    end
 end
 
 --- "Hide skinning" moved: the chips are laid out again (the Skinning

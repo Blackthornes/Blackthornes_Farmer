@@ -66,7 +66,14 @@ Grinding.GIVES = {
     { key = "ore", label = L["Ore"] },
     { key = "herbs", label = L["Herbs"] },
     { key = "fish", label = L["Fish"] },
+    { key = "route", label = L["Route"] },
 }
+
+--- Is the Gather Route on, so its chip shows (Logic/GatherRoute.lua)?
+function Grinding.OffersRoute()
+    local route = ns.GatherRoute
+    return route ~= nil and route.IsOn ~= nil and route.IsOn() == true
+end
 
 --- Does the Grind tab list nodes, not mobs, for `gives`?
 function Grinding.IsNodeView(gives)
@@ -304,6 +311,7 @@ function Grinding:Gives()
     -- Skinning left out (DB:ShowsSkinning) lets a picked Leather go too,
     -- unless you know Skinning.
     if gives == "skinning" and not Grinding.OffersLeather() then return nil end
+    if gives == "route" and not Grinding.OffersRoute() then return nil end
     for _, entry in ipairs(Grinding.GIVES) do
         if entry.key == gives then return gives end
     end

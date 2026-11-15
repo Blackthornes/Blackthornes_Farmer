@@ -478,7 +478,7 @@ do
         local spans = {}
         for _, chip in ipairs(chips) do
             local point = chip._point
-            if point and point[2] == GrindingUI.filters then
+            if type(point) == "table" and point[2] == GrindingUI.filters then
                 local x, y = point[4], point[5]
                 local w = chip:GetWidth()
                 if x + w > room + 0.5 then return "past the edge: " .. chip.label:GetText() end
