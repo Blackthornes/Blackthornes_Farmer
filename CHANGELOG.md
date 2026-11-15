@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.18.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Session timer.** A new Session Timer: box on the Kills page of Settings (also `/farm timer`) adds a strip under the Kills & Loot panel with a clock and Start, Pause and Stop. Loot and kills count from Start. It starts off.
+- **Vendor prices only.** A new Vendor prices only box on the Rankings tab, and Vendor Prices Only: on the General page of Settings, ranks mobs as if every drop sold to a vendor. It starts off.
+- **Secret Bait.** Add Lure in the Fishing window now lists Secret Bait.
+- **Loot feed.** Hovering a row in the loot feed shows the item's tooltip.
+
 ## 1.17.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.

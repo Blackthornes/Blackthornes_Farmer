@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.18.0
+
+- There's a session timer for your Kills & Loot panel, with Start, Pause and Stop. You turn it on in the Kills page of Settings.
+- Rankings can now price every drop at what a vendor pays. It's a box on the Rankings tab.
+- Secret Bait shows up in the Add Lure list.
+- Hover a row in the loot feed to see the item's tooltip.
+
 ## 1.17.0
 
 - In a group, the quest count over a mob can now show only your own quests. It's a box on the Map & goals page.
