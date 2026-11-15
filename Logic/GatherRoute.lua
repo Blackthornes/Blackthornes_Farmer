@@ -59,7 +59,7 @@ function GatherRoute.ZoneOnly()
 end
 
 function GatherRoute:SetZoneOnly(on)
-    ns.db.gatherRouteZoneOnly = (not on) and false or nil
+    if on then ns.db.gatherRouteZoneOnly = nil else ns.db.gatherRouteZoneOnly = false end
     self:Changed()
 end
 
@@ -69,14 +69,15 @@ function GatherRoute.DrawsOnMaps()
 end
 
 function GatherRoute:SetDraw(on)
-    ns.db.gatherRouteDraw = (not on) and false or nil
+    if on then ns.db.gatherRouteDraw = nil else ns.db.gatherRouteDraw = false end
     self:Changed()
 end
 
 --- Herbs and Ore on unless unticked, Skins off unless ticked.
 function GatherRoute.Ticked(tick)
     local kinds = ns.db and type(ns.db.gatherRouteKinds) == "table" and ns.db.gatherRouteKinds
-    local value = kinds and kinds[tick]
+    local value = nil
+    if kinds then value = kinds[tick] end
     if tick == "skins" then return value == true end
     return value ~= false
 end
@@ -86,7 +87,7 @@ function GatherRoute:SetTicked(tick, on)
     if tick == "skins" then
         ns.db.gatherRouteKinds[tick] = on and true or nil
     else
-        ns.db.gatherRouteKinds[tick] = (not on) and false or nil
+        if on then ns.db.gatherRouteKinds[tick] = nil else ns.db.gatherRouteKinds[tick] = false end
     end
     if next(ns.db.gatherRouteKinds) == nil then ns.db.gatherRouteKinds = nil end
     self:Changed()
