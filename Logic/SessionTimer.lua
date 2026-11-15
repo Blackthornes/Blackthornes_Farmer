@@ -20,6 +20,7 @@
 -- carries the clock through a /reload or relog (`saved.timer`).
 
 local _, ns = ...
+local L = ns.L
 
 local SessionTimer = ns.NewModule("SessionTimer")
 
@@ -128,8 +129,9 @@ end
 --- The note under a pause, or nil.
 function SessionTimer:Note()
     if self.state ~= "paused" then return nil end
-    local key = self.NOTES[self.reason or ""]
-    return key and ns.L[key] or nil
+    if self.reason == "fly" then return L["Paused while you fly."] end
+    if self.reason == "away" then return L["Paused while you're away."] end
+    return nil
 end
 
 function SessionTimer:Start()
@@ -198,7 +200,7 @@ function SessionTimer:Stop()
     local summary = self:Summary()
     self:Reset()
     local RecapUI = ns.RecapUI
-    if RecapUI and RecapUI.Show then pcall(RecapUI.Show, RecapUI, summary, ns.L["YOUR RUN"]) end
+    if RecapUI and RecapUI.Show then pcall(RecapUI.Show, RecapUI, summary, L["YOUR RUN"]) end
     self:Changed()
     return true, summary
 end
@@ -354,3 +356,37 @@ function SessionTimer:OnEnable()
         ns.RegisterEvent(self, event, function(_, name) SessionTimer:OnEvent(name or event) end)
     end
 end
+
+--------------------------------------------------------------------------------
+-- /farm timer [on|off|start|pause|stop]
+--------------------------------------------------------------------------------
+
+
+local function Say(word)
+    ns.Print(L["Session Timer:"] .. " " .. word)
+end
+
+ns.RegisterCommand("timer", L["the session timer on Kills & Loot (on, off, start, pause, stop)"], function(rest)
+    local argument = ns.Util.Trim(rest or ""):lower()
+    if argument == "on" or argument == "off" or argument == "" then
+        local on = argument == "on" or (argument == "" and not SessionTimer.On())
+        SessionTimer:SetOn(on)
+        Say(on and L["On"] or L["Off"])
+        if ns.SettingsUI and ns.SettingsUI.Refresh then pcall(ns.SettingsUI.Refresh, ns.SettingsUI) end
+        return
+    end
+    if not SessionTimer.On() then
+        Say(L["Off"])
+        return
+    end
+    if argument == "start" then
+        SessionTimer:Start()
+    elseif argument == "pause" then
+        SessionTimer:Pause()
+    elseif argument == "stop" then
+        SessionTimer:Stop()
+        return
+    end
+    local tag = { ready = L["Ready"], timing = L["Timing"], paused = L["Paused"] }
+    Say(tag[SessionTimer.state] or L["Ready"])
+end)

@@ -29,16 +29,16 @@ local BUTTONS = { "start", "pause", "stop" }
 
 -- What each button says on its hover.
 local TIPS = {
-    start = "Start the clock for this run.",
-    pause = "Stop the clock for a bit. Your loot still counts.",
-    stop = "End this run and see how it went.",
+    start = L["Start the clock for this run."],
+    pause = L["Stop the clock for a bit. Your loot still counts."],
+    stop = L["End this run and see how it went."],
 }
 
 -- The tag's words and colour, by state.
 local TAGS = {
-    ready = { "Ready", "muted" },
-    timing = { "Timing", "good" },
-    paused = { "Paused", "accentHi" },
+    ready = { L["Ready"], "muted" },
+    timing = { L["Timing"], "good" },
+    paused = { L["Paused"], "accentHi" },
 }
 
 --- 0:42:15, always with the hour, so the clock never jumps in width.
@@ -119,7 +119,7 @@ local function ShowTip(button, key)
     local word = key == "start" and SessionTimerUI.StartWord(Timer() and Timer().state)
         or key == "pause" and L["Pause"] or L["Stop"]
     GameTooltip:SetText(word, 1, 0.9, 0.6)
-    GameTooltip:AddLine(L[TIPS[key]], 1, 1, 1, true)
+    GameTooltip:AddLine(TIPS[key], 1, 1, 1, true)
     GameTooltip:Show()
 end
 
@@ -210,9 +210,9 @@ function SessionTimerUI:Draw(width)
     strip.clock:SetAlpha(state == "paused" and 0.6 or 1)
 
     local tag = TAGS[state] or TAGS.ready
-    strip.tag.label:SetText(L[tag[1]])
+    strip.tag.label:SetText(tag[1])
     strip.tag.label:SetTextColor(Theme.Unpack(tag[2]))
-    strip.tag:SetWidth(Theme.TextWidth("small", L[tag[1]]) + 16)
+    strip.tag:SetWidth(Theme.TextWidth("small", tag[1]) + 16)
 
     local note = timer:Note()
     strip.note:SetText(note or "")
