@@ -633,6 +633,29 @@ level, spots, `GrindGather.paceVersion` (moved by `NoteGather` and
 out, and guild data never reaches it. Tested in
 `tools/test_gathertocap.lua`. Not yet seen in game.
 
+## The session timer
+
+A player asked, the owner said build it from a mockup (2026-11-15), off
+unless ticked: a strip under the Kills & Loot panel's Gathered value line
+with a clock, a tag (Ready, Timing, Paused) and Start, Pause and Stop
+(Start reads Resume while paused; gold for the next thing to do, plain,
+or dim and ignored). `Logic/SessionTimer.lua` keeps the clock in memory;
+`UI/SessionTimer.lua` draws the strip, placed by `TrackerUI:PlaceTimer`,
+which leaves the panel exactly as before while it is off (`Height` and
+`Needs` 0). Loot and kills count from Start (`Gained`, from
+`Value:Session` and `Tracker:SessionKills`), paused time stays out of the
+clock and Per hour, and loot taken while paused still counts. "Pause When
+Away:" pauses on a flight, a loading screen or away (`OnEvent`), and only
+those pauses resume by themselves; a note says why. Stop opens Your Run
+(`RecapUI:Show`, a "Time paused:" row) and goes back to Ready. Clear panel
+starts the run's loot again (`Cleared`). With "Between sessions" ticked
+the clock is kept through a /reload (`Snapshot`/`Restore` in
+`panelSessions[guid].timer`). Settings, Kills page, SESSION TIMER:
+"Session Timer:" (`sessionTimer`, nil off) and "Pause When Away:"
+(`sessionTimerAutoPause`, nil on, greyed while off); account wide, never
+rename them. `/farm timer [on|off|start|pause|stop]`. Tested in
+`tools/test_sessiontimer.lua`. Not yet seen in game.
+
 ## The panel kept between sessions
 
 The owner asked (2026-10-11) for the kills and loot panel to stop starting
