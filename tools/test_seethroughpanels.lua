@@ -25,6 +25,7 @@ ns.RankUpUI:Build()
 ns.RecapUI:Build()
 ns.XPBarUI:Build()
 ns.LootFeed:Build()
+ns.RouteWindow:Build()
 
 local function Near(a, b) return type(a) == "number" and math.abs(a - b) < 0.001 end
 local function Settle() ns.Motion:FinishAll() end
@@ -60,10 +61,10 @@ end
 -- Each key is its own.
 local keys = {}
 for _, id in ipairs(SeeThrough.ORDER) do keys[SeeThrough.PANELS[id].key] = true end
-suite.check("six keys of their own", (function()
+suite.check("seven keys of their own", (function()
     local n = 0
     for _ in pairs(keys) do n = n + 1 end
-    return n == 6 and not keys.trackerSeeThrough
+    return n == 7 and not keys.trackerSeeThrough
 end)())
 
 for _, id in ipairs(SeeThrough.ORDER) do

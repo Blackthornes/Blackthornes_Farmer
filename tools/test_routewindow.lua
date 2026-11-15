@@ -18,7 +18,7 @@ local L = ns.L
 local RouteWindow, GatherRoute = ns.RouteWindow, ns.GatherRoute
 
 check("the module loads", RouteWindow ~= nil and GatherRoute ~= nil)
-check("the command is there", type(ns.commands.routewindow) == "function")
+check("the command is there", type(ns.commands.routewindow) == "table" and type(ns.commands.routewindow.fn) == "function")
 
 -- Off unless ticked ----------------------------------------------------------
 ns.db.routeWindow = nil
@@ -131,7 +131,7 @@ check("no plan, no foot", GatherRoute.FootText(nil) == "")
 ns.GatherToCap.ReadSkill = realRead
 
 -- /farm routewindow -------------------------------------------------------------
-local command = ns.commands.routewindow
+local command = ns.commands.routewindow.fn
 command("on")
 check("on ticks it", ns.db.routeWindow == true)
 command("off")
