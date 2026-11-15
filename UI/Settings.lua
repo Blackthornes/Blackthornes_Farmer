@@ -1651,7 +1651,8 @@ function SettingsUI:BuildMapPage()
 
     -- The small route window (UI/RouteWindow.lua, the owner said build it
     -- from a mockup, 2026-11-15). Off unless ticked.
-    local routeWindowRow = pages:Row("map", 2, L["Route Window:"], nil)
+    local routeWindowRow = pages:Row("map", 2, L["Route Window:"],
+        L["Shows while a route is running. Tick Route Mode on the Herbs, Ore or Leather page and press Start Route."])
     controls.routeWindow = Widgets.CreateCheckbox(routeWindowRow, L["On"], function(checked)
         if ns.RouteWindow then ns.RouteWindow:SetOn(checked) end
     end, false)
