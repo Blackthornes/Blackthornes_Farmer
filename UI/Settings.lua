@@ -753,6 +753,7 @@ function SettingsUI:BuildWindowsPage()
     controls.recapSeeThrough = SeeThroughRow(pages, "general", 2, "recap", L["Run Recap:"], nil)
     controls.xpBarSeeThrough = SeeThroughRow(pages, "general", 2, "xpbar", L["XP Bar:"], nil)
     controls.lootFeedSeeThrough = SeeThroughRow(pages, "general", 2, "lootfeed", L["Loot Feed:"], nil)
+    controls.routeWindowSeeThrough = SeeThroughRow(pages, "general", 2, "route", L["Route Window:"], nil)
 
 
     pages:Section("general", 2, L["FARMER UI"])
@@ -1647,6 +1648,18 @@ function SettingsUI:BuildMapPage()
         if ns.GatherRoute then ns.GatherRoute:SetDraw(checked) end
     end, true)
     controls.gatherRouteDraw:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The small route window (UI/RouteWindow.lua, the owner said build it
+    -- from a mockup, 2026-11-15). Off unless ticked.
+    local routeWindowRow = pages:Row("map", 2, L["Route Window:"], nil)
+    controls.routeWindow = Widgets.CreateCheckbox(routeWindowRow, L["On"], function(checked)
+        if ns.RouteWindow then ns.RouteWindow:SetOn(checked) end
+    end, false)
+    controls.routeWindow:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local _, routeWindowReset = CommandRow(pages, "map", 2, L["Route Window Place:"], nil,
+        L["Set Default"], "routewindow reset")
+    controls.routeWindowReset = routeWindowReset
 end
 
 --- Sharing: kills, drop rates and gathering with your other account.
@@ -1854,6 +1867,10 @@ function SettingsUI:Refresh()
         controls.gatherRouteDraw:SetChecked(ns.GatherRoute.DrawsOnMaps())
         controls.gatherRouteZoneOnly:SetDisabled(not routeOn)
         controls.gatherRouteDraw:SetDisabled(not routeOn)
+        if controls.routeWindow and ns.RouteWindow then
+            controls.routeWindow:SetChecked(ns.RouteWindow.IsOn())
+            controls.routeWindow:SetDisabled(not routeOn)
+        end
     end
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
     controls.sparkleStyle:SetValue(ns.NodeSparkle:Style() == "sparkles" and 1 or 2, true)
@@ -1950,6 +1967,7 @@ function SettingsUI:Refresh()
     controls.recapSeeThrough:SetValue(ns.SeeThrough:Level("recap"), true)
     controls.xpBarSeeThrough:SetValue(ns.SeeThrough:Level("xpbar"), true)
     controls.lootFeedSeeThrough:SetValue(ns.SeeThrough:Level("lootfeed"), true)
+    controls.routeWindowSeeThrough:SetValue(ns.SeeThrough:Level("route"), true)
     controls.report:SetChecked(db.trackerReport == true)
     controls.celebrate:SetChecked(db.trackerCelebrate ~= false)
 

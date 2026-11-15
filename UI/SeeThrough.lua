@@ -39,8 +39,9 @@ SeeThrough.PANELS = {
     recap = { key = "recapSeeThrough", name = L["Run recap"] },
     xpbar = { key = "xpBarSeeThrough", name = L["XP bar"] },
     lootfeed = { key = "lootFeedSeeThrough", name = L["Loot Feed"] },
+    route = { key = "routeWindowSeeThrough", name = L["Route Window"] },
 }
-SeeThrough.ORDER = { "goals", "places", "rankup", "recap", "xpbar", "lootfeed" }
+SeeThrough.ORDER = { "goals", "places", "rankup", "recap", "xpbar", "lootfeed", "route" }
 
 -- Each panel's state: { frame, parts, watch, shown, solid }.
 SeeThrough.states = {}
@@ -226,7 +227,7 @@ local function Command(rest)
     local id, word = (rest or ""):lower():match("^(%a*)%s*(%a*)")
     if not SeeThrough.PANELS[id] then
         for _, each in ipairs(SeeThrough.ORDER) do Say(each) end
-        ns.Print(L["Type /farm transparent goals, places, rankup, recap, xpbar or lootfeed, then off, some, more or most."])
+        ns.Print(L["Type /farm transparent goals, places, rankup, recap, xpbar, lootfeed or route, then off, some, more or most."])
         return
     end
     if word == "" then
@@ -250,5 +251,5 @@ end
 
 -- Players see "Transparent" (the owner, 2026-10-16); the older word still
 -- works but is left out of the help list.
-ns.RegisterCommand("transparent", L["lets the world show through a panel: goals, places, rankup, recap, xpbar or lootfeed, then off, some, more or most"], Command)
+ns.RegisterCommand("transparent", L["lets the world show through a panel: goals, places, rankup, recap, xpbar, lootfeed or route, then off, some, more or most"], Command)
 ns.commands.seethrough = ns.commands.transparent
