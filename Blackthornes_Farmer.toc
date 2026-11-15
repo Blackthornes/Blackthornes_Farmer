@@ -61,6 +61,7 @@ Logic\WorldDrops.lua
 Logic\RankUp.lua
 Logic\TopFarm.lua
 Logic\Goals.lua
+Logic\SessionTimer.lua
 Logic\Session.lua
 Logic\XP.lua
 Logic\Stats.lua
@@ -113,6 +114,7 @@ UI\LootTable.lua
 UI\Rankings.lua
 UI\RankUp.lua
 UI\Recap.lua
+UI\SessionTimer.lua
 UI\KillGoal.lua
 UI\Grinding.lua
 UI\GatherToCap.lua

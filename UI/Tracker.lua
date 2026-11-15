@@ -1238,6 +1238,10 @@ function TrackerUI:DrawToolbar()
     else
         local hour = self:PerHour()
         text = hour and L.Format("Per hour  %s", ns.Value.Coins(hour)) or L["This session"]
+        local timer = ns.SessionTimer
+        if not hour and timer and timer.On and timer.On() and timer.state == "ready" then
+            text = L["Press Start to time your run."]
+        end
         -- Ahead of your usual pace (Logic/Moments.lua), in green.
         local pace = hour and ns.Moments and ns.Moments:Pace()
         if pace then text = text .. "  " .. Util.Colored("good", L.Format("(up %d%%)", pace)) end
@@ -1261,8 +1265,14 @@ function TrackerUI:DrawToolbar()
 end
 
 --- What the session is earning an hour, in copper, once it has run long
---- enough to mean something. Timed from the first thing gathered.
+--- enough to mean something. Timed from the first thing gathered, or by
+--- the session timer while it runs (paused time left out).
 function TrackerUI:PerHour()
+    local timer = ns.SessionTimer
+    if timer and timer.On and timer.On() and timer.state ~= "ready" then
+        self:NoteStart()
+        return timer:PerHour(PER_HOUR_AFTER)
+    end
     local total = self:NoteStart()
     local now = type(GetTime) == "function" and GetTime() or nil
     if not (total and self.startedAt and type(now) == "number") then return nil end
@@ -2878,6 +2888,40 @@ function TrackerUI:NoteDots(looted, kills)
     self.dots[tab] = nil
 end
 
+--- The top of the column: under the toolbar, and under the session
+--- timer's strip while it is on.
+function TrackerUI:Top()
+    return TOP + (self.timerHeight or 0)
+end
+
+--- The session timer's strip (UI/SessionTimer.lua) sits under the title
+--- bar, above the tabs. Off, it is 0 tall and nothing moves.
+function TrackerUI:PlaceTimer(width)
+    local timerUI = ns.SessionTimerUI
+    if not (timerUI and self.frame) then return end
+    local strip = timerUI:Build(self.frame)
+    local h = timerUI:Height()
+    if h ~= self.timerHeight then
+        self.timerHeight = h
+        strip:ClearAllPoints()
+        strip:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 1, -HEADER)
+        strip:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -1, -HEADER)
+        strip:SetHeight(math.max(1, h))
+        local function Move(part, y, inset)
+            if not part then return end
+            part:ClearAllPoints()
+            part:SetPoint("TOPLEFT", self.frame, "TOPLEFT", inset, -y)
+            part:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -inset, -y)
+        end
+        Move(self.tabStrip, HEADER + h, 1)
+        Move(self.toolbar, HEADER + TAB_HEIGHT + h, 1)
+        Move(self.rule, TOP + h, 0)
+        Move(self.fadeTop, TOP + h + 1, 1)
+    end
+    if self.folded then strip:Hide() return end
+    timerUI:Draw(tonumber(width) or tonumber(self.frame:GetWidth()) or 0)
+end
+
 function TrackerUI:Render()
     self:Build()
 
@@ -2892,6 +2936,8 @@ function TrackerUI:Render()
     self.titleLine = titleLine
     local titleNeeds = self:DrawTitle(titleLine)
     local toolbarNeeds = self:DrawToolbar()
+    local timerUI = ns.SessionTimerUI
+    if timerUI and timerUI.Needs then toolbarNeeds = math.max(toolbarNeeds, timerUI.Needs()) end
 
     -- The width first: every line drawn once to see what it needs.
     local width = tonumber(self.frame:GetWidth()) or self:Width()
@@ -2929,7 +2975,9 @@ function TrackerUI:Arrange(effects)
     -- While the grip is held, the panel is whatever size the drag says;
     -- otherwise it is the saved size. The column scrolls within it.
     local limit = self.sizing and self.frame:GetHeight() or self:MaxHeight()
-    local room = math.max(LINE * 2, limit - TOP - PADDING * 2)
+    self:PlaceTimer(width)
+    local top = self:Top()
+    local room = math.max(LINE * 2, limit - top - PADDING * 2)
 
     -- Heights hang on the width (icon rows wrap), so they are kept for it.
     local heights = arranged.heights
@@ -3008,7 +3056,7 @@ function TrackerUI:Arrange(effects)
     end
 
     -- Drawn top down, each row under the last.
-    local y = TOP + PADDING
+    local y = top + PADDING
     for index = 1, math.max(#shown, #self.lines) do
         local line = shown[index]
 
@@ -3045,7 +3093,7 @@ function TrackerUI:Arrange(effects)
     end
 
     if not self.sizing then
-        self.frame:SetHeight(TOP + PADDING * 2 + used + (below > 0 and MORE_HEIGHT or 0))
+        self.frame:SetHeight(top + PADDING * 2 + used + (below > 0 and MORE_HEIGHT or 0))
     end
 
     self:FitTitleBadge()
@@ -3213,8 +3261,9 @@ end
 
 --- Folded: only the title bar shows.
 function TrackerUI:ApplyFold()
+    local timerUI = ns.SessionTimerUI
     for _, part in ipairs({ self.tabStrip, self.toolbar, self.rule, self.moreLabel,
-        self.fadeTop, self.fadeBottom }) do
+        self.fadeTop, self.fadeBottom, timerUI and timerUI.strip }) do
         if part then part:Hide() end
     end
     for _, line in ipairs(self.lines or {}) do line:Hide() end

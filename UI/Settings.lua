@@ -936,6 +936,26 @@ function SettingsUI:BuildTallyPage()
     end, true)
     controls.voice:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The session timer (Logic/SessionTimer.lua, the owner said build it
+    -- 2026-11-15): off unless ticked, so Kills & Loot is as it was.
+    pages:Section("tally", 1, L["SESSION TIMER"])
+
+    local timerRow = pages:Row("tally", 1, L["Session Timer:"], nil)
+    controls.sessionTimer = Widgets.CreateCheckbox(timerRow, L["On"], function(checked)
+        ns.SessionTimer:SetOn(checked)
+        if controls.sessionTimerAutoPause then
+            controls.sessionTimerAutoPause:SetDisabled(not checked)
+        end
+    end, false)
+    controls.sessionTimer:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local awayRow = pages:Row("tally", 1, L["Pause When Away:"],
+        L["Stops the clock on flights, loading screens and when you're away."])
+    controls.sessionTimerAutoPause = Widgets.CreateCheckbox(awayRow, L["On"], function(checked)
+        ns.SessionTimer:SetAutoPause(checked)
+    end, true)
+    controls.sessionTimerAutoPause:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- The mob you last looted, as the commands read it with no name. The
     -- chat-only lists stay typed commands (the owner, 2026-10-15).
     pages:Section("tally", 2, L["LAST MOB"])
@@ -1885,6 +1905,9 @@ function SettingsUI:Refresh()
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)
     controls.keepPanel:SetChecked(db.keepPanel == true)
+    controls.sessionTimer:SetChecked(db.sessionTimer == true)
+    controls.sessionTimerAutoPause:SetChecked(db.sessionTimerAutoPause ~= false)
+    controls.sessionTimerAutoPause:SetDisabled(db.sessionTimer ~= true)
     controls.seeThrough:SetValue(db.trackerSeeThrough == true and ns.TrackerUI:SeeThroughLevel() or 0, true)
     controls.goalsSeeThrough:SetValue(ns.SeeThrough:Level("goals"), true)
     controls.goalSpotsSeeThrough:SetValue(ns.SeeThrough:Level("places"), true)
