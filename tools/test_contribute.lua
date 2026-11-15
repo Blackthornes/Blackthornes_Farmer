@@ -21,8 +21,8 @@ ns.GuildShare:OnEnable()
 Contribute:OnEnable()
 
 suite.check("off by default", ns.db.shareDrops == false and not Contribute:On())
-suite.check("the shipped list names five whole names",
-    type(Contribute.RECIPIENTS) == "table" and #Contribute:Recipients() == 5)
+suite.check("the shipped list names six whole names",
+    type(Contribute.RECIPIENTS) == "table" and #Contribute:Recipients() == 6)
 
 -- Only North America sends.
 _G.GetCurrentRegion, _G.GetCurrentRegionName = nil, nil

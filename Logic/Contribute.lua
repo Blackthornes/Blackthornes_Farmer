@@ -51,6 +51,7 @@ Contribute.RECIPIENTS = {
     "Blackthornes Tradeskills",
     "Blackthornes Farms",
     "Blackthornes Farmera",
+    "Blackthornes Grinder",
 }
 
 -- Only players on this region send (the owner, 2026-10-17: North America),
