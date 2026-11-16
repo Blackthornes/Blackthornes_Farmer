@@ -254,6 +254,8 @@ end
 
 function SavedFarmsUI:CreateRow(section, row)
     row.cells = {}
+    -- False rather than nil: test frames answer a field never given.
+    row.icon, row.check, row.button, row.done = false, false, false, false
     for _, column in ipairs(section.columns) do
         local key = column.key
         if key == "icon" then
@@ -920,7 +922,7 @@ function SavedFarmsUI:DressRecap()
     local Recap = ns.RecapUI
     local frame = Recap and Recap.frame
     if not frame then return end
-    if not frame.saveFarm then
+    if not rawget(frame, "saveFarm") then
         frame.saveFarm = Widgets.CreateButton(frame, L["Save This Farm"], function()
             SavedFarmsUI:SaveRun()
         end, { primary = true, width = ButtonWidth(L["Save This Farm"]), height = 18 })

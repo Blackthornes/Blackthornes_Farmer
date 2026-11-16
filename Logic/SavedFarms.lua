@@ -96,7 +96,7 @@ function SavedFarms.LastOnSearch()
 end
 
 function SavedFarms:SetLastOnSearch(on)
-    ns.db.lastFarmOnSearch = (not on) and false or nil
+    if on then ns.db.lastFarmOnSearch = nil else ns.db.lastFarmOnSearch = false end
     Changed()
 end
 
@@ -670,9 +670,12 @@ function SavedFarms:OnEnable()
         end
         T.savedFarmsWrapped = true
     end
-    self:RegisterEvent("PLAYER_LOGOUT", function()
-        if SavedFarms.run then pcall(SavedFarms.End, SavedFarms, "logout") end
-    end)
+    self:RegisterEvent("PLAYER_LOGOUT")
+end
+
+--- Logging out (or a /reload) ends the run under way.
+function SavedFarms:PLAYER_LOGOUT()
+    if SavedFarms.run then pcall(SavedFarms.End, SavedFarms, "logout") end
 end
 
 --------------------------------------------------------------------------------
