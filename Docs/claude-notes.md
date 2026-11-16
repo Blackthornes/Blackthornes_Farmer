@@ -695,6 +695,24 @@ skill.") shows in the window and under the Grind route list. All account
 wide, never rename them. Tested in `tools/test_routewindow.lua`. Not yet
 seen in game.
 
+Herbs stay in sight on the minimap (the owner's screenshot and his Build
+it, 2026-11-16, from a mockup): TomTom's green minimap pin and the route's
+filled gold dot both sat right on the game's herb blip, which the minimap
+draws under every addon frame. While a route runs (`GatherRoute.Running`)
+Farmer hands TomTom the place with `minimap = false`
+(`TomTomLink.OnRoute`; TomTom's arrow and world map pin stay), and the
+route marks each stop that is up with a thin hollow gold ring of line
+pieces (`RouteMap.Ring`, `RING_NEXT` 9 px, `RING_AHEAD` 7 px), the line
+cut at its edge (`RouteMap.ShortenTo`), so the blip shows in the middle.
+The world map keeps its dots. Out of order picks (the owner, same day):
+any gather of the route's kind within `GatherRoute.PICK_NEAR` (15) yards
+of a stop, since the loop began, marks it picked and rests it, even when
+the game names the node another way (a herb spot grows other herbs, which
+Gathering saves as a new spot): `GatherRoute:FreshGathers`, `PickedNear`,
+read in `Look` only when the spots change. Tested in
+`tools/test_gatherroute.lua` and `tools/test_arrow.lua`. Not yet seen in
+game.
+
 ## The session timer
 
 A player asked, the owner said build it from a mockup (2026-11-15), off

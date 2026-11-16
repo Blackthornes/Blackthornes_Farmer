@@ -4,7 +4,11 @@
 -- through the stops in order and back to the first, grey dashes into a
 -- stop still growing back, a dot at each stop (bigger at the next one),
 -- and a small YOUR ROUTE key in the map's corner. On the minimap, a line
--- from you to the next stop and on to the few after it, cut at the rim.
+-- from you to the next stop and on to the few after it, cut at the rim,
+-- with a thin hollow gold ring at each stop that is up. The minimap draws
+-- its own herb and ore blips under every addon frame, so the ring keeps
+-- its middle clear and the line stops at its edge: the blip shows inside
+-- (the owner said build it, 2026-11-16, from the mockup).
 -- The owner said build it (2026-11-15) from the mockup.
 --
 -- Our own frames only: a layer over the world map's canvas (just under the
@@ -32,6 +36,11 @@ RouteMap.MAX_PIECES = 600
 RouteMap.MINIMAP_AHEAD = 2
 -- Minimap line widths in pixels.
 local MINI_GOLD, MINI_DARK = 2, 4
+-- Minimap stop rings: radius in pixels (next stop, the ones after), the
+-- pieces round, and the widths. Wide enough for the game's blip inside.
+RouteMap.RING_NEXT, RouteMap.RING_AHEAD = 9, 7
+RouteMap.RING_PIECES = 16
+local RING_GOLD, RING_DARK = 1.5, 3
 -- Yards you move before the lines are drawn again.
 RouteMap.MOVED = 8
 -- Seconds between looks.
@@ -382,6 +391,27 @@ function RouteMap.ShowsDot(stop)
     return stop and stop.back == true and not stop.done and not stop.resting or false
 end
 
+--- The line from x1,y1 to x2,y2 cut `by` short at its far end; the start
+--- itself when the line is shorter than that.
+function RouteMap.ShortenTo(x1, y1, x2, y2, by)
+    local dx, dy = x2 - x1, y2 - y1
+    local length = math.sqrt(dx * dx + dy * dy)
+    if length <= by then return x1, y1 end
+    local keep = (length - by) / length
+    return x1 + dx * keep, y1 + dy * keep
+end
+
+--- A ring as `count` straight pieces: { { x1, y1, x2, y2 }, ... }.
+function RouteMap.Ring(cx, cy, radius, count)
+    local pieces = {}
+    for index = 0, count - 1 do
+        local a, b = index / count * 2 * math.pi, (index + 1) / count * 2 * math.pi
+        pieces[#pieces + 1] = { cx + radius * math.cos(a), cy + radius * math.sin(a),
+            cx + radius * math.cos(b), cy + radius * math.sin(b) }
+    end
+    return pieces
+end
+
 function RouteMap:DrawMinimap(plan)
     local minimap = _G.Minimap
     local mapID, px, py = ns.Harvest:PlayerMapPosition()
@@ -423,6 +453,11 @@ function RouteMap:DrawMinimap(plan)
         local x1, y1, x2, y2 = RouteMap.Clip(fromE, fromN, toE, toN, reach, square)
         if x1 then
             local scale = half / radius
+            local inside = x2 == toE and y2 == toN
+            local ring = inside and RouteMap.ShowsDot(stop)
+                and (stop.next and RouteMap.RING_NEXT or RouteMap.RING_AHEAD) or nil
+            -- The line stops at the ring's edge, so the blip inside is clear.
+            if ring then x2, y2 = RouteMap.ShortenTo(x1, y1, x2, y2, ring / scale) end
             if stop.back then
                 if Piece(layer, lines + 1, x1 * scale, y1 * scale, x2 * scale, y2 * scale, GOLD,
                     MINI_GOLD, MINI_DARK, minimap, "CENTER") then lines = lines + 1 end
@@ -436,17 +471,13 @@ function RouteMap:DrawMinimap(plan)
                         MINI_GOLD, 0, minimap, "CENTER") then lines = lines + 1 end
                 end
             end
-            -- A dot where the stop shows inside the rim.
-            if x2 == toE and y2 == toN and RouteMap.ShowsDot(stop) then
-                dots = dots + 1
-                local dot = Dot(layer, dots)
-                local dotSize = stop.next and 10 or 7
-                dot:SetSize(dotSize, dotSize)
-                local colour = GOLD
-                dot:SetVertexColor(colour[1], colour[2], colour[3], 1)
-                dot:ClearAllPoints()
-                dot:SetPoint("CENTER", minimap, "CENTER", toE * scale, toN * scale)
-                dot:Show()
+            -- A hollow ring where the stop shows inside the rim.
+            if ring then
+                local cx, cy = toE * scale, toN * scale
+                for _, piece in ipairs(RouteMap.Ring(cx, cy, ring, RouteMap.RING_PIECES)) do
+                    if Piece(layer, lines + 1, piece[1], piece[2], piece[3], piece[4], GOLD,
+                        RING_GOLD, RING_DARK, minimap, "CENTER") then lines = lines + 1 end
+                end
             end
         end
         fromE, fromN = toE, toN

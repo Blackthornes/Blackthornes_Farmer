@@ -177,6 +177,21 @@ check("a line inside the minimap stays", RouteMap.Clip(-10, 0, 10, 0, 100) ~= ni
 check("a line far off is left out", RouteMap.Clip(500, 500, 600, 500, 100) == nil)
 check("a square minimap clips too", RouteMap.Clip(-500, 0, 500, 0, 100, true) ~= nil)
 
+-- The minimap ring: hollow, round, and the line stops at its edge.
+do
+    local ring = RouteMap.Ring(0, 0, 9, RouteMap.RING_PIECES)
+    local round = #ring == RouteMap.RING_PIECES
+    for _, piece in ipairs(ring) do
+        if math.abs(math.sqrt(piece[1] ^ 2 + piece[2] ^ 2) - 9) > 0.001 then round = false end
+    end
+    check("the stop ring is round pieces at its radius", round)
+    local ex, ey = RouteMap.ShortenTo(0, 0, 100, 0, 9)
+    check("the line stops at the ring's edge", math.abs(ex - 91) < 0.001 and ey == 0)
+    local sx, sy = RouteMap.ShortenTo(0, 0, 5, 0, 9)
+    check("a line shorter than the ring stays put", sx == 0 and sy == 0)
+    check("the ring leaves room for the blip", RouteMap.RING_AHEAD >= 6 and RouteMap.RING_NEXT > RouteMap.RING_AHEAD)
+end
+
 local ahead = RouteMap.Ahead({ stops = { { n = 1 }, { n = 2 }, { n = 3 }, { n = 4 } }, nextStop = { n = 4 } })
 check("the minimap looks ahead and wraps", #ahead == 3 and ahead[1].n == 4 and ahead[2].n == 1)
 
@@ -224,6 +239,34 @@ do
     GatherRoute:Look()
     check("a gathered stop rests", GatherRoute.Resting(other, clock) ~= nil
         and GatherRoute.Resting(other, clock) >= clock + GatherRoute.COOLDOWN)
+
+    -- A herb picked out of order, even one the game names another way at
+    -- that place, puts the stop there on its rest and the route moves on.
+    GatherRoute.cache = nil
+    local plan3 = GatherRoute:Plan()
+    local away
+    for _, stop in ipairs(plan3.stops) do
+        if not stop.done and not stop.next and stop.spot ~= first and stop.spot ~= other then away = stop.spot end
+    end
+    check("a stop is left to pick out of order", away ~= nil)
+    if away then
+        local spots = ns.Gathering:Spots()
+        spots[#spots + 1] = { map = away.map, x = away.x + 0.002, y = away.y, node = "Another Herb",
+            kind = away.kind, gathers = 1, first = clock, last = clock }
+        ns.Gathering:SpotsChanged()
+        GatherRoute:Look()
+        check("a herb picked out of order rests its stop", GatherRoute.Resting(away, clock) ~= nil)
+        check("and counts as picked", GatherRoute.run.visited[away] and GatherRoute.run.picked[away])
+        GatherRoute.cache = nil
+        local plan4 = GatherRoute:Plan()
+        check("the picked stop is not next", plan4.nextStop == nil or plan4.nextStop.spot ~= away)
+        table.remove(spots)
+        ns.Gathering:SpotsChanged()
+    end
+    check("a far gather is not a pick", GatherRoute.PickedNear({ map = 1, x = 0.1, y = 0.1, kind = "herb" },
+        { { map = 1, x = 0.3, y = 0.1, kind = "herb" } }) == false)
+    check("ore picked near a herb stop is not its pick", GatherRoute.PickedNear({ map = 1, x = 0.1, y = 0.1, kind = "herb" },
+        { { map = 1, x = 0.1, y = 0.1, kind = "ore" } }) == false)
 
     clock = clock + GatherRoute.COOLDOWN + 1
     check("the rest ends after its window", GatherRoute.Resting(first, clock) == nil)

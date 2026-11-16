@@ -85,6 +85,17 @@ function TomTomLink.StillThere(uid)
     return valid and true or false
 end
 
+--- True while a Gather Route runs. TomTom then puts no pin on the
+--- minimap: its pin sat right on the herb's blip and hid it, and the route
+--- draws its own hollow ring there (the owner said build it, 2026-11-16).
+--- TomTom's arrow and world map pin stay.
+function TomTomLink.OnRoute()
+    local route = ns.GatherRoute
+    if not (route and type(route.Running) == "function") then return false end
+    local ok, running = pcall(route.Running)
+    return ok and running == true
+end
+
 --- Give TomTom the place for `state`. True when TomTom shows it, so the
 --- dial can stay hidden; false (and no waypoint of ours left) otherwise.
 function TomTomLink:Take(state)
@@ -94,8 +105,10 @@ function TomTomLink:Take(state)
     end
 
     local target = TomTomLink.Point(state)
+    local onRoute = TomTomLink.OnRoute()
     local key = (state.goal and state.goal.item or "?") .. "|" .. ns.Arrow.Key(state.target)
     if state.trip then key = key .. "|" .. (state.trip.index or 0) .. "|" .. (state.trip.line or "") end
+    if onRoute then key = key .. "|route" end
     if self.uid and self.key == key then
         if TomTomLink.StillThere(self.uid) then return true end
         -- TomTom took it off itself (it clears a waypoint on arrival, or
@@ -112,7 +125,7 @@ function TomTomLink:Take(state)
     local title = TomTomLink.Title(state)
     local ok, uid = pcall(tomtom.AddWaypoint, tomtom, target.map, target.x, target.y, {
         title = title, desc = title, from = FROM,
-        persistent = false, minimap = true, world = true, crazy = true, silent = true,
+        persistent = false, minimap = not onRoute, world = true, crazy = true, silent = true,
     })
     if not ok or uid == nil then
         ns.Debug("TomTom would not take the waypoint:", tostring(uid))

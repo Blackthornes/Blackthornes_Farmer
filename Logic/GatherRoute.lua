@@ -935,8 +935,41 @@ function GatherRoute:Advance()
     return true
 end
 
---- One look while a route runs: a stop you picked, or came within ARRIVED
---- yards of, is done.
+--- Yards within which a gather counts for a stop of the same kind, though
+--- the game named the node another way (a herb spot can grow another herb).
+GatherRoute.PICK_NEAR = 15
+
+--- Your gathers on the route's map since `started`, looked for only when
+--- your spots changed: { spot, ... }.
+function GatherRoute:FreshGathers(run, started)
+    local stamp = Stamp() .. "|" .. tostring(started)
+    if run.freshStamp == stamp then return run.fresh or {} end
+    run.freshStamp = stamp
+    local fresh = {}
+    local byMap = self:SpotsByMap(GatherRoute.Kinds())
+    for _, spot in ipairs(byMap[run.map] or {}) do
+        local last = Number(spot.last)
+        if last and last >= started then fresh[#fresh + 1] = spot end
+    end
+    run.fresh = fresh
+    return fresh
+end
+
+--- True when one of the `fresh` gathers is the same kind and within
+--- PICK_NEAR yards of `spot`: picked, out of order or under another name.
+function GatherRoute.PickedNear(spot, fresh)
+    for _, gathered in ipairs(fresh or {}) do
+        if gathered ~= spot and gathered.kind == spot.kind and gathered.map == spot.map
+            and (GatherRoute.Yards(spot.map, spot.x, spot.y, gathered.x, gathered.y) or math.huge) <= GatherRoute.PICK_NEAR then
+            return true
+        end
+    end
+    return false
+end
+
+--- One look while a route runs: a stop you picked (in order or not, or a
+--- different herb grown at its place), or came within ARRIVED yards of, is
+--- done and rests until it should be back.
 function GatherRoute:Look()
     local run = self.run
     if not run then return end
@@ -949,10 +982,11 @@ function GatherRoute:Look()
     local started = run.started or 0
     local now = Clock()
     local moved = false
+    local fresh = self:FreshGathers(run, started)
     for _, spot in ipairs(self.order and self.order.list or {}) do
         if not run.visited[spot] then
             local last = Number(spot.last)
-            if last and last >= started then
+            if (last and last >= started) or GatherRoute.PickedNear(spot, fresh) then
                 run.visited[spot], run.picked[spot] = true, true
                 self:Rest(spot, now, true)
                 moved = true
