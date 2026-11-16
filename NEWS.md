@@ -27,8 +27,6 @@ tool prints a note for a shipped line that reads like an advert.
 
 - Farmer has a new Farms tab. Save a farm and run it again with one click.
 - Pick the zone and the mob you want, and the best drop chance shows first.
-Fixes and changes:
-- Various bug fixes for Saved Farms.
 
 ## 1.20.0
 
