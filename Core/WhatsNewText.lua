@@ -5,7 +5,7 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
-    { version = "1.19.0", lines = {
+    { version = "1.19.1", lines = {
         "There's a new Gather Route. It plans a short loop through the herb, ore and skinning spots you've mapped, and the arrow leads you stop to stop. Turn it on in the Map & goals page of Settings.",
         "The Grind tab has a Route Mode box on the Herbs, Ore and Leather pages that shows your route.",
         "A small Route Window can sit on your screen while you run a route. It has a Leveling Mode that puts spots that still give skill first.",
