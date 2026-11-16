@@ -218,9 +218,9 @@ suite.check("Save Farm opens the box", UI:SaveItem("Silk Cloth") == true and UI.
 suite.check("filled from the item", UI.box.item:GetText() == "Silk Cloth" and UI.box.how:GetValue() == "spot")
 UI.box.name:SetText("Silk again")
 suite.check("Confirm saves it", UI:ConfirmBox() == true and #F:List() == 4 and not UI.box:IsShown())
--- New Farm: typing in Item: lists matching items, and a pick fills Where:.
+-- New Farm: typing in Item: lists matching items, and a pick fills Zone:.
 UI:OpenBox({})
-suite.check("Where: waits for an item", #UI.box.whereChoices == 0)
+suite.check("Zone: waits for an item", #UI.box.zoneChoices == 0)
 UI.box.item:SetText("silk")
 UI:Suggest("silk")
 local first = UI.box.suggest.rows[1]
@@ -232,14 +232,75 @@ end
 suite.check("Silk Cloth is among them", silkFound ~= false)
 UI:PickItem(silkFound.item)
 suite.check("a pick fills Item: and Name:", UI.box.item:GetText() == "Silk Cloth" and UI.box.name:GetText() == "Silk Cloth")
-suite.check("and Where: lists its spots", #UI.box.whereChoices > 0 and not UI.box.suggest:IsShown())
-suite.check("each spot is a real zone", UI.box.whereChoices[1].zone ~= nil)
+suite.check("and Zone: lists its zones", #UI.box.zoneChoices > 0 and not UI.box.suggest:IsShown())
+suite.check("each is a real zone", UI.box.zoneChoices[1].zone ~= nil)
+local zoneSeen, zoneOnce = {}, true
+for _, option in ipairs(UI.box.zoneChoices) do
+    if zoneSeen[option.zone] then zoneOnce = false end
+    zoneSeen[option.zone] = true
+end
+suite.check("each zone once", zoneOnce)
+local best = true
+for index = 2, #UI.box.zoneChoices do
+    if not UI.BestFirst(UI.box.zoneChoices[index - 1], UI.box.zoneChoices[index])
+        and UI.BestFirst(UI.box.zoneChoices[index], UI.box.zoneChoices[index - 1]) then best = false end
+end
+suite.check("best drop chance first", best)
+suite.check("Mob: starts on Any Mob", UI.box.mob:GetValue() == 1 and UI.box.mobChoices[1].mob == nil)
 local fields = UI:BoxFields()
-suite.check("the spot saves with the farm", fields.zone == UI.box.whereChoices[1].zone)
+suite.check("the zone saves with the farm", fields.zone == UI.box.zoneChoices[1].zone and fields.mob == nil)
+
+-- Zone order and mob choices from known sources.
+local fakeItem = { name = "Test Cloth", sources = {
+    { zone = "Desolace", name = "Kolkar Mauler", chance = 21, minLevel = 33, maxLevel = 34 },
+    { zone = "Desolace", name = "Burning Blade Summoner", chance = 31, minLevel = 36, maxLevel = 37 },
+    { zone = "Tanaris", name = "Wastewander Rogue", chance = 44, minLevel = 40, maxLevel = 41 },
+    { zone = "Swamp of Sorrows", kind = "herb", minLevel = 35, maxLevel = 45 },
+    { zone = "Badlands", name = "Dustbelcher Brute", minLevel = 30, maxLevel = 31 },
+} }
+local zones = UI.ZoneOptions(fakeItem)
+suite.check("zones best chance first", zones[1].zone == "Tanaris" and zones[2].zone == "Desolace")
+suite.check("a zone takes its best mob's chance", zones[2].chance == 31 and zones[2].minLevel == 33 and zones[2].maxLevel == 37)
+suite.check("zones with no chance go last, lowest level first", zones[3].zone == "Badlands" and zones[4].zone == "Swamp of Sorrows")
+suite.check("no chance shows --", zones[3].columns[1].text == "--")
+local mobs = UI.MobOptions(fakeItem, "Desolace")
+suite.check("Any Mob first, then mobs best first", mobs[1].mob == nil and mobs[2].mob == "Burning Blade Summoner"
+    and mobs[3].mob == "Kolkar Mauler" and #mobs == 3)
+suite.check("a herb zone has no mobs", #UI.MobOptions(fakeItem, "Swamp of Sorrows") == 1)
+
+-- Mob: greys for Route Mode and saves no mob.
+local realGetItem = ns.DB.GetItem
+ns.DB.GetItem = function(db, name) if name == "Test Cloth" then return fakeItem end return realGetItem(db, name) end
+UI.box.item:SetText("Test Cloth")
+UI.box.zoneChoices = zones
+UI.box.zone:SetOptions(zones)
+UI.box.zone:SetValue(2)
+UI:ZonePicked("Kolkar Mauler")
+suite.check("a mob can be picked", UI.box.mob:IsEnabled() and UI:BoxFields().zone == "Desolace")
+UI.box.how:SetValue("route")
+UI:MobState()
+suite.check("Route Mode greys Mob:", not UI.box.mob:IsEnabled() and UI:BoxFields().mob == nil)
+UI.box.how:SetValue("spot")
+UI:MobState()
+UI.box.zone:SetValue(4)
+UI:ZonePicked()
+suite.check("a herb zone greys Mob:", not UI.box.mob:IsEnabled())
+ns.DB.GetItem = realGetItem
+
+-- An old farm with a mob opens as it was saved.
+UI:CloseBox()
+UI:OpenBox({ name = "Old", item = "Silk Cloth", zone = "Nowhere Vale", mob = "Old Mob", amount = 5, how = "spot" }, nil)
+fields = UI:BoxFields()
+suite.check("an old farm keeps its zone and mob", fields.zone == "Nowhere Vale" and fields.mob == "Old Mob")
+UI:CloseBox()
+UI:OpenBox({ name = "Old", item = "Silk Cloth", zone = "Nowhere Vale", amount = 5, how = "spot" }, nil)
+suite.check("one with only a zone opens on Any Mob", UI:BoxFields().mob == nil and UI.box.mob:GetValue() == 1)
+UI:OpenBox({})
+UI:PickTop("silk")
 UI:ItemTyped("Silk Clo")
-suite.check("a part name leaves Where: empty", #UI.box.whereChoices == 0)
+suite.check("a part name leaves Zone: empty", #UI.box.zoneChoices == 0)
 UI:PickTop("silk clo")
-suite.check("Enter takes the best match", UI.box.item:GetText() == "Silk Cloth" and #UI.box.whereChoices > 0)
+suite.check("Enter takes the best match", UI.box.item:GetText() == "Silk Cloth" and #UI.box.zoneChoices > 0)
 UI:CloseBox()
 
 UI:OpenBox(F:Find(route.id), route.id)

@@ -284,6 +284,23 @@ suite.check("a place picked in the Where? panel goes first",
 suite.check("with its zone in the distance", state.distance:find("^Westfall, ") ~= nil, state.distance)
 Arrow:Follow("Copper Ore")
 
+-- A saved farm on Any Mob: only places in its zone, and moving on stays there.
+Arrow:AimZone("Copper Ore", "Westfall")
+state = Arrow:State(clock)
+local onlyWestfall = #Arrow.targets > 0
+for _, target in ipairs(Arrow.targets) do
+    if not Arrow:InZone(target, "Westfall", nil) and target.zone ~= "Westfall" then onlyWestfall = false end
+end
+suite.check("a whole zone farm keeps to its zone", onlyWestfall and state.target.zone == "Westfall", state.target.zone)
+Arrow:NextSpot()
+state = Arrow:State(clock)
+suite.check("and moving on stays there", state.target.zone == "Westfall", state.target.zone)
+Arrow:AimZone("Copper Ore", "Nowhere Vale")
+Arrow:State(clock)
+suite.check("a zone with no place keeps every place", #Arrow.targets > 1)
+Arrow:Follow("Copper Ore")
+suite.check("following again lets the zone go", Arrow.pinnedZone == nil)
+
 --------------------------------------------------------------------------------
 -- What the client will not say
 --------------------------------------------------------------------------------

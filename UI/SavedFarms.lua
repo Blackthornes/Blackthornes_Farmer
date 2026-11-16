@@ -76,11 +76,13 @@ SavedFarmsUI.TIPS = {
     again = L["Starts your last farm again, just like last time."],
     today = L["Farms you want to do today. A farm is done once you reach its goal. The list starts fresh each day."],
     daily = L["Puts this farm on your Today list each day."],
+    zone = L["Zones where it drops, best drop chance first."],
+    mob = L["Pick a mob, or leave it on Any Mob to farm the whole zone."],
 }
 
 -- The four ways to run a farm, for the How: drop-down and its hover.
 SavedFarmsUI.HOWS = {
-    { value = "spot", text = L["Farm This Spot"], tip = L["the arrow takes you to the spot."] },
+    { value = "spot", text = L["Farm This Spot"], tip = L["the arrow takes you to the mob, or to the closest spot in the zone."] },
     { value = "route", text = L["Route Mode"], tip = L["runs a gather route here, for herbs, ore or leather."] },
     { value = "kills", text = L["Kill Goal"], tip = L["counts kills instead of an item."] },
     { value = "goal", text = L["Goal Only"], tip = L["sets the goal and nothing else."] },
@@ -647,33 +649,126 @@ function SavedFarmsUI.Suggestions(text)
     return list
 end
 
---- The Where: choices for `item` (a name or the item itself): each spot
---- the data knows, your own spots too, lowest level first.
-function SavedFarmsUI.WhereOptions(item)
-    local options = {}
+--- `item` (a name or the item itself) as the Search tab shows it, your
+--- own spots too. Nil when there is no such item.
+local function ItemWithSpots(item)
     local found = type(item) == "table" and item or (type(item) == "string" and ns.DB and ns.DB:GetItem(item))
     local Search = ns.Search
     if found and Search and Search.WithYourSpots then
         local ok, merged = pcall(Search.WithYourSpots, Search, found)
         if ok and merged then found = merged end
     end
-    if found and found.sources then
-        local sorted = Search and Search.SortedSources and Search:SortedSources(found) or found.sources
-        local seen = {}
-        for _, source in ipairs(sorted) do
-            if type(source.zone) == "string" and source.zone ~= "" then
-                local key = source.zone .. "|" .. (source.name or "")
-                if not seen[key] then
-                    seen[key] = true
-                    local shown = ns.Spots and ns.Spots.Show and ns.Spots.Show(source.zone) or source.zone
-                    options[#options + 1] = {
-                        text = source.name and (shown .. ", " .. source.name) or shown,
-                        value = #options + 1, zone = source.zone, mob = source.name,
-                    }
-                end
+    return found
+end
+
+--- Mobs show in Mob:; a herb, a vein or a fishing spot does not.
+local MOB_KINDS = { mob = true, skinning = true }
+
+--- The small columns on a Zone: or Mob: line: the level range coloured by
+--- your level, and the best drop chance coloured as the Search tab does
+--- ("--" when the data has none).
+local function Columns(entry)
+    local columns = {}
+    local MainUI = ns.UI
+    local chance = entry.chance
+    local chanceColor
+    if chance and MainUI and MainUI.DropColor then chanceColor = { MainUI.DropColor(chance) } end
+    columns[1] = {
+        text = chance and ns.Tracker.FormatChance(chance) or "--", w = 38, color = chanceColor,
+    }
+    local levelColor
+    local top = entry.maxLevel or entry.minLevel
+    if top and MainUI and MainUI.DifficultyColor then levelColor = { MainUI.DifficultyColor(top) } end
+    columns[2] = {
+        text = entry.minLevel and ns.Search:LevelText(entry) or "--", w = 44, color = levelColor,
+    }
+    return columns
+end
+
+--- Folds `source` into `entry`: its best chance and widest level range.
+local function Fold(entry, source)
+    local chance = tonumber(source.chance)
+    if chance and (not entry.chance or chance > entry.chance) then entry.chance = chance end
+    local low, high = tonumber(source.minLevel), tonumber(source.maxLevel or source.minLevel)
+    if low and (not entry.minLevel or low < entry.minLevel) then entry.minLevel = low end
+    if high and (not entry.maxLevel or high > entry.maxLevel) then entry.maxLevel = high end
+end
+
+--- Best drop chance first; those with none go last, lowest level first.
+local function BestFirst(a, b)
+    if a.chance and b.chance then
+        if a.chance ~= b.chance then return a.chance > b.chance end
+    elseif a.chance or b.chance then
+        return a.chance ~= nil
+    end
+    local aLow, bLow = a.minLevel or 999, b.minLevel or 999
+    if aLow ~= bLow then return aLow < bLow end
+    return (a.label or "") < (b.label or "")
+end
+
+SavedFarmsUI.BestFirst = BestFirst
+SavedFarmsUI.MAX_CHOICES = 40
+
+--- The Zone: choices for `item`: each zone where it drops, with the best
+--- chance there and its level range, best drop chance first. Each keeps
+--- the data's zone name in `zone`.
+function SavedFarmsUI.ZoneOptions(item)
+    local found = ItemWithSpots(item)
+    local list, byZone = {}, {}
+    for _, source in ipairs(found and found.sources or {}) do
+        local zone = source.zone
+        if type(zone) == "string" and zone ~= "" then
+            local entry = byZone[zone]
+            if not entry then
+                local shown = ns.Spots and ns.Spots.Show and ns.Spots.Show(zone) or zone
+                entry = { zone = zone, label = shown }
+                byZone[zone] = entry
+                list[#list + 1] = entry
             end
-            if #options >= 30 then break end
+            Fold(entry, source)
         end
+    end
+    table.sort(list, BestFirst)
+    local options = {}
+    for index, entry in ipairs(list) do
+        if index > SavedFarmsUI.MAX_CHOICES then break end
+        options[index] = {
+            text = entry.label, value = index, zone = entry.zone,
+            chance = entry.chance, minLevel = entry.minLevel, maxLevel = entry.maxLevel,
+            columns = Columns(entry),
+        }
+    end
+    return options
+end
+
+--- The Mob: choices for `item` in `zone`: Any Mob first, then each mob
+--- there that drops it, best drop chance first.
+function SavedFarmsUI.MobOptions(item, zone)
+    local options = { { text = L["Any Mob"], value = 1 } }
+    if type(zone) ~= "string" then return options end
+    local found = ItemWithSpots(item)
+    local list, byName = {}, {}
+    for _, source in ipairs(found and found.sources or {}) do
+        local name = source.name
+        if source.zone == zone and type(name) == "string" and name ~= ""
+            and MOB_KINDS[ns.DB.KindOf(source)] then
+            local entry = byName[name]
+            if not entry then
+                entry = { mob = name, label = name }
+                byName[name] = entry
+                list[#list + 1] = entry
+            end
+            Fold(entry, source)
+        end
+    end
+    table.sort(list, BestFirst)
+    for index, entry in ipairs(list) do
+        if index > SavedFarmsUI.MAX_CHOICES then break end
+        options[#options + 1] = {
+            text = entry.label, value = #options + 1, mob = entry.mob,
+            chance = entry.chance, minLevel = entry.minLevel, maxLevel = entry.maxLevel,
+            columns = Columns(entry),
+        }
     end
     return options
 end
@@ -744,9 +839,20 @@ function SavedFarmsUI:BuildBox()
         end
     end)
 
-    local whereLine = Line(L["Where:"])
-    frame.where = Widgets.CreateDropdown(whereLine, {}, function() end, { width = controlW })
-    frame.where:SetPoint("LEFT", LABEL_W, 0)
+    local zoneLine = Line(L["Zone:"])
+    frame.zone = Widgets.CreateDropdown(zoneLine, {}, function()
+        SavedFarmsUI:ZonePicked()
+    end, { width = controlW, glass = true })
+    frame.zone:SetPoint("LEFT", LABEL_W, 0)
+    HoverTip(zoneLine, { L["Zone:"], SavedFarmsUI.TIPS.zone })
+    zoneLine:EnableMouse(true)
+
+    local mobLine = Line(L["Mob:"])
+    frame.mob = Widgets.CreateDropdown(mobLine, {}, function() end, { width = controlW, glass = true })
+    frame.mob:SetPoint("LEFT", LABEL_W, 0)
+    frame.mobLine = mobLine
+    HoverTip(mobLine, { L["Mob:"], SavedFarmsUI.TIPS.mob })
+    mobLine:EnableMouse(true)
 
     local amountLine = Line(L["How Many:"])
     frame.amount = Widgets.CreateSearchBox(amountLine, "", nil, nil, { plain = true })
@@ -756,7 +862,7 @@ function SavedFarmsUI:BuildBox()
     local howLine = Line(L["How:"])
     local hows = {}
     for _, how in ipairs(SavedFarmsUI.HOWS) do hows[#hows + 1] = { text = how.text, value = how.value } end
-    frame.how = Widgets.CreateDropdown(howLine, hows, function() end, { width = controlW })
+    frame.how = Widgets.CreateDropdown(howLine, hows, function() SavedFarmsUI:MobState() end, { width = controlW })
     frame.how:SetPoint("LEFT", LABEL_W, 0)
     HoverTip(howLine, function()
         local lines = { L["How:"] }
@@ -883,25 +989,68 @@ function SavedFarmsUI:PickTop(text)
     if item then self:PickItem(item) else self:HideSuggest() end
 end
 
---- The item typed changed: the Where: choices follow it.
+--- The item typed changed: the Zone: and Mob: choices follow it. `keep`
+--- (a saved farm) picks its zone and mob again; one the data no longer
+--- lists is added, so a saved farm opens as it was saved.
 function SavedFarmsUI:ItemTyped(text, keep)
     local box = self.box
     if not box then return end
-    local options = SavedFarmsUI.WhereOptions(text)
-    box.whereChoices = options
-    if #options == 0 then
-        box.where:SetOptions({ { text = "--", value = 0 } })
-        box.where:SetValue(0)
-        return
-    end
-    box.where:SetOptions(options)
+    local options = SavedFarmsUI.ZoneOptions(text)
     local pick = 1
-    if keep then
+    if keep and keep.zone then
+        pick = nil
         for index, option in ipairs(options) do
-            if option.zone == keep.zone and (keep.mob == nil or option.mob == keep.mob) then pick = index end
+            if option.zone == keep.zone then pick = index break end
+        end
+        if not pick then
+            local shown = ns.Spots and ns.Spots.Show and ns.Spots.Show(keep.zone) or keep.zone
+            options[#options + 1] = { text = shown, value = #options + 1, zone = keep.zone }
+            pick = #options
         end
     end
-    box.where:SetValue(pick)
+    box.zoneChoices = options
+    if #options == 0 then
+        box.zone:SetOptions({ { text = "--", value = 0 } })
+        box.zone:SetValue(0)
+    else
+        box.zone:SetOptions(options)
+        box.zone:SetValue(pick)
+    end
+    self:ZonePicked(keep and keep.mob)
+end
+
+--- The zone picked now: the Mob: choices for it, back on Any Mob unless
+--- `mob` names one to keep.
+function SavedFarmsUI:ZonePicked(mob)
+    local box = self.box
+    if not box then return end
+    local choice = box.zoneChoices and box.zoneChoices[box.zone:GetValue()]
+    local options = SavedFarmsUI.MobOptions(box.item:GetText(), choice and choice.zone)
+    local pick = 1
+    if mob then
+        pick = nil
+        for index, option in ipairs(options) do
+            if option.mob == mob then pick = index break end
+        end
+        if not pick then
+            options[#options + 1] = { text = mob, value = #options + 1, mob = mob }
+            pick = #options
+        end
+    end
+    box.mobChoices = options
+    box.mob:SetOptions(options)
+    box.mob:SetValue(pick)
+    self:MobState()
+end
+
+--- Mob: is greyed when the zone has no mob that drops it, and for Route
+--- Mode, which gathers the whole zone.
+function SavedFarmsUI:MobState()
+    local box = self.box
+    if not box then return end
+    local on = #(box.mobChoices or {}) > 1 and box.how:GetValue() ~= "route"
+    box.mob:SetEnabled(on)
+    box.mobLine.label:SetTextColor(Theme.Unpack(on and "text" or "dim"))
 end
 
 --- Open the box, filled from `farm` (any fields known). `editID` edits
@@ -920,13 +1069,9 @@ function SavedFarmsUI:OpenBox(farm, editID)
     box.note:SetText("")
     box.name:SetText(farm.name or farm.item or "")
     box.item:SetText(farm.item or "")
-    self:ItemTyped(farm.item, farm)
-    if (not box.whereChoices or #box.whereChoices == 0) and farm.zone then
-        box.where:SetOptions({ { text = farm.mob and (farm.zone .. ", " .. farm.mob) or farm.zone, value = 0 } })
-        box.where:SetValue(0)
-    end
-    box.amount:SetText(farm.amount and tostring(farm.amount) or "")
     box.how:SetValue(farm.how or Logic.DefaultHow(farm.item))
+    self:ItemTyped(farm.item, farm)
+    box.amount:SetText(farm.amount and tostring(farm.amount) or "")
     box.daily:SetChecked(editID and farm.daily and true or (not editID))
     self:HideSuggest()
     box:Show()
@@ -946,13 +1091,14 @@ function SavedFarmsUI:BoxFields()
         name = box.name:GetText(), item = box.item:GetText(), amount = box.amount:GetText(),
         how = box.how:GetValue(), daily = box.daily.checked, page = self.boxPage,
     }
-    local value = box.where:GetValue()
-    local choice = box.whereChoices and box.whereChoices[value]
+    local choice = box.zoneChoices and box.zoneChoices[box.zone:GetValue()]
     if choice then
-        fields.zone, fields.mob = choice.zone, choice.mob
+        fields.zone = choice.zone
     elseif self.boxZone then
         fields.zone = self.boxZone
     end
+    local mob = box.mob:IsEnabled() and box.mobChoices and box.mobChoices[box.mob:GetValue()]
+    if fields.zone and mob then fields.mob = mob.mob end
     return fields
 end
 
@@ -980,7 +1126,7 @@ function SavedFarmsUI:SaveItem(name)
     local best = Goals and Goals:BestSpot(name)
     local goal = Goals and Goals:Find(name)
     return self:OpenBox({
-        name = name, item = name, zone = best and best.zone, mob = best and best.name,
+        name = name, item = name, zone = best and best.zone,
         amount = goal and goal.target or ns.SavedFarms.DEFAULT_AMOUNT,
         how = ns.SavedFarms.DefaultHow(name),
     })

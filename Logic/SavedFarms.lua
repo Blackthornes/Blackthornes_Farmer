@@ -501,6 +501,9 @@ function SavedFarms:Start(id)
     if farm.how == "spot" and farm.item and ns.Arrow then
         if farm.mob and farm.zone then
             pcall(ns.Arrow.Aim, ns.Arrow, farm.item, { name = farm.mob, zone = farm.zone })
+        elseif farm.zone and ns.Arrow.AimZone then
+            -- Any Mob: the closest spot in the zone, then the next one there.
+            pcall(ns.Arrow.AimZone, ns.Arrow, farm.item, farm.zone)
         else
             pcall(ns.Arrow.Follow, ns.Arrow, farm.item)
         end
