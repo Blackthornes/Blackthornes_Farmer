@@ -131,6 +131,10 @@ local TABS = {
     { key = "search", text = L["Search"] },
     { key = "rankings", text = L["Rankings"] },
     { key = "grind", text = L["Grind"] },
+    -- Saved Farms (Logic/SavedFarms.lua), only while ticked in Settings.
+    { key = "farms", text = L["Farms"], shown = function()
+        return ns.SavedFarms ~= nil and ns.SavedFarms.On()
+    end },
     { key = "stats", text = L["Stats"] },
     -- Always last, on the right (the owner, 2026-10-27: "Last tab on bottom
     -- right will always be settings"). It opens Settings in the window's
@@ -140,6 +144,18 @@ local TABS = {
 
 --- The tabs, for Settings to hang the same ones under itself.
 function UI.Tabs() return TABS end
+
+--- Saved Farms was ticked or unticked: the Farms tab comes or goes on the
+--- window's tabs and Settings' (the window leaves it if it showed).
+function UI:RefreshTabs()
+    if self.tabStrip and self.tabStrip.Relayout then self.tabStrip:Relayout() end
+    local settings = ns.SettingsUI and rawget(ns.SettingsUI, "tabStrip")
+    if settings and settings.Relayout then settings:Relayout() end
+    if self.tab == "farms" and not (ns.SavedFarms and ns.SavedFarms.On()) and self.frame then
+        self:ShowTab("search")
+    end
+    if ns.SavedFarmsUI then pcall(ns.SavedFarmsUI.PlaceSearchStrip, ns.SavedFarmsUI) end
+end
 UI.TAB_INSET = TAB_INSET
 
 -- Column widths, left to right, at their narrowest. The source, where and
@@ -152,6 +168,8 @@ UI.TAB_INSET = TAB_INSET
 local COLUMN_ORDER = { "kind", "name", "where", "level", "drop", "value", "badge", "map" }
 local BASE_WIDTH = { kind = 40, name = 170, where = 196, level = 46, drop = 110, value = 58, badge = 8, map = 0 }
 local MAP_BUTTON_WIDTH = 40
+-- Save Farm on an item heading (Saved Farms), as wide as its words.
+UI.SAVE_FARM_WIDTH = math.max(64, math.ceil(Theme.TextWidth("small", L["Save Farm"]) or 0) + 18)
 -- Where has room for the longest place in the data (a zone, a landmark and
 -- coordinates) in the game's font; at 400 it cut 47 of them off.
 local MAX_WIDTH = { name = 320, where = 520, drop = 220, value = 140 }
@@ -364,6 +382,9 @@ function UI:Build()
     end
     if ns.StatsUI then
         self.statsView = ns.StatsUI:Build(frame)
+    end
+    if ns.SavedFarmsUI then
+        self.farmsView = ns.SavedFarmsUI:Build(frame)
     end
 
     self.tab = "search"
@@ -773,7 +794,7 @@ function UI:FitColumns(rows)
     self.columns = Columns(widths)
     self:PlaceHeadings()
 
-    if self.tab ~= "rankings" and self.tab ~= "grind" and self.tab ~= "stats" then
+    if self.tab ~= "rankings" and self.tab ~= "grind" and self.tab ~= "stats" and self.tab ~= "farms" then
         self:ApplySize()
     end
 end
@@ -951,6 +972,16 @@ function UI:CreateRow(row)
     row.goal:SetPoint("RIGHT", -2, 0)
     row.goal:Hide()
 
+    -- Save Farm (UI/SavedFarms.lua), right of Goal while Saved Farms is on.
+    row.saveFarm = Widgets.CreateButton(row, L["Save Farm"], function()
+        local data = row.data
+        if data and data.type == "item" and ns.SavedFarmsUI then
+            ns.SavedFarmsUI:SaveItem(data.item.name)
+        end
+    end, { width = UI.SAVE_FARM_WIDTH, height = 15, primary = true })
+    row.saveFarm:SetPoint("RIGHT", -2, 0)
+    row.saveFarm:Hide()
+
     -- Show on Map: the kill heat map's glow for this mob or item.
     row.map = Widgets.CreateButton(row, L["Map"], function()
         local kind, name = UI.MapTarget(row.data)
@@ -1072,6 +1103,7 @@ function UI:UpdateRow(row, data, index)
     self:PlaceRow(row)
     row.heading:Hide()
     row.goal:Hide()
+    if row.saveFarm then row.saveFarm:Hide() end
     row.map:Hide()
     row.band:Hide()
     row.bandGlow:Hide()
@@ -1098,9 +1130,20 @@ function UI:UpdateRow(row, data, index)
                 data.item.category, ns.Search:SpotsText(data.count, #data.item.sources)))))
         row.heading:Show()
 
-        -- Show on Map sits left of Goal, or at the end with no Goal.
+        -- Show on Map sits left of Goal, or at the end with no Goal. Save
+        -- Farm, while Saved Farms is on, is last, Goal left of it.
         local mapKind, mapName = UI.MapTarget(data)
         local hasGoal = not (data.item.worldDrops or data.item.found)
+        local saving = hasGoal and ns.SavedFarms ~= nil and ns.SavedFarms.On()
+        local saveRoom = saving and (UI.SAVE_FARM_WIDTH + 4) or 0
+        row.goal:ClearAllPoints()
+        if saving then
+            row.goal:SetPoint("RIGHT", row.saveFarm, "LEFT", -4, 0)
+            row.saveFarm:Show()
+            PlaceHeading(row, data.item.id and 38 or 18, 64 + saveRoom)
+        else
+            row.goal:SetPoint("RIGHT", -2, 0)
+        end
         if mapKind then
             row.map:ClearAllPoints()
             if hasGoal then
@@ -1110,7 +1153,7 @@ function UI:UpdateRow(row, data, index)
             end
             DressMapButton(row, mapKind, mapName)
             PlaceHeading(row, data.item.id and 38 or 18,
-                (hasGoal and 64 or 22) + MAP_BUTTON_WIDTH + 4)
+                (hasGoal and 64 or 22) + MAP_BUTTON_WIDTH + 4 + saveRoom)
         end
 
         -- "23/40" once it has a goal, so the list shows where you are.
@@ -1534,7 +1577,9 @@ function UI:ShowTab(key)
         ns.SettingsUI:Show()
         return
     end
-    local views = { rankings = self.rankingsView, grind = self.grindView, stats = self.statsView }
+    local views = { rankings = self.rankingsView, grind = self.grindView, stats = self.statsView,
+        farms = self.farmsView }
+    if key == "farms" and not (ns.SavedFarms and ns.SavedFarms.On()) then key = "search" end
     if not views[key] then key = "search" end
 
     self.tab = key
@@ -1546,6 +1591,7 @@ function UI:ShowTab(key)
     if self.rankingsView then self.rankingsView:SetShown(key == "rankings") end
     if self.grindView then self.grindView:SetShown(key == "grind") end
     if self.statsView then self.statsView:SetShown(key == "stats") end
+    if self.farmsView then self.farmsView:SetShown(key == "farms") end
 
     -- One size for every tab.
     self:ApplySize()
@@ -1560,7 +1606,11 @@ function UI:ShowTab(key)
     elseif key == "stats" then
         self.searchBox:ClearFocus()
         ns.StatsUI:Render(true)
+    elseif key == "farms" then
+        self.searchBox:ClearFocus()
+        ns.SavedFarmsUI:Render()
     else
+        if ns.SavedFarmsUI then pcall(ns.SavedFarmsUI.PlaceSearchStrip, ns.SavedFarmsUI) end
         self:DrawUnsearched()
     end
 end
@@ -1628,6 +1678,8 @@ function UI:Resized()
         pcall(ns.StatsUI.Render, ns.StatsUI)
     elseif self.tab == "grind" and ns.GrindingUI then
         pcall(ns.GrindingUI.Render, ns.GrindingUI)
+    elseif self.tab == "farms" and ns.SavedFarmsUI then
+        pcall(ns.SavedFarmsUI.Render, ns.SavedFarmsUI)
     elseif self.tab == "search" and self.Render then
         pcall(self.Render, self)
     end
@@ -1703,7 +1755,8 @@ function UI:Toggle()
     self:Show()
     self.searching = nil
 
-    if ns.db and (ns.db.lastTab == "rankings" or ns.db.lastTab == "grind" or ns.db.lastTab == "stats") then
+    local farms = ns.db and ns.db.lastTab == "farms" and ns.SavedFarms and ns.SavedFarms.On()
+    if ns.db and (ns.db.lastTab == "rankings" or ns.db.lastTab == "grind" or ns.db.lastTab == "stats" or farms) then
         self:ShowTab(ns.db.lastTab)
         return
     end

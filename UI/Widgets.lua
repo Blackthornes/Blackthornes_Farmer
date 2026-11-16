@@ -1704,6 +1704,8 @@ function Widgets.CreateTabStrip(parent, tabs, onSelect, opts)
         -- A tab marked right sits flush with the strip's right end (Settings
         -- is always last there, the owner 2026-10-27).
         button.right = tab.right and true or false
+        button.shownFn = type(tab.shown) == "function" and tab.shown or false
+        button.standing = true
 
         button:SetScript("OnClick", function(self)
             strip:Select(self.key)
@@ -1722,62 +1724,26 @@ function Widgets.CreateTabStrip(parent, tabs, onSelect, opts)
         strip.tabs[index] = button
     end
 
-    -- Tabs given no width are as wide as their names, at the full size when
-    -- all of them fit opts.width and a step smaller when not. When a name
-    -- cannot be measured they share the room equally.
-    local sized, room = {}, opts.width
-    for _, button in ipairs(strip.tabs) do
-        if button.fixedWidth then
-            if room then room = room - button.fixedWidth end
-        else
-            sized[#sized + 1] = button
-        end
+    -- A tab given `shown` (a function) stands only while it answers true;
+    -- strip:Relayout() lays the tabs out again when that changes (Farmer's
+    -- Farms tab, only while Saved Farms is ticked).
+    local function Standing(button)
+        if not button.shownFn then return true end
+        local ok, shown = pcall(button.shownFn)
+        return ok and shown and true or false
     end
 
-    local widths = {}
-    if #sized > 0 then
-        local named = NameWidths(sized, room)
-        if not named then
-            for _, button in ipairs(sized) do
-                button.labelSize = "small"
-                button.label:SetFont(Theme.FONT, Theme.sizes.small, "")
-            end
-            named = NameWidths(sized, room)
-        end
-
-        for index, button in ipairs(sized) do
-            widths[button] = named and named[index]
-                or (room and math.min(96, math.floor(room / #sized)) or 96)
-        end
-    end
-
-    -- Hanging tabs stand a little apart, so each reads as its own tab.
+    local packed = 1
     local gap = hanging and 3 or 0
-    local x = 0
-    for _, button in ipairs(strip.tabs) do
-        local width = button.fixedWidth or widths[button]
-        if hanging then
-            button:SetPoint("TOPLEFT", x, 0)
-            width = math.max(1, width - gap)
-        else
-            button:SetPoint("BOTTOMLEFT", x, 0)
-        end
-        button:SetWidth(width)
-        button.left, button.span = x, width
-        x = x + width + gap
-    end
+    local room = opts.width
 
-    -- Tabs marked right move to the far end of the strip, keeping their
-    -- order, when the strip has room for them. Again when the window it
-    -- hangs from changes width (strip:SetRoom).
-    local packed = math.max(x, 1)
     local function PlaceRight(width)
         local full = packed
         if hanging and type(width) == "number" and width > packed then
             local right = width
             for index = #strip.tabs, 1, -1 do
                 local button = strip.tabs[index]
-                if button.right then
+                if button.right and button.standing then
                     right = right - button.span
                     button.left = right
                     right = right - gap
@@ -1787,13 +1753,80 @@ function Widgets.CreateTabStrip(parent, tabs, onSelect, opts)
         end
         strip:SetWidth(full)
     end
-    PlaceRight(opts.width)
-    for _, button in ipairs(strip.tabs) do
-        if button.right and hanging then
-            button:ClearAllPoints()
-            button:SetPoint("TOPLEFT", button.left, 0)
+
+    local function Layout()
+        -- Tabs given no width are as wide as their names, at the full size
+        -- when all of them fit opts.width and a step smaller when not. When
+        -- a name cannot be measured they share the room equally.
+        local sized, left = {}, opts.width
+        for _, button in ipairs(strip.tabs) do
+            button.standing = Standing(button)
+            button:SetShown(button.standing)
+            if button.standing then
+                if button.fixedWidth then
+                    if left then left = left - button.fixedWidth end
+                else
+                    sized[#sized + 1] = button
+                end
+            end
+        end
+
+        local widths = {}
+        if #sized > 0 then
+            -- Shrunk for a strip that was fuller: back to the full size
+            -- before they are measured again.
+            for _, button in ipairs(sized) do
+                if button.shrunk then
+                    button.shrunk, button.labelSize = nil, "normal"
+                    button.label:SetFont(Theme.FONT, Theme.sizes.normal, "")
+                end
+            end
+            local named = NameWidths(sized, left)
+            if not named then
+                for _, button in ipairs(sized) do
+                    button.labelSize, button.shrunk = "small", true
+                    button.label:SetFont(Theme.FONT, Theme.sizes.small, "")
+                end
+                named = NameWidths(sized, left)
+            end
+
+            for index, button in ipairs(sized) do
+                widths[button] = named and named[index]
+                    or (left and math.min(96, math.floor(left / #sized)) or 96)
+            end
+        end
+
+        -- Hanging tabs stand a little apart, so each reads as its own tab.
+        local x = 0
+        for _, button in ipairs(strip.tabs) do
+            if button.standing then
+                local width = button.fixedWidth or widths[button]
+                button:ClearAllPoints()
+                if hanging then
+                    button:SetPoint("TOPLEFT", x, 0)
+                    width = math.max(1, width - gap)
+                else
+                    button:SetPoint("BOTTOMLEFT", x, 0)
+                end
+                button:SetWidth(width)
+                button.left, button.span = x, width
+                x = x + width + gap
+            end
+        end
+
+        -- Tabs marked right move to the far end of the strip, keeping their
+        -- order, when the strip has room for them. Again when the window it
+        -- hangs from changes width (strip:SetRoom).
+        packed = math.max(x, 1)
+        PlaceRight(room)
+        for _, button in ipairs(strip.tabs) do
+            if button.right and hanging and button.standing then
+                button:ClearAllPoints()
+                button:SetPoint("TOPLEFT", button.left, 0)
+            end
         end
     end
+    Layout()
 
     -- One gold line for the whole strip, gliding to the tab picked, with a
     -- soft glow over it. Both ride on a layer of their own above the tabs:
@@ -1847,8 +1880,28 @@ function Widgets.CreateTabStrip(parent, tabs, onSelect, opts)
 
     --- The strip's room changed (its window grew): the tabs marked right
     --- move to its new right end.
+    --- A tab's `shown` answer changed: lay the tabs out again and keep the
+    --- one picked, else the first.
+    function strip:Relayout()
+        Layout()
+        local picked = self.selected
+        for _, button in ipairs(self.tabs) do
+            if button.key == picked and not button.standing then picked = self.tabs[1] and self.tabs[1].key end
+        end
+        self.selected = false
+        self.lineX, self.lineWidth = false, false
+        if picked then self:Select(picked) end
+    end
+
     function strip:SetRoom(width)
+        room = width
         PlaceRight(width)
+        for _, button in ipairs(self.tabs) do
+            if button.right and hanging and button.standing then
+                button:ClearAllPoints()
+                button:SetPoint("TOPLEFT", button.left, 0)
+            end
+        end
         local picked = self.selected
         self.selected = false
         self.lineX, self.lineWidth = false, false
@@ -1859,6 +1912,7 @@ function Widgets.CreateTabStrip(parent, tabs, onSelect, opts)
         self.selected = key
 
         for _, button in ipairs(self.tabs) do
+          if button.standing then
             local active = button.key == key
             button.selected = active
             Motion:Stop(button, "hover")
@@ -1878,6 +1932,7 @@ function Widgets.CreateTabStrip(parent, tabs, onSelect, opts)
             end
             if active then MarkTab(button) end
             if blizzard then Look.SelectTab(button, active) end
+          end
         end
     end
 

@@ -1675,6 +1675,25 @@ function SettingsUI:BuildMapPage()
     end, false)
     controls.goalsBank:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Saved Farms (Logic/SavedFarms.lua, the owner said build it
+    -- 2026-11-16): off unless ticked; it adds the Farms tab.
+    pages:Section("goals", 1, L["SAVED FARMS"])
+
+    local farmsRow = pages:Row("goals", 1, L["Saved Farms:"],
+        L["Save the farms you like and run them again with one click. Adds a Farms tab."])
+    controls.savedFarms = Widgets.CreateCheckbox(farmsRow, L["On"], function(checked)
+        if ns.SavedFarms then ns.SavedFarms:SetOn(checked) end
+        if controls.lastFarmOnSearch then controls.lastFarmOnSearch:SetDisabled(not checked) end
+    end, false)
+    controls.savedFarms:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local lastFarmRow = pages:Row("goals", 1, L["Last Farm on Search:"],
+        L["Shows your last farm at the top of the Search tab, with a Repeat button."])
+    controls.lastFarmOnSearch = Widgets.CreateCheckbox(lastFarmRow, L["On"], function(checked)
+        if ns.SavedFarms then ns.SavedFarms:SetLastOnSearch(checked) end
+    end, true)
+    controls.lastFarmOnSearch:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     pages:Section("goals", 2, L["ARROW"])
 
     local arrowRow = pages:Row("goals", 2, L["Goal Arrow:"],
@@ -2068,6 +2087,9 @@ function SettingsUI:Refresh()
     controls.tracker:SetChecked(not db.trackerHidden)
     controls.dodgeGroup:SetChecked(db.trackerDodgeGroup ~= false)
     controls.keepPanel:SetChecked(db.keepPanel == true)
+    controls.savedFarms:SetChecked(db.savedFarms == true)
+    controls.lastFarmOnSearch:SetChecked(db.lastFarmOnSearch ~= false)
+    controls.lastFarmOnSearch:SetDisabled(db.savedFarms ~= true)
     controls.sessionTimer:SetChecked(db.sessionTimer == true)
     controls.sessionTimerAutoPause:SetChecked(db.sessionTimerAutoPause ~= false)
     controls.sessionTimerAutoPause:SetDisabled(db.sessionTimer ~= true)
