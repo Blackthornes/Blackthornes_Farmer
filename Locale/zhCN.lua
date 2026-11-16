@@ -1947,4 +1947,11 @@ L["Your goals and the goal arrow"] = "你的目标和目标箭头"
 L["Lines Farmer adds to tooltips, and counts over mobs"] = "Farmer 加在鼠标提示里的内容，以及怪物头上的计数"
 L["Show, see through and put back each small window"] = "显示、透明和重置每个小窗口"
 L["Every sound Farmer plays"] = "Farmer 播放的所有声音"
-L["Window style and size, effects, text size and Farmer's windows"] = "窗口样式和大小、特效、文字大小和 Farmer 的窗口"
+
+-- The settings every Blackthornes addon shares (2026-11-16).
+L["All Addons"] = "全部插件"
+L["ALL BLACKTHORNES ADDONS"] = "所有 BLACKTHORNES 插件"
+L["WHAT'S NEW"] = "更新内容"
+L["After Updates:"] = "更新后："
+L["Show With Motion"] = "带动画显示"
+L["Window size and Farmer's windows"] = "窗口大小和 Farmer 的窗口"

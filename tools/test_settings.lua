@@ -145,8 +145,8 @@ local pages = SettingsUI.pages
 suite.check("it opens on the first page", pages.shown == "tally", pages.shown)
 suite.check("with the kill rows showing", pages.pages.tally.content:IsShown()
     and not pages.pages.general.content:IsShown())
-suite.check("General sits just before About, ten pages in all",
-    #pages.defs == 10 and pages.defs[9].key == "general" and pages.defs[10].key == "about")
+suite.check("General sits just before About, eleven pages in all",
+    #pages.defs == 11 and pages.defs[10].key == "general" and pages.defs[11].key == "about")
 local tallyPart, generalPart
 for _, part in ipairs(pages.switch) do
     if part.key == "tally" then tallyPart = part end

@@ -62,8 +62,10 @@ local PAGES = {
       tip = L["Every sound Farmer plays"] },
     { key = "sharing", text = L["SHARING"],
       tip = L["Share kills, drop rates and gathering with your other account"] },
+    -- The settings every Blackthornes addon shares; the same page in each.
+    { key = "all", text = L["All Addons"] },
     { key = "general", text = L["GENERAL"],
-      tip = L["Window style and size, effects, text size and Farmer's windows"] },
+      tip = L["Window size and Farmer's windows"] },
     { key = "about", text = L["ABOUT"],
       tip = L["How these addons are made, the version, the Discord and the other Blackthornes addons"] },
 }
@@ -802,14 +804,6 @@ function SettingsUI:BuildPanelsPage()
     end
     if after then GrowRow(trackerScaleRow, 24) end
 
-    local positionRow = pages:Row("panels", 1, L["Window Spots:"],
-        L["Puts every Blackthornes window back where it started. Your settings and data stay the same."])
-
-    local reset = Widgets.CreateButton(positionRow, L["Set Default"], function()
-        ns.HandleSlash("windows reset")
-    end, { width = 110, height = 20 })
-    reset:SetPoint("TOPLEFT", CONTROL_X, 0)
-    controls.resetPositions = reset
 
 
     -- The owner, 2026-10-29: Kills & Loot, Goals and Where to Farm snap
@@ -826,16 +820,17 @@ function SettingsUI:BuildWindowsPage()
     local pages = self.pages
 
     pages:Section("general", 1, L["WINDOWS"])
+    pages:Section("all", 1, L["ALL BLACKTHORNES ADDONS"])
 
     -- Asked 2026-10-10: the game's own look for players who would rather
     -- the windows matched the rest of their screen. Read at login, so it
     -- waits for /reload as Text size does. See UI/BlizzardLook.lua.
-    local styleRow = pages:Row("general", 1, L["Window Style:"], nil)
+    local styleRow = pages:Row("all", 1, L["Window Style:"], nil)
     controls.windowStyle = SettingsUI:WindowStyleControl(styleRow)
 
     -- Bigger letters in the same windows, as Tradeskills has. Every size
     -- is read as text is drawn, so it waits for /reload.
-    local textRow = pages:Row("general", 1, L["Text Size:"], nil)
+    local textRow = pages:Row("all", 1, L["Text Size:"], nil)
     controls.textSize = ns.SettingsPages.TextSizeControl(textRow, CONTROL_X, function() return ns.db end)
 
     -- The minimap button always shows (the owner, 2026-10-15), so it has no
@@ -857,7 +852,7 @@ function SettingsUI:BuildWindowsPage()
 
     -- Every window and both panels follow it, so it sits with the windows
     -- rather than under the kill tally. The saved key keeps its old name.
-    local effectsRow = pages:Row("general", 1, L["Effects:"], nil)
+    local effectsRow = pages:Row("all", 1, L["Effects:"], nil)
 
     local FX = ns.TrackerFX
     controls.effects = Widgets.CreateChoice(effectsRow, {
@@ -870,7 +865,7 @@ function SettingsUI:BuildWindowsPage()
     -- Mute All Sounds (a player asked, the owner said build it, 2026-11-12):
     -- one box quiets every sound every Blackthornes addon plays. Ticked here
     -- is ticked in all of them (UI/SharedChoices.lua).
-    local muteRow = pages:Row("sounds", 1, L["Mute All Sounds:"], nil)
+    local muteRow = pages:Row("all", 1, L["Mute All Sounds:"], nil)
     controls.muteSounds = Widgets.CreateCheckbox(muteRow, L["On"], function(checked)
         SettingsUI:SetMuteSounds(checked)
     end, false)
@@ -878,7 +873,7 @@ function SettingsUI:BuildWindowsPage()
 
     -- A player asked (2026-10-28): one minimap button for every Blackthornes
     -- addon loaded. Ticked unless unticked; see UI/SharedMinimap.lua.
-    local combineRow = pages:Row("general", 1, L["Combine Addon Buttons:"], nil)
+    local combineRow = pages:Row("all", 1, L["Combine Addon Buttons:"], nil)
     controls.combineButtons = Widgets.CreateCheckbox(combineRow, L["On"], function(checked)
         if ns.SharedMinimap then ns.SharedMinimap.SetCombined(checked) end
     end, true)
@@ -888,11 +883,20 @@ function SettingsUI:BuildWindowsPage()
     -- "One Window:", 2026-10-30): every Blackthornes addon in one window
     -- with a rail down its left side. On unless unticked; ticked here is
     -- ticked in every addon.
-    local oneRow = pages:Row("general", 1, L["One Window:"], nil)
+    local oneRow = pages:Row("all", 1, L["One Window:"], nil)
     controls.oneWindow = Widgets.CreateCheckbox(oneRow, L["On"], function(checked)
         SettingsUI:SetOneWindow(checked)
     end, false)
     controls.oneWindow:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local positionRow = pages:Row("all", 1, L["Window Spots:"],
+        L["Puts every Blackthornes window back where it started. Your settings and data stay the same."])
+
+    local reset = Widgets.CreateButton(positionRow, L["Set Default"], function()
+        ns.HandleSlash("windows reset")
+    end, { width = 110, height = 20 })
+    reset:SetPoint("TOPLEFT", CONTROL_X, 0)
+    controls.resetPositions = reset
 
     pages:Section("general", 2, L["FARMER UI"])
 
@@ -1885,14 +1889,13 @@ function SettingsUI:BuildAdvancedPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("general", 1, L["ADDONS"])
 
     -- Debug and the checks are typed only (/farm debug, the owner,
     -- 2026-10-23): players don't need them.
 
     -- Core/SisterNote.lua: one chat line, once, naming the Blackthornes
     -- addons the player does not have. Off here is off in all of them.
-    local sistersRow = pages:Row("general", 1, L["Sister Addons:"],
+    local sistersRow = pages:Row("all", 1, L["Sister Addons:"],
         L["Says once in chat which Blackthornes addons you don't have."])
 
     controls.sisters = Widgets.CreateCheckbox(sistersRow, L["On"], function(checked)
@@ -1902,22 +1905,16 @@ function SettingsUI:BuildAdvancedPage()
 
     -- UI/WhatsNew.lua: one window after an update for every Blackthornes
     -- addon. Off here is off in all of them, as the sister note is.
-    local _, whatsNewButton = CommandRow(pages, "general", 1, L["What's New:"], nil,
+    pages:Section("all", 2, L["WHAT'S NEW"])
+    local _, whatsNewButton = CommandRow(pages, "all", 2, L["What's New:"], nil,
         L["Open"], "whatsnew")
     controls.whatsnew = whatsNewButton
 
-    local whatsNewRow = pages:Row("general", 1, L["What's New After Updates:"],
+    -- Off, Show or Show With Motion in one box (the two boxes it had).
+    local afterRow = pages:Row("all", 2, L["After Updates:"],
         L["Opens What's New the first time you play after an update."])
-    controls.whatsNewPopup = Widgets.CreateCheckbox(whatsNewRow, L["On"], function(checked)
-        ns.WhatsNew:SetOn(checked)
-    end, true)
-    controls.whatsNewPopup:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local whatsNewMotionRow = pages:Row("general", 1, L["What's New Motion:"], nil)
-    controls.whatsNewMotion = Widgets.CreateCheckbox(whatsNewMotionRow, L["On"], function(checked)
-        ns.WhatsNew:SetMotionOn(checked)
-    end, true)
-    controls.whatsNewMotion:SetPoint("TOPLEFT", CONTROL_X, -2)
+    controls.whatsNewAfter = ns.SettingsPages.AfterUpdatesControl(afterRow, CONTROL_X,
+        function() return ns.WhatsNew end)
 
     -- The chat-only commands (help, chat, stats, data, list) have no button
     -- here: they are typed only (the owner, 2026-10-15).
@@ -1960,8 +1957,7 @@ function SettingsUI:Refresh()
         button:SetLabelColor(button.percent == tallyPercent and "good" or nil)
     end
     controls.sisters:SetChecked(ns.SisterNote:IsOn())
-    controls.whatsNewPopup:SetChecked(ns.WhatsNew:IsOn())
-    controls.whatsNewMotion:SetChecked(ns.WhatsNew:IsMotionOn())
+    controls.whatsNewAfter:Sync()
     controls.share:SetChecked(db.shareData == true)
     controls.shareNames:SetText(db.shareNames or "")
     controls.shareGuild:SetChecked(db.shareGuild == true)
@@ -2114,6 +2110,8 @@ function SettingsUI:Refresh()
     if controls.oneWindow then
         local One = ns.FarmerTabs and ns.FarmerTabs.One()
         controls.oneWindow:SetChecked(One ~= nil and One.On() == true)
+        -- In the one window, All Addons is behind its gear, not on the switch.
+        if self.pages.SetHidden then self.pages:SetHidden("all", One ~= nil and One.On() == true) end
     end
     if controls.snapPanels then controls.snapPanels:SetChecked(not ns.PanelSnap or ns.PanelSnap:IsOn()) end
     if controls.dockMap then controls.dockMap:SetChecked(ns.MapDock and ns.MapDock:IsOn() or false) end
@@ -2216,6 +2214,12 @@ function SettingsUI:Show()
 end
 
 --- A tab under Settings was clicked: another opens the main window here.
+--- Open Settings on the All Addons page (the one window's gear).
+function SettingsUI:ShowAllAddons()
+    self:Show()
+    if self.pages then self.pages:Show("all") end
+end
+
 function SettingsUI:OpenTab(key)
     if key == "settings" then return end
     if not ns.UI then return end

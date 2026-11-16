@@ -2720,7 +2720,7 @@ command is the one it was.
 
 - **Pages** (`PAGES` in `UI/Settings.lua`): `tally` KILLS, `loot` LOOT,
   `map` MAP, `goals` GOALS, `tooltips` TOOLTIPS, `panels` WINDOWS,
-  `sounds` SOUNDS, `sharing`, `general`, `about`. The Windows page's key is
+  `sounds` SOUNDS, `sharing`, `all` All Addons, `general`, `about`. The Windows page's key is
   `panels`, not `windows`: `SettingsUI.OLD_PAGES` still sends a saved
   `windows` or `advanced` to General. `SettingsUI.BAR_CAP` (724) is passed
   to the shared pages as `barCap`, so the page names wrap to a second line
@@ -2734,11 +2734,19 @@ command is the one it was.
   Reset Spot moves that window only and keeps its size:
   `SettingsUI:ResetTrackerSpot`, `goals dock`, `SettingsUI:ResetSpotsSpot`,
   `rankup reset`, `xpbar reset`, `lootfeed reset`, `routewindow reset`,
-  `FishingPanel:ResetPlace`. Kills and Loot Size, Window Spots and Snap
-  Panels sit under the table. The Loot Feed's Move button stayed on the
+  `FishingPanel:ResetPlace`. Kills and Loot Size and Snap Panels sit
+  under the table. The Loot Feed's Move button stayed on the
   Loot page ("Feed Place:").
-- **Sounds:** Mute All Sounds, the Kills & Loot sounds, the XP bar's two
-  and Node Sound are on the Sounds page. A new sound's row goes there.
+- **Sounds:** the Kills & Loot sounds, the XP bar's two and Node Sound
+  are on the Sounds page. A new sound's row goes there.
+- **All Addons** (the same page in all five, from the shared build):
+  Window Style, Text Size, Effects, Mute All Sounds, Combine Addon
+  Buttons, One Window, Window Spots and Sister Addons, and What's New with
+  one "After Updates:" box (`SettingsPages.AfterUpdatesControl`,
+  `controls.whatsNewAfter`) where two boxes were. Hidden from the switch
+  while One Window is on; the one window's gear opens it
+  (`SettingsUI:ShowAllAddons`, `allAddons` in the `SharedWindow:Join`
+  entry). Window Size stays on General.
 - **Map** keeps markers, grinding, kill heat and the gather route in
   column 1 and a SPARKLES heading in column 2, which tells the two "My
   Professions Only:" rows apart. Goals and the arrow are the Goals page;

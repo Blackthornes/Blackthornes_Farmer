@@ -19,7 +19,7 @@ local pages, controls = SettingsUI.pages, SettingsUI.controls
 local order = {}
 for index, def in ipairs(pages.defs) do order[index] = def.key end
 suite.check("the pages, in order", table.concat(order, " ")
-    == "tally loot map goals tooltips panels sounds sharing general about", table.concat(order, " "))
+    == "tally loot map goals tooltips panels sounds sharing all general about", table.concat(order, " "))
 suite.check("no page takes a key that old saves send to General",
     SettingsUI.OLD_PAGES.panels == nil and SettingsUI.OLD_PAGES.sounds == nil)
 suite.check("the switch wraps at the window's width, never past it",
@@ -60,14 +60,27 @@ suite.check("the columns do not run into each other", x.show < x.clear and x.cle
     and x.spot + 100 <= x.wide, ("%s %s %s %s"):format(x.show, x.clear, x.spot, x.wide))
 suite.check("a line is as wide as both columns", lines.tracker:GetWidth() == x.wide, lines.tracker:GetWidth())
 
-for _, name in ipairs({ "trackerScale", "resetPositions", "snapPanels" }) do
+for _, name in ipairs({ "trackerScale", "snapPanels" }) do
     suite.check(name .. " sits under the table", PageOf(controls[name]) == "panels", tostring(PageOf(controls[name])))
 end
 
 -- Sounds in one place.
-for _, name in ipairs({ "muteSounds", "celebrate" }) do
-    suite.check(name .. " is on the Sounds page", PageOf(controls[name]) == "sounds", tostring(PageOf(controls[name])))
+suite.check("the fanfare box is on the Sounds page", PageOf(controls.celebrate) == "sounds",
+    tostring(PageOf(controls.celebrate)))
+
+-- What every Blackthornes addon shares has its own page, the same in each.
+for _, name in ipairs({ "windowStyle", "textSize", "effects", "muteSounds", "combineButtons", "oneWindow",
+    "resetPositions", "sisters", "whatsnew", "whatsNewAfter" }) do
+    suite.check(name .. " is on the All Addons page", PageOf(controls[name]) == "all", tostring(PageOf(controls[name])))
 end
+suite.check("Window Size stays on General", PageOf(controls.windowScale) == "general")
+ns.WhatsNew:SetOn(false)
+SettingsUI:Refresh()
+suite.check("After Updates shows what is saved", controls.whatsNewAfter:GetValue() == "off",
+    tostring(controls.whatsNewAfter:GetValue()))
+ns.WhatsNew:SetOn(true)
+SettingsUI:ShowAllAddons()
+suite.check("the one window's gear opens Settings on All Addons", pages.shown == "all", pages.shown)
 pages:Search("node sound")
 suite.check("Node Sound is found on the Sounds page", pages.shown == "sounds", pages.shown)
 pages:Search("dock to the map")

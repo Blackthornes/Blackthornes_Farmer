@@ -1907,6 +1907,7 @@ function UI:JoinSharedMinimap()
             key = "farmer", order = 1, name = "Farmer", icon = [[Interface\Icons\Trade_Mining]],
             open = function() UI:Toggle() end,
             settings = function() if ns.SettingsUI then ns.SettingsUI:Show() end end,
+            allAddons = function() if ns.SettingsUI then ns.SettingsUI:ShowAllAddons() end end,
             db = function() return ns.db end,
             -- The Search, Rankings, Grind, Stats and Settings tabs show in it.
             host = FarmerTabs.host,

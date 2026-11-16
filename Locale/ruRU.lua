@@ -1957,5 +1957,11 @@ L["Lines Farmer adds to tooltips, and counts over mobs"] =
 L["Show, see through and put back each small window"] =
     "Показать, сделать прозрачным и вернуть на место каждое малое окно"
 L["Every sound Farmer plays"] = "Все звуки, которые играет Farmer"
-L["Window style and size, effects, text size and Farmer's windows"] =
-    "Стиль и размер окон, эффекты, размер текста и окна Farmer"
+
+-- The settings every Blackthornes addon shares (2026-11-16).
+L["All Addons"] = "Все аддоны"
+L["ALL BLACKTHORNES ADDONS"] = "ВСЕ АДДОНЫ BLACKTHORNES"
+L["WHAT'S NEW"] = "ЧТО НОВОГО"
+L["After Updates:"] = "После обновления:"
+L["Show With Motion"] = "Показывать с анимацией"
+L["Window size and Farmer's windows"] = "Размер окна и окна Farmer"
