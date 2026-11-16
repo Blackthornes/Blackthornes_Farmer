@@ -2712,6 +2712,7 @@ landed in `UI/SharedWindow.lua` (FILE_VERSION 8, the same file in all five;
 - Tested in `tools/test_sharedwindow.lua` (sections 13 to 16),
   `tools/test_settingsscroll.lua`, each addon's settings test and
   Tradeskills' `tools/test_onewindow.lua` (section 7).
+
 ## Ten Settings pages and the Windows table
 
 The owner said build it from mockups (2026-11-16, the UI cleanup). Rows
