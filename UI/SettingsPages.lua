@@ -788,6 +788,51 @@ function Page:Refresh()
 end
 
 --------------------------------------------------------------------------------
+-- What's New after updates (the All Addons page)
+--------------------------------------------------------------------------------
+
+-- One drop-down for the two What's New boxes (2026-11-16, the owner said
+-- build it): Off, Show, or Show With Motion. It writes the same two saved
+-- choices as before (UI/WhatsNew.lua's SetOn and SetMotionOn); Off leaves
+-- the motion choice as it was, so nothing a player picked is lost.
+SettingsPages.AFTER_UPDATES = { "off", "show", "motion" }
+
+--- The drop-down's value for what is saved now.
+function SettingsPages.AfterUpdatesValue(whatsNew)
+    if not (whatsNew and whatsNew.IsOn) then return "show" end
+    local okOn, on = pcall(whatsNew.IsOn, whatsNew)
+    if okOn and not on then return "off" end
+    local okMotion, motion = pcall(whatsNew.IsMotionOn, whatsNew)
+    return (okMotion and motion) and "motion" or "show"
+end
+
+--- The "After Updates:" drop-down at `x` in `row`. Gives the control;
+--- `control:Sync()` reads what is saved again.
+function SettingsPages.AfterUpdatesControl(row, x, getWhatsNew)
+    local words = { off = L["Off"], show = L["Show"], motion = L["Show With Motion"] }
+    local options = {}
+    for _, value in ipairs(SettingsPages.AFTER_UPDATES) do
+        options[#options + 1] = { text = words[value], value = value }
+    end
+    local widest = 0
+    for _, value in ipairs(SettingsPages.AFTER_UPDATES) do
+        widest = math.max(widest, Theme.TextWidth("small", words[value]) or 0)
+    end
+    local control = Widgets.CreateDropdown(row, options, function(value)
+        local whatsNew = getWhatsNew()
+        if not whatsNew then return end
+        pcall(whatsNew.SetOn, whatsNew, value ~= "off")
+        if value ~= "off" then pcall(whatsNew.SetMotionOn, whatsNew, value == "motion") end
+    end, { width = math.max(140, math.ceil(widest) + 34) })
+    control:SetPoint("TOPLEFT", x, 0)
+    function control:Sync()
+        self:SetValue(SettingsPages.AfterUpdatesValue(getWhatsNew()))
+    end
+    control:Sync()
+    return control
+end
+
+--------------------------------------------------------------------------------
 -- Text size
 --------------------------------------------------------------------------------
 
