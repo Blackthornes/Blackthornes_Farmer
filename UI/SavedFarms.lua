@@ -613,19 +613,64 @@ end
 local BOX_W = 420
 local LABEL_W = 100
 
---- The Where: choices for `item`: each spot the data knows, best first.
+SavedFarmsUI.SUGGEST = 6
+
+--- The item `text` names, as the Search tab would find it: its exact name
+--- first, else the best name match. Nil when nothing matches.
+function SavedFarmsUI.FindItem(text)
+    if type(text) ~= "string" or text == "" or not ns.DB then return nil end
+    local found = ns.DB:GetItem(text)
+    if found then return found end
+    local list = SavedFarmsUI.Suggestions(text)
+    return list[1]
+end
+
+--- Up to SUGGEST items whose names match `text`, best first, as the
+--- Search tab ranks them. Items found only through a zone or mob are left
+--- out: the box asks for an item.
+function SavedFarmsUI.Suggestions(text)
+    local list = {}
+    local Search = ns.Search
+    if type(text) ~= "string" or not (Search and Search.Run) then return list end
+    if text:gsub("%s", "") == "" then return list end
+    local ok, results = pcall(Search.Run, Search, text)
+    if not ok or type(results) ~= "table" then return list end
+    local seen = {}
+    for _, result in ipairs(results) do
+        local item = result.item
+        if item and item.name and result.why == "name" and not seen[item.name] then
+            seen[item.name] = true
+            list[#list + 1] = item
+            if #list >= SavedFarmsUI.SUGGEST then break end
+        end
+    end
+    return list
+end
+
+--- The Where: choices for `item` (a name or the item itself): each spot
+--- the data knows, your own spots too, lowest level first.
 function SavedFarmsUI.WhereOptions(item)
     local options = {}
-    local found = type(item) == "string" and ns.DB and ns.DB:GetItem(item)
+    local found = type(item) == "table" and item or (type(item) == "string" and ns.DB and ns.DB:GetItem(item))
+    local Search = ns.Search
+    if found and Search and Search.WithYourSpots then
+        local ok, merged = pcall(Search.WithYourSpots, Search, found)
+        if ok and merged then found = merged end
+    end
     if found and found.sources then
-        local sorted = ns.Search and ns.Search.SortedSources and ns.Search:SortedSources(found) or found.sources
+        local sorted = Search and Search.SortedSources and Search:SortedSources(found) or found.sources
+        local seen = {}
         for _, source in ipairs(sorted) do
-            if source.zone then
-                local zone = ns.Spots and ns.Spots.Show and ns.Spots.Show(source.zone) or source.zone
-                options[#options + 1] = {
-                    text = source.name and (zone .. ", " .. source.name) or zone,
-                    value = #options + 1, zone = zone, mob = source.name,
-                }
+            if type(source.zone) == "string" and source.zone ~= "" then
+                local key = source.zone .. "|" .. (source.name or "")
+                if not seen[key] then
+                    seen[key] = true
+                    local shown = ns.Spots and ns.Spots.Show and ns.Spots.Show(source.zone) or source.zone
+                    options[#options + 1] = {
+                        text = source.name and (shown .. ", " .. source.name) or shown,
+                        value = #options + 1, zone = source.zone, mob = source.name,
+                    }
+                end
             end
             if #options >= 30 then break end
         end
@@ -684,9 +729,20 @@ function SavedFarmsUI:BuildBox()
     local itemLine = Line(L["Item:"])
     frame.item = Widgets.CreateSearchBox(itemLine, "", function(text)
         SavedFarmsUI:ItemTyped(text)
-    end, nil, { plain = true })
+        SavedFarmsUI:Suggest(text)
+    end, function(text)
+        SavedFarmsUI:PickTop(text)
+    end, { plain = true })
     frame.item:SetPoint("LEFT", LABEL_W, 0)
     frame.item:SetPoint("RIGHT", -4, 0)
+    frame.item.editBox:HookScript("OnEditFocusLost", function()
+        -- A moment's wait, so a click on a suggestion lands first.
+        if C_Timer and C_Timer.After then
+            C_Timer.After(0.2, function() SavedFarmsUI:HideSuggest() end)
+        else
+            SavedFarmsUI:HideSuggest()
+        end
+    end)
 
     local whereLine = Line(L["Where:"])
     frame.where = Widgets.CreateDropdown(whereLine, {}, function() end, { width = controlW })
@@ -728,9 +784,103 @@ function SavedFarmsUI:BuildBox()
     frame.note:SetWordWrap(true)
 
     frame:SetHeight(y + 12 + 22 + PADDING + 4)
+    frame:HookScript("OnHide", function() SavedFarmsUI:HideSuggest() end)
     if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, "farmer.savefarm") end
     self.box = frame
+    self:BuildSuggest(frame)
     return frame
+end
+
+local SUGGEST_ROW = 22
+
+--- The list of items under the Item: box, dark glass like every list.
+function SavedFarmsUI:BuildSuggest(frame)
+    local list = CreateFrame("Frame", nil, frame)
+    list:SetPoint("TOPLEFT", frame.item, "BOTTOMLEFT", 0, -2)
+    list:SetPoint("TOPRIGHT", frame.item, "BOTTOMRIGHT", 0, -2)
+    list:SetHeight(SUGGEST_ROW)
+    list:SetFrameStrata("FULLSCREEN_DIALOG")
+    list:EnableMouse(true)
+    Theme.Fill(list, "window")
+    Theme.Border(list, "borderLit")
+    list:Hide()
+    list.rows = {}
+    for index = 1, SavedFarmsUI.SUGGEST do
+        local row = CreateFrame("Button", nil, list)
+        row:SetPoint("TOPLEFT", 1, -1 - (index - 1) * SUGGEST_ROW)
+        row:SetPoint("TOPRIGHT", -1, -1 - (index - 1) * SUGGEST_ROW)
+        row:SetHeight(SUGGEST_ROW)
+        Theme.Fill(row, index % 2 == 1 and "glass" or "glassAlt", nil, "BACKGROUND")
+        local rule = row:CreateTexture(nil, "BORDER")
+        rule:SetPoint("BOTTOMLEFT")
+        rule:SetPoint("BOTTOMRIGHT")
+        rule:SetHeight(1)
+        rule:SetColorTexture(Theme.Unpack("border", 0.6))
+        Widgets.RowLight(row)
+        row.icon = Theme.CreateItemIcon(row, 16)
+        row.icon:SetPoint("LEFT", 6, 0)
+        row.label = Theme.CreateLabel(row, "small", "text")
+        row.label:SetPoint("LEFT", 28, 0)
+        row.label:SetPoint("RIGHT", -6, 0)
+        row:SetScript("OnEnter", function(self) Widgets.SetRowLight(self, 1) end)
+        row:SetScript("OnLeave", function(self) Widgets.SetRowLight(self, 0) end)
+        row:SetScript("OnClick", function(self) SavedFarmsUI:PickItem(self.item) end)
+        row:Hide()
+        list.rows[index] = row
+    end
+    frame.suggest = list
+end
+
+--- Show the items `text` matches under the Item: box, or hide the list
+--- when it matches none, or only the very name typed.
+function SavedFarmsUI:Suggest(text)
+    local box = self.box
+    local list = box and box.suggest
+    if not list then return end
+    local items = SavedFarmsUI.Suggestions(text)
+    if #items == 0 or (#items == 1 and items[1].name:lower() == (text or ""):lower()) then
+        list:Hide()
+        return
+    end
+    for index, row in ipairs(list.rows) do
+        local item = items[index]
+        row.item = item
+        if item then
+            row.label:SetText(Util.ColorItemOr("text", item.name))
+            Theme.SetItemIcon(row.icon, ns.Value and ns.Value:ItemID(item.name))
+            Widgets.SetRowLight(row, 0)
+            row:Show()
+        else
+            row:Hide()
+        end
+    end
+    list:SetHeight(#items * SUGGEST_ROW + 2)
+    list:Show()
+end
+
+function SavedFarmsUI:HideSuggest()
+    local list = self.box and self.box.suggest
+    if list then list:Hide() end
+end
+
+--- An item picked from the list: it fills Item: (and Name: while that
+--- was empty or still the old item), and Where: follows.
+function SavedFarmsUI:PickItem(item)
+    local box = self.box
+    if not (box and item and item.name) then return end
+    local before = box.item:GetText()
+    local name = box.name:GetText()
+    if name == "" or name == before then box.name:SetText(item.name) end
+    box.item:SetText(item.name)
+    box.item:ClearFocus()
+    self:HideSuggest()
+    self:ItemTyped(item.name)
+end
+
+--- Enter in the Item: box takes the best match.
+function SavedFarmsUI:PickTop(text)
+    local item = SavedFarmsUI.FindItem(text)
+    if item then self:PickItem(item) else self:HideSuggest() end
 end
 
 --- The item typed changed: the Where: choices follow it.
@@ -778,7 +928,9 @@ function SavedFarmsUI:OpenBox(farm, editID)
     box.amount:SetText(farm.amount and tostring(farm.amount) or "")
     box.how:SetValue(farm.how or Logic.DefaultHow(farm.item))
     box.daily:SetChecked(editID and farm.daily and true or (not editID))
+    self:HideSuggest()
     box:Show()
+    if not farm.item and farm.how ~= "route" then box.item:SetFocus() end
     return true
 end
 

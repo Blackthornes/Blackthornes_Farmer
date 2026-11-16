@@ -218,6 +218,30 @@ suite.check("Save Farm opens the box", UI:SaveItem("Silk Cloth") == true and UI.
 suite.check("filled from the item", UI.box.item:GetText() == "Silk Cloth" and UI.box.how:GetValue() == "spot")
 UI.box.name:SetText("Silk again")
 suite.check("Confirm saves it", UI:ConfirmBox() == true and #F:List() == 4 and not UI.box:IsShown())
+-- New Farm: typing in Item: lists matching items, and a pick fills Where:.
+UI:OpenBox({})
+suite.check("Where: waits for an item", #UI.box.whereChoices == 0)
+UI.box.item:SetText("silk")
+UI:Suggest("silk")
+local first = UI.box.suggest.rows[1]
+suite.check("typing lists items", UI.box.suggest:IsShown() and first:IsShown() and first.item ~= nil)
+local silkFound = false
+for _, row in ipairs(UI.box.suggest.rows) do
+    if row:IsShown() and row.item.name == "Silk Cloth" then silkFound = row end
+end
+suite.check("Silk Cloth is among them", silkFound ~= false)
+UI:PickItem(silkFound.item)
+suite.check("a pick fills Item: and Name:", UI.box.item:GetText() == "Silk Cloth" and UI.box.name:GetText() == "Silk Cloth")
+suite.check("and Where: lists its spots", #UI.box.whereChoices > 0 and not UI.box.suggest:IsShown())
+suite.check("each spot is a real zone", UI.box.whereChoices[1].zone ~= nil)
+local fields = UI:BoxFields()
+suite.check("the spot saves with the farm", fields.zone == UI.box.whereChoices[1].zone)
+UI:ItemTyped("Silk Clo")
+suite.check("a part name leaves Where: empty", #UI.box.whereChoices == 0)
+UI:PickTop("silk clo")
+suite.check("Enter takes the best match", UI.box.item:GetText() == "Silk Cloth" and #UI.box.whereChoices > 0)
+UI:CloseBox()
+
 UI:OpenBox(F:Find(route.id), route.id)
 UI.box.amount:SetText("25")
 suite.check("Edit keeps the same farm", UI:ConfirmBox() == true and F:Find(route.id).amount == 25 and #F:List() == 4)
