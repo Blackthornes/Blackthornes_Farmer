@@ -256,6 +256,17 @@ function GatherRouteUI:Build(panel)
     end, { width = ButtonWidth(L["Redo Route"]), height = 20 })
     self.redoButton:SetPoint("LEFT", self.skipButton, "RIGHT", 6, 0)
 
+    -- Save Farm (UI/SavedFarms.lua), while Saved Farms is on: this page's
+    -- route as a saved farm.
+    self.saveFarmButton = Widgets.CreateButton(foot, L["Save Farm"], function()
+        if ns.SavedFarmsUI then
+            local plan = GatherRouteUI.plan
+            ns.SavedFarmsUI:SaveRoute(Route().PageGives(), plan and plan.zone)
+        end
+    end, { width = ButtonWidth(L["Save Farm"]), height = 20 })
+    self.saveFarmButton:SetPoint("LEFT", self.redoButton, "RIGHT", 6, 0)
+    self.saveFarmButton:SetShown(ns.SavedFarms ~= nil and ns.SavedFarms.On() and Route().page ~= nil)
+
     self.loop = Theme.CreateLabel(foot, "small", "text", "RIGHT")
     self.loop:SetPoint("RIGHT", -4, 0)
 
@@ -427,6 +438,9 @@ function GatherRouteUI:Update()
     self.plan = plan
     local now = Now()
     local key = Key(plan, now)
+    if self.saveFarmButton then
+        self.saveFarmButton:SetShown(ns.SavedFarms ~= nil and ns.SavedFarms.On() and Route().page ~= nil)
+    end
     if key == self.key then return GatherRouteUI.FooterText(plan) end
     self.key = key
 

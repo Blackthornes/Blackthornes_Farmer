@@ -99,6 +99,7 @@ Sections there:
 - Where to Farm on the map's edge
 - Shelves, dock places and the All Addons page
 - Ten Settings pages and the Windows table
+- Saved Farms
 
 ## One key per character
 
