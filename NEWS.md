@@ -23,7 +23,7 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
-## 1.19.0
+## 1.19.1
 
 - There's a new Gather Route. It plans a short loop through the herb, ore and skinning spots you've mapped, and the arrow leads you stop to stop. Turn it on in the Map & goals page of Settings.
 - The Grind tab has a Route Mode box on the Herbs, Ore and Leather pages that shows your route.
