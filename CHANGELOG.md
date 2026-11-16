@@ -4,6 +4,17 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.20.0
+
+For WoW: Forever (interface 16001). `/reload` is not enough: a file was added, so close the game fully and start it again after updating.
+
+- **Dock to the Map.** A new Dock to the Map: box on the Goals page of Settings makes Where to Farm sit on the right edge of the world map while the map is open. It starts off.
+- **Settings pages.** Settings has new Windows, Sounds, Map, Goals and Tooltips pages, so each row sits where you would look for it. The Loot page has a Bags heading for the bag helpers. Page names wrap to a second line when they do not fit.
+- **All Addons page.** The settings every Blackthornes addon shares (Window Style, Text Size, Effects, Mute All Sounds, Combine Addon Buttons, One Window, Window Spots, Sister Addons and What's New) now sit on one All Addons page, behind the gear on the one window's rail. The two What's New boxes became one After Updates: drop-down. Nothing was renamed and your choices carry over.
+- **One window docks in more places.** It sits on the free side of the game's window, shrinks only a little when there is no room, and lets you resize it by hand with the grip. Each addon keeps its own height when you switch between them.
+- **Shared shelves.** Small pieces you never dragged, such as arrows, bars and cards, line up on a top or right shelf instead of starting on one spot.
+- **Fixes.** Where to Farm opens over Farmer's window again. Where to Farm and the Fishing Panel sit under the game's windows, so they no longer cover your bags or the map. The Kills & Loot panel redraws faster after each kill in a long session.
+
 ## 1.19.1
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
