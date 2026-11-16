@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.21.0
+
+For WoW: Forever (interface 16001). `/reload` is not enough: a file was added, so close the game fully and start it again after updating.
+
+- **Saved Farms.** A new Farms tab lets you save a farm and run it again with one click. Save Farm has Zone and Mob picks, with the best drop chance first, and the Item box searches as you type. Start keeps to the zone and mob you saved. The Saved Farms: box under SAVED FARMS on the Goals page of Settings turns it off, and `/farm farms [on|off]` does the same.
+
 ## 1.20.0
 
 For WoW: Forever (interface 16001). `/reload` is not enough: a file was added, so close the game fully and start it again after updating.
