@@ -73,4 +73,39 @@ dropdown:Toggle()
 suite.check("the open list sits on UIParent", dropdown.menu:GetParent() == UIParent)
 suite.check("the open list shows", dropdown.menu:IsShown())
 
+-- Ten pages with long names: given a cap, the switch wraps to a second
+-- line rather than growing the window, and the bar and page area grow.
+do
+    local defs = {}
+    for i = 1, 10 do defs[i] = { key = "p" .. i, text = "A LONG PAGE NAME " .. i } end
+    local wide = CreateFrame("Frame", nil, UIParent)
+    local many = SettingsPages.New(wide, {
+        pages = defs, top = 40, bottom = 30, padding = 12,
+        columnWidth = 200, columnGap = 20, controlX = 120, barCap = 724,
+        db = function() return {} end,
+    })
+    local item = CreateFrame("Frame", nil, many.pages.p1.content)
+    item.fixedHeight = 60
+    many:Place("p1", 1, item, 4)
+    UIParent._height = 6000
+    many:Fit()
+    suite.check("capped, the window is no wider than the host allows", many.need[1] <= 724, many.need[1])
+    suite.check("the switch wraps", (many.lines or 1) > 1, many.lines)
+    suite.check("the bar grows by a line each", many:BarHeight() == 32 + (many.lines - 1) * 26, many:BarHeight())
+    suite.check("the page area grows too",
+        many.need[2] >= 40 + many:BarHeight() + 14 + many:TallestColumn() + 30, many.need[2])
+    local one = SettingsPages.New(CreateFrame("Frame", nil, UIParent), {
+        pages = { { key = "a", text = "A" }, { key = "b", text = "B" } },
+        top = 40, bottom = 30, padding = 12, columnWidth = 200, columnGap = 20, controlX = 120,
+        db = function() return {} end,
+    })
+    one:Fit()
+    suite.check("a short switch stays on one line", (one.lines or 1) == 1, one.lines)
+    one:SetHidden("b", true)
+    suite.check("a page can be left off the switch", one.switch[2].button:IsShown() == false)
+    one:Show("b")
+    suite.check("and still be shown by name", one.shown == "b", one.shown)
+    UIParent._height = 2160
+end
+
 suite.done()
