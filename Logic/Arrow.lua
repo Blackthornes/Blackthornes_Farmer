@@ -164,11 +164,13 @@ function Arrow:Follow(item)
 end
 
 --- Point at one place from the Where? panel: the goal for `item`, with
---- `spot` first in the list.
-function Arrow:Aim(item, spot)
+--- `spot` first in the list. `keepZone` (a saved farm's Zone and Mob) also
+--- keeps the places after it to that spot's zone.
+function Arrow:Aim(item, spot, keepZone)
     if not self:Follow(item) then return false end
     if type(spot) == "table" then
         self.pinned = { name = spot.name, zone = spot.zone }
+        if keepZone and type(spot.zone) == "string" and spot.zone ~= "" then self.pinnedZone = spot.zone end
     end
     if not Arrow.IsOn() then
         self:SetOn(true)
@@ -714,26 +716,39 @@ function Arrow:Targets(item, here)
         end
     end
 
+    -- A place picked from the Where? panel (or a saved farm's mob) goes
+    -- first. Looked for before the list is cut to MAX_TARGETS, so a place
+    -- far down the ranking (another continent) still leads; a mob with no
+    -- place known yet points at its zone.
+    local first
+    local pinned = self.pinned
+    if pinned then
+        local want = ns.Spots.ZoneOf(pinned.zone) or pinned.zone
+        for _, group in ipairs({ exact, areas, far }) do
+            for _, target in ipairs(group) do
+                if target.name == pinned.name
+                    and (target.zone == pinned.zone or (target.zone and ns.Spots.ZoneOf(target.zone) == want)) then
+                    first = target
+                    break
+                end
+            end
+            if first then break end
+        end
+        if not first and type(pinned.name) == "string" and type(pinned.zone) == "string" then
+            first = self:SpotTarget({ name = pinned.name, zone = pinned.zone, kind = "mob" }, here, 1)
+        end
+    end
+
     local list = {}
+    if first then list[1] = first end
     local function Add(group)
         for _, target in ipairs(group) do
-            if #list < MAX_TARGETS and (not keep or keep(target)) then list[#list + 1] = target end
+            if #list < MAX_TARGETS and target ~= first and (not keep or keep(target)) then list[#list + 1] = target end
         end
     end
     Add(exact)
     Add(areas)
     Add(far)
-
-    -- A place picked from the Where? panel goes first.
-    if self.pinned then
-        for index, target in ipairs(list) do
-            if target.name == self.pinned.name and target.zone == self.pinned.zone then
-                table.remove(list, index)
-                table.insert(list, 1, target)
-                break
-            end
-        end
-    end
 
     return list
 end
