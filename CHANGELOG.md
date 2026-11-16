@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.19.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Gather Route.** A new Gather Route: box under GATHER ROUTE on the Map & goals page of Settings (also `/farm route`) plans a short loop through the herb, ore and skinning spots you have mapped in the zone you are in. The arrow leads you from stop to stop. It starts off.
+- **Route Mode.** With Gather Route on, the Grind tab's Herbs, Ore and Leather pages get a Route Mode: tick at the end of the chip row that swaps the list for your route.
+- **Route Window.** A new Route Window: box under GATHER ROUTE on the Map & goals page puts a small window on screen while a route runs, with your next stops, Skip Stop and Stop. It has a Leveling Mode: tick that puts spots that still give skill first, and a line that tells you when to train. It starts off.
+- **Fixes.** Mobs met in City of Dalaran and a few other places show their names instead of numbers.
+
 ## 1.18.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.

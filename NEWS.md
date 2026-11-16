@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.19.0
+
+- There's a new Gather Route. It plans a short loop through the herb, ore and skinning spots you've mapped, and the arrow leads you stop to stop. Turn it on in the Map & goals page of Settings.
+- The Grind tab has a Route Mode box on the Herbs, Ore and Leather pages that shows your route.
+- A small Route Window can sit on your screen while you run a route. It has a Leveling Mode that puts spots that still give skill first.
+Fixes and changes:
+- Mobs in City of Dalaran show their names.
+
 ## 1.18.0
 
 - There's a session timer for your Kills & Loot panel, with Start, Pause and Stop. You turn it on in the Kills page of Settings.
