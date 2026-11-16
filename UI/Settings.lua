@@ -47,18 +47,32 @@ local TITLE = "Blackthornes Farmer"
 -- tab has them. Every setting kept its saved name; only its place moved.
 local PAGES = {
     { key = "tally", text = L["KILLS"],
-      tip = L["The kills and loot panel, its sounds, your top 15 and the XP bar"] },
+      tip = L["The kills and loot panel, the session timer, your top 15 and the XP bar"] },
     { key = "loot", text = L["LOOT"],
-      tip = L["Recording what drops and its export, fishing and gathering, and skinning"] },
-    { key = "map", text = L["MAP & GOALS"],
-      tip = L["Node markers, grinding camps, goals and the goal arrow"] },
+      tip = L["Recording what drops and its export, prices, fishing, bags and skinning"] },
+    { key = "map", text = L["MAP"],
+      tip = L["Node markers, sparkles, grinding camps, kill heat and the gather route"] },
+    { key = "goals", text = L["GOALS"],
+      tip = L["Your goals and the goal arrow"] },
+    { key = "tooltips", text = L["TOOLTIPS"],
+      tip = L["Lines Farmer adds to tooltips, and counts over mobs"] },
+    { key = "panels", text = L["WINDOWS"],
+      tip = L["Show, see through and put back each small window"] },
+    { key = "sounds", text = L["SOUNDS"],
+      tip = L["Every sound Farmer plays"] },
     { key = "sharing", text = L["SHARING"],
       tip = L["Share kills, drop rates and gathering with your other account"] },
     { key = "general", text = L["GENERAL"],
-      tip = L["Window sizes and places, effects, text size and Farmer's windows"] },
+      tip = L["Window style and size, effects, text size and Farmer's windows"] },
     { key = "about", text = L["ABOUT"],
       tip = L["How these addons are made, the version, the Discord and the other Blackthornes addons"] },
 }
+
+-- The switch wraps to a second line rather than grow the window past this.
+SettingsUI.BAR_CAP = 724
+
+-- Room for the Show column of the Windows table, tick and word.
+SettingsUI.SHOW_ROOM = 110
 
 -- Pages that were folded into General (the owner, 2026-10-29): a saved one
 -- opens General.
@@ -100,22 +114,6 @@ local function CommandButton(row, text, command, width, x)
     end, { width = width or 100, height = 20 })
     button:SetPoint("TOPLEFT", x or CONTROL_X, 0)
     return button
-end
-
---- A row whose button runs a /farm command.
---- A "Transparent:" drop-down for one panel (UI/SeeThrough.lua): Off, Some,
---- More or Most clear.
-local function SeeThroughRow(pages, page, column, id, label, description)
-    local row = pages:Row(page, column, label, description)
-    local names = ns.SeeThrough.Names()
-    local stepper = Widgets.CreateChoice(row, {
-        min = 0, max = #ns.SeeThrough.LEVELS, step = 1, value = 0,
-        format = function(index) return names[index] end,
-        onChange = function(index) ns.SeeThrough:Set(id, index) end,
-    })
-    ns.SettingsPages.FitStepper(stepper, { names[0], names[1], names[2], names[3] })
-    stepper:SetPoint("TOPLEFT", CONTROL_X, -2)
-    return stepper
 end
 
 --- An Off, Shift or Always drop-down for one tooltip line (UI/TooltipShift.lua).
@@ -467,6 +465,7 @@ function SettingsUI:Build()
 
     self.pages = ns.SettingsPages.New(frame, {
         pages = PAGES,
+        barCap = SettingsUI.BAR_CAP,
         top = HEADER + 4,
         bottom = 48,
         padding = PADDING,
@@ -499,6 +498,7 @@ function SettingsUI:Build()
     local built, problem = pcall(function()
         local old = ns.db and SettingsUI.OLD_PAGES[ns.db.settingsPage or ""]
         if old then ns.db.settingsPage = old end
+        self:BuildPanelsPage()
         self:BuildWindowsPage()
         self:BuildAdvancedPage()
         self:BuildTallyPage()
@@ -592,6 +592,235 @@ function SettingsUI:BuildHeader()
 end
 
 --- UI: how the addon looks and where things sit.
+--- A "Transparent" drop-down for one panel (UI/SeeThrough.lua) on a line of
+--- the Windows table.
+local function SeeThroughChoice(row, id, x)
+    local names = ns.SeeThrough.Names()
+    local stepper = Widgets.CreateChoice(row, {
+        min = 0, max = #ns.SeeThrough.LEVELS, step = 1, value = 0,
+        format = function(index) return names[index] end,
+        onChange = function(index) ns.SeeThrough:Set(id, index) end,
+    })
+    ns.SettingsPages.FitStepper(stepper, { names[0], names[1], names[2], names[3] })
+    stepper:SetPoint("TOPLEFT", x, -2)
+    return stepper
+end
+
+--- Kills & Loot back where it started; its size stays.
+function SettingsUI:ResetTrackerSpot()
+    local db, defaults = ns.db, ns.DEFAULTS
+    if not db then return end
+    for _, key in ipairs({ "trackerPoint", "trackerX", "trackerY" }) do
+        db[key] = defaults[key]
+    end
+    -- Not in the defaults: the tally anchors to its own point when this is
+    -- absent, which is where it started.
+    db.trackerRelativePoint = nil
+    -- A spot picked for groups goes too; it goes back beside the group frames.
+    db.trackerGroupX = nil
+    db.trackerGroupY = nil
+    local TrackerUI = ns.TrackerUI
+    if TrackerUI and TrackerUI.frame and TrackerUI.RestorePosition then
+        TrackerUI:RestorePosition()
+        if TrackerUI.Place then TrackerUI:Place() end
+        if TrackerUI.Refresh then TrackerUI:Refresh() end
+    end
+end
+
+--- Where to Farm back beside the goals panel (or the map, when docked).
+function SettingsUI:ResetSpotsSpot()
+    if ns.MapDock then ns.MapDock.loose = nil end
+    if ns.GoalsUI and ns.GoalsUI.PlaceSpots then ns.GoalsUI:PlaceSpots() end
+end
+
+--- The Windows page (the owner said build it from a mockup, 2026-11-16):
+--- one line a window with its Show, its Transparent and its Reset Spot side
+--- by side, where they sat on four pages before. Every saved key is as it
+--- was; only the rows moved. The lines span both columns.
+function SettingsUI:BuildPanelsPage()
+    local controls = self.controls
+    local pages = self.pages
+
+    local wide = COLUMN_WIDTH * 2 + COLUMN_GAP
+    local showX = CONTROL_X
+    local clearX = showX + SettingsUI.SHOW_ROOM
+    local spotX = clearX + (COLUMN_WIDTH - CONTROL_X) + 12
+    local resetWidth = math.max(100, math.ceil(Theme.TextWidth("small", L["Reset Spot"])) + 28)
+    self.tableX = { show = showX, clear = clearX, spot = spotX, wide = wide }
+
+    -- The heads over the columns.
+    local head = pages:Section("panels", 1, L["WINDOW"])
+    head:SetWidth(wide)
+    for _, column in ipairs({ { showX, L["SHOW"] }, { clearX, L["TRANSPARENT"] } }) do
+        local label = Theme.CreateLabel(head, "tiny", "accent")
+        label:SetPoint("TOPLEFT", column[1], 0)
+        label:SetText(column[2])
+    end
+    local rule = Theme.CreateDivider(head, "border")
+    rule:SetPoint("TOPLEFT", COLUMN_WIDTH, -14)
+    rule:SetWidth(wide - COLUMN_WIDTH)
+
+    local function Line(label, description)
+        local row = pages:Row("panels", 1, label, description)
+        row:SetWidth(wide)
+        return row
+    end
+    local function Reset(row, command)
+        return CommandButton(row, L["Reset Spot"], command, resetWidth, spotX)
+    end
+    local function With(row, text)
+        local label = Theme.CreateLabel(row, "small", "muted")
+        label:SetPoint("TOPLEFT", showX, -4)
+        label:SetText(text)
+        return label
+    end
+    self.tableLines = {}
+    local lines = self.tableLines
+
+    -- Kills & Loot. Its Transparent keeps its own saved keys.
+    lines.tracker = Line(L["Kills & Loot:"],
+        L["Lets the world show through the panel. It goes dark again while your mouse is on it."])
+    controls.tracker = Widgets.CreateCheckbox(lines.tracker, L["Show"], function(checked)
+        SettingsUI:SetTrackerShown(checked)
+    end, true)
+    controls.tracker:SetPoint("TOPLEFT", showX, -2)
+    local names = ns.SeeThrough.Names()
+    controls.seeThrough = Widgets.CreateChoice(lines.tracker, {
+        min = 0, max = #ns.TrackerUI.SEE_THROUGH_LEVELS, step = 1, value = 0,
+        format = function(index) return names[index] end,
+        onChange = function(index)
+            if index > 0 then ns.TrackerUI:SetSeeThroughLevel(index) end
+            ns.TrackerUI:SetSeeThrough(index > 0)
+        end,
+    })
+    ns.SettingsPages.FitStepper(controls.seeThrough, { names[0], names[1], names[2], names[3] })
+    controls.seeThrough:SetPoint("TOPLEFT", clearX, -2)
+    controls.trackerReset = Reset(lines.tracker, function() SettingsUI:ResetTrackerSpot() end)
+
+    -- Goals. Reset Spot is the old Dock: back under Kills & Loot.
+    lines.goals = Line(L["Goals:"], nil)
+    controls.goals = CommandButton(lines.goals, L["Show"], "goals", 64, showX)
+    controls.goalsSeeThrough = SeeThroughChoice(lines.goals, "goals", clearX)
+    controls.goalsDock = Reset(lines.goals, "goals dock")
+
+    -- Where to Farm opens from a goal, so it has no Show of its own.
+    lines.places = Line(L["Where to Farm:"], nil)
+    With(lines.places, L["With Goals"])
+    controls.goalSpotsSeeThrough = SeeThroughChoice(lines.places, "places", clearX)
+    controls.goalSpotsReset = Reset(lines.places, function() SettingsUI:ResetSpotsSpot() end)
+
+    lines.rankup = Line(L["Top 15:"], nil)
+    controls.rankUpShow = CommandButton(lines.rankup, L["Show"], "rankup show", 64, showX)
+    controls.rankUpSeeThrough = SeeThroughChoice(lines.rankup, "rankup", clearX)
+    controls.rankUpReset = Reset(lines.rankup, "rankup reset")
+
+    -- The Run Recap shows by itself beside Kills & Loot.
+    lines.recap = Line(L["Run Recap:"], nil)
+    controls.recapSeeThrough = SeeThroughChoice(lines.recap, "recap", clearX)
+
+    lines.xpbar = Line(L["XP Bar:"],
+        L["Shows your level, quest and rested XP, and about when you'll level. Drag it to move it."])
+    controls.xpBar = Widgets.CreateCheckbox(lines.xpbar, L["On"], function(checked)
+        ns.XPBarUI:SetOn(checked)
+    end, true)
+    controls.xpBar:SetPoint("TOPLEFT", showX, -2)
+    controls.xpBarSeeThrough = SeeThroughChoice(lines.xpbar, "xpbar", clearX)
+    controls.xpBarReset = Reset(lines.xpbar, "xpbar reset")
+
+    lines.lootfeed = Line(L["Loot Feed:"], nil)
+    controls.lootFeed = Widgets.CreateCheckbox(lines.lootfeed, L["On"], function(checked)
+        ns.LootFeed:SetEnabled(checked)
+    end, false)
+    controls.lootFeed:SetPoint("TOPLEFT", showX, -2)
+    controls.lootFeedSeeThrough = SeeThroughChoice(lines.lootfeed, "lootfeed", clearX)
+    controls.lootFeedReset = Reset(lines.lootfeed, "lootfeed reset")
+
+    -- The small route window (UI/RouteWindow.lua). Off unless ticked.
+    lines.route = Line(L["Route Window:"],
+        L["Shows while a route is running. Tick Route Mode on the Herbs, Ore or Leather page and press Start Route."])
+    controls.routeWindow = Widgets.CreateCheckbox(lines.route, L["On"], function(checked)
+        if ns.RouteWindow then ns.RouteWindow:SetOn(checked) end
+    end, false)
+    controls.routeWindow:SetPoint("TOPLEFT", showX, -2)
+    controls.routeWindowSeeThrough = SeeThroughChoice(lines.route, "route", clearX)
+    controls.routeWindowReset = Reset(lines.route, "routewindow reset")
+
+    -- What you catch while you fish (UI/FishingPanel.lua).
+    do
+        lines.fishing = Line(L["Fishing Panel:"], nil)
+        controls.fishingPanel = Widgets.CreateCheckbox(lines.fishing, L["On"], function(checked)
+            ns.FishingPanel:SetEnabled(checked)
+        end, false)
+        controls.fishingPanel:SetPoint("TOPLEFT", showX, -2)
+        controls.fishingPanelReset = Reset(lines.fishing, function() ns.FishingPanel:ResetPlace() end)
+    end
+
+
+
+    -- The kills and loot panel's size, which its gold corner grip and
+    -- /farm tracker size set too (the owner asked 2026-10-07): any percent
+    -- from 50 to 150 on the stepper, one dragged to shown as it is, and
+    -- Small, Normal and Large under it, the one in use lit green.
+    local TrackerUI = ns.TrackerUI
+    local trackerScaleRow = pages:Row("panels", 1, L["Kills and Loot Size:"], nil)
+
+    controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
+        min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
+        max = TrackerUI and TrackerUI.SCALE_MAX or SCALE_MAX,
+        step = SCALE_STEP, value = 100, exact = true,
+        format = Percent,
+        onChange = function(value)
+            if TrackerUI and TrackerUI.SetScalePercent then
+                TrackerUI:SetScalePercent(value)
+            else
+                local previous = ns.db.trackerScale or 100
+                ns.db.trackerScale = value
+                SettingsUI:ApplyTrackerScale(previous)
+            end
+        end,
+    })
+    controls.trackerScale:SetPoint("TOPLEFT", CONTROL_X, 0)
+
+    -- The three named sizes, in a line under the stepper, ending where it
+    -- ends. The row grows to fit them over its description. No hover: the
+    -- names say it (the owner, 2026-10-15).
+    controls.trackerSizes = {}
+    local after
+    for index = #(TrackerUI and TrackerUI.SIZES or {}), 1, -1 do
+        local size = TrackerUI.SIZES[index]
+        local button = Widgets.CreateButton(trackerScaleRow, size.text, function()
+            ns.HandleSlash("tracker size " .. size.key)
+        end, { width = 44, height = 18 })
+        if after then
+            button:SetPoint("RIGHT", after, "LEFT", -4, 0)
+        else
+            button:SetPoint("TOPRIGHT", controls.trackerScale, "BOTTOMRIGHT", 0, -4)
+        end
+        button.percent = size.percent
+        controls.trackerSizes[index] = button
+        after = button
+    end
+    if after then GrowRow(trackerScaleRow, 24) end
+
+    local positionRow = pages:Row("panels", 1, L["Window Spots:"],
+        L["Puts every Blackthornes window back where it started. Your settings and data stay the same."])
+
+    local reset = Widgets.CreateButton(positionRow, L["Set Default"], function()
+        ns.HandleSlash("windows reset")
+    end, { width = 110, height = 20 })
+    reset:SetPoint("TOPLEFT", CONTROL_X, 0)
+    controls.resetPositions = reset
+
+
+    -- The owner, 2026-10-29: Kills & Loot, Goals and Where to Farm snap
+    -- under each other into one column. On unless unticked (his call).
+    local snapRow = pages:Row("panels", 1, L["Snap Panels:"], nil)
+    controls.snapPanels = Widgets.CreateCheckbox(snapRow, L["On"], function(checked)
+        if ns.PanelSnap then ns.PanelSnap:SetOn(checked) end
+    end, true)
+    controls.snapPanels:SetPoint("TOPLEFT", CONTROL_X, -2)
+end
+
 function SettingsUI:BuildWindowsPage()
     local controls = self.controls
     local pages = self.pages
@@ -641,7 +870,7 @@ function SettingsUI:BuildWindowsPage()
     -- Mute All Sounds (a player asked, the owner said build it, 2026-11-12):
     -- one box quiets every sound every Blackthornes addon plays. Ticked here
     -- is ticked in all of them (UI/SharedChoices.lua).
-    local muteRow = pages:Row("general", 1, L["Mute All Sounds:"], nil)
+    local muteRow = pages:Row("sounds", 1, L["Mute All Sounds:"], nil)
     controls.muteSounds = Widgets.CreateCheckbox(muteRow, L["On"], function(checked)
         SettingsUI:SetMuteSounds(checked)
     end, false)
@@ -664,97 +893,6 @@ function SettingsUI:BuildWindowsPage()
         SettingsUI:SetOneWindow(checked)
     end, false)
     controls.oneWindow:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    -- The kills and loot panel's size, which its gold corner grip and
-    -- /farm tracker size set too (the owner asked 2026-10-07): any percent
-    -- from 50 to 150 on the stepper, one dragged to shown as it is, and
-    -- Small, Normal and Large under it, the one in use lit green.
-    local TrackerUI = ns.TrackerUI
-    local trackerScaleRow = pages:Row("general", 1, L["Kills and Loot Size:"], nil)
-
-    controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
-        min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
-        max = TrackerUI and TrackerUI.SCALE_MAX or SCALE_MAX,
-        step = SCALE_STEP, value = 100, exact = true,
-        format = Percent,
-        onChange = function(value)
-            if TrackerUI and TrackerUI.SetScalePercent then
-                TrackerUI:SetScalePercent(value)
-            else
-                local previous = ns.db.trackerScale or 100
-                ns.db.trackerScale = value
-                SettingsUI:ApplyTrackerScale(previous)
-            end
-        end,
-    })
-    controls.trackerScale:SetPoint("TOPLEFT", CONTROL_X, 0)
-
-    -- The three named sizes, in a line under the stepper, ending where it
-    -- ends. The row grows to fit them over its description. No hover: the
-    -- names say it (the owner, 2026-10-15).
-    controls.trackerSizes = {}
-    local after
-    for index = #(TrackerUI and TrackerUI.SIZES or {}), 1, -1 do
-        local size = TrackerUI.SIZES[index]
-        local button = Widgets.CreateButton(trackerScaleRow, size.text, function()
-            ns.HandleSlash("tracker size " .. size.key)
-        end, { width = 44, height = 18 })
-        if after then
-            button:SetPoint("RIGHT", after, "LEFT", -4, 0)
-        else
-            button:SetPoint("TOPRIGHT", controls.trackerScale, "BOTTOMRIGHT", 0, -4)
-        end
-        button.percent = size.percent
-        controls.trackerSizes[index] = button
-        after = button
-    end
-    if after then GrowRow(trackerScaleRow, 24) end
-
-    local positionRow = pages:Row("general", 1, L["Window Spots:"],
-        L["Puts every Blackthornes window back where it started. Your settings and data stay the same."])
-
-    local reset = Widgets.CreateButton(positionRow, L["Set Default"], function()
-        ns.HandleSlash("windows reset")
-    end, { width = 110, height = 20 })
-    reset:SetPoint("TOPLEFT", CONTROL_X, 0)
-    controls.resetPositions = reset
-
-
-    -- The owner, 2026-10-29: Kills & Loot, Goals and Where to Farm snap
-    -- under each other into one column. On unless unticked (his call).
-    local snapRow = pages:Row("general", 1, L["Snap Panels:"], nil)
-    controls.snapPanels = Widgets.CreateCheckbox(snapRow, L["On"], function(checked)
-        if ns.PanelSnap then ns.PanelSnap:SetOn(checked) end
-    end, true)
-    controls.snapPanels:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    -- Every panel that stays on screen can let the world show through, all
-    -- in one place (the owner, 2026-10-17). The glass comes back while the
-    -- mouse is on a panel. The saved keys keep their see-through names.
-    pages:Section("general", 2, L["TRANSPARENT"])
-
-    local trackerRow = pages:Row("general", 2, L["Kills & Loot:"],
-        L["Lets the world show through the panel. It goes dark again while your mouse is on it."])
-    local names = ns.SeeThrough.Names()
-    controls.seeThrough = Widgets.CreateChoice(trackerRow, {
-        min = 0, max = #ns.TrackerUI.SEE_THROUGH_LEVELS, step = 1, value = 0,
-        format = function(index) return names[index] end,
-        onChange = function(index)
-            if index > 0 then ns.TrackerUI:SetSeeThroughLevel(index) end
-            ns.TrackerUI:SetSeeThrough(index > 0)
-        end,
-    })
-    ns.SettingsPages.FitStepper(controls.seeThrough, { names[0], names[1], names[2], names[3] })
-    controls.seeThrough:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    controls.goalsSeeThrough = SeeThroughRow(pages, "general", 2, "goals", L["Goals:"], nil)
-    controls.goalSpotsSeeThrough = SeeThroughRow(pages, "general", 2, "places", L["Where to Farm:"], nil)
-    controls.rankUpSeeThrough = SeeThroughRow(pages, "general", 2, "rankup", L["Top 15:"], nil)
-    controls.recapSeeThrough = SeeThroughRow(pages, "general", 2, "recap", L["Run Recap:"], nil)
-    controls.xpBarSeeThrough = SeeThroughRow(pages, "general", 2, "xpbar", L["XP Bar:"], nil)
-    controls.lootFeedSeeThrough = SeeThroughRow(pages, "general", 2, "lootfeed", L["Loot Feed:"], nil)
-    controls.routeWindowSeeThrough = SeeThroughRow(pages, "general", 2, "route", L["Route Window:"], nil)
-
 
     pages:Section("general", 2, L["FARMER UI"])
 
@@ -849,12 +987,6 @@ function SettingsUI:BuildTallyPage()
 
     pages:Section("tally", 1, L["KILLS AND LOOT"])
 
-    local trackerRow = pages:Row("tally", 1, L["Kills and Loot:"], nil)
-
-    controls.tracker = Widgets.CreateCheckbox(trackerRow, L["Show"], function(checked)
-        SettingsUI:SetTrackerShown(checked)
-    end, true)
-    controls.tracker:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Only what the panel shows: every tally stays, so it is no reset. The
     -- button has its own hover, so the row has none.
@@ -888,7 +1020,9 @@ function SettingsUI:BuildTallyPage()
     end, false)
     controls.report:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local celebrateRow = pages:Row("tally", 1, L["Milestone Fanfare:"],
+    pages:Section("sounds", 1, L["KILLS AND LOOT"])
+
+    local celebrateRow = pages:Row("sounds", 1, L["Milestone Fanfare:"],
         L["A cheer when a mob, fishing spot or node hits 20 and its drop rates show."])
 
     controls.celebrate = Widgets.CreateCheckbox(celebrateRow, L["On"], function(checked)
@@ -896,7 +1030,7 @@ function SettingsUI:BuildTallyPage()
     end, true)
     controls.celebrate:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local rareRow = pages:Row("tally", 1, L["Rare Drop Sound:"],
+    local rareRow = pages:Row("sounds", 1, L["Rare Drop Sound:"],
         L["A chime when something green or better drops."])
 
     controls.rareSound = Widgets.CreateCheckbox(rareRow, L["On"], function(checked)
@@ -913,7 +1047,7 @@ function SettingsUI:BuildTallyPage()
     end, true)
     controls.rankUp:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local rankUpSoundRow = pages:Row("tally", 1, L["Rank-Up Sound:"],
+    local rankUpSoundRow = pages:Row("sounds", 1, L["Rank-Up Sound:"],
         L["A chime when a mob moves up your top 15."])
 
     controls.rankUpSound = Widgets.CreateCheckbox(rankUpSoundRow, L["On"], function(checked)
@@ -921,7 +1055,7 @@ function SettingsUI:BuildTallyPage()
     end, true)
     controls.rankUpSound:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local bestRow = pages:Row("tally", 1, L["Best Session Cheer:"],
+    local bestRow = pages:Row("sounds", 1, L["Best Session Cheer:"],
         L["A cheer when you beat your best gold an hour."])
 
     controls.statsBestCheer = Widgets.CreateCheckbox(bestRow, L["On"], function(checked)
@@ -929,7 +1063,7 @@ function SettingsUI:BuildTallyPage()
     end, true)
     controls.statsBestCheer:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local voiceRow = pages:Row("tally", 1, L["Voice Lines:"],
+    local voiceRow = pages:Row("sounds", 1, L["Voice Lines:"],
         L["A voice cheers big drops and finished goals."])
 
     controls.voice = Widgets.CreateCheckbox(voiceRow, L["On"], function(checked)
@@ -967,12 +1101,6 @@ function SettingsUI:BuildTallyPage()
 
     pages:Section("tally", 2, L["TOP 15"])
 
-    local _, topButton = CommandRow(pages, "tally", 2, L["Top 15:"], nil, L["Show"], "rankup show")
-    controls.rankUpShow = topButton
-
-    local _, topResetButton = CommandRow(pages, "tally", 2, L["Top 15 Position:"], nil,
-        L["Set Default"], "rankup reset")
-    controls.rankUpReset = topResetButton
 
     -- After an auction scan (Logic/TopFarm.lua, the owner asked 2026-10-14).
     local topFarmRow = pages:Row("tally", 2, L["After an Auction Scan:"],
@@ -986,14 +1114,10 @@ function SettingsUI:BuildTallyPage()
     -- The XP bar (UI/XPBar.lua, the owner asked 2026-10-13).
     pages:Section("tally", 2, L["XP BAR"])
 
-    local xpRow = pages:Row("tally", 2, L["XP Bar:"],
-        L["Shows your level, quest and rested XP, and about when you'll level. Drag it to move it."])
-    controls.xpBar = Widgets.CreateCheckbox(xpRow, L["On"], function(checked)
-        ns.XPBarUI:SetOn(checked)
-    end, true)
-    controls.xpBar:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local cheerRow = pages:Row("tally", 2, L["Level-Up Cheer:"],
+    pages:Section("sounds", 2, L["XP BAR"])
+
+    local cheerRow = pages:Row("sounds", 2, L["Level-Up Cheer:"],
         L["A card when you level up."])
     controls.xpBarCheer = Widgets.CreateCheckbox(cheerRow, L["On"], function(checked)
         ns.db.xpBarCheer = checked
@@ -1001,7 +1125,7 @@ function SettingsUI:BuildTallyPage()
     controls.xpBarCheer:SetPoint("TOPLEFT", CONTROL_X, -2)
     controls.xpBarTry = CommandButton(cheerRow, L["Try"], "xpbar try", 60, CONTROL_X + 70)
 
-    local chimeRow = pages:Row("tally", 2, L["Chime Every Tenth:"],
+    local chimeRow = pages:Row("sounds", 2, L["Chime Every Tenth:"],
         L["A soft chime at each tenth of a level."])
     controls.xpBarChime = Widgets.CreateCheckbox(chimeRow, L["On"], function(checked)
         ns.db.xpBarChime = checked
@@ -1015,9 +1139,6 @@ function SettingsUI:BuildTallyPage()
     end, false)
     controls.xpBarHideGame:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local _, resetButton = CommandRow(pages, "tally", 2, L["XP Bar Position:"], nil,
-        L["Set Default"], "xpbar reset")
-    controls.xpBarReset = resetButton
 end
 
 --- Loot: recording what drops, its export, fishing and gathering.
@@ -1158,11 +1279,6 @@ function SettingsUI:BuildLootPage()
     -- The loot feed (a player asked, the owner said build it 2026-10-19).
     pages:Section("loot", 1, L["LOOT FEED"])
 
-    local feedRow = pages:Row("loot", 1, L["Loot Feed:"], nil)
-    controls.lootFeed = Widgets.CreateCheckbox(feedRow, L["On"], function(checked)
-        ns.LootFeed:SetEnabled(checked)
-    end, false)
-    controls.lootFeed:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local holdRow = pages:Row("loot", 1, L["Show For:"], nil)
     local function Seconds(value) return L.Format("%d seconds", value) end
@@ -1182,7 +1298,6 @@ function SettingsUI:BuildLootPage()
 
     local placeRow = pages:Row("loot", 1, L["Feed Place:"], nil)
     controls.lootFeedMove = CommandButton(placeRow, L["Move"], "lootfeed move", 70)
-    controls.lootFeedReset = CommandButton(placeRow, L["Reset"], "lootfeed reset", 70, CONTROL_X + 76)
 
     -- Cast and Add Lure while a fishing pole is held (the owner said build
     -- it 2026-10-26).
@@ -1204,11 +1319,6 @@ function SettingsUI:BuildLootPage()
     controls.oneKeyFishing:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- What you catch while you fish (a player asked, the owner said build it, 2026-11-02).
-    local fishPanelRow = pages:Row("loot", 1, L["Fishing Panel:"], nil)
-    controls.fishingPanel = Widgets.CreateCheckbox(fishPanelRow, L["On"], function(checked)
-        ns.FishingPanel:SetEnabled(checked)
-    end, false)
-    controls.fishingPanel:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Drops only (a player asked, the owner agreed 2026-10-11).
     pages:Section("loot", 2, L["SKINNING"])
@@ -1347,7 +1457,9 @@ function SettingsUI:BuildMapPage()
     controls.markersMine:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Sparkles on the node you face (the owner asked 2026-10-13).
-    local sparkleRow = pages:Row("map", 1, L["Sparkles:"],
+    pages:Section("map", 2, L["SPARKLES"])
+
+    local sparkleRow = pages:Row("map", 2, L["Sparkles:"],
         L["Lights up the herb, ore, fishing school, chest, quest object or bobber in front of you."])
 
     controls.nodeSparkle = Widgets.CreateCheckbox(sparkleRow, L["On"], function(checked)
@@ -1358,7 +1470,7 @@ function SettingsUI:BuildMapPage()
     -- Sparkles or a beacon, a beam of light rising off the spot (the owner
     -- asked 2026-10-13).
     local styleNames = { sparkles = L["Sparkles"], beacon = L["Beacon"] }
-    local sparkleStyleRow = pages:Row("map", 1, L["Sparkle Look:"],
+    local sparkleStyleRow = pages:Row("map", 2, L["Sparkle Look:"],
         L["Beacon is a beam of light. Sparkles twinkle instead."])
     controls.sparkleStyle = Widgets.CreateChoice(sparkleStyleRow, {
         min = 1, max = #ns.NodeSparkle.STYLES, step = 1, value = 1,
@@ -1370,14 +1482,14 @@ function SettingsUI:BuildMapPage()
 
     -- Each thing in its own colour, herbs and ore by your skill, and a
     -- corpse to skin (the owner, 2026-10-24).
-    local sparkleColorsRow = pages:Row("map", 1, L["Sparkle Colors:"],
+    local sparkleColorsRow = pages:Row("map", 2, L["Sparkle Colors:"],
         L["Herbs and ore show your skill color. Quest things are blue. Chests, fish and your bobber are white."])
     controls.nodeSparkleColors = Widgets.CreateCheckbox(sparkleColorsRow, L["On"], function(checked)
         ns.NodeSparkle:SetColors(checked)
     end, true)
     controls.nodeSparkleColors:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local sparkleCorpsesRow = pages:Row("map", 1, L["Skinnable Corpses:"],
+    local sparkleCorpsesRow = pages:Row("map", 2, L["Skinnable Corpses:"],
         L["A dead beast you can skin sparkles until you skin it."])
     controls.nodeSparkleCorpses = Widgets.CreateCheckbox(sparkleCorpsesRow, L["On"], function(checked)
         ns.NodeSparkle:SetCorpses(checked)
@@ -1386,7 +1498,7 @@ function SettingsUI:BuildMapPage()
 
     -- Herbs, ore and fish only for the professions you know, off unless
     -- ticked (a player's report, 2026-11-07).
-    local sparkleMineRow = pages:Row("map", 1, L["My Professions Only:"],
+    local sparkleMineRow = pages:Row("map", 2, L["My Professions Only:"],
         L["Herbs, ore and fish light up only when you know the skill."])
     controls.nodeSparkleMine = Widgets.CreateCheckbox(sparkleMineRow, L["On"], function(checked)
         ns.NodeSparkle:SetMine(checked)
@@ -1395,7 +1507,7 @@ function SettingsUI:BuildMapPage()
 
     -- The bobber's own switch (a player found the beam hid the bob,
     -- 2026-11-07).
-    local sparkleBobberRow = pages:Row("map", 1, L["Bobber Beam:"], nil)
+    local sparkleBobberRow = pages:Row("map", 2, L["Bobber Beam:"], nil)
     controls.nodeSparkleBobber = Widgets.CreateCheckbox(sparkleBobberRow, L["On"], function(checked)
         ns.NodeSparkle:SetBobber(checked)
     end, true)
@@ -1403,7 +1515,7 @@ function SettingsUI:BuildMapPage()
 
     -- The game's interact icon, out of sight without a controller (the
     -- owner asked 2026-10-13).
-    local sparkleIconRow = pages:Row("map", 1, L["Hide Game Icon:"],
+    local sparkleIconRow = pages:Row("map", 2, L["Hide Game Icon:"],
         L["Hides the game's icon over the thing you face, unless you use a controller."])
     controls.nodeSparkleHideIcon = Widgets.CreateCheckbox(sparkleIconRow, L["On"], function(checked)
         ns.NodeSparkle:SetHideIcon(checked)
@@ -1412,7 +1524,9 @@ function SettingsUI:BuildMapPage()
 
     -- A sound when the light finds a node (from Classic Farmer, 2026-11-09).
     local voiceNames = { off = L["Off"], character = L["Character"], peon = L["Peon"], ping = L["Ping"] }
-    local nodeVoiceRow = pages:Row("map", 1, L["Node Sound:"],
+    pages:Section("sounds", 2, L["NODES"])
+
+    local nodeVoiceRow = pages:Row("sounds", 2, L["Node Sound:"],
         L["A sound plays when you find a node. Your character says \"Follow me!\", a peon says \"Ready to work!\", or the map's ping plays."])
     controls.nodeVoice = Widgets.CreateChoice(nodeVoiceRow, {
         min = 1, max = #ns.NodeSparkle.VOICES, step = 1, value = 1,
@@ -1442,9 +1556,9 @@ function SettingsUI:BuildMapPage()
     openGrind:SetPoint("TOPRIGHT", grindRow, "TOPRIGHT", 0, 0)
     controls.grindOpen = openGrind
 
-    pages:Section("map", 1, L["TOOLTIPS"])
+    pages:Section("tooltips", 1, L["TOOLTIPS"])
 
-    local tooltipRow = pages:Row("map", 1, L["Where to Farm:"],
+    local tooltipRow = pages:Row("tooltips", 1, L["Where to Farm:"],
         L["Hover a material to see the best place to farm it."])
 
     -- Off, Shift or Always (2026-10-18): Shift shows it only while Shift is held.
@@ -1457,13 +1571,13 @@ function SettingsUI:BuildMapPage()
 
     -- What crafting a material pays for your time, from Tradeskills
     -- (the owner said yes, 2026-10-15).
-    local craftRow = pages:Row("map", 1, L["Craft or Sell:"],
+    local craftRow = pages:Row("tooltips", 1, L["Craft or Sell:"],
         L["With Tradeskills, a material shows what an hour of farming it pays, sold or crafted."])
     controls.itemTooltipCraft = TooltipShiftStepper(craftRow, "craftOrSell",
         function() return ns.db.itemTooltipCraft ~= false end,
         function(on) ns.ItemTooltip:SetCraftEnabled(on) end)
 
-    local killRow = pages:Row("map", 1, L["Kill Count:"],
+    local killRow = pages:Row("tooltips", 1, L["Kill Count:"],
         L["Hover a mob to see how many you've killed."])
 
     controls.killTooltip = TooltipShiftStepper(killRow, "killCount",
@@ -1471,14 +1585,16 @@ function SettingsUI:BuildMapPage()
         function(on) ns.KillTooltip:SetEnabled(on) end)
 
     -- The three drops worth most a kill, under the count (2026-10-14).
-    local dropsRow = pages:Row("map", 1, L["Best Drops:"],
+    local dropsRow = pages:Row("tooltips", 1, L["Best Drops:"],
         L["The three drops worth the most from a mob."])
     controls.killTooltipDrops = TooltipShiftStepper(dropsRow, "bestDrops",
         function() return ns.db.killTooltipDrops ~= false end,
         function(on) ns.KillTooltip:SetDropsEnabled(on) end)
 
     -- "3/8" beside a quest mob's name (the owner picked it 2026-10-13).
-    local questCountRow = pages:Row("map", 1, L["Quest Count:"],
+    pages:Section("tooltips", 2, L["NAMEPLATES"])
+
+    local questCountRow = pages:Row("tooltips", 2, L["Quest Count:"],
         L["Shows 3/8 beside a mob your quest still needs."])
     controls.questMobCount = Widgets.CreateCheckbox(questCountRow, L["Show"], function(checked)
         ns.QuestMobs:SetEnabled(checked)
@@ -1488,7 +1604,7 @@ function SettingsUI:BuildMapPage()
     -- Where the quest count sits by the plate (a player's report,
     -- 2026-11-11: it lay over the mob's level).
     local sideNames = { above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] }
-    local questSideRow = pages:Row("map", 1, L["Quest Count Position:"], nil)
+    local questSideRow = pages:Row("tooltips", 2, L["Quest Count Position:"], nil)
     controls.questMobCountSide = Widgets.CreateChoice(questSideRow, {
         min = 1, max = #ns.QuestMobs.SIDES, step = 1, value = 4,
         format = function(index) return sideNames[ns.QuestMobs.SIDES[index]] end,
@@ -1499,7 +1615,7 @@ function SettingsUI:BuildMapPage()
 
     -- Only your own quests, not what your group's still want (a player
     -- asked, the owner said build it, 2026-11-14).
-    local questMineRow = pages:Row("map", 1, L["Only My Quests:"],
+    local questMineRow = pages:Row("tooltips", 2, L["Only My Quests:"],
         L["Shows only what your own quests still need, not your group's."])
     controls.questMobCountMine = Widgets.CreateCheckbox(questMineRow, L["On"], function(checked)
         ns.QuestMobs:SetMineOnly(checked)
@@ -1507,7 +1623,7 @@ function SettingsUI:BuildMapPage()
     controls.questMobCountMine:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Your kills beside a mob's nameplate (2026-10-15).
-    local platesRow = pages:Row("map", 1, L["Nameplate Kills:"],
+    local platesRow = pages:Row("tooltips", 2, L["Nameplate Kills:"],
         L["Shows your kill count beside a mob's nameplate."])
     controls.killPlates = Widgets.CreateCheckbox(platesRow, L["Show"], function(checked)
         ns.KillPlates:SetEnabled(checked)
@@ -1515,7 +1631,7 @@ function SettingsUI:BuildMapPage()
     controls.killPlates:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Where the count sits by the plate (a player asked, 2026-10-18).
-    local platesSideRow = pages:Row("map", 1, L["Counter Position:"], nil)
+    local platesSideRow = pages:Row("tooltips", 2, L["Counter Position:"], nil)
     controls.killPlatesSide = Widgets.CreateChoice(platesSideRow, {
         min = 1, max = #ns.KillPlates.SIDES, step = 1, value = 3,
         format = function(index) return sideNames[ns.KillPlates.SIDES[index]] end,
@@ -1524,34 +1640,30 @@ function SettingsUI:BuildMapPage()
     ns.SettingsPages.FitStepper(controls.killPlatesSide, sideNames)
     controls.killPlatesSide:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local platesWorthRow = pages:Row("map", 1, L["Nameplate Worth:"],
+    local platesWorthRow = pages:Row("tooltips", 2, L["Nameplate Worth:"],
         L["Adds what one kill is worth once you have 20 kills."])
     controls.killPlatesWorth = Widgets.CreateCheckbox(platesWorthRow, L["Show"], function(checked)
         ns.KillPlates:SetWorthEnabled(checked)
     end, true)
     controls.killPlatesWorth:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    pages:Section("map", 2, L["GOALS"])
+    pages:Section("goals", 1, L["GOALS"])
 
-    local goalsRow = pages:Row("map", 2, L["Goals Panel:"],
-        L["Dock puts it back under the Kills & Loot panel."])
-    controls.goals = CommandButton(goalsRow, L["Show"], "goals", 64)
-    controls.goalsDock = CommandButton(goalsRow, L["Dock"], "goals dock", 64, CONTROL_X + 70)
 
     -- Where to Farm on the world map's edge (UI/MapDock.lua), off unless
     -- ticked.
-    local dockMapRow = pages:Row("map", 2, L["Dock to the Map:"],
+    local dockMapRow = pages:Row("goals", 1, L["Dock to the Map:"],
         L["While the world map is open, Where to Farm sits on its right edge."])
     controls.dockMap = Widgets.CreateCheckbox(dockMapRow, L["On"], function(checked)
         if ns.MapDock then ns.MapDock:SetOn(checked) end
     end, false)
     controls.dockMap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local killGoalRow = pages:Row("map", 2, L["Kill Goal:"], nil)
+    local killGoalRow = pages:Row("goals", 1, L["Kill Goal:"], nil)
     controls.killGoal = CommandButton(killGoalRow, L["Open"], "killgoal", 64)
     controls.killGoalSummary = CommandButton(killGoalRow, L["Summary"], "killgoal summary", 64, CONTROL_X + 70)
 
-    local bankRow = pages:Row("map", 2, L["Count the Bank:"],
+    local bankRow = pages:Row("goals", 1, L["Count the Bank:"],
         L["Goals count your bank as well as your bags."])
 
     controls.goalsBank = Widgets.CreateCheckbox(bankRow, L["On"], function(checked)
@@ -1559,9 +1671,9 @@ function SettingsUI:BuildMapPage()
     end, false)
     controls.goalsBank:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    pages:Section("map", 2, L["ARROW"])
+    pages:Section("goals", 2, L["ARROW"])
 
-    local arrowRow = pages:Row("map", 2, L["Goal Arrow:"],
+    local arrowRow = pages:Row("goals", 2, L["Goal Arrow:"],
         L["Points to the nearest place to gather a goal."])
 
     controls.arrow = Widgets.CreateCheckbox(arrowRow, L["Show"], function(checked)
@@ -1569,12 +1681,12 @@ function SettingsUI:BuildMapPage()
     end, false)
     controls.arrow:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local _, nextButton = CommandRow(pages, "map", 2, L["Next Place:"],
+    local _, nextButton = CommandRow(pages, "goals", 2, L["Next Place:"],
         L["Points the arrow at the next place for its goal."],
         L["Next"], "arrow next")
     controls.arrowNext = nextButton
 
-    local tomtomRow = pages:Row("map", 2, L["Use TomTom:"],
+    local tomtomRow = pages:Row("goals", 2, L["Use TomTom:"],
         L["With TomTom installed, its arrow shows the way instead."])
 
     controls.tomtom = Widgets.CreateCheckbox(tomtomRow, L["On"], function(checked)
@@ -1584,7 +1696,7 @@ function SettingsUI:BuildMapPage()
 
     -- A trip step by step to a far place (Logic/Travel.lua), on unless
     -- unticked.
-    local routeRow = pages:Row("map", 2, L["Guide Me:"],
+    local routeRow = pages:Row("goals", 2, L["Guide Me:"],
         L["When the place is in another zone or across the sea, the arrow leads you there step by step."])
 
     controls.arrowRoute = Widgets.CreateCheckbox(routeRow, L["On"], function(checked)
@@ -1594,7 +1706,7 @@ function SettingsUI:BuildMapPage()
 
     -- How big the whole arrow is drawn, 100% unless picked (the owner,
     -- 2026-10-26). The arrow keeps its spot.
-    local arrowSizeRow = pages:Row("map", 2, L["Arrow Size:"], nil)
+    local arrowSizeRow = pages:Row("goals", 2, L["Arrow Size:"], nil)
     controls.arrowSize = Widgets.CreateChoice(arrowSizeRow, {
         min = 50, max = 100, step = 25, value = 100,
         format = function(percent) return ("%d%%"):format(percent) end,
@@ -1606,9 +1718,9 @@ function SettingsUI:BuildMapPage()
     controls.arrowSize:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- A glow where you kill the most (Logic/Heat.lua, a test feature).
-    pages:Section("map", 2, L["KILL HEAT"])
+    pages:Section("map", 1, L["KILL HEAT"])
 
-    local heatWorldRow = pages:Row("map", 2, L["Heat on World Map:"],
+    local heatWorldRow = pages:Row("map", 1, L["Heat on World Map:"],
         L["Glows where you kill what you're tracking."])
 
     controls.heatWorld = Widgets.CreateCheckbox(heatWorldRow, L["Show"], function(checked)
@@ -1616,7 +1728,7 @@ function SettingsUI:BuildMapPage()
     end, false)
     controls.heatWorld:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local heatMinimapRow = pages:Row("map", 2, L["Heat on Minimap:"],
+    local heatMinimapRow = pages:Row("map", 1, L["Heat on Minimap:"],
         L["The same glow around you, softer."])
 
     controls.heatMinimap = Widgets.CreateCheckbox(heatMinimapRow, L["Show"], function(checked)
@@ -1624,7 +1736,7 @@ function SettingsUI:BuildMapPage()
     end, false)
     controls.heatMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local heatLevelRow = pages:Row("map", 2, L["Heat Strength:"], nil)
+    local heatLevelRow = pages:Row("map", 1, L["Heat Strength:"], nil)
     local heatNames = { L["Some"], L["More"], L["Most"] }
     controls.heatLevel = Widgets.CreateChoice(heatLevelRow, {
         min = 1, max = #heatNames, step = 1, value = 2,
@@ -1637,9 +1749,9 @@ function SettingsUI:BuildMapPage()
     -- Gather Route: a loop over your own herb and ore spots on the Grind
     -- tab, the arrow from stop to stop and a line on the maps (the owner
     -- said build it from a mockup, 2026-11-15). Off unless ticked.
-    pages:Section("map", 2, L["GATHER ROUTE"])
+    pages:Section("map", 1, L["GATHER ROUTE"])
 
-    local gatherRouteRow = pages:Row("map", 2, L["Gather Route:"],
+    local gatherRouteRow = pages:Row("map", 1, L["Gather Route:"],
         L["Adds Route Mode to the Grind tab's Herbs, Ore and Leather pages. It plans a loop through the spots you gathered and the arrow leads you round."])
     controls.gatherRoute = Widgets.CreateCheckbox(gatherRouteRow, L["On"], function(checked)
         if ns.GatherRoute then ns.GatherRoute:SetOn(checked) end
@@ -1647,14 +1759,14 @@ function SettingsUI:BuildMapPage()
     end, false)
     controls.gatherRoute:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local routeZoneRow = pages:Row("map", 2, L["Current Zone Only:"],
+    local routeZoneRow = pages:Row("map", 1, L["Current Zone Only:"],
         L["Keeps the route in the zone you are in. Unticked, it shows the best zone for you too."])
     controls.gatherRouteZoneOnly = Widgets.CreateCheckbox(routeZoneRow, L["On"], function(checked)
         if ns.GatherRoute then ns.GatherRoute:SetZoneOnly(checked) end
     end, true)
     controls.gatherRouteZoneOnly:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local routeDrawRow = pages:Row("map", 2, L["Draw on Maps:"],
+    local routeDrawRow = pages:Row("map", 1, L["Draw on Maps:"],
         L["Draws the route on the world map and the minimap. Gold is up, grey dashes are still growing back."])
     controls.gatherRouteDraw = Widgets.CreateCheckbox(routeDrawRow, L["On"], function(checked)
         if ns.GatherRoute then ns.GatherRoute:SetDraw(checked) end
@@ -1663,16 +1775,6 @@ function SettingsUI:BuildMapPage()
 
     -- The small route window (UI/RouteWindow.lua, the owner said build it
     -- from a mockup, 2026-11-15). Off unless ticked.
-    local routeWindowRow = pages:Row("map", 2, L["Route Window:"],
-        L["Shows while a route is running. Tick Route Mode on the Herbs, Ore or Leather page and press Start Route."])
-    controls.routeWindow = Widgets.CreateCheckbox(routeWindowRow, L["On"], function(checked)
-        if ns.RouteWindow then ns.RouteWindow:SetOn(checked) end
-    end, false)
-    controls.routeWindow:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local _, routeWindowReset = CommandRow(pages, "map", 2, L["Route Window Place:"], nil,
-        L["Set Default"], "routewindow reset")
-    controls.routeWindowReset = routeWindowReset
 end
 
 --- Sharing: kills, drop rates and gathering with your other account.

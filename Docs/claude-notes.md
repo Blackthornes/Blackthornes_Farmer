@@ -2712,3 +2712,40 @@ landed in `UI/SharedWindow.lua` (FILE_VERSION 8, the same file in all five;
 - Tested in `tools/test_sharedwindow.lua` (sections 13 to 16),
   `tools/test_settingsscroll.lua`, each addon's settings test and
   Tradeskills' `tools/test_onewindow.lua` (section 7).
+## Ten Settings pages and the Windows table
+
+The owner said build it from mockups (2026-11-16, the UI cleanup). Rows
+moved; every saved key, control name in `SettingsUI.controls` and chat
+command is the one it was.
+
+- **Pages** (`PAGES` in `UI/Settings.lua`): `tally` KILLS, `loot` LOOT,
+  `map` MAP, `goals` GOALS, `tooltips` TOOLTIPS, `panels` WINDOWS,
+  `sounds` SOUNDS, `sharing`, `general`, `about`. The Windows page's key is
+  `panels`, not `windows`: `SettingsUI.OLD_PAGES` still sends a saved
+  `windows` or `advanced` to General. `SettingsUI.BAR_CAP` (724) is passed
+  to the shared pages as `barCap`, so the page names wrap to a second line
+  rather than widen the window.
+- **The Windows table** (`SettingsUI:BuildPanelsPage`, built first): one
+  line a window, as wide as both columns (`SettingsUI.tableLines[id]`,
+  `tableX`), with Show at the usual control spot, Transparent after
+  `SHOW_ROOM`, and a Reset Spot button. Lines: Kills & Loot, Goals, Where
+  to Farm ("With Goals", no Show of its own), Top 15, Run Recap
+  (Transparent only), XP Bar, Loot Feed, Route Window, Fishing Panel.
+  Reset Spot moves that window only and keeps its size:
+  `SettingsUI:ResetTrackerSpot`, `goals dock`, `SettingsUI:ResetSpotsSpot`,
+  `rankup reset`, `xpbar reset`, `lootfeed reset`, `routewindow reset`,
+  `FishingPanel:ResetPlace`. Kills and Loot Size, Window Spots and Snap
+  Panels sit under the table. The Loot Feed's Move button stayed on the
+  Loot page ("Feed Place:").
+- **Sounds:** Mute All Sounds, the Kills & Loot sounds, the XP bar's two
+  and Node Sound are on the Sounds page. A new sound's row goes there.
+- **Map** keeps markers, grinding, kill heat and the gather route in
+  column 1 and a SPARKLES heading in column 2, which tells the two "My
+  Professions Only:" rows apart. Goals and the arrow are the Goals page;
+  tooltip lines and the NAMEPLATES rows are the Tooltips page.
+- Not built, on purpose: the joined rows of the mockup (two ticks or two
+  drop-downs on one row). A row has about 140 px for its control, so they
+  did not fit in every language. The Session Timer tick stayed on Kills
+  beside Pause When Away.
+- Tested in `tools/test_windowspage.lua`.
+

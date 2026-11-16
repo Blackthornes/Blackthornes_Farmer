@@ -183,14 +183,14 @@ SeeThrough:Set("xpbar", 0)
 Settle()
 suite.check("off puts the bar back", Near(xp.fill._alpha, 1) and Near(xp.rested._alpha, 1))
 
--- All six sit together on the UI page (the owner, 2026-10-17).
+-- They sit together in the Windows table (2026-11-16; on General before).
 for _, control in ipairs({ "seeThrough", "goalsSeeThrough", "goalSpotsSeeThrough",
     "rankUpSeeThrough", "recapSeeThrough", "xpBarSeeThrough", "lootFeedSeeThrough" }) do
     local found
     for _, entry in ipairs(ns.SettingsUI.pages.searchables or {}) do
         if entry.frame == controls[control]._parent then found = entry.page end
     end
-    suite.check(control .. " is on the General page", found == "general", tostring(found))
+    suite.check(control .. " is on the Windows page", found == "panels", tostring(found))
 end
 
 -- The Kills & Loot row is one stepper over its two keys.

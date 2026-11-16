@@ -1934,3 +1934,28 @@ L["BAGS"] = "СУМКИ"
 L["Dock to the Map:"] = "Крепить к карте:"
 L["While the world map is open, Where to Farm sits on its right edge."] =
     "Пока открыта карта мира, окно «Где фармить» стоит у её правого края."
+
+-- The Settings pages after the tidy (2026-11-16).
+L["MAP"] = "КАРТА"
+L["SOUNDS"] = "ЗВУКИ"
+L["WINDOW"] = "ОКНО"
+L["SHOW"] = "ПОКАЗ"
+L["NODES"] = "ЗАЛЕЖИ"
+L["SPARKLES"] = "ИСКРЫ"
+L["NAMEPLATES"] = "ТАБЛИЧКИ"
+L["Reset Spot"] = "Вернуть на место"
+L["With Goals"] = "С целями"
+L["The kills and loot panel, the session timer, your top 15 and the XP bar"] =
+    "Панель убийств и добычи, таймер сессии, твой топ-15 и полоса опыта"
+L["Recording what drops and its export, prices, fishing, bags and skinning"] =
+    "Запись добычи и её экспорт, цены, рыбалка, сумки и снятие шкур"
+L["Node markers, sparkles, grinding camps, kill heat and the gather route"] =
+    "Метки залежей, искры, места гринда, тепло убийств и маршрут сбора"
+L["Your goals and the goal arrow"] = "Твои цели и стрелка цели"
+L["Lines Farmer adds to tooltips, and counts over mobs"] =
+    "Строки, которые Farmer добавляет в подсказки, и счётчики над мобами"
+L["Show, see through and put back each small window"] =
+    "Показать, сделать прозрачным и вернуть на место каждое малое окно"
+L["Every sound Farmer plays"] = "Все звуки, которые играет Farmer"
+L["Window style and size, effects, text size and Farmer's windows"] =
+    "Стиль и размер окон, эффекты, размер текста и окна Farmer"

@@ -588,6 +588,18 @@ function FishingPanel:Build()
     return frame
 end
 
+--- Back to its first spot (Settings, the Windows page). Its size stays.
+function FishingPanel:ResetPlace()
+    if ns.db and type(ns.db.windowSpots) == "table" then
+        ns.db.windowSpots["farmer.fishingpanel"] = nil
+    end
+    local frame = rawget(self, "frame")
+    if frame then
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", 220, 40)
+    end
+end
+
 function FishingPanel:Toggle()
     local frame = self:Build()
     if frame:IsShown() then frame:Hide() else frame:Show() end
