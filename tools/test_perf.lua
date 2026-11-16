@@ -126,4 +126,42 @@ suite.check("a handler for every unit lifts the filter", allAsked == 2, allAsked
 ns.UnregisterEvent(owner, "UNIT_PERF_TEST")
 frame.RegisterEvent, frame.RegisterUnitEvent = plainRegister, unitRegister
 
+--------------------------------------------------------------------------------
+-- One redraw works the session's value out once
+--------------------------------------------------------------------------------
+
+do
+    local Value, TrackerUI = ns.Value, ns.TrackerUI
+    ns.db.trackerHidden = false
+    ns.Tracker:Record("Perf Test Boar", "Creature-0-0-0-0-1-1", { "Perf Test Tusk" },
+        { ["Perf Test Tusk"] = 1 }, 25)
+
+    local worked = 0
+    local now = Value.SessionNow
+    Value.SessionNow = function(...) worked = worked + 1; return now(...) end
+
+    worked = 0
+    TrackerUI:Refresh(true)
+    suite.check("a redraw works the session's value out once", worked == 1, worked)
+    suite.check("and lets go of it after", Value.pass == nil)
+
+    worked = 0
+    local a = Value:Session()
+    ns.Tracker.sessionCopper = (ns.Tracker.sessionCopper or 0) + 100
+    local b = Value:Session()
+    suite.check("outside a redraw every ask is fresh", worked == 2 and b == a + 100, worked)
+
+    -- A redraw that fails still lets go.
+    local render = TrackerUI.Render
+    TrackerUI.Render = function() error("perf test") end
+    local ok = pcall(TrackerUI.Refresh, TrackerUI, true)
+    TrackerUI.Render = render
+    suite.check("a failed redraw lets go too", not ok and Value.pass == nil)
+
+    suite.check("a pass inside a pass is the outer one's",
+        Value:BeginPass() == true and Value:BeginPass() == false)
+    Value:EndPass()
+    Value.SessionNow = now
+end
+
 suite.done()
