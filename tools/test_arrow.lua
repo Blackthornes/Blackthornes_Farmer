@@ -465,6 +465,24 @@ do
     suite.check("on TomTom's arrow, not saved in its list",
         points[uid].crazy == true and points[uid].persistent == false)
     suite.check("this arrow still holds the screen over the others", _G.BlackthornesArrows.wants.Farmer)
+    suite.check("outside a route TomTom's minimap pin shows", points[uid].minimap == true)
+
+    -- While a Gather Route runs, TomTom's pin stays off the minimap so the
+    -- herb's blip under it shows; its arrow and world map pin stay.
+    do
+        local route = ns.GatherRoute
+        local hadRun = route.run
+        route.run = { map = 37, visited = {}, picked = {}, started = 0 }
+        ArrowUI:Draw(true)
+        local routeUid = TomTom.uid
+        suite.check("on a route TomTom gets the place again", routeUid ~= nil and routeUid ~= uid and Count() == 1)
+        suite.check("on a route TomTom's pin stays off the minimap", routeUid and points[routeUid].minimap == false
+            and points[routeUid].world == true and points[routeUid].crazy == true)
+        route.run = hadRun
+        ArrowUI:Draw(true)
+        uid = TomTom.uid
+        suite.check("after the route the minimap pin comes back", uid and points[uid].minimap == true and Count() == 1)
+    end
 
     ArrowUI:Draw(true)
     suite.check("drawn again, the same waypoint stays", TomTom.uid == uid and Count() == 1)
