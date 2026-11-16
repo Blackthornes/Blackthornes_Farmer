@@ -2657,6 +2657,13 @@ bag helpers on the Loot page (Trash Can, Opening Note, Bags Full Notice,
 Open Button, Open Automatically) got their own BAGS heading; they sat
 under SKINNING.
 
+Where to Farm went back to DIALOG the same day (the owner: "It never
+shows up"). It is opened on purpose, by Places or `/farm where`, and on
+LOW it opened behind Farmer's own window at the middle of the screen, or
+under the goals panel when the screen's edge pushed it back. Keep it on
+DIALOG; `GoalsUI:OpenSpots` raises it too. Tested in
+`tools/test_panelsnap.lua`.
+
 
 ## Shelves, dock places and the All Addons page (2026-11-16)
 

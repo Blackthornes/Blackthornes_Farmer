@@ -1497,7 +1497,11 @@ function GoalsUI:BuildSpots()
 
     local panel = CreateFrame("Frame", "BlackthornesFarmerGoalSpots", UIParent)
     panel:SetSize(SPOTS_WIDTH, SPOTS_TOP + SPOT_ROW)
-    panel:SetFrameStrata("LOW")
+    -- A window opened on purpose (a click on Places, or /farm where), so it
+    -- sits on the layer of Farmer's own window. On the low layer it opened
+    -- behind that window, or under the goals panel when pushed back from
+    -- the screen's edge, and looked as if it never opened (2026-11-16).
+    panel:SetFrameStrata("DIALOG")
     panel:SetClampedToScreen(true)
     panel:EnableMouse(true)
     -- It can be dragged, never in a fight; dropped under the goals panel it
@@ -1770,6 +1774,8 @@ function GoalsUI:OpenSpots(item, anchor)
     self:PlaceSpots()
     local opening = not panel:IsShown()
     panel:Show()
+    -- Over anything else on its layer.
+    if type(panel.Raise) == "function" then pcall(panel.Raise, panel) end
     if opening then ns.Motion:Open(panel, 4) end
 
     -- The rows slide in one after another.

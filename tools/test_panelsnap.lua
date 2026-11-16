@@ -72,8 +72,12 @@ suite.check("dragged away, it opens beside it as before",
     not Snap:SpotsDropped(spots) and ns.db.goalSpotsUnder == nil and not Snap:SpotsUnder())
 
 ns.TrackerUI.frame = realTracker
+-- Opened on purpose, so over Farmer's own window: on the low layer it
+-- opened behind it and looked as if it never opened.
+suite.check("Where to Farm opens over Farmer's window", spots:GetFrameStrata() == "DIALOG", spots:GetFrameStrata())
+ns.HandleSlash("where Light Leather")
+suite.check("/farm where shows it", spots:IsShown())
 -- Panels that stay up while you play sit under the game's windows.
-suite.check("Where to Farm sits on the low layer", spots:GetFrameStrata() == "LOW", spots:GetFrameStrata())
-suite.check("as the goals panel does", ns.GoalsUI:Build():GetFrameStrata() == "LOW")
+suite.check("the goals panel stays on the low layer", ns.GoalsUI:Build():GetFrameStrata() == "LOW")
 
 suite.done()
