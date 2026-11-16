@@ -1,4 +1,4 @@
-"""Syntax-check every Lua file in the addon, and check the TOC lists real ones.
+r"""Syntax-check every Lua file in the addon, and check the TOC lists real ones.
 
 WoW silently disables an addon whose first TOC file fails to compile, with no
 error and no hint, so this runs before every deploy.
@@ -102,7 +102,8 @@ def main() -> int:
         relative = os.path.relpath(path, ROOT)
 
         if ok:
-            print("  OK    %s" % relative)
+            if "-q" not in sys.argv[1:]:
+                print("  OK    %s" % relative)
         else:
             failures += 1
             print("  FAIL  %s: %s" % (relative, err))

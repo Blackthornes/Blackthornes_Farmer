@@ -91,170 +91,87 @@ Sections there:
 - Simplified Chinese, French, Spanish and Russian
 - Zone names from the client
 - One look across the addons (the house kit)
+- One key per character
+- Mute All Sounds
+- Fold in fresh data at each release
+- Window spots
+- Standing rules in full
+- Where to Farm on the map's edge
 
 ## One key per character
 
-The owner asked (2026-10-11) that a character can never be mistaken for
-another again. Old records had sent errands to the character playing:
-Butler filled a mail to itself and told a player to mail Medium Leather to,
-and log out for, the character they were on (an old "Name-Realm" record of
-Tradeskills' beside the GUID one), and a reload wiped alts' saved gear in
-Equipment. The rule, in every addon:
-
-- **A character is its GUID** (`UnitGUID("player")`) in saved data and in
-  every call between the addons. Never a first name, "Name-Realm" or a
-  short name: Forever lets characters share a first name. Names are for
-  showing and for a mail's To line only, always first and last.
-- **A GUID the client won't read (a dungeon) means "not sure who's
-  playing":** write nothing under another key, and offer nothing for an
-  alt. Tradeskills remembers each character's GUID in its own file
-  (`BlackthornesTSCharDB.guid`) for that case.
-- **Old records stay readable and count as the same character; nothing is
-  deleted.** Tradeskills folds an old "Name-Realm" record into the GUID one
-  at login, once (`Config:AdoptLegacyCharacter`): it is kept whole in
-  `formerCharacters[old key]` with `retiredInto` (never rename either), what
-  the GUID record lacks is filled from it when it carries that GUID, and
-  the queue's references to the old key follow. Farmer reads a goal tagged
-  "Name-Realm" as the character's and tags it with the GUID once the
-  character gathers toward it or changes it.
-- **One test per addon answers "the same character?" and "the one
-  playing?"; never compare keys or names by hand.** Tradeskills:
-  `Characters:Same`, `:IsPlaying` and `:Canonical` (`Core/Characters.lua`),
-  and `playing` on each `Butler:Holdings()` entry. Butler:
-  `Errands:IsMe(name)` (full name, first name alone, any old record's name,
-  any case, with or without a realm). Farmer: `Goals:IsOwner`. Equipment:
-  `Alts.PlayerGUID()`.
-- **Every errand that targets a character asks that test right before it
-  acts and refuses the character playing:** a mail, a gold top-up, a Log
-  out, an alt's upgrade, a learned habit, the disenchanter.
-- Tested in Tradeskills' `tools/test_onecharacter.lua`, Butler's
-  `tools/test_notme.lua`, Farmer's `tools/test_goals.lua` and Equipment's
-  `tools/test_alts.lua`. This rule is in every addon's notes; keep them the
-  same.
+A character is its GUID (`UnitGUID("player")`) in saved data and in every
+call between the addons, never a name. A GUID the client won't read means
+"not sure who's playing": write nothing, offer nothing for an alt. Old
+"Name-Realm" records stay readable, nothing is deleted. Ask Farmer's one
+test, `Goals:IsOwner`, never compare keys or names by hand, and refuse an
+errand aimed at the character playing. Tested in `tools/test_goals.lua`.
+The whole rule (the same in every addon) is under "One key per character"
+in `Docs/claude-notes.md`; read it before touching character keys.
 
 ## Mute All Sounds
 
-A player asked, the owner said build it (2026-11-12), in all five addons:
-one box quiets every sound every Blackthornes addon plays. "Mute All
-Sounds:" on the General page under Effects and `/farm mute [on|off]`; off unless ticked. It lives on
-the shared choices board (`UI/SharedChoices.lua`, the same file in all
-five): `SharedChoices:SetMute(on)` sets it and tells the others,
-`ns.Muted()` answers every play call, and each addon keeps it in its own
-account save as `muteSounds` and `muteSoundsAt` (never rename them). Each
-joins with a reader of those two (`Join(name, write, readMute)`), read at
-the first sound after its save loads, the newest winning, so an addon that
-was off when the box was ticked still goes quiet. Every `PlaySound` and
-`PlaySoundFile` asks `ns.Muted()` first, fallbacks too; a new sound must
-as well. Warnings still show on screen and in chat. Tested in
-`tools/test_housekit.lua`.
+Every `PlaySound` and `PlaySoundFile` asks `ns.Muted()` first, fallbacks
+too; a new sound must as well. Saved as `muteSounds` and `muteSoundsAt`
+(never rename them). Details under "Mute All Sounds" in
+`Docs/claude-notes.md`.
 
 ## Writing for players
 
-Every word a player reads (labels, buttons, tooltips, Settings rows and
-their descriptions, empty lists, chat lines, slash command help) reads the
-way a friend who plays would say it: plain, warm and human. Write it at a sixth grade reading level. Short
-sentences in everyday words, contractions welcome. Say what the player
-sees or does, not how the addon works inside. No hype or sales words
-("seamlessly", "effortlessly", "now you can", "powerful"), no filler, no
-em-dashes, and no questions to the reader. The German in
-`Locale/deDE.lua` changes with the English, in the same informal "du"
-voice. Farmer's play cheers keep their "!" (drop-quality cheers, goal
-marks, streaks, "Up to #N!", "Goal done: X!"), and `About.NOTE` is the
-owner's own wording. This rule is in every addon's notes; keep them the
-same.
+Every word a player reads is plain, warm and human, at a sixth grade
+reading level: short sentences, everyday words, what the player sees or
+does. No hype, no filler, no em-dashes, no questions to the reader. deDE
+changes with the English, in the "du" voice. Farmer's play cheers keep
+their "!", and `About.NOTE` is the owner's own wording. Full wording under
+"Standing rules in full" in `Docs/claude-notes.md`.
 
 ## The owner's standing rules (all the addons)
 
-- **Every list is dark glass** (the owner, 2026-10-12: "keep this as the
-  standard across all Blackthornes addons", after Farmer's Kills & Loot
-  panel was given the look of Tradeskills' queue). Rows or lines take
-  `glass` and `glassAlt` in turn, by place, with a 1 px `border` line
-  (alpha 0.6) under each; under the mouse `glassHover` and a gold edge,
-  only on that row; the row picked or open is `glassActive` with a bright
-  gold edge down its left. Never the older `row`/`rowAlt` bands for a
-  list, a panel's lines or cards. A gradient fades through
-  `Theme.LightGradient` or is hidden, never with SetAlpha alone (it stayed
-  lit on Forever). This rule is in every addon's notes; keep them the same.
-- **"Always check that it's clear to post."** Anything public is checked for
-  private or unexpected content first, and nothing is published or uploaded
-  without the owner's go-ahead. He tags releases himself.
-- **Changelogs come from git history,** never from asking the owner. Claude drafts
-  the CHANGELOG section in a PR; the owner merges, pulls `main`, tags and pushes.
-- **A checkout shows the real version number** (the owner,
-  2026-10-12). `ns.RELEASED_VERSION` in `Core/Init.lua` is the newest
-  `## X.Y.Z` in CHANGELOG.md, shown when the packager has not filled in the
-  TOC's `@project-version@` (he plays from a clone). The release PR that
-  writes the CHANGELOG section changes it too; `tools/check_release.py`
-  refuses a tag it does not match, and `tools/test_check_release.py` fails
-  while the two disagree. This rule is in every addon's notes.
+Short forms. The full wording of each, with dates and reasons, is under
+"Standing rules in full" in `Docs/claude-notes.md`; read a rule there
+before work that leans on it.
+
+- **Every list is dark glass:** rows take `glass` and `glassAlt` in turn
+  with a 1 px `border` line under each, `glassHover` and a gold edge under
+  the mouse, `glassActive` and a gold left edge when picked. Never
+  `row`/`rowAlt`. Gradients fade through `Theme.LightGradient` or are
+  hidden, never SetAlpha alone.
+- **"Always check that it's clear to post."** Nothing is published or
+  uploaded without the owner's go-ahead. He tags releases himself.
+- **Changelogs come from git history,** never from asking the owner.
+- **A checkout shows the real version number:** `ns.RELEASED_VERSION` in
+  `Core/Init.lua` matches the newest `## X.Y.Z` in CHANGELOG.md; the
+  release PR changes both.
 - **Every reply that ships code says the PR is ready and whether the game
   needs `/reload` or a full restart** (a full restart when a file is added,
-  removed or renamed, or the TOC changes). Merging, pulling and tagging go
-  through the project's own steps, never by hand on github.com or in
-  GitHub Desktop.
-- **Grey (poor quality) items are priced at vendor only;** everything else is
+  removed or renamed, or the TOC changes). Never merge or pull by hand on
+  github.com or in GitHub Desktop.
+- **Grey items are priced at vendor only;** everything else is
   max(auction, vendor).
-- **CurseForge descriptions are features only:** no privacy notes and no
-  explanation of public emotes or their switches.
-- **Smooth play comes first, but never at the cost of looks** (the owner,
-  2026-10-09, after a hitch while crafting). Nothing on a timer or
-  OnUpdate rebuilds or re-places a whole list, map or set of markers when
-  only one thing moved: keep what is drawn, and redo only rows or pins
-  whose inputs changed (a per-row key, a version number). Bag, loot,
-  cast, skill and profession-list events arrive in bursts, several per
-  craft or loot: coalesce them, read only what they changed, and skip
-  work for windows that are hidden. Work over hundreds of items (recipes,
-  sources, saved spots) is spread over frames (a worker with a small
-  per-frame budget) rather than done in one frame, and shown when done.
-  Clicks and typing still answer at once. The two causes found: Farmer's
-  minimap markers gathered, sorted and re-placed every saved spot once a
-  second because the clock second was in their redraw key (now only the
-  fade moves, `MapMarkers:FadeMinimap`); and on every craft Tradeskills
-  re-read every recipe in the profession window and repriced the whole
-  craft pane in one frame (now `Recipes:NothingNewMidCraft` skips the
-  re-read mid-run and `CraftPanel:RefreshInSlices` spreads the pane over
-  frames). Visuals and usability are never traded away for speed. This
-  rule is in every addon's notes; keep them the same.
-- **The client is WoW: Forever, a retail engine** (`## Interface: 16001`,
-  modern Lua), not 1.12. Read client values inside a pcall; instances hand out
-  secret values that raise when touched.
+- **CurseForge descriptions are features only.**
+- **Smooth play comes first, but never at the cost of looks:** nothing on
+  a timer or OnUpdate rebuilds a whole list, map or set of markers when one
+  thing moved; coalesce event bursts; skip work for hidden windows; spread
+  work over hundreds of items across frames.
+- **The client is WoW: Forever, a retail engine** (`## Interface: 16001`),
+  not 1.12. Read client values inside a pcall; instances hand out secret
+  values that raise when touched.
 
 ## Fold in fresh data at each release
 
-Every release of this addon starts with a fold-in of fresh data from the
-live game (the owner, 2026-11-07), even when nothing else about the data
-changed: the release thread stages the owner's account save and the game's
-English caches, read only, from his live Forever folder (the path is in the
-project's release steps), runs the tools below, runs the tests and commits
-the data in the release PR as "Refresh shipped data". Never announced (no
-CHANGELOG, NEWS, What's New or post), never the save or caches committed,
-nothing else copied out of them. A release whose only change is new data
-does not ship on its own. If his PC can't be reached, the thread asks him
-once (Try again or Skip it); it never skips without saying. If the game
-patched since the client tables were last pulled, those are refreshed
-first.
-
-Farmer goes first, before Equipment or Pets ship, since their boss drops
-and beasts read `Data/Data_Harvested.lua`:
-
-- `tools/harvest_import.py --shared --keep-published --sv <Blackthornes_Farmer.lua>`
-  (`Data/Data_Harvested.lua`, with the drops players sent in). Read only the
-  Forever release save, never the beta backup (the owner, 2026-11-07: the beta
-  drops were merged in once and that is not repeated). The shipped file still
-  holds them, so it is bigger than the save; `--keep-published` lets each mob
-  at each spot keep the larger of the two, so a release never loses drops.
-  The "-- N of M corpses" notes under each row live beside the data in
-  `tools/Data_Harvested_corpses.txt` (written by the import, never shipped,
-  2026-11-14), so the game reads a smaller file; `--keep-published` reads
-  them from there, or inline from an older file. Commit both together.
-  `tools/harvest_notes.py` moves inline notes out of an older file.
-- `tools/forever_npc_names.py <save> <creaturecache.wdb>`
-  (`Data/ForeverNpcNames.lua`).
+Every release starts with a fold-in of fresh data from the live game, in
+its own thread, committed as "Refresh shipped data" and never announced.
+Farmer goes first. The steps and tools are under "Fold in fresh data at
+each release" in `Docs/claude-notes.md`; read them before a release.
 
 ## Big files (read these in pieces)
 
 Reading a huge file whole fills the context and the thread dies. Sizes are
 from 2026-11-03 and only grow. Find more with `find . -name '*.lua' | xargs wc -lc | sort -n`.
+
+Keep command output short too: `python tools/runtests.py -q` prints only
+failures and the total, `-q perf tracker` runs only the suites whose name
+holds a word given, and `python tools/syntaxcheck.py -q` prints only failures.
 
 - Never read a file below whole. Use `grep -n` to find the spot, then read
   about 150 lines at a time (Read with `offset` and `limit`).
@@ -287,20 +204,7 @@ The same file lives in several addons: `UI/SharedWindow.lua`, `UI/WhatsNew.lua`,
 
 ## Window spots
 
-A player asked, the owner said build it (2026-11-12), in all five
-addons: windows remember where they were dragged. `UI/SharedWindow.lua`
-(FILE_VERSION 7; `UI/WhatsNew.lua` FILE_VERSION 7 too) keeps the one
-window's spot beside each game window it docks to, once the player drags
-it there (`SharedWindow.Dropped`, account wide in every save as
-`oneWindowDockSpots[place]`), and small windows signed up with
-`SharedWindow.KeepSpot(frame, key)` keep their top left in
-`windowSpots[key] = { x, y }`, kept on screen when placed again. Never
-rename either. Tradeskills' sell list drawer can be dragged too
-(`PostPanel:MakeDraggable`, `SaveSpot`, `ns.db.postPanelSpot`). "Window
-Spots:" Set Default on the General page (Tradeskills: its look page) and
-`windows reset` on each addon's command run `SharedWindow.ResetAllSpots`,
-which clears both keys and calls each addon's own reset
-(`SharedWindow.AddSpotReset(name, fn)`); sizes, settings and data stay.
-Chat says "Every window is back in its first spot." Tested in
-`tools/test_sharedwindow.lua` and each addon's settings test
-(Tradeskills: `tools/test_resetwindows.lua`).
+Windows remember where they were dragged: `oneWindowDockSpots[place]` and
+`windowSpots[key]` (never rename either), small windows through
+`SharedWindow.KeepSpot(frame, key)`. Details under "Window spots" in
+`Docs/claude-notes.md`.
