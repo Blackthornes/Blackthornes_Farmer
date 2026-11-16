@@ -39,6 +39,9 @@ local BAR_HEIGHT = 32
 local BAR_GAP = 16
 -- Between two names on the switch.
 local SWITCH_GAP = 20
+-- Each more line the switch wraps to when its names don't fit on one
+-- (2026-11-16, for Farmer's ten pages): the bar and the page area grow by it.
+local LINE_HEIGHT = 26
 -- The room kept on screen round the window for its plate and hanging
 -- tabs, and the least it is ever made, in the window's own units.
 local SCREEN_MARGIN = 160
@@ -128,7 +131,7 @@ function Page:BuildScroll()
     self.offset = 0
 
     local view = CreateFrame("ScrollFrame", nil, frame)
-    view:SetPoint("TOPLEFT", 0, -(opts.top + BAR_HEIGHT + 14))
+    view:SetPoint("TOPLEFT", 0, -(opts.top + self:BarHeight() + 14))
     view:SetPoint("BOTTOMRIGHT", 0, opts.bottom or 0)
     self.view = view
 
@@ -404,7 +407,7 @@ local function FitRow(row, show)
 end
 
 --- One setting: its name and control on a line. What it does is the row's
---- tooltip, or the lines under it with Show descriptions ticked. Returns
+--- tooltip, or the lines under it with Show Descriptions ticked. Returns
 --- the row; anchor the control at controlX inside it.
 --
 -- `description` may be a function, for words that change (the spec a gear
@@ -486,7 +489,7 @@ function Page:Row(pageKey, column, labelText, description)
 end
 
 --------------------------------------------------------------------------------
--- The switch, the search and Show descriptions
+-- The switch, the search and Show Descriptions
 --------------------------------------------------------------------------------
 
 function Page:BuildBar()
@@ -556,7 +559,8 @@ function Page:BuildBar()
         self:DB().settingsDescriptions = checked
         self:ShowDescriptions(checked)
     end, false)
-    self.describe:SetPoint("RIGHT", bar, "RIGHT", -opts.padding, 0)
+    -- Held to the first line, so a switch that wraps leaves them in place.
+    self.describe:SetPoint("RIGHT", bar, "TOPRIGHT", -opts.padding, -BAR_HEIGHT / 2)
 
     self.find = Widgets.CreateSearchBox(bar, L["Find a setting"], function(text) self:Search(text) end)
     self.find:SetWidth(170)
@@ -565,32 +569,89 @@ function Page:BuildBar()
     self:LayoutSwitch()
 end
 
---- Lay the switch out left to right, each name as wide as it is drawn.
-function Page:LayoutSwitch()
-    local previous
+--- How tall the bar stands: one line, and a line more for each the
+--- switch wraps to.
+function Page:BarHeight()
+    return BAR_HEIGHT + ((self.lines or 1) - 1) * LINE_HEIGHT
+end
+
+--- The room the search box and the tick box take on the first line.
+function Page:ToolsWidth()
+    local tick = 24 + Theme.TextWidth("small", L["Show Descriptions"])
+    return BAR_GAP + 170 + BAR_GAP + tick
+end
+
+--- True for a page left off the switch (still shown when asked for by
+--- name, as the one window's All Addons gear does).
+function Page:Hidden(key)
+    return self.hidden ~= nil and self.hidden[key] == true
+end
+
+--- Leave a page off the switch, or put it back.
+function Page:SetHidden(key, hidden)
+    self.hidden = self.hidden or {}
+    self.hidden[key] = hidden and true or nil
+    self:LayoutSwitch(self.need and self.need[1])
+    self:Paint()
+end
+
+--- Lay the switch out left to right, each name as wide as it is drawn. Given
+--- the window's width, a name that would run into the search box starts a
+--- new line under the first, and the bar and page area grow by a line.
+function Page:LayoutSwitch(width)
+    local opts = self.opts
+    local room = width and (width - opts.padding * 2 - self:ToolsWidth()) or math.huge
+    local previous, x, line = nil, 0, 1
     for _, part in ipairs(self.switch) do
-        part.button:SetWidth(Theme.TextWidth("small", part.label:GetText()) + 4)
-        part.button:ClearAllPoints()
-        if previous then
-            part.button:SetPoint("LEFT", previous, "RIGHT", SWITCH_GAP, 0)
-        else
-            part.button:SetPoint("LEFT", self.bar, "LEFT", self.opts.padding, 0)
+        local hidden = self:Hidden(part.key)
+        part.button:SetShown(not hidden)
+        if not hidden then
+            local w = Theme.TextWidth("small", part.label:GetText()) + 4
+            part.button:SetWidth(w)
+            part.button:ClearAllPoints()
+            if previous and x + SWITCH_GAP + w > room then
+                line = line + 1
+                previous, x = nil, 0
+            end
+            if previous then
+                part.button:SetPoint("LEFT", previous, "RIGHT", SWITCH_GAP, 0)
+                x = x + SWITCH_GAP + w
+            else
+                part.button:SetPoint("LEFT", self.bar, "TOPLEFT", opts.padding,
+                    -BAR_HEIGHT / 2 - (line - 1) * LINE_HEIGHT)
+                x = w
+            end
+            previous = part.button
         end
-        previous = part.button
     end
+    local changed = (self.lines or 1) ~= line
+    self.lines = line
+    self.bar:SetHeight(self:BarHeight())
+    if changed and self.view then
+        self.view:ClearAllPoints()
+        self.view:SetPoint("TOPLEFT", 0, -(opts.top + self:BarHeight() + 14))
+        self.view:SetPoint("BOTTOMRIGHT", 0, opts.bottom or 0)
+    end
+    return changed
 end
 
 --- How wide the bar needs the window to be: the switch, the search box and
---- the tick box side by side at the player's font.
+--- the tick box side by side at the player's font. A host that passes
+--- `barCap` lets the switch wrap rather than grow the window past it.
 function Page:BarWidth()
     local width = self.opts.padding * 2
-    for index, part in ipairs(self.switch) do
-        width = width + Theme.TextWidth("small", part.label:GetText()) + 4
-        if index > 1 then width = width + SWITCH_GAP end
+    local first = true
+    for _, part in ipairs(self.switch) do
+        if not self:Hidden(part.key) then
+            width = width + Theme.TextWidth("small", part.label:GetText()) + 4
+            if not first then width = width + SWITCH_GAP end
+            first = false
+        end
     end
-    -- The tick box is its square, a gap and its words.
-    local tick = 24 + Theme.TextWidth("small", L["Show Descriptions"])
-    return width + BAR_GAP + 170 + BAR_GAP + tick
+    width = width + self:ToolsWidth()
+    local cap = Number(self.opts.barCap)
+    if cap and width > cap then width = cap end
+    return width
 end
 
 --- The page showing now: the one saved, or the first.
@@ -702,10 +763,11 @@ end
 --- not jump as the switch is clicked.
 function Page:Fit()
     local opts = self.opts
-    local height = opts.top + BAR_HEIGHT + 14 + self:TallestColumn() + opts.bottom
+    local width = math.max(opts.padding * 2 + opts.columnWidth * 2 + opts.columnGap, self:BarWidth())
+    self:LayoutSwitch(width)
+    local height = opts.top + self:BarHeight() + 14 + self:TallestColumn() + opts.bottom
     local room = self:ScreenRoom()
     if room then height = math.min(height, room) end
-    local width = math.max(opts.padding * 2 + opts.columnWidth * 2 + opts.columnGap, self:BarWidth())
     self.fitted = true
     -- Kept, since the frame's own size can't be read back for it: laid
     -- into the one window, it fills the area whatever size is asked for.
@@ -723,6 +785,51 @@ function Page:Refresh()
     local db = self:DB()
     self.describe:SetChecked(db.settingsDescriptions == true)
     self:Show(self:Current())
+end
+
+--------------------------------------------------------------------------------
+-- What's New after updates (the All Addons page)
+--------------------------------------------------------------------------------
+
+-- One drop-down for the two What's New boxes (2026-11-16, the owner said
+-- build it): Off, Show, or Show With Motion. It writes the same two saved
+-- choices as before (UI/WhatsNew.lua's SetOn and SetMotionOn); Off leaves
+-- the motion choice as it was, so nothing a player picked is lost.
+SettingsPages.AFTER_UPDATES = { "off", "show", "motion" }
+
+--- The drop-down's value for what is saved now.
+function SettingsPages.AfterUpdatesValue(whatsNew)
+    if not (whatsNew and whatsNew.IsOn) then return "show" end
+    local okOn, on = pcall(whatsNew.IsOn, whatsNew)
+    if okOn and not on then return "off" end
+    local okMotion, motion = pcall(whatsNew.IsMotionOn, whatsNew)
+    return (okMotion and motion) and "motion" or "show"
+end
+
+--- The "After Updates:" drop-down at `x` in `row`. Gives the control;
+--- `control:Sync()` reads what is saved again.
+function SettingsPages.AfterUpdatesControl(row, x, getWhatsNew)
+    local words = { off = L["Off"], show = L["Show"], motion = L["Show With Motion"] }
+    local options = {}
+    for _, value in ipairs(SettingsPages.AFTER_UPDATES) do
+        options[#options + 1] = { text = words[value], value = value }
+    end
+    local widest = 0
+    for _, value in ipairs(SettingsPages.AFTER_UPDATES) do
+        widest = math.max(widest, Theme.TextWidth("small", words[value]) or 0)
+    end
+    local control = Widgets.CreateDropdown(row, options, function(value)
+        local whatsNew = getWhatsNew()
+        if not whatsNew then return end
+        pcall(whatsNew.SetOn, whatsNew, value ~= "off")
+        if value ~= "off" then pcall(whatsNew.SetMotionOn, whatsNew, value == "motion") end
+    end, { width = math.max(140, math.ceil(widest) + 34) })
+    control:SetPoint("TOPLEFT", x, 0)
+    function control:Sync()
+        self:SetValue(SettingsPages.AfterUpdatesValue(getWhatsNew()))
+    end
+    control:Sync()
+    return control
 end
 
 --------------------------------------------------------------------------------

@@ -565,8 +565,16 @@ function ArrowUI:RestorePosition()
         local scale = ArrowUI.Scale()
         frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT", ns.db.arrowX / scale, ns.db.arrowY / scale)
     else
-        -- Top middle, under where the game puts its own messages.
-        frame:SetPoint("TOP", UIParent, "TOP", 0, -140 / ArrowUI.Scale())
+        -- Never dragged: the next free place on the shared top shelf
+        -- (UI/SharedWindow.lua), so it never starts on another piece.
+        local sw = ns.SharedWindow
+        local placed = sw and sw.ShelfPlace and sw.ShelfPlace(frame, "arrow.farmer", {
+            free = function() return not (ns.db and ns.db.arrowX and ns.db.arrowY) end,
+            place = function() ArrowUI:RestorePosition() end,
+        })
+        if not placed then
+            frame:SetPoint("TOP", UIParent, "TOP", 0, -140 / ArrowUI.Scale())
+        end
     end
     self:AvoidXPBar()
 end

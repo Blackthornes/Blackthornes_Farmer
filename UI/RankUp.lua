@@ -388,7 +388,19 @@ function RankUpUI:Place()
             frame:SetPoint("TOPLEFT", panel, "TOPRIGHT", 10, 0)
         end
     else
-        frame:SetPoint("TOP", UIParent, "TOP", 0, -140)
+        -- No panel to sit beside: the next free place on the shared top
+        -- shelf (UI/SharedWindow.lua), so it never lands on the arrow.
+        local sw = ns.SharedWindow
+        local placed = sw and sw.ShelfPlace and sw.ShelfPlace(frame, "rankup.farmer", {
+            free = function()
+                local panel = ns.TrackerUI and ns.TrackerUI.frame
+                return not (RankUpUI:HasPlace() or (panel and panel:IsShown()))
+            end,
+            place = function() RankUpUI:Place() end,
+        })
+        if not placed then
+            frame:SetPoint("TOP", UIParent, "TOP", 0, -140)
+        end
     end
 end
 

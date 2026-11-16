@@ -208,7 +208,19 @@ function RecapUI:Place()
             frame:SetPoint("BOTTOMLEFT", panel, "BOTTOMRIGHT", 10, 0)
         end
     else
-        frame:SetPoint("TOP", UIParent, "TOP", 0, -140)
+        -- No panel to sit beside: the next free place on the shared top
+        -- shelf (UI/SharedWindow.lua), so it never lands on the arrow.
+        local sw = ns.SharedWindow
+        local placed = sw and sw.ShelfPlace and sw.ShelfPlace(frame, "recap.farmer", {
+            free = function()
+                local panel = ns.TrackerUI and ns.TrackerUI.frame
+                return not (panel and panel:IsShown())
+            end,
+            place = function() RecapUI:Place() end,
+        })
+        if not placed then
+            frame:SetPoint("TOP", UIParent, "TOP", 0, -140)
+        end
     end
 end
 
