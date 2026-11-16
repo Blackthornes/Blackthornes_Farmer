@@ -91,62 +91,28 @@ Sections there:
 - Simplified Chinese, French, Spanish and Russian
 - Zone names from the client
 - One look across the addons (the house kit)
+- One key per character
+- Mute All Sounds
+- Fold in fresh data at each release
+- Window spots
 
 ## One key per character
 
-The owner asked (2026-10-11) that a character can never be mistaken for
-another again. Old records had sent errands to the character playing:
-Butler filled a mail to itself and told a player to mail Medium Leather to,
-and log out for, the character they were on (an old "Name-Realm" record of
-Tradeskills' beside the GUID one), and a reload wiped alts' saved gear in
-Equipment. The rule, in every addon:
-
-- **A character is its GUID** (`UnitGUID("player")`) in saved data and in
-  every call between the addons. Never a first name, "Name-Realm" or a
-  short name: Forever lets characters share a first name. Names are for
-  showing and for a mail's To line only, always first and last.
-- **A GUID the client won't read (a dungeon) means "not sure who's
-  playing":** write nothing under another key, and offer nothing for an
-  alt. Tradeskills remembers each character's GUID in its own file
-  (`BlackthornesTSCharDB.guid`) for that case.
-- **Old records stay readable and count as the same character; nothing is
-  deleted.** Tradeskills folds an old "Name-Realm" record into the GUID one
-  at login, once (`Config:AdoptLegacyCharacter`): it is kept whole in
-  `formerCharacters[old key]` with `retiredInto` (never rename either), what
-  the GUID record lacks is filled from it when it carries that GUID, and
-  the queue's references to the old key follow. Farmer reads a goal tagged
-  "Name-Realm" as the character's and tags it with the GUID once the
-  character gathers toward it or changes it.
-- **One test per addon answers "the same character?" and "the one
-  playing?"; never compare keys or names by hand.** Tradeskills:
-  `Characters:Same`, `:IsPlaying` and `:Canonical` (`Core/Characters.lua`),
-  and `playing` on each `Butler:Holdings()` entry. Butler:
-  `Errands:IsMe(name)` (full name, first name alone, any old record's name,
-  any case, with or without a realm). Farmer: `Goals:IsOwner`. Equipment:
-  `Alts.PlayerGUID()`.
-- **Every errand that targets a character asks that test right before it
-  acts and refuses the character playing:** a mail, a gold top-up, a Log
-  out, an alt's upgrade, a learned habit, the disenchanter.
-- Tested in Tradeskills' `tools/test_onecharacter.lua`, Butler's
-  `tools/test_notme.lua`, Farmer's `tools/test_goals.lua` and Equipment's
-  `tools/test_alts.lua`. This rule is in every addon's notes; keep them the
-  same.
+A character is its GUID (`UnitGUID("player")`) in saved data and in every
+call between the addons, never a name. A GUID the client won't read means
+"not sure who's playing": write nothing, offer nothing for an alt. Old
+"Name-Realm" records stay readable, nothing is deleted. Ask Farmer's one
+test, `Goals:IsOwner`, never compare keys or names by hand, and refuse an
+errand aimed at the character playing. Tested in `tools/test_goals.lua`.
+The whole rule (the same in every addon) is under "One key per character"
+in `Docs/claude-notes.md`; read it before touching character keys.
 
 ## Mute All Sounds
 
-A player asked, the owner said build it (2026-11-12), in all five addons:
-one box quiets every sound every Blackthornes addon plays. "Mute All
-Sounds:" on the General page under Effects and `/farm mute [on|off]`; off unless ticked. It lives on
-the shared choices board (`UI/SharedChoices.lua`, the same file in all
-five): `SharedChoices:SetMute(on)` sets it and tells the others,
-`ns.Muted()` answers every play call, and each addon keeps it in its own
-account save as `muteSounds` and `muteSoundsAt` (never rename them). Each
-joins with a reader of those two (`Join(name, write, readMute)`), read at
-the first sound after its save loads, the newest winning, so an addon that
-was off when the box was ticked still goes quiet. Every `PlaySound` and
-`PlaySoundFile` asks `ns.Muted()` first, fallbacks too; a new sound must
-as well. Warnings still show on screen and in chat. Tested in
-`tools/test_housekit.lua`.
+Every `PlaySound` and `PlaySoundFile` asks `ns.Muted()` first, fallbacks
+too; a new sound must as well. Saved as `muteSounds` and `muteSoundsAt`
+(never rename them). Details under "Mute All Sounds" in
+`Docs/claude-notes.md`.
 
 ## Writing for players
 
@@ -221,35 +187,10 @@ same.
 
 ## Fold in fresh data at each release
 
-Every release of this addon starts with a fold-in of fresh data from the
-live game (the owner, 2026-11-07), even when nothing else about the data
-changed: the release thread stages the owner's account save and the game's
-English caches, read only, from his live Forever folder (the path is in the
-project's release steps), runs the tools below, runs the tests and commits
-the data in the release PR as "Refresh shipped data". Never announced (no
-CHANGELOG, NEWS, What's New or post), never the save or caches committed,
-nothing else copied out of them. A release whose only change is new data
-does not ship on its own. If his PC can't be reached, the thread asks him
-once (Try again or Skip it); it never skips without saying. If the game
-patched since the client tables were last pulled, those are refreshed
-first.
-
-Farmer goes first, before Equipment or Pets ship, since their boss drops
-and beasts read `Data/Data_Harvested.lua`:
-
-- `tools/harvest_import.py --shared --keep-published --sv <Blackthornes_Farmer.lua>`
-  (`Data/Data_Harvested.lua`, with the drops players sent in). Read only the
-  Forever release save, never the beta backup (the owner, 2026-11-07: the beta
-  drops were merged in once and that is not repeated). The shipped file still
-  holds them, so it is bigger than the save; `--keep-published` lets each mob
-  at each spot keep the larger of the two, so a release never loses drops.
-  The "-- N of M corpses" notes under each row live beside the data in
-  `tools/Data_Harvested_corpses.txt` (written by the import, never shipped,
-  2026-11-14), so the game reads a smaller file; `--keep-published` reads
-  them from there, or inline from an older file. Commit both together.
-  `tools/harvest_notes.py` moves inline notes out of an older file.
-- `tools/forever_npc_names.py <save> <creaturecache.wdb>`
-  (`Data/ForeverNpcNames.lua`).
+Every release starts with a fold-in of fresh data from the live game, in
+its own thread, committed as "Refresh shipped data" and never announced.
+Farmer goes first. The steps and tools are under "Fold in fresh data at
+each release" in `Docs/claude-notes.md`; read them before a release.
 
 ## Big files (read these in pieces)
 
@@ -287,20 +228,7 @@ The same file lives in several addons: `UI/SharedWindow.lua`, `UI/WhatsNew.lua`,
 
 ## Window spots
 
-A player asked, the owner said build it (2026-11-12), in all five
-addons: windows remember where they were dragged. `UI/SharedWindow.lua`
-(FILE_VERSION 7; `UI/WhatsNew.lua` FILE_VERSION 7 too) keeps the one
-window's spot beside each game window it docks to, once the player drags
-it there (`SharedWindow.Dropped`, account wide in every save as
-`oneWindowDockSpots[place]`), and small windows signed up with
-`SharedWindow.KeepSpot(frame, key)` keep their top left in
-`windowSpots[key] = { x, y }`, kept on screen when placed again. Never
-rename either. Tradeskills' sell list drawer can be dragged too
-(`PostPanel:MakeDraggable`, `SaveSpot`, `ns.db.postPanelSpot`). "Window
-Spots:" Set Default on the General page (Tradeskills: its look page) and
-`windows reset` on each addon's command run `SharedWindow.ResetAllSpots`,
-which clears both keys and calls each addon's own reset
-(`SharedWindow.AddSpotReset(name, fn)`); sizes, settings and data stay.
-Chat says "Every window is back in its first spot." Tested in
-`tools/test_sharedwindow.lua` and each addon's settings test
-(Tradeskills: `tools/test_resetwindows.lua`).
+Windows remember where they were dragged: `oneWindowDockSpots[place]` and
+`windowSpots[key]` (never rename either), small windows through
+`SharedWindow.KeepSpot(frame, key)`. Details under "Window spots" in
+`Docs/claude-notes.md`.
