@@ -1,7 +1,7 @@
 local _, ns = ...
 local L = ns.L
 
--- Gather Route (Trent said build it, 2026-11-15, from a mockup whose words he
+-- Gather Route (the owner said build it, 2026-11-15, from a mockup whose words he
 -- approved): the Grind tab's Route view joins the herb and ore spots you
 -- gathered yourself into one short loop, spots that should be back first,
 -- and the arrow walks you round it. Only your own spots (Gathering:Spots),
