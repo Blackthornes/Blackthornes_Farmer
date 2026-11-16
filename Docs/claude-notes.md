@@ -2633,3 +2633,27 @@ same.
 - **The client is WoW: Forever, a retail engine** (`## Interface: 16001`,
   modern Lua), not 1.12. Read client values inside a pcall; instances hand out
   secret values that raise when touched.
+
+## Where to Farm on the map's edge
+
+The owner said build it from a mockup (2026-11-16, the UI cleanup). While
+the world map is open, Where to Farm sits on the map's right edge
+(`UI/MapDock.lua`, `MapDock:Place`, `Spot`, `MapEdge`), and goes back to
+its own spot when the map closes (`GoalsUI:PlaceSpots`, which every
+placing of the panel now goes through). Off unless ticked: "Dock to the
+Map:" under GOALS on the Map & Goals page, saved account wide as
+`goalSpotsDockMap` (never rename it). The game's map is never hidden,
+moved or anchored to: its edges are read and the panel is placed against
+the screen, and `WorldMapFrame:HookScript` only listens for it opening
+and closing. Never in a fight; with no room right of the map it does not
+dock; dragged away it stays put until the map opens again
+(`MapDock:Dragged`). Tested in `tools/test_mapdock.lua`. Not yet seen in
+game.
+
+In the same pass the Fishing Panel and Where to Farm moved from the
+DIALOG layer to LOW, so the bags and the map open over them (panels that
+stay up while you play: LOW; windows opened on purpose: DIALOG), and the
+bag helpers on the Loot page (Trash Can, Opening Note, Bags Full Notice,
+Open Button, Open Automatically) got their own BAGS heading; they sat
+under SKINNING.
+

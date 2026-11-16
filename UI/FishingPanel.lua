@@ -464,7 +464,9 @@ function FishingPanel:Build()
     local frame = CreateFrame("Frame", name, UIParent)
     frame:SetSize(self.WIDTH, self.HEIGHT)
     frame:SetPoint("CENTER", 220, 40)
-    frame:SetFrameStrata("DIALOG")
+    -- A panel that stays up while you play sits under the game's windows
+    -- (bags, the map), as Kills & Loot and Goals do.
+    frame:SetFrameStrata("LOW")
     frame:SetToplevel(true)
     frame:SetClampedToScreen(true)
     frame:EnableMouse(true)

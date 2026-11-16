@@ -96,6 +96,7 @@ Sections there:
 - Fold in fresh data at each release
 - Window spots
 - Standing rules in full
+- Where to Farm on the map's edge
 
 ## One key per character
 
