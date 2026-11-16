@@ -769,6 +769,35 @@ end
 -- nil when nothing has been gathered yet. Items with no price are left out of
 -- the total and listed, never guessed.
 function Value:Session()
+    -- One redraw of the panel asks several times (the title, the per-hour
+    -- line, the note under it); inside a pass it is worked out once.
+    local pass = self.pass
+    if pass then
+        if not pass.done then
+            pass.total, pass.details = self:SessionNow()
+            pass.done = true
+        end
+        return pass.total, pass.details
+    end
+    return self:SessionNow()
+end
+
+--- Start a pass: until EndPass, Session answers from its first working
+--- out. Returns true to the caller that opened it (a pass inside a pass is
+--- the outer one's), which is the one to end it. Nothing gathered or
+--- priced may change in between, so only a redraw holds one.
+function Value:BeginPass()
+    if self.pass then return false end
+    self.pass = {}
+    return true
+end
+
+function Value:EndPass()
+    self.pass = nil
+end
+
+--- Session, worked out now.
+function Value:SessionNow()
     local Tracker, Fishing, Gathering = ns.Tracker, ns.Fishing, ns.Gathering
 
     -- Skinning while it is hidden, and items on the hide list

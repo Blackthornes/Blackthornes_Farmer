@@ -3307,6 +3307,16 @@ end)
 --- session's loot inside the loot event ran past the game's time limit
 --- ("script ran too long", 2026-11-02).
 function TrackerUI:Refresh(now)
+    -- The session's value is asked for four times in one redraw; it is
+    -- worked out once for all of them (Value:BeginPass).
+    local Value = ns.Value
+    local mine = Value and Value.BeginPass and Value:BeginPass()
+    local ok, err = pcall(self.Redraw, self, now)
+    if mine then Value:EndPass() end
+    if not ok then error(err, 0) end
+end
+
+function TrackerUI:Redraw(now)
     self:Build()
 
     if not now and ns.readingLoot and type(C_Timer) == "table" and type(C_Timer.After) == "function" then
