@@ -1928,3 +1928,9 @@ L["The route window is on. It shows while a route is running."] = "Окно ма
 L["Train %s %s to keep going. Your skill stops at %d."] = "Изучи %s %s, чтобы расти дальше. Твой навык упрётся в %d."
 L["You've hit %d. Train %s %s at a trainer to get more skill."] = "Ты достиг %d. Изучи %s %s у учителя, чтобы расти дальше."
 L["the small route window: on, off or reset"] = "маленькое окно маршрута: on, off или reset"
+
+-- Settings: the Bags heading and Where to Farm on the world map's edge
+L["BAGS"] = "СУМКИ"
+L["Dock to the Map:"] = "Крепить к карте:"
+L["While the world map is open, Where to Farm sits on its right edge."] =
+    "Пока открыта карта мира, окно «Где фармить» стоит у её правого края."

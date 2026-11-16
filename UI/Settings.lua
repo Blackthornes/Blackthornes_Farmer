@@ -1226,6 +1226,9 @@ function SettingsUI:BuildLootPage()
         L["Mobs, nodes and items you hid. Right-click one in a list to hide it."], L["Show"], "hidden")
     controls.hidden = hiddenButton
 
+    -- The bag helpers have their own heading; they sat under SKINNING.
+    pages:Section("loot", 2, L["BAGS"])
+
     local trashRow = pages:Row("loot", 2, L["Trash Can:"],
         L["When your bags are full, a gold can marks the item worth the least. Click it to pick the item up."])
     controls.trashCan = Widgets.CreateCheckbox(trashRow, L["On"], function(checked)
@@ -1534,6 +1537,15 @@ function SettingsUI:BuildMapPage()
         L["Dock puts it back under the Kills & Loot panel."])
     controls.goals = CommandButton(goalsRow, L["Show"], "goals", 64)
     controls.goalsDock = CommandButton(goalsRow, L["Dock"], "goals dock", 64, CONTROL_X + 70)
+
+    -- Where to Farm on the world map's edge (UI/MapDock.lua), off unless
+    -- ticked.
+    local dockMapRow = pages:Row("map", 2, L["Dock to the Map:"],
+        L["While the world map is open, Where to Farm sits on its right edge."])
+    controls.dockMap = Widgets.CreateCheckbox(dockMapRow, L["On"], function(checked)
+        if ns.MapDock then ns.MapDock:SetOn(checked) end
+    end, false)
+    controls.dockMap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local killGoalRow = pages:Row("map", 2, L["Kill Goal:"], nil)
     controls.killGoal = CommandButton(killGoalRow, L["Open"], "killgoal", 64)
@@ -2002,6 +2014,7 @@ function SettingsUI:Refresh()
         controls.oneWindow:SetChecked(One ~= nil and One.On() == true)
     end
     if controls.snapPanels then controls.snapPanels:SetChecked(not ns.PanelSnap or ns.PanelSnap:IsOn()) end
+    if controls.dockMap then controls.dockMap:SetChecked(ns.MapDock and ns.MapDock:IsOn() or false) end
 
     local usable = ns.Harvest:Capabilities().usable
 

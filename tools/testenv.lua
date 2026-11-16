@@ -408,6 +408,7 @@ local UI_FILES = {
     "UI/Export.lua",
     "UI/Import.lua",
     "UI/PanelSnap.lua",
+    "UI/MapDock.lua",
     "UI/Tracker.lua",
     "UI/TrackerFX.lua",
     "UI/Goals.lua",

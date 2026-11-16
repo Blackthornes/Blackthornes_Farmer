@@ -1513,6 +1513,8 @@ function GoalsUI:BuildSpots()
         if not rawget(self, "moving") then return end
         self.moving = nil
         self:StopMovingOrSizing()
+        -- Dragged off the world map's edge, it stays where it was dropped.
+        if ns.MapDock then ns.MapDock:Dragged() end
         if ns.PanelSnap and ns.PanelSnap:SpotsDropped(self) then
             local goals = GoalsUI.frame
             self:ClearAllPoints()
@@ -1665,6 +1667,27 @@ function GoalsUI:SpotRow(index)
     return row
 end
 
+--- Put Where to Farm in its place: on the world map's edge while the map
+--- is open and "Dock to the Map" is ticked (UI/MapDock.lua), else under
+--- the goals panel when snapped there, else beside what opened it.
+function GoalsUI:PlaceSpots()
+    local panel = self.spots
+    if not panel then return end
+    if ns.MapDock and ns.MapDock:Place(panel) then return end
+
+    local anchor = rawget(panel, "anchor")
+    panel:ClearAllPoints()
+    if anchor and anchor.IsShown and anchor:IsShown()
+        and ns.PanelSnap and ns.PanelSnap:SpotsUnder() then
+        -- Snapped under the goals panel (UI/PanelSnap.lua).
+        panel:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -6)
+    elseif anchor and anchor.IsShown and anchor:IsShown() then
+        panel:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 6, 0)
+    else
+        panel:SetPoint("CENTER", UIParent, "CENTER", 0, 80)
+    end
+end
+
 --- Rank the places for `item` from where you are and show them beside
 --- `anchor` (the goals panel), or on their own.
 function GoalsUI:OpenSpots(item, anchor)
@@ -1743,16 +1766,8 @@ function GoalsUI:OpenSpots(item, anchor)
     local hintTall = Theme.WrappedHeight(panel.hint, "tiny", (tonumber(panel:GetWidth()) or SPOTS_WIDTH) - 22)
     panel:SetHeight(SPOTS_TOP + math.max(1, #spots) * SPOT_ROW + math.max(44, hintTall + 8))
 
-    panel:ClearAllPoints()
-    if anchor and anchor.IsShown and anchor:IsShown()
-        and ns.PanelSnap and ns.PanelSnap:SpotsUnder() then
-        -- Snapped under the goals panel (UI/PanelSnap.lua).
-        panel:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -6)
-    elseif anchor and anchor.IsShown and anchor:IsShown() then
-        panel:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 6, 0)
-    else
-        panel:SetPoint("CENTER", UIParent, "CENTER", 0, 80)
-    end
+    panel.anchor = anchor
+    self:PlaceSpots()
     local opening = not panel:IsShown()
     panel:Show()
     if opening then ns.Motion:Open(panel, 4) end

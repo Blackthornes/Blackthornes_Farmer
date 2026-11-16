@@ -1927,3 +1927,9 @@ L["The route window is on. It shows while a route is running."] = "Das Routenfen
 L["Train %s %s to keep going. Your skill stops at %d."] = "Lerne %s %s, um weiterzukommen. Deine Fertigkeit endet bei %d."
 L["You've hit %d. Train %s %s at a trainer to get more skill."] = "Du hast %d erreicht. Lerne %s %s bei einem Lehrer, um mehr Fertigkeit zu bekommen."
 L["the small route window: on, off or reset"] = "das kleine Routenfenster: on, off oder reset"
+
+-- Settings: the Bags heading and Where to Farm on the world map's edge
+L["BAGS"] = "TASCHEN"
+L["Dock to the Map:"] = "An der Karte andocken:"
+L["While the world map is open, Where to Farm sits on its right edge."] =
+    "Solange die Weltkarte offen ist, sitzt „Wo farmen“ an ihrem rechten Rand."

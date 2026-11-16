@@ -1921,3 +1921,9 @@ L["The route window is on. It shows while a route is running."] = "路线窗口�
 L["Train %s %s to keep going. Your skill stops at %d."] = "学习%s%s才能继续。你的技能到 %d 就停了。"
 L["You've hit %d. Train %s %s at a trainer to get more skill."] = "你已到 %d。去训练师那里学习%s%s，才能继续涨技能。"
 L["the small route window: on, off or reset"] = "小路线窗口：on、off 或 reset"
+
+-- Settings: the Bags heading and Where to Farm on the world map's edge
+L["BAGS"] = "背包"
+L["Dock to the Map:"] = "停靠在地图旁："
+L["While the world map is open, Where to Farm sits on its right edge."] =
+    "世界地图打开时，“在哪里刷”会贴在地图右边。"
