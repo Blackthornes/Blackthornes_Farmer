@@ -42,15 +42,20 @@ local SILK = ns.Value:ItemID("Silk Cloth")
 suite.check("Silk Cloth is known", SILK ~= nil)
 ns.Value.UnitPrice = function(_, id) if id == SILK then return 300 end return nil end
 
--- Off by default.
-suite.check("off unless ticked", F.On() == false and ns.db.savedFarms == nil)
-suite.check("Last Farm on Search waits for it", F.LastOnSearch() == false)
-suite.check("nothing saves while off", F:Save({ item = "Silk Cloth", amount = 60 }) == nil)
-suite.check("nothing was written", ns.db.farmList == nil and ns.db.farmRuns == nil)
+-- On by default: a save that never touched the box has the Farms tab.
+suite.check("on unless unticked", F.On() == true and ns.db.savedFarms == nil)
 ns.UI:Build()
 local function FarmsTab(strip)
     for _, tab in ipairs(strip.tabs) do if tab.key == "farms" then return tab end end
 end
+suite.check("the Farms tab is there by default", FarmsTab(ns.UI.tabStrip).standing == true)
+
+-- Unticked: it stays off, and says so in the save.
+F:SetOn(false)
+suite.check("unticked saves false", ns.db.savedFarms == false and F.On() == false)
+suite.check("Last Farm on Search waits for it", F.LastOnSearch() == false)
+suite.check("nothing saves while off", F:Save({ item = "Silk Cloth", amount = 60 }) == nil)
+suite.check("nothing was written", ns.db.farmList == nil and ns.db.farmRuns == nil)
 suite.check("no Farms tab while off", FarmsTab(ns.UI.tabStrip).standing == false)
 ns.UI:ShowTab("farms")
 suite.check("the tab can't be opened while off", ns.UI.tab == "search")
@@ -105,12 +110,14 @@ suite.check("a kill farm never uses a pace", F:AnHour(kills) == nil)
 bags[SILK] = 10
 ns.SessionTimer:SetOn(true)
 local aimed
-ns.Arrow.Aim = function(_, item, spot) aimed = { item = item, spot = spot } return true end
+local realAim = ns.Arrow.Aim
+ns.Arrow.Aim = function(_, item, spot, keepZone) aimed = { item = item, spot = spot, keepZone = keepZone } return true end
 suite.check("Start starts", F:Start(farm.id) == true)
 local goal = ns.Goals:Find("Silk Cloth")
 suite.check("the goal is what you have plus the farm's amount", goal and goal.target == 50)
 suite.check("the arrow goes to the spot", aimed and aimed.item == "Silk Cloth"
     and aimed.spot.name == "Hillsbrad Farmer" and aimed.spot.zone == "Hillsbrad Foothills")
+suite.check("and keeps to that zone", aimed and aimed.keepZone == true)
 suite.check("the timer starts when you use it", ns.SessionTimer.state == "timing" and F.run.timer == true)
 
 -- Stop on the timer ends the run and keeps it.
@@ -127,6 +134,46 @@ suite.check("kept under this character's GUID", ns.db.farmRuns["Player-1-Blackth
 suite.check("not done yet: 20 of 40", F:DoneToday(farm) == false)
 suite.check("Your Run offers no Save This Farm for a saved farm",
     not (ns.RecapUI.frame and rawget(ns.RecapUI.frame, "saveFarm") and ns.RecapUI.frame.saveFarm:IsShown()))
+
+-- With the real arrow: Start keeps the arrow, and the goal's line, on the
+-- farm's mob and zone, not the best place Farmer would pick by itself.
+ns.Arrow.Aim = realAim
+local realFor = ns.Spots.For
+ns.Spots.For = function()
+    return {
+        { name = "Theramore Infiltrator", zone = "Dustwallow Marsh", chance = 30 },
+        { name = "Hillsbrad Farmer", zone = "Hillsbrad Foothills", chance = 10 },
+        { name = "Hillsbrad Peasant", zone = "Hillsbrad Foothills", chance = 12 },
+    }, ns.Spots:Player()
+end
+ns.Arrow.sources = nil
+F:Start(farm.id)
+suite.check("Start aims the arrow at the farm's mob",
+    ns.Arrow.pinned and ns.Arrow.pinned.name == "Hillsbrad Farmer" and ns.Arrow.pinnedZone == "Hillsbrad Foothills")
+local function CardLine(item)
+    for _, card in ipairs(ns.GoalsUI.cards) do
+        if card.goal and card.goal.item == item and card.sub then return card.sub:GetText() end
+    end
+    for _, card in ipairs(ns.GoalsUI.cards) do
+        if card.sub then return card.sub:GetText() end
+    end
+end
+ns.GoalsUI:Refresh()
+local line = CardLine("Silk Cloth") or ""
+suite.check("the goal's line names the farm's mob and zone",
+    line:find("Hillsbrad Farmer", 1, true) ~= nil and line:find("Theramore", 1, true) == nil, line)
+F:End("test")
+local any = F:Save({ name = "Any", item = "Silk Cloth", amount = 10, how = "spot", zone = "Hillsbrad Foothills" })
+F:Start(any.id)
+ns.GoalsUI:Refresh()
+line = CardLine("Silk Cloth") or ""
+suite.check("Any Mob names the best place in the farm's zone",
+    ns.Arrow.pinnedZone == "Hillsbrad Foothills" and line:find("Hillsbrad", 1, true) ~= nil
+    and line:find("Theramore", 1, true) == nil, line)
+F:End("test")
+F:Remove(any.id)
+ns.Spots.For = realFor
+ns.Arrow.sources = nil
 
 -- An Hour from runs, at today's price.
 F.rates = nil
@@ -357,6 +404,8 @@ suite.check("and keeps no day", F2:Today(true) == nil)
 
 -- An old save loads as it was.
 local ns3 = Login({ goals = { list = {} } }, "Blackthornes")
-suite.check("an old save loads with Saved Farms off", ns3.SavedFarms.On() == false and ns3.db.farmList == nil)
+suite.check("an old save loads with Saved Farms on and no farms", ns3.SavedFarms.On() == true and ns3.db.farmList == nil)
+local ns4 = Login({ goals = { list = {} }, savedFarms = false }, "Blackthornes")
+suite.check("a save that unticked it keeps it off", ns4.SavedFarms.On() == false)
 
 suite.done()

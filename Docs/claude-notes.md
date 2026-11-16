@@ -2782,8 +2782,10 @@ command is the one it was.
 
 A player asked on Discord, the owner said build it from a mockup whose
 words he approved (2026-11-16, `previews/farmer-saved-farms/` in the
-project files). Off unless ticked: "Saved Farms:" (`savedFarms`, nil off)
-and "Last Farm on Search:" (`lastFarmOnSearch`, nil on, greyed while off)
+project files). On unless unticked (the owner asked 2026-11-16, first
+shipped off): "Saved Farms:" (`savedFarms`, nil on, false once unticked,
+so a player who unticked it stays off) and "Last Farm on Search:"
+(`lastFarmOnSearch`, nil on, greyed while off)
 under SAVED FARMS on the Goals page (the mockup said Map & Goals; that page
 was split into Map and Goals the same day). `/farm farms [on|off]`,
 `/farm repeat`.
@@ -2855,4 +2857,14 @@ was split into Map and Goals the same day). `/farm farms [on|off]`,
   `Widgets.CreateDropdown` took `opts.glass` (dark glass menu lines) and
   `option.columns` (small right columns in the line and the box).
   Tested in `tools/test_savedfarms.lua` and `tools/test_arrow.lua`.
+- Start with a mob (the owner's report, 2026-11-16: the goal line and the
+  way there named Farmer's own best place instead): `Arrow:Aim(item, spot,
+  keepZone)` with `keepZone` sets `pinnedZone` too, so the places after the
+  mob stay in its zone. `Arrow:Targets` finds the pinned place before the
+  list is cut to `MAX_TARGETS` (a place on another continent was cut, so
+  the pin did nothing), matches zones through `Spots.ZoneOf`, and points at
+  the zone for a mob with no place known. The goal card's grey line
+  (`SpotText` in `UI/Goals.lua`) names the pinned mob, or the best place in
+  `pinnedZone`, while the arrow follows that goal, so it agrees with the
+  dial and the way there. Pins are session only; a run ends at logout.
 - Tested in `tools/test_savedfarms.lua`. Not yet seen in game.

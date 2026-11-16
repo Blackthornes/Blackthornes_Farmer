@@ -608,14 +608,36 @@ local function SpotText(goal)
     local item = goal.item
     local Gathering, Harvest = ns.Gathering, ns.Harvest
     local player = ns.Spots:Player()
+    -- The arrow kept to one mob or zone (a saved farm's Zone and Mob): the
+    -- line names that place, the same one the arrow and the way there use.
+    local pinned, pinnedZone
+    local Arrow = ns.Arrow
+    if Arrow and (Arrow.pinned or Arrow.pinnedZone) and not Arrow.grind then
+        local okGoal, followed = pcall(Arrow.Goal, Arrow)
+        if okGoal and followed and type(followed.item) == "string" and followed.item:lower() == item:lower() then
+            pinned, pinnedZone = Arrow.pinned, Arrow.pinnedZone
+        end
+    end
     local key = table.concat({ tostring(player.zone), tostring(player.level),
-        tostring(Gathering and Gathering.spotsVersion or 0), tostring(Harvest and Harvest.changes or 0) }, "|")
+        tostring(Gathering and Gathering.spotsVersion or 0), tostring(Harvest and Harvest.changes or 0),
+        tostring(pinned and pinned.name), tostring(pinned and pinned.zone), tostring(pinnedZone) }, "|")
     local kept = spotTexts[item]
     if kept and kept.key == key then return kept.text end
 
     local text = ""
     local ok, spots = pcall(ns.Spots.For, ns.Spots, item)
-    local spot = ok and spots and spots[1]
+    local spot
+    if pinned or pinnedZone then
+        local want = ns.Spots.ZoneOf((pinned and pinned.zone) or pinnedZone)
+        for _, each in ipairs(ok and spots or {}) do
+            if ns.Spots.ZoneOf(each.zone) == want and (not pinned or each.name == pinned.name) then
+                spot = each
+                break
+            end
+        end
+        if not spot and pinned then spot = { name = pinned.name, zone = pinned.zone } end
+    end
+    spot = spot or (ok and spots and spots[1])
     if spot then
         local distance = ns.Spots.DistanceText(spot.hops, spot.zone, spot.travel)
         if distance == L["you are here"] then

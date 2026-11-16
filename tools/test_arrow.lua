@@ -284,6 +284,28 @@ suite.check("a place picked in the Where? panel goes first",
 suite.check("with its zone in the distance", state.distance:find("^Westfall, ") ~= nil, state.distance)
 Arrow:Follow("Copper Ore")
 
+-- A saved farm's Zone and Mob: that mob first, even on another continent
+-- or past the places the list keeps, and the rest kept to its zone.
+Arrow:Aim("Copper Ore", { name = "Saved Farm Mob", zone = "Durotar" }, true)
+state = Arrow:State(clock)
+suite.check("a saved farm's mob goes first, though far down the list",
+    Arrow.targets[1].name == "Saved Farm Mob" and Arrow.targets[1].zone == "Durotar", Arrow.targets[1].name)
+suite.check("the arrow follows it", state.target == Arrow.targets[1])
+local onlyDurotar = true
+for _, target in ipairs(Arrow.targets) do
+    if target.zone ~= "Durotar" and not Arrow:InZone(target, "Durotar", nil) then onlyDurotar = false end
+end
+suite.check("and the places after it stay in its zone", onlyDurotar and Arrow.pinnedZone == "Durotar")
+Arrow:NextSpot()
+Arrow:State(clock)
+suite.check("moving on lets the mob go but keeps the zone", Arrow.pinned == nil and Arrow.pinnedZone == "Durotar")
+Arrow:Follow("Copper Ore")
+suite.check("a Where? pick keeps no zone", (function()
+    Arrow:Aim("Copper Ore", { name = "Copper Vein", zone = "Westfall" })
+    return Arrow.pinnedZone == nil
+end)())
+Arrow:Follow("Copper Ore")
+
 -- A saved farm on Any Mob: only places in its zone, and moving on stays there.
 Arrow:AimZone("Copper Ore", "Westfall")
 state = Arrow:State(clock)
