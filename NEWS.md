@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.21.0
+
+- Farmer has a new Farms tab. Save a farm and run it again with one click.
+- Pick the zone and the mob you want, and the best drop chance shows first.
+Fixes and changes:
+- Various bug fixes for Saved Farms.
+
 ## 1.20.0
 
 - Farmer's new Dock to the Map box lets Where to Farm sit beside the world map.
