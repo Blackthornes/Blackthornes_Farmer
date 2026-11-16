@@ -1497,7 +1497,7 @@ function GoalsUI:BuildSpots()
 
     local panel = CreateFrame("Frame", "BlackthornesFarmerGoalSpots", UIParent)
     panel:SetSize(SPOTS_WIDTH, SPOTS_TOP + SPOT_ROW)
-    panel:SetFrameStrata("DIALOG")
+    panel:SetFrameStrata("LOW")
     panel:SetClampedToScreen(true)
     panel:EnableMouse(true)
     -- It can be dragged, never in a fight; dropped under the goals panel it

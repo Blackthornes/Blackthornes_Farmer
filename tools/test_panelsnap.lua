@@ -72,4 +72,8 @@ suite.check("dragged away, it opens beside it as before",
     not Snap:SpotsDropped(spots) and ns.db.goalSpotsUnder == nil and not Snap:SpotsUnder())
 
 ns.TrackerUI.frame = realTracker
+-- Panels that stay up while you play sit under the game's windows.
+suite.check("Where to Farm sits on the low layer", spots:GetFrameStrata() == "LOW", spots:GetFrameStrata())
+suite.check("as the goals panel does", ns.GoalsUI:Build():GetFrameStrata() == "LOW")
+
 suite.done()
