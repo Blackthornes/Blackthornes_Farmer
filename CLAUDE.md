@@ -97,6 +97,7 @@ Sections there:
 - Window spots
 - Standing rules in full
 - Where to Farm on the map's edge
+- Shelves, dock places and the All Addons page
 
 ## One key per character
 
