@@ -98,6 +98,7 @@ Sections there:
 - Standing rules in full
 - Where to Farm on the map's edge
 - Shelves, dock places and the All Addons page
+- Ten Settings pages and the Windows table
 
 ## One key per character
 

@@ -57,6 +57,12 @@ Mockups live in the project files, not in this repo:
 
 ## Recommended, each with a mockup
 
+Built since (the owner said "build all", 2026-11-16): 2 and 3 and the BAGS
+heading of 5; then 4 and the rest of 5 as ten Settings pages (see "Ten
+Settings pages and the Windows table" in `Docs/claude-notes.md`; the joined
+rows of 5 were not built, they did not fit a row). 1 is built in the shared
+files by the all-addons thread.
+
 ### 1. One lane for the notes at the top of the screen (`1-notice-lane.png`)
 
 Found: these all place themselves at the top middle with no knowledge of

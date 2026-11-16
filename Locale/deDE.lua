@@ -1933,3 +1933,34 @@ L["BAGS"] = "TASCHEN"
 L["Dock to the Map:"] = "An der Karte andocken:"
 L["While the world map is open, Where to Farm sits on its right edge."] =
     "Solange die Weltkarte offen ist, sitzt „Wo farmen“ an ihrem rechten Rand."
+
+-- The Settings pages after the tidy (2026-11-16).
+L["MAP"] = "KARTE"
+L["SOUNDS"] = "TÖNE"
+L["WINDOW"] = "FENSTER"
+L["SHOW"] = "ANZEIGEN"
+L["NODES"] = "VORKOMMEN"
+L["SPARKLES"] = "FUNKELN"
+L["NAMEPLATES"] = "NAMENSPLAKETTEN"
+L["Reset Spot"] = "Platz zurücksetzen"
+L["With Goals"] = "Mit Zielen"
+L["The kills and loot panel, the session timer, your top 15 and the XP bar"] =
+    "Das Kills-und-Beute-Fenster, der Sitzungstimer, deine Top 15 und die EP-Leiste"
+L["Recording what drops and its export, prices, fishing, bags and skinning"] =
+    "Was droppt und der Export, Preise, Angeln, Taschen und Kürschnern"
+L["Node markers, sparkles, grinding camps, kill heat and the gather route"] =
+    "Markierungen für Vorkommen, Funkeln, Grind-Plätze, Kill-Hitze und die Sammelroute"
+L["Your goals and the goal arrow"] = "Deine Ziele und der Zielpfeil"
+L["Lines Farmer adds to tooltips, and counts over mobs"] =
+    "Zeilen, die Farmer in Tooltips schreibt, und Zähler über Gegnern"
+L["Show, see through and put back each small window"] =
+    "Jedes kleine Fenster zeigen, durchsichtig machen und zurücksetzen"
+L["Every sound Farmer plays"] = "Jeder Ton, den Farmer spielt"
+
+-- The settings every Blackthornes addon shares (2026-11-16).
+L["All Addons"] = "Alle Addons"
+L["ALL BLACKTHORNES ADDONS"] = "ALLE BLACKTHORNES-ADDONS"
+L["WHAT'S NEW"] = "NEUIGKEITEN"
+L["After Updates:"] = "Nach Updates:"
+L["Show With Motion"] = "Mit Bewegung anzeigen"
+L["Window size and Farmer's windows"] = "Fenstergröße und Farmers Fenster"

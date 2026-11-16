@@ -321,8 +321,8 @@ local effectsRow = controls.effects._parent
 controls.effects:Pick(controls.effects:GetValue() - 1)
 local saved = ns.db.trackerEffects
 controls.effects:Pick(controls.effects:GetValue() + 1)
-suite.check("Effects sits with the windows, not under the kill tally, and saves where it always has",
-    effectsRow._parent == controls.windowScale._parent._parent
+suite.check("Effects sits with what every addon shares, not under the kill tally, and saves where it always has",
+    effectsRow._parent == controls.windowStyle._parent._parent
     and effectsRow._parent ~= controls.tracker._parent._parent and saved == "subtle", saved)
 suite.check("named for what it moves", effectsRow.label:GetText() == "Effects:",
     effectsRow.label:GetText())

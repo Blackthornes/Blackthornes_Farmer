@@ -1927,3 +1927,31 @@ L["BAGS"] = "背包"
 L["Dock to the Map:"] = "停靠在地图旁："
 L["While the world map is open, Where to Farm sits on its right edge."] =
     "世界地图打开时，“在哪里刷”会贴在地图右边。"
+
+-- The Settings pages after the tidy (2026-11-16).
+L["MAP"] = "地图"
+L["SOUNDS"] = "声音"
+L["WINDOW"] = "窗口"
+L["SHOW"] = "显示"
+L["NODES"] = "资源点"
+L["SPARKLES"] = "闪光"
+L["NAMEPLATES"] = "姓名板"
+L["Reset Spot"] = "重置位置"
+L["With Goals"] = "随目标显示"
+L["The kills and loot panel, the session timer, your top 15 and the XP bar"] =
+    "击杀与战利品面板、计时器、你的前15名和经验条"
+L["Recording what drops and its export, prices, fishing, bags and skinning"] = "掉落记录与导出、价格、钓鱼、背包和剥皮"
+L["Node markers, sparkles, grinding camps, kill heat and the gather route"] =
+    "资源点标记、闪光、刷怪点、击杀热度和采集路线"
+L["Your goals and the goal arrow"] = "你的目标和目标箭头"
+L["Lines Farmer adds to tooltips, and counts over mobs"] = "Farmer 加在鼠标提示里的内容，以及怪物头上的计数"
+L["Show, see through and put back each small window"] = "显示、透明和重置每个小窗口"
+L["Every sound Farmer plays"] = "Farmer 播放的所有声音"
+
+-- The settings every Blackthornes addon shares (2026-11-16).
+L["All Addons"] = "全部插件"
+L["ALL BLACKTHORNES ADDONS"] = "所有 BLACKTHORNES 插件"
+L["WHAT'S NEW"] = "更新内容"
+L["After Updates:"] = "更新后："
+L["Show With Motion"] = "带动画显示"
+L["Window size and Farmer's windows"] = "窗口大小和 Farmer 的窗口"
