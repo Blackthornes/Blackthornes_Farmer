@@ -7,7 +7,8 @@
 -- the run ends it is kept, so the Farms tab shows what each farm made and
 -- about what it makes an hour at today's prices.
 --
--- Off unless ticked ("Saved Farms:" on the Goals page, `savedFarms`).
+-- On unless unticked ("Saved Farms:" on the Goals page, `savedFarms`;
+-- false once unticked, nil means never touched).
 -- Only your own play, never shared, never guild data. Saved, account wide
 -- (never rename any of these once shipped):
 --
@@ -79,11 +80,11 @@ SavedFarms.Changed = Changed
 --------------------------------------------------------------------------------
 
 function SavedFarms.On()
-    return ns.db ~= nil and ns.db.savedFarms == true
+    return ns.db ~= nil and ns.db.savedFarms ~= false
 end
 
 function SavedFarms:SetOn(on)
-    ns.db.savedFarms = on and true or nil
+    ns.db.savedFarms = on and true or false
     if not on and self.run then self:End("off") end
     if ns.UI and ns.UI.RefreshTabs then pcall(ns.UI.RefreshTabs, ns.UI) end
     Changed()

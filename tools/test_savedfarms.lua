@@ -42,15 +42,20 @@ local SILK = ns.Value:ItemID("Silk Cloth")
 suite.check("Silk Cloth is known", SILK ~= nil)
 ns.Value.UnitPrice = function(_, id) if id == SILK then return 300 end return nil end
 
--- Off by default.
-suite.check("off unless ticked", F.On() == false and ns.db.savedFarms == nil)
-suite.check("Last Farm on Search waits for it", F.LastOnSearch() == false)
-suite.check("nothing saves while off", F:Save({ item = "Silk Cloth", amount = 60 }) == nil)
-suite.check("nothing was written", ns.db.farmList == nil and ns.db.farmRuns == nil)
+-- On by default: a save that never touched the box has the Farms tab.
+suite.check("on unless unticked", F.On() == true and ns.db.savedFarms == nil)
 ns.UI:Build()
 local function FarmsTab(strip)
     for _, tab in ipairs(strip.tabs) do if tab.key == "farms" then return tab end end
 end
+suite.check("the Farms tab is there by default", FarmsTab(ns.UI.tabStrip).standing == true)
+
+-- Unticked: it stays off, and says so in the save.
+F:SetOn(false)
+suite.check("unticked saves false", ns.db.savedFarms == false and F.On() == false)
+suite.check("Last Farm on Search waits for it", F.LastOnSearch() == false)
+suite.check("nothing saves while off", F:Save({ item = "Silk Cloth", amount = 60 }) == nil)
+suite.check("nothing was written", ns.db.farmList == nil and ns.db.farmRuns == nil)
 suite.check("no Farms tab while off", FarmsTab(ns.UI.tabStrip).standing == false)
 ns.UI:ShowTab("farms")
 suite.check("the tab can't be opened while off", ns.UI.tab == "search")
@@ -357,6 +362,8 @@ suite.check("and keeps no day", F2:Today(true) == nil)
 
 -- An old save loads as it was.
 local ns3 = Login({ goals = { list = {} } }, "Blackthornes")
-suite.check("an old save loads with Saved Farms off", ns3.SavedFarms.On() == false and ns3.db.farmList == nil)
+suite.check("an old save loads with Saved Farms on and no farms", ns3.SavedFarms.On() == true and ns3.db.farmList == nil)
+local ns4 = Login({ goals = { list = {} }, savedFarms = false }, "Blackthornes")
+suite.check("a save that unticked it keeps it off", ns4.SavedFarms.On() == false)
 
 suite.done()
