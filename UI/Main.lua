@@ -267,6 +267,7 @@ local function DropColor(chance)
     if chance >= 25 then return Theme.Unpack("accent") end
     return Theme.Unpack("muted")
 end
+UI.DropColor = DropColor
 
 --------------------------------------------------------------------------------
 -- Construction

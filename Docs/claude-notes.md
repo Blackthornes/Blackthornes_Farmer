@@ -2834,7 +2834,25 @@ was split into Map and Goals the same day). `/farm farms [on|off]`,
   it only took an exact name and Where: stayed "--"). Typing lists up to
   `SUGGEST` (6) name matches under it, ranked by `Search:Run`
   (`SavedFarmsUI.Suggestions`, dark glass rows); a click or Enter
-  (`PickItem`, `PickTop`) fills Item: (and Name: while empty) and Where:
-  lists that item's spots, your own too (`WhereOptions` through
-  `Search:WithYourSpots`). Where: keeps the data's zone name, not the shown one.
+  (`PickItem`, `PickTop`) fills Item: (and Name: while empty) and Zone:
+  lists that item's zones, your own spots too (through
+  `Search:WithYourSpots`). Zone: keeps the data's zone name, not the shown one.
+- Zone: and Mob: (the owner said build it from a mockup, 2026-11-16,
+  `previews/farmer-save-farm-zone-mob/`): Where: became two picks.
+  Zone: (`SavedFarmsUI.ZoneOptions`) lists every zone the item drops in,
+  each with its best mob's chance and the zone's level range, best chance
+  first, zones with none last, lowest level first ("--"); colours as the
+  Search tab (`UI.DropColor`, `UI.DifficultyColor`). Mob: (`MobOptions`)
+  starts on Any Mob, then that zone's mobs (kind mob or skinning) best
+  first; greyed (`dropdown:SetEnabled`) for a zone with no mob and for
+  Route Mode, and then no mob is saved. From Search the box opens on the
+  best spot's zone with Any Mob. The save is unchanged: `zone` and `mob`;
+  an old farm's zone or mob the data no longer lists is added so it opens
+  as saved. Start with a zone and no mob calls `Arrow:AimZone(item,
+  zone)`: `Arrow.pinnedZone` (session only, cleared by `Follow` and
+  `Grind`) keeps the dial's places to that zone while it has any (own
+  spots by map, `Arrow:InZone`), nearest first, so moving on stays there.
+  `Widgets.CreateDropdown` took `opts.glass` (dark glass menu lines) and
+  `option.columns` (small right columns in the line and the box).
+  Tested in `tools/test_savedfarms.lua` and `tools/test_arrow.lua`.
 - Tested in `tools/test_savedfarms.lua`. Not yet seen in game.

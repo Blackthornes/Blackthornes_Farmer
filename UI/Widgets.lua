@@ -469,6 +469,43 @@ function Widgets.CreateDropdown(parent, options, onSelect, opts)
     label:SetPoint("RIGHT", -18, 0)
     dropdown.label = label
 
+    -- An option may carry small columns on its right (`option.columns`,
+    -- each { text, color = { r, g, b }, w }, the first at the far right),
+    -- shown in its menu line and in the box once picked: a level range
+    -- and a drop chance, say.
+    local function ColumnsWidth(option)
+        local width = 0
+        for _, column in ipairs(option and option.columns or {}) do width = width + (column.w or 40) + 6 end
+        return width
+    end
+    local function DrawColumns(holder, labels, option, right, dim)
+        local x = right
+        for index, column in ipairs(option and option.columns or {}) do
+            local text = labels[index]
+            if not text then
+                text = Theme.CreateLabel(holder, "small", "muted")
+                text:SetJustifyH("RIGHT")
+                labels[index] = text
+            end
+            text:ClearAllPoints()
+            text:SetPoint("RIGHT", holder, "RIGHT", -x, 0)
+            text:SetWidth(column.w or 40)
+            text:SetText(column.text or "")
+            local c = column.color
+            if dim then
+                text:SetTextColor(Theme.Unpack("dim"))
+            elseif c then
+                text:SetTextColor(c[1], c[2], c[3], 1)
+            else
+                text:SetTextColor(Theme.Unpack("muted"))
+            end
+            text:Show()
+            x = x + (column.w or 40) + 6
+        end
+        for index = #(option and option.columns or {}) + 1, #labels do labels[index]:Hide() end
+    end
+    dropdown.columnLabels = {}
+
     -- A small solid arrow pointing down, four rows of plain colour (7, 5, 3
     -- and 1 pixels wide), so it needs no texture file.
     local arrow = {}
@@ -513,19 +550,33 @@ function Widgets.CreateDropdown(parent, options, onSelect, opts)
             if not entry then
                 entry = CreateFrame("Button", nil, menu)
                 entry:SetHeight(MENU_ROW_HEIGHT)
-                -- Drawn in full and faded with SetAlpha: made with a colour
-                -- alpha of 0, no hover ever showed (Tradeskills).
-                entry.highlight = Theme.Fill(entry, "rowHover", nil, "ARTWORK")
-                entry.highlight:SetAlpha(0)
+                if opts.glass then
+                    -- Dark glass, like every list: glass and glassAlt in
+                    -- turn, a line under each, a gold edge under the mouse.
+                    entry.fill = Theme.Fill(entry, "glass", nil, "BACKGROUND")
+                    local rule = entry:CreateTexture(nil, "BORDER")
+                    rule:SetPoint("BOTTOMLEFT")
+                    rule:SetPoint("BOTTOMRIGHT")
+                    rule:SetHeight(1)
+                    rule:SetColorTexture(Theme.Unpack("border", 0.6))
+                    Widgets.RowLight(entry)
+                    entry:SetScript("OnEnter", function(self) Widgets.SetRowLight(self, 1) end)
+                    entry:SetScript("OnLeave", function(self) Widgets.SetRowLight(self, 0) end)
+                else
+                    -- Drawn in full and faded with SetAlpha: made with a colour
+                    -- alpha of 0, no hover ever showed (Tradeskills).
+                    entry.highlight = Theme.Fill(entry, "rowHover", nil, "ARTWORK")
+                    entry.highlight:SetAlpha(0)
+                    local function Light(value) entry.highlight:SetAlpha(value) end
+                    entry:SetScript("OnEnter", function(self) Motion:Blend(self, "hover", 1, 0.08, Light) end)
+                    entry:SetScript("OnLeave", function(self) Motion:Blend(self, "hover", 0, 0.15, Light) end)
+                end
                 entry.label = Theme.CreateLabel(entry, "small", "text")
                 entry.label:SetPoint("LEFT", 8, 0)
                 entry.label:SetPoint("RIGHT", -8, 0)
+                entry.columns = {}
                 entry.mark = Theme.AccentStripe(entry, 2)
                 entry.mark:Hide()
-
-                local function Light(value) entry.highlight:SetAlpha(value) end
-                entry:SetScript("OnEnter", function(self) Motion:Blend(self, "hover", 1, 0.08, Light) end)
-                entry:SetScript("OnLeave", function(self) Motion:Blend(self, "hover", 0, 0.15, Light) end)
                 entries[index] = entry
             end
 
@@ -535,6 +586,15 @@ function Widgets.CreateDropdown(parent, options, onSelect, opts)
                 entry:SetPoint("TOPLEFT", 1, y)
                 entry:SetPoint("TOPRIGHT", scrolls and -7 or -1, y)
                 entry.label:SetText(option.text)
+                entry.label:SetPoint("RIGHT", -8 - ColumnsWidth(option), 0)
+                DrawColumns(entry, entry.columns, option, 8, false)
+                if rawget(entry, "fill") then
+                    local r, g, b, a = Theme.Unpack(slot % 2 == 0 and "glass" or "glassAlt")
+                    entry.fill:SetColorTexture(r, g, b, a)
+                    if opts.glass and option.value == dropdown.selected then
+                        entry.fill:SetColorTexture(Theme.Unpack("glassActive"))
+                    end
+                end
                 local on = option.value == dropdown.selected
                 entry.label:SetTextColor(Theme.Unpack(on and "accent" or "text"))
                 entry.mark:SetShown(on)
@@ -584,10 +644,26 @@ function Widgets.CreateDropdown(parent, options, onSelect, opts)
         for _, option in ipairs(self.options) do
             if option.value == value then
                 label:SetText(option.text)
+                label:SetPoint("RIGHT", -18 - ColumnsWidth(option), 0)
+                DrawColumns(self, self.columnLabels, option, 18, rawget(self, "greyed"))
                 return
             end
         end
         label:SetText(opts.placeholder or "")
+        label:SetPoint("RIGHT", -18, 0)
+        DrawColumns(self, self.columnLabels, nil, 18)
+    end
+
+    --- Greyed out: drawn dim in its place, and a click does nothing.
+    function dropdown:SetEnabled(on)
+        self.greyed = not on
+        if self.greyed then menu:Hide() end
+        label:SetTextColor(Theme.Unpack(self.greyed and "dim" or "text"))
+        self:SetValue(self.selected)
+    end
+
+    function dropdown:IsEnabled()
+        return not rawget(self, "greyed")
     end
 
     function dropdown:GetValue()
@@ -630,6 +706,7 @@ function Widgets.CreateDropdown(parent, options, onSelect, opts)
             menu:Hide()
             return
         end
+        if rawget(self, "greyed") then return end
         Lift()
         -- A long menu opens with the choice in view, near its middle.
         menu.first = 1

@@ -156,6 +156,7 @@ function Arrow:Follow(item)
     self.grind = nil
     if ns.ArrowUI and ns.ArrowUI.Claim then ns.ArrowUI:Claim() end
     self.pinned = nil
+    self.pinnedZone = nil
     self.choice = nil
     self.index = 1
     self:Changed(true)
@@ -177,6 +178,33 @@ function Arrow:Aim(item, spot)
     return true
 end
 
+--- Farm a whole zone (a saved farm on Any Mob): the goal for `item`, with
+--- only the places in `zone` while it has any, nearest first. Moving on
+--- (right-click, or a spot checked) stays in the zone.
+function Arrow:AimZone(item, zone)
+    if not self:Follow(item) then return false end
+    self.pinnedZone = type(zone) == "string" and zone ~= "" and zone or nil
+    if not Arrow.IsOn() then
+        self:SetOn(true)
+        ns.Print(L["goal arrow on. To hide it, type /farm arrow off or use the settings page."])
+    end
+    self:Changed(true)
+    return true
+end
+
+--- Is `target` in `zone`? A place from the data by its zone's name, one of
+--- your own spots by its map.
+function Arrow:InZone(target, zone, here)
+    if type(zone) ~= "string" then return false end
+    local want = ns.Spots.ZoneOf(zone)
+    if target.zone then return ns.Spots.ZoneOf(target.zone) == want end
+    if target.map then
+        local map = self:ZoneMap(want or zone, here)
+        return map ~= nil and map == target.map
+    end
+    return false
+end
+
 --------------------------------------------------------------------------------
 -- A grinding camp (the Grind tab, Logic/Grinding.lua)
 --
@@ -190,6 +218,7 @@ function Arrow:Grind(camp)
     if type(camp) ~= "table" or type(camp.zone) ~= "string" then return false end
     self.grind = camp
     self.pinned, self.choice, self.index = nil, nil, 1
+    self.pinnedZone = nil
     if ns.ArrowUI and ns.ArrowUI.Claim then ns.ArrowUI:Claim() end
     if not Arrow.IsOn() then
         self:SetOn(true)
@@ -673,10 +702,22 @@ function Arrow:Targets(item, here)
         return a.yards < b.yards
     end)
 
+    -- A farm of a whole zone keeps to that zone while it has a place.
+    local keep
+    if self.pinnedZone then
+        local zone = self.pinnedZone
+        for _, group in ipairs({ exact, areas, far }) do
+            for _, target in ipairs(group) do
+                if self:InZone(target, zone, here) then keep = function(t) return self:InZone(t, zone, here) end break end
+            end
+            if keep then break end
+        end
+    end
+
     local list = {}
     local function Add(group)
         for _, target in ipairs(group) do
-            if #list < MAX_TARGETS then list[#list + 1] = target end
+            if #list < MAX_TARGETS and (not keep or keep(target)) then list[#list + 1] = target end
         end
     end
     Add(exact)
