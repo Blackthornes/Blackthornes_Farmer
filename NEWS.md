@@ -23,6 +23,17 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.20.0
+
+- Farmer's new Dock to the Map box lets Where to Farm sit beside the world map.
+- Settings is sorted into clearer pages, with an All Addons page for what every addon shares.
+- The window can dock in more places and you can resize it by hand.
+- Small pieces line up on shelves instead of piling in one spot.
+Fixes and changes:
+- Where to Farm opens over the main window again.
+- Where to Farm and the Fishing Panel no longer cover the bags or the map.
+- Kills & Loot redraws faster in long sessions.
+
 ## 1.19.1
 
 - There's a new Gather Route. It plans a short loop through the herb, ore and skinning spots you've mapped, and the arrow leads you stop to stop. Turn it on in the Map & goals page of Settings.
