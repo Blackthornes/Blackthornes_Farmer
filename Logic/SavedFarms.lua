@@ -670,7 +670,7 @@ function SavedFarms:OnEnable()
         end
         T.savedFarmsWrapped = true
     end
-    self:RegisterEvent("PLAYER_LOGOUT")
+    ns.RegisterEvent(self, "PLAYER_LOGOUT", self.PLAYER_LOGOUT)
 end
 
 --- Logging out (or a /reload) ends the run under way.
