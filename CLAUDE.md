@@ -95,6 +95,7 @@ Sections there:
 - Mute All Sounds
 - Fold in fresh data at each release
 - Window spots
+- Standing rules in full
 
 ## One key per character
 
@@ -116,74 +117,44 @@ too; a new sound must as well. Saved as `muteSounds` and `muteSoundsAt`
 
 ## Writing for players
 
-Every word a player reads (labels, buttons, tooltips, Settings rows and
-their descriptions, empty lists, chat lines, slash command help) reads the
-way a friend who plays would say it: plain, warm and human. Write it at a sixth grade reading level. Short
-sentences in everyday words, contractions welcome. Say what the player
-sees or does, not how the addon works inside. No hype or sales words
-("seamlessly", "effortlessly", "now you can", "powerful"), no filler, no
-em-dashes, and no questions to the reader. The German in
-`Locale/deDE.lua` changes with the English, in the same informal "du"
-voice. Farmer's play cheers keep their "!" (drop-quality cheers, goal
-marks, streaks, "Up to #N!", "Goal done: X!"), and `About.NOTE` is the
-owner's own wording. This rule is in every addon's notes; keep them the
-same.
+Every word a player reads is plain, warm and human, at a sixth grade
+reading level: short sentences, everyday words, what the player sees or
+does. No hype, no filler, no em-dashes, no questions to the reader. deDE
+changes with the English, in the "du" voice. Farmer's play cheers keep
+their "!", and `About.NOTE` is the owner's own wording. Full wording under
+"Standing rules in full" in `Docs/claude-notes.md`.
 
 ## The owner's standing rules (all the addons)
 
-- **Every list is dark glass** (the owner, 2026-10-12: "keep this as the
-  standard across all Blackthornes addons", after Farmer's Kills & Loot
-  panel was given the look of Tradeskills' queue). Rows or lines take
-  `glass` and `glassAlt` in turn, by place, with a 1 px `border` line
-  (alpha 0.6) under each; under the mouse `glassHover` and a gold edge,
-  only on that row; the row picked or open is `glassActive` with a bright
-  gold edge down its left. Never the older `row`/`rowAlt` bands for a
-  list, a panel's lines or cards. A gradient fades through
-  `Theme.LightGradient` or is hidden, never with SetAlpha alone (it stayed
-  lit on Forever). This rule is in every addon's notes; keep them the same.
-- **"Always check that it's clear to post."** Anything public is checked for
-  private or unexpected content first, and nothing is published or uploaded
-  without the owner's go-ahead. He tags releases himself.
-- **Changelogs come from git history,** never from asking the owner. Claude drafts
-  the CHANGELOG section in a PR; the owner merges, pulls `main`, tags and pushes.
-- **A checkout shows the real version number** (the owner,
-  2026-10-12). `ns.RELEASED_VERSION` in `Core/Init.lua` is the newest
-  `## X.Y.Z` in CHANGELOG.md, shown when the packager has not filled in the
-  TOC's `@project-version@` (he plays from a clone). The release PR that
-  writes the CHANGELOG section changes it too; `tools/check_release.py`
-  refuses a tag it does not match, and `tools/test_check_release.py` fails
-  while the two disagree. This rule is in every addon's notes.
+Short forms. The full wording of each, with dates and reasons, is under
+"Standing rules in full" in `Docs/claude-notes.md`; read a rule there
+before work that leans on it.
+
+- **Every list is dark glass:** rows take `glass` and `glassAlt` in turn
+  with a 1 px `border` line under each, `glassHover` and a gold edge under
+  the mouse, `glassActive` and a gold left edge when picked. Never
+  `row`/`rowAlt`. Gradients fade through `Theme.LightGradient` or are
+  hidden, never SetAlpha alone.
+- **"Always check that it's clear to post."** Nothing is published or
+  uploaded without the owner's go-ahead. He tags releases himself.
+- **Changelogs come from git history,** never from asking the owner.
+- **A checkout shows the real version number:** `ns.RELEASED_VERSION` in
+  `Core/Init.lua` matches the newest `## X.Y.Z` in CHANGELOG.md; the
+  release PR changes both.
 - **Every reply that ships code says the PR is ready and whether the game
   needs `/reload` or a full restart** (a full restart when a file is added,
-  removed or renamed, or the TOC changes). Merging, pulling and tagging go
-  through the project's own steps, never by hand on github.com or in
-  GitHub Desktop.
-- **Grey (poor quality) items are priced at vendor only;** everything else is
+  removed or renamed, or the TOC changes). Never merge or pull by hand on
+  github.com or in GitHub Desktop.
+- **Grey items are priced at vendor only;** everything else is
   max(auction, vendor).
-- **CurseForge descriptions are features only:** no privacy notes and no
-  explanation of public emotes or their switches.
-- **Smooth play comes first, but never at the cost of looks** (the owner,
-  2026-10-09, after a hitch while crafting). Nothing on a timer or
-  OnUpdate rebuilds or re-places a whole list, map or set of markers when
-  only one thing moved: keep what is drawn, and redo only rows or pins
-  whose inputs changed (a per-row key, a version number). Bag, loot,
-  cast, skill and profession-list events arrive in bursts, several per
-  craft or loot: coalesce them, read only what they changed, and skip
-  work for windows that are hidden. Work over hundreds of items (recipes,
-  sources, saved spots) is spread over frames (a worker with a small
-  per-frame budget) rather than done in one frame, and shown when done.
-  Clicks and typing still answer at once. The two causes found: Farmer's
-  minimap markers gathered, sorted and re-placed every saved spot once a
-  second because the clock second was in their redraw key (now only the
-  fade moves, `MapMarkers:FadeMinimap`); and on every craft Tradeskills
-  re-read every recipe in the profession window and repriced the whole
-  craft pane in one frame (now `Recipes:NothingNewMidCraft` skips the
-  re-read mid-run and `CraftPanel:RefreshInSlices` spreads the pane over
-  frames). Visuals and usability are never traded away for speed. This
-  rule is in every addon's notes; keep them the same.
-- **The client is WoW: Forever, a retail engine** (`## Interface: 16001`,
-  modern Lua), not 1.12. Read client values inside a pcall; instances hand out
-  secret values that raise when touched.
+- **CurseForge descriptions are features only.**
+- **Smooth play comes first, but never at the cost of looks:** nothing on
+  a timer or OnUpdate rebuilds a whole list, map or set of markers when one
+  thing moved; coalesce event bursts; skip work for hidden windows; spread
+  work over hundreds of items across frames.
+- **The client is WoW: Forever, a retail engine** (`## Interface: 16001`),
+  not 1.12. Read client values inside a pcall; instances hand out secret
+  values that raise when touched.
 
 ## Fold in fresh data at each release
 
@@ -196,6 +167,10 @@ each release" in `Docs/claude-notes.md`; read them before a release.
 
 Reading a huge file whole fills the context and the thread dies. Sizes are
 from 2026-11-03 and only grow. Find more with `find . -name '*.lua' | xargs wc -lc | sort -n`.
+
+Keep command output short too: `python tools/runtests.py -q` prints only
+failures and the total, `-q perf tracker` runs only the suites whose name
+holds a word given, and `python tools/syntaxcheck.py -q` prints only failures.
 
 - Never read a file below whole. Use `grep -n` to find the spot, then read
   about 150 lines at a time (Read with `offset` and `limit`).

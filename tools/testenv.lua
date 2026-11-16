@@ -151,6 +151,9 @@ function env.InstallClient()
     _G.PlaySound = nil
     _G.PlaySoundFile = nil
     _G.GetTime = nil
+    -- The client has `time`; a suite run on its own (runtests.py -q name)
+    -- must not lean on an earlier suite having set it.
+    _G.time = _G.time or os.time
     _G.SendChatMessage = nil
     -- The list the game closes with Escape.
     _G.UISpecialFrames = {}
