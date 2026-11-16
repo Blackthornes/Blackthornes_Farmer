@@ -45,6 +45,13 @@ Moments.LATE_KILLS = 30
 -- A drop rate of your own is used only once a mob has this many kills;
 -- the data's rate comes first.
 Moments.OWN_RATE_KILLS = 50
+-- From OWN_RATE_KILLS on, your own rate wins over the data's when it is this
+-- many times higher, so a common drop the data lists as rare stays common.
+Moments.OWN_RATE_OVER = 1.5
+-- Lucky and Finally only for green (Uncommon) or better.
+Moments.MIN_QUALITY = 2
+-- Items already called Lucky this session (memory only, never saved).
+Moments.luckyShown = Moments.luckyShown or {}
 -- The card's "since" line: only for a drop of 1 in 200 or more often,
 -- once the mob has a few kills.
 Moments.SINCE_RARE = 200
@@ -140,6 +147,13 @@ end
 --- is its tally; `before` is how many corpses had dropped it before this
 --- kill (the kill itself would tilt your own rate).
 function Moments.ChanceOf(mobName, item, mob, before)
+    local kills = mob and (Number(mob.kills) or 0) - 1 or 0
+    before = Number(before) or 0
+    local own
+    if kills >= Moments.OWN_RATE_KILLS and before > 0 then
+        own = before / kills
+    end
+
     local DB = ns.DB
     if DB and DB.ByName then
         for _, source in ipairs(DB:ByName()[mobName] or {}) do
@@ -147,17 +161,17 @@ function Moments.ChanceOf(mobName, item, mob, before)
             if found and found.name == item and Number(source.chance)
                 and DB.KindOf(source) == "mob" then
                 local chance = Number(source.chance) / 100
-                if chance > 0 then return chance end
+                if chance > 0 then
+                    if own and own > chance * Moments.OWN_RATE_OVER then
+                        return own
+                    end
+                    return chance
+                end
             end
         end
     end
 
-    local kills = mob and (Number(mob.kills) or 0) - 1 or 0
-    before = Number(before) or 0
-    if kills >= Moments.OWN_RATE_KILLS and before > 0 then
-        return before / kills
-    end
-    return nil
+    return own
 end
 
 local function OneIn(chance)
@@ -176,6 +190,14 @@ local function Grey(name)
     local poor = Value:IsPoor(id)
     return poor == true
 end
+
+-- Green or better, as far as the loot link's colour says. Unknown is no.
+local function Green(name)
+    local FX = ns.TrackerFX
+    local q = FX and FX.QualityOf and FX.QualityOf(name)
+    return type(q) == "number" and q >= Moments.MIN_QUALITY
+end
+Moments.Green = Green
 
 --------------------------------------------------------------------------------
 -- A kill
@@ -214,10 +236,11 @@ function Moments:Kill(mobName, mob, items, quantities, copper)
             waits.items[name] = waits.n
 
             local chance = took and took > 0 and not Hidden(name) and not Grey(name)
-                and Moments.ChanceOf(mobName, name, mob, before)
+                and Green(name) and Moments.ChanceOf(mobName, name, mob, before)
             if chance then
                 local expected = 1 / chance
-                if chance <= 1 / Moments.LUCKY_RARE and took <= expected * Moments.LUCKY_SHARE then
+                if chance <= 1 / Moments.LUCKY_RARE and took <= expected * Moments.LUCKY_SHARE
+                    and not Moments.luckyShown[name] then
                     local score = took * chance
                     if not lucky or score < lucky.score then
                         lucky = { name = name, took = took, chance = chance, score = score }
@@ -246,6 +269,7 @@ function Moments:Kill(mobName, mob, items, quantities, copper)
                 ns.Util.ColorItem(late.name), late.took, OneIn(late.chance)),
             float = L.Format("Finally! %d kills", late.took) }
     elseif lucky then
+        Moments.luckyShown[lucky.name] = true
         moment = { kind = "lucky", item = lucky.name,
             line = L.Format("Lucky! %s drops 1 in %d. You got it in %d kills.",
                 ns.Util.ColorItem(lucky.name), OneIn(lucky.chance), lucky.took),

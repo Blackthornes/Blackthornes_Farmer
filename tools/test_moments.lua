@@ -13,6 +13,11 @@
 --   6. After a run and a quiet spell, the recap card; a run a logout ended
 --      shows at the next login, once.
 --   7. Celebrate off says nothing.
+--   8. Only green or better gets "Lucky!" or "Finally!"; plain white food
+--      and the like never do.
+--   9. One "Lucky!" an item a session.
+--  10. From 50 kills, your own rate wins when it is clearly higher than
+--      the data's, so a common drop the data calls rare is never lucky.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("moments")
@@ -70,6 +75,10 @@ local PRICES = { [9001] = 5000, [9002] = 20, [9003] = 300 }
 ns.Value.UnitPrice = function(_, id) return id and PRICES[id] end
 ns.Value.IsPoor = function() return false, true end
 
+-- Item quality: green unless a test says otherwise.
+local QUALITY = {}
+ns.TrackerFX.QualityOf = function(name) return QUALITY[name] or 2 end
+
 local serial = 0
 local function Kill(mob, loot, step)
     serial = serial + 1
@@ -103,14 +112,21 @@ suite.check("a 1 in 100 drop on the 6th kill is lucky",
 env.chat = {}
 for _ = 1, 2 do Kill("Lucky Mob") end
 Kill("Lucky Mob", { GEM })
+suite.check("a second lucky for the same item in one session says nothing",
+    not Said("Lucky"), env.chat[1])
+
+Moments.luckyShown = {}
+env.chat = {}
+for _ = 1, 2 do Kill("Lucky Mob") end
+Kill("Lucky Mob", { GEM })
 suite.check("counted again from the last drop", Said("You got it in 3 kills."), env.chat[1])
 
 env.chat = {}
 for _ = 1, 30 do Kill("Lucky Mob") end
 suite.check("nothing said while nothing drops", not Said("Finally"))
 Kill("Lucky Mob", { TOOTH })
-suite.check("a 1 in 10 drop never seen in 40 kills is long awaited",
-    Said("Finally! Worn Tooth after 40 kills. It drops 1 in 10."), env.chat[#env.chat])
+suite.check("a 1 in 10 drop never seen in 43 kills is long awaited",
+    Said("Finally! Worn Tooth after 43 kills. It drops 1 in 10."), env.chat[#env.chat])
 
 env.chat = {}
 Kill("Lucky Mob", { TOOTH })
@@ -127,8 +143,33 @@ env.chat = {}
 Kill("Old Mob", { GEM })
 suite.check("no start, nothing said", not Said("Lucky") and not Said("Finally"))
 for _ = 1, 3 do Kill("Old Mob") end
+Moments.luckyShown = {}
 Kill("Old Mob", { GEM })
 suite.check("the next one counts from it", Said("You got it in 4 kills."))
+
+--------------------------------------------------------------------------------
+-- 2b. White items, and your own rate past 50 kills
+--------------------------------------------------------------------------------
+
+local CHEESE = { name = "Fine Cheese", id = 9004 }
+RATES["Cheese Mob"] = { { "Fine Cheese", 9004, 1 } }
+QUALITY["Fine Cheese"] = 1
+for _ = 1, 5 do Kill("Cheese Mob") end
+env.chat = {}
+Kill("Cheese Mob", { CHEESE })
+suite.check("a white item is never lucky", not Said("Lucky") and not Said("Finally"))
+QUALITY["Fine Cheese"] = nil
+
+local common = Tracker:GetMob("Common Mob")
+common.kills, common.items["Shiny Gem"] = 60, 30
+RATES["Common Mob"] = { { "Shiny Gem", 9001, 1 } }
+Kill("Common Mob", { GEM })
+for _ = 1, 3 do Kill("Common Mob") end
+Moments.luckyShown = {}
+env.chat = {}
+Kill("Common Mob", { GEM })
+suite.check("past 50 kills your own rate beats a rare listed rate",
+    not Said("Lucky") and not Said("Finally"), env.chat[1])
 
 --------------------------------------------------------------------------------
 -- 3. The card's count
