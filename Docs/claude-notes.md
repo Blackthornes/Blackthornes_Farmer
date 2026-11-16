@@ -2777,3 +2777,57 @@ command is the one it was.
   beside Pause When Away.
 - Tested in `tools/test_windowspage.lua`.
 
+
+## Saved Farms
+
+A player asked on Discord, the owner said build it from a mockup whose
+words he approved (2026-11-16, `previews/farmer-saved-farms/` in the
+project files). Off unless ticked: "Saved Farms:" (`savedFarms`, nil off)
+and "Last Farm on Search:" (`lastFarmOnSearch`, nil on, greyed while off)
+under SAVED FARMS on the Goals page (the mockup said Map & Goals; that page
+was split into Map and Goals the same day). `/farm farms [on|off]`,
+`/farm repeat`.
+
+- `Logic/SavedFarms.lua` keeps, account wide (never rename any):
+  `farmList` (at most `MAX` 20: `{ id, name, item, zone, mob, amount, how,
+  page, daily }`, `how` is spot, route, kills or goal, `page` the Grind
+  page a route runs on, from the item's category), `farmRuns[guid]` (the
+  newest `KEEP_RUNS` 10 runs, newest first: `{ id, name, at, seconds, got,
+  copper, itemsCopper, items, kills }`) and `farmToday[guid]` (`{ day,
+  done, added }`, fresh each day). One key per character through
+  `Goals:Owner()`; an unread GUID starts nothing and writes nothing.
+  Removing a farm keeps its runs; ids only go up (`NextID`).
+- Start: `Goals:Set(item, have + amount)` (a run farms the amount more),
+  or `KillGoal:Start(amount, mob)` for a kill farm; spot farms aim the
+  arrow at the saved mob and zone (`Arrow:Aim`), route farms open the
+  Grind tab on their page with Route Mode on and the route walked when the
+  Gather Route is on (`StartRoute`; never turns that setting on); the
+  session timer starts when "Session Timer:" is on and it was Ready. The
+  run is kept in memory only (`SavedFarms.run`).
+- A run ends on its goal done (`Goals.Finished` and `KillGoal.Finished`
+  wrapped, called through first), the timer's Stop (wrapped, the run ends
+  before the timer resets), Stop on the tab, starting another farm,
+  unticking, or `PLAYER_LOGOUT` (a /reload too). Gold is the panel's value
+  since Start (`Value:Session`), never under what the item got is worth.
+  A run under `MIN_SECONDS` with nothing got is not kept. Done today when
+  its goal was reached, its amount got, or a route ran a minute.
+- An Hour (`SavedFarms:AnHour`): every character's runs of the farm, the
+  item repriced at today's `Value:UnitPrice` (`WorthNow`: the rest of the
+  run's gold as it was), once `RATE_SECONDS` are behind it; before that
+  `Pace:ForItem` seconds times the price; a kill farm only from its runs.
+  Cached `CACHE` seconds or until anything moves (`SavedFarms.version`).
+- `UI/SavedFarms.lua`: the Farms tab (between Grind and Stats, in the tab
+  list with `shown`, so `Widgets.CreateTabStrip` lays it out only while
+  ticked; `strip:Relayout()`, `UI:RefreshTabs()` for both strips): LAST
+  FARM with Repeat, TODAY with "N of M done today.", SAVED FARMS with New
+  Farm, RECENT RUNS, each a dark glass `CreateRowList` with sortable
+  columns (`COLUMNS`, `Sort`); right-click a farm for Start, Edit, Add to
+  Today, Remove. A running farm's Start reads Stop. Drawn only while the
+  tab shows. The Save Farm box (`OpenBox`, `farmer.savefarm` window spot)
+  fills from a Search item (Save Farm beside Goal, `UI.SAVE_FARM_WIDTH`),
+  from Your Run (Save This Farm, only when the run was no saved farm, via
+  a wrap of `RecapUI.Show`) or from Route Mode (Save Farm in the route's
+  foot). The Last Farm strip sits under the Search chips and moves the
+  results panel down `STRIP` while it shows (`PlaceSearchStrip`).
+- Kill farms show gold only, never a kill reward or milestone.
+- Tested in `tools/test_savedfarms.lua`. Not yet seen in game.

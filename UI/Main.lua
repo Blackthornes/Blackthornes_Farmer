@@ -385,6 +385,8 @@ function UI:Build()
     end
     if ns.SavedFarmsUI then
         self.farmsView = ns.SavedFarmsUI:Build(frame)
+        -- The Last Farm strip over the Search results, when it shows.
+        pcall(ns.SavedFarmsUI.PlaceSearchStrip, ns.SavedFarmsUI)
     end
 
     self.tab = "search"
