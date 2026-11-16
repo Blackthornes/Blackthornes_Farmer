@@ -2830,4 +2830,11 @@ was split into Map and Goals the same day). `/farm farms [on|off]`,
   foot). The Last Farm strip sits under the Search chips and moves the
   results panel down `STRIP` while it shows (`PlaceSearchStrip`).
 - Kill farms show gold only, never a kill reward or milestone.
+- The box's Item: searches (fixed 2026-11-16 after the owner's screenshot:
+  it only took an exact name and Where: stayed "--"). Typing lists up to
+  `SUGGEST` (6) name matches under it, ranked by `Search:Run`
+  (`SavedFarmsUI.Suggestions`, dark glass rows); a click or Enter
+  (`PickItem`, `PickTop`) fills Item: (and Name: while empty) and Where:
+  lists that item's spots, your own too (`WhereOptions` through
+  `Search:WithYourSpots`). Where: keeps the data's zone name, not the shown one.
 - Tested in `tools/test_savedfarms.lua`. Not yet seen in game.
