@@ -144,16 +144,16 @@ suite.check("and back", ns.Goals:CountsBank() == false)
 local pages = SettingsUI.pages
 suite.check("it opens on the first page", pages.shown == "tally", pages.shown)
 suite.check("with the kill rows showing", pages.pages.tally.content:IsShown()
-    and not pages.pages.general.content:IsShown())
-suite.check("General sits just before About, eleven pages in all",
-    #pages.defs == 11 and pages.defs[10].key == "general" and pages.defs[11].key == "about")
+    and not pages.pages.panels.content:IsShown())
+suite.check("All Addons sits just before About, ten pages in all",
+    #pages.defs == 10 and pages.defs[9].key == "all" and pages.defs[10].key == "about")
 local tallyPart, generalPart
 for _, part in ipairs(pages.switch) do
     if part.key == "tally" then tallyPart = part end
-    if part.key == "general" then generalPart = part end
+    if part.key == "panels" then generalPart = part end
 end
 generalPart.button:GetScript("OnClick")(generalPart.button)
-suite.check("a click on the switch shows that page", pages.pages.general.content:IsShown()
+suite.check("a click on the switch shows that page", pages.pages.panels.content:IsShown()
     and not pages.pages.tally.content:IsShown())
 tallyPart.button:GetScript("OnClick")(tallyPart.button)
 suite.check("and the page is remembered", ns.db.settingsPage == "tally")

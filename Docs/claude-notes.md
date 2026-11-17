@@ -2832,6 +2832,15 @@ landed in `UI/SharedWindow.lua` (FILE_VERSION 8, the same file in all five;
 
 ## Ten Settings pages and the Windows table
 
+**The shared layout (the owner said build it, 2026-11-17, all five
+addons):** own pages first, then TOOLTIPS, SOUNDS, WINDOWS, SHARING, ALL
+ADDONS, ABOUT, the same names and order in every addon. General joined
+Windows (`panels`): Window Size under the table, then FARMER UI, all in
+column 1. `SettingsUI.OLD_PAGES` sends a saved `general`, `windows` or
+`advanced` to `panels`. Mute All Sounds shows on top of Sounds too
+(`controls.muteSoundsHere`), the same switch as on All Addons. Now ten
+pages; the notes below describe the step before.
+
 The owner said build it from mockups (2026-11-16, the UI cleanup). Rows
 moved; every saved key, control name in `SettingsUI.controls` and chat
 command is the one it was.
