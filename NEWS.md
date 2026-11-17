@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.22.0
+
+- New Marker Size choice makes the marks on your maps smaller or bigger.
+- Blackthornes now has one button on your addon bar.
+- Settings pages sit in the same order in every Blackthornes addon.
+- At a vendor, the window opens on Butler.
+- Various bug fixes for Farmer.
+
 ## 1.21.1
 
 Fixes and changes:

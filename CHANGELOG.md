@@ -4,6 +4,16 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.22.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Marker Size.** A new Marker Size: choice on the Map page of Settings, under GATHERED NODE MARKERS, makes the marks on the world map and the minimap smaller or bigger. Normal is the size they always had.
+- **Blackthornes button for addon bars.** If you already use an addon bar, Blackthornes now puts one button on it. Left-click opens the menu, right-click opens the All Addons page of Settings, and middle-click opens Farmer's panels.
+- **Settings pages in one order.** Every Blackthornes addon now lists its Settings pages the same way: its own pages first, then Tooltips, Sounds, Windows, Sharing, All Addons and About. The old General page joins Windows. Mute All Sounds shows on Sounds too.
+- **Butler at a vendor.** At a vendor the one window opens on Butler, then goes back to the addon you had open when you leave.
+- Various bug fixes for Farmer.
+
 ## 1.21.1
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
