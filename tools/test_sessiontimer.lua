@@ -179,4 +179,41 @@ suite.check("Settings has the Session Timer box, unticked",
 suite.check("Settings has Pause When Away, ticked",
     controls.sessionTimerAutoPause ~= nil and controls.sessionTimerAutoPause:GetChecked())
 
+-- In PvP the client hands back a secret answer for "on a flight?" and
+-- "away?" (reported 2026-11-17: SessionTimer.lua:252 "attempt to compare
+-- local 'answer' (a secret boolean value...)", 1,624 times). Comparing one
+-- raises, so the answer is looked at inside the pcall and a secret means
+-- "don't know": no error, no pause, and an away pause is not lifted.
+-- The fake game cannot make `==` raise (Lua only asks a table about `==`
+-- against another table), so the source is checked too.
+do
+    local source = io.open(lfs_cwd .. "/Logic/SessionTimer.lua"):read("*a")
+    suite.check("the answer is never compared outside the pcall",
+        not source:find("ok and answer ==", 1, true))
+
+    local secret = env.Secret("boolean")
+    local oldTest = _G.issecretvalue
+    _G.issecretvalue = function(value) return value == secret end
+    local S = Login()
+    local Timer = S.SessionTimer
+    Timer:SetOn(true)
+    Timer:Start()
+    _G.UnitIsAFK = function() return secret end
+    _G.UnitOnTaxi = function() return secret end
+    suite.check("Ask says don't know for a secret", Timer.Ask(UnitIsAFK, "player") == nil)
+    suite.check("Ask still says yes and no",
+        Timer.Ask(function() return true end) == true and Timer.Ask(function() return false end) == false)
+    local ok = pcall(Timer.OnEvent, Timer, "PLAYER_FLAGS_CHANGED")
+    suite.check("a secret away answer raises nothing", ok)
+    suite.check("a secret away answer does not pause", Timer.state == "timing")
+    Timer:Pause("away", true)
+    ok = pcall(Timer.OnEvent, Timer, "PLAYER_FLAGS_CHANGED")
+    suite.check("a secret away answer keeps an away pause", ok and Timer.state == "paused")
+    ok = pcall(Timer.OnEvent, Timer, "PLAYER_CONTROL_LOST")
+    suite.check("a secret flight answer raises nothing", ok)
+    _G.issecretvalue = oldTest
+    _G.UnitIsAFK = function() return afk end
+    _G.UnitOnTaxi = function() return onTaxi end
+end
+
 suite.done()
