@@ -35,6 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from check_package import PRIVATE  # noqa: E402
+from classic_maps import MARK, forever_spot  # noqa: E402
 
 OUT = Path("Data/Data_ClassicDrops.lua")
 ZONES = Path("Data/Zones.lua")
@@ -148,6 +149,8 @@ def spot(points, zone_names, zones):
     xs, ys = sorted(x for x, _ in here), sorted(y for _, y in here)
     mx, my = xs[len(xs) // 2], ys[len(ys) // 2]
     x, y = min(here, key=lambda p: (p[0] - mx) ** 2 + (p[1] - my) ** 2)
+    # Classic's numbers on Forever's own map (only Mulgore's differ).
+    x, y = forever_spot(zone_names[zone], x, y)
     return zone_names[zone], x, y
 
 
@@ -190,6 +193,8 @@ def main():
         "-- Forever client's game tables; never edit by hand. Where Classic's mobs",
         "-- drop trade goods, with no drop rates: leads for the search until looted",
         "-- on Forever.",
+        "",
+        MARK,
         "",
         "local _, ns = ...",
         "",
