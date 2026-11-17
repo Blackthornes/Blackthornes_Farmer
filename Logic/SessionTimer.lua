@@ -246,11 +246,24 @@ end
 -- Pause When Away
 --------------------------------------------------------------------------------
 
+--- Asks the client a yes or no question: true, false, or nil for "don't
+--- know". In PvP the client can hand back a secret answer, and comparing
+--- one raises, so the answer is only looked at inside the pcall and a
+--- secret one is "don't know".
 local function Ask(fn, ...)
     if type(fn) ~= "function" then return nil end
-    local ok, answer = pcall(fn, ...)
-    return ok and answer == true
+    local ok, answer = pcall(function(...)
+        local value = fn(...)
+        local isSecret = _G.issecretvalue
+        if type(isSecret) == "function" and isSecret(value) then return nil end
+        if value == true then return true end
+        if value == false or value == nil then return false end
+        return nil
+    end, ...)
+    if ok then return answer end
+    return nil
 end
+SessionTimer.Ask = Ask
 
 --- Pauses for `reason` by itself, only while timing.
 function SessionTimer:AutoPause(reason)
@@ -302,7 +315,7 @@ function SessionTimer:OnEvent(event)
     elseif event == "PLAYER_CONTROL_GAINED" then
         if self.reason == "fly" then
             local look = function()
-                if not Ask(UnitOnTaxi, "player") then self:AutoResume() end
+                if Ask(UnitOnTaxi, "player") == false then self:AutoResume() end
             end
             if C_Timer and type(C_Timer.After) == "function" then
                 pcall(C_Timer.After, self.TAXI_LOOK, look)
@@ -311,9 +324,10 @@ function SessionTimer:OnEvent(event)
             end
         end
     elseif event == "PLAYER_FLAGS_CHANGED" then
-        if Ask(UnitIsAFK, "player") then
+        local away = Ask(UnitIsAFK, "player")
+        if away then
             self:AutoPause("away")
-        elseif self.reason == "away" then
+        elseif away == false and self.reason == "away" then
             self:AutoResume()
         end
     end
