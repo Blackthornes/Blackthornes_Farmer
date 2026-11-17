@@ -567,6 +567,24 @@ function Page:BuildBar()
     self.find:SetPoint("RIGHT", self.describe, "LEFT", -BAR_GAP, 0)
 
     self:LayoutSwitch()
+    -- Laid into a window narrower than the bar asked for (the one window),
+    -- the names would run under the search box: lay them out again at the
+    -- bar's real width whenever it changes (seen in game 2026-11-17).
+    bar:SetScript("OnSizeChanged", function()
+        if self.laying or not self.need then return end
+        self.laying = true
+        if self:LayoutSwitch(self:SwitchRoom()) then self:UpdateScroll() end
+        self.laying = false
+    end)
+end
+
+--- The width the switch has: the window's asked-for width, or the bar's
+--- own when the window is laid out narrower than that.
+function Page:SwitchRoom()
+    local asked = Number(self.need and self.need[1])
+    local real = Number(self.bar:GetWidth())
+    if real and real > 0 and (not asked or real < asked) then return real end
+    return asked
 end
 
 --- How tall the bar stands: one line, and a line more for each the
@@ -591,7 +609,7 @@ end
 function Page:SetHidden(key, hidden)
     self.hidden = self.hidden or {}
     self.hidden[key] = hidden and true or nil
-    self:LayoutSwitch(self.need and self.need[1])
+    self:LayoutSwitch(self:SwitchRoom())
     self:Paint()
 end
 
@@ -774,6 +792,8 @@ function Page:Fit()
     self.need = { math.ceil(width), math.ceil(height) }
     self.frame:SetWidth(self.need[1])
     self.frame:SetHeight(self.need[2])
+    -- Laid into the one window the frame can come out narrower than asked.
+    self:LayoutSwitch(self:SwitchRoom())
     for _, page in pairs(self.pages) do
         page.content:SetHeight(math.max(10, math.ceil(self:PageHeight(page))))
     end

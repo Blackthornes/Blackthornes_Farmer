@@ -508,6 +508,37 @@ do
 end
 
 --------------------------------------------------------------------------------
+-- The switch never runs under the search box (2026-11-17)
+--------------------------------------------------------------------------------
+
+-- Seen in game in Tradeskills: the last page name was drawn on the search
+-- box. Laid into a window narrower than the bar asked for, the switch lays
+-- itself out again at the bar's real width.
+do
+    local pages = SettingsUI.pages
+    local bar = pages.bar
+    local before = pages.lines or 1
+    local wide = pages.need[1]
+    bar:SetWidth(420)
+    bar:GetScript("OnSizeChanged")(bar)
+    local room = 420 - pages.opts.padding * 2 - pages:ToolsWidth()
+    local right, line, clear = 0, 0, true
+    for _, part in ipairs(pages.switch) do
+        if part.button:IsShown() then
+            local _, relativeTo, _, x = part.button:GetPoint()
+            if relativeTo == bar then line, right = line + 1, 0 else right = right + x end
+            right = right + part.button:GetWidth()
+            if line == 1 and right > room then clear = false end
+        end
+    end
+    suite.check("a narrow bar keeps the switch clear of the search box", clear)
+    suite.check("by putting the rest on more lines", (pages.lines or 1) > before, pages.lines)
+    bar:SetWidth(wide)
+    bar:GetScript("OnSizeChanged")(bar)
+    suite.check("and back to as many lines as before at the full width", (pages.lines or 1) == before, pages.lines)
+end
+
+--------------------------------------------------------------------------------
 -- Even +/- boxes and no empty strip on the right (2026-10-22)
 --------------------------------------------------------------------------------
 
