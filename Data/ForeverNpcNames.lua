@@ -1878,6 +1878,7 @@ ns.FOREVER_NPC_NAMES = {
     [6118] = "Varo'then's Ghost",
     [6121] = "Remen Marcot",
     [6132] = "Razorfen Servitor",
+    [6136] = "Arkkoran Muckdweller",
     [6145] = "School of Fish",
     [6175] = "John Turner",
     [6176] = "Bath'rah the Windwatcher",
