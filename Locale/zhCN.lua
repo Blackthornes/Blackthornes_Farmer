@@ -337,6 +337,7 @@ L["%d of %d"] = "%d / %d"
 
 -- Logic/Fishing.lua
 L["open water"] = "开阔水域"
+L["fishing school"] = "鱼群"
 L[" in %s"] = " 在%s"
 L["Catch rates unlocked for %s%s after %d casts."] = "抛竿 %3$d 次后，%1$s%2$s 的钓鱼掉落率解锁了。"
 L[" Best catch: %s %s."] = " 最好的渔获：%s %s。"

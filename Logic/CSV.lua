@@ -281,6 +281,7 @@ SHEETS.fishing = {
     rows = function(spot, price, add)
         local school = spot.school
         if school == nil or school == "" or school == "open water" then school = L["open water"] end
+        if school == "fishing school" then school = L["fishing school"] end
         local base = { school, Zone(spot.zone), spot.location, Coord(spot.coords, 1),
             Coord(spot.coords, 2), tonumber(spot.casts) or 0 }
         local any = false

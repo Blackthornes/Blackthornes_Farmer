@@ -56,6 +56,7 @@ Fishing.MIN_SECONDS = 600
 -- client named it. The kept name stays English (OPEN_WATER).
 local function Shown(name)
     if name == OPEN_WATER then return L["open water"] end
+    if name == "fishing school" then return L["fishing school"] end
     return name
 end
 
@@ -89,7 +90,60 @@ local SCHOOL_PATTERNS = {
     "^Oil Spill$",
 }
 
---- Is `name` a fishing school's name?
+-- What a school is called when the game says the catch came out of one but
+-- nothing has named it yet. Kept in English like OPEN_WATER; shown in the
+-- client's words.
+local SCHOOL = "fishing school"
+Fishing.SCHOOL = SCHOOL
+
+-- The fishing bobber's entry ID. A catch from open water comes off the
+-- bobber; a catch from a school comes off the school.
+Fishing.BOBBER_ID = 35591
+
+--- The entry ID inside a game object's guid (its sixth part), or nil.
+function Fishing.ObjectID(guid)
+    if type(guid) ~= "string" then return nil end
+    local id = guid:match("^GameObject%-[^%-]*%-[^%-]*%-[^%-]*%-[^%-]*%-(%d+)")
+    return tonumber(id)
+end
+
+--- Every school learned at a catch: entry ID to the name it goes by, account
+--- wide (`fishingSchools`, never rename it). It works in every language: the
+--- ID is the game's own, and the name is the one the client showed.
+function Fishing:SchoolStore()
+    if type(ns.db) ~= "table" then return {} end
+    if type(ns.db.fishingSchools) ~= "table" then ns.db.fishingSchools = {} end
+    return ns.db.fishingSchools
+end
+
+--- The names of the schools learned so far, as a set.
+function Fishing:LearnedNames()
+    local store = self:SchoolStore()
+    if self.namesFor ~= store or not self.names then
+        local names = {}
+        for _, name in pairs(store) do
+            if type(name) == "string" then names[name] = true end
+        end
+        self.names, self.namesFor = names, store
+    end
+    return self.names
+end
+
+--- Remember that entry `id` is a school called `name`. A real name takes
+--- the place of the stand-in one; a stand-in never replaces a real name.
+function Fishing:LearnSchool(id, name)
+    if type(id) ~= "number" or id == Fishing.BOBBER_ID then return end
+    local store = self:SchoolStore()
+    local known = store[id]
+    if type(name) ~= "string" or name == "" then name = SCHOOL end
+    if known and known ~= SCHOOL and name == SCHOOL then return end
+    if known == name then return end
+    store[id] = name
+    self.names = nil
+end
+
+--- Is `name` a fishing school's name? English names by their endings, any
+--- language once a school by that name was caught from.
 function Fishing.IsSchool(name)
     if type(name) ~= "string" or name == "" then return false end
 
@@ -97,7 +151,13 @@ function Fishing.IsSchool(name)
         if name:find(pattern) then return true end
     end
 
-    return false
+    return Fishing:LearnedNames()[name] == true
+end
+
+--- Is the game object with this guid a school caught from before?
+function Fishing.IsSchoolObject(guid)
+    local id = Fishing.ObjectID(guid)
+    return id ~= nil and Fishing:SchoolStore()[id] ~= nil
 end
 
 --- The client's clock in seconds, or nil if it will not say.
@@ -124,7 +184,11 @@ function Fishing:OnTooltipShown(unitOrItem)
     local ok, text = pcall(line.GetText, line)
     local name = ok and ns.Harvest.Readable(text) or nil
 
-    if name and Fishing.IsSchool(name) then
+    if not name then return end
+    -- Any world object, for naming a school in a language its endings miss.
+    self.hoveredObject = { name = name, at = Now() }
+
+    if Fishing.IsSchool(name) then
         self.hovered = { name = name, at = Now() }
     end
 end
@@ -155,14 +219,14 @@ local SAME_FACING = 0.02
 function Fishing:OnChannelStart(unit)
     if ns.Harvest.Readable(unit) ~= "player" then return end
 
-    local school
+    local school, looked
     local hovered = self.hovered
     local now = Now()
     local x, y = ns.Harvest:PlayerPosition()
     local facing = Facing()
 
     if hovered and hovered.at and now and now - hovered.at <= HOVER_SECONDS then
-        school = hovered.name
+        school, looked = hovered.name, true
     else
         local last = self.lastSchool
         if last and x and facing
@@ -179,7 +243,12 @@ function Fishing:OnChannelStart(unit)
         self.lastSchool = nil
     end
 
-    self.cast = { school = school }
+    -- Each cast is numbered, so a school is told from the bobber by the same
+    -- object owning the catch of two different casts (see SchoolFromLoot).
+    self.castCount = (self.castCount or 0) + 1
+    local seen = self.hoveredObject
+    local near = seen and seen.at and now and now - seen.at <= HOVER_SECONDS and seen.name or nil
+    self.cast = { school = school, looked = looked, number = self.castCount, near = near }
 end
 
 --------------------------------------------------------------------------------
@@ -560,6 +629,61 @@ function Fishing:IsCatch()
     return readable and answer == true
 end
 
+--- What the loot window says about where the catch came from: the school's
+--- name when it came out of one, false when it came off the bobber (open
+--- water), or nil when the client will not say.
+--
+-- The game hands a school's catch out from the school itself, and an open
+-- water catch from the bobber. Both are game objects. The bobber is new with
+-- every cast, so the same object owning the catch of two casts is a school.
+-- A school is then known by its entry ID from its first cast on, whatever
+-- the client's language and whatever the school is called.
+function Fishing:SchoolFromLoot(cast)
+    local bobber, pool, poolID = false, nil, nil
+    for _, guid in ipairs(ns.Harvest:LootSources()) do
+        local id = Fishing.ObjectID(guid)
+        if id == Fishing.BOBBER_ID then
+            bobber = true
+        elseif id and not pool then
+            pool, poolID = guid, id
+        end
+    end
+
+    local number = cast and cast.number
+    local last = self.lastObject
+    self.lastObject = pool and { guid = pool, number = number } or nil
+
+    if pool then
+        local store = self:SchoolStore()
+        -- Only a school moused over names one; a recast's guess does not.
+        local named = cast and cast.looked and cast.school or nil
+        if store[poolID] then
+            -- Something moused over may name a school still on its stand-in.
+            if not named and store[poolID] == SCHOOL then named = self:NameNear(cast) end
+            if named then self:LearnSchool(poolID, named) end
+            return store[poolID]
+        end
+        if last and last.guid == pool and number and last.number and last.number ~= number then
+            self:LearnSchool(poolID, named or self:NameNear(cast))
+            return store[poolID]
+        end
+        return nil
+    end
+
+    if bobber then return false end
+    return nil
+end
+
+--- A name for a school just learned: what was under the mouse as the cast
+--- started, unless that was the bobber.
+function Fishing:NameNear(cast)
+    local name = cast and cast.near
+    if type(name) ~= "string" then return nil end
+    local sparkle = ns.NodeSparkle
+    if sparkle and sparkle.IsBobber and sparkle:IsBobber(name) then return nil end
+    return name
+end
+
 function Fishing:OnLoot()
     if not self:IsCatch() then return end
     -- A catch flashes the fishing bar's Cast plaque, once a window.
@@ -577,6 +701,16 @@ function Fishing:OnLoot()
 
     local cast = self.cast
     self.cast = nil
+
+    -- The loot window has the last word: a catch off a school is the
+    -- school's even when nothing was moused over, and a catch off the bobber
+    -- is open water even when the cast looked like a recast into a school.
+    local ok, fromLoot = pcall(self.SchoolFromLoot, self, cast)
+    if ok and fromLoot ~= nil then
+        cast = cast or {}
+        cast.school = fromLoot or nil
+        if not fromLoot then self.lastSchool = nil end
+    end
 
     local zone, location = ns.Harvest:Where()
     local items, quantities = ns.Tracker:LootedItems(true)

@@ -32,6 +32,7 @@ Sections there:
 - Grind: Leather, Ore and Herbs
 - Camp worth on the Grind tab
 - Grind: Fish
+- Schools told by the game
 - The Fishing window
 - One key fishing
 - The fishing panel

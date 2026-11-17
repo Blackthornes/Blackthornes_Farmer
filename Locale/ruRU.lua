@@ -340,6 +340,7 @@ L["%d of %d"] = "%d из %d"
 
 -- Logic/Fishing.lua
 L["open water"] = "открытая вода"
+L["fishing school"] = "косяк рыбы"
 L[" in %s"] = " в %s"
 L["Catch rates unlocked for %s%s after %d casts."] = "Шансы улова для %s%s открыты после %d забросов."
 L[" Best catch: %s %s."] = " Лучший улов: %s %s."

@@ -338,6 +338,7 @@ L["%d of %d"] = "%d sur %d"
 
 -- Logic/Fishing.lua
 L["open water"] = "eau libre"
+L["fishing school"] = "banc de poissons"
 L[" in %s"] = " à %s"
 L["Catch rates unlocked for %s%s after %d casts."] = "Taux de prise débloqués pour %s%s après %d lancers."
 L[" Best catch: %s %s."] = " Meilleure prise : %s %s."
