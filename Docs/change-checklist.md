@@ -73,7 +73,7 @@ Why: "invalid key to next" when a worker started another worker (2026-11).
 ## Player words
 Lines: L\[\s*"|L\.Format\(
 Check: Plain, warm, sixth grade, no em-dashes, hype or questions
-  (`python tools/check_house_rules.py`). New words need Trent's yes. deDE and
+  (`python tools/check_house_rules.py`). New words need the owner's yes. deDE and
   the other locales change with the English.
 Why: The writing rule holds for every word a player reads.
 
@@ -105,7 +105,7 @@ Why: Hand edits were lost at the next fold-in.
 Lines: [Dd]efaults?\s*=|DEFAULTS
 Check: Big new features start off. Never change a setting the player
   already chose.
-Why: Standing rule from Trent.
+Why: Standing rule from the owner.
 
 ## Sharing code (Farmer)
 Files: ^Core/(Comm|Serialize)\.lua$|^Logic/Contribute\.lua$

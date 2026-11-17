@@ -61,7 +61,7 @@ Built since (the owner said "build all", 2026-11-16): 2 and 3 and the BAGS
 heading of 5; then 4 and the rest of 5 as ten Settings pages (see "Ten
 Settings pages and the Windows table" in `Docs/claude-notes.md`; the joined
 rows of 5 were not built, they did not fit a row). 1 is built in the shared
-files by the all-addons thread.
+files in all five addons.
 
 ### 1. One lane for the notes at the top of the screen (`1-notice-lane.png`)
 
@@ -134,17 +134,17 @@ Only:" renamed for what it does. About 121 rows become about 95, and no
 page holds more than about 20. Every saved key stays. New words to approve
 are marked NEW on the mockup.
 
-## For every addon (the coordinator's to route)
+## For every addon
 
-- The notes of all seven repos load into every thread of the project,
+- The notes of all seven repos load into every session,
   about 103 KB before any work starts. The same five sections ("One key per
   character", "Mute All Sounds", "Window spots", "Fold in fresh data",
   "Smooth play") are word for word in six of them. Moving them to each
   repo's `Docs/claude-notes.md`, as done here, saves about 4 to 5 KB a repo.
 - `Blackthornes_Farmer_Retail` (24 KB of notes) and
-  `blackthornes_addons_data` load in every thread though neither is being
+  `blackthornes_addons_data` load in every session though neither is being
   worked on. Taking them out of the project's repositories saves about a
-  quarter of that load. That is a project setting, the owner's to change.
+  quarter of that load. That is the owner's choice.
 - `UI/TravelMap.lua` (the same file in every addon) keeps its OnUpdate
   running with no trip set. Measured here it costs one add and one compare
   a frame and makes no garbage, and it looks twice a second. Stopping it

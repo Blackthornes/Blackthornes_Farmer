@@ -176,14 +176,14 @@ before work that leans on it.
 
 ## Fold in fresh data at each release
 
-Every release starts with a fold-in of fresh data from the live game, in
-its own thread, committed as "Refresh shipped data" and never announced.
+Every release starts with a fold-in of fresh data from the live game, as
+its own step, committed as "Refresh shipped data" and never announced.
 Farmer goes first. The steps and tools are under "Fold in fresh data at
 each release" in `Docs/claude-notes.md`; read them before a release.
 
 ## Big files (read these in pieces)
 
-Reading a huge file whole fills the context and the thread dies. Sizes are
+Reading a huge file whole runs the session out of room. Sizes are
 from 2026-11-03 and only grow. Find more with `find . -name '*.lua' | xargs wc -lc | sort -n`.
 
 Keep command output short too: `python tools/runtests.py -q` prints only

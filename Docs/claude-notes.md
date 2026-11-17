@@ -119,8 +119,8 @@ _G.BlackthornesTS.CraftOrFarm:ForMaterial(itemID)
 
 "Craft or sell" under Tooltips on the Map & goals page
 (`itemTooltipCraft`, on unless unticked, never rename it) and `/farm
-tooltip craft [on|off]`. Tested in `tools/test_itemtooltip.lua`. Not yet
-seen in game.
+tooltip craft [on|off]`. Tested in `tools/test_itemtooltip.lua`.
+
 
 ## Find a material (Tradeskills' Disenchanting tab)
 
@@ -201,7 +201,7 @@ Set another and `/farm killgoal`; `/farm killgoal 1000 [mob]`, `stop`,
 `summary`; Settings, Map & goals, "Kill Goal:" Open and Summary; a Kill
 Goal button on the Stats tab once one is done. Its windows share
 `killGoalScale` (never rename it). Tested in `tools/test_killgoal.lua`.
-Not yet seen in game.
+
 
 ## What Butler calls here
 
@@ -265,9 +265,7 @@ aside first. Records are whitelisted and type-checked (`Share.CleanRecord`),
 and a record whose key is not what its own fields make is refused. Lists are
 built a slice a frame (`Share.SLICE`), never in combat, and sent a batch at a
 time as the pacing frees up. Tested in `tools/test_share.lua`, which plays two
-accounts over a pretend chat. Not yet seen in game; the owner has one account,
-so only Tradeskills' one-account whisper test (full names, 2026-10-07) backs
-the wire.
+accounts over a pretend chat.
 
 Naming several characters (2026-10-11): a partner is the account, not the
 name. The manifest carries `i`, the sender's Farmer id (`Transfer:SourceId`,
@@ -336,7 +334,7 @@ want, records) through hooks on the partner state (`sections`, `store`,
 A tick box under YOUR GUILD on the Sharing page, "Guild Status:" under it
 (`GuildShare:Status`, from the save; the names box shows `Share:Status`
 the same way), and `/farm share guild on|off`. Tested in `tools/test_guildshare.lua` (three accounts and an alt
-over a pretend chat). Not yet seen in game.
+over a pretend chat).
 
 ## Sending drops to Blackthornes
 
@@ -367,7 +365,7 @@ English clients send (records keep the client's names). At a release,
 `tools/harvest_import.py --shared` folds `sharedDrops` into the shipped
 data (in memory; the save is never changed, ledger names never read).
 Never announce the fold-in. Tested in `tools/test_contribute.lua` and
-`tools/test_harvest_import.py`. Not yet seen in game. A recipient whose
+`tools/test_harvest_import.py`. A recipient whose
 first name trips `check_package.py`'s owner's-name check would stop the
 release; check before adding names. Three recipients since 2026-10-27
 (the owner renamed his characters for Forever's release), four since
@@ -401,8 +399,8 @@ ledger `shareIn["import:<id>"]` (`kind = "import"`; never rename it), so the
 same text twice adds nothing and a newer one adds the rise; `Transfer:Remove`
 subtracts exactly the ledger from the records (dropping one that is left
 empty) and deletes it. Everything is worked a few records a frame. Tested in
-`tools/test_transfer.lua` and `tools/test_importwindow.lua`. Not yet seen in
-game. A fix to `Core/Serialize.lua` still belongs in Tradeskills' too.
+`tools/test_transfer.lua` and `tools/test_importwindow.lua`.
+A fix to `Core/Serialize.lua` still belongs in Tradeskills' too.
 
 ## Grind: Leather, Ore and Herbs
 
@@ -410,7 +408,7 @@ The owner said yes (2026-10-14, from a mockup) to the Grind tab giving
 Leather, Ore and Herbs beside Cloth (`grindGives`: "cloth", "skinning" for
 Leather, "ore", "herbs"; never rename it or its values). Leather lists mobs
 as Cloth does, with the skill to skin them (Classic's rule,
-`Grinding.SkinSkill`, a mob's own `requires` first; not yet seen in game)
+`Grinding.SkinSkill`, a mob's own `requires` first;)
 and what one skin is worth. It is offered while the character knows
 Skinning even with "Hide skinning" ticked (`Grinding.OffersLeather`).
 Ore and Herbs (`Logic/GrindGather.lua`) list zones and their nodes, not
@@ -426,7 +424,7 @@ items, for worth an hour once `MIN_SECONDS` is reached;
 `GrindGather:NoteGather` from `Gathering:Record`). Guild data never feeds
 any of it. The data rows are kept until `DB.hiddenVersion` or the counts
 move (`GrindGather:DataRows`). Tested in `tools/test_grindgather.lua`.
-Not yet seen in game.
+
 
 ## Camp worth on the Grind tab
 
@@ -445,8 +443,8 @@ has Best Worth (`grindSort` "worth", not the default). The footer is still
 the count only. Nothing is saved: `CampWorth:Index` is laid out once a
 stamp (Stats, Harvest, pace and hide versions), and camps are worked out
 `BUDGET` a frame while the tab shows (`CampWorth:For`, `Step`). Ore, Herbs
-and Fish are unchanged. Tested in `tools/test_campworth.lua`. Not yet seen
-in game.
+and Fish are unchanged. Tested in `tools/test_campworth.lua`.
+
 
 ## Grind: Fish
 
@@ -478,7 +476,7 @@ section "f"), so the pace never leaves the account.
 `Logic/GrindGather.lua` has `FishSpot`, `FishZones`, `FishCamp` and
 `FishLine`; `UI/Grinding.lua` the `fish` layout, `CatchText`, `FishTexts`,
 `FishZoneText`, `FishRows`. `/farm grind fish`. Tested in
-`tools/test_fishview.lua`. Not yet seen in game.
+`tools/test_fishview.lua`.
 
 ## Schools told by the game
 
@@ -500,7 +498,7 @@ is open water even when a recast guessed a school. Learned names count for
 `IsSchool`, and `Fishing.IsSchoolObject(guid)` lets the sparkles call a
 learned school a school by its guid. A client that names no loot source
 keeps the old way. Chests are still told by English endings. Tested in
-`tools/test_fishschools.lua`. Not yet seen in game.
+`tools/test_fishschools.lua`.
 
 ## The Fishing window
 
@@ -518,10 +516,10 @@ every language, read only when the skill read says short): a German
 player's Nightcrawlers (Fishing 50) stayed grey after moving up from
 "Secret" Bait (fixed 2026-11-17, `tools/test_fishingbar_german.lua`).
 `GatherToCap.ReadSkill` skips an empty (0) skill line and takes the
-highest line named for the skill. Not yet seen in game.
+highest line named for the skill.
 Under them "Lure:" (`GetWeaponEnchantInfo`: "+75, 8:42 left", "None on"
 with Add Lure glowing, or "No lures in your bags"; the bonus by enchant ID
-in `LURE_ENCHANTS`, not yet seen in game) and "Fishing Skill:"
+in `LURE_ENCHANTS`) and "Fishing Skill:"
 (`GatherToCap.ReadSkill`). Attributes are set only out of combat; at
 `PLAYER_REGEN_DISABLED` it hides while it still may, and it hides at a
 vendor, bank, mailbox, auction house or trade. The close gem keeps it shut
@@ -530,7 +528,7 @@ unless ticked: "Fishing Buttons:" under FISHING on the Loot page
 (`fishingBar`), place `fishingBarX`/`fishingBarY`, size `fishingBarScale`,
 all account wide, never rename them; `/farm fishbar [on|off]`. Luremaster
 (`Logic/Legacy.lua`) is untouched. Tested in `tools/test_fishingbar.lua`.
-Not yet seen in game.
+
 
 
 ## One key fishing
@@ -559,8 +557,8 @@ picks nothing at all (it reaches all round, so nothing means out of reach;
 fight starts; nothing changes in a fight. Off unless ticked: "One Key
 Fishing:" under FISHING on the Loot page (`oneKeyFishing`); turned on
 with no key set, chat says where to set one. Both keys account wide,
-never rename them. Tested in `tools/test_onekeyfishing.lua`. Not yet seen
-in game.
+never rename them. Tested in `tools/test_onekeyfishing.lua`.
+
 
 ## The fishing panel
 
@@ -581,7 +579,7 @@ FISHING on the Loot page and `/farm fishpanel [on|off]`. Saved, account
 wide, never rename them: `fishingPanel`, `fishingPanelBest` (`[spot key]`
 = the best gold an hour seen there, copper) and `fishingPanelScale`.
 Never name or copy the addon the player showed. Tested in
-`tools/test_fishingpanel.lua`. Not yet seen in game.
+`tools/test_fishingpanel.lua`.
 
 ## The gold plaque
 
@@ -600,7 +598,7 @@ lure is on and one is in the bags, `FishingBar:Glow`). Each catch flashes
 Cast gold (`FishingBar:Caught`, from `Fishing:OnLoot`). Here the two
 plaques hide their red gems and always share one height, the taller one
 wants (`FishingBar:Resized`, `FitButtons`; the owner, 2026-11-09). Tested in
-`tools/test_fishingbar.lua`. Not yet seen in game.
+`tools/test_fishingbar.lua`.
 ## Legacy perks (read only)
 
 The owner said build it (2026-10-22): Forever's Legacy trees give
@@ -652,7 +650,7 @@ Nothing saved; it only reads. Laid out again only when the skill, cap,
 level, spots, `GrindGather.paceVersion` (moved by `NoteGather` and
 `NoteSkin`) or `DB.hiddenVersion` move. Hidden nodes and sources are left
 out, and guild data never reaches it. Tested in
-`tools/test_gathertocap.lua`. Not yet seen in game.
+`tools/test_gathertocap.lua`.
 
 ## Gather Route
 
@@ -675,7 +673,7 @@ ROUTE, and `/farm route [on|off]`. Saved, account wide, never rename them:
 `gatherRouteDraw` (nil on, false off), `gatherRouteKinds` (herbs and ore
 on unless false, skins only when true; dropped when empty). Own data only,
 never shipped or guild data; nothing shared or announced. Tested in
-`tools/test_gatherroute.lua`. Not yet seen in game.
+`tools/test_gatherroute.lua`.
 
 Route Mode (the owner said build it from a mockup whose words he
 approved, 2026-11-15, in place of the Route chip, which is gone with
@@ -692,7 +690,7 @@ are where you skinned (`skinSpots`, account wide, never rename it;
 `GatherRoute:NoteSkin` from `GrindGather:NoteSkin`; a spot within
 `SKIN_JOIN` yards of one for the same mob joins it, at most
 `MAX_SKIN_SPOTS`). Turning Gather Route off stops the run and clears the
-page. Tested in `tools/test_gatherroute.lua`. Not yet seen in game.
+page. Tested in `tools/test_gatherroute.lua`.
 
 The Route Window, Leveling Mode and the train line (a player asked, the
 owner said build it from a mockup whose words he approved, 2026-11-15):
@@ -720,8 +718,8 @@ yellow, green, then grey). The train line (`GatherRoute.TrainText`, from
 5 under the cap: "Train Journeyman Herbalism to keep going. Your skill stops
 at 75.", at the cap "You've hit 75. Train ... at a trainer to get more
 skill.") shows in the window and under the Grind route list. All account
-wide, never rename them. Tested in `tools/test_routewindow.lua`. Not yet
-seen in game.
+wide, never rename them. Tested in `tools/test_routewindow.lua`.
+
 
 Herbs stay in sight on the minimap (the owner's screenshot and his Build
 it, 2026-11-16, from a mockup): TomTom's green minimap pin and the route's
@@ -738,8 +736,8 @@ of a stop, since the loop began, marks it picked and rests it, even when
 the game names the node another way (a herb spot grows other herbs, which
 Gathering saves as a new spot): `GatherRoute:FreshGathers`, `PickedNear`,
 read in `Look` only when the spots change. Tested in
-`tools/test_gatherroute.lua` and `tools/test_arrow.lua`. Not yet seen in
-game.
+`tools/test_gatherroute.lua` and `tools/test_arrow.lua`.
+
 
 ## The session timer
 
@@ -762,7 +760,7 @@ the clock is kept through a /reload (`Snapshot`/`Restore` in
 "Session Timer:" (`sessionTimer`, nil off) and "Pause When Away:"
 (`sessionTimerAutoPause`, nil on, greyed while off); account wide, never
 rename them. `/farm timer [on|off|start|pause|stop]`. Tested in
-`tools/test_sessiontimer.lua`. Not yet seen in game.
+`tools/test_sessiontimer.lua`.
 
 ## The panel kept between sessions
 
@@ -784,7 +782,7 @@ are not kept. **Clear panel** (`Session:Clear`; the panel's Clear button
 beside Sort and Settings > Kill tally, both `TrackerUI.ClearButton`, a
 second click within `CLEAR_ARMED` seconds; `/farm tracker clear`) empties
 the view only: every tally stays, so it is allowed on the Settings page.
-Tested in `tools/test_panelkeep.lua`. Not yet seen in game.
+Tested in `tools/test_panelkeep.lua`.
 
 ## Search finds your own loot
 
@@ -833,7 +831,7 @@ them out. No setting. Tested in `tools/test_questloot.lua`.
 The owner said yes (2026-10-17) to filling the search with Classic's drops
 before anyone loots them on Forever. `Data/Data_ClassicDrops.lua` is written
 by `tools/make_classic_drops.py <Classic data> <Forever tables folder>`
-(never by hand; never name where the Classic data came from): trade goods
+(never by hand): trade goods
 and quest items the Forever client still has (Item.csv class 7 and 12),
 and recipes (class 9, at `MIN_RECIPE_CHANCE` or better, 2026-10-17),
 up to `MAX_SPOTS` ordinary mobs an item (no rares or bosses, at least
@@ -855,7 +853,7 @@ read on it landed north and west of the mob. Every other zone matched.
 Mulgore rows once (the file carries its mark in the header), and
 `make_classic_drops.py` calls its `forever_spot` on every spot it writes.
 Forever's own rows (`Data/Data_Harvested.lua`) were already right. Tested in
-`tools/test_bluffspots.lua`. Not yet seen in game.
+`tools/test_bluffspots.lua`.
 
 ## Random suffixes count as their item
 
@@ -873,7 +871,7 @@ once), `Search:FoundItems`; `Tracker:Summary` groups the tally the same way
 (the kills panel, the loot table), with a suffix's look standing in
 (`Tracker.rollLooks`), and `Value.FoldSuffixes` names the item once in the
 best drops. Worth per kill is the same either way. Tested in
-`tools/test_suffixdrops.lua`. Not yet seen in game.
+`tools/test_suffixdrops.lua`.
 
 ## Same name, another zone
 
@@ -972,7 +970,7 @@ too (`SharedWindow.InteractionPlace`: `Enum.PlayerInteractionType`'s
 MailInfo, Merchant, Trainer and Auctioneer, else 17, 5, 7 and 21); a later
 close event for the same place changes nothing. At the auction house only
 Tradeskills is needed (`PLACES.auction.only`). Tested in
-`tools/test_sharedwindow.lua`. Not yet seen in game.
+`tools/test_sharedwindow.lua`.
 
 Kept beside (2026-10-31, FILE_VERSION 3): while a game window is open, a
 watcher on the one window (`SharedWindow.Keep`, every `KEEP_EVERY`
@@ -1028,7 +1026,7 @@ last, and the next vendor after `Left` reopened it came up on that addon.
 Butler's own open (`UI:AtVendor`) then finds itself shown and does nothing,
 in either order. Without Butler nothing changes. Tested in
 `tools/test_sharedwindow.lua` (all five) and Butler's `tools/test_onewindow.lua`.
-Not yet seen in game.
+
 ## The shared minimap button
 
 A player asked, the owner said build it from a mockup (2026-10-28), in all
@@ -1053,7 +1051,7 @@ Every addon's own button also takes left-click to open and right-click for
 settings. Its face is the Blackthornes sign, a gold B in a ring of thorns on
 a dark round face (the owner picked it over the anvil, 2026-10-28):
 `Media/Frame/MinimapBadge.tga`, drawn by `tools/make_minimap_art.py` (the
-same tool in all five; rerun it, never edit the TGA). Not yet seen in game.
+same tool in all five; rerun it, never edit the TGA).
 
 The launcher for addon bars (asked 2026-11-17, the owner said build it;
 `UI/SharedMinimap.lua` FILE_VERSION 4, the same in all five): when another
@@ -1069,7 +1067,7 @@ opens the shared menu beside the bar's frame (`ToggleMenu(anchor)`,
 (`SharedWindow.OpenAllAddons`, else the first addon's settings), middle runs
 Farmer's `middle` (brings back its panels). The tooltip reuses the shared
 button's lines, no new words. Never name the bar addon that asked. Tested in
-`tools/test_sharedminimap.lua` (part 7). Not yet seen in game.
+`tools/test_sharedminimap.lua` (part 7).
 
 ## The settings pages (from Tradeskills)
 
@@ -1199,7 +1197,7 @@ a title tab where the plate sits, a silver-ringed portrait and the game's
 wear the game's own texture files. It never touches a Blizzard frame. Each
 file is checked once (`BlizzardLook.HasArt`); a client without one keeps
 that widget in the house look. Farmer has no probe; Tradeskills',
-Equipment's and Pets' probes list what is missing. Not yet seen in game.
+Equipment's and Pets' probes list what is missing.
 New widgets should look right in both styles.
 
 ## The goal arrow, copied to Equipment and Pets
@@ -1219,7 +1217,7 @@ draws `Ring.tga` once and the blade with its shadow at 64 headings in
 `Blade.tga` (8 a row, frame 0 straight ahead, then anticlockwise), its
 glow in `BladeGlow.tga`; the dial shows the nearest frame with
 SetTexCoord (`ArrowUI.FrameFor`), only when the frame changes. The blade
-carries its own gold, so only its glow is tinted. Not yet seen in game.
+carries its own gold, so only its glow is tinted.
 
 TomTom (a player asked, the owner agreed 2026-10-09, then asked for it in
 every addon with an arrow): with TomTom installed, each arrow hands its
@@ -1246,7 +1244,7 @@ Passing one on the way checks it too; reaching a right-click pick lets
 the pick go. Grind tab and Gather to cap spots are nodes
 (`GrindGather.NodeCamp`'s `kind = "node"`), so they arrive at 12 yards
 too. Farmer's own; the other dials are untouched. Tested in
-`tools/test_arrow.lua`. Not yet seen in game. The harvest file now ends
+`tools/test_arrow.lua`. The harvest file now ends
 with the creature types seen in game, as `if DB.CreatureTypes then ... end`
 so Equipment's and Pets' readers of `Data/Data_Harvested.lua`, whose `DB`
 has only `RegisterItem`, keep working.
@@ -1335,7 +1333,7 @@ and Hearthstone spot one addon learned count in all (`Travel:AllFlights`,
 `Travel:Kept`). An addon without a dial (Tradeskills, Butler) asks
 `Travel:Guide(target)` for its Show the Way: the steps as lines and the
 next stop as `{ map, x, y, name }` to pin. `/farm arrow check` has a "way there" line. Tested in
-`tools/test_travel.lua`. Not yet seen in game.
+`tools/test_travel.lua`.
 
 ## Reading the probe
 
@@ -1354,9 +1352,7 @@ check that players run for a report goes through `ns.KeepCheck` too, and a
 fix to it belongs in all four.
 
 When the owner says "read the probe": he has run the check and typed
-`/reload` (or logged out). In the thread, connect to his device, ask for
-his game's WTF folder (already approved; the path is in the project's
-memory) and stage the addon's account save from
+`/reload` (or logged out). Read the addon's account save, read only, from
 `WTF\Account\<account>\SavedVariables\` (`Blackthornes_TS.lua`,
 `Blackthornes_Farmer.lua`, `Blackthornes_Equipment.lua` or
 `Blackthornes_Pets.lua`), read only. Read its `lastProbe`: `check` says
@@ -1398,18 +1394,16 @@ CHANGELOG, #announcements post, commit or PR text names a player, and
 (`names_a_player` in `post_general.py`). The #general post is the one
 exception: its last line thanks, by their Discord name, everyone who asked
 for or reported the changes, each name once ("Thanks Ana and Bob for the
-ideas and reports!"); leave it out when nobody asked. Find who asked from
-the project's threads.
+ideas and reports!"); leave it out when nobody asked.
 The thanks line no longer goes out with the webhook post (the owner,
 2026-10-13: thank each player with a real @mention, so they get a
 notification): `post_general.py` leaves out the paragraph that starts
-"Thanks" (`without_thanks`), and the owner's bot, on his PC, posts it under
-the release post with the mentions once he approves the wording, looking
-the Discord names up there. Discord IDs never go in a repo. NEWS.md keeps
+"Thanks" (`without_thanks`), and it is posted under the release post
+with the mentions once the owner approves the wording. Discord IDs never go in a repo. NEWS.md keeps
 the thanks line, by Discord name, as before; ask the owner for any name
 that isn't known.
 This tool is also the same in all four repos.
-Changes to the Discord bots, the digest or the release posting tools
+Changes to the release posting tools
 (like this one) never go in a CHANGELOG, #announcements or #general
 section (the owner, 2026-10-10): they are not changes to the addon.
 
@@ -1445,7 +1439,7 @@ on|off|show|reset]`. It can be dragged anywhere (2026-11-06, the owner):
 its top left is kept in `rankUpX`/`rankUpY` (account wide, nil for its usual
 place beside the kills panel; never rename them, `RankUpUI:SavePlace`), and
 "Top 15 Position:" Set Default on the Kills page (`/farm rankup reset`,
-`ResetPlace`) puts it back. Tested in `tools/test_rankup.lua`. Not yet seen in game.
+`ResetPlace`) puts it back. Tested in `tools/test_rankup.lua`.
 
 ## Rankings outside dungeons only
 
@@ -1465,7 +1459,7 @@ out) and the dungeons of `Spots.INSIDE`; capitals are no dungeon.
 `Rankings:Build` and the rank-up order (`RankUp`'s `Measured`) both ask, so
 the rank-up pop-up and the top farm alert follow the tick box; `RankUp.Stamp`
 lays the order out again when it moves (`Rankings.outsideVersion`). Tested
-in `tools/test_rankingsoutside.lua`. Not yet seen in game.
+in `tools/test_rankingsoutside.lua`.
 
 ## Rankings without Uncommon and better
 
@@ -1479,7 +1473,7 @@ from the loot link's colour, else the client, `WorldDrops.QualityOf`; a
 quality not known stays in), so the order, the best drop, the row's hover
 and the rank-up order follow (it moves `outsideVersion`). `Value:ForMob` is
 untouched, so tooltips and the loot table still count every drop. Tested in
-`tools/test_rankingsuncommon.lua`. Not yet seen in game.
+`tools/test_rankingsuncommon.lua`.
 
 ## Rankings at vendor prices
 
@@ -1496,7 +1490,7 @@ never rename it. `Rankings:Entry` reprices the drops
 order, the best drop, the row's hover, the price note ("vendor prices")
 and the rank-up order follow (it moves `outsideVersion`). `Value:ForMob`
 is untouched, so tooltips and the loot table still use the usual prices.
-Tested in `tools/test_rankingsvendor.lua`. Not yet seen in game.
+Tested in `tools/test_rankingsvendor.lua`.
 
 ## Your top 15 after an auction scan
 
@@ -1523,7 +1517,7 @@ before then folds into the one held. Only mobs with `MIN_KILLS` kills of your ow
 reaches it. "After an auction scan" on the Kill tally page (`topFarmAlert`,
 on unless unticked, never rename it) with Try it, and `/farm topfarm
 [on|off|test]`; the sound follows "Rank-up sound". Tested in
-`tools/test_topfarm.lua`. Not yet seen in game.
+`tools/test_topfarm.lua`.
 
 ## The trash can when bags are full
 
@@ -1551,7 +1545,7 @@ a vendor, while the cursor holds something, and while Butler is loaded
 that name in Butler, or change `Trash.ButlerHasIt` here. Bags read only
 while open and nearly full, `Trash.BUDGET` slots a frame. "Trash can when
 full" on the Loot page (`trashCan`, on unless unticked, never rename it)
-and `/farm trash`. Tested in `tools/test_trash.lua`. Not yet seen in game.
+and `/farm trash`. Tested in `tools/test_trash.lua`.
 
 ## Bags full notice
 
@@ -1566,7 +1560,7 @@ on UIParent, no mouse, no sound, independent of Butler. "Bags full
 notice" on the Loot page (`bagsFullNotice`, on unless unticked, never
 rename it) with Try it, and `/farm bagsfull [on|off|test]`. Tested in
 `tools/test_bagsfull.lua` (also listed in `tools/testenv.lua`'s
-`UI_FILES`). Not yet seen in game.
+`UI_FILES`).
 
 ## The loot feed
 
@@ -1595,8 +1589,8 @@ picked). All account wide; never rename them. Settings > Loot > LOOT FEED
 Its rows hear only the mouse moving (`SetMouseMotionEnabled` on,
 `SetMouseClickEnabled` off), so hovering one shows the item's own tooltip
 from the loot link kept on the row (`LootFeed.ShowTip`, `HideTip`; a
-digest idea, 2026-11-15), while clicks still go through to the world.
-Tested in `tools/test_lootfeed.lua`. Not yet seen in game.
+player's idea, 2026-11-15), while clicks still go through to the world.
+Tested in `tools/test_lootfeed.lua`.
 
 ## Clams and sacks worth what's inside
 
@@ -1655,7 +1649,7 @@ is the check, `OpenButton:Learned`, kept in `openTest` with `quiet`;
 `openButton` (on unless
 unticked), `autoOpen` and `openTest` are account wide; never rename them.
 Loot page; `/farm openbutton [on|off|test|auto on|off]`. Tested in
-`tools/test_openbutton.lua`. Not yet seen in game.
+`tools/test_openbutton.lua`.
 
 ## The see-through panel
 
@@ -1672,7 +1666,7 @@ stay; the cut-edge fades are left out while it is on. Saved as
 `trackerSeeThrough` (off unless ticked) and `trackerSeeThroughLevel`
 (Some, More, Most: `SEE_THROUGH_LEVELS`, 2 by default), account wide,
 never rename either; `/farm tracker transparent [on|off|some|more|most]`. Tested in
-`tools/test_seethrough.lua`. Not yet seen in game.
+`tools/test_seethrough.lua`.
 
 The other panels that stay on screen have it too (the owner asked the same
 day, "a button for each unique window"): the goals panel, Where to farm,
@@ -1688,7 +1682,7 @@ rename them: `goalsSeeThrough`, `goalSpotsSeeThrough`, `rankUpSeeThrough`,
 goals|places|rankup|recap|xpbar [off|some|more|most]`. The main window
 and the loot table are left out, since the mouse is on them while they are
 used. The Kills & Loot panel keeps its own code above. Tested in
-`tools/test_seethroughpanels.lua`. Not yet seen in game.
+`tools/test_seethroughpanels.lua`.
 
 All six sit in one TRANSPARENT section on the UI page of Settings (the
 owner, 2026-10-17), a row a panel named for it ("Kills & Loot:",
@@ -1734,7 +1728,7 @@ continent only), else `C_Map.GetMapRectOnMap` (`Heat.MapRect`,
 map's own kills). `/farm heat check`
 (`ns.KeepCheck`, typed only) prints where you stand, the map shown, each
 map kills are kept on and the world layer. Tested in `tools/test_heat.lua`.
-Not yet seen in game.
+
 
 Show on Map (the owner, 2026-10-18, from a mockup; he approved the words):
 while the heat map is on the world map, search rows get a **Map** button,
@@ -1787,7 +1781,7 @@ sorted `priced` list (each entry carries `chance`), kept with the worth in
 rates, never the database's (below). A drop under half a copper a kill is left out. "Best drops" on the
 Map & goals page (`killTooltipDrops`, on unless unticked, never rename it)
 and `/farm killcount drops [on|off]`.
-Tested in `tools/test_killtooltip.lua`. Not yet seen in game.
+Tested in `tools/test_killtooltip.lua`.
 
 ## Off, Shift or Always on tooltip lines
 
@@ -1807,7 +1801,7 @@ the tooltip is built, after the kept lines (`ItemTooltip`'s and
 "Hold Shift for more." once per tooltip across the addons, and one shared
 frame redraws GameTooltip when Shift goes down or up, only while a line is
 on Shift. The slash commands still turn lines on and off as before. Tested
-in `tools/test_tooltipshift.lua`. Not yet seen in game.
+in `tools/test_tooltipshift.lua`.
 
 ## Rates are the player's to find
 
@@ -1940,7 +1934,7 @@ before (`skinLog`), until `GrindGather.skinned` has it
 (`NodeSparkle:SkinnableCorpse`, `Skinned`), in the Skinning colour for
 its level (`Grinding.SkinSkill`); its plate stays on
 (`FitPlateToTarget`). Both rows sit under Sparkles on the Map & goals
-page. Not yet seen in game.
+page.
 "Bobber Beam:" under them (a player found the beam hid the bob, the owner
 said add it, 2026-11-07): `nodeSparkleBobber`, on unless unticked, account
 wide, never rename it; `/farm sparkle bobber [on|off]`. Unticked,
@@ -1965,7 +1959,7 @@ Herbalism, a vein Mining and a school Fishing (`NodeSparkle:NodeSkill`,
 `KNOWN_EVERY` seconds); chests, quest objects and the bobber never wait,
 and a character whose skills the client won't give sees everything. The
 map markers' own box is untouched. Tested in `tools/test_germanveins.lua`.
-Not yet seen in game.
+
 Node Sound (players liked Classic Farmer's peon line, the owner said
 build it, 2026-11-09): a sound when the interact key picks a node that
 lights up (`NodeSparkle:SayFound`, from `Refresh` after `ShowSparkle`;
@@ -1998,7 +1992,7 @@ Purple, Red, `LOOT_COLORS`, the words in `LOOT_COLOR_WORDS` by client),
 `lootBeaconWidth`, 50 to 200 in steps of 25, nil for 100). All account
 wide, never rename them. `/farm lootbeacon [on|off|color <name>|height
 <n>|width <n>]`; `/farm sparkle check` has a loot beacon line. Tested in
-`tools/test_lootbeacon.lua`. Not yet seen in game.
+`tools/test_lootbeacon.lua`.
 
 ## The map gem
 
@@ -2018,7 +2012,7 @@ RowMenu) with a tick for each. Grey and unlit while all are off. "Map
 Button:" on the Map & goals page (`mapButton`, on unless unticked) and
 `/farm markers button on|off` hide the gem. Account wide; never rename
 `mapButton` or `mapMarksKept`. Tested in `tools/test_maptoggle.lua` and
-`tools/test_grinding.lua`. Not yet seen in game.
+`tools/test_grinding.lua`.
 
 ## Gathered spots on the maps
 
@@ -2034,7 +2028,7 @@ places nothing again. Fishing schools you moused over before casting are
 marked too (`kind = "fish"`, from `Fishing:OnLoot`), with the fish, "Fished"
 on the hover, never a grow-back time and never coloured in. The minimap
 keeps its hollow corners. Nothing new is saved beyond `item` on a spot.
-Tested in `tools/test_markers.lua`. Not yet seen in game.
+Tested in `tools/test_markers.lua`.
 Round and joined (the owner said build it, 2026-10-26, from a mockup, as
 Retail's): an icon is cut round with a mask texture
 (`MapMarkers.RoundIcon`, also for the Grind pins; `SetMask` only where the
@@ -2045,8 +2039,8 @@ the save is unchanged; a herb and an ore never join), in color once any of
 its spots is back; its hover says how many spots and `Respawn:GroupLines`
 (how many are back, when the next is). A pin is `farmerMarker`, and
 `Respawn:OnTooltipShown` adds no second grow-back line to its card. Tested
-in `tools/test_mapicons.lua`. Not yet seen in game.
-My Professions Only (Flau asked on Discord, the owner said it is the
+in `tools/test_mapicons.lua`.
+My Professions Only (a player asked on Discord, the owner said it is the
 default, 2026-11-01: other characters' nodes are of no use): the world map
 and minimap markers show only herb, ore and fish spots for the gathering
 skills the character playing knows (`MapMarkers.MineOnly`, `ShownKinds`,
@@ -2056,7 +2050,7 @@ the client won't say, every spot shows. Nothing saved changes. "My
 Professions Only:" under the markers on the Map & goals page
 (`markersMyProfessions`, on unless unticked, account wide, never rename
 it) and `/farm markers mine [on|off]`. Tested in
-`tools/test_myprofessions.lua`. Not yet seen in game.
+`tools/test_myprofessions.lua`.
 
 Over another addon's map layer (a #bug-reports post, 2026-11-17: ore on
 the minimap but none on the world map while a map addon was on; never name
@@ -2068,7 +2062,7 @@ frames (`MapMarkers.Own`: marker pins, the heat and route layers, Grind
 pins, TravelMap's layer) are left out, so game pins still draw over a spot
 and a redraw never climbs over itself. Heat, Grind pins, Travel and Route
 all count from `BaseLevel`, so they rise with it. Strata is not changed.
-Tested in `tools/test_markers.lua`. Not yet seen in game.
+Tested in `tools/test_markers.lua`.
 
 ## Quest count over quest mobs
 
@@ -2100,7 +2094,7 @@ it (a player asked, the owner said build it 2026-11-14;
 title line starts over as the player's). On the kill count's
 side the two never share a spot: the kill count goes past the quest count
 (`KillPlates:Place`, `QuestMoved`). Tested in `tools/test_questmobs.lua`
-and `tools/test_killplates.lua`. Not yet seen in game.
+and `tools/test_killplates.lua`.
 
 ## Kill count beside mobs' nameplates
 
@@ -2202,7 +2196,7 @@ release. `Logic/XP.lua` works it out; `UI/XPBar.lua` draws it.
   when every spell is priced. Neither loaded, or nothing to train, no row.
   If `Plan` changes there, change `XPBarUI.Training` here.
 
-Tested in `tools/test_xpbar.lua`. Not yet seen in game.
+Tested in `tools/test_xpbar.lua`.
 
 ## The Stats tab
 
@@ -2246,7 +2240,7 @@ from the game's unit link (`Harvest.NameFromLink`), kept account wide in
 `npcNames[id]` (never rename it). Inside a dungeon the game gives none
 (Ragefire Chasm, 2026-10-11), so Classic's name from `Data/NpcNames.lua`
 stands in (`ns.NPC_NAMES`, generated by `tools/make_npc_names.py` from
-pfQuest; never edit it by hand). A mob neither knows (one Forever added)
+the spawn database; never edit it by hand). A mob neither knows (one Forever added)
 is kept as "Creature #ID" with `record.npc`, never exported
 (`Harvest.Unnamed`), and renamed on load once a name is known
 (`Harvest:NameUnnamed`, harvest and kill tally both). A partner's or an
@@ -2299,7 +2293,7 @@ One still not given is asked again only after `Tracker.ICON_RETRY`
 seconds (`Tracker.iconAsked`, memory only), so a redraw adds no work. In
 `Tracker:Summary` a suffix with an icon stands in for the item's own name
 (`Tracker.rollLooks`) ahead of one without. Nothing new saved, no setting,
-no new words. Tested in `tools/test_looticons.lua`. Not yet seen in game.
+no new words. Tested in `tools/test_looticons.lua`.
 
 ## Party loot
 
@@ -2354,7 +2348,7 @@ them. The `whatsnew` command and a Settings button open it any time, with
 each addon's newest. It rises in, its divider draws out, each addon's card
 slides up with its icon popping and a light crossing it, and the Got it
 button glows (one looping animation the game plays, only while it shows);
-Motion off lands it all at once. Not yet seen in game.
+Motion off lands it all at once.
 
 ## The About page and the note
 
@@ -2418,7 +2412,7 @@ the client" below. Creature types are kept in English (`Grinding.EnglishType`,
 `C_CreatureInfo.GetCreatureTypeInfo`), and coin words come from
 `COPPER_AMOUNT` and the like (`Harvest.CoinValue`). Loot records stay keyed
 by the client's mob name, and fishing schools are still told by English
-name endings. Tested in `tools/test_german.lua`. Not yet seen in game.
+name endings. Tested in `tools/test_german.lua`.
 Item names start coming in `DB.NAMES_START` seconds after login
 (`DB:OnEnable`), not at the first search; an item the client does not know
 is asked for (`DB.AskForItem`, `RequestLoadItemDataByID`) and asked again
@@ -2472,7 +2466,7 @@ listed in the TOC and in `tools/testenv.lua`'s `FILES` after deDE. Yards
 show as metres as in German, except Chinese keeps 码. Talk to the owner
 about "Simplified Chinese", "French" and so on, never the codes. Every new
 string gets a line in all five files; `tools/check_locale.py` checks them
-all. Tested in `tools/test_locale.lua`. Not yet seen in game.
+all. Tested in `tools/test_locale.lua`.
 
 ## Zone names from the client
 
@@ -2480,8 +2474,7 @@ The owner said "do it all" (2026-10-12) to using the Forever client's game
 tables in every addon. Farmer's part is `Data/Zones.lua`, written by
 `tools/make_zones.py` from the tables' AreaTable, Map and UiMap (English
 and deDE exports, build named in the file; never edit it by hand, and never
-commit the tables or name where they came from: "the Forever client's game
-tables"). It holds names and map IDs only, no drop rates or spawns.
+commit the tables). It holds names and map IDs only, no drop rates or spawns.
 
 - `ns.ZONE_DATA.maps`: each zone's map ID, Forever's own (they match
   Classic's, and Forever's new zones are there). `Spots.ZONE_MAPS` is
@@ -2499,7 +2492,7 @@ tables"). It holds names and map IDs only, no drop rates or spawns.
   it, and the search matches the German name too. Everything kept or
   compared stays English. A new place that shows a zone calls it too.
 
-Tested in `tools/test_zones.lua`. Not yet seen in game.
+Tested in `tools/test_zones.lua`.
 
 ## One look across the addons (the house kit)
 
@@ -2620,13 +2613,13 @@ as well. Warnings still show on screen and in chat. Tested in
 
 Every release of this addon starts with a fold-in of fresh data from the
 live game (the owner, 2026-11-07), even when nothing else about the data
-changed: the release thread stages the owner's account save and the game's
+changed: the release stages the owner's account save and the game's
 English caches, read only, from his live Forever folder (the path is in the
 project's release steps), runs the tools below, runs the tests and commits
 the data in the release PR as "Refresh shipped data". Never announced (no
 CHANGELOG, NEWS, What's New or post), never the save or caches committed,
 nothing else copied out of them. A release whose only change is new data
-does not ship on its own. If his PC can't be reached, the thread asks him
+does not ship on its own. If his PC can't be reached, the release asks him
 once (Try again or Skip it); it never skips without saying. If the game
 patched since the client tables were last pulled, those are refreshed
 first.
@@ -2757,8 +2750,8 @@ moved or anchored to: its edges are read and the panel is placed against
 the screen, and `WorldMapFrame:HookScript` only listens for it opening
 and closing. Never in a fight; with no room right of the map it does not
 dock; dragged away it stays put until the map opens again
-(`MapDock:Dragged`). Tested in `tools/test_mapdock.lua`. Not yet seen in
-game.
+(`MapDock:Dragged`). Tested in `tools/test_mapdock.lua`.
+
 
 In the same pass the Fishing Panel and Where to Farm moved from the
 DIALOG layer to LOW, so the bags and the map open over them (panels that
@@ -2813,7 +2806,7 @@ landed in `UI/SharedWindow.lua` (FILE_VERSION 8, the same file in all five;
   two boxes. Same saved keys, nothing renamed, no saved choice changed.
   Window Size stays on General: it is per addon. The page hides from the
   switch while One Window is on (the gear reaches it). Farmer's page is
-  left to the Farmer settings thread.
+  left to the Farmer settings work.
 - **SettingsPages** (Farmer, Equipment, Pets, Butler): the page switch
   wraps to a second line, and `opts.barCap` caps `BarWidth` (Farmer
   passes 724). `Page:SetHidden(key, hidden)` hides a page from the switch.
@@ -2974,7 +2967,7 @@ was split into Map and Goals the same day). `/farm farms [on|off]`,
   (`SpotText` in `UI/Goals.lua`) names the pinned mob, or the best place in
   `pinnedZone`, while the arrow follows that goal, so it agrees with the
   dial and the way there. Pins are session only; a run ends at logout.
-- Tested in `tools/test_savedfarms.lua`. Not yet seen in game.
+- Tested in `tools/test_savedfarms.lua`.
 
 ## Checking a change
 
@@ -3015,4 +3008,4 @@ TSM Sold a Day). The same in every addon; keep them the same.
   owner said fix it, and a bad size in a save now reads as 100
   (`UI/SharedWindow.lua` FILE_VERSION 12, in all five).
 - **Three tries, then ask.** A check still failing after three rounds stops
-  the thread. Never skip, loosen or rerun a test to get green.
+  the work. Never skip, loosen or rerun a test to get green.
