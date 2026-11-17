@@ -2064,6 +2064,16 @@ and a redraw never climbs over itself. Heat, Grind pins, Travel and Route
 all count from `BaseLevel`, so they rise with it. Strata is not changed.
 Tested in `tools/test_markers.lua`.
 
+Marker Size (a player asked, the owner said build it, 2026-11-17, from a
+mockup): "Marker Size:" on the Map page under GATHERED NODE MARKERS, with
+Small, Normal and Large (`MapMarkers.SIZES`, scales 0.6, 1, 1.4), and
+`/farm markers size small|normal|large`. It scales both the world map and
+minimap pins (`MapMarkers.SizeScale()`; offsets are given in the pin's own
+units), and world pins join at `JOIN_PIXELS` times the size. Saved account
+wide as `markerSize` (never rename); Normal saves nothing, so nobody's maps
+change until another size is picked. Tested in `tools/test_markers.lua` and
+`tools/test_settings.lua`.
+
 ## Quest count over quest mobs
 
 The owner picked it (2026-10-13, from a mockup of three light touches):

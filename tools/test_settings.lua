@@ -93,6 +93,16 @@ suite.check("the tally box writes the /farm tracker setting", ns.db.trackerHidde
 Toggle(controls.tracker)
 suite.check("and back", ns.db.trackerHidden == false)
 
+-- Marker Size on the Map page (the owner said build it, 2026-11-17).
+suite.check("Marker Size shows Normal", controls.markerSize:GetValue() == 2)
+controls.markerSize:Pick(1)
+suite.check("picking Small writes the /farm markers size setting", ns.db.markerSize == "small")
+ns.HandleSlash("markers size large")
+SettingsUI:Refresh()
+suite.check("and the row follows the command", controls.markerSize:GetValue() == 3)
+controls.markerSize:Pick(2)
+suite.check("Normal saves nothing", ns.db.markerSize == nil)
+
 -- Debug and the checks are typed only (the owner, 2026-10-23).
 suite.check("there is no debug box", controls.debug == nil)
 suite.check("nor a check button", controls.arrowCheck == nil and controls.sparkleCheck == nil

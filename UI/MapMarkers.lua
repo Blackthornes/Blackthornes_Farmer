@@ -122,6 +122,39 @@ function MapMarkers:SetMinimap(on)
     self:Refresh()
 end
 
+-- How big the marks are drawn on both maps (a player asked, the owner said
+-- build it, 2026-11-17). Normal is the size they always had and saves
+-- nothing, so nobody's maps change until another size is picked.
+MapMarkers.SIZES = { "small", "normal", "large" }
+MapMarkers.SIZE_SCALE = { small = 0.6, normal = 1, large = 1.4 }
+
+--- The size picked: "small", "normal" or "large".
+function MapMarkers.Size()
+    local size = ns.db and ns.db.markerSize
+    if MapMarkers.SIZE_SCALE[size] then return size end
+    return "normal"
+end
+
+--- How much bigger or smaller than normal the marks are drawn.
+function MapMarkers.SizeScale()
+    return MapMarkers.SIZE_SCALE[MapMarkers.Size()]
+end
+
+--- The size's name as the player reads it.
+function MapMarkers.SizeName(size)
+    if size == "small" then return L["Small"] end
+    if size == "large" then return L["Large"] end
+    return L["Normal"]
+end
+
+--- Pick a size; anything else is left alone. Both maps redraw.
+function MapMarkers:SetSize(size)
+    if not MapMarkers.SIZE_SCALE[size] or type(ns.db) ~= "table" then return false end
+    ns.db.markerSize = size ~= "normal" and size or nil
+    self:Refresh()
+    return true
+end
+
 --- Only the spots for the gathering skills this character knows (2026-11-01:
 --- they are of no use on another character). On unless unticked; nil reads
 --- as on.
@@ -895,8 +928,8 @@ function MapMarkers:DrawWorld()
     end
 
     local _, kindStamp = self:ShownKinds()
-    local key = ("%d:%s:%s:%s:%d:%s"):format(view.mapID, view.scale, view.width,
-        view.height, ns.Gathering.spotsVersion or 0, kindStamp)
+    local key = ("%d:%s:%s:%s:%d:%s:%s"):format(view.mapID, view.scale, view.width,
+        view.height, ns.Gathering.spotsVersion or 0, kindStamp, MapMarkers.Size())
     local on = MapMarkers.WorldOn()
 
     if key == self.worldKey and self.worldOn == on then
@@ -929,10 +962,13 @@ function MapMarkers:PlaceWorld(pool, view)
     local level = MapMarkers.BaseLevel(view.canvas) + MapMarkers.WORLD_ABOVE
 
     -- Same size on screen at any zoom: shrink the marker as the canvas grows,
-    -- and place it in its own, smaller, units.
-    local scale = 1 / view.scale
+    -- and place it in its own, smaller, units. Marker Size grows or shrinks
+    -- it from there, and pins join only when they would really touch.
+    local size = MapMarkers.SizeScale()
+    local scale = size / view.scale
 
-    local groups = MapMarkers.Group(self:SpotsOn(view.mapID), view.width, view.height, view.scale)
+    local groups = MapMarkers.Group(self:SpotsOn(view.mapID), view.width, view.height, view.scale,
+        JOIN_PIXELS * size)
     for _, group in ipairs(groups) do
         local pin = Acquire(pool)
         MapMarkers.Dress(pin, group, now)
@@ -1062,9 +1098,9 @@ function MapMarkers:MinimapKey()
     size = okWidth and ns.Harvest.ReadableNumber(size) or nil
 
     local _, kindStamp = self:ShownKinds()
-    return ("%d|%s|%s|%s|%s|%s|%s|%s|%s"):format(mapID, tostring(px), tostring(py),
+    return ("%d|%s|%s|%s|%s|%s|%s|%s|%s|%s"):format(mapID, tostring(px), tostring(py),
         tostring(Facing()), tostring(IsSquare()), tostring(MapMarkers.MinimapRadius()),
-        tostring(size), tostring(ns.Gathering.spotsVersion or 0), kindStamp)
+        tostring(size), tostring(ns.Gathering.spotsVersion or 0), kindStamp, MapMarkers.Size())
 end
 
 --- The spots on `mapID` this character shows (MineOnly), kept until the
@@ -1157,13 +1193,17 @@ function MapMarkers:PlaceMinimap(pool)
     local okLevel, level = pcall(Minimap.GetFrameLevel, Minimap)
     level = (okLevel and tonumber(level) or 1) + MapMarkers.MINIMAP_ABOVE
 
+    -- Marker Size: the pin is scaled, so its place is given in its own units.
+    local scale = MapMarkers.SizeScale()
+
     for index = 1, math.min(#near, MINIMAP_MAX) do
         local entry = near[index]
         local pin = Acquire(pool)
         MapMarkers.Dress(pin, entry.spot, now)
+        pin:SetScale(scale)
         pin:SetFrameLevel(level)
         pin:ClearAllPoints()
-        pin:SetPoint("CENTER", Minimap, "CENTER", entry.x, entry.y)
+        pin:SetPoint("CENTER", Minimap, "CENTER", entry.x / scale, entry.y / scale)
         pin:Show()
     end
 end
@@ -1224,8 +1264,9 @@ local function Status()
         Util.Colored("accent", OnOff(MapMarkers.MinimapOn())),
         Util.Plural(#ns.Gathering:Spots(), L["spot"], L["spots"])))
     ns.Print(L.Format("Only your professions: %s.", Util.Colored("accent", OnOff(MapMarkers.MineOnly()))))
+    ns.Print(L.Format("Marker size: %s.", Util.Colored("accent", MapMarkers.SizeName(MapMarkers.Size()))))
     ns.PrintRaw(Util.Colored("muted",
-        "  /farm markers on|off, /farm markers map on|off, /farm markers minimap on|off, /farm markers mine on|off, /farm markers button on|off"))
+        "  /farm markers on|off, /farm markers map on|off, /farm markers minimap on|off, /farm markers mine on|off, /farm markers button on|off, /farm markers size small|normal|large"))
 end
 
 ns.RegisterCommand("markers", L["gathered herb and ore markers on the maps (on, off, map, minimap)"], function(rest)
@@ -1260,6 +1301,8 @@ ns.RegisterCommand("markers", L["gathered herb and ore markers on the maps (on, 
         MapMarkers:SetMineOnly(state == "on")
     elseif which == "button" and (state == "on" or state == "off") and ns.MapToggle then
         ns.MapToggle:SetButton(state == "on")
+    elseif which == "size" then
+        MapMarkers:SetSize(state)
     end
 
     Status()

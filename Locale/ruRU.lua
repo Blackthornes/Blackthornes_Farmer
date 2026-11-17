@@ -2033,3 +2033,6 @@ L["You can save up to %d farms."] = "Можно сохранить до %d фа�
 L["Turn on Saved Farms in Settings first."] = "Сначала включи Сохранённые фармы в настройках."
 L["Turns Saved Farms on or off."] = "Включает или выключает Сохранённые фармы."
 L["Starts your last farm again."] = "Запускает твой последний фарм снова."
+L["Marker Size:"] = "Размер меток:"
+L["How big the marks are on the world map and minimap."] = "Размер меток на карте мира и миникарте."
+L["Marker size: %s."] = "Размер меток: %s."

@@ -1452,6 +1452,18 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.markersMinimap:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- How big the marks are on both maps (a player asked, the owner said
+    -- build it, 2026-11-17). Normal is the size they always had.
+    local markerSizeRow = pages:Row("map", 1, L["Marker Size:"],
+        L["How big the marks are on the world map and minimap."])
+    local sizes = ns.MapMarkers.SIZES
+    controls.markerSize = Widgets.CreateChoice(markerSizeRow, {
+        min = 1, max = #sizes, step = 1, value = 2,
+        format = function(index) return ns.MapMarkers.SizeName(sizes[index]) end,
+        onChange = function(index) ns.MapMarkers:SetSize(sizes[index]) end,
+    })
+    controls.markerSize:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- The gold gem on the world map that hides every Farmer mark at once
     -- (a player asked, the owner said build it, 2026-11-10).
     local mapButtonRow = pages:Row("map", 1, L["Map Button:"], nil)
@@ -1996,6 +2008,9 @@ function SettingsUI:Refresh()
     if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end
     controls.markersWorld:SetChecked(db.markersWorld ~= false)
     controls.markersMinimap:SetChecked(db.markersMinimap ~= false)
+    for index, size in ipairs(ns.MapMarkers.SIZES) do
+        if size == ns.MapMarkers.Size() then controls.markerSize:SetValue(index, true) end
+    end
     if controls.mapButton then controls.mapButton:SetChecked(db.mapButton ~= false) end
     controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
     controls.heatWorld:SetChecked(db.heatWorld == true)
