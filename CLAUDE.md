@@ -16,6 +16,7 @@ CLAUDE.md is kept short on purpose (a 130 to 170 KB one ran every session out of
 
 Sections there:
 
+- Checking a change
 - What Tradeskills provides
 - What Tradeskills calls here
 - Craft or farm (Tradeskills' Your time view)
@@ -100,6 +101,18 @@ Sections there:
 - Shelves, dock places and the All Addons page
 - Ten Settings pages and the Windows table
 - Saved Farms
+
+## Checking a change
+
+Before every PR, follow `.claude/skills/verify/SKILL.md`: a bug fix starts
+with a test that fails the way the game failed; act the steps out in the
+fake game; run `python tools/check_house_rules.py` (player words and dark
+glass, lines this change adds) and `python tools/checklist_for_change.py`
+(the items in `Docs/change-checklist.md` this change touches). Every PR
+body ends with `Checked:` and `Not checked:` lines. After three failed
+rounds, stop and ask the owner. A miss a diff could have shown gets a
+checklist item in the fix's PR. Details under "Checking a change" in
+`Docs/claude-notes.md`.
 
 ## One key per character
 
