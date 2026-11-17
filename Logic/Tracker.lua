@@ -612,9 +612,14 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
         self:Report(key)
     end
 
-    -- The kill that unlocks drop rates gets a fanfare.
-    if newKill and mob.kills == MIN_KILLS then
-        self:Celebrate(mobName)
+    -- The kill that unlocks drop rates gets a fanfare: the 20th of the line
+    -- the panel, tooltip and nameplate count, which for a mob killed in two
+    -- zones is this zone's, never the whole name's (a 9th Hillsbrad Miner
+    -- on its line played it, 2026-11-17).
+    local line = self:Tally(key)
+    local lineKills = type(line) == "table" and tonumber(line.kills) or mob.kills
+    if newKill and lineKills == MIN_KILLS then
+        self:Celebrate(key)
     elseif newKill and mob.kills == CHAMPION_KILLS then
         self:Champion(mobName)
     elseif newKill and mob.kills == BANE_KILLS then

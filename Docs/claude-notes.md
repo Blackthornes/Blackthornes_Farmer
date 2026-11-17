@@ -887,8 +887,10 @@ the nameplates (`Tracker:KeyHere`, the zone you are in) read the line's
 tally (`Tracker:Tally`, `Tallies`, `Lines`, `IsSplit`). A plain name is
 still the whole. Kills from before were laid out once at login, before any
 loot, from the player's own loot records (`Tracker:SeedAllZones`; one zone
-is copied whole). Milestones, fanfares, goals, Stats and Moments still
-count the whole name. Never shared (Share's whitelist). Tested in
+is copied whole). The drop rates fanfare plays at the 20th kill of the
+line (2026-11-17: a 9th Hillsbrad Miner on its line had played it; tested
+in `tools/test_unlockline.lua`). The 100th and later fanfares, goals,
+Stats and Moments still count the whole name. Never shared (Share's whitelist). Tested in
 `tools/test_zonelines.lua`.
 
 ## Drops only
