@@ -127,17 +127,22 @@ function GatherToCap.ReadSkill(english)
         end
     end
 
+    -- A skill can show on two lines (its old and new skill line); an empty
+    -- one (0) is skipped and the highest wins.
+    local best, bestMost
     if type(GetNumSkillLines) == "function" and type(GetSkillLineInfo) == "function" then
         local ok, lines = pcall(GetNumSkillLines)
         for index = 1, ok and Number(lines) or 0 do
             local got, name, header, _, rank, _, _, most = pcall(GetSkillLineInfo, index)
             if got and not header and Match(name) then
                 local skill = Number(rank)
-                if skill then return skill, Number(most) end
+                if skill and skill > 0 and (not best or skill > best) then
+                    best, bestMost = skill, Number(most)
+                end
             end
         end
     end
-    return nil
+    return best, best and bestMost or nil
 end
 
 --- The rank you train next for a cap over `most`, or nil at the top.

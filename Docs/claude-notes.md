@@ -491,6 +491,12 @@ Add Lure opens YOUR LURES, the lures in the bags best first
 it 2026-11-15), each row a secure macro `/use item:ID` then `/use
 16`. A lure whose tooltip asks for more Fishing than you have
 (`ITEM_MIN_SKILL`, kept in `FishingBar.needs`) is greyed and does nothing.
+Unless that line is not red (`FishingBar:Short`, the game's own word in
+every language, read only when the skill read says short): a German
+player's Nightcrawlers (Fishing 50) stayed grey after moving up from
+"Secret" Bait (fixed 2026-11-17, `tools/test_fishingbar_german.lua`).
+`GatherToCap.ReadSkill` skips an empty (0) skill line and takes the
+highest line named for the skill. Not yet seen in game.
 Under them "Lure:" (`GetWeaponEnchantInfo`: "+75, 8:42 left", "None on"
 with Add Lure glowing, or "No lures in your bags"; the bonus by enchant ID
 in `LURE_ENCHANTS`, not yet seen in game) and "Fishing Skill:"
