@@ -4,6 +4,14 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.21.1
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Window spot.** The one window stays where you drag it.
+- **Route on the minimap.** While a Gather Route runs, TomTom's waypoint hides its minimap pin, and the route marks each stop with a thin gold ring with a clear middle.
+- **Out of order picks.** Gathering a herb or ore near a route stop, in any order, rests that stop and moves the route on.
+
 ## 1.21.0
 
 For WoW: Forever (interface 16001). `/reload` is not enough: a file was added, so close the game fully and start it again after updating.
