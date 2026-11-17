@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.21.1
+
+Fixes and changes:
+- The window stays where you drag it.
+- On the minimap, a route shows each stop as a thin gold ring and TomTom's pin steps aside.
+- Picking herbs out of order now moves your route on.
+
 ## 1.21.0
 
 - Farmer has a new Farms tab. Save a farm and run it again with one click.
