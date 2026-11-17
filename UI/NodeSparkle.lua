@@ -734,6 +734,7 @@ function NodeSparkle:Kind(name, guid)
     -- "Kupfervorkommen", the data "Copper Vein"): the game's own tooltip
     -- names the skill it needs in the client's words.
     if guid and self:TooltipGathers(guid) then return "node" end
+    if ns.Fishing and ns.Fishing.IsSchoolObject and ns.Fishing.IsSchoolObject(guid) then return "school" end
     if ns.Fishing and ns.Fishing.IsSchool and ns.Fishing.IsSchool(name) then return "school" end
     if self.IsChest(name) then return "chest" end
     if self:IsBobber(name) then

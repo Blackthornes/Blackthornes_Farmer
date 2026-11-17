@@ -480,6 +480,28 @@ section "f"), so the pace never leaves the account.
 `FishZoneText`, `FishRows`. `/farm grind fish`. Tested in
 `tools/test_fishview.lua`. Not yet seen in game.
 
+## Schools told by the game
+
+A player's screenshot (2026-11-16, the owner: "school detection is not
+working great"): schools were known only by English name endings
+(`Fishing.IsSchool`) and only when moused over just before the cast, so a
+German client, a new Forever school name or a cast with no look all went
+to open water. Now the loot window decides (`Fishing:SchoolFromLoot`): the
+game hands a school's catch out from the school and an open water catch
+from the bobber (entry `Fishing.BOBBER_ID`, 35591), both game objects in
+`GetLootSourceInfo`. The bobber is new each cast, so one object owning two
+different casts' catch is a school; its entry ID is then kept account wide
+in `fishingSchools[id] = name` (never rename it), and every school of that
+kind counts from its first cast with no look, in every language. The name
+is the school moused over, else whatever was under the mouse as the cast
+started (not the bobber), else "fishing school" (`Fishing.SCHOOL`, shown
+in the client's words) until something names it. A catch off the bobber
+is open water even when a recast guessed a school. Learned names count for
+`IsSchool`, and `Fishing.IsSchoolObject(guid)` lets the sparkles call a
+learned school a school by its guid. A client that names no loot source
+keeps the old way. Chests are still told by English endings. Tested in
+`tools/test_fishschools.lua`. Not yet seen in game.
+
 ## The Fishing window
 
 The owner said build it (2026-10-26, from a mockup): a small window with
