@@ -163,6 +163,7 @@ end
 
 local function NewLayer(parent)
     local frame = CreateFrame("Frame", nil, parent)
+    if ns.MapMarkers and ns.MapMarkers.Own then ns.MapMarkers.Own(frame) end
     frame:SetAllPoints(parent)
     frame:EnableMouse(false)
     return { frame = frame, parent = parent, lines = {}, dots = {} }

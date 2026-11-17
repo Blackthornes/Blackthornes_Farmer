@@ -108,6 +108,7 @@ end
 
 local function CreatePin(parent)
     local pin = CreateFrame("Button", nil, parent)
+    if ns.MapMarkers and ns.MapMarkers.Own then ns.MapMarkers.Own(pin) end
     pin:SetSize(SIZE, SIZE)
 
     local ring = pin:CreateTexture(nil, "BACKGROUND")
