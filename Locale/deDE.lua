@@ -1964,7 +1964,8 @@ L["ALL BLACKTHORNES ADDONS"] = "ALLE BLACKTHORNES-ADDONS"
 L["WHAT'S NEW"] = "NEUIGKEITEN"
 L["After Updates:"] = "Nach Updates:"
 L["Show With Motion"] = "Mit Bewegung anzeigen"
-L["Window size and Farmer's windows"] = "Fenstergröße und Farmers Fenster"
+L["Window size, Farmer's windows, and showing and putting back each small window"] = "Fenstergröße, Farmers Fenster und jedes kleine Fenster zeigen und zurücksetzen"
+L["ALL ADDONS"] = "ALLE ADDONS"
 
 -- ======================================================================
 -- Saved Farms (Logic/SavedFarms.lua, UI/SavedFarms.lua)

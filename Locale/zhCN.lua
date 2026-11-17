@@ -1955,7 +1955,8 @@ L["ALL BLACKTHORNES ADDONS"] = "所有 BLACKTHORNES 插件"
 L["WHAT'S NEW"] = "更新内容"
 L["After Updates:"] = "更新后："
 L["Show With Motion"] = "带动画显示"
-L["Window size and Farmer's windows"] = "窗口大小和 Farmer 的窗口"
+L["Window size, Farmer's windows, and showing and putting back each small window"] = "窗口大小、Farmer 的窗口，以及显示和重置每个小窗口"
+L["ALL ADDONS"] = "全部插件"
 
 -- ======================================================================
 -- Saved Farms (Logic/SavedFarms.lua, UI/SavedFarms.lua)

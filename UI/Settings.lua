@@ -54,18 +54,19 @@ local PAGES = {
       tip = L["Node markers, sparkles, grinding camps, kill heat and the gather route"] },
     { key = "goals", text = L["GOALS"],
       tip = L["Your goals and the goal arrow"] },
+    -- From here on, the pages every Blackthornes addon shares, in the same
+    -- order in all five (the owner said build it, 2026-11-17). General
+    -- joined Windows then; a saved "general" opens Windows.
     { key = "tooltips", text = L["TOOLTIPS"],
       tip = L["Lines Farmer adds to tooltips, and counts over mobs"] },
-    { key = "panels", text = L["WINDOWS"],
-      tip = L["Show, see through and put back each small window"] },
     { key = "sounds", text = L["SOUNDS"],
       tip = L["Every sound Farmer plays"] },
+    { key = "panels", text = L["WINDOWS"],
+      tip = L["Window size, Farmer's windows, and showing and putting back each small window"] },
     { key = "sharing", text = L["SHARING"],
       tip = L["Share kills, drop rates and gathering with your other account"] },
     -- The settings every Blackthornes addon shares; the same page in each.
-    { key = "all", text = L["All Addons"] },
-    { key = "general", text = L["GENERAL"],
-      tip = L["Window size and Farmer's windows"] },
+    { key = "all", text = L["ALL ADDONS"] },
     { key = "about", text = L["ABOUT"],
       tip = L["How these addons are made, the version, the Discord and the other Blackthornes addons"] },
 }
@@ -76,9 +77,10 @@ SettingsUI.BAR_CAP = 724
 -- Room for the Show column of the Windows table, tick and word.
 SettingsUI.SHOW_ROOM = 110
 
--- Pages that were folded into General (the owner, 2026-10-29): a saved one
--- opens General.
-SettingsUI.OLD_PAGES = { windows = "general", advanced = "general" }
+-- Pages that were folded into others, and where their rows went: Windows
+-- and Advanced into General (the owner, 2026-10-29), then General into
+-- Windows (2026-11-17). A saved one opens the page its rows are on now.
+SettingsUI.OLD_PAGES = { windows = "panels", advanced = "panels", general = "panels" }
 
 --------------------------------------------------------------------------------
 -- Layout helpers
@@ -819,7 +821,6 @@ function SettingsUI:BuildWindowsPage()
     local controls = self.controls
     local pages = self.pages
 
-    pages:Section("general", 1, L["WINDOWS"])
     pages:Section("all", 1, L["ALL BLACKTHORNES ADDONS"])
 
     -- Asked 2026-10-10: the game's own look for players who would rather
@@ -835,7 +836,9 @@ function SettingsUI:BuildWindowsPage()
 
     -- The minimap button always shows (the owner, 2026-10-15), so it has no
     -- row here any more.
-    local windowScaleRow = pages:Row("general", 1, L["Window Size:"], nil)
+    -- General joined Windows (2026-11-17): Window Size sits under the
+    -- small windows' table, Farmer UI after it.
+    local windowScaleRow = pages:Row("panels", 1, L["Window Size:"], nil)
 
     -- Any percent the window's grip can drag to, one dragged to shown as it is.
     controls.windowScale = Widgets.CreateStepper(windowScaleRow, {
@@ -871,6 +874,14 @@ function SettingsUI:BuildWindowsPage()
     end, false)
     controls.muteSounds:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- And again on top of Sounds (the owner said build it, 2026-11-17):
+    -- the same switch, so ticking one ticks both.
+    local muteHereRow = pages:Row("sounds", 1, L["Mute All Sounds:"], nil)
+    controls.muteSoundsHere = Widgets.CreateCheckbox(muteHereRow, L["On"], function(checked)
+        SettingsUI:SetMuteSounds(checked)
+    end, false)
+    controls.muteSoundsHere:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- A player asked (2026-10-28): one minimap button for every Blackthornes
     -- addon loaded. Ticked unless unticked; see UI/SharedMinimap.lua.
     local combineRow = pages:Row("all", 1, L["Combine Addon Buttons:"], nil)
@@ -898,9 +909,9 @@ function SettingsUI:BuildWindowsPage()
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
     controls.resetPositions = reset
 
-    pages:Section("general", 2, L["FARMER UI"])
+    pages:Section("panels", 1, L["FARMER UI"])
 
-    local _, searchButton = CommandRow(pages, "general", 2, L["Farmer:"], nil, L["Open"], function()
+    local _, searchButton = CommandRow(pages, "panels", 1, L["Farmer:"], nil, L["Open"], function()
             -- /farm on its own toggles the window, so with it already open
             -- this closed it. It opens it, on the Search tab.
             ns.UI:Show()
@@ -908,11 +919,11 @@ function SettingsUI:BuildWindowsPage()
         end)
     controls.openSearch = searchButton
 
-    local _, rankingsButton = CommandRow(pages, "general", 2, L["Rankings:"], nil, L["Open"], "rankings")
+    local _, rankingsButton = CommandRow(pages, "panels", 1, L["Rankings:"], nil, L["Open"], "rankings")
     controls.rankings = rankingsButton
 
     -- The owner, 2026-10-14: Rankings without the mobs found only in dungeons.
-    local outsideRow = pages:Row("general", 2, L["Skip Dungeon Mobs:"],
+    local outsideRow = pages:Row("panels", 1, L["Skip Dungeon Mobs:"],
         L["Rankings leave out mobs you only found in dungeons and raids."])
     controls.rankingsOutside = Widgets.CreateCheckbox(outsideRow, L["On"], function(checked)
         ns.Rankings:SetOutsideOnly(checked)
@@ -920,7 +931,7 @@ function SettingsUI:BuildWindowsPage()
     controls.rankingsOutside:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The owner, 2026-10-18: worth per kill without Uncommon and better drops.
-    local uncommonRow = pages:Row("general", 2, L["Skip Uncommon Drops:"],
+    local uncommonRow = pages:Row("panels", 1, L["Skip Uncommon Drops:"],
         L["Worth per kill leaves out Uncommon, Rare and Epic drops."])
     controls.rankingsSkipUncommon = Widgets.CreateCheckbox(uncommonRow, L["On"], function(checked)
         ns.Rankings:SetSkipUncommon(checked)
@@ -928,14 +939,14 @@ function SettingsUI:BuildWindowsPage()
     controls.rankingsSkipUncommon:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The owner, 2026-11-15: worth per kill at vendor prices only.
-    local vendorRow = pages:Row("general", 2, L["Vendor Prices Only:"],
+    local vendorRow = pages:Row("panels", 1, L["Vendor Prices Only:"],
         L["Worth per kill counts what a vendor pays, not the auction house. Things a vendor won't buy count as nothing."])
     controls.rankingsVendorOnly = Widgets.CreateCheckbox(vendorRow, L["On"], function(checked)
         ns.Rankings:SetVendorOnly(checked)
     end, false)
     controls.rankingsVendorOnly:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local _, statsButton = CommandRow(pages, "general", 2, L["Stats:"], nil, L["Open"], "charts")
+    local _, statsButton = CommandRow(pages, "panels", 1, L["Stats:"], nil, L["Open"], "charts")
     controls.statsTab = statsButton
 end
 
@@ -2113,6 +2124,7 @@ function SettingsUI:Refresh()
     end
     controls.rareSound:SetChecked(ns.TrackerFX.RareSoundOn())
     controls.muteSounds:SetChecked(ns.Muted and ns.Muted() or false)
+    controls.muteSoundsHere:SetChecked(ns.Muted and ns.Muted() or false)
     if ns.RankUp then
         controls.rankUp:SetChecked(ns.RankUp.On())
         controls.rankUpSound:SetChecked(ns.RankUp.SoundOn())
@@ -2409,6 +2421,7 @@ function SettingsUI:SetMuteSounds(on)
         ns.db.muteSoundsAt = at
     end
     if self.controls and self.controls.muteSounds then self.controls.muteSounds:SetChecked(on) end
+    if self.controls and self.controls.muteSoundsHere then self.controls.muteSoundsHere:SetChecked(on) end
 end
 
 ns.RegisterCommand("mute", L["turn every Blackthornes sound off or back on (on/off)"], function(rest)

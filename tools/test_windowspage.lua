@@ -19,9 +19,19 @@ local pages, controls = SettingsUI.pages, SettingsUI.controls
 local order = {}
 for index, def in ipairs(pages.defs) do order[index] = def.key end
 suite.check("the pages, in order", table.concat(order, " ")
-    == "tally loot map goals tooltips panels sounds sharing all general about", table.concat(order, " "))
-suite.check("no page takes a key that old saves send to General",
+    == "tally loot map goals tooltips sounds panels sharing all about", table.concat(order, " "))
+-- General joined Windows (the owner said build it, 2026-11-17): a page
+-- saved under an old key opens the page its rows are on now.
+suite.check("old saves of General, Windows and Advanced open Windows",
+    SettingsUI.OLD_PAGES.general == "panels" and SettingsUI.OLD_PAGES.windows == "panels"
+    and SettingsUI.OLD_PAGES.advanced == "panels")
+suite.check("no page takes a key that old saves send elsewhere",
     SettingsUI.OLD_PAGES.panels == nil and SettingsUI.OLD_PAGES.sounds == nil)
+local switchWords = {}
+for _, def in ipairs(pages.defs) do switchWords[#switchWords + 1] = def.text end
+suite.check("the shared pages read the same in all five",
+    table.concat(switchWords, " "):find("TOOLTIPS SOUNDS WINDOWS SHARING ALL ADDONS ABOUT", 1, true) ~= nil,
+    table.concat(switchWords, " "))
 suite.check("the switch wraps at the window's width, never past it",
     pages.opts.barCap == SettingsUI.BAR_CAP and pages:BarWidth() <= SettingsUI.BAR_CAP, pages:BarWidth())
 
@@ -73,7 +83,16 @@ for _, name in ipairs({ "windowStyle", "textSize", "effects", "muteSounds", "com
     "resetPositions", "sisters", "whatsnew", "whatsNewAfter" }) do
     suite.check(name .. " is on the All Addons page", PageOf(controls[name]) == "all", tostring(PageOf(controls[name])))
 end
-suite.check("Window Size stays on General", PageOf(controls.windowScale) == "general")
+suite.check("Window Size is on Windows", PageOf(controls.windowScale) == "panels")
+suite.check("and so is Farmer UI", PageOf(controls.rankingsVendorOnly) == "panels")
+suite.check("Mute All Sounds is on top of Sounds too", PageOf(controls.muteSoundsHere) == "sounds",
+    tostring(PageOf(controls.muteSoundsHere)))
+SettingsUI:SetMuteSounds(true)
+suite.check("ticking Mute ticks both boxes",
+    controls.muteSounds:GetChecked() == true and controls.muteSoundsHere:GetChecked() == true)
+SettingsUI:SetMuteSounds(false)
+suite.check("and unticking clears both",
+    not controls.muteSounds:GetChecked() and not controls.muteSoundsHere:GetChecked())
 ns.WhatsNew:SetOn(false)
 SettingsUI:Refresh()
 suite.check("After Updates shows what is saved", controls.whatsNewAfter:GetValue() == "off",
