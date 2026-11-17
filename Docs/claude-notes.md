@@ -825,6 +825,16 @@ one already there, and a forever or guild row takes its place by
 (`WithYourSpots`, `entry.mine`). Rerun it when the tables are pulled again.
 Never announced. Tested in `tools/test_classicdrops.lua`.
 
+Mulgore's spots (2026-11-17, after Tradeskills found Thunder Bluff's
+trainers pinned north of the city): Forever's Mulgore map covers more
+ground than the one Classic's numbers were measured on, so a Classic spot
+read on it landed north and west of the mob. Every other zone matched.
+`tools/classic_maps.py` (the same bounds as Tradeskills') moved the 55
+Mulgore rows once (the file carries its mark in the header), and
+`make_classic_drops.py` calls its `forever_spot` on every spot it writes.
+Forever's own rows (`Data/Data_Harvested.lua`) were already right. Tested in
+`tools/test_bluffspots.lua`. Not yet seen in game.
+
 ## Random suffixes count as their item
 
 A player asked (2026-10-15, the owner said build it): gear with a random

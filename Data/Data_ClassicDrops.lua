@@ -4,6 +4,8 @@
 -- drop trade goods, with no drop rates: leads for the search until looted
 -- on Forever.
 
+-- Mulgore's spots are on Forever's Mulgore map (tools/classic_maps.py).
+
 local _, ns = ...
 
 local DB = ns.DB
@@ -74,7 +76,7 @@ DB:RegisterItem({ name = "Azure Agate", id = 4527, category = "Quest item", sour
     { name = "Boulderfist Shaman", zone = "Arathi Highlands", coords = { 20.0, 67.5 }, minLevel = 38, maxLevel = 39, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Azure Feather", id = 4752, category = "Quest item", sources = {
-    { name = "Windfury Sorceress", zone = "Mulgore", coords = { 35.0, 13.7 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Windfury Sorceress", zone = "Mulgore", coords = { 36.2, 24.6 }, minLevel = 9, maxLevel = 10, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Baron Longshore's Head", id = 5084, category = "Quest item", sources = {
     { name = "Baron Longshore", zone = "The Barrens", coords = { 63.6, 49.1 }, minLevel = 16, maxLevel = 16, searchOnly = true },
@@ -84,12 +86,12 @@ DB:RegisterItem({ name = "Basilisk Brain", id = 8394, category = "Quest item", s
     { name = "Redstone Crystalhide", zone = "Blasted Lands", coords = { 51.5, 53.2 }, minLevel = 51, maxLevel = 52, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Battleboar Flank", id = 4849, category = "Quest item", sources = {
-    { name = "Battleboar", zone = "Mulgore", coords = { 56.1, 84.2 }, minLevel = 3, maxLevel = 4, searchOnly = true },
-    { name = "Bristleback Battleboar", zone = "Mulgore", coords = { 63.7, 78.4 }, minLevel = 4, maxLevel = 5, searchOnly = true },
+    { name = "Battleboar", zone = "Mulgore", coords = { 53.8, 83.5 }, minLevel = 3, maxLevel = 4, searchOnly = true },
+    { name = "Bristleback Battleboar", zone = "Mulgore", coords = { 60.2, 78.6 }, minLevel = 4, maxLevel = 5, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Battleboar Snout", id = 4848, category = "Quest item", sources = {
-    { name = "Battleboar", zone = "Mulgore", coords = { 56.1, 84.2 }, minLevel = 3, maxLevel = 4, searchOnly = true },
-    { name = "Bristleback Battleboar", zone = "Mulgore", coords = { 63.7, 78.4 }, minLevel = 4, maxLevel = 5, searchOnly = true },
+    { name = "Battleboar", zone = "Mulgore", coords = { 53.8, 83.5 }, minLevel = 3, maxLevel = 4, searchOnly = true },
+    { name = "Bristleback Battleboar", zone = "Mulgore", coords = { 60.2, 78.6 }, minLevel = 4, maxLevel = 5, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Battleworn Axe", id = 3014, category = "Quest item", sources = {
     { name = "Blackrock Grunt", zone = "Redridge Mountains", coords = { 71.4, 74.8 }, minLevel = 19, maxLevel = 20, searchOnly = true },
@@ -297,8 +299,8 @@ DB:RegisterItem({ name = "Brilliant Sword of Zealotry", id = 22228, category = "
     { name = "Scarlet Praetorian", zone = "Eastern Plaguelands", coords = { 86.3, 85.0 }, minLevel = 56, maxLevel = 57, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Bristleback Belt", id = 4770, category = "Quest item", sources = {
-    { name = "Bristleback Quilboar", zone = "Mulgore", coords = { 61.6, 78.8 }, minLevel = 3, maxLevel = 4, searchOnly = true },
-    { name = "Bristleback Shaman", zone = "Mulgore", coords = { 64.7, 77.9 }, minLevel = 3, maxLevel = 4, searchOnly = true },
+    { name = "Bristleback Quilboar", zone = "Mulgore", coords = { 58.4, 78.9 }, minLevel = 3, maxLevel = 4, searchOnly = true },
+    { name = "Bristleback Shaman", zone = "Mulgore", coords = { 61.0, 78.2 }, minLevel = 3, maxLevel = 4, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Bristleback Quilboar Tusk", id = 5085, category = "Quest item", sources = {
     { name = "Bristleback Water Seeker", zone = "The Barrens", coords = { 46.5, 54.2 }, minLevel = 16, maxLevel = 17, searchOnly = true },
@@ -307,7 +309,7 @@ DB:RegisterItem({ name = "Bristleback Quilboar Tusk", id = 5085, category = "Que
     { name = "Bristleback Geomancer", zone = "The Barrens", coords = { 52.4, 53.0 }, minLevel = 19, maxLevel = 20, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Bronze Feather", id = 4753, category = "Quest item", sources = {
-    { name = "Windfury Matriarch", zone = "Mulgore", coords = { 35.2, 12.8 }, minLevel = 10, maxLevel = 11, searchOnly = true },
+    { name = "Windfury Matriarch", zone = "Mulgore", coords = { 36.4, 23.8 }, minLevel = 10, maxLevel = 11, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Bronze Framework", id = 4382, category = "Mob drop", sources = {
     { name = "Venture Co. Machine Smith", zone = "Stonetalon Mountains", coords = { 63.4, 40.0 }, minLevel = 21, maxLevel = 22, searchOnly = true },
@@ -511,7 +513,7 @@ DB:RegisterItem({ name = "Corrupted Soul Shard", id = 11515, category = "Quest i
     { name = "Deadwood Pathfinder", zone = "Felwood", coords = { 48.4, 91.4 }, minLevel = 49, maxLevel = 50, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Cougar Claws", id = 4802, category = "Quest item", sources = {
-    { name = "Flatland Cougar", zone = "Mulgore", coords = { 49.8, 41.1 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Flatland Cougar", zone = "Mulgore", coords = { 48.6, 47.5 }, minLevel = 7, maxLevel = 8, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Courser Eye", id = 5585, category = "Quest item", sources = {
     { name = "Antlered Courser", zone = "Stonetalon Mountains", coords = { 45.0, 21.3 }, minLevel = 22, maxLevel = 23, searchOnly = true },
@@ -1041,10 +1043,10 @@ DB:RegisterItem({ name = "Flask of Oil", id = 814, category = "Mob drop", source
     { name = "Black Ooze", zone = "Wetlands", coords = { 47.4, 27.7 }, minLevel = 23, maxLevel = 24, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Flatland Cougar Femur", id = 4805, category = "Quest item", sources = {
-    { name = "Flatland Cougar", zone = "Mulgore", coords = { 49.8, 41.1 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Flatland Cougar", zone = "Mulgore", coords = { 48.6, 47.5 }, minLevel = 7, maxLevel = 8, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Flatland Prowler Claw", id = 5203, category = "Quest item", sources = {
-    { name = "Flatland Prowler", zone = "Mulgore", coords = { 49.8, 18.1 }, minLevel = 9, maxLevel = 9, searchOnly = true },
+    { name = "Flatland Prowler", zone = "Mulgore", coords = { 48.6, 28.3 }, minLevel = 9, maxLevel = 9, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Flawless Fel Essence (Azshara)", id = 18624, category = "Quest item", sources = {
     { name = "Legashi Satyr", zone = "Azshara", coords = { 65.2, 17.4 }, minLevel = 51, maxLevel = 52, searchOnly = true },
@@ -1854,9 +1856,9 @@ DB:RegisterItem({ name = "Kodo Liver", id = 4896, category = "Quest item", sourc
     { name = "Lakota'mani", zone = "The Barrens", coords = { 47.5, 51.1 }, minLevel = 22, maxLevel = 22, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Kodo Meat", id = 5467, category = "Cooking", sources = {
-    { name = "Kodo Calf", zone = "Mulgore", coords = { 48.0, 37.9 }, minLevel = 7, maxLevel = 8, searchOnly = true },
-    { name = "Kodo Bull", zone = "Mulgore", coords = { 43.4, 53.7 }, minLevel = 10, maxLevel = 11, searchOnly = true },
-    { name = "Kodo Matriarch", zone = "Mulgore", coords = { 43.2, 53.8 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Kodo Calf", zone = "Mulgore", coords = { 47.1, 44.8 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Kodo Bull", zone = "Mulgore", coords = { 43.2, 58.0 }, minLevel = 10, maxLevel = 11, searchOnly = true },
+    { name = "Kodo Matriarch", zone = "Mulgore", coords = { 43.1, 58.1 }, minLevel = 11, maxLevel = 12, searchOnly = true },
     { name = "Lost Barrens Kodo", zone = "The Barrens", coords = { 53.8, 41.2 }, minLevel = 14, maxLevel = 15, searchOnly = true },
     { name = "Barrens Kodo", zone = "The Barrens", coords = { 47.3, 66.5 }, minLevel = 19, maxLevel = 20, searchOnly = true },
     { name = "Lakota'mani", zone = "The Barrens", coords = { 47.5, 51.1 }, minLevel = 22, maxLevel = 22, searchOnly = true },
@@ -2038,7 +2040,7 @@ DB:RegisterItem({ name = "Malachite", id = 774, sources = {
     { name = "Surf Crawler", zone = "Durotar", coords = { 64.1, 78.9 }, minLevel = 7, maxLevel = 8, searchOnly = true },
     { name = "Kobold Geomancer", zone = "Elwynn Forest", coords = { 64.5, 56.6 }, minLevel = 7, maxLevel = 8, searchOnly = true },
     { name = "Servant of Azora", zone = "Elwynn Forest", coords = { 64.8, 69.9 }, minLevel = 8, maxLevel = 9, searchOnly = true },
-    { name = "Bael'dun Appraiser", zone = "Mulgore", coords = { 31.5, 48.8 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Bael'dun Appraiser", zone = "Mulgore", coords = { 33.3, 53.9 }, minLevel = 8, maxLevel = 9, searchOnly = true },
     { name = "Encrusted Surf Crawler", zone = "Durotar", coords = { 58.1, 12.0 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Bloodfeather Fury", zone = "Teldrassil", coords = { 34.3, 28.9 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Torn Fin Oracle", zone = "Hillsbrad Foothills", coords = { 43.9, 68.7 }, minLevel = 30, maxLevel = 31, searchOnly = true },
@@ -2136,7 +2138,7 @@ DB:RegisterItem({ name = "Mote of Myzrael", id = 4435, category = "Quest item", 
     { name = "Drywhisker Surveyor", zone = "Arathi Highlands", coords = { 84.2, 30.9 }, minLevel = 37, maxLevel = 38, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Mountain Cougar Pelt", id = 4742, category = "Quest item", sources = {
-    { name = "Mountain Cougar", zone = "Mulgore", coords = { 48.5, 89.8 }, minLevel = 3, maxLevel = 3, searchOnly = true },
+    { name = "Mountain Cougar", zone = "Mulgore", coords = { 47.5, 88.1 }, minLevel = 3, maxLevel = 3, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Mountain Lion Blood", id = 3496, category = "Quest item", sources = {
     { name = "Starving Mountain Lion", zone = "Hillsbrad Foothills", coords = { 53.4, 39.3 }, minLevel = 23, maxLevel = 24, searchOnly = true },
@@ -2477,8 +2479,8 @@ DB:RegisterItem({ name = "Pattern: Red Linen Bag", id = 5771, category = "Recipe
 } })
 DB:RegisterItem({ name = "Pattern: Red Linen Robe", id = 2598, category = "Recipe", sources = {
     { name = "Surf Crawler", zone = "Durotar", coords = { 64.1, 78.9 }, minLevel = 7, maxLevel = 8, searchOnly = true },
-    { name = "Venture Co. Taskmaster", zone = "Mulgore", coords = { 44.7, 46.0 }, minLevel = 7, maxLevel = 8, searchOnly = true },
-    { name = "Bael'dun Appraiser", zone = "Mulgore", coords = { 31.5, 48.8 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Venture Co. Taskmaster", zone = "Mulgore", coords = { 44.3, 51.6 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Bael'dun Appraiser", zone = "Mulgore", coords = { 33.3, 53.9 }, minLevel = 8, maxLevel = 9, searchOnly = true },
     { name = "Frostmane Hideskinner", zone = "Dun Morogh", coords = { 21.7, 52.9 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Encrusted Surf Crawler", zone = "Durotar", coords = { 58.1, 12.0 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Bloodfeather Wind Witch", zone = "Teldrassil", coords = { 34.3, 28.9 }, minLevel = 9, maxLevel = 10, searchOnly = true },
@@ -2486,7 +2488,7 @@ DB:RegisterItem({ name = "Pattern: Red Linen Robe", id = 2598, category = "Recip
     { name = "Ghoul", zone = "Westfall", coords = { 40.3, 66.9 }, minLevel = 14, maxLevel = 15, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Pattern: Red Linen Vest", id = 6271, category = "Recipe", sources = {
-    { name = "Kodo Matriarch", zone = "Mulgore", coords = { 43.2, 53.8 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Kodo Matriarch", zone = "Mulgore", coords = { 43.1, 58.1 }, minLevel = 11, maxLevel = 12, searchOnly = true },
     { name = "Pyrewood Sentry", zone = "Silverpine Forest", coords = { 44.7, 73.2 }, minLevel = 14, maxLevel = 15, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Pattern: Red Mageweave Gloves", id = 10312, category = "Recipe", sources = {
@@ -2647,7 +2649,7 @@ DB:RegisterItem({ name = "Plainstrider Beak", id = 5087, category = "Quest item"
     { name = "Ornery Plainstrider", zone = "The Barrens", coords = { 52.6, 47.1 }, minLevel = 16, maxLevel = 17, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Plainstrider Feather", id = 4740, category = "Quest item", sources = {
-    { name = "Plainstrider", zone = "Mulgore", coords = { 48.1, 81.8 }, minLevel = 1, maxLevel = 2, searchOnly = true },
+    { name = "Plainstrider", zone = "Mulgore", coords = { 47.2, 81.5 }, minLevel = 1, maxLevel = 2, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Plainstrider Kidney", id = 4894, category = "Quest item", sources = {
     { name = "Greater Plainstrider", zone = "The Barrens", coords = { 51.7, 23.1 }, minLevel = 11, maxLevel = 12, searchOnly = true },
@@ -2655,19 +2657,19 @@ DB:RegisterItem({ name = "Plainstrider Kidney", id = 4894, category = "Quest ite
     { name = "Ornery Plainstrider", zone = "The Barrens", coords = { 52.6, 47.1 }, minLevel = 16, maxLevel = 17, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Plainstrider Meat", id = 4739, category = "Quest item", sources = {
-    { name = "Plainstrider", zone = "Mulgore", coords = { 48.1, 81.8 }, minLevel = 1, maxLevel = 2, searchOnly = true },
+    { name = "Plainstrider", zone = "Mulgore", coords = { 47.2, 81.5 }, minLevel = 1, maxLevel = 2, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Plainstrider Scale", id = 4806, category = "Quest item", sources = {
-    { name = "Plainstrider", zone = "Mulgore", coords = { 48.1, 81.8 }, minLevel = 1, maxLevel = 2, searchOnly = true },
-    { name = "Adult Plainstrider", zone = "Mulgore", coords = { 40.0, 56.9 }, minLevel = 6, maxLevel = 7, searchOnly = true },
-    { name = "Elder Plainstrider", zone = "Mulgore", coords = { 51.2, 26.6 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Plainstrider", zone = "Mulgore", coords = { 47.2, 81.5 }, minLevel = 1, maxLevel = 2, searchOnly = true },
+    { name = "Adult Plainstrider", zone = "Mulgore", coords = { 40.4, 60.7 }, minLevel = 6, maxLevel = 7, searchOnly = true },
+    { name = "Elder Plainstrider", zone = "Mulgore", coords = { 49.7, 35.4 }, minLevel = 8, maxLevel = 9, searchOnly = true },
     { name = "Greater Plainstrider", zone = "The Barrens", coords = { 51.7, 23.1 }, minLevel = 11, maxLevel = 12, searchOnly = true },
     { name = "Fleeting Plainstrider", zone = "The Barrens", coords = { 48.7, 31.7 }, minLevel = 12, maxLevel = 13, searchOnly = true },
     { name = "Ornery Plainstrider", zone = "The Barrens", coords = { 52.6, 47.1 }, minLevel = 16, maxLevel = 17, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Plainstrider Talon", id = 4759, category = "Quest item", sources = {
-    { name = "Adult Plainstrider", zone = "Mulgore", coords = { 40.0, 56.9 }, minLevel = 6, maxLevel = 7, searchOnly = true },
-    { name = "Elder Plainstrider", zone = "Mulgore", coords = { 51.2, 26.6 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Adult Plainstrider", zone = "Mulgore", coords = { 40.4, 60.7 }, minLevel = 6, maxLevel = 7, searchOnly = true },
+    { name = "Elder Plainstrider", zone = "Mulgore", coords = { 49.7, 35.4 }, minLevel = 8, maxLevel = 9, searchOnly = true },
     { name = "Greater Plainstrider", zone = "The Barrens", coords = { 51.7, 23.1 }, minLevel = 11, maxLevel = 12, searchOnly = true },
     { name = "Fleeting Plainstrider", zone = "The Barrens", coords = { 48.7, 31.7 }, minLevel = 12, maxLevel = 13, searchOnly = true },
     { name = "Ornery Plainstrider", zone = "The Barrens", coords = { 52.6, 47.1 }, minLevel = 16, maxLevel = 17, searchOnly = true },
@@ -2678,10 +2680,10 @@ DB:RegisterItem({ name = "Plans: Blue Glittering Axe", id = 7992, category = "Re
 DB:RegisterItem({ name = "Plans: Copper Chain Vest", id = 3609, category = "Recipe", sources = {
     { name = "Murloc Streamrunner", zone = "Elwynn Forest", coords = { 52.0, 66.2 }, minLevel = 6, maxLevel = 7, searchOnly = true },
     { name = "Dark Sprite", zone = "Teldrassil", coords = { 52.4, 50.2 }, minLevel = 6, maxLevel = 7, searchOnly = true },
-    { name = "Swoop", zone = "Mulgore", coords = { 49.8, 44.4 }, minLevel = 7, maxLevel = 9, searchOnly = true },
+    { name = "Swoop", zone = "Mulgore", coords = { 48.6, 50.2 }, minLevel = 7, maxLevel = 9, searchOnly = true },
     { name = "Lord Melenas", zone = "Teldrassil", coords = { 51.3, 50.2 }, minLevel = 8, maxLevel = 8, searchOnly = true },
     { name = "Servant of Azora", zone = "Elwynn Forest", coords = { 64.8, 69.9 }, minLevel = 8, maxLevel = 9, searchOnly = true },
-    { name = "Taloned Swoop", zone = "Mulgore", coords = { 53.2, 23.7 }, minLevel = 8, maxLevel = 10, searchOnly = true },
+    { name = "Taloned Swoop", zone = "Mulgore", coords = { 51.4, 32.9 }, minLevel = 8, maxLevel = 10, searchOnly = true },
     { name = "Bloodfeather Wind Witch", zone = "Teldrassil", coords = { 34.3, 28.9 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Ravenous Darkhound", zone = "Tirisfal Glades", coords = { 86.0, 45.1 }, minLevel = 9, maxLevel = 10, searchOnly = true },
 } })
@@ -2821,17 +2823,17 @@ DB:RegisterItem({ name = "Powerful Mojo", id = 12804, category = "Mob drop", sou
     { name = "Mossflayer Shadowhunter", zone = "Eastern Plaguelands", coords = { 71.1, 15.6 }, minLevel = 58, maxLevel = 59, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Prairie Alpha Tooth", id = 4803, category = "Quest item", sources = {
-    { name = "Prairie Wolf Alpha", zone = "Mulgore", coords = { 53.3, 29.4 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Prairie Wolf Alpha", zone = "Mulgore", coords = { 51.5, 37.7 }, minLevel = 9, maxLevel = 10, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Prairie Wolf Heart", id = 4804, category = "Quest item", sources = {
-    { name = "Prairie Wolf", zone = "Mulgore", coords = { 40.7, 66.4 }, minLevel = 5, maxLevel = 6, searchOnly = true },
-    { name = "Prairie Stalker", zone = "Mulgore", coords = { 50.8, 45.1 }, minLevel = 7, maxLevel = 8, searchOnly = true },
-    { name = "Prairie Wolf Alpha", zone = "Mulgore", coords = { 53.3, 29.4 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Prairie Wolf", zone = "Mulgore", coords = { 41.0, 68.6 }, minLevel = 5, maxLevel = 6, searchOnly = true },
+    { name = "Prairie Stalker", zone = "Mulgore", coords = { 49.4, 50.8 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Prairie Wolf Alpha", zone = "Mulgore", coords = { 51.5, 37.7 }, minLevel = 9, maxLevel = 10, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Prairie Wolf Paw", id = 4758, category = "Quest item", sources = {
-    { name = "Prairie Wolf", zone = "Mulgore", coords = { 40.7, 66.4 }, minLevel = 5, maxLevel = 6, searchOnly = true },
-    { name = "Prairie Stalker", zone = "Mulgore", coords = { 50.8, 45.1 }, minLevel = 7, maxLevel = 8, searchOnly = true },
-    { name = "Prairie Wolf Alpha", zone = "Mulgore", coords = { 53.3, 29.4 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Prairie Wolf", zone = "Mulgore", coords = { 41.0, 68.6 }, minLevel = 5, maxLevel = 6, searchOnly = true },
+    { name = "Prairie Stalker", zone = "Mulgore", coords = { 49.4, 50.8 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Prairie Wolf Alpha", zone = "Mulgore", coords = { 51.5, 37.7 }, minLevel = 9, maxLevel = 10, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Prayer to Elune", id = 10458, category = "Quest item", sources = {
     { name = "Twilight Dark Shaman", zone = "Searing Gorge", coords = { 23.6, 36.9 }, minLevel = 47, maxLevel = 48, searchOnly = true },
@@ -2866,8 +2868,8 @@ DB:RegisterItem({ name = "Pristine Yeti Horn", id = 12367, category = "Quest ite
     { name = "Ice Thistle Patriarch", zone = "Winterspring", coords = { 70.3, 40.5 }, minLevel = 57, maxLevel = 58, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Prospector's Pick", id = 4702, category = "Quest item", sources = {
-    { name = "Bael'dun Digger", zone = "Mulgore", coords = { 31.7, 48.9 }, minLevel = 7, maxLevel = 8, searchOnly = true },
-    { name = "Bael'dun Appraiser", zone = "Mulgore", coords = { 31.5, 48.8 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Bael'dun Digger", zone = "Mulgore", coords = { 33.5, 54.0 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Bael'dun Appraiser", zone = "Mulgore", coords = { 33.3, 53.9 }, minLevel = 8, maxLevel = 9, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Prowler Claws", id = 5096, category = "Quest item", sources = {
     { name = "Savannah Prowler", zone = "The Barrens", coords = { 42.0, 23.5 }, minLevel = 14, maxLevel = 15, searchOnly = true },
@@ -3158,7 +3160,7 @@ DB:RegisterItem({ name = "Rethban Ore", id = 2798, category = "Quest item", sour
     { name = "Redridge Drudger", zone = "Redridge Mountains", coords = { 21.3, 17.4 }, minLevel = 20, maxLevel = 21, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Ritual Salve", id = 6634, category = "Quest item", sources = {
-    { name = "Bristleback Shaman", zone = "Mulgore", coords = { 64.7, 77.9 }, minLevel = 3, maxLevel = 4, searchOnly = true },
+    { name = "Bristleback Shaman", zone = "Mulgore", coords = { 61.0, 78.2 }, minLevel = 3, maxLevel = 4, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Robo-mechanical Guts", id = 9309, category = "Quest item", sources = {
     { name = "Irradiated Invader", zone = "Dun Morogh", coords = { 20.9, 36.0 }, minLevel = 24, maxLevel = 26, searchOnly = true },
@@ -3698,7 +3700,7 @@ DB:RegisterItem({ name = "Small Egg", id = 6889, category = "Cooking", sources =
     { name = "Strigid Owl", zone = "Teldrassil", coords = { 58.9, 60.3 }, minLevel = 5, maxLevel = 6, searchOnly = true },
     { name = "Strigid Screecher", zone = "Teldrassil", coords = { 41.1, 68.4 }, minLevel = 7, maxLevel = 8, searchOnly = true },
     { name = "Strigid Hunter", zone = "Teldrassil", coords = { 38.1, 39.5 }, minLevel = 8, maxLevel = 9, searchOnly = true },
-    { name = "Taloned Swoop", zone = "Mulgore", coords = { 53.2, 23.7 }, minLevel = 8, maxLevel = 10, searchOnly = true },
+    { name = "Taloned Swoop", zone = "Mulgore", coords = { 51.4, 32.9 }, minLevel = 8, maxLevel = 10, searchOnly = true },
     { name = "Fleshripper", zone = "Westfall", coords = { 43.8, 46.4 }, minLevel = 13, maxLevel = 14, searchOnly = true },
     { name = "Mountain Buzzard", zone = "Loch Modan", coords = { 75.8, 70.5 }, minLevel = 15, maxLevel = 16, searchOnly = true },
     { name = "Greater Fleshripper", zone = "Westfall", coords = { 61.1, 54.8 }, minLevel = 16, maxLevel = 17, searchOnly = true },
@@ -3899,7 +3901,7 @@ DB:RegisterItem({ name = "Stag Meat", id = 5471, category = "Cooking", sources =
     { name = "Mosshoof Courser", zone = "Azshara", coords = { 50.8, 75.6 }, minLevel = 52, maxLevel = 53, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Stalker Claws", id = 4801, category = "Quest item", sources = {
-    { name = "Prairie Stalker", zone = "Mulgore", coords = { 50.8, 45.1 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Prairie Stalker", zone = "Mulgore", coords = { 49.4, 50.8 }, minLevel = 7, maxLevel = 8, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Star Ruby", id = 7910, sources = {
     { name = "Hakkari Oracle", zone = "Stranglethorn Vale", coords = { 52.3, 17.6 }, minLevel = 55, maxLevel = 56, searchOnly = true },
@@ -3960,11 +3962,11 @@ DB:RegisterItem({ name = "Stringy Vulture Meat", id = 729, category = "Cooking",
 } })
 DB:RegisterItem({ name = "Stringy Wolf Meat", id = 2672, sources = {
     { name = "Mangy Wolf", zone = "Elwynn Forest", coords = { 36.1, 69.2 }, minLevel = 5, maxLevel = 6, searchOnly = true },
-    { name = "Prairie Wolf", zone = "Mulgore", coords = { 40.7, 66.4 }, minLevel = 5, maxLevel = 6, searchOnly = true },
+    { name = "Prairie Wolf", zone = "Mulgore", coords = { 41.0, 68.6 }, minLevel = 5, maxLevel = 6, searchOnly = true },
     { name = "Decrepit Darkhound", zone = "Tirisfal Glades", coords = { 57.8, 52.7 }, minLevel = 5, maxLevel = 6, searchOnly = true },
-    { name = "Prairie Stalker", zone = "Mulgore", coords = { 50.8, 45.1 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Prairie Stalker", zone = "Mulgore", coords = { 49.4, 50.8 }, minLevel = 7, maxLevel = 8, searchOnly = true },
     { name = "Prowler", zone = "Elwynn Forest", coords = { 83.8, 72.0 }, minLevel = 9, maxLevel = 10, searchOnly = true },
-    { name = "Prairie Wolf Alpha", zone = "Mulgore", coords = { 53.3, 29.4 }, minLevel = 9, maxLevel = 10, searchOnly = true },
+    { name = "Prairie Wolf Alpha", zone = "Mulgore", coords = { 51.5, 37.7 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Ravenous Darkhound", zone = "Tirisfal Glades", coords = { 86.0, 45.1 }, minLevel = 9, maxLevel = 10, searchOnly = true },
     { name = "Worg", zone = "Silverpine Forest", coords = { 64.8, 7.3 }, minLevel = 10, maxLevel = 11, searchOnly = true },
 } })
@@ -3982,9 +3984,9 @@ DB:RegisterItem({ name = "Super Reaper 6000 Blueprints", id = 5734, category = "
     { name = "Venture Co. Operator", zone = "Stonetalon Mountains", coords = { 71.8, 50.0 }, minLevel = 19, maxLevel = 20, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Swoop Gizzard", id = 4807, category = "Quest item", sources = {
-    { name = "Wiry Swoop", zone = "Mulgore", coords = { 41.0, 66.3 }, minLevel = 5, maxLevel = 7, searchOnly = true },
-    { name = "Swoop", zone = "Mulgore", coords = { 49.8, 44.4 }, minLevel = 7, maxLevel = 9, searchOnly = true },
-    { name = "Taloned Swoop", zone = "Mulgore", coords = { 53.2, 23.7 }, minLevel = 8, maxLevel = 10, searchOnly = true },
+    { name = "Wiry Swoop", zone = "Mulgore", coords = { 41.2, 68.5 }, minLevel = 5, maxLevel = 7, searchOnly = true },
+    { name = "Swoop", zone = "Mulgore", coords = { 48.6, 50.2 }, minLevel = 7, maxLevel = 9, searchOnly = true },
+    { name = "Taloned Swoop", zone = "Mulgore", coords = { 51.4, 32.9 }, minLevel = 8, maxLevel = 10, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Symbol of Ragnaros", id = 10552, category = "Quest item", sources = {
     { name = "Twilight Dark Shaman", zone = "Searing Gorge", coords = { 23.6, 36.9 }, minLevel = 47, maxLevel = 48, searchOnly = true },
@@ -4089,9 +4091,9 @@ DB:RegisterItem({ name = "Thick-shelled Clam", id = 5524, category = "Mob drop",
     { name = "Torn Fin Tidehunter", zone = "Hillsbrad Foothills", coords = { 43.2, 68.0 }, minLevel = 31, maxLevel = 32, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Thin Kodo Leather", id = 5082, category = "Leatherworking", sources = {
-    { name = "Kodo Calf", zone = "Mulgore", coords = { 48.0, 37.9 }, minLevel = 7, maxLevel = 8, searchOnly = true },
-    { name = "Kodo Bull", zone = "Mulgore", coords = { 43.4, 53.7 }, minLevel = 10, maxLevel = 11, searchOnly = true },
-    { name = "Kodo Matriarch", zone = "Mulgore", coords = { 43.2, 53.8 }, minLevel = 11, maxLevel = 12, searchOnly = true },
+    { name = "Kodo Calf", zone = "Mulgore", coords = { 47.1, 44.8 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Kodo Bull", zone = "Mulgore", coords = { 43.2, 58.0 }, minLevel = 10, maxLevel = 11, searchOnly = true },
+    { name = "Kodo Matriarch", zone = "Mulgore", coords = { 43.1, 58.1 }, minLevel = 11, maxLevel = 12, searchOnly = true },
     { name = "Lost Barrens Kodo", zone = "The Barrens", coords = { 53.8, 41.2 }, minLevel = 14, maxLevel = 15, searchOnly = true },
     { name = "Barrens Kodo", zone = "The Barrens", coords = { 47.3, 66.5 }, minLevel = 19, maxLevel = 20, searchOnly = true },
     { name = "Lakota'mani", zone = "The Barrens", coords = { 47.5, 51.1 }, minLevel = 22, maxLevel = 22, searchOnly = true },
@@ -4149,7 +4151,7 @@ DB:RegisterItem({ name = "Tiger Meat", id = 12202, category = "Cooking", sources
 } })
 DB:RegisterItem({ name = "Tigerseye", id = 818, sources = {
     { name = "Kobold Geomancer", zone = "Elwynn Forest", coords = { 64.5, 56.6 }, minLevel = 7, maxLevel = 8, searchOnly = true },
-    { name = "Bael'dun Appraiser", zone = "Mulgore", coords = { 31.5, 48.8 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Bael'dun Appraiser", zone = "Mulgore", coords = { 33.3, 53.9 }, minLevel = 8, maxLevel = 9, searchOnly = true },
     { name = "Hogger", zone = "Elwynn Forest", coords = { 25.8, 89.8 }, minLevel = 11, maxLevel = 11, searchOnly = true },
     { name = "Savannah Huntress", zone = "The Barrens", coords = { 51.4, 26.2 }, minLevel = 11, maxLevel = 12, searchOnly = true },
     { name = "Tunnel Rat Geomancer", zone = "Loch Modan", coords = { 36.3, 23.4 }, minLevel = 12, maxLevel = 13, searchOnly = true },
@@ -4211,9 +4213,9 @@ DB:RegisterItem({ name = "Trogg Stone Tooth", id = 2536, category = "Quest item"
     { name = "Stonesplinter Digger", zone = "Loch Modan", coords = { 70.6, 64.8 }, minLevel = 18, maxLevel = 19, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Trophy Swoop Quill", id = 4769, category = "Quest item", sources = {
-    { name = "Wiry Swoop", zone = "Mulgore", coords = { 41.0, 66.3 }, minLevel = 5, maxLevel = 7, searchOnly = true },
-    { name = "Swoop", zone = "Mulgore", coords = { 49.8, 44.4 }, minLevel = 7, maxLevel = 9, searchOnly = true },
-    { name = "Taloned Swoop", zone = "Mulgore", coords = { 53.2, 23.7 }, minLevel = 8, maxLevel = 10, searchOnly = true },
+    { name = "Wiry Swoop", zone = "Mulgore", coords = { 41.2, 68.5 }, minLevel = 5, maxLevel = 7, searchOnly = true },
+    { name = "Swoop", zone = "Mulgore", coords = { 48.6, 50.2 }, minLevel = 7, maxLevel = 9, searchOnly = true },
+    { name = "Taloned Swoop", zone = "Mulgore", coords = { 51.4, 32.9 }, minLevel = 8, maxLevel = 10, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Tumbled Crystal", id = 4106, category = "Quest item", sources = {
     { name = "Venture Co. Geologist", zone = "Stranglethorn Vale", coords = { 44.2, 20.1 }, minLevel = 35, maxLevel = 36, searchOnly = true },
@@ -4462,8 +4464,8 @@ DB:RegisterItem({ name = "Wildvine", id = 8153, category = "Herbalism", sources 
     { name = "Vilebranch Scalper", zone = "The Hinterlands", coords = { 53.1, 40.1 }, minLevel = 46, maxLevel = 47, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Windfury Talon", id = 4751, category = "Quest item", sources = {
-    { name = "Windfury Harpy", zone = "Mulgore", coords = { 62.9, 70.5 }, minLevel = 7, maxLevel = 8, searchOnly = true },
-    { name = "Windfury Wind Witch", zone = "Mulgore", coords = { 63.6, 71.3 }, minLevel = 8, maxLevel = 9, searchOnly = true },
+    { name = "Windfury Harpy", zone = "Mulgore", coords = { 59.5, 72.0 }, minLevel = 7, maxLevel = 8, searchOnly = true },
+    { name = "Windfury Wind Witch", zone = "Mulgore", coords = { 60.1, 72.7 }, minLevel = 8, maxLevel = 9, searchOnly = true },
 } })
 DB:RegisterItem({ name = "Winterfall Crate", id = 12829, category = "Quest item", sources = {
     { name = "Winterfall Runner", zone = "Winterspring", coords = { 53.1, 34.7 }, minLevel = 57, maxLevel = 57, searchOnly = true },
