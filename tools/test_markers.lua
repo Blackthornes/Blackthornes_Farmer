@@ -301,6 +301,49 @@ shownMap = 37
 MapMarkers:Step(1)
 
 --------------------------------------------------------------------------------
+-- Marker Size (a player asked, the owner said build it, 2026-11-17)
+--------------------------------------------------------------------------------
+
+local function TrackScale(pool)
+    for _, pin in ipairs(pool.pins) do
+        pin.SetScale = function(self, value) self._scale = value end
+    end
+end
+
+suite.check("normal is the size they always had", MapMarkers.Size() == "normal"
+    and MapMarkers.SizeScale() == 1 and ns.db.markerSize == nil)
+
+TrackScale(world)
+TrackScale(MapMarkers.minimapPool)
+ns.HandleSlash("markers size small")
+suite.check("/farm markers size small picks small", MapMarkers.Size() == "small"
+    and ns.db.markerSize == "small")
+silver = PinFor(world, "Silverleaf")
+suite.check("world pins draw smaller, still the same at any zoom",
+    Near(rawget(silver, "_scale"), 0.6 / 2), rawget(silver, "_scale"))
+p = silver._point
+suite.check("and stay on their spot",
+    Near(p[4] * 0.6 / 2, 0.45 * 1000) and Near(p[5] * 0.6 / 2, -(0.68 - 50 / 2000) * 667),
+    ("%s, %s"):format(p[4], p[5]))
+
+MapMarkers:DrawMinimap()
+vein = PinFor(MapMarkers.minimapPool, "Copper Vein")
+suite.check("minimap pins draw smaller", Near(rawget(vein, "_scale"), 0.6), rawget(vein, "_scale"))
+p = vein._point
+suite.check("and stay 35 pixels east on the minimap", Near(p[4] * 0.6, 35) and Near(p[5], 0),
+    ("%s, %s"):format(p[4], p[5]))
+
+suite.check("an unknown size changes nothing", MapMarkers:SetSize("huge") == false
+    and MapMarkers.Size() == "small")
+
+ns.HandleSlash("markers size large")
+suite.check("large draws bigger", Near(rawget(PinFor(world, "Silverleaf"), "_scale"), 1.4 / 2))
+
+ns.HandleSlash("markers size normal")
+suite.check("back to normal saves nothing", ns.db.markerSize == nil)
+suite.check("and pins are their old size", Near(rawget(PinFor(world, "Silverleaf"), "_scale"), 1 / 2))
+
+--------------------------------------------------------------------------------
 -- Hovering
 --------------------------------------------------------------------------------
 
