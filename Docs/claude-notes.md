@@ -1990,6 +1990,18 @@ Professions Only:" under the markers on the Map & goals page
 it) and `/farm markers mine [on|off]`. Tested in
 `tools/test_myprofessions.lua`. Not yet seen in game.
 
+Over another addon's map layer (a #bug-reports post, 2026-11-17: ore on
+the minimap but none on the world map while a map addon was on; never name
+that addon anywhere). `MapMarkers.BaseLevel` also counts up from
+`MapMarkers.CoverLevel(canvas)`: the top frame level of a shown frame at
+least `COVER_SHARE` (0.9) of the canvas, or of its scroll frame, laid over
+the whole map. The game's own pins (they carry `owningMap`) and our own
+frames (`MapMarkers.Own`: marker pins, the heat and route layers, Grind
+pins, TravelMap's layer) are left out, so game pins still draw over a spot
+and a redraw never climbs over itself. Heat, Grind pins, Travel and Route
+all count from `BaseLevel`, so they rise with it. Strata is not changed.
+Tested in `tools/test_markers.lua`. Not yet seen in game.
+
 ## Quest count over quest mobs
 
 The owner picked it (2026-10-13, from a mockup of three light touches):

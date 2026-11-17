@@ -248,6 +248,37 @@ suite.check("at the spot, whatever the zoom",
     Near(p[4], 0.45 * 1000 * 2) and Near(p[5], -(0.68 - 50 / 2000) * 667 * 2),
     ("%s, %s"):format(p[4], p[5]))
 
+-- Another addon laid a frame over the whole map, high up: every marker
+-- was drawn under it, so ore showed on the minimap and not on the world
+-- map (2026-11-17). The markers count up from the top of such a frame.
+-- The game's own pins (each knows its map) and our own layers are not one.
+local cover = env.Stub({ _width = 1000, _height = 667, _shown = true, _frameLevel = 40 })
+local gamePin = env.Stub({ _width = 1000, _height = 667, _shown = true, _frameLevel = 90, owningMap = WorldMapFrame })
+local smallPin = env.Stub({ _width = 20, _height = 20, _shown = true, _frameLevel = 70 })
+local hiddenCover = env.Stub({ _width = 1000, _height = 667, _shown = false, _frameLevel = 80 })
+local ownLayer = (MapMarkers.Own or function(f) return f end)(env.Stub({ _width = 1000, _height = 667, _shown = true, _frameLevel = 60 }))
+local besideCover = env.Stub({ _width = 1000, _height = 667, _shown = true, _frameLevel = 30 })
+local scrollFrame = env.Stub({ _width = 1000, _height = 667 })
+scrollFrame.GetChildren = function() return canvas, besideCover end
+canvas._parent = scrollFrame
+canvas.GetChildren = function() return cover, gamePin, smallPin, hiddenCover, ownLayer, silver end
+ns.Gathering.spotsVersion = (ns.Gathering.spotsVersion or 0) + 1
+MapMarkers:Refresh()
+silver = PinFor(world, "Silverleaf")
+suite.check("over another addon's layer across the whole map",
+    rawget(silver, "_frameLevel") == 40 + MapMarkers.WORLD_ABOVE, rawget(silver, "_frameLevel"))
+cover._frameLevel = 20
+ns.Gathering.spotsVersion = ns.Gathering.spotsVersion + 1
+MapMarkers:Refresh()
+silver = PinFor(world, "Silverleaf")
+suite.check("one beside the canvas in the scroll frame counts too",
+    rawget(silver, "_frameLevel") == 30 + MapMarkers.WORLD_ABOVE, rawget(silver, "_frameLevel"))
+suite.check("and the next redraw stays put, never climbing over itself",
+    MapMarkers.BaseLevel(canvas) == 30, MapMarkers.BaseLevel(canvas))
+canvas.GetChildren, canvas._parent = nil, nil
+ns.Gathering.spotsVersion = ns.Gathering.spotsVersion + 1
+MapMarkers:Refresh()
+
 shownMap = 21
 MapMarkers:Step(1)
 suite.check("another map shows only its own", #Shown(world) == 1

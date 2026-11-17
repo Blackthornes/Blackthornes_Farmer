@@ -422,7 +422,7 @@ end
 
 --- A world map marker: a greyed, faded node icon in a gold ring, checked.
 function MapMarkers.CreatePin(parent, size)
-    local pin = CreateFrame("Frame", nil, parent)
+    local pin = MapMarkers.Own(CreateFrame("Frame", nil, parent))
     pin:SetSize(size, size)
     pin:EnableMouse(true)
     -- It shows its tooltip under the mouse, but a click goes on to the map:
@@ -769,8 +769,78 @@ function MapMarkers.BaseLevel(canvas)
         end
     end
     -- The art is one over the canvas; explored parts sit at or over it.
-    if top and top - 1 > level then return top - 1 end
+    if top and top - 1 > level then level = top - 1 end
+    -- Another addon's layer over the whole map hid every pin under it
+    -- (ore on the minimap, none on the world map, 2026-11-17): count up
+    -- from the top of it instead.
+    local cover = MapMarkers.CoverLevel(canvas)
+    if cover and cover > level then level = cover end
     return level
+end
+
+--- Our own frames on the map: never counted as a layer to sit over, or
+--- each redraw would climb over the last.
+MapMarkers.own = setmetatable({}, { __mode = "k" })
+
+function MapMarkers.Own(frame)
+    if type(frame) == "table" then MapMarkers.own[frame] = true end
+    return frame
+end
+
+-- A child at least this much of its parent's width and height lies over
+-- the whole map. Children past the cap are not read.
+MapMarkers.COVER_SHARE = 0.9
+MapMarkers.COVER_CAP = 400
+
+local function IsOwn(frame)
+    if MapMarkers.own[frame] then return true end
+    local travel = ns.TravelMap and ns.TravelMap.layer
+    return type(travel) == "table" and travel.frame == frame
+end
+
+local function Size(frame)
+    local okW, width = pcall(frame.GetWidth, frame)
+    local okH, height = pcall(frame.GetHeight, frame)
+    width = okW and tonumber(width) or nil
+    height = okH and tonumber(height) or nil
+    if width and height and width > 0 and height > 0 then return width, height end
+end
+
+--- The top frame level of anything another addon lays over the whole
+--- world map, on the canvas or beside it in the scroll frame, or nil. The
+--- game's own pins (each knows its map) and ours are left out, so the
+--- game's pins still draw over a spot you have already taken.
+function MapMarkers.CoverLevel(canvas)
+    if type(canvas) ~= "table" then return nil end
+    local containers = { canvas }
+    if type(canvas.GetParent) == "function" then
+        local ok, parent = pcall(canvas.GetParent, canvas)
+        if ok and type(parent) == "table" then containers[2] = parent end
+    end
+
+    local top
+    for _, container in ipairs(containers) do
+        local width, height = Size(container)
+        local children = type(container.GetChildren) == "function"
+            and { pcall(container.GetChildren, container) } or {}
+        if width and children[1] == true then
+            for index = 2, math.min(#children, MapMarkers.COVER_CAP + 1) do
+                local child = children[index]
+                if type(child) == "table" and child ~= canvas and not IsOwn(child)
+                    and rawget(child, "owningMap") == nil then
+                    local okShown, shown = pcall(child.IsShown, child)
+                    local w, h = Size(child)
+                    if okShown and shown and w and w >= width * MapMarkers.COVER_SHARE
+                        and h >= height * MapMarkers.COVER_SHARE then
+                        local okLevel, level = pcall(child.GetFrameLevel, child)
+                        level = okLevel and tonumber(level) or nil
+                        if level and (not top or level > top) then top = level end
+                    end
+                end
+            end
+        end
+    end
+    return top
 end
 
 function MapMarkers:WorldView()
