@@ -19,7 +19,9 @@
 --
 -- The lure list is the lures in the bags, best first (LURES), each greyed
 -- with "Needs Fishing N" while the skill is short (read off the item's own
--- tooltip, kept per item). The time left is the game's
+-- tooltip, kept per item); when that line is not red the game says the
+-- need is met, and the lure can be used whatever the skill read said. The
+-- time left is the game's
 -- (GetWeaponEnchantInfo), read once a second only while shown and a lure
 -- is on; Legacy.LureOn reads the same call and is left as it was.
 --
@@ -214,6 +216,40 @@ function FishingBar:Needs(id)
     return need or nil
 end
 
+--- Is a tooltip line's colour the game's red (a need not met)? Nil when
+--- the colour can't be read.
+local function LineRed(line)
+    local ok, red, green, blue = pcall(function()
+        local color = line.leftColor
+        if type(color) ~= "table" then return nil end
+        if type(color.GetRGB) == "function" then return color:GetRGB() end
+        return color.r, color.g, color.b
+    end)
+    if not ok then return nil end
+    red, green, blue = Number(red), Number(green), Number(blue)
+    if not (red and green and blue) then return nil end
+    return red > 0.9 and green < 0.3 and blue < 0.3
+end
+
+--- Does the lure's own tooltip say the skill is short? The game paints its
+--- "Requires Fishing (N)" line red until the skill reaches it, in every
+--- language. Nil when there is no such line or its colour can't be read.
+--- Not kept, since the skill grows; read only to check a short skill.
+function FishingBar:Short(id)
+    local api = rawget(_G, "C_TooltipInfo")
+    local get = type(api) == "table" and api.GetItemByID or nil
+    if type(get) ~= "function" then return nil end
+    local ok, data = pcall(get, id)
+    if not ok or type(data) ~= "table" or type(data.lines) ~= "table" then return nil end
+
+    local pattern = SkillPattern()
+    for _, line in ipairs(data.lines) do
+        local readable, text = pcall(function() return line.leftText .. "" end)
+        if readable and text and text:match(pattern) then return LineRed(line) end
+    end
+    return nil
+end
+
 --------------------------------------------------------------------------------
 -- What it shows
 --------------------------------------------------------------------------------
@@ -226,11 +262,15 @@ function FishingBar:Lures(skill)
         local count = ItemCount(lure.id)
         if count > 0 then
             local need = self:Needs(lure.id)
+            -- Short by the skill read, unless the game's own line says the
+            -- need is met (a skill read can come back wrong, as it did on a
+            -- German client with Nightcrawlers).
+            local short = need and skill and skill < need and self:Short(lure.id) ~= false
             found[#found + 1] = {
                 id = lure.id, bonus = lure.bonus, count = count,
                 name = ItemName(lure.id, lure.name),
                 need = need,
-                usable = not (need and skill and skill < need),
+                usable = not short,
             }
         end
     end
