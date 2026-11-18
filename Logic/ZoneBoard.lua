@@ -668,6 +668,12 @@ function ZoneBoard:Unlocked(entry)
     local zone = entry.zone
     self.worth = nil
     entry.done = true
+    -- Finished: a heat map turned on from its eye goes off (the owner,
+    -- 2026-11-18). One from the Map button (heatMob) stays.
+    local Heat = ns.Heat
+    if Heat and Heat.IsPicked and Heat:IsPicked(entry.name) then
+        pcall(Heat.SetPicked, Heat, entry.name, false)
+    end
     local after = self:Best()
     local rank, ranked
     for index, item in ipairs(after.ranked) do

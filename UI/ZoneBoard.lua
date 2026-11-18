@@ -30,6 +30,9 @@ ZoneBoardUI.LOOK = 1          -- seconds between distance reads while open
 ZoneBoardUI.RESORT = 5        -- seconds between re-sorts by distance
 ZoneBoardUI.SPOT_KEY = "farmer.zoneboard"
 ZoneBoardUI.ORANGE = { 1, 0.5, 0.25 }
+ZoneBoardUI.EYE = 20          -- the heat map eye on each row (and its gap)
+ZoneBoardUI.RIGHT_W = 64      -- the yards or worth column, narrower beside the eye
+ZoneBoardUI.RIGHT_W_EYE = 54
 
 local Theme, Widgets, Util = ns.Theme, ns.Widgets, ns.Util
 
@@ -160,6 +163,7 @@ function ZoneBoardUI:MakeRow(index)
     row.sub:SetWordWrap(false)
     row.tag = ZoneBoardUI.Tag(row)
     row.tag:SetPoint("LEFT", row.sub, "LEFT", 0, 0)
+    row.eye = ZoneBoardUI.Eye(row)
 
     row:SetScript("OnClick", function(self)
         if self.data then ZoneBoardUI:Pick(self.data.name) end
@@ -345,6 +349,81 @@ function ZoneBoardUI.BestFoot(mysteries)
 end
 
 --- "Skull Rock", or the zone when the drop list names no place.
+--- The eye on a row (the owner said build it, 2026-11-18): turns the mob's
+--- kill heat on or off (Heat:TogglePicked). Shown only while Kill Heat is on.
+function ZoneBoardUI.Eye(row)
+    local size = ZoneBoardUI.EYE
+    local eye = CreateFrame("Button", nil, row)
+    eye:SetSize(size, size)
+    eye:SetPoint("RIGHT", -4, 0)
+    eye.glow = eye:CreateTexture(nil, "BACKGROUND")
+    eye.glow:SetPoint("CENTER")
+    eye.glow:SetSize(size + 6, size + 6)
+    eye.glow:SetTexture(([[Interface\AddOns\%s\Media\Frame\HeatDot]]):format(ADDON))
+    eye.glow:SetVertexColor(Theme.Unpack("accent"))
+    eye.glow:SetAlpha(0.5)
+    eye.art = eye:CreateTexture(nil, "ARTWORK")
+    eye.art:SetPoint("CENTER")
+    eye.art:SetSize(size - 4, size - 4)
+    eye.art:SetTexture(([[Interface\AddOns\%s\Media\Frame\Eye]]):format(ADDON))
+    eye:SetScript("OnClick", function(self)
+        local data = row.data
+        if not (data and ns.Heat) then return end
+        ns.Heat:TogglePicked(data.name)
+        local enter = self:GetScript("OnEnter")
+        if enter and self.IsMouseOver and self:IsMouseOver() then enter(self) end
+    end)
+    eye:SetScript("OnEnter", function(self)
+        row.hover = true
+        ZoneBoardUI.Stripe(row)
+        local data = row.data
+        if not (GameTooltip and data and ns.Heat) then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(ns.Heat:IsPicked(data.name) and L["Hide from Map"] or L["Show on Map"])
+        if not ns.Heat:HasSpots(data.name) then
+            GameTooltip:AddLine(L["Kill a few first and it will show here."], 1, 1, 1, true)
+        end
+        GameTooltip:Show()
+    end)
+    eye:SetScript("OnLeave", function()
+        row.hover = nil
+        ZoneBoardUI.Stripe(row)
+        if GameTooltip then GameTooltip:Hide() end
+    end)
+    eye:Hide()
+    return eye
+end
+
+--- Is the eye shown at all? Only while Kill Heat draws on a map.
+function ZoneBoardUI.EyesOn()
+    return ns.Heat ~= nil and ns.Heat.Recording() and true or false
+end
+
+--- Set a row's eye: hidden, off (grey), on (gold and lit), dim with no spot.
+function ZoneBoardUI:FillEye(row)
+    local eye, data = row.eye, row.data
+    local shown = ZoneBoardUI.EyesOn() and data ~= nil
+    eye:SetShown(shown)
+    row.right:ClearAllPoints()
+    row.right:SetPoint("RIGHT", shown and -(ZoneBoardUI.EYE + 8) or -6, 0)
+    row.right:SetWidth(shown and ZoneBoardUI.RIGHT_W_EYE or ZoneBoardUI.RIGHT_W)
+    if not shown then return end
+    local on = ns.Heat:IsPicked(data.name)
+    eye.on = on
+    eye.art:SetVertexColor(Theme.Unpack(on and "accentHi" or "muted"))
+    eye.glow:SetShown(on)
+    eye:SetAlpha((on or ns.Heat:HasSpots(data.name)) and 1 or 0.4)
+end
+
+--- Kill Heat changed (a pick, Stop Tracking, a map switch): only the eyes
+--- on the rows showing are set again.
+function ZoneBoardUI:Eyes()
+    if not (self.frame and self.frame:IsShown()) then return end
+    for _, row in ipairs(self.rows) do
+        if row:IsShown() then self:FillEye(row) end
+    end
+end
+
 local function Where(entry)
     return entry.location or ns.Spots.Show(entry.zone)
 end
@@ -365,6 +444,7 @@ function ZoneBoardUI:FillFinish(row, entry)
     row.count:Show()
     row.right:SetText(entry.yards and ns.Arrow.Yards(entry.yards) or "")
     ZoneBoardUI.Paint(row.right, "muted")
+    self:FillEye(row)
 end
 
 --- The parts a kill moves: the bar, the count, ALMOST.
@@ -419,6 +499,7 @@ function ZoneBoardUI:FillBest(row, item, rank)
         row.right:SetText("???")
         ZoneBoardUI.Paint(row.right, "muted")
     end
+    self:FillEye(row)
 end
 
 --- The rows for the tab showing, in order: FINISH entries, or BEST's ranked
@@ -579,6 +660,7 @@ function ZoneBoardUI:Killed(entry)
         if row:IsShown() and row.data and row.data.name == entry.name then
             if Board().Tab() == "finish" then
                 self:FillProgress(row, entry)
+                self:FillEye(row) -- a first spot brightens it
             elseif not entry.done then
                 self:FillBest(row, entry)
             end

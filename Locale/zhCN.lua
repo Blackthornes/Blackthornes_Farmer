@@ -1591,6 +1591,8 @@ L["Showing"] = "显示中"
 L["Seen here a little"] = "在这里见过一些"
 L["Your best spot"] = "你最好的地点"
 L["Stop Tracking"] = "停止追踪"
+L["Hide from Map"] = "从地图上移除"
+L["%d mobs"] = "%d 个怪物"
 
 -- Off, Shift or Always for tooltip lines (UI/TooltipShift.lua).
 L["Shift"] = "Shift"

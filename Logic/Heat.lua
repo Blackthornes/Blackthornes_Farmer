@@ -12,13 +12,20 @@
 -- shipped data never reach it. A kill whose spot the client will not say
 -- (inside a dungeon) adds nothing; the kill itself still counts.
 --
--- Saved, never renamed: killHeat, heatWorld, heatMinimap, heatLevel, heatMob.
+-- Saved, never renamed: killHeat, heatWorld, heatMinimap, heatLevel, heatMob,
+-- heatMobs.
 --
 -- Show on Map (the owner, 2026-10-18): a search row's Map button aims the
 -- glow at one mob (heatMob) or one item. An item's glow is the mobs your own
 -- loot says drop it, each weighted by how often it did (`Heat:ItemMobs`, from
 -- Harvest.records only). The item is kept for the session only; nothing new
 -- is saved.
+--
+-- Zone Board eyes (the owner, 2026-11-18): each Zone Board row's eye adds or
+-- takes away one mob from heatMobs (`[name] = true`), kept across a reload.
+-- The glow is heatMob and every pick added up. A pick goes by itself when
+-- its mob is finished (`ZoneBoard:Killed`); heatMob stays. The Map button
+-- (one mob or one item) and Stop Tracking clear the picks.
 
 local _, ns = ...
 local L = ns.L
@@ -112,11 +119,54 @@ function Heat:Item()
     return Heat.item and Heat.item.name or nil
 end
 
+--- The Zone Board picks as a set of names, or nil when there are none.
+function Heat:Picks()
+    local picks = ns.db and ns.db.heatMobs
+    if type(picks) == "table" and next(picks) ~= nil then return picks end
+    return nil
+end
+
+--- Is a mob turned on from the Zone Board?
+function Heat:IsPicked(name)
+    local picks = self:Picks()
+    return picks ~= nil and type(name) == "string" and picks[name] == true
+end
+
+--- The mobs glowing, sorted: heatMob and the picks. Empty while an item is.
+function Heat:MobNames()
+    local names = {}
+    if Heat.item then return names end
+    local seen = {}
+    local mob = self:Mob()
+    if mob then names[1], seen[mob] = mob, true end
+    local picks = self:Picks()
+    if picks then
+        for name, on in pairs(picks) do
+            if on == true and type(name) == "string" and not seen[name] then
+                names[#names + 1], seen[name] = name, true
+            end
+        end
+    end
+    table.sort(names)
+    return names
+end
+
+--- The mobs glowing as weights ({ [name] = 1 }), or nil for every mob.
+function Heat:MobWeights()
+    local names = self:MobNames()
+    if #names == 0 then return nil end
+    local weights = {}
+    for _, name in ipairs(names) do weights[name] = 1 end
+    return weights
+end
+
 --- What the glow is for, as one string for a drawing's key.
 function Heat:TargetKey()
     if Heat.item then return "item:" .. Heat.item.name end
-    local mob = self:Mob()
-    return mob and ("mob:" .. mob) or "all"
+    local names = self:MobNames()
+    if #names == 0 then return "all" end
+    if #names == 1 and not self:Picks() then return "mob:" .. names[1] end
+    return "mobs:" .. table.concat(names, "\n")
 end
 
 local function Changed()
@@ -125,6 +175,8 @@ local function Changed()
     if ns.HeatUI then ns.HeatUI:Refresh() end
     -- The loot table's Map button follows what the map shows.
     if ns.LootTableUI and ns.LootTableUI.Refresh then pcall(ns.LootTableUI.Refresh, ns.LootTableUI) end
+    -- The Zone Board's eyes follow what the maps show.
+    if ns.ZoneBoardUI and ns.ZoneBoardUI.Eyes then pcall(ns.ZoneBoardUI.Eyes, ns.ZoneBoardUI) end
 end
 
 function Heat:SetWorld(on)
@@ -145,8 +197,34 @@ end
 function Heat:SetMob(name)
     name = type(name) == "string" and Util.Trim(name) or ""
     ns.db.heatMob = name ~= "" and name or nil
+    -- One mob, as the Map button asks: the Zone Board picks go.
+    if name ~= "" then ns.db.heatMobs = nil end
     Heat.item = nil
     Changed()
+end
+
+--- A Zone Board eye: turn one mob's glow on or off. An item tracked stops;
+--- heatMob stays. Nothing is redrawn when nothing changed.
+function Heat:SetPicked(name, on)
+    if type(name) ~= "string" or name == "" or not ns.db then return end
+    on = on and true or nil
+    if self:IsPicked(name) == (on == true) and not (on and Heat.item) then return end
+    if on then
+        if type(ns.db.heatMobs) ~= "table" then ns.db.heatMobs = {} end
+        ns.db.heatMobs[name] = true
+        Heat.item = nil
+    elseif type(ns.db.heatMobs) == "table" then
+        ns.db.heatMobs[name] = nil
+        if next(ns.db.heatMobs) == nil then ns.db.heatMobs = nil end
+    end
+    Changed()
+end
+
+--- A Zone Board eye tapped: on if off, off if on. True when it is now on.
+function Heat:TogglePicked(name)
+    local on = not self:IsPicked(name)
+    self:SetPicked(name, on)
+    return on
 end
 
 --- The mobs your own loot says drop an item: { { mob, chance (0 to 1),
@@ -216,6 +294,7 @@ function Heat:SetItem(itemName)
     for _, entry in ipairs(mobs) do weights[entry.mob] = best > 0 and entry.chance / best or 0 end
 
     ns.db.heatMob = nil
+    ns.db.heatMobs = nil
     Heat.item = { name = itemName, mobs = mobs, weights = weights }
     Changed()
 end
@@ -223,6 +302,7 @@ end
 --- Back to every mob.
 function Heat:ShowAll()
     ns.db.heatMob = nil
+    ns.db.heatMobs = nil
     Heat.item = nil
     Changed()
 end
@@ -377,9 +457,8 @@ end
 --- moved onto this map's cells; `own` keeps to this map's own. Kept until
 --- the cells, the mob or the hide list change.
 function Heat:Cells(mapID, own)
-    local mob = self:Mob()
     local target = self:TargetKey()
-    local weights = Heat.item and Heat.item.weights
+    local weights = Heat.item and Heat.item.weights or self:MobWeights()
     local hidden = ns.DB and ns.DB.hiddenVersion or 0
 
     -- Kept per map, since the world map and the minimap can show two.
@@ -397,11 +476,7 @@ function Heat:Cells(mapID, own)
         if type(map) == "table" and (here or not own) then
             for name, cells in pairs(map) do
                 local weight = 1
-                if weights then
-                    weight = weights[name] or 0
-                elseif mob ~= nil and name ~= mob then
-                    weight = 0
-                end
+                if weights then weight = weights[name] or 0 end
                 local wanted = weight > 0 and type(cells) == "table"
                     and not (ns.DB and ns.DB:IsHiddenSource(name))
                 if wanted then
@@ -500,8 +575,13 @@ end
 function Heat:ShowOnMap(kind, name)
     if type(name) ~= "string" or name == "" then return false end
 
-    if (kind == "item" and self:Item() == name) or (kind == "mob" and self:Mob() == name) then
-        self:ShowAll()
+    -- The same row again stops that one; Zone Board picks made since stay.
+    if kind == "item" and self:Item() == name then
+        self:SetItem(nil)
+        return false
+    elseif kind == "mob" and self:Mob() == name then
+        ns.db.heatMob = nil
+        Changed()
         return false
     end
 
@@ -547,6 +627,13 @@ end
 
 local function OnOff(on) return on and L["on"] or L["off"] end
 
+--- Who the glow is for, in words: one mob, "3 mobs", or every mob.
+function Heat.ForWhat()
+    local names = Heat:MobNames()
+    if #names > 1 then return L.Format("%d mobs", #names) end
+    return names[1] or L["all mobs"]
+end
+
 local function Status()
     local _, lines, cells = Heat:Summary()
     local levelNames = { L["Some"], L["More"], L["Most"] }
@@ -554,7 +641,7 @@ local function Status()
         Util.Colored("accent", OnOff(Heat.WorldOn())),
         Util.Colored("accent", OnOff(Heat.MinimapOn())),
         Util.Colored("accent", levelNames[Heat:Level()]),
-        Util.Colored("accent", Heat:Mob() or L["all mobs"])))
+        Util.Colored("accent", Heat.ForWhat())))
     ns.Print(L.Format("%s kept for %s.", Util.Plural(cells, L["spot"], L["spots"]),
         Util.Plural(lines, L["mob"], L["mobs"])))
     ns.PrintRaw(Util.Colored("muted",
@@ -577,15 +664,13 @@ function Heat.Check()
     Say(("world map shows %s"):format(view and tostring(view.mapID) or "nothing (closed)"))
 
     local store = type(ns.db.killHeat) == "table" and ns.db.killHeat or {}
-    local mob = Heat:Mob()
-    local weights = Heat.item and Heat.item.weights
+    local weights = Heat.item and Heat.item.weights or Heat:MobWeights()
     local any = false
     for mapID, map in pairs(store) do
         if type(map) == "table" then
             local cells, kills = 0, 0
             for name, list in pairs(map) do
-                local wanted = type(list) == "table"
-                    and ((weights and weights[name]) or (not weights and (mob == nil or name == mob)))
+                local wanted = type(list) == "table" and (not weights or weights[name])
                 if wanted then
                     for _, count in pairs(list) do
                         cells, kills = cells + 1, kills + (tonumber(count) or 0)

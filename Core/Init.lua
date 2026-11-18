@@ -456,7 +456,8 @@ local DEFAULTS = {
     -- A glow on the maps where you kill the most (Logic/Heat.lua, a test
     -- feature, 2026-10-17). Off unless ticked. heatLevel is 1 to 3 (Some,
     -- More, Most), heatMob "" for every mob. Never rename them, or killHeat,
-    -- the cells kept.
+    -- the cells kept, or heatMobs (the Zone Board eyes' picks, [name] = true,
+    -- nil until one is picked, so no default here).
     heatWorld = false,
     heatMinimap = false,
     heatLevel = 2,

@@ -698,8 +698,10 @@ end
 function HeatUI.HasGlow()
     local item = Heat.item
     if item then return Heat:ItemHasSpots(item.name) end
-    local mob = Heat:Mob()
-    return mob ~= nil and Heat:HasSpots(mob)
+    for _, mob in ipairs(Heat:MobNames()) do
+        if Heat:HasSpots(mob) then return true end
+    end
+    return false
 end
 
 --- What the card shows: { name, item (true for an item), id, rows = { { mob,
@@ -707,10 +709,18 @@ end
 function HeatUI.CardText()
     local L = ns.L
     local item = Heat.item
-    local name = item and item.name or Heat:Mob()
+    local names = item and {} or Heat:MobNames()
+    local name = item and item.name or names[1]
     if not name then return nil end
 
     local rows = {}
+    -- Several mobs on from the Zone Board: "3 mobs", then a row for each.
+    if #names > 1 then
+        name = L.Format("%d mobs", #names)
+        for index = 1, math.min(#names, HeatUI.KEY_MOST) do
+            rows[index] = { mob = names[index], rate = "" }
+        end
+    end
     if item then
         for index = 1, math.min(#item.mobs, HeatUI.KEY_MOST) do
             local entry = item.mobs[index]
