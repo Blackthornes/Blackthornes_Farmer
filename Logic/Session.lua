@@ -43,8 +43,9 @@ local Session = ns.NewModule("Session")
 Session.FIELDS = {
     Tracker = {
         -- sessionZones: kills by zone's key, for a name split by zone.
-        counts = { "session", "sessionLoot", "sessionZones" },
-        nested = { "sessionFrom" },
+        counts = { "session", "sessionLoot", "sessionZones", "sessionPockets",
+            "sessionPocketCopper" },
+        nested = { "sessionFrom", "sessionPocketFrom" },
         recent = "recent",
         numbers = { "sessionCopper" },
         best = "bestStreak",

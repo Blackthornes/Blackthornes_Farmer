@@ -96,6 +96,13 @@ Tracker.sessionLoot = {}
 -- many. The panel's Loot tab lists them under the item.
 Tracker.sessionFrom = {}
 Tracker.sessionCopper = 0
+-- Pockets you picked this session, by mob: how many (sessionPockets[mob]),
+-- the coin (sessionPocketCopper[mob]) and the items
+-- (sessionPocketFrom[item][mob]). The mob's card shows them on their own
+-- line, apart from its kills and drop rates.
+Tracker.sessionPockets = {}
+Tracker.sessionPocketCopper = {}
+Tracker.sessionPocketFrom = {}
 Tracker.recent = {}
 Tracker.clock = 0
 
@@ -826,10 +833,44 @@ function Tracker:PickedPocket()
     if haul.copper <= 0 and not next(haul.items) then return false end
 
     self:AddHaul(mobName, haul)
+    self:NotePocket(mobName, haul)
     if ns.TrackerUI then
         ns.TrackerUI:Refresh()
     end
     return false
+end
+
+--- Puts one picked pocket on its mob's card. A pocket is never shared, so
+--- the window's items are yours, grouped or not. A mob the client did not
+--- name keeps nothing here; the Loot tab and gold still have it.
+function Tracker:NotePocket(mobName, haul)
+    if type(mobName) ~= "string" or mobName == "" or type(haul) ~= "table" then return end
+    self.sessionPockets[mobName] = (self.sessionPockets[mobName] or 0) + 1
+    local copper = tonumber(haul.copper) or 0
+    if copper > 0 then
+        self.sessionPocketCopper[mobName] = (self.sessionPocketCopper[mobName] or 0) + copper
+    end
+    for name, count in pairs(type(haul.items) == "table" and haul.items or {}) do
+        self.sessionPocketFrom[name] = self.sessionPocketFrom[name] or {}
+        self.sessionPocketFrom[name][mobName] = (self.sessionPocketFrom[name][mobName] or 0) + count
+    end
+end
+
+--- What `mobName`'s pockets gave this session, or nil when none were picked:
+--- { picks, copper, items = { { name, n } } }, most first, then by name.
+function Tracker:PocketsOf(mobName)
+    local picks = mobName and tonumber(self.sessionPockets[mobName])
+    if not picks or picks <= 0 then return nil end
+    local items = {}
+    for name, from in pairs(self.sessionPocketFrom) do
+        local n = type(from) == "table" and tonumber(from[mobName])
+        if n and n > 0 then items[#items + 1] = { name = name, n = n } end
+    end
+    table.sort(items, function(a, b)
+        if a.n ~= b.n then return a.n > b.n end
+        return a.name < b.name
+    end)
+    return { picks = picks, copper = tonumber(self.sessionPocketCopper[mobName]) or 0, items = items }
 end
 
 --- A corpse skinned without being opened first. What it gave is yours, so
@@ -1130,6 +1171,9 @@ function Tracker:Reset()
     if self.aging then self.aging:Clear() end
     self.sessionLoot = {}
     self.sessionFrom = {}
+    self.sessionPockets = {}
+    self.sessionPocketCopper = {}
+    self.sessionPocketFrom = {}
     self.pending = {}
     self.lines = {}
     self.sessionCopper = 0

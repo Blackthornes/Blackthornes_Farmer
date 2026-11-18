@@ -3152,3 +3152,19 @@ the Map button pressed again stops only its own mob; Stop Tracking clears
 all. A tap sets only the eyes on the rows showing (`ZoneBoardUI:Eyes`, from
 Heat's `Changed`), and the heat redraws in slices as before; nothing runs
 every frame. Tested in `tools/test_zoneboardheat.lua`. Not yet seen in game.
+
+## Picked pockets on the card
+
+The owner said build it (2026-11-18, from a mockup, after a rogue's pocketed
+Forest Mushroom Cap showed only on the Loot tab). Pocket loot still goes to
+the Loot tab and session gold (`Tracker:PickedPocket`, `AddHaul`), and now
+also onto its mob's open card: `Tracker:NotePocket` counts pockets, coin and
+items per mob in `sessionPockets`, `sessionPocketCopper` and
+`sessionPocketFrom[item][mob]` (session only, kept by "Keep between
+sessions" through `Session.FIELDS`; never rename them). `TrackerUI:PocketLines`
+draws "Picked Pockets:" with "N picks, coin" and the items as icons with
+plain counts, hover "N from M pockets picked". Never a kill, never a rate,
+no loot table click. The drops' icons line carries `more = true` so the card
+goes on past it (`DrawCards`). A mob with pockets but no kills has no card;
+its pocket loot is on the Loot tab. Tested in `tools/test_pockets.lua`. Not
+yet seen in game.
