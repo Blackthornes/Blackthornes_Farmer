@@ -188,8 +188,12 @@ end
 local function SkillPattern()
     local format = rawget(_G, "ITEM_MIN_SKILL")
     if type(format) ~= "string" then format = "Requires %s (%d)" end
-    local pattern = format:gsub("([%(%)%.%[%]%+%-%*%?%^%$])", "%%%1")
-    pattern = pattern:gsub("%%%d?%$?s", ".+"):gsub("%%%d?%$?d", "(%%d+)")
+    -- Slots first ("%s", "%d", and numbered "%1$s", "%2$d" as the German
+    -- client writes them), held as stand-ins while every other character
+    -- the pattern reads as magic is escaped, then turned into captures.
+    local pattern = format:gsub("%%%d*%$?s", "\1"):gsub("%%%d*%$?d", "\2")
+    pattern = pattern:gsub("([%%%(%)%.%[%]%+%-%*%?%^%$])", "%%%1")
+    pattern = pattern:gsub("\1", ".+"):gsub("\2", "(%%d+)")
     return pattern
 end
 
