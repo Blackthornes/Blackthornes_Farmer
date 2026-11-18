@@ -766,11 +766,6 @@ function SettingsUI:BuildPanelsPage()
     controls.zoneBoardSeeThrough = SeeThroughChoice(lines.zoneBoard, "zoneboard", clearX)
     controls.zoneBoardReset = Reset(lines.zoneBoard, "zone reset")
 
-    -- Its hunt window shows by itself while a hunt runs; "zone reset" puts
-    -- it back too.
-    lines.zoneHunt = Line(L["Hunt Window:"], nil)
-    controls.zoneHuntSeeThrough = SeeThroughChoice(lines.zoneHunt, "hunt", clearX)
-
 
 
     -- The kills and loot panel's size, which its gold corner grip and
@@ -1835,8 +1830,8 @@ function SettingsUI:BuildMapPage()
     -- from a mockup, 2026-11-15). Off unless ticked.
 
     -- The Zone Board (Logic/ZoneBoard.lua; the owner said build it from a
-    -- mockup, 2026-11-18). Off unless ticked; the hunt window and the Zone
-    -- Done banner are on unless unticked.
+    -- mockup, 2026-11-18). Off unless ticked; the Zone Done banner is on
+    -- unless unticked. The hunt shows in the board itself (no window).
     pages:Section("map", 1, L["ZONE BOARD"])
     local zoneBoardRow = pages:Row("map", 1, L["Zone Board:"], nil)
     controls.zoneBoard = Widgets.CreateCheckbox(zoneBoardRow, L["On"], function(checked)
@@ -1844,12 +1839,6 @@ function SettingsUI:BuildMapPage()
         SettingsUI:Refresh()
     end, false)
     controls.zoneBoard:SetPoint("TOPLEFT", CONTROL_X, -2)
-
-    local zoneHuntRow = pages:Row("map", 1, L["Hunt Window:"], nil)
-    controls.zoneBoardHunt = Widgets.CreateCheckbox(zoneHuntRow, L["On"], function(checked)
-        if ns.ZoneBoard then ns.ZoneBoard:SetHuntWindow(checked) end
-    end, true)
-    controls.zoneBoardHunt:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local zoneDoneRow = pages:Row("map", 1, L["Zone Done Banner:"], nil)
     controls.zoneBoardBanner = Widgets.CreateCheckbox(zoneDoneRow, L["On"], function(checked)
@@ -2083,9 +2072,7 @@ function SettingsUI:Refresh()
     if controls.zoneBoard and ns.ZoneBoard then
         local zoneOn = ns.ZoneBoard.IsOn()
         controls.zoneBoard:SetChecked(zoneOn)
-        controls.zoneBoardHunt:SetChecked(ns.ZoneBoard.HuntWindowOn())
         controls.zoneBoardBanner:SetChecked(ns.ZoneBoard.BannerOn())
-        controls.zoneBoardHunt:SetDisabled(not zoneOn)
         controls.zoneBoardBanner:SetDisabled(not zoneOn)
         if controls.zoneBoardShow and controls.zoneBoardShow.SetEnabled then
             controls.zoneBoardShow:SetEnabled(zoneOn)
@@ -2191,7 +2178,6 @@ function SettingsUI:Refresh()
     controls.lootFeedSeeThrough:SetValue(ns.SeeThrough:Level("lootfeed"), true)
     controls.routeWindowSeeThrough:SetValue(ns.SeeThrough:Level("route"), true)
     controls.zoneBoardSeeThrough:SetValue(ns.SeeThrough:Level("zoneboard"), true)
-    controls.zoneHuntSeeThrough:SetValue(ns.SeeThrough:Level("hunt"), true)
     controls.report:SetChecked(db.trackerReport == true)
     controls.celebrate:SetChecked(db.trackerCelebrate ~= false)
 

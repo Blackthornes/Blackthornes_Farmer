@@ -55,7 +55,6 @@ for _, set in ipairs({
     { "route", "routeWindow", "routeWindowSeeThrough", "routeWindowReset" },
     { "fishing", "fishingPanel", nil, "fishingPanelReset" },
     { "zoneBoard", "zoneBoardShow", "zoneBoardSeeThrough", "zoneBoardReset" },
-    { "zoneHunt", nil, "zoneHuntSeeThrough", nil },
 }) do
     local line = lines[set[1]]
     local together = line ~= nil

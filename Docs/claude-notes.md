@@ -3063,9 +3063,9 @@ nothing, "subtle" effects keep only the edge, "off" none. Tested in
 The owner said build it (2026-11-18) from a mockup whose words he
 approved (`previews/farmer-zone-board/` in the project files), option A:
 own mobs only, no coin hint. Off unless ticked: "Zone Board:" under ZONE
-BOARD on the Map page (`zoneBoard`, nil off, true on), with "Hunt Window:"
-(`zoneBoardHunt`) and "Zone Done Banner:" (`zoneBoardBanner`), both nil on,
-false off, and a "Left Out:" line. A Windows table line (Show, Reset Spot)
+BOARD on the Map page (`zoneBoard`, nil off, true on), with "Zone Done
+Banner:" (`zoneBoardBanner`, nil on, false off) and a "Left Out:" line.
+(`zoneBoardHunt`, the old "Hunt Window:" box, is left in saves, unread.) A Windows table line (Show, Reset Spot)
 runs `/farm zone` and `/farm zone reset`. Opens from `/farm zone [on|off|reset]`,
 Shift-click on Farmer's minimap button or its row in the shared menu (the
 entry's `shift`; the shared file is unchanged) and a Zone Board button on
@@ -3094,16 +3094,26 @@ the Kills & Loot toolbar, shown only while ticked.
   fight: `hunt.moveOn`, then `PLAYER_REGEN_ENABLED`); Next Mob passes one
   to the back; Stop, leaving the zone, turning it off or the zone done end it.
 - `Tracker:Record` calls `ZoneBoard:Killed` on each new kill (not a
-  skinning window): one row's count moves (`ZoneBoardUI:Killed`,
-  `ZoneHunt:Killed`). A 20th kill with no list yet lays it out once, so the
+  skinning window): one row's count moves (`ZoneBoardUI:Killed`). A 20th kill with no list yet lays it out once, so the
   moments come without the window opened. Redraws wait out a fight.
 - `UI/ZoneBoard.lua`: the window, spot `windowSpots["farmer.zoneboard"]`,
   size `zoneBoardScale`. A ring of gold dots, rows in dark glass, the
   picked row glassActive with a gold edge, levels well above you orange
   (`ZoneBoard.HIGH`), ALMOST from 15. Yards once a second for rows on
   screen, a re-sort every `RESORT` seconds out of a fight only.
-- `UI/ZoneHunt.lua`: the hunt window, like the Route Window, foldable,
-  spot `farmer.zonehunt`, size `zoneHuntScale`.
+- One window (the owner asked 2026-11-18, mockup
+  `previews/farmer-zone-board-one-window/`, he tapped Build it): the hunt
+  shows in the board, not a window of its own (`UI/ZoneHunt.lua` was
+  taken out). While a hunt runs in the zone shown, FINISH pins the mob
+  hunted first (`role = "target"`, the gold arrow where the level sits)
+  and the one after it second ("Then: %s", "Same camp" when they share
+  one) (`ZoneBoardUI:HuntPair`), and the pick follows each new target to
+  the top. With the hunted mob picked, Take Me There and Skip turn into
+  Next Mob and Stop; picking another row brings them back, to switch mobs.
+  The board has the fold gem: folded during a hunt its title is "FINISH
+  Dustwind Harpy 17/20" (`ZoneBoardUI.FoldTitle`), redrawn on the hunted
+  mob's kills. No new words. `zoneHuntScale`, `zoneHuntSeeThrough` and
+  `windowSpots["farmer.zonehunt"]` stay in saves, unread.
 - `UI/ZoneBoardFX.lua`: the card (after `CARD_DELAY`, skipped with /farm
   celebrate off), the New Best banner with the crown (and BEST's row slide)
   and the Zone Done banner with `Media/Sounds/zone-done.ogg`; one banner
@@ -3113,15 +3123,14 @@ the Kills & Loot toolbar, shown only while ticked.
   stamps are already saved for it.
 - Tested in `tools/test_zoneboard.lua`. Not yet seen in game.
 
-Transparent (the owner asked 2026-11-18): the Zone Board and its hunt
-window take the same Off, Some, More or Most as the other panels
-(`UI/SeeThrough.lua`'s "zoneboard" and "hunt", saved as
-`zoneBoardSeeThrough` and `zoneHuntSeeThrough`, never rename them, off
-unless picked). On the Windows page: the Zone Board line's Transparent,
-and a "Hunt Window:" line under it. `/farm transparent zoneboard|hunt`
-works too (left out of the help line). The window's glass and each row's
-stripe and line thin out; gold edges stay, and the hunt window's target
-row keeps 0.6. Tested in `tools/test_seethroughpanels.lua` and
+Transparent (the owner asked 2026-11-18): the Zone Board takes the same
+Off, Some, More or Most as the other panels (`UI/SeeThrough.lua`'s
+"zoneboard", saved as `zoneBoardSeeThrough`, never rename it, off unless
+picked). On the Windows page: the Zone Board line's Transparent.
+`/farm transparent zoneboard` works too (left out of the help line). The
+window's glass and each row's stripe and line thin out; gold edges stay.
+The hunt window's "hunt" panel went with the window (one window,
+2026-11-18). Tested in `tools/test_seethroughpanels.lua` and
 `tools/test_windowspage.lua`.
 
 Heat map eyes (the owner said build it, 2026-11-18, from a mockup whose
