@@ -12,8 +12,9 @@
 -- `goalSpotsSeeThrough`, `rankUpSeeThrough`, `recapSeeThrough`,
 -- `xpBarSeeThrough` and `lootFeedSeeThrough` (Some unless picked, since the
 -- loot feed is new and off until ticked), `routeWindowSeeThrough`, and the
--- Zone Board's `zoneBoardSeeThrough` and its hunt window's
--- `zoneHuntSeeThrough` (the owner asked 2026-11-18). Never rename them. Only each panel's own textures are
+-- Zone Board's `zoneBoardSeeThrough` (the owner asked 2026-11-18). Never
+-- rename them; `zoneHuntSeeThrough` (the hunt window's, gone since the hunt
+-- moved into the board) is left in saves, unread. Only each panel's own textures are
 -- faded (texture SetAlpha), so no game frame is touched; gold edges, icons,
 -- bars and glows stay as they are. A shadow a label already had is put back
 -- when it is turned off.
@@ -43,9 +44,8 @@ SeeThrough.PANELS = {
     lootfeed = { key = "lootFeedSeeThrough", name = L["Loot Feed"] },
     route = { key = "routeWindowSeeThrough", name = L["Route Window"] },
     zoneboard = { key = "zoneBoardSeeThrough", name = L["Zone Board"] },
-    hunt = { key = "zoneHuntSeeThrough", name = L["Hunt Window"] },
 }
-SeeThrough.ORDER = { "goals", "places", "rankup", "recap", "xpbar", "lootfeed", "route", "zoneboard", "hunt" }
+SeeThrough.ORDER = { "goals", "places", "rankup", "recap", "xpbar", "lootfeed", "route", "zoneboard" }
 
 -- Each panel's state: { frame, parts, watch, shown, solid }.
 SeeThrough.states = {}

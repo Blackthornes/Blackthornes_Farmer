@@ -27,7 +27,6 @@ ns.XPBarUI:Build()
 ns.LootFeed:Build()
 ns.RouteWindow:Build()
 ns.ZoneBoardUI:Build()
-ns.ZoneHunt:Build()
 
 local function Near(a, b) return type(a) == "number" and math.abs(a - b) < 0.001 end
 local function Settle() ns.Motion:FinishAll() end
@@ -63,10 +62,10 @@ end
 -- Each key is its own.
 local keys = {}
 for _, id in ipairs(SeeThrough.ORDER) do keys[SeeThrough.PANELS[id].key] = true end
-suite.check("nine keys of their own", (function()
+suite.check("eight keys of their own", (function()
     local n = 0
     for _ in pairs(keys) do n = n + 1 end
-    return n == 9 and not keys.trackerSeeThrough
+    return n == 8 and not keys.trackerSeeThrough
 end)())
 
 for _, id in ipairs(SeeThrough.ORDER) do
@@ -158,7 +157,7 @@ local controls = ns.SettingsUI.controls
 for control, id in pairs({ goalsSeeThrough = "goals", goalSpotsSeeThrough = "places",
     rankUpSeeThrough = "rankup", recapSeeThrough = "recap", xpBarSeeThrough = "xpbar",
     lootFeedSeeThrough = "lootfeed", routeWindowSeeThrough = "route",
-    zoneBoardSeeThrough = "zoneboard", zoneHuntSeeThrough = "hunt" }) do
+    zoneBoardSeeThrough = "zoneboard" }) do
     suite.check(control .. " is on the page", controls[control] ~= nil, control)
     if controls[control] then
         controls[control]:SetValue(3)
@@ -189,7 +188,7 @@ suite.check("off puts the bar back", Near(xp.fill._alpha, 1) and Near(xp.rested.
 -- They sit together in the Windows table (2026-11-16; on General before).
 for _, control in ipairs({ "seeThrough", "goalsSeeThrough", "goalSpotsSeeThrough",
     "rankUpSeeThrough", "recapSeeThrough", "xpBarSeeThrough", "lootFeedSeeThrough",
-    "routeWindowSeeThrough", "zoneBoardSeeThrough", "zoneHuntSeeThrough" }) do
+    "routeWindowSeeThrough", "zoneBoardSeeThrough" }) do
     local found
     for _, entry in ipairs(ns.SettingsUI.pages.searchables or {}) do
         if entry.frame == controls[control]._parent then found = entry.page end
@@ -210,9 +209,9 @@ suite.check("Some turns it on again", ns.db.trackerSeeThrough == true
 controls.seeThrough:SetValue(0)
 ns.SettingsUI:Hide()
 
--- The Zone Board and its hunt window (the owner asked 2026-11-18): the
--- window's glass and every row thin out, the gold edge stays, and the
--- command reaches both.
+-- The Zone Board (the owner asked 2026-11-18): the window's glass and
+-- every row thin out and the gold edge stays. The hunt lives in the board
+-- now, so there is no hunt panel to clear.
 do
     local board = ns.ZoneBoardUI
     local rowGlass, edgeGlass = false, false
@@ -230,21 +229,7 @@ do
     ns.HandleSlash("transparent zoneboard off")
     Settle()
     suite.check("off puts the Zone Board back", ns.db.zoneBoardSeeThrough == 0 and AllAt("zoneboard", 1))
-
-    local hunt = ns.ZoneHunt
-    Track("hunt")
-    ns.HandleSlash("transparent hunt some")
-    Settle()
-    suite.check("/farm transparent hunt some", ns.db.zoneHuntSeeThrough == 1
-        and AllAt("hunt", SeeThrough.LEVELS[1]))
-    local target
-    for _, part in ipairs(SeeThrough.states.hunt.parts) do
-        if part.texture == hunt.rows[1].stripe then target = part end
-    end
-    suite.check("the mob to hunt keeps enough glass to read", target and target.floor == 0.6)
-    ns.HandleSlash("transparent hunt off")
-    Settle()
-    suite.check("off puts the hunt window back", ns.db.zoneHuntSeeThrough == 0 and AllAt("hunt", 1))
+    suite.check("no hunt panel any more", SeeThrough.PANELS.hunt == nil)
 end
 
 suite.done()

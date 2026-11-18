@@ -19,10 +19,11 @@ local check = suite.check
 
 local ns = env.Load({ ui = true })
 local L = ns.L
-local ZoneBoard, UI, Hunt, FX = ns.ZoneBoard, ns.ZoneBoardUI, ns.ZoneHunt, ns.ZoneBoardFX
+local ZoneBoard, UI, FX = ns.ZoneBoard, ns.ZoneBoardUI, ns.ZoneBoardFX
 local Tracker = ns.Tracker
 
-check("the modules load", ZoneBoard and UI and Hunt and FX)
+check("the modules load", ZoneBoard and UI and FX)
+check("no hunt window: the hunt lives in the board", ns.ZoneHunt == nil)
 check("the command is there", type(ns.commands.zone) == "table")
 
 -- Prices, so a kill has a worth.
@@ -64,7 +65,7 @@ local SILK = { name = "Spider Silk Test", id = 99102 }
 
 -- Off until ticked ------------------------------------------------------------
 check("off by default", ZoneBoard.IsOn() == false and ns.db.zoneBoard == nil)
-check("the hunt window and banner are on unless unticked", ZoneBoard.HuntWindowOn() and ZoneBoard.BannerOn())
+check("the banner is on unless unticked", ZoneBoard.BannerOn())
 check("the window will not open while off", UI:Show() == false and not UI:Shown())
 env.chat = {}
 ns.commands.zone.fn("")
@@ -176,8 +177,9 @@ TrackerUI:DrawToolbar()
 check("the Kills & Loot button shows while on", TrackerUI.toolbar.zone:IsShown())
 ns.HandleSlash("settings")
 local controls = ns.SettingsUI.controls
-check("the Settings rows are there", controls.zoneBoard and controls.zoneBoardHunt and controls.zoneBoardBanner
+check("the Settings rows are there", controls.zoneBoard and controls.zoneBoardBanner
     and controls.zoneBoardLeftOut and controls.zoneBoardShow and controls.zoneBoardReset)
+check("no Hunt Window box", controls.zoneBoardHunt == nil)
 ns.SettingsUI:Refresh()
 check("the Settings box reads on", controls.zoneBoard:GetChecked() == true)
 check("Left Out names who", controls.zoneBoardLeftOut:GetText() == L["Rare mobs, bosses, town guards, critters"])
@@ -186,13 +188,30 @@ check("Left Out names who", controls.zoneBoardLeftOut:GetText() == L["Rare mobs,
 ns.db.muteSounds = nil
 local played = {}
 _G.PlaySoundFile = function(path) played[#played + 1] = path; return true end
+UI:Show()
+ZoneBoard:SetTab("finish")
+UI:Draw()
+check("before a hunt: Take Me There and Skip", UI.go:IsShown() and UI.skip:IsShown()
+    and not UI.nextMob:IsShown() and not UI.stop:IsShown())
 local target = ZoneBoard:StartHunt()
 check("Take Me There hunts the mob closest to done", target and target.name == "Test Spider", target and target.name)
 check("the arrow follows its camp", ns.Arrow.grind and ns.Arrow.grind.zoneBoard and ns.Arrow.grind.location == "Fenris Isle")
-check("the hunt window shows", Hunt:Wanted() and Hunt.frame and Hunt.frame:IsShown())
-check("its title counts the zone", Hunt.Title(ZONE, 1, 3) == L["FINISH"] .. " " .. ZONE .. " 1/3")
-check("folded it names the mob", Hunt.Title(ZONE, 1, 3, target, true) == L["FINISH"] .. " Test Spider 19/20")
-check("then the next mob", Hunt.rows[2]:IsShown() and Hunt.rows[2].name:GetText() == L.Format("Then: %s", "Test Bear"))
+local one, two = UI.rows[1], UI.rows[2]
+check("the mob hunted tops the board", one:IsShown() and one.data and one.data.name == "Test Spider"
+    and one.role == "target")
+check("with the gold arrow and picked", one.pointer:IsShown() and not one.rank:IsShown() and one.picked)
+check("then the next mob", two:IsShown() and two.name:GetText() == L.Format("Then: %s", "Test Bear"))
+check("Next Mob and Stop where Take Me There and Skip sit", UI.nextMob:IsShown() and UI.stop:IsShown()
+    and not UI.go:IsShown() and not UI.skip:IsShown())
+UI:Pick("Test Bear")
+check("picking another row brings Take Me There back", UI.go:IsShown() and UI.skip:IsShown()
+    and not UI.nextMob:IsShown() and not UI.stop:IsShown())
+UI:Pick("Test Spider")
+check("and the hunted mob brings Next Mob back", UI.nextMob:IsShown() and UI.stop:IsShown())
+ns.FoldWindow:Fold(UI.frame)
+check("folded it names the mob", UI.trim.plate.title and UI.FoldTitle(ZONE, target) == L["FINISH"] .. " Test Spider 19/20")
+ns.FoldWindow:Unfold(UI.frame)
+check("unfolded the rows come back", UI.rows[1]:IsShown() and UI.rows[1].role == "target")
 
 -- The 20th spider: the card turns, it tops the board, the hunt moves on.
 env.chat = {}
@@ -220,7 +239,8 @@ end)())
 check("the Zone Done banner shows", (FX.banner.title:GetText() or "") == L.Format("%s Done!", ZONE),
     FX.banner.title:GetText())
 check("with its own sound", played[#played] == FX.SOUND_DONE, played[#played])
-check("the hunt stopped", ZoneBoard.hunt == nil and not Hunt:Wanted())
+check("the hunt stopped", ZoneBoard.hunt == nil)
+check("its buttons go back", UI.go:IsShown() and not UI.nextMob:IsShown() and not (UI.rows[1]:IsShown() and UI.rows[1].pointer:IsShown()))
 check("the arrow let the camp go", ns.Arrow.grind == nil)
 env.chat = {}
 ZoneBoard:CheckDone(ZONE)
@@ -257,14 +277,6 @@ env.world.zone = "Elwynn Forest"
 ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "ZONE_CHANGED_NEW_AREA")
 check("leaving the zone ends the hunt", ZoneBoard.hunt == nil)
 env.world.zone = ZONE
-
--- Hunt Window unticked: the hunt runs without it.
-ZoneBoard:SetHuntWindow(false)
-check("unticked Hunt Window saves false", ns.db.zoneBoardHunt == false)
-ZoneBoard:StartHunt("Test Bear")
-check("no hunt window while unticked", not Hunt:Wanted())
-ZoneBoard:StopHunt()
-ZoneBoard:SetHuntWindow(true)
 
 -- A kill below 20 moves one row only.
 UI:Show()
@@ -309,8 +321,8 @@ ns.db.windowSpots = { ["farmer.zoneboard"] = { x = 1, y = 2 }, ["farmer.zonehunt
     ["farmer.export"] = { x = 5, y = 6 } }
 ns.db.zoneBoardScale = 120
 ns.commands.zone.fn("reset")
-check("reset puts both windows back", ns.db.windowSpots["farmer.zoneboard"] == nil
-    and ns.db.windowSpots["farmer.zonehunt"] == nil and ns.db.windowSpots["farmer.export"] ~= nil
+check("reset puts the board back", ns.db.windowSpots["farmer.zoneboard"] == nil
+    and ns.db.windowSpots["farmer.export"] ~= nil
     and ns.db.zoneBoardScale == nil)
 ns.commands.zone.fn("")
 check("/farm zone opens it", UI:Shown())

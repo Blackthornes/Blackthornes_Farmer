@@ -12,7 +12,8 @@
 --           rate, an item or a guess (option A, no coin hint).
 --
 -- Take Me There starts a hunt: the arrow points at the mob's camp
--- (Arrow:Grind) and the hunt window (UI/ZoneHunt.lua) shows while it runs.
+-- (Arrow:Grind) and the board shows it while it runs: the mob hunted on top,
+-- Next Mob and Stop (UI/ZoneBoard.lua).
 -- At the 20th kill the hunt moves on by itself. Finishing the zone and a new
 -- best mob each get a moment (UI/ZoneBoardFX.lua).
 --
@@ -24,7 +25,7 @@
 --
 -- Saved, account wide, never rename them:
 --   zoneBoard          nil off, true on (off until ticked)
---   zoneBoardHunt      nil on, false off (Hunt Window:)
+--   zoneBoardHunt      the old Hunt Window: box, left in saves, unread
 --   zoneBoardBanner    nil on, false off (Zone Done Banner:)
 --   zoneBoardNear      nil on, false off (Near Me First:)
 --   zoneBoardShowDone  true when Show Finished: is ticked
@@ -32,7 +33,8 @@
 --   zoneBoardSkips     [zone][mob] = true, the mobs Skip put away
 --   zoneBoardLeftOut   [mob] = "rare" | "boss" | "faction", read in game
 --   zoneBoardDone      [zone] = time the zone was finished
---   zoneBoardScale, zoneHuntScale   their size grips
+--   zoneBoardScale     its size grip (zoneHuntScale, the old hunt
+--                      window's, is left in saves, unread)
 -- Own kills only: no shipped or guild data ranks a mob or shows a rate.
 
 local _, ns = ...
@@ -76,7 +78,6 @@ end
 --------------------------------------------------------------------------------
 
 function ZoneBoard.IsOn() return ns.db and ns.db.zoneBoard == true or false end
-function ZoneBoard.HuntWindowOn() return not (ns.db and ns.db.zoneBoardHunt == false) end
 function ZoneBoard.BannerOn() return not (ns.db and ns.db.zoneBoardBanner == false) end
 function ZoneBoard.NearFirst() return not (ns.db and ns.db.zoneBoardNear == false) end
 function ZoneBoard.ShowDone() return ns.db and ns.db.zoneBoardShowDone == true or false end
@@ -88,7 +89,6 @@ local function Redraw()
         return
     end
     if ns.ZoneBoardUI and ns.ZoneBoardUI.Refresh then pcall(ns.ZoneBoardUI.Refresh, ns.ZoneBoardUI) end
-    if ns.ZoneHunt and ns.ZoneHunt.Refresh then pcall(ns.ZoneHunt.Refresh, ns.ZoneHunt) end
 end
 
 local function Others()
@@ -102,12 +102,6 @@ function ZoneBoard:SetOn(on)
     if not on then self:StopHunt() end
     Redraw()
     Others()
-end
-
-function ZoneBoard:SetHuntWindow(on)
-    if not ns.db then return end
-    if on then ns.db.zoneBoardHunt = nil else ns.db.zoneBoardHunt = false end
-    Redraw()
 end
 
 function ZoneBoard:SetBanner(on)
@@ -558,7 +552,7 @@ function ZoneBoard:Camp(entry, queue)
     return camp
 end
 
---- The mob after the target in the queue, for the window's "Then:" line.
+--- The mob after the target in the queue, for the board's "Then:" row.
 function ZoneBoard:After(queue)
     for _, entry in ipairs(queue or {}) do
         if not self.hunt or entry.name ~= self.hunt.target then return entry end
@@ -592,7 +586,6 @@ function ZoneBoard:StartHunt(name)
         return nil
     end
     self.hunt.target = entry.name
-    if ns.ZoneHunt then ns.ZoneHunt.closed = nil end
     Aim(entry, queue)
     Redraw()
     return entry
@@ -621,7 +614,7 @@ function ZoneBoard:NextMob(passing)
     return entry
 end
 
---- Stop: the arrow goes back to your goals, the window goes away.
+--- Stop: the arrow goes back to your goals, the board's buttons go back.
 function ZoneBoard:StopHunt()
     if not self.hunt then return end
     self.hunt = nil
@@ -657,7 +650,6 @@ function ZoneBoard:Killed(name, place)
     entry.kills, entry.key = kills, key
     if kills ~= Tracker().MIN_KILLS then
         if ns.ZoneBoardUI and ns.ZoneBoardUI.Killed then pcall(ns.ZoneBoardUI.Killed, ns.ZoneBoardUI, entry) end
-        if ns.ZoneHunt and ns.ZoneHunt.Killed then pcall(ns.ZoneHunt.Killed, ns.ZoneHunt, entry) end
         return
     end
     self:Unlocked(entry)
@@ -772,7 +764,6 @@ ns.RegisterCommand("zone", L["the Zone Board: on, off or reset"], function(rest)
     end
     if word == "reset" then
         if ns.ZoneBoardUI then ns.ZoneBoardUI:ResetPlace() end
-        if ns.ZoneHunt then ns.ZoneHunt:ResetPlace() end
         ns.Print(L["The Zone Board is back in its first spot."])
         return
     end

@@ -13,6 +13,13 @@ local L = ns.L
 -- kill, the zone); a kill sets one row's count; distances are read once a
 -- second for the rows on screen while it shows, and the rows re-sort by
 -- distance at most every RESORT seconds, never in a fight.
+--
+-- The hunt lives here too (the owner asked for one window, 2026-11-18,
+-- from a mockup): while a hunt runs in the zone shown, FINISH puts the mob
+-- hunted first with the gold arrow and the next one under it ("Then:").
+-- With the hunted mob picked, Take Me There and Skip turn into Next Mob and
+-- Stop; picking another row brings them back, to switch mobs. Folded with
+-- its gem the board is one line: "FINISH Dustwind Harpy 17/20".
 
 local ZoneBoardUI = ns.NewModule("ZoneBoardUI")
 ns.ZoneBoardUI = ZoneBoardUI
@@ -139,6 +146,13 @@ function ZoneBoardUI:MakeRow(index)
     row.rank = Theme.CreateLabel(row, "normal", "muted", "CENTER")
     row.rank:SetPoint("LEFT", 2, 0)
     row.rank:SetWidth(26)
+    -- The hunted mob's gold arrow, where its level shows on other rows.
+    row.pointer = row:CreateTexture(nil, "ARTWORK")
+    row.pointer:SetSize(16, 16)
+    row.pointer:SetPoint("CENTER", row.rank, "CENTER")
+    row.pointer:SetTexture([[Interface\ChatFrame\ChatFrameExpandArrow]])
+    row.pointer:SetVertexColor(Theme.Unpack("accentHi"))
+    row.pointer:Hide()
     row.icon = Theme.CreateItemIcon(row, 20)
     row.icon:SetPoint("LEFT", 30, 0)
     row.mystery = Theme.CreateLabel(row, "normal", "accent", "CENTER")
@@ -242,6 +256,9 @@ function ZoneBoardUI:Build()
         get = function() return ns.db and ns.db.zoneBoardScale end,
         save = function(percent) if ns.db then ns.db.zoneBoardScale = percent end end,
     })
+    if ns.FoldWindow and ns.FoldWindow.Add then
+        ns.FoldWindow:Add(frame, { onToggle = function() ZoneBoardUI:Draw() end })
+    end
 
     local pad = self.PAD
     self.tabs = Widgets.CreateTabStrip(frame, {
@@ -307,6 +324,12 @@ function ZoneBoardUI:Build()
         { height = self.BUTTON_H })
     self.save = Widgets.CreateButton(frame, L["Save Farm"], function() ZoneBoardUI:SavePicked() end,
         { height = self.BUTTON_H })
+    self.nextMob = Widgets.CreateButton(frame, L["Next Mob"], function() Board():NextMob(true) end,
+        { primary = true, height = self.BUTTON_H })
+    self.stop = Widgets.CreateButton(frame, L["Stop"], function() Board():StopHunt() end,
+        { height = self.BUTTON_H })
+    self.nextMob:Hide()
+    self.stop:Hide()
     self.foot = Theme.CreateLabel(frame, "tiny", "muted")
     self.foot:SetWordWrap(true)
 
@@ -329,6 +352,14 @@ end
 function ZoneBoardUI.Title(zone)
     if zone then return L["ZONE BOARD"] .. " " .. ns.Spots.Show(zone) end
     return L["ZONE BOARD"]
+end
+
+--- Folded during a hunt: "FINISH Dustwind Harpy 17/20".
+function ZoneBoardUI.FoldTitle(zone, target)
+    if target then
+        return ("%s %s %s"):format(L["FINISH"], target.name, ZoneBoardUI.Count(target.kills))
+    end
+    return ZoneBoardUI.Title(zone)
 end
 
 --- FINISH's two head lines.
@@ -431,16 +462,19 @@ local function Where(entry)
     return entry.location or ns.Spots.Show(entry.zone)
 end
 
-function ZoneBoardUI:FillFinish(row, entry)
+function ZoneBoardUI:FillFinish(row, entry, role, sameCamp)
     row.data = entry
+    row.role, row.sameCamp = role, sameCamp
     row.rank:SetText(entry.minLevel and entry.minLevel >= 0 and tostring(entry.minLevel) or "")
+    row.rank:SetShown(role ~= "target")
+    row.pointer:SetShown(role == "target")
     ZoneBoardUI.Paint(row.rank, Board().LevelColor(entry))
     row.icon:Hide()
     row.mystery:Hide()
     row.name:ClearAllPoints()
     row.name:SetPoint("TOPLEFT", 32, -5)
     row.name:SetPoint("RIGHT", row.bar, "LEFT", -6, 0)
-    row.name:SetText(entry.name)
+    row.name:SetText(role == "then" and L.Format("Then: %s", entry.name) or entry.name)
     ZoneBoardUI.Paint(row.name, entry.done and "good" or "text")
     self:FillProgress(row, entry)
     row.bar:Show()
@@ -457,7 +491,7 @@ function ZoneBoardUI:FillProgress(row, entry)
     row.count:SetText(ZoneBoardUI.Count(entry.kills))
     local almost = not entry.done and (entry.kills or 0) >= Board().ALMOST
     row.tag:SetShown(almost)
-    row.sub:SetText(almost and "" or Where(entry))
+    row.sub:SetText(almost and "" or (row.sameCamp and L["Same camp"]) or Where(entry))
     if almost then
         row.tag:ClearAllPoints()
         row.tag:SetPoint("TOPLEFT", row.name, "BOTTOMLEFT", 0, -2)
@@ -468,6 +502,9 @@ end
 function ZoneBoardUI:FillBest(row, item, rank)
     local entry = item.entry or item
     row.data = entry
+    row.role, row.sameCamp = nil, nil
+    row.rank:Show()
+    row.pointer:Hide()
     row.bar:Hide()
     row.count:Hide()
     row.tag:Hide()
@@ -521,9 +558,30 @@ function ZoneBoardUI:Data(tab, list)
         board.Order(rows, board.Position())
     end
     self.order = rows
+    local target, after = self:HuntPair(list)
     local data = {}
-    for _, entry in ipairs(rows) do data[#data + 1] = { item = entry } end
+    if target then data[#data + 1] = { item = target, role = "target" } end
+    if after then
+        local same = after.location and target and after.location == target.location
+        data[#data + 1] = { item = after, role = "then", sameCamp = same and true or nil }
+    end
+    for _, entry in ipairs(rows) do
+        if entry ~= target and entry ~= after then data[#data + 1] = { item = entry } end
+    end
     return data, nil, unlocked, total
+end
+
+--- The mob hunted and the one after it, while a hunt runs in `list`'s zone.
+function ZoneBoardUI:HuntPair(list)
+    local board = Board()
+    if not (list and board:Hunting() and board.hunt.zone == list.zone) then
+        self.target, self.after = nil, nil
+        return nil, nil
+    end
+    local target = board:Target()
+    local after = target and board:After(board:Queue(board.Position())) or nil
+    self.target, self.after = target, after
+    return target, after
 end
 
 --- The name picked on a tab, else the first row's.
@@ -539,7 +597,13 @@ function ZoneBoardUI:Picked(data)
 end
 
 function ZoneBoardUI:Pick(name)
+    local was = self.picks[Board().Tab()]
     self.picks[Board().Tab()] = name
+    -- To or from the hunted mob: its buttons change, so redraw.
+    if self.target and was ~= name and (was == self.target.name or name == self.target.name) then
+        self:Draw()
+        return
+    end
     for _, row in ipairs(self.rows) do
         row.picked = row:IsShown() and row.data and row.data.name == name or nil
         ZoneBoardUI.Stripe(row)
@@ -554,18 +618,33 @@ function ZoneBoardUI:Draw()
     if self.tabs.selected ~= tab then self.tabs:Select(tab) end
     local zone = board.Here()
     local list = zone and board:List(zone)
-    if self.trim and self.trim.plate and self.trim.plate.SetTitle then
-        self.trim.plate:SetTitle(ZoneBoardUI.Title(zone))
+    local plate = self.trim and self.trim.plate
+    if ns.FoldWindow and ns.FoldWindow.IsFolded and ns.FoldWindow:IsFolded(frame) then
+        -- Folded: the title is all that shows.
+        local target = board:Hunting() and board:Target() or nil
+        if plate and plate.SetTitle then plate:SetTitle(ZoneBoardUI.FoldTitle(zone, target)) end
+        return
     end
+    if plate and plate.SetTitle then plate:SetTitle(ZoneBoardUI.Title(zone)) end
 
     local pad, y = self.PAD, self.PAD + 34
     local data, best, unlocked, total = {}, nil, 0, 0
+    self.target, self.after = nil, nil
     if list and list.ready then
         data, best, unlocked, total = self:Data(tab, list)
     end
     self.data = data
-
     local finish = tab == "finish"
+    -- A new mob hunted: the pick follows it to the top.
+    local target = finish and self.target or nil
+    if target and self.following ~= target.name then
+        self.following = target.name
+        self.picks.finish = target.name
+        self.offset = 0
+    elseif not (board:Hunting()) then
+        self.following = nil
+    end
+
     self.head:SetShown(finish)
     self.ticks:SetShown(finish)
     if finish then
@@ -596,7 +675,7 @@ function ZoneBoardUI:Draw()
             row:ClearAllPoints()
             row:SetPoint("TOPLEFT", 0, -(index - 1) * self.ROW_H)
             row:SetPoint("TOPRIGHT", 0, -(index - 1) * self.ROW_H)
-            if finish then self:FillFinish(row, d.item) else self:FillBest(row, d.item, d.rank) end
+            if finish then self:FillFinish(row, d.item, d.role, d.sameCamp) else self:FillBest(row, d.item, d.rank) end
             row.picked = picked and row.data and row.data.name == picked.name or nil
             ZoneBoardUI.Stripe(row)
             row:Show()
@@ -632,15 +711,26 @@ function ZoneBoardUI:Draw()
     self.empty:SetShown(empty ~= nil)
     y = y + bodyH + 6
 
-    self.go:ClearAllPoints()
-    self.go:SetPoint("TOPLEFT", pad, -y)
-    self.go:SetEnabled(picked ~= nil and (finish and not picked.done or not finish))
-    local second = finish and self.skip or self.save
-    self.skip:SetShown(finish)
+    -- The hunted mob picked: Next Mob and Stop where Take Me There and
+    -- Skip sit.
+    local onTarget = target ~= nil and picked ~= nil and picked.name == target.name
+    local first = onTarget and self.nextMob or self.go
+    self.go:SetShown(not onTarget)
+    self.nextMob:SetShown(onTarget)
+    first:ClearAllPoints()
+    first:SetPoint("TOPLEFT", pad, -y)
+    if onTarget then
+        self.nextMob:SetEnabled(self.after ~= nil)
+    else
+        self.go:SetEnabled(picked ~= nil and (finish and not picked.done or not finish))
+    end
+    local second = onTarget and self.stop or finish and self.skip or self.save
+    self.stop:SetShown(onTarget)
+    self.skip:SetShown(finish and not onTarget)
     self.save:SetShown(not finish)
     second:ClearAllPoints()
-    second:SetPoint("LEFT", self.go, "RIGHT", 6, 0)
-    second:SetEnabled(picked ~= nil)
+    second:SetPoint("LEFT", first, "RIGHT", 6, 0)
+    second:SetEnabled(onTarget or picked ~= nil)
     y = y + self.BUTTON_H + 6
 
     self.foot:ClearAllPoints()
@@ -659,6 +749,11 @@ end
 --- A kill moved one mob's count: only its row changes.
 function ZoneBoardUI:Killed(entry)
     if not (self.frame and self.frame:IsShown()) then return end
+    if ns.FoldWindow and ns.FoldWindow.IsFolded and ns.FoldWindow:IsFolded(self.frame) then
+        local target = Board():Hunting() and Board():Target() or nil
+        if target and target.name == entry.name then self:Draw() end
+        return
+    end
     for _, row in ipairs(self.rows) do
         if row:IsShown() and row.data and row.data.name == entry.name then
             if Board().Tab() == "finish" then

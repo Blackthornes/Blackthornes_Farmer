@@ -65,15 +65,12 @@ local function Line(frame, size, key, y)
     return label
 end
 
---- Where a moment shows: over the hunt window, else over the board, else
---- high in the middle of the screen.
+--- Where a moment shows: over the board, else high in the middle of the
+--- screen.
 function ZoneBoardFX.Anchor(frame)
     frame:ClearAllPoints()
-    local hunt = ns.ZoneHunt and ns.ZoneHunt.frame
     local board = ns.ZoneBoardUI and ns.ZoneBoardUI.frame
-    if hunt and hunt:IsShown() then
-        frame:SetPoint("BOTTOM", hunt, "TOP", 0, 18)
-    elseif board and board:IsShown() then
+    if board and board:IsShown() then
         frame:SetPoint("BOTTOM", board, "TOP", 0, 18)
     else
         frame:SetPoint("TOP", UIParent, "TOP", 0, -220)
