@@ -780,6 +780,8 @@ function Harvest:NoteUnit(unit)
 
     -- Its creature type, for the Grind tab (Logic/Grinding.lua).
     if ns.Grinding then ns.Grinding:Learn(unit, name) end
+    -- Rares, bosses and town guards, left off the Zone Board.
+    if ns.ZoneBoard then ns.ZoneBoard:Learn(unit, name) end
 end
 
 function Harvest:KnownUnit(guid)

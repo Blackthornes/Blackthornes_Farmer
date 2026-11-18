@@ -9,7 +9,8 @@ these two on 2026-09-26: rare-drop (a green-or-better item drops) and
 drop-rates-unlocked (a mob's 20th kill); rank-up (2026-10-13) when a mob climbs
 your top 15; xp-tick (2026-10-13) for each tenth of a level on the XP bar;
 top-farm (2026-10-14) when an auction scan puts a new mob first on your board;
-cute, laurel, slayer, beast and fear (2026-10-15) for kill milestones.
+cute, laurel, slayer, beast and fear (2026-10-15) for kill milestones;
+zone-done (2026-11-18) when every mob in a zone is unlocked on the Zone Board.
 Run it again only to change them (name files to write only those:
 python tools/make_sounds.py top-farm.ogg);
 the game needs a full restart to pick up a changed file.
@@ -201,3 +202,16 @@ for at in (0.0, 0.22, 1.0, 1.22):
     place(buf, (0.9 if at in (0.0, 1.0) else 0.65) * drum(48, 0.5, 0.15), at)
 place(buf, 0.25 * drone(73.4, 2.2, 0.5, 1.0), 0.0)
 finish(reverb(buf, 0.2), "fear.ogg", -7)
+
+# Zone done (2026-11-18): every mob in a zone unlocked on the Zone Board.
+# A rising run of brass to a wide held chord, with bells coming down over
+# it like a stamp pressed in, warmer and longer than top-farm.
+buf = np.zeros(int(SR * 3.0))
+for i, f in enumerate((392.0, 493.88, 587.33, 783.99)):
+    place(buf, 0.45 * brass(f, 0.2, 0.015, 0.08), i * 0.12)
+for f in (392.0, 493.88, 587.33, 783.99, 987.77):
+    place(buf, 0.24 * brass(f, 1.6, 0.04, 1.0), 0.5)
+for i, f in enumerate((3136.0, 2637.0, 2349.3, 1975.5)):
+    place(buf, 0.4 * bell(f, 1.0, 0.3), 0.55 + i * 0.09)
+place(buf, 0.5 * drum(98, 0.5, 0.2), 0.5)
+finish(reverb(buf, 0.35), "zone-done.ogg", -4)

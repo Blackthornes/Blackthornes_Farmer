@@ -3045,3 +3045,59 @@ left edge and glow that fade, a light across the name; the status line pops
 gold). Opening fresh plays the usual arrival instead, a redraw plays
 nothing, "subtle" effects keep only the edge, "off" none. Tested in
 `tools/test_guildshare.lua` and `tools/test_loottable.lua`.
+
+
+## The Zone Board
+
+The owner said build it (2026-11-18) from a mockup whose words he
+approved (`previews/farmer-zone-board/` in the project files), option A:
+own mobs only, no coin hint. Off unless ticked: "Zone Board:" under ZONE
+BOARD on the Map page (`zoneBoard`, nil off, true on), with "Hunt Window:"
+(`zoneBoardHunt`) and "Zone Done Banner:" (`zoneBoardBanner`), both nil on,
+false off, and a "Left Out:" line. A Windows table line (Show, Reset Spot)
+runs `/farm zone` and `/farm zone reset`. Opens from `/farm zone [on|off|reset]`,
+Shift-click on Farmer's minimap button or its row in the shared menu (the
+entry's `shift`; the shared file is unchanged) and a Zone Board button on
+the Kills & Loot toolbar, shown only while ticked.
+
+- `Logic/ZoneBoard.lua`: the zone's list is the Grind tab's mob spots
+  (`Grinding:Mobs`) in the zone you stand in, one entry a name, laid out
+  `BUDGET` spots a frame and kept by a stamp (Grinding's stamp, hides,
+  skips, what was learned). Left out (`ZoneBoard.LeftOut`): seed groups,
+  dungeon spots, rares and bosses and Alliance or Horde mobs read in game
+  (`ZoneBoard:Learn` from `Harvest:NoteUnit`, `UnitClassification` and
+  `UnitFactionGroup` in a pcall, only while on, kept in
+  `zoneBoardLeftOut[name]`), town guards by name (`IsGuardName`),
+  critters (`Grinding.TypeOf`), level -1. Kills are your own on the
+  zone's line (`ZoneBoard.Kills`: every `tracker.mobs[name].zones` key whose
+  English name is the zone; the key for Rankings is the zone's once split).
+  Skip keeps `zoneBoardSkips[zone][name]`. BEST ranks only mobs with 20 or
+  more of those kills, by `Rankings:Entry(key)` with group "measured";
+  every other mob is a mystery with kills to go, never a worth. It is kept
+  until a scan (`Prices:WatchScans`, as TopFarm), a 20th kill or the list
+  moves. Near Me First (`zoneBoardNear`, nil on), Show Finished
+  (`zoneBoardShowDone`), the tab (`zoneBoardTab`). Never rename any of them.
+- The hunt (session only): Take Me There starts it; `Arrow:Grind` gets a
+  camp marked `zoneBoard` with the target's spots and those of mobs still
+  to finish at the same place. A 20th kill moves on by itself (after the
+  fight: `hunt.moveOn`, then `PLAYER_REGEN_ENABLED`); Next Mob passes one
+  to the back; Stop, leaving the zone, turning it off or the zone done end it.
+- `Tracker:Record` calls `ZoneBoard:Killed` on each new kill (not a
+  skinning window): one row's count moves (`ZoneBoardUI:Killed`,
+  `ZoneHunt:Killed`). A 20th kill with no list yet lays it out once, so the
+  moments come without the window opened. Redraws wait out a fight.
+- `UI/ZoneBoard.lua`: the window, spot `windowSpots["farmer.zoneboard"]`,
+  size `zoneBoardScale`. A ring of gold dots, rows in dark glass, the
+  picked row glassActive with a gold edge, levels well above you orange
+  (`ZoneBoard.HIGH`), ALMOST from 15. Yards once a second for rows on
+  screen, a re-sort every `RESORT` seconds out of a fight only.
+- `UI/ZoneHunt.lua`: the hunt window, like the Route Window, foldable,
+  spot `farmer.zonehunt`, size `zoneHuntScale`.
+- `UI/ZoneBoardFX.lua`: the card (after `CARD_DELAY`, skipped with /farm
+  celebrate off), the New Best banner with the crown (and BEST's row slide)
+  and the Zone Done banner with `Media/Sounds/zone-done.ogg`; one banner
+  at a time; sounds through `Tracker.PlayFile` (Mute All Sounds). The zone
+  is stamped once in `zoneBoardDone[zone]` with one chat line.
+- Not built yet: the STAMPS tab (the mockup's optional third tab); the
+  stamps are already saved for it.
+- Tested in `tools/test_zoneboard.lua`. Not yet seen in game.

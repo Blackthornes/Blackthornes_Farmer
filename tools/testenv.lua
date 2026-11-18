@@ -377,6 +377,7 @@ local FILES = {
     "Logic/Contribute.lua",
     "Logic/CSV.lua",
     "Logic/SavedFarms.lua",
+    "Logic/ZoneBoard.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
@@ -423,6 +424,9 @@ local UI_FILES = {
     "UI/GatherToCap.lua",
     "UI/GatherRoute.lua",
     "UI/RouteWindow.lua",
+    "UI/ZoneBoard.lua",
+    "UI/ZoneHunt.lua",
+    "UI/ZoneBoardFX.lua",
     "UI/Stats.lua",
     "UI/SavedFarms.lua",
     "UI/MapMarkers.lua",

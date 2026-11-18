@@ -102,6 +102,7 @@ Sections there:
 - Shelves, dock places and the All Addons page
 - Ten Settings pages and the Windows table
 - Saved Farms
+- The Zone Board
 
 ## Checking a change
 
