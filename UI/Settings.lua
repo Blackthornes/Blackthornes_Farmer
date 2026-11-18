@@ -937,13 +937,19 @@ function SettingsUI:BuildWindowsPage()
     end, false)
     controls.rankingsOutside:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    -- The owner, 2026-10-18: worth per kill without Uncommon and better drops.
-    local uncommonRow = pages:Row("panels", 1, L["Skip Uncommon Drops:"],
-        L["Worth per kill leaves out Uncommon, Rare and Epic drops."])
-    controls.rankingsSkipUncommon = Widgets.CreateCheckbox(uncommonRow, L["On"], function(checked)
-        ns.Rankings:SetSkipUncommon(checked)
-    end, false)
-    controls.rankingsSkipUncommon:SetPoint("TOPLEFT", CONTROL_X, -2)
+    -- The owner, 2026-10-18: worth per kill without Uncommon and better
+    -- drops; 2026-11-18, a drop-down of which rarity and better to leave out.
+    local excludeRow = pages:Row("panels", 1, L["Exclude Rarity:"],
+        L["Worth per kill leaves out drops of this rarity and better. Pick Rare and Above to count greens but not blues or purples."])
+    local excludeOptions = ns.Rankings.ExcludeOptions()
+    local excludeWidest = 0
+    for _, option in ipairs(excludeOptions) do
+        excludeWidest = math.max(excludeWidest, Theme.TextWidth("small", option.plain) or 0)
+    end
+    controls.rankingsExclude = Widgets.CreateDropdown(excludeRow, excludeOptions, function(value)
+        ns.Rankings:SetExclude(value)
+    end, { width = math.max(140, math.ceil(excludeWidest) + 34) })
+    controls.rankingsExclude:SetPoint("TOPLEFT", CONTROL_X, 0)
 
     -- The owner, 2026-11-15: worth per kill at vendor prices only.
     local vendorRow = pages:Row("panels", 1, L["Vendor Prices Only:"],
@@ -2141,7 +2147,7 @@ function SettingsUI:Refresh()
     end
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
-    controls.rankingsSkipUncommon:SetChecked(db.rankingsSkipUncommon == true)
+    controls.rankingsExclude:SetValue(ns.Rankings.Exclude())
     controls.rankingsVendorOnly:SetChecked(db.rankingsVendorOnly == true)
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.openNote:SetChecked(db.openNote ~= false)
