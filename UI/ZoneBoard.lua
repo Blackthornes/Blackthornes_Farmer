@@ -366,24 +366,27 @@ function ZoneBoardUI.Eye(row)
     eye.art:SetPoint("CENTER")
     eye.art:SetSize(size - 4, size - 4)
     eye.art:SetTexture(([[Interface\AddOns\%s\Media\Frame\Eye]]):format(ADDON))
-    eye:SetScript("OnClick", function(self)
-        local data = row.data
-        if not (data and ns.Heat) then return end
-        ns.Heat:TogglePicked(data.name)
-        local enter = self:GetScript("OnEnter")
-        if enter and self.IsMouseOver and self:IsMouseOver() then enter(self) end
-    end)
-    eye:SetScript("OnEnter", function(self)
-        row.hover = true
-        ZoneBoardUI.Stripe(row)
+    -- The hover words: on or off, and a note while no spot is kept.
+    local function Tip()
         local data = row.data
         if not (GameTooltip and data and ns.Heat) then return end
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetOwner(eye, "ANCHOR_RIGHT")
         GameTooltip:AddLine(ns.Heat:IsPicked(data.name) and L["Hide from Map"] or L["Show on Map"])
         if not ns.Heat:HasSpots(data.name) then
             GameTooltip:AddLine(L["Kill a few first and it will show here."], 1, 1, 1, true)
         end
         GameTooltip:Show()
+    end
+    eye:SetScript("OnClick", function()
+        local data = row.data
+        if not (data and ns.Heat) then return end
+        ns.Heat:TogglePicked(data.name)
+        Tip() -- the mouse is on it, so the words follow the tap
+    end)
+    eye:SetScript("OnEnter", function()
+        row.hover = true
+        ZoneBoardUI.Stripe(row)
+        Tip()
     end)
     eye:SetScript("OnLeave", function()
         row.hover = nil
