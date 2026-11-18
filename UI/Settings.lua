@@ -759,6 +759,12 @@ function SettingsUI:BuildPanelsPage()
         controls.fishingPanelReset = Reset(lines.fishing, function() ns.FishingPanel:ResetPlace() end)
     end
 
+    -- The Zone Board (UI/ZoneBoard.lua). Shows only while it is ticked on
+    -- the Map page.
+    lines.zoneBoard = Line(L["Zone Board:"], nil)
+    controls.zoneBoardShow = CommandButton(lines.zoneBoard, L["Show"], "zone", 64, showX)
+    controls.zoneBoardReset = Reset(lines.zoneBoard, "zone reset")
+
 
 
     -- The kills and loot panel's size, which its gold corner grip and
@@ -1821,6 +1827,37 @@ function SettingsUI:BuildMapPage()
 
     -- The small route window (UI/RouteWindow.lua, the owner said build it
     -- from a mockup, 2026-11-15). Off unless ticked.
+
+    -- The Zone Board (Logic/ZoneBoard.lua; the owner said build it from a
+    -- mockup, 2026-11-18). Off unless ticked; the hunt window and the Zone
+    -- Done banner are on unless unticked.
+    pages:Section("map", 1, L["ZONE BOARD"])
+    local zoneBoardRow = pages:Row("map", 1, L["Zone Board:"], nil)
+    controls.zoneBoard = Widgets.CreateCheckbox(zoneBoardRow, L["On"], function(checked)
+        if ns.ZoneBoard then ns.ZoneBoard:SetOn(checked) end
+        SettingsUI:Refresh()
+    end, false)
+    controls.zoneBoard:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local zoneHuntRow = pages:Row("map", 1, L["Hunt Window:"], nil)
+    controls.zoneBoardHunt = Widgets.CreateCheckbox(zoneHuntRow, L["On"], function(checked)
+        if ns.ZoneBoard then ns.ZoneBoard:SetHuntWindow(checked) end
+    end, true)
+    controls.zoneBoardHunt:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local zoneDoneRow = pages:Row("map", 1, L["Zone Done Banner:"], nil)
+    controls.zoneBoardBanner = Widgets.CreateCheckbox(zoneDoneRow, L["On"], function(checked)
+        if ns.ZoneBoard then ns.ZoneBoard:SetBanner(checked) end
+    end, true)
+    controls.zoneBoardBanner:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local leftOutRow = pages:Row("map", 1, L["Left Out:"], nil)
+    local leftOut = Theme.CreateLabel(leftOutRow, "small", "muted")
+    leftOut:SetPoint("TOPLEFT", CONTROL_X, -4)
+    leftOut:SetWidth(COLUMN_WIDTH - CONTROL_X)
+    if leftOut.SetWordWrap then leftOut:SetWordWrap(true) end
+    leftOut:SetText(L["Rare mobs, bosses, town guards, critters"])
+    controls.zoneBoardLeftOut = leftOut
 end
 
 --- Sharing: kills, drop rates and gathering with your other account.
@@ -2035,6 +2072,17 @@ function SettingsUI:Refresh()
         if controls.routeWindow and ns.RouteWindow then
             controls.routeWindow:SetChecked(ns.RouteWindow.IsOn())
             controls.routeWindow:SetDisabled(not routeOn)
+        end
+    end
+    if controls.zoneBoard and ns.ZoneBoard then
+        local zoneOn = ns.ZoneBoard.IsOn()
+        controls.zoneBoard:SetChecked(zoneOn)
+        controls.zoneBoardHunt:SetChecked(ns.ZoneBoard.HuntWindowOn())
+        controls.zoneBoardBanner:SetChecked(ns.ZoneBoard.BannerOn())
+        controls.zoneBoardHunt:SetDisabled(not zoneOn)
+        controls.zoneBoardBanner:SetDisabled(not zoneOn)
+        if controls.zoneBoardShow and controls.zoneBoardShow.SetEnabled then
+            controls.zoneBoardShow:SetEnabled(zoneOn)
         end
     end
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)

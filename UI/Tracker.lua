@@ -1157,6 +1157,13 @@ function TrackerUI:BuildToolbar(frame)
     bar.clear = TrackerUI.ClearButton(bar, CLEAR_WIDTH, 16)
     bar.clear:SetPoint("RIGHT", bar.sort, "LEFT", -4, 0)
 
+    -- The Zone Board (UI/ZoneBoard.lua), shown only while it is ticked.
+    bar.zone = Widgets.CreateButton(bar, L["Zone Board"], function()
+        if ns.ZoneBoardUI then ns.ZoneBoardUI:Toggle() end
+    end, { width = 60, height = 16 })
+    bar.zone:SetPoint("RIGHT", bar.clear, "LEFT", -4, 0)
+    bar.zone:Hide()
+
     self.toolbar = bar
 end
 
@@ -1261,7 +1268,13 @@ function TrackerUI:DrawToolbar()
 
     local sortWidth = tonumber(bar.sort:GetWidth()) or 60
     local clearWidth = bar.clear and (tonumber(bar.clear:GetWidth()) or CLEAR_WIDTH) + 4 or 0
-    return PADDING + Theme.TextWidth("small", Util.StripColor(text)) + 12 + clearWidth + sortWidth + PADDING
+    local zoneWidth = 0
+    if bar.zone then
+        local zoneOn = ns.ZoneBoard and ns.ZoneBoard.IsOn() or false
+        bar.zone:SetShown(zoneOn)
+        if zoneOn then zoneWidth = (tonumber(bar.zone:GetWidth()) or 60) + 4 end
+    end
+    return PADDING + Theme.TextWidth("small", Util.StripColor(text)) + 12 + zoneWidth + clearWidth + sortWidth + PADDING
 end
 
 --- What the session is earning an hour, in copper, once it has run long

@@ -633,6 +633,12 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
     if newKill and ns.RankUp then
         ns.RankUp:Killed(key)
     end
+    -- The Zone Board moves that mob's row, and at 20 turns its card over
+    -- (Logic/ZoneBoard.lua).
+    if newKill and ns.ZoneBoard and not skinning then
+        local ok, err = pcall(ns.ZoneBoard.Killed, ns.ZoneBoard, mobName, corpse[2])
+        if not ok then ns.Debug("zone board:", tostring(err)) end
+    end
     -- The kill goal counts it, with what it gave (Logic/KillGoal.lua). A
     -- skinning window is never a kill and its leather never a drop there.
     if ns.KillGoal and not skinning then

@@ -244,6 +244,7 @@ local buttons = {
     lootFeedMove = "lootfeed move",
     lootFeedReset = "lootfeed reset",
     routeWindowReset = "routewindow reset",
+    zoneBoardShow = "zone", zoneBoardReset = "zone reset",
     xpBarReset = "xpbar reset",
     statsTab = "charts",
     killGoal = "killgoal", killGoalSummary = "killgoal summary",

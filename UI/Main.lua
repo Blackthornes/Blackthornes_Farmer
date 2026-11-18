@@ -1891,6 +1891,7 @@ function UI:BuildMinimapButton()
     end)
 
     button:SetScript("OnClick", function(_, mouseButton)
+        if mouseButton == "LeftButton" and UI.OpenZoneBoard() then return end
         if mouseButton == "RightButton" and ns.SettingsUI then
             ns.SettingsUI:Toggle()
         elseif mouseButton == "MiddleButton" then
@@ -1909,6 +1910,9 @@ function UI:BuildMinimapButton()
         GameTooltip:AddLine(L["Click to open"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Right-click for settings"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Middle-click to bring back your panels"], 0.7, 0.7, 0.7)
+        if ns.ZoneBoard and ns.ZoneBoard.IsOn() then
+            GameTooltip:AddLine(L["Shift-click for the Zone Board"], 0.7, 0.7, 0.7)
+        end
         GameTooltip:AddLine(L["Drag to move it round the minimap"], 0.5, 0.5, 0.5)
         GameTooltip:Show()
     end)
@@ -1942,6 +1946,18 @@ function UI:BringBackPanels()
     if not brought and GoalsUI then GoalsUI:ToggleOrHint() end
 end
 
+--- Shift-click on the minimap button: the Zone Board, while it is ticked.
+--- True when it opened or closed. `shifted` says Shift is known held.
+function UI.OpenZoneBoard(shifted)
+    if not shifted then
+        local ok, held = pcall(function() return IsShiftKeyDown and IsShiftKeyDown() end)
+        shifted = ok and held
+    end
+    if not (shifted and ns.ZoneBoard and ns.ZoneBoard.IsOn() and ns.ZoneBoardUI) then return false end
+    ns.ZoneBoardUI:Toggle()
+    return true
+end
+
 --- Sign up for the shared Blackthornes button (UI/SharedMinimap.lua).
 function UI:JoinSharedMinimap()
     if not ns.SharedMinimap or not self.minimapButton then return end
@@ -1954,6 +1970,8 @@ function UI:JoinSharedMinimap()
         open = function() UI:Toggle() end,
         settings = function() if ns.SettingsUI then ns.SettingsUI:Toggle() end end,
         middle = function() UI:BringBackPanels() end,
+        -- Shift-click opens the Zone Board while it is ticked, else Farmer.
+        shift = function() if not UI.OpenZoneBoard(true) then UI:Toggle() end end,
         db = function() return ns.db end,
     })
     -- And the one Blackthornes window (UI/SharedWindow.lua). Until this
