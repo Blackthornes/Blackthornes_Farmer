@@ -2058,6 +2058,7 @@ L["Best farm here: %s, %s a kill."] = "Лучший фарм здесь: %s, %s 
 L["Every mob here is unlocked."] = "Здесь открыты все существа."
 L["FINISH"] = "ДОБИТЬ"
 L["Hunt Window:"] = "Окно охоты:"
+L["Hunt Window"] = "Окно охоты"
 L["It beats %s by %s."] = "Обходит %s на %s."
 L["Left Out:"] = "Не входят:"
 L["Near Me First:"] = "Сначала ближние:"

@@ -763,7 +763,13 @@ function SettingsUI:BuildPanelsPage()
     -- the Map page.
     lines.zoneBoard = Line(L["Zone Board:"], nil)
     controls.zoneBoardShow = CommandButton(lines.zoneBoard, L["Show"], "zone", 64, showX)
+    controls.zoneBoardSeeThrough = SeeThroughChoice(lines.zoneBoard, "zoneboard", clearX)
     controls.zoneBoardReset = Reset(lines.zoneBoard, "zone reset")
+
+    -- Its hunt window shows by itself while a hunt runs; "zone reset" puts
+    -- it back too.
+    lines.zoneHunt = Line(L["Hunt Window:"], nil)
+    controls.zoneHuntSeeThrough = SeeThroughChoice(lines.zoneHunt, "hunt", clearX)
 
 
 
@@ -2184,6 +2190,8 @@ function SettingsUI:Refresh()
     controls.xpBarSeeThrough:SetValue(ns.SeeThrough:Level("xpbar"), true)
     controls.lootFeedSeeThrough:SetValue(ns.SeeThrough:Level("lootfeed"), true)
     controls.routeWindowSeeThrough:SetValue(ns.SeeThrough:Level("route"), true)
+    controls.zoneBoardSeeThrough:SetValue(ns.SeeThrough:Level("zoneboard"), true)
+    controls.zoneHuntSeeThrough:SetValue(ns.SeeThrough:Level("hunt"), true)
     controls.report:SetChecked(db.trackerReport == true)
     controls.celebrate:SetChecked(db.trackerCelebrate ~= false)
 

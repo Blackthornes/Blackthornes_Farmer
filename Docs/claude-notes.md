@@ -3101,3 +3101,14 @@ the Kills & Loot toolbar, shown only while ticked.
 - Not built yet: the STAMPS tab (the mockup's optional third tab); the
   stamps are already saved for it.
 - Tested in `tools/test_zoneboard.lua`. Not yet seen in game.
+
+Transparent (the owner asked 2026-11-18): the Zone Board and its hunt
+window take the same Off, Some, More or Most as the other panels
+(`UI/SeeThrough.lua`'s "zoneboard" and "hunt", saved as
+`zoneBoardSeeThrough` and `zoneHuntSeeThrough`, never rename them, off
+unless picked). On the Windows page: the Zone Board line's Transparent,
+and a "Hunt Window:" line under it. `/farm transparent zoneboard|hunt`
+works too (left out of the help line). The window's glass and each row's
+stripe and line thin out; gold edges stay, and the hunt window's target
+row keeps 0.6. Tested in `tools/test_seethroughpanels.lua` and
+`tools/test_windowspage.lua`.

@@ -63,6 +63,12 @@ local function MakeRow(frame, index)
     row.line:SetPoint("BOTTOMRIGHT")
     row.line:SetHeight(1)
     row.line:SetColorTexture(Theme.Unpack("border", 0.6))
+    -- Transparent (UI/SeeThrough.lua's "hunt"); the picked row's glass
+    -- keeps enough to read and its gold edge stays.
+    if ns.SeeThrough then
+        ns.SeeThrough:AddGlass("hunt", row.stripe, index == 1 and 0.6 or 0)
+        ns.SeeThrough:AddGlass("hunt", row.line)
+    end
     if index == 1 then
         local edge = row:CreateTexture(nil, "ARTWORK")
         edge:SetPoint("TOPLEFT")
@@ -106,7 +112,8 @@ function ZoneHunt:Build()
     frame:Hide()
     self.frame = frame
 
-    Theme.Fill(frame, "window")
+    local back = Theme.Fill(frame, "window")
+    if ns.SeeThrough then ns.SeeThrough:AddGlass("hunt", back) end
     if ns.Titanforged then
         self.trim = ns.Titanforged:Dress(frame, { title = L["FINISH"], close = function() ZoneHunt:Close() end })
         local left, right, top, bottom = ns.Titanforged.Reach(self.trim)
@@ -138,6 +145,7 @@ function ZoneHunt:Build()
 
     frame:SetScript("OnShow", function() ZoneHunt:Watch(true) end)
     frame:SetScript("OnHide", function() ZoneHunt:Watch(false) end)
+    if ns.SeeThrough then ns.SeeThrough:Attach("hunt", frame) end
     if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, self.SPOT_KEY) end
     return frame
 end

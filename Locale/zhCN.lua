@@ -2048,6 +2048,7 @@ L["Best farm here: %s, %s a kill."] = "这里最好的刷点：%s，每只 %s。
 L["Every mob here is unlocked."] = "这里的怪物全部解锁了。"
 L["FINISH"] = "完成"
 L["Hunt Window:"] = "狩猎窗口："
+L["Hunt Window"] = "狩猎窗口"
 L["It beats %s by %s."] = "比 %s 多 %s。"
 L["Left Out:"] = "不计入："
 L["Near Me First:"] = "近的在前："
