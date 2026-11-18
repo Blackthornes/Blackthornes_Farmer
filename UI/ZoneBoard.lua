@@ -107,6 +107,11 @@ local function Glass(row)
     row.edge:SetWidth(3)
     row.edge:SetColorTexture(Theme.Unpack("accentHi"))
     row.edge:Hide()
+    -- Transparent (UI/SeeThrough.lua's "zoneboard"); the gold edge stays.
+    if ns.SeeThrough then
+        ns.SeeThrough:AddGlass("zoneboard", row.stripe)
+        ns.SeeThrough:AddGlass("zoneboard", row.line)
+    end
 end
 
 --- Dark glass by place; glassActive and a gold left edge when picked,
@@ -216,7 +221,8 @@ function ZoneBoardUI:Build()
     self.picks = {}
     self.offset = 0
 
-    Theme.Fill(frame, "window")
+    local back = Theme.Fill(frame, "window")
+    if ns.SeeThrough then ns.SeeThrough:AddGlass("zoneboard", back) end
     if ns.Titanforged then
         self.trim = ns.Titanforged:Dress(frame, { title = L["ZONE BOARD"], close = function() ZoneBoardUI:Hide() end })
         local left, right, top, bottom = ns.Titanforged.Reach(self.trim)
@@ -306,6 +312,7 @@ function ZoneBoardUI:Build()
     frame:SetScript("OnShow", function() ZoneBoardUI:Watch(true) end)
     frame:SetScript("OnHide", function() ZoneBoardUI:Watch(false) end)
 
+    if ns.SeeThrough then ns.SeeThrough:Attach("zoneboard", frame) end
     if ns.SharedWindow and ns.SharedWindow.KeepSpot then ns.SharedWindow.KeepSpot(frame, self.SPOT_KEY) end
     return frame
 end
