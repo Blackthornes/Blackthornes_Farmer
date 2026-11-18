@@ -4,6 +4,14 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.25.0
+
+For WoW: Forever (interface 16001). A full restart is needed after updating.
+
+- **Kill Heat.** The Kill Heat card starts smaller and you can drag its corner to size it.
+- **Picked pockets.** A mob's card in Kills & Loot shows what you picked from it.
+- **Exclude Rarity.** On the Rankings tab and in Settings > Windows > Rankings, pick which rarities to leave out of worth per kill.
+
 ## 1.24.0
 
 For WoW: Forever (interface 16001). A full restart is needed after updating.

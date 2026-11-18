@@ -5,6 +5,11 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "1.25.0", lines = {
+        "The Kill Heat card starts smaller, and you can size it.",
+        "A mob's card shows what you picked from its pockets.",
+        "A new Exclude Rarity choice leaves rarities out of worth per kill.",
+    } },
     { version = "1.22.0", lines = {
         "New Marker Size choice makes the marks on your maps smaller or bigger.",
         "Blackthornes now has one button on your addon bar.",
@@ -15,11 +20,5 @@ ns.WHATS_NEW = {
     { version = "1.21.0", lines = {
         "Farmer has a new Farms tab. Save a farm and run it again with one click.",
         "Pick the zone and the mob you want, and the best drop chance shows first.",
-    } },
-    { version = "1.20.0", lines = {
-        "Farmer's new Dock to the Map box lets Where to Farm sit beside the world map.",
-        "Settings is sorted into clearer pages, with an All Addons page for what every addon shares.",
-        "The window can dock in more places and you can resize it by hand.",
-        "Small pieces line up on shelves instead of piling in one spot.",
     } },
 }

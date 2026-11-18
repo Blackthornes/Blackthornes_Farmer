@@ -23,6 +23,12 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.25.0
+
+- The Kill Heat card starts smaller, and you can size it.
+- A mob's card shows what you picked from its pockets.
+- A new Exclude Rarity choice leaves rarities out of worth per kill.
+
 ## 1.22.1
 
 Fixes and changes:
