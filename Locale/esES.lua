@@ -1597,6 +1597,8 @@ L["Showing"] = "Mostrando"
 L["Seen here a little"] = "Visto aquí un poco"
 L["Your best spot"] = "Tu mejor lugar"
 L["Stop Tracking"] = "Dejar de seguir"
+L["Hide from Map"] = "Quitar del mapa"
+L["%d mobs"] = "%d enemigos"
 
 -- Off, Shift or Always for tooltip lines (UI/TooltipShift.lua).
 L["Shift"] = "Mayús"

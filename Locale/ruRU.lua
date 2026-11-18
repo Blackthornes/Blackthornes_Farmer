@@ -1598,6 +1598,8 @@ L["Showing"] = "Показано"
 L["Seen here a little"] = "Здесь встречалось немного"
 L["Your best spot"] = "Твоё лучшее место"
 L["Stop Tracking"] = "Не отслеживать"
+L["Hide from Map"] = "Убрать с карты"
+L["%d mobs"] = "Существ: %d"
 
 -- Off, Shift or Always for tooltip lines (UI/TooltipShift.lua).
 L["Shift"] = "Shift"

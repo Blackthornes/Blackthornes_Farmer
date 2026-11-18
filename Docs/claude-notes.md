@@ -3112,3 +3112,23 @@ works too (left out of the help line). The window's glass and each row's
 stripe and line thin out; gold edges stay, and the hunt window's target
 row keeps 0.6. Tested in `tools/test_seethroughpanels.lua` and
 `tools/test_windowspage.lua`.
+
+Heat map eyes (the owner said build it, 2026-11-18, from a mockup whose
+words he approved, `previews/farmer-zone-board-heat/` in the project
+files): every FINISH and BEST row has an eye on its right
+(`ZoneBoardUI.Eye`, `FillEye`, art `Media/Frame/Eye.tga` from
+`tools/make_eye_art.py`), shown only while Kill Heat is on
+(`Heat.Recording()`). A tap turns that mob's glow on or off
+(`Heat:TogglePicked`, `SetPicked`), kept across a reload in `heatMobs`
+(`[name] = true`, nil when none; never rename it). Several at once add up
+into one glow (`Heat:MobNames`, `MobWeights`; the glow is heatMob plus the
+picks), and the map card reads "%d mobs" with a row for each (up to
+`HeatUI.KEY_MOST`). Hover says "Show on Map" or "Hide from Map", plus
+"Kill a few first and it will show here." for a mob with no spot (its eye
+dim). A pick goes by itself at the mob's 20th kill on the board
+(`ZoneBoard:Unlocked`, the owner asked); heatMob from the Map button stays.
+The Map button and an item clear the picks; an eye turned on stops an item;
+the Map button pressed again stops only its own mob; Stop Tracking clears
+all. A tap sets only the eyes on the rows showing (`ZoneBoardUI:Eyes`, from
+Heat's `Changed`), and the heat redraws in slices as before; nothing runs
+every frame. Tested in `tools/test_zoneboardheat.lua`. Not yet seen in game.
