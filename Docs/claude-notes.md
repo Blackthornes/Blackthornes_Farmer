@@ -1477,6 +1477,20 @@ and the rank-up order follow (it moves `outsideVersion`). `Value:ForMob` is
 untouched, so tooltips and the loot table still count every drop. Tested in
 `tools/test_rankingsuncommon.lua`.
 
+Exclude Rarity (a player asked, the owner said build it 2026-11-18, from a
+mockup): the tick box became a drop-down, "Exclude Rarity:" on the tab (in
+`RankingsUI.ticks`, `RankingsUI.exclude`) and in Settings
+(`controls.rankingsExclude`), with "Nothing" (the default, every drop),
+"Epic and Above", "Rare and Above" and "Uncommon and Above" (the old box
+ticked), each in its rarity's colour. Saved as `rankingsExclude` ("none",
+"epic", "rare", "uncommon"; account wide, never rename it).
+`Rankings.Exclude()` reads it, else an old save's `rankingsSkipUncommon =
+true` as "uncommon"; `Rankings:SetExclude` keeps `rankingsSkipUncommon` in
+step and never deletes it. `Rankings.WithoutQuality(value, details, from)`
+takes out drops of quality `from` and better (`EXCLUDE_FROM`).
+`/farm rankings exclude none|epic|rare|uncommon`; the old `/farm rankings
+uncommon [on|off]` still works.
+
 ## Rankings at vendor prices
 
 A player asked, the owner said build it (2026-11-15): a tick box on the

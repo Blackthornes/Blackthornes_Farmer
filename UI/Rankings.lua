@@ -132,7 +132,7 @@ function RankingsUI:Build(frame)
     local ticks = CreateFrame("Frame", nil, view)
     ticks:SetPoint("TOPLEFT", filters, "BOTTOMLEFT", 0, -4)
     ticks:SetPoint("TOPRIGHT", filters, "BOTTOMRIGHT", 0, -4)
-    ticks:SetHeight(18)
+    ticks:SetHeight(22)
     self.ticks = ticks
     offset = -8
 
@@ -154,21 +154,33 @@ function RankingsUI:Build(frame)
     offset = offset + 8 + outside:GetWidth()
 
     -- Uncommon and better drops left out of worth per kill (the owner,
-    -- 2026-10-18). Off unless ticked; Rankings:SetSkipUncommon redraws.
-    local uncommon = Widgets.CreateCheckbox(ticks, L["Skip Uncommon and better"], function(checked)
-        ns.Rankings:SetSkipUncommon(checked)
+    -- 2026-10-18); since 2026-11-18 a drop-down of which rarity and better
+    -- to leave out, "Nothing" unless picked. Rankings:SetExclude redraws.
+    local excludeLabel = Theme.CreateLabel(ticks, "small", "text")
+    excludeLabel:SetText(L["Exclude Rarity:"])
+    excludeLabel:SetPoint("LEFT", ticks, "LEFT", offset + 12, 0)
+    local labelWidth = math.ceil(Theme.TextWidth("small", L["Exclude Rarity:"]) or 0)
+    local excludeOptions = ns.Rankings.ExcludeOptions()
+    local widest = 0
+    for _, option in ipairs(excludeOptions) do
+        widest = math.max(widest, Theme.TextWidth("small", option.plain) or 0)
+    end
+    local excludeWidth = math.max(120, math.ceil(widest) + 34)
+    local exclude = Widgets.CreateDropdown(ticks, excludeOptions, function(value)
+        ns.Rankings:SetExclude(value)
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
-    end, ns.Rankings.SkipUncommon())
-    uncommon:SetPoint("LEFT", ticks, "LEFT", offset + 12, 0)
-    uncommon:HookScript("OnEnter", function(box)
+    end, { width = excludeWidth })
+    exclude:SetPoint("LEFT", ticks, "LEFT", offset + 12 + labelWidth + 6, 0)
+    exclude:SetValue(ns.Rankings.Exclude())
+    exclude:HookScript("OnEnter", function(box)
         if not GameTooltip then return end
         GameTooltip:SetOwner(box, "ANCHOR_BOTTOMLEFT")
-        GameTooltip:SetText(L["Worth per kill leaves out Uncommon, Rare and Epic drops."], 1, 1, 1, 1, true)
+        GameTooltip:SetText(L["Worth per kill leaves out drops of this rarity and better. Pick Rare and Above to count greens but not blues or purples."], 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
-    uncommon:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
-    self.uncommon = uncommon
-    offset = offset + 12 + uncommon:GetWidth()
+    exclude:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    self.exclude = exclude
+    offset = offset + 12 + labelWidth + 6 + excludeWidth
 
     -- Every drop at its vendor price (the owner, 2026-11-15). Off unless
     -- ticked; Rankings:SetVendorOnly redraws.
@@ -195,7 +207,7 @@ function RankingsUI:Build(frame)
     self.summary = summary
 
     -- Below the portrait, as wide as the Search tab's results.
-    self.panelTop = top + 18 + 4 + 18 + 8
+    self.panelTop = top + 18 + 4 + 22 + 6
     local panel = Theme.CreatePanel(view, "panel", "border")
     self.panel = panel
     self:PlacePanel(false)
@@ -1399,7 +1411,7 @@ function RankingsUI:Render(arrive)
         chip:SetSelected(chip:GetFilterKind() == self.group)
     end
     if self.outside then self.outside:SetChecked(ns.Rankings.OutsideOnly()) end
-    if self.uncommon then self.uncommon:SetChecked(ns.Rankings.SkipUncommon()) end
+    if self.exclude then self.exclude:SetValue(ns.Rankings.Exclude()) end
     if self.vendor then self.vendor:SetChecked(ns.Rankings.VendorOnly()) end
 
     self:ShowWorld()
