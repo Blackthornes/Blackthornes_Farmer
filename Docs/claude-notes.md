@@ -3021,3 +3021,13 @@ TSM Sold a Day). The same in every addon; keep them the same.
   (`UI/SharedWindow.lua` FILE_VERSION 12, in all five).
 - **Three tries, then ask.** A check still failing after three rounds stops
   the work. Never skip, loosen or rerun a test to get green.
+
+## Chat Notice for guild drops
+
+Trent said build it (2026-11-18, from a mockup with the words): "Chat Notice:"
+on the SHARING page under Share With Guild, saved `sharedChatNotice` (off
+unless ticked; never rename it). `GuildShare:NoteHeard` (from `Received`)
+adds up a guildmate's records and says one line once they stop
+(`NOTICE_QUIET`), naming them in full. Tradeskills has the same switch for
+guild and realm prices. Never announced in release notes. Tested in
+`tools/test_guildshare.lua`.

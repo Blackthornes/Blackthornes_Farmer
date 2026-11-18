@@ -52,6 +52,9 @@ GuildShare.SYNC_TIMEOUT = 600     -- a sync left this long is given up
 GuildShare.STILL_COMING = 60      -- unless records came in this recently
 GuildShare.CONFIRM_AFTER = 30     -- quiet this long after records: compare again
 GuildShare.MAX_GUILDMATES = 20
+-- Chat Notice (2026-11-18): one chat line per guildmate's batch, said once
+-- it has been quiet this many seconds.
+GuildShare.NOTICE_QUIET = 30
 
 GuildShare.byId = {}       -- Farmer id -> state
 GuildShare.bySender = {}   -- name key of the character playing -> state
@@ -301,8 +304,9 @@ end
 
 --- Records came in. Once they stop, ask for their manifest again (a hello
 --- is always answered with one), which also says whether everything arrived.
-function GuildShare:Received(state)
+function GuildShare:Received(state, taken)
     state.lastRecordAt = time()
+    self:NoteHeard(state, taken)
     self:DropsChanged()
     self:PublishSoon()
     if ns.SettingsUI and ns.SettingsUI.ShareStatusChanged then pcall(ns.SettingsUI.ShareStatusChanged, ns.SettingsUI) end
@@ -317,6 +321,50 @@ function GuildShare:Received(state)
         if self:On() and state.online and self.current == state then Share:Hello(state.name) end
     end
     C_Timer.After(self.CONFIRM_AFTER, Confirm)
+end
+
+--- Chat Notice, off unless ticked: a guildmate's records come in many
+--- whispers, so they are added up and said in one line once they stop.
+function GuildShare:NoticeOn()
+    return ns.db ~= nil and ns.db.sharedChatNotice == true
+end
+
+function GuildShare:NoteHeard(state, taken)
+    if not self:NoticeOn() or type(taken) ~= "number" or taken < 1 then return end
+    self.heard = self.heard or {}
+    local batch = self.heard[state.key]
+    if not batch then
+        batch = { count = 0 }
+        self.heard[state.key] = batch
+    end
+    batch.count = batch.count + taken
+    batch.name = type(state.name) == "string" and (state.name:match("^[^%-]+") or state.name) or batch.name
+    batch.last = time()
+    if batch.waiting then return end
+    batch.waiting = true
+    local function Check()
+        local quiet = time() - (batch.last or 0)
+        if quiet < self.NOTICE_QUIET then
+            C_Timer.After(self.NOTICE_QUIET - quiet, Check)
+            return
+        end
+        self:SayHeard(state.key)
+    end
+    C_Timer.After(self.NOTICE_QUIET, Check)
+end
+
+--- Say one batch in chat and forget it.
+function GuildShare:SayHeard(key)
+    local batch = self.heard and self.heard[key]
+    if not batch then return end
+    self.heard[key] = nil
+    if batch.count > 0 and batch.name and self:NoticeOn() then
+        if batch.count == 1 then
+            ns.Print(L.Format("Got drops for 1 mob from %s in your guild.", batch.name))
+        else
+            ns.Print(L.Format("Got drops for %d mobs from %s in your guild.", batch.count, batch.name))
+        end
+    end
 end
 
 --- A whisper from a guildmate: their state, or nil.

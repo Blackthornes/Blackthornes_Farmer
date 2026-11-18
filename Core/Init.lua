@@ -563,6 +563,9 @@ local DEFAULTS = {
     -- The same with guildmates who use Farmer (Logic/GuildShare.lua, asked
     -- 2026-10-13): off until ticked. Their ledgers are in shareIn too.
     shareGuild = false,
+    -- Say in chat when drops come in from the guild (the owner,
+    -- 2026-11-18). Off unless ticked; never rename it. GuildShare:NoteHeard.
+    sharedChatNotice = false,
     -- Drop records sent to the addon's maker for the shipped data
     -- (Logic/Contribute.lua, asked 2026-10-15): off until ticked.
     shareDrops = false,
