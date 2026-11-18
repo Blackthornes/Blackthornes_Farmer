@@ -1762,6 +1762,17 @@ cells by one all round and traces their edge by marching squares, laid on
 the world map a slice a frame after the dots and on the minimap through
 `MinimapOffset` (`MAX_WORLD_EDGES`, `MAX_MINIMAP_EDGES`).
 
+The card on the world map starts smaller and can be sized (the owner,
+2026-11-18: too big on the small map, no way to resize it; he tapped Build
+it on a mockup). It starts at `HeatUI.CARD_SIZE` (70%) and wears the house
+size grip beside its bottom right corner (`Widgets.CreateSizeGrip`, 50% to
+150%, right-click back to 70% through the grip's new `default` option),
+saved as `heatCardScale` (never rename it). `PlaceCard` and `CardRoom`
+turn the saved spot (in the map's lengths) into the card's own by the ratio
+of the two effective scales, so it stays inside the map at any size. Window
+Spots' Set Default runs `HeatUI:ResetCard` (signed up as `farmer.heatcard`):
+spot and size go back. Tested in `tools/test_heat.lua`.
+
 ## Kills on the mob tooltip
 
 The owner asked (2026-10-13) for a mob's tooltip to say how many you have

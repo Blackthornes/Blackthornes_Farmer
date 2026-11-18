@@ -319,6 +319,26 @@ suite.check("an item's card draws its mob rows", okItem and ns.HeatUI.card ~= ni
 Heat:ShowAll()
 ns.db.heatCardX, ns.db.heatCardY = nil, nil
 
+-- The card starts smaller and wears the house size grip (the owner,
+-- 2026-11-18: too big on the small map and no way to size it).
+ns.db.heatCardScale = nil
+suite.check("the card starts at 70%", ns.HeatUI.CardSize() == 70)
+suite.check("the card wears a size grip", ns.HeatUI.card.sizeGrip ~= nil)
+ns.db.heatCardScale = 120
+suite.check("a dragged size is kept", ns.HeatUI.CardSize() == 120)
+ns.db.heatCardScale = 400
+suite.check("a size past the grip's reach is held to 150%", ns.HeatUI.CardSize() == 150)
+ns.db.heatCardScale = 120
+local grip = ns.HeatUI.card.sizeGrip
+local okRight = pcall(grip:GetScript("OnMouseDown"), grip, "RightButton")
+suite.check("a right-click on the grip puts the card back at 70%", okRight
+    and ns.db.heatCardScale == 70)
+ns.db.heatCardX, ns.db.heatCardY, ns.db.heatCardScale = 40, 30, 120
+local okReset = pcall(ns.SharedWindow.ResetAllSpots)
+suite.check("Set Default puts the card back in its corner at 70%", okReset
+    and ns.db.heatCardX == nil and ns.db.heatCardY == nil and ns.db.heatCardScale == nil
+    and ns.HeatUI.CardSize() == 70)
+
 -- The loot table's Map button, for the mob it shows.
 local LTU = ns.LootTableUI
 LTU:Build()

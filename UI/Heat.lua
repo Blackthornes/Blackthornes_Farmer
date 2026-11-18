@@ -499,7 +499,9 @@ end
 -- goes with it; nothing on the map is written. It sits in the top left
 -- corner until dragged, then where it was left (heatCardX, heatCardY, from
 -- the map's top left; never rename them), kept inside the map, plate and
--- all.
+-- all. It starts at 70% of its full size and wears the house size grip
+-- beside its bottom right corner (the owner, 2026-11-18: too big on the
+-- small map), 50% to 150%, saved as heatCardScale (never rename it).
 
 -- Mobs listed under an item, the likeliest first.
 HeatUI.KEY_MOST = 5
@@ -508,6 +510,27 @@ local PANEL_WIDTH = 262
 local INSET = 12       -- the card's contents, clear of the rim
 local ICON = 32
 local ROW_HEIGHT = 20
+
+-- The card's first size, in percent of its full size.
+HeatUI.CARD_SIZE = 70
+
+--- The card's size in percent: the one dragged to, else the first size.
+function HeatUI.CardSize()
+    local Widgets = ns.Widgets
+    local saved = ns.db and ns.db.heatCardScale
+    if Widgets and Widgets.ClampSize then return Widgets.ClampSize(saved or HeatUI.CARD_SIZE) end
+    return tonumber(saved) or HeatUI.CARD_SIZE
+end
+
+-- How much smaller or bigger the card is drawn than the map area it sits
+-- in: its own size, as the two effective scales say.
+local function CardRatio(card, corner)
+    local ok, ratio = pcall(function()
+        return (card:GetEffectiveScale() or 1) / (corner:GetEffectiveScale() or 1)
+    end)
+    if ok and type(ratio) == "number" and ratio > 0 and ratio == ratio then return ratio end
+    return 1
+end
 
 -- How far the plate and corners reach past the card's edges, so the card
 -- is kept whole inside the map.
@@ -615,6 +638,21 @@ local function Card(map)
         Heat:ShowAll()
     end, { primary = true, width = PANEL_WIDTH - INSET * 2, height = 24 })
 
+    -- The house size grip, hung beside the bottom right corner. A drag
+    -- moves the card on the screen; let go, it is anchored in the map again.
+    local Widgets = ns.Widgets
+    if Widgets and Widgets.CreateSizeGrip then
+        card.sizeGrip = Widgets.CreateSizeGrip(card, {
+            beside = true,
+            name = "panel",
+            default = HeatUI.CARD_SIZE,
+            get = function() return HeatUI.CardSize() end,
+            save = function(percent) if ns.db then ns.db.heatCardScale = percent end end,
+            done = function() HeatUI:KeepCardPlace() end,
+        })
+    end
+    pcall(card.SetScale, card, HeatUI.CardSize() / 100)
+
     card:Hide()
     return card
 end
@@ -652,11 +690,16 @@ end
 -- may go, so it stays inside with its plate and corners.
 local function CardRoom(card, corner)
     local left, right, top, bottom = Reach(card)
+    -- The size grip hangs past the right edge too.
+    if card.sizeGrip then right = math.max(right, (ns.Widgets.SIZE_GRIP or 20) + 3) end
+    -- The card's own lengths, in the map area's.
+    local ratio = CardRatio(card, corner)
+    left, right, top, bottom = left * ratio, right * ratio, top * ratio, bottom * ratio
     local minX, minY = 8 + left, 8 + top
     local okW, width = pcall(corner.GetWidth, corner)
     local okH, height = pcall(corner.GetHeight, corner)
-    local roomX = math.max(0, ((okW and tonumber(width)) or 0) - (card:GetWidth() or 0) - 8 - right)
-    local roomY = math.max(0, ((okH and tonumber(height)) or 0) - (card:GetHeight() or 0) - 8 - bottom)
+    local roomX = math.max(0, ((okW and tonumber(width)) or 0) - (card:GetWidth() or 0) * ratio - 8 - right)
+    local roomY = math.max(0, ((okH and tonumber(height)) or 0) - (card:GetHeight() or 0) * ratio - 8 - bottom)
     return roomX, roomY, minX, minY
 end
 
@@ -670,8 +713,25 @@ function HeatUI:PlaceCard()
     local y = tonumber(ns.db and ns.db.heatCardY) or minY
     if roomX > 0 then x = math.min(math.max(x, minX), roomX) end
     if roomY > 0 then y = math.min(math.max(y, minY), roomY) end
+    -- The card's offsets are in its own size, the saved spot in the map's.
+    local ratio = CardRatio(card, corner)
     card:ClearAllPoints()
-    card:SetPoint("TOPLEFT", corner, "TOPLEFT", x, -y)
+    card:SetPoint("TOPLEFT", corner, "TOPLEFT", x / ratio, -y / ratio)
+end
+
+--- Set Default (Window Spots): the card back in the top left corner at
+--- its first size.
+function HeatUI:ResetCard()
+    if ns.db then ns.db.heatCardX, ns.db.heatCardY, ns.db.heatCardScale = nil, nil, nil end
+    local card = self.card
+    if card then
+        pcall(card.SetScale, card, HeatUI.CardSize() / 100)
+        self:PlaceCard()
+    end
+end
+
+if ns.SharedWindow and ns.SharedWindow.AddSpotReset then
+    pcall(ns.SharedWindow.AddSpotReset, "farmer.heatcard", function() HeatUI:ResetCard() end)
 end
 
 --- After a drag: keep where the card was left, as an offset from the map's
