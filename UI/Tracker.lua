@@ -1977,9 +1977,11 @@ function TrackerUI:CardLines(Add, card)
         Add({ style = "value", left = L["You've had here"], right = world.had })
     end
 
+    local pockets = mobName and ns.Tracker.PocketsOf and ns.Tracker:PocketsOf(mobName)
+
     if #card.items == 0 then
         if card.rated then Add({ style = "note", left = L["nothing dropped yet"] }) end
-        return
+        return self:PocketLines(Add, card, pockets)
     end
 
     local icons = {}
@@ -1999,7 +2001,32 @@ function TrackerUI:CardLines(Add, card)
         icons[#icons + 1] = icon
     end
 
-    Add({ style = "icons", icons = icons, mob = card.mob, card = card.key, live = card.live })
+    -- With pockets below, the card goes on past its drops.
+    Add({ style = "icons", icons = icons, mob = card.mob, card = card.key, live = card.live,
+        more = pockets and true or nil })
+    self:PocketLines(Add, card, pockets)
+end
+
+--- A rogue's picked pockets on the mob's card (2026-11-18): how many, the
+--- coin, and the items with plain counts. Never a kill and never a rate.
+function TrackerUI:PocketLines(Add, card, pockets)
+    if not pockets then return end
+    local right = Util.Plural(pockets.picks, L["pick"], L["picks"])
+    if pockets.copper > 0 and ns.Value then
+        right = right .. ", " .. ns.Value.Coins(pockets.copper)
+    end
+    Add({ style = "value", left = L["Picked Pockets:"], right = right, rightColor = "accent",
+        key = card.key .. ":pockets", count = pockets.picks })
+    if #pockets.items == 0 then return end
+
+    local icons = {}
+    local picked = Util.Plural(pockets.picks, L["pocket picked"], L["pockets picked"])
+    for _, item in ipairs(pockets.items) do
+        icons[#icons + 1] = { item = item.name, count = item.n, text = tostring(item.n),
+            key = ("%s:pocket:%s"):format(card.key, item.name),
+            about = L.Format("%d from %s", item.n, picked) }
+    end
+    Add({ style = "icons", icons = icons, card = card.key, live = card.live })
 end
 
 --- The mobs in the order the Sort button says. The one you are on always
@@ -3177,7 +3204,7 @@ function TrackerUI:DrawCards(shown)
             -- A card scrolled half out of sight: its rest still sits on one.
             open = { first = index, live = false }
         end
-        if open and line.style == "icons" then Close(index) end
+        if open and line.style == "icons" and not line.more then Close(index) end
     end
     Close(#shown)
 
