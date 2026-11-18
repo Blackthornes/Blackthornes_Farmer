@@ -565,6 +565,58 @@ do
     GuildShare.bySender = saved
 end
 
+-- Chat Notice (2026-11-18): off unless ticked; one line per guildmate's
+-- batch, once the records stop coming.
+do
+    Switch(ana)
+    local print, after = ns.Print, _G.C_Timer.After
+    local printed, waiting = {}, {}
+    ns.Print = function(text) printed[#printed + 1] = text end
+    _G.C_Timer.After = function(delay, fn) waiting[#waiting + 1] = { at = clock + delay, fn = fn } end
+    local function Wait(seconds)
+        local stop = clock + seconds
+        while true do
+            table.sort(waiting, function(a, b) return a.at < b.at end)
+            local due = waiting[1]
+            if not due or due.at > stop then break end
+            table.remove(waiting, 1)
+            clock = math.max(clock, due.at)
+            due.fn()
+        end
+        clock = stop
+    end
+    local dee = { key = "guild:dee", name = "Dee Brown-Realm" }
+    local eli = { key = "guild:eli", name = "Eli Stone" }
+
+    Check("Chat Notice starts off", ns.db.sharedChatNotice == false)
+    GuildShare:NoteHeard(dee, 4)
+    Wait(120)
+    Check("off, nothing is said", #printed == 0, printed[1])
+
+    ns.db.sharedChatNotice = true
+    GuildShare:NoteHeard(dee, 4)
+    Wait(20)
+    GuildShare:NoteHeard(dee, 8)
+    Wait(20)
+    Check("nothing said while records still come", #printed == 0, printed[1])
+    Wait(20)
+    Check("one line once they stop", #printed == 1, #printed)
+    Check("naming them in full, every mob counted", printed[1] == "Got drops for 12 mobs from Dee Brown in your guild.",
+        printed[1])
+    GuildShare:NoteHeard(eli, 1)
+    Wait(60)
+    Check("one mob reads right", printed[2] == "Got drops for 1 mob from Eli Stone in your guild.", printed[2])
+    GuildShare:NoteHeard(dee, 0)
+    Wait(60)
+    Check("nothing taken, nothing said", #printed == 2, #printed)
+    GuildShare:NoteHeard(dee, 3)
+    ns.db.sharedChatNotice = false
+    Wait(60)
+    Check("turned off while waiting, nothing said", #printed == 2, #printed)
+
+    ns.Print, _G.C_Timer.After = print, after
+end
+
 -- A save from before this existed loads with it off.
 do
     local old = { windowScale = 120, shareIn = { ["bob smith"] = { name = "Bob Smith", credit = {}, hashes = {} } } }

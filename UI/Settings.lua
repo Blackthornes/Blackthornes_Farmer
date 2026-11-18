@@ -1879,6 +1879,14 @@ function SettingsUI:BuildSharingPage()
     end, false)
     controls.shareGuild:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Chat Notice (2026-11-18): GuildShare:NoteHeard.
+    local noticeRow = pages:Row("sharing", 2, L["Chat Notice:"],
+        L["Says in chat when drops come in from your guild."])
+    controls.sharedChatNotice = Widgets.CreateCheckbox(noticeRow, L["On"], function(checked)
+        ns.db.sharedChatNotice = checked == true
+    end, false)
+    controls.sharedChatNotice:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- What came in from the guild, and when (GuildShare:Status).
     local guildStatusRow = pages:Row("sharing", 2, L["Guild Status:"], nil)
     GrowRow(guildStatusRow, 30)
@@ -2003,6 +2011,7 @@ function SettingsUI:Refresh()
     controls.share:SetChecked(db.shareData == true)
     controls.shareNames:SetText(db.shareNames or "")
     controls.shareGuild:SetChecked(db.shareGuild == true)
+    controls.sharedChatNotice:SetChecked(db.sharedChatNotice == true)
     controls.shareStatus:SetText(ns.Share:Status() or "")
     controls.guildStatus:SetText(ns.GuildShare:Status() or "")
     if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end

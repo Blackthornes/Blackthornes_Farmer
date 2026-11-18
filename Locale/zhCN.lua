@@ -2026,3 +2026,9 @@ L["Starts your last farm again."] = "再来一次上次的刷货。"
 L["Marker Size:"] = "标记大小："
 L["How big the marks are on the world map and minimap."] = "世界地图和小地图上标记的大小。"
 L["Marker size: %s."] = "标记大小：%s。"
+
+-- Chat Notice for guild drops (2026-11-18)
+L["Chat Notice:"] = "聊天提示："
+L["Says in chat when drops come in from your guild."] = "收到公会的掉落数据时，在聊天框里告诉你。"
+L["Got drops for %d mobs from %s in your guild."] = "收到 %d 种怪物的掉落，来自公会成员 %s。"
+L["Got drops for 1 mob from %s in your guild."] = "收到 1 种怪物的掉落，来自公会成员 %s。"

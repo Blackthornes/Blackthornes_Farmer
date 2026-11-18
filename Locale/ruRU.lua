@@ -2036,3 +2036,9 @@ L["Starts your last farm again."] = "Запускает твой последн�
 L["Marker Size:"] = "Размер меток:"
 L["How big the marks are on the world map and minimap."] = "Размер меток на карте мира и миникарте."
 L["Marker size: %s."] = "Размер меток: %s."
+
+-- Chat Notice for guild drops (2026-11-18)
+L["Chat Notice:"] = "Уведомление в чате:"
+L["Says in chat when drops come in from your guild."] = "Сообщает в чате, когда приходит добыча от гильдии."
+L["Got drops for %d mobs from %s in your guild."] = "Получена добыча с существ (%d) от %s из твоей гильдии."
+L["Got drops for 1 mob from %s in your guild."] = "Получена добыча с 1 существа от %s из твоей гильдии."

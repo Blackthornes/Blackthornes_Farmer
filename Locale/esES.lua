@@ -2035,3 +2035,9 @@ L["Starts your last farm again."] = "Vuelve a empezar tu último farmeo."
 L["Marker Size:"] = "Tamaño de las marcas:"
 L["How big the marks are on the world map and minimap."] = "Lo grandes que se ven las marcas en el mapa del mundo y el minimapa."
 L["Marker size: %s."] = "Tamaño de las marcas: %s."
+
+-- Chat Notice for guild drops (2026-11-18)
+L["Chat Notice:"] = "Aviso en el chat:"
+L["Says in chat when drops come in from your guild."] = "Te avisa en el chat cuando llega botín de tu hermandad."
+L["Got drops for %d mobs from %s in your guild."] = "Botín recibido de %d enemigos de %s, de tu hermandad."
+L["Got drops for 1 mob from %s in your guild."] = "Botín recibido de 1 enemigo de %s, de tu hermandad."
