@@ -324,4 +324,58 @@ suite.check("picking another mob while open lifts the window over the main one",
 LTU.frame.Raise = nil
 LTU:Hide()
 
+--------------------------------------------------------------------------------
+-- Items the guild just found come in with a glow (the owner, 2026-11-18)
+--------------------------------------------------------------------------------
+
+do
+    local GuildShare = ns.GuildShare
+    local savedLootFor = GuildShare.LootFor
+    local guild = { kills = 40, items = { ["Ruined Pelt"] = { corpses = 4, count = 4, counted = 4 } } }
+    GuildShare.LootFor = function() return guild end
+
+    local function RowFor(name)
+        for _, row in ipairs(LTU.list.rows) do
+            if row:IsShown() and row.data and row.data.name == name then return row end
+        end
+    end
+
+    LTU:Show(WOLF)
+    local pelt = RowFor("Ruined Pelt")
+    suite.check("a guild item is listed when the window opens", pelt ~= nil)
+    suite.check("opening plays the usual arrival, not the guild glow",
+        pelt and not ns.Motion:Running(pelt, "guildEdge"))
+    ns.Motion:FinishAll()
+
+    guild.items["Worn Leather Gloves"] = { corpses = 1, count = 1, counted = 1 }
+    LTU:Refresh()
+    local gloves = RowFor("Worn Leather Gloves")
+    suite.check("a new guild item glows in while open", gloves and ns.Motion:Running(gloves, "guildEdge"))
+    suite.check("and slides in with a sweep", gloves and ns.Motion:Running(gloves, "guildIn")
+        and ns.Motion:Running(gloves, "guildSweep"))
+    suite.check("the item count pops", ns.Motion:Running(LTU.status, "pop"))
+    pelt = RowFor("Ruined Pelt")
+    suite.check("an item already shown does not glow again", pelt and not ns.Motion:Running(pelt, "guildEdge"))
+    ns.Motion:FinishAll()
+    suite.check("the glow ends hidden", gloves and not gloves.guildEdge:IsShown() and not gloves.guildSweep:IsShown())
+
+    LTU:Refresh()
+    gloves = RowFor("Worn Leather Gloves")
+    suite.check("a redraw plays nothing", gloves and not ns.Motion:Running(gloves, "guildEdge")
+        and not ns.Motion:Running(LTU.status, "pop"))
+
+    -- Effects off: the row is just there.
+    local level = ns.Motion.Level
+    ns.Motion.Level = function() return "off" end
+    guild.items["Boar Tusk"] = { corpses = 2, count = 2, counted = 2 }
+    LTU:Refresh()
+    local tusk = RowFor("Boar Tusk")
+    suite.check("with effects off a new item shows plain", tusk and not tusk.guildEdge:IsShown()
+        and not ns.Motion:Running(tusk, "guildEdge"))
+    ns.Motion.Level = level
+
+    GuildShare.LootFor = savedLootFor
+    LTU:Hide()
+end
+
 suite.done()

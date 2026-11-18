@@ -416,6 +416,19 @@ do
     Check("and shows no rate until he has his own, not even the guild's", loot.rows[1].chance == nil
         and loot.rows[1].rate == nil, loot.rows[1].chance)
     Check("with no value off it", loot.rows[1].perKill == nil)
+    -- Items only the guild found are listed from his first kill, with his
+    -- own 0 and no rate (the owner, 2026-11-18).
+    local gnollKey = "Test Gnoll|Redridge Mountains|Camp"
+    bob.db.guildDrops[gnollKey].items["Guild Test Ear"] = { name = "Guild Test Ear", count = 8, corpses = 4 }
+    GuildShare:DropsChanged()
+    loot = ns.LootTableUI:Table("Test Gnoll")
+    local ear = loot.rows[2]
+    Check("an item only the guild found is listed before twenty kills", #loot.rows == 2 and ear.name == "Guild Test Ear",
+        #loot.rows)
+    Check("with his own count, nothing", ear.dropped == "0 of 3" and ear.total == "x0", ear.dropped)
+    Check("and no rate or value yet", ear.chance == nil and ear.rate == nil and ear.perKill == nil)
+    Check("it is marked as the guild's for the arrival", ear.guildOnly == true and loot.rows[1].guildOnly == nil)
+    Check("his kills stay three", loot.kills == 3 and bob.db.tracker.mobs["Test Gnoll"].items["Guild Test Ear"] == nil)
     -- Past twenty kills the guild's corpses count beside his in Drop Rate
     -- and Per Kill, for the items already on his table (2026-11-04).
     local Value = ns.Value
@@ -437,7 +450,11 @@ do
     Check("and so does the worth a kill at the top", Near(loot.worth, 13 / 70 * 100 + 6 / 70 * 100), loot.worth)
     Check("his kills and counts stay his own", loot.kills == 30 and fangRow.dropped == "3 of 30" and fangRow.total == "x3",
         fangRow.dropped)
-    Check("no row is added for what only the guild had", #loot.rows == 2, #loot.rows)
+    local earRow = LootRow("Guild Test Ear")
+    Check("what only the guild had gets a row", #loot.rows == 3 and earRow ~= nil, #loot.rows)
+    Check("rated over every kill, his and theirs", earRow and Near(earRow.chance, 4 / 70 * 100), earRow and earRow.chance)
+    Check("its own count stays nothing", earRow and earRow.dropped == "0 of 30" and earRow.total == "x0")
+    Check("an item with no price adds no value", earRow and earRow.perKill == nil, earRow and earRow.perKill)
     Check("his tally was never added to", bob.db.tracker.mobs["Test Gnoll"].kills == 30
         and bob.db.tracker.mobs["Test Gnoll"].items["Guild Test Fang"] == 3)
     Check("the kill tally's own worth is untouched", Near(Value:FromTally("Test Gnoll"), 30),
@@ -470,6 +487,7 @@ do
     GuildShare:SetOn(false)
     loot = ns.LootTableUI:Table("Test Gnoll")
     Check("with guild sharing off the rate is his own", LootRow("Guild Test Fang").chance == 10, LootRow("Guild Test Fang").chance)
+    Check("and what only the guild had is gone", LootRow("Guild Test Ear") == nil and #loot.rows == 2, #loot.rows)
     Check("and so is the worth a kill", Near(loot.worth, 30), loot.worth)
     GuildShare:SetOn(true)
     Value.WorthOf = worthOf

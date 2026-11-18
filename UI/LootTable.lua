@@ -66,6 +66,14 @@ local FALLBACK_ICON = [[Interface\Icons\INV_Misc_QuestionMark]]
 local MAP_WIDTH = 56
 local MAP_LEFT = PADDING + 400
 
+-- The guild arrival (LootTableUI.PlayArrival), in seconds and pixels.
+local ARRIVAL_GLOW = 2.2
+local ARRIVAL_SLIDE = 0.5
+local ARRIVAL_SWEEP = 1.0
+local ARRIVAL_STAGGER = 0.25
+local ARRIVAL_SHIFT = 14
+local SWEEP_WIDTH = 90
+
 local function RateColor(chance)
     if chance >= 40 then return "good" end
     if chance >= 15 then return "accent" end
@@ -138,16 +146,41 @@ function LootTableUI:Table(mobName)
     end
 
     -- From the player's own MIN_KILLS on, the guild's corpses count beside
-    -- theirs in Drop Rate and Per Kill, for the items already listed
-    -- (GuildShare:LootFor; the owner, 2026-11-04). Nothing else moves.
+    -- theirs in Drop Rate and Per Kill (GuildShare:LootFor; the owner,
+    -- 2026-11-04). Items only the guild found are listed too, from the
+    -- first kill, with the player's own 0 and no rate until MIN_KILLS (the
+    -- owner, 2026-11-18). Kills, Total and Dropped stay the player's own.
     local guild
-    if loot.rated and ns.GuildShare and ns.GuildShare.LootFor then
+    if ns.GuildShare and ns.GuildShare.LootFor then
         local ok, got = pcall(ns.GuildShare.LootFor, ns.GuildShare, loot.mob)
         if ok and type(got) == "table" and (tonumber(got.kills) or 0) > 0 then guild = got end
     end
     local shift = 0
 
-    for _, item in ipairs(loot.items) do
+    local items = loot.items
+    if guild and type(guild.items) == "table" then
+        items = {}
+        local listed = {}
+        for _, item in ipairs(loot.items) do
+            items[#items + 1] = item
+            listed[item.name] = true
+        end
+        local extra = {}
+        for name, theirs in pairs(guild.items) do
+            local counted = tonumber(theirs.counted) or 0
+            if type(name) == "string" and not listed[name] and (tonumber(theirs.corpses) or 0) > 0
+                and ns.Tracker.Counts(name) then
+                extra[#extra + 1] = {
+                    name = name, corpses = 0, amount = 0, chance = 0, guildOnly = true,
+                    perCorpse = counted > 0 and (tonumber(theirs.count) or counted) / counted or 1,
+                }
+            end
+        end
+        table.sort(extra, function(a, b) return a.name < b.name end)
+        for _, item in ipairs(extra) do items[#items + 1] = item end
+    end
+
+    for _, item in ipairs(items) do
         local id = Value and Value:ItemID(item.name)
         local row = {
             name = item.name,
@@ -156,6 +189,7 @@ function LootTableUI:Table(mobName)
             total = ("x%d"):format(item.amount),
             corpses = item.corpses,
             amount = item.amount,
+            guildOnly = item.guildOnly,
         }
 
         if loot.rated then
@@ -307,6 +341,82 @@ local function CreateRow(row)
     row.fill = row:CreateTexture(nil, "ARTWORK")
     row.fill:SetPoint("BOTTOMLEFT", row.track, "BOTTOMLEFT")
     row.fill:SetHeight(2)
+
+    -- An item that just came in from the guild (LootTableUI.arrivals): a
+    -- gold edge and glow down its left that fade, and a light that sweeps
+    -- across its name once. Hidden the rest of the time.
+    row.guildEdge = row:CreateTexture(nil, "OVERLAY")
+    row.guildEdge:SetPoint("TOPLEFT")
+    row.guildEdge:SetPoint("BOTTOMLEFT")
+    row.guildEdge:SetWidth(3)
+    row.guildEdge:SetColorTexture(Theme.Unpack("accentHi"))
+    row.guildEdge:Hide()
+
+    row.guildGlow = row:CreateTexture(nil, "BACKGROUND", nil, 3)
+    row.guildGlow:SetPoint("TOPLEFT")
+    row.guildGlow:SetPoint("BOTTOMLEFT")
+    row.guildGlow:SetWidth(120)
+    row.guildGlow:SetColorTexture(1, 1, 1, 1)
+    row.guildGlow:Hide()
+
+    row.guildSweep = row:CreateTexture(nil, "BACKGROUND", nil, 4)
+    row.guildSweep:SetPoint("TOP")
+    row.guildSweep:SetPoint("BOTTOM")
+    row.guildSweep:SetWidth(SWEEP_WIDTH)
+    row.guildSweep:SetColorTexture(1, 1, 1, 1)
+    row.guildSweep:Hide()
+end
+
+--- Play the guild arrival on `row`: the row fades and slides in, its left
+--- edge and glow light up and fade, and a light sweeps across the name.
+--- "subtle" effects keep only the edge; "off" shows the row as it is.
+function LootTableUI.PlayArrival(row, order)
+    local Motion = ns.Motion
+    local edge, glow, sweep = row.guildEdge, row.guildGlow, row.guildSweep
+    local delay = math.min(order or 0, 8) * ARRIVAL_STAGGER
+    local level = Motion.Level()
+    if level == "off" then
+        LootTableUI.StopArrival(row)
+        return
+    end
+
+    edge:Show()
+    Motion:Run(row, "guildEdge", ARRIVAL_GLOW, function(p)
+        local light = 1 - p
+        edge:SetShown(light > 0)
+        edge:SetAlpha(light)
+        Theme.LightGradient(glow, "HORIZONTAL", "accentHi", 0.35, 0, light)
+    end, { delay = delay, done = function() edge:Hide() glow:Hide() end })
+
+    if level ~= "full" then return end
+    Motion:Run(row, "guildIn", ARRIVAL_SLIDE, function(p)
+        row:SetAlpha(math.max(0.01, p))
+        row.name:SetPoint("LEFT", row.icon, "RIGHT", 6 - ARRIVAL_SHIFT * (1 - p), 0)
+    end, { delay = delay, done = function()
+        row:SetAlpha(1)
+        row.name:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+    end })
+    local okWidth, rowWidth = pcall(row.GetWidth, row)
+    local width = math.max(1, okWidth and type(rowWidth) == "number" and rowWidth or 300)
+    Motion:Run(row, "guildSweep", ARRIVAL_SWEEP, function(p)
+        local light = math.sin(math.pi * p)
+        sweep:ClearAllPoints()
+        sweep:SetPoint("TOP")
+        sweep:SetPoint("BOTTOM")
+        sweep:SetPoint("LEFT", row, "LEFT", -SWEEP_WIDTH + (width + SWEEP_WIDTH) * p, 0)
+        Theme.LightGradient(sweep, "HORIZONTAL", "accentHi", 0, 0.3, light)
+    end, { delay = delay + ARRIVAL_SLIDE * 0.8, ease = false, done = function() sweep:Hide() end })
+end
+
+--- Put a row back as it is with no arrival (a recycled row, or effects off).
+function LootTableUI.StopArrival(row)
+    local Motion = ns.Motion
+    for _, slot in ipairs({ "guildEdge", "guildIn", "guildSweep" }) do Motion:Stop(row, slot) end
+    row.guildEdge:Hide()
+    row.guildGlow:Hide()
+    row.guildSweep:Hide()
+    row:SetAlpha(1)
+    row.name:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
 end
 
 -- How many of a clam's contents the tooltip lists.
@@ -454,6 +564,15 @@ local function UpdateRow(row, data)
         row.cells.perKill:SetText("--")
         row.cells.perKill:SetTextColor(Theme.Unpack("dim"))
     end
+
+    -- A row recycled for another item never carries on an arrival.
+    local arrivals = LootTableUI.arrivals
+    if arrivals and arrivals[data.name] then
+        LootTableUI.PlayArrival(row, arrivals[data.name])
+    elseif row.arrivalFor ~= data.name then
+        LootTableUI.StopArrival(row)
+    end
+    row.arrivalFor = data.name
 end
 
 function LootTableUI:Build()
@@ -782,14 +901,42 @@ function LootTableUI:Render()
 
     local fresh = self.shownMob ~= data.mob
     self.arriving = fresh
+    -- Items the guild just added to a window already open on this mob come
+    -- in with a glow, once (the owner, 2026-11-18). Opening fresh plays the
+    -- usual arrival instead.
+    local drawn = self.drawnNames
+    local names = {}
+    local arrivals, order = nil, 0
+    for _, row in ipairs(data.byTally) do
+        names[row.name] = true
+        if not fresh and drawn and not drawn[row.name] and row.guildOnly then
+            arrivals = arrivals or {}
+            arrivals[row.name] = order
+            order = order + 1
+        end
+    end
+    self.drawnNames = names
+    self.arrivals = arrivals
     -- A redraw after new loot keeps your place in a long list.
     self.list:SetData(data.rows, not fresh)
     self.arriving = false
+    self.arrivals = nil
+    if arrivals then self:PopStatus() end
 
     if fresh then
         self.list:Arrive()
     end
     self.shownMob = data.mob
+end
+
+--- The item count under the list gives a small gold pop as guild items
+--- come in.
+function LootTableUI:PopStatus()
+    local status = self.status
+    if not status or ns.Motion.Level() == "off" then return end
+    ns.Motion:Run(status, "pop", 0.6, function(p)
+        status:SetTextColor(ns.Motion.Mix("accentHi", "muted", p))
+    end, { delay = ARRIVAL_SLIDE, done = function() status:SetTextColor(Theme.Unpack("muted")) end })
 end
 
 --- A click on a column title: the same rows in the new order, from the

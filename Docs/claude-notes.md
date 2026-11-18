@@ -3031,3 +3031,17 @@ adds up a guildmate's records and says one line once they stop
 (`NOTICE_QUIET`), naming them in full. Tradeskills has the same switch for
 guild and realm prices. Never announced in release notes. Tested in
 `tools/test_guildshare.lua`.
+
+## Guild drops in the loot window
+
+Trent said build it (2026-11-18, from two mockups): with Share With Guild on,
+a mob's loot window lists items only the guild found from the player's first
+kill, with the player's own "0 of N" and "x0" and no rate. From MIN_KILLS on
+those rows get a rate blended like the rest (`LootTableUI.Blend`). Kills,
+Total and Dropped stay the player's own; nothing says "guild" in the window.
+Rows from the guild that appear while the window is open on the same mob
+play an arrival once (`LootTableUI.PlayArrival`: slide and fade in, a gold
+left edge and glow that fade, a light across the name; the status line pops
+gold). Opening fresh plays the usual arrival instead, a redraw plays
+nothing, "subtle" effects keep only the edge, "off" none. Tested in
+`tools/test_guildshare.lua` and `tools/test_loottable.lua`.
