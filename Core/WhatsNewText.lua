@@ -5,6 +5,9 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "1.27.0", lines = {
+        "Every window has a gold gem on its title bar. Click it to switch between the one window and separate windows.",
+    } },
     { version = "1.25.0", lines = {
         "The Kill Heat card starts smaller, and you can size it.",
         "A mob's card shows what you picked from its pockets.",
@@ -16,9 +19,5 @@ ns.WHATS_NEW = {
         "Settings pages sit in the same order in every Blackthornes addon.",
         "At a vendor, the window opens on Butler.",
         "Various bug fixes for Farmer.",
-    } },
-    { version = "1.21.0", lines = {
-        "Farmer has a new Farms tab. Save a farm and run it again with one click.",
-        "Pick the zone and the mob you want, and the best drop chance shows first.",
     } },
 }

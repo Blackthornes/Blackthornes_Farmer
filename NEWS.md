@@ -23,6 +23,12 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.27.0
+
+- Every window has a gold gem on its title bar. Click it to switch between the one window and separate windows.
+Fixes and changes:
+- Gather Route moves on to the next stop once you are within 30 yards.
+
 ## 1.25.0
 
 - The Kill Heat card starts smaller, and you can size it.
