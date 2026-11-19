@@ -3183,6 +3183,19 @@ goes on past it (`DrawCards`). A mob with pockets but no kills has no card;
 its pocket loot is on the Loot tab. Tested in `tools/test_pockets.lua`. Not
 yet seen in game.
 
+## Gather Route moves on from a distance
+
+Trent asked (2026-11-19): you shouldn't have to stand on a node for the route
+to move on, since the minimap shows whether it is up from well away. The stop
+the arrow points at (`run.aimed`) now counts as reached within
+`GatherRoute.REACH` (30 yards), once you were farther than that from it since
+it was aimed (`run.cameFrom`, `GatherRoute.Reach`), so a stop that comes next
+while you already stand near it still needs `ARRIVED` (12). Other stops keep
+`ARRIVED`, so passing one on the way doesn't check it. Picking a node of the
+same kind within `REACH` of the aimed stop moves it on too
+(`PickedNear(spot, fresh, within)`), counted as checked, not picked. No new
+settings or words. Tested in `tools/test_gatherroute.lua`.
+
 ## Gather Route, Route Window and Zone Board on by default
 
 Trent asked (2026-11-18) that Gather Route, Route Window and Zone Board be on for every player, existing ones too. Each now reads on unless saved `false` (`gatherRoute`, `routeWindow`, `zoneBoard`; never rename); ticking clears the key, unticking saves `false`. Players who had ticked one (`true`) keep it; the rest start on. The Route Window still shows only while a route runs, and the Zone Board shows its button on the Kills & Loot bar and its banner at a zone line's 20th kill. Tests that measure chip or bar layout switch the feature off first.

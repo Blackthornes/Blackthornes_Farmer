@@ -18,6 +18,7 @@ GatherRoute.MAX_STOPS = 40      -- the nearest this many make the loop
 GatherRoute.RUN_SPEED = 7       -- yards a second, running
 GatherRoute.GATHER_SECONDS = 3  -- a gather, a stop
 GatherRoute.ARRIVED = 12        -- yards: a stop you reach counts as checked
+GatherRoute.REACH = 30          -- yards: the stop the arrow points at counts once you're this close (a node shows on the minimap well before you stand on it)
 GatherRoute.LOOK = 1            -- seconds between looks while a route runs
 GatherRoute.PASSES = 4          -- 2-opt passes over the loop
 GatherRoute.COOLDOWN = 300      -- seconds a reached stop waits when its grow-back time isn't learned
@@ -957,19 +958,30 @@ end
 
 --- True when one of the `fresh` gathers is the same kind and within
 --- PICK_NEAR yards of `spot`: picked, out of order or under another name.
-function GatherRoute.PickedNear(spot, fresh)
+function GatherRoute.PickedNear(spot, fresh, within)
+    within = within or GatherRoute.PICK_NEAR
     for _, gathered in ipairs(fresh or {}) do
         if gathered ~= spot and gathered.kind == spot.kind and gathered.map == spot.map
-            and (GatherRoute.Yards(spot.map, spot.x, spot.y, gathered.x, gathered.y) or math.huge) <= GatherRoute.PICK_NEAR then
+            and (GatherRoute.Yards(spot.map, spot.x, spot.y, gathered.x, gathered.y) or math.huge) <= within then
             return true
         end
     end
     return false
 end
 
+--- How close counts as reaching `spot`: REACH for the stop the arrow points
+--- at, once you were farther than that from it since it was aimed (so a stop
+--- that comes next while you already stand near it is never skipped unseen);
+--- ARRIVED for the rest, so passing a stop on the way doesn't check it.
+function GatherRoute.Reach(run, spot)
+    if run and spot and run.aimed == spot and run.cameFrom == spot then return GatherRoute.REACH end
+    return GatherRoute.ARRIVED
+end
+
 --- One look while a route runs: a stop you picked (in order or not, or a
---- different herb grown at its place), or came within ARRIVED yards of, is
---- done and rests until it should be back.
+--- different herb grown at its place), or came within its reach of, is
+--- done and rests until it should be back. Picking a node of its kind near
+--- the stop the arrow points at moves on too.
 function GatherRoute:Look()
     local run = self.run
     if not run then return end
@@ -983,15 +995,23 @@ function GatherRoute:Look()
     local now = Clock()
     local moved = false
     local fresh = self:FreshGathers(run, started)
+    local aimed = run.aimed
     for _, spot in ipairs(self.order and self.order.list or {}) do
         if not run.visited[spot] then
             local last = Number(spot.last)
+            local yards = (map == spot.map and x and y) and GatherRoute.Yards(map, x, y, spot.x, spot.y) or nil
+            if spot == aimed and yards and yards > GatherRoute.REACH then run.cameFrom = spot end
             if (last and last >= started) or GatherRoute.PickedNear(spot, fresh) then
                 run.visited[spot], run.picked[spot] = true, true
                 self:Rest(spot, now, true)
                 moved = true
-            elseif map == spot.map and x and y
-                and GatherRoute.Yards(map, x, y, spot.x, spot.y) <= GatherRoute.ARRIVED then
+            elseif spot == aimed and GatherRoute.PickedNear(spot, fresh, GatherRoute.REACH) then
+                -- You picked another node close by: this one was taken or
+                -- gone, so on to the next.
+                run.visited[spot] = true
+                self:Rest(spot, now, false)
+                moved = true
+            elseif yards and yards <= GatherRoute.Reach(run, spot) then
                 -- Reached, gathered or not: on to the next, and this one
                 -- rests until it should be back.
                 run.visited[spot] = true
