@@ -77,7 +77,7 @@ end
 -- Settings
 --------------------------------------------------------------------------------
 
-function ZoneBoard.IsOn() return ns.db and ns.db.zoneBoard == true or false end
+function ZoneBoard.IsOn() return not (ns.db and ns.db.zoneBoard == false) end
 function ZoneBoard.BannerOn() return not (ns.db and ns.db.zoneBoardBanner == false) end
 function ZoneBoard.NearFirst() return not (ns.db and ns.db.zoneBoardNear == false) end
 function ZoneBoard.ShowDone() return ns.db and ns.db.zoneBoardShowDone == true or false end
@@ -98,7 +98,7 @@ end
 
 function ZoneBoard:SetOn(on)
     if not ns.db then return end
-    ns.db.zoneBoard = on and true or nil
+    if on then ns.db.zoneBoard = nil else ns.db.zoneBoard = false end
     if not on then self:StopHunt() end
     Redraw()
     Others()

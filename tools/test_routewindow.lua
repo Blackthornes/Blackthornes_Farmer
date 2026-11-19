@@ -22,11 +22,13 @@ check("the command is there", type(ns.commands.routewindow) == "table" and type(
 
 -- Off unless ticked ----------------------------------------------------------
 ns.db.routeWindow = nil
-check("off by default", RouteWindow.IsOn() == false)
+check("on by default", RouteWindow.IsOn() == true)
 RouteWindow:SetOn(true)
-check("ticking saves true", ns.db.routeWindow == true and RouteWindow.IsOn())
+check("ticking saves nothing", ns.db.routeWindow == nil and RouteWindow.IsOn())
 RouteWindow:SetOn(false)
-check("unticking saves nothing", ns.db.routeWindow == nil)
+check("unticking saves false", ns.db.routeWindow == false and RouteWindow.IsOn() == false)
+check("unticking saves false", ns.db.routeWindow == false and RouteWindow.IsOn() == false)
+RouteWindow:SetOn(true)
 
 -- When it shows ----------------------------------------------------------------
 local realRunning = GatherRoute.Running
@@ -133,17 +135,17 @@ ns.GatherToCap.ReadSkill = realRead
 -- /farm routewindow -------------------------------------------------------------
 local command = ns.commands.routewindow.fn
 command("on")
-check("on ticks it", ns.db.routeWindow == true)
+check("on ticks it", RouteWindow.IsOn() == true)
 command("off")
-check("off unticks it", ns.db.routeWindow == nil)
+check("off unticks it", ns.db.routeWindow == false)
 command("")
-check("alone it flips", ns.db.routeWindow == true)
+check("alone it flips", RouteWindow.IsOn() == true)
 ns.db.routeWindowScale = 120
 ns.db.windowSpots = { [RouteWindow.SPOT_KEY] = { x = 10, y = 20 } }
 command("reset")
 check("reset puts its size back", ns.db.routeWindowScale == nil)
 check("reset forgets its spot", ns.db.windowSpots[RouteWindow.SPOT_KEY] == nil)
-check("reset leaves it ticked", ns.db.routeWindow == true)
+check("reset leaves it ticked", RouteWindow.IsOn() == true)
 command("off")
 
 GatherRoute.Running = realRunning

@@ -3,7 +3,7 @@ local L = ns.L
 
 -- The small route window: floats on screen while a route runs with Route
 -- Mode ticked, so you can see the next stops and skip one without opening
--- the Grind tab. Off unless ticked ("Route Window:" under GATHER ROUTE on
+-- the Grind tab. On unless unticked ("Route Window:" under GATHER ROUTE on
 -- the Map & goals page). Saved, account wide, never renamed:
 -- `routeWindow` (nil off, true on), `routeWindowScale` (its size grip) and
 -- `routeWindowSeeThrough` (Transparent, UI/SeeThrough.lua's "route").
@@ -39,12 +39,12 @@ end
 
 --- Ticked in Settings.
 function RouteWindow.IsOn()
-    return ns.db and ns.db.routeWindow == true or false
+    return not (ns.db and ns.db.routeWindow == false)
 end
 
 function RouteWindow:SetOn(on)
     if not ns.db then return end
-    ns.db.routeWindow = on and true or nil
+    if on then ns.db.routeWindow = nil else ns.db.routeWindow = false end
     self.closed = nil
     self:Refresh()
 end
