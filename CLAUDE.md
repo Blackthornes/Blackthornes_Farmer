@@ -103,6 +103,7 @@ Sections there:
 - Ten Settings pages and the Windows table
 - Saved Farms
 - The Zone Board
+- The swap gem (One Window toggle, 2026-11-19)
 
 ## Checking a change
 

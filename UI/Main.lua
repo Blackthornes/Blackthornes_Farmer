@@ -323,6 +323,9 @@ function UI:Build()
             if not folded then UI:Refresh() end
         end })
     end
+    -- And left of it, the swap gem: it joins every Blackthornes addon into
+    -- the one window (UI/SharedWindow.lua).
+    if ns.SharedWindow and ns.SharedWindow.AddSwap then ns.SharedWindow.AddSwap(frame, "farmer") end
 
     frame:SetScript("OnDragStart", function(self)
         -- Land an opening still running, or it would pull the window back.
@@ -2211,6 +2214,11 @@ end
 FarmerTabs.host = {
     enter = function(area) FarmerTabs:Enter(area) end,
     leave = function() FarmerTabs:Leave() end,
+    -- For the swap gem (SharedWindow.AddSwap): the tab up now, open on a
+    -- tab wherever Farmer now belongs, and close its own windows.
+    tab = function() return FarmerTabs:SwapTab() end,
+    show = function(key) FarmerTabs:SwapShow(key) end,
+    hide = function() FarmerTabs:SwapHide() end,
 }
 
 --- A Farmer tab is asked to open. With "One Window:" ticked and Farmer not
@@ -2236,4 +2244,25 @@ function FarmerTabs:Closed(frame)
     if frame and frame.GetParent and frame:GetParent() ~= self.area then return end
     local One = FarmerTabs.One()
     if One and One.Close then pcall(One.Close) end
+end
+
+--- The tab up now, Settings included, or nil when no window shows.
+function FarmerTabs:SwapTab()
+    if Shown(FrameOf(ns.SettingsUI)) then return "settings" end
+    if Shown(FrameOf(UI)) then return rawget(UI, "tab") end
+    return nil
+end
+
+--- Open on `key` (nil: the tab it would open on anyway), in the one window
+--- when it is on, else in Farmer's own window.
+function FarmerTabs:SwapShow(key)
+    if FarmerTabs:Route(key) then return end
+    FarmerTabs:Open(key)
+end
+
+--- Close Farmer's own windows.
+function FarmerTabs:SwapHide()
+    if self.area then return end
+    UI:Hide()
+    if ns.SettingsUI then ns.SettingsUI:Hide() end
 end
