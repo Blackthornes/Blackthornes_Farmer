@@ -1724,6 +1724,12 @@ L["guildmates"] = "membres de la guilde"
 -- The fold gem beside a window's close gem (2026-10-24)
 L["Collapse this window"] = "Replier cette fenêtre"
 L["Expand this window"] = "Déplier cette fenêtre"
+L["Split Into Own Windows"] = "Séparer en fenêtres"
+L["Gives each addon its own window again."] = "Redonne à chaque addon sa propre fenêtre."
+L["You can join them back with this same button."] = "Tu peux les réunir avec ce même bouton."
+L["Join Into One Window"] = "Réunir en une fenêtre"
+L["Puts every Blackthornes addon in one window, with a button for each down the side."] = "Met tous les addons Blackthornes dans une seule fenêtre, avec un bouton pour chacun sur le côté."
+L["You can split them again with this same button."] = "Tu peux les séparer à nouveau avec ce même bouton."
 -- The Fishing window (2026-10-26)
 L["%s left"] = "encore %s"
 L["Add Lure"] = "Ajouter un appât"

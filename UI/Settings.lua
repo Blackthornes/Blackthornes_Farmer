@@ -445,6 +445,8 @@ function SettingsUI:Build()
             if not folded then SettingsUI:Refresh() end
         end })
     end
+    -- And the swap gem left of it, as on every other tab (UI/SharedWindow.lua).
+    if ns.SharedWindow and ns.SharedWindow.AddSwap then ns.SharedWindow.AddSwap(frame, "farmer") end
 
     frame:SetScript("OnDragStart", function(self)
         -- Land an opening still running, or it would pull the window back.
