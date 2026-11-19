@@ -11,6 +11,8 @@ local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("panelfit")
 
 local ns = env.Load({ ui = true })
+-- The Zone Board button (on unless unticked) widens the bar; this suite is of the card.
+ns.db.zoneBoard = false
 local Tracker = ns.Tracker
 local TUI = ns.TrackerUI
 

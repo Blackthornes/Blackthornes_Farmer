@@ -3182,3 +3182,7 @@ no loot table click. The drops' icons line carries `more = true` so the card
 goes on past it (`DrawCards`). A mob with pockets but no kills has no card;
 its pocket loot is on the Loot tab. Tested in `tools/test_pockets.lua`. Not
 yet seen in game.
+
+## Gather Route, Route Window and Zone Board on by default
+
+Trent asked (2026-11-18) that Gather Route, Route Window and Zone Board be on for every player, existing ones too. Each now reads on unless saved `false` (`gatherRoute`, `routeWindow`, `zoneBoard`; never rename); ticking clears the key, unticking saves `false`. Players who had ticked one (`true`) keep it; the rest start on. The Route Window still shows only while a route runs, and the Zone Board shows its button on the Kills & Loot bar and its banner at a zone line's 20th kill. Tests that measure chip or bar layout switch the feature off first.

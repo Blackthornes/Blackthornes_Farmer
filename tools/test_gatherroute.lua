@@ -18,18 +18,21 @@ check("the module loads", GatherRoute ~= nil and RouteMap ~= nil)
 
 -- Settings ------------------------------------------------------------------
 ns.db.gatherRoute, ns.db.gatherRouteZoneOnly, ns.db.gatherRouteDraw, ns.db.gatherRouteKinds = nil, nil, nil, nil
-check("off by default", GatherRoute.IsOn() == false)
+check("on by default", GatherRoute.IsOn() == true)
 check("Current Zone Only on by default", GatherRoute.ZoneOnly() == true)
 check("Draw on Maps on by default", GatherRoute.DrawsOnMaps() == true)
 check("herbs and ore on, skins off", GatherRoute.Ticked("herbs") and GatherRoute.Ticked("ore")
     and not GatherRoute.Ticked("skins"))
 local GrindingUI = ns.GrindingUI
+GatherRoute:SetOn(false)
 check("no Route Mode while off", GrindingUI.OffersRouteMode("herbs") == false)
+check("off saves false", ns.db.gatherRoute == false)
+ns.db.gatherRoute = nil
 ns.db.grindGives = "route"
 check("an old saved Route view reads as any mob", Grinding:Gives() == nil)
 
 GatherRoute:SetOn(true)
-check("on saves true", ns.db.gatherRoute == true)
+check("on saves nothing", ns.db.gatherRoute == nil and GatherRoute.IsOn())
 check("Route Mode shows on Herbs and Ore while on", GrindingUI.OffersRouteMode("herbs")
     and GrindingUI.OffersRouteMode("ore") and not GrindingUI.OffersRouteMode("cloth")
     and not GrindingUI.OffersRouteMode("fish"))
@@ -312,6 +315,6 @@ GatherRoute:SetOn(true)
 GatherRoute:SetOn(false)
 check("off again draws nothing", RouteMap.Plan() == nil and GrindingUI.OffersRouteMode("herbs") == false
     and GatherRoute.page == nil)
-check("off saves nothing", ns.db.gatherRoute == nil)
+check("off saves false", ns.db.gatherRoute == false)
 
 suite.done()

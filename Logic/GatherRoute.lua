@@ -6,7 +6,7 @@ local L = ns.L
 -- gathered yourself into one short loop, spots that should be back first,
 -- and the arrow walks you round it. Only your own spots (Gathering:Spots),
 -- only for gathering skills this character knows, never shipped or guild
--- data. Saved: the four settings, gatherRoute (off unless ticked),
+-- data. Saved: the four settings, gatherRoute (on unless unticked, saved false; Trent 2026-11-18),
 -- gatherRouteZoneOnly, gatherRouteDraw and gatherRouteKinds; Route Mode's
 -- tick on the Herbs, Ore and Leather pages (grindRouteMode, by page, off
 -- unless ticked); and where you skinned (skinSpots), for Leather's route.
@@ -52,11 +52,11 @@ end
 --------------------------------------------------------------------------------
 
 function GatherRoute.IsOn()
-    return ns.db and ns.db.gatherRoute == true
+    return not (ns.db and ns.db.gatherRoute == false)
 end
 
 function GatherRoute:SetOn(on)
-    ns.db.gatherRoute = on and true or nil
+    if on then ns.db.gatherRoute = nil else ns.db.gatherRoute = false end
     if not on then
         self:Stop()
         self.page = nil

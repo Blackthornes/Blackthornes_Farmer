@@ -64,8 +64,9 @@ local PELT = { name = "Wolf Pelt Test", id = 99101 }
 local SILK = { name = "Spider Silk Test", id = 99102 }
 
 -- Off until ticked ------------------------------------------------------------
-check("off by default", ZoneBoard.IsOn() == false and ns.db.zoneBoard == nil)
+check("on by default", ZoneBoard.IsOn() == true and ns.db.zoneBoard == nil)
 check("the banner is on unless unticked", ZoneBoard.BannerOn())
+ZoneBoard:SetOn(false)
 check("the window will not open while off", UI:Show() == false and not UI:Shown())
 env.chat = {}
 ns.commands.zone.fn("")
@@ -84,7 +85,7 @@ for _ = 1, 19 do Loot("Test Spider", { COINS, SILK }) end
 Loot("Test Wolf", { COINS }, "Elwynn Forest")
 
 ZoneBoard:SetOn(true)
-check("ticking saves true", ns.db.zoneBoard == true and ZoneBoard.IsOn())
+check("ticking saves nothing", ns.db.zoneBoard == nil and ZoneBoard.IsOn())
 ZoneBoard:Learn("target", "Gorefang Test")
 check("a rare is learned in game", ns.db.zoneBoardLeftOut["Gorefang Test"] == "rare")
 _G.UnitClassification = function() return "normal" end
@@ -311,7 +312,7 @@ check("after the fight it catches up", ZoneBoard.waiting == nil)
 -- Turning it off -----------------------------------------------------------------------
 ZoneBoard:StartHunt("Test Bear")
 ZoneBoard:SetOn(false)
-check("off stops the hunt and saves nothing", ZoneBoard.hunt == nil and ns.db.zoneBoard == nil)
+check("off stops the hunt and saves false", ZoneBoard.hunt == nil and ns.db.zoneBoard == false)
 check("off hides the window", not UI:Shown())
 
 -- /farm zone -------------------------------------------------------------------------------

@@ -270,6 +270,9 @@ end
 -- One window size for every view, and the Cloth/Leather/Ore/Herbs chips
 -- stay put (2026-10-14: the window moved with each click and Herbs wrapped).
 do
+    -- The Route Mode tick adds a chip of its own (it is on unless unticked
+    -- now), so this check is of the four plain chips.
+    ns.db.gatherRoute = false
     UI:ShowTab("grind")
     local widths, spots, lines = {}, {}, {}
     for _, word in ipairs({ "cloth", "leather", "ore", "herbs" }) do
@@ -289,6 +292,7 @@ do
     check("and the window is the grind width", widths[1] == GrindingUI.TargetWidth(), widths[1])
     check("the Cloth chip stays in place", still, table.concat(spots, " "))
     check("the chips keep their rows", oneLine, table.concat(lines, " "))
+    ns.db.gatherRoute = nil
 end
 
 suite.done()
