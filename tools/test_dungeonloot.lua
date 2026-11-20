@@ -16,6 +16,11 @@ suite.check("a creature guid gives its ID",
     Harvest.NpcID("Creature-0-4621-389-76516-11320-0000CB0C4B") == 11320)
 suite.check("a pet's does not", Harvest.NpcID("Pet-0-4615-1-548-165189-0200360DE2") == nil)
 suite.check("nor a secret value", Harvest.NpcID(env.Secret("string")) == nil)
+-- Forever 1.60.1 scrambles the realm, server and spawn parts of a
+-- creature's guid (2026-11-20): the mob ID is still read.
+suite.check("a scrambled creature guid still gives its ID",
+    Harvest.NpcID("Creature-0-x9F3A-B7-C1D2-11320-Z0Q8W1") == 11320)
+suite.check("a scrambled pet's still does not", Harvest.NpcID("Pet-0-x9F3A-B7-C1D2-165189-Z0Q8W1") == nil)
 
 -- The corpse targeted, its name and guid hidden.
 _G.UnitName = function() return env.Secret("string") end
