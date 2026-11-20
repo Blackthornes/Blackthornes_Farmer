@@ -373,7 +373,7 @@ end
 
 function RouteWindow:OnEnable()
     if ns.RegisterEvent then
-        ns.RegisterEvent("PLAYER_REGEN_ENABLED", function()
+        ns.RegisterEvent(self, "PLAYER_REGEN_ENABLED", function()
             if RouteWindow.waiting then
                 RouteWindow.waiting = nil
                 RouteWindow:Refresh()
