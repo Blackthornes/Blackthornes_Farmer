@@ -4,6 +4,15 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.27.1
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Trip line.** The trip line and stop dots now draw on the world map.
+- **Item search.** Item search in Deutsch and other languages finds items you looted that the shipped data lacks.
+- **Route Window.** The Route Window clears after a fight.
+- **Clear Panel.** Clear Panel keeps a saved farm run's gold.
+
 ## 1.27.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
