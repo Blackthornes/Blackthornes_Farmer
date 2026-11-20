@@ -248,7 +248,58 @@ function Fishing:OnChannelStart(unit)
     self.castCount = (self.castCount or 0) + 1
     local seen = self.hoveredObject
     local near = seen and seen.at and now and now - seen.at <= HOVER_SECONDS and seen.name or nil
-    self.cast = { school = school, looked = looked, number = self.castCount, near = near }
+    self.cast = { school = school, looked = looked, number = self.castCount, near = near,
+        soft = Fishing.InteractTarget() }
+end
+
+--------------------------------------------------------------------------------
+-- The check, for a report: what the game said about the last few casts.
+--------------------------------------------------------------------------------
+
+local CHECK_KEPT = 8
+
+--- What the interact key would pick right now, as "name (kind id)", or nil.
+function Fishing.InteractTarget()
+    if type(UnitGUID) ~= "function" then return nil end
+    local okGuid, guid = pcall(UnitGUID, "softinteract")
+    guid = okGuid and ns.Harvest.Readable(guid) or nil
+    local okName, name = false, nil
+    if type(UnitName) == "function" then okName, name = pcall(UnitName, "softinteract") end
+    name = okName and ns.Harvest.Readable(name) or nil
+    if not guid and not name then return nil end
+    return ("%s (%s %s)"):format(name or "?", guid and guid:match("^(%a+)") or "?",
+        tostring(Fishing.ObjectID(guid)))
+end
+
+--- Keep what one catch showed, for `/farm fishing check`. This session only.
+function Fishing:NoteForCheck(cast, guess, fromLoot)
+    local sources = {}
+    for _, guid in ipairs(ns.Harvest:LootSources()) do
+        sources[#sources + 1] = ("%s %s"):format(guid:match("^(%a+)") or "?",
+            tostring(Fishing.ObjectID(guid)))
+    end
+    local notes = self.checkNotes or {}
+    self.checkNotes = notes
+    notes[#notes + 1] = ("cast %s: looked at %s, under the mouse %s, guess %s, interact at cast %s, "
+        .. "interact at catch %s, loot from [%s], loot says %s"):format(
+        tostring(cast and cast.number), tostring(cast and cast.looked and cast.school or nil),
+        tostring(cast and cast.near), tostring(guess), tostring(cast and cast.soft),
+        tostring(Fishing.InteractTarget()), table.concat(sources, ", "),
+        fromLoot == false and "open water" or tostring(fromLoot))
+    while #notes > CHECK_KEPT do table.remove(notes, 1) end
+end
+
+function Fishing:Check()
+    ns.Print("fishing check (fish a school and some open water first):")
+    local count = 0
+    for _ in pairs(self:SchoolStore()) do count = count + 1 end
+    ns.PrintRaw(("  schools learned: %d, loot sources readable: %s, fishing loot readable: %s"):format(
+        count, tostring(type(GetLootSourceInfo) == "function"),
+        tostring(ns.Harvest:Capabilities().fishingLoot == true)))
+    ns.PrintRaw(("  interact now: %s"):format(tostring(Fishing.InteractTarget())))
+    local notes = self.checkNotes or {}
+    if #notes == 0 then ns.PrintRaw("  no catch yet this session") end
+    for _, note in ipairs(notes) do ns.PrintRaw("  " .. note) end
 end
 
 --------------------------------------------------------------------------------
@@ -670,7 +721,11 @@ function Fishing:SchoolFromLoot(cast)
         return nil
     end
 
-    if bobber then return false end
+    -- The bobber means open water only on a client that has shown, once, that
+    -- a school hands out its own catch. On one where every catch comes off
+    -- the bobber (the owner's, 2026-11-20) it says nothing, and the school
+    -- you moused over stays the school.
+    if bobber and next(self:SchoolStore()) ~= nil then return false end
     return nil
 end
 
@@ -705,7 +760,9 @@ function Fishing:OnLoot()
     -- The loot window has the last word: a catch off a school is the
     -- school's even when nothing was moused over, and a catch off the bobber
     -- is open water even when the cast looked like a recast into a school.
+    local guess = cast and cast.school
     local ok, fromLoot = pcall(self.SchoolFromLoot, self, cast)
+    self:NoteForCheck(cast, guess, ok and fromLoot)
     if ok and fromLoot ~= nil then
         cast = cast or {}
         cast.school = fromLoot or nil
@@ -934,6 +991,11 @@ end
 
 ns.RegisterCommand("fishing", L["what you've caught in this zone (all for everywhere)"], function(rest)
     local argument = Util.Trim(rest):lower()
+
+    if argument == "check" then
+        ns.KeepCheck("fishing check", Fishing.Check, Fishing)
+        return
+    end
 
     if argument == "reset" then
         ns.Print(L.Format("this deletes all %s you have recorded, for good. Type /farm fishing reset confirm to do it.",

@@ -74,6 +74,36 @@ local function Casts(school)
     return spot and spot.casts or 0
 end
 
+-- The owner (2026-11-20): "fished lots of schools and it doesn't detect it
+-- even with mouse over it". His save had learned no school at all: on his
+-- client a school's catch comes off the bobber too. Until the game has shown
+-- once that a school hands out its own catch, the bobber says nothing, and
+-- the school you moused over is the school.
+CastAndCatch(Bobber(), OILY, "Sagefish School")
+suite.check("a moused-over school counts though the catch came off the bobber",
+    Casts("Sagefish School") == 1, Casts("Sagefish School"))
+-- A recast from a key, standing still, with no second look.
+tooltip.text = nil
+clock = clock + 60
+CastAndCatch(Bobber(), OILY)
+suite.check("so does the recast into it", Casts("Sagefish School") == 2, Casts("Sagefish School"))
+suite.check("and no bobber was learned as a school", next(Fishing:SchoolStore()) == nil)
+
+-- The check tells what the game said, cast by cast, and is kept to read.
+_G.UnitGUID = function(unit) if unit == "softinteract" then return "GameObject-0-1-0-0-35591-00000000F1" end end
+_G.UnitName = function(unit) if unit == "softinteract" then return "Fishing Bobber" end end
+CastAndCatch(Bobber(), OILY, "Sagefish School")
+local okCheck = pcall(ns.KeepCheck, "fishing check", Fishing.Check, Fishing)
+local probe = ns.db.lastProbe
+local last = probe and probe.lines and probe.lines[#probe.lines] or ""
+suite.check("the fishing check runs and is kept", okCheck and probe.check == "fishing check")
+suite.check("it names what was looked at, the interact target and the loot's source",
+    last:find("looked at Sagefish School", 1, true) and last:find("Fishing Bobber (GameObject 35591)", 1, true)
+        and last:find("loot from [GameObject 35591]", 1, true), last)
+_G.UnitGUID = function() return env.Secret("guid") end
+suite.check("a secret interact target raises nothing", pcall(CastAndCatch, Bobber(), OILY, "Sagefish School"))
+_G.UnitGUID, _G.UnitName = nil, nil
+
 -- A German client: the school's name matches no English ending.
 CastAndCatch(POOL, OILY, "Ölige Schwarzmaulschule")
 CastAndCatch(POOL, OILY, "Ölige Schwarzmaulschule")

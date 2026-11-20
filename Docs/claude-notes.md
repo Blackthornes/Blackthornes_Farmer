@@ -500,6 +500,21 @@ learned school a school by its guid. A client that names no loot source
 keeps the old way. Chests are still told by English endings. Tested in
 `tools/test_fishschools.lua`.
 
+The owner (2026-11-20): "fished lots of schools and it doesn't detect it
+even with mouse over it". His save had 31 fishing spots, one school and an
+empty `fishingSchools`: on his client a school's catch seems to come off
+the bobber too, so "off the bobber is open water" overruled every school he
+moused over. Now the bobber means open water only once `fishingSchools`
+holds a school, which proves the client hands a school's catch out from the
+school; until then the mouse over and the recast guess stand, as before
+2026-11-16. `/farm fishing check` (`Fishing:Check`, `ns.KeepCheck`, English
+only, in no help line) keeps what the last 8 catches showed
+(`Fishing:NoteForCheck`, session only): the school looked at, the thing
+under the mouse, the interact target at the cast and at the catch
+(`Fishing.InteractTarget`) and each loot source's kind and entry ID. Not
+yet seen in game; read the probe before building more on the loot window
+or the interact target.
+
 ## The Fishing window
 
 The owner said build it (2026-10-26, from a mockup): a small window with
