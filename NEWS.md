@@ -23,6 +23,12 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.27.2
+
+Fixes and changes:
+- Fishing schools count again when you mouse over them. Type /farm fishing check to see what the game reports.
+- Kills and drops go to the right mob again.
+
 ## 1.27.1
 
 Fixes and changes:

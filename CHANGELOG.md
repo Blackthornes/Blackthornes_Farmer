@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.27.2
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Fishing schools.** Fishing schools count again when you mouse over them. Type /farm fishing check to see what the game reports.
+- **Mob drops.** Kills and drops go to the right mob again.
+
 ## 1.27.1
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
