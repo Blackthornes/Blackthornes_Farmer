@@ -125,7 +125,6 @@ Why: A release must never lose drops, and the corpse notes live beside the data.
 Lines: IsOwner|goal\.owner|\.owner\s*=
 Check: Ask Goals:IsOwner, never compare keys by hand (tools/test_goals.lua).
 Why: One key per character.
-  list stretched every Butler tab off the bottom of the screen (2026-11-18).
 
 ## Two values from one call
 Lines: local \w+, \w+ = [^,]+ and [\w.:]+\(
