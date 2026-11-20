@@ -516,7 +516,7 @@ end
 --- is 11320), or nil for anything else.
 function Harvest.NpcID(guid)
     if type(guid) ~= "string" then return nil end
-    local kind, id = guid:match("^(%a+)%-%d+%-%d+%-%d+%-%d+%-(%d+)%-")
+    local kind, id = guid:match("^(%a+)%-[^%-]+%-[^%-]+%-[^%-]+%-[^%-]+%-(%d+)%-")
     if kind ~= "Creature" and kind ~= "Vehicle" then return nil end
     return tonumber(id)
 end
