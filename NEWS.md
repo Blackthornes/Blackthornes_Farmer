@@ -23,6 +23,14 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.27.1
+
+Fixes and changes:
+- The trip line and stop dots now draw on the world map.
+- Item search in Deutsch and other languages finds items you looted that the shipped data lacks.
+- The Route Window clears after a fight.
+- Clear Panel keeps a saved farm run's gold.
+
 ## 1.27.0
 
 - Every window has a gold gem on its title bar. Click it to switch between the one window and separate windows.
