@@ -2458,6 +2458,10 @@ drops some of a burst (2026-11-09, a German player's "Wollstoff",
 "Mittleres Leder" and "Zinnerz" found nothing). When names come in,
 `DB.namesWatchers` are told once a burst settles, and the Search tab runs
 again (`UI:NamesArrived`); its item heading shows the client's name.
+An item you found somewhere the data does not list is shown as a copy
+(`Search:WithYourSpots`), and `DB:ClientName` gives a copy (same name and
+ID) the data item's client name (2026-11-20: "Wollstoff" found nothing
+for a German player who had looted wool off a mob the data never named).
 Tested in `tools/test_germansearch.lua`.
 
 The translation (the owner said yes, 2026-10-11, after Pets' pilot):
