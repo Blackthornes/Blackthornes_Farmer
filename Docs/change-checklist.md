@@ -59,10 +59,12 @@ Why: Forever is a retail engine with classic rules; several calls are
 
 ## Events, timers and redraws
 Lines: RegisterEvent|OnUpdate|C_Timer\.(After|NewTicker|NewTimer)
-Check: Register through ns.RegisterEvent. Coalesce bag, loot, cast and skill
-  bursts. Nothing on a timer rebuilds a whole list when one thing moved, and
+Check: Register through ns.RegisterEvent, the owner first:
+  `ns.RegisterEvent(self, "EVENT", fn)`. Without the owner nothing is heard
+  and nothing says so. Coalesce bag, loot, cast and skill bursts. Nothing on a timer rebuilds a whole list when one thing moved, and
   hidden windows skip the work.
 Why: Hitches while crafting and a once-a-second minimap redraw (2026-10-09).
+  A window that waited for a fight to end and never heard it (2026-11-20).
 
 ## Walking a table that may change
 Lines: \bpairs\(

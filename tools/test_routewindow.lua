@@ -148,6 +148,38 @@ check("reset forgets its spot", ns.db.windowSpots[RouteWindow.SPOT_KEY] == nil)
 check("reset leaves it ticked", RouteWindow.IsOn() == true)
 command("off")
 
+-- A route that ends in a fight ---------------------------------------------------
+-- The window can't change in a fight, so it waits; when the fight ends it
+-- has to hear so and go (2026-11-20: it never did, and stayed up).
+RouteWindow:OnEnable()
+local fighting = false
+local realCombat = _G.InCombatLockdown
+_G.InCombatLockdown = function() return fighting end
+running = true
+GatherRoute.page = "herb"
+RouteWindow:SetOn(true)
+RouteWindow:Refresh()
+check("up while the route runs", RouteWindow.frame ~= nil and RouteWindow.frame:IsShown() == true)
+fighting = true
+running = false
+RouteWindow:Refresh()
+check("it waits out the fight", RouteWindow.frame:IsShown() == true and RouteWindow.waiting == true)
+fighting = false
+ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "PLAYER_REGEN_ENABLED")
+check("the fight over, it goes", RouteWindow.frame:IsShown() == false and RouteWindow.waiting == nil)
+-- And one that starts in a fight comes up when it ends.
+fighting = true
+running = true
+RouteWindow:Refresh()
+check("a route started in a fight waits", RouteWindow.frame:IsShown() == false)
+fighting = false
+ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "PLAYER_REGEN_ENABLED")
+check("and shows after it", RouteWindow.frame:IsShown() == true)
+running = false
+RouteWindow:Refresh()
+_G.InCombatLockdown = realCombat
+RouteWindow:SetOn(false)
+
 GatherRoute.Running = realRunning
 GatherRoute.page = nil
 suite.done()

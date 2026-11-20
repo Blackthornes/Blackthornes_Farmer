@@ -408,4 +408,23 @@ suite.check("an old save loads with Saved Farms on and no farms", ns3.SavedFarms
 local ns4 = Login({ goals = { list = {} }, savedFarms = false }, "Blackthornes")
 suite.check("a save that unticked it keeps it off", ns4.SavedFarms.On() == false)
 
+-- Clear Panel in the middle of a run: the run keeps the gold from before
+-- and after it (2026-11-20: a run that looted 3g was kept as 0).
+local ns5 = Login()
+local F5 = ns5.SavedFarms
+ns5.Value.UnitPrice = function() return nil end
+copper = 50000
+local cleared = F5:Save({ name = "Silk Cloth", item = "Silk Cloth", amount = 60, how = "goal" })
+suite.check("a run starts on a panel that already holds gold", F5:Start(cleared.id) == true)
+clock = clock + 300
+copper = copper + 20000
+ns5.Session:Clear()
+copper = 0
+clock = clock + 300
+copper = copper + 10000
+local kept = F5:End("stop")
+suite.check("the run keeps its gold through Clear Panel", kept ~= nil and kept.copper == 30000)
+-- Clear with no run under way changes nothing.
+suite.check("Clear with no run is fine", pcall(ns5.Session.Clear, ns5.Session) == true and F5.run == nil)
+
 suite.done()
