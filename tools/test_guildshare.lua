@@ -416,6 +416,19 @@ do
     Check("and shows no rate until he has his own, not even the guild's", loot.rows[1].chance == nil
         and loot.rows[1].rate == nil, loot.rows[1].chance)
     Check("with no value off it", loot.rows[1].perKill == nil)
+    -- Items only the guild found are listed from his first kill, with his
+    -- own 0 and no rate (the owner, 2026-11-18).
+    local gnollKey = "Test Gnoll|Redridge Mountains|Camp"
+    bob.db.guildDrops[gnollKey].items["Guild Test Ear"] = { name = "Guild Test Ear", count = 8, corpses = 4 }
+    GuildShare:DropsChanged()
+    loot = ns.LootTableUI:Table("Test Gnoll")
+    local ear = loot.rows[2]
+    Check("an item only the guild found is listed before twenty kills", #loot.rows == 2 and ear.name == "Guild Test Ear",
+        #loot.rows)
+    Check("with his own count, nothing", ear.dropped == "0 of 3" and ear.total == "x0", ear.dropped)
+    Check("and no rate or value yet", ear.chance == nil and ear.rate == nil and ear.perKill == nil)
+    Check("it is marked as the guild's for the arrival", ear.guildOnly == true and loot.rows[1].guildOnly == nil)
+    Check("his kills stay three", loot.kills == 3 and bob.db.tracker.mobs["Test Gnoll"].items["Guild Test Ear"] == nil)
     -- Past twenty kills the guild's corpses count beside his in Drop Rate
     -- and Per Kill, for the items already on his table (2026-11-04).
     local Value = ns.Value
@@ -437,7 +450,11 @@ do
     Check("and so does the worth a kill at the top", Near(loot.worth, 13 / 70 * 100 + 6 / 70 * 100), loot.worth)
     Check("his kills and counts stay his own", loot.kills == 30 and fangRow.dropped == "3 of 30" and fangRow.total == "x3",
         fangRow.dropped)
-    Check("no row is added for what only the guild had", #loot.rows == 2, #loot.rows)
+    local earRow = LootRow("Guild Test Ear")
+    Check("what only the guild had gets a row", #loot.rows == 3 and earRow ~= nil, #loot.rows)
+    Check("rated over every kill, his and theirs", earRow and Near(earRow.chance, 4 / 70 * 100), earRow and earRow.chance)
+    Check("its own count stays nothing", earRow and earRow.dropped == "0 of 30" and earRow.total == "x0")
+    Check("an item with no price adds no value", earRow and earRow.perKill == nil, earRow and earRow.perKill)
     Check("his tally was never added to", bob.db.tracker.mobs["Test Gnoll"].kills == 30
         and bob.db.tracker.mobs["Test Gnoll"].items["Guild Test Fang"] == 3)
     Check("the kill tally's own worth is untouched", Near(Value:FromTally("Test Gnoll"), 30),
@@ -470,6 +487,7 @@ do
     GuildShare:SetOn(false)
     loot = ns.LootTableUI:Table("Test Gnoll")
     Check("with guild sharing off the rate is his own", LootRow("Guild Test Fang").chance == 10, LootRow("Guild Test Fang").chance)
+    Check("and what only the guild had is gone", LootRow("Guild Test Ear") == nil and #loot.rows == 2, #loot.rows)
     Check("and so is the worth a kill", Near(loot.worth, 30), loot.worth)
     GuildShare:SetOn(true)
     Value.WorthOf = worthOf
@@ -563,6 +581,58 @@ do
     Check("two guildmates with that first name: neither is guessed", GuildShare:PartnerFor("Ana") == nil)
     Check("their whole names still work", GuildShare:PartnerFor("Ana Jones") == other)
     GuildShare.bySender = saved
+end
+
+-- Chat Notice (2026-11-18): off unless ticked; one line per guildmate's
+-- batch, once the records stop coming.
+do
+    Switch(ana)
+    local print, after = ns.Print, _G.C_Timer.After
+    local printed, waiting = {}, {}
+    ns.Print = function(text) printed[#printed + 1] = text end
+    _G.C_Timer.After = function(delay, fn) waiting[#waiting + 1] = { at = clock + delay, fn = fn } end
+    local function Wait(seconds)
+        local stop = clock + seconds
+        while true do
+            table.sort(waiting, function(a, b) return a.at < b.at end)
+            local due = waiting[1]
+            if not due or due.at > stop then break end
+            table.remove(waiting, 1)
+            clock = math.max(clock, due.at)
+            due.fn()
+        end
+        clock = stop
+    end
+    local dee = { key = "guild:dee", name = "Dee Brown-Realm" }
+    local eli = { key = "guild:eli", name = "Eli Stone" }
+
+    Check("Chat Notice starts off", ns.db.sharedChatNotice == false)
+    GuildShare:NoteHeard(dee, 4)
+    Wait(120)
+    Check("off, nothing is said", #printed == 0, printed[1])
+
+    ns.db.sharedChatNotice = true
+    GuildShare:NoteHeard(dee, 4)
+    Wait(20)
+    GuildShare:NoteHeard(dee, 8)
+    Wait(20)
+    Check("nothing said while records still come", #printed == 0, printed[1])
+    Wait(20)
+    Check("one line once they stop", #printed == 1, #printed)
+    Check("naming them in full, every mob counted", printed[1] == "Got drops for 12 mobs from Dee Brown in your guild.",
+        printed[1])
+    GuildShare:NoteHeard(eli, 1)
+    Wait(60)
+    Check("one mob reads right", printed[2] == "Got drops for 1 mob from Eli Stone in your guild.", printed[2])
+    GuildShare:NoteHeard(dee, 0)
+    Wait(60)
+    Check("nothing taken, nothing said", #printed == 2, #printed)
+    GuildShare:NoteHeard(dee, 3)
+    ns.db.sharedChatNotice = false
+    Wait(60)
+    Check("turned off while waiting, nothing said", #printed == 2, #printed)
+
+    ns.Print, _G.C_Timer.After = print, after
 end
 
 -- A save from before this existed loads with it off.

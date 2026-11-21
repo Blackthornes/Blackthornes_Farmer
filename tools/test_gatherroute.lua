@@ -18,18 +18,21 @@ check("the module loads", GatherRoute ~= nil and RouteMap ~= nil)
 
 -- Settings ------------------------------------------------------------------
 ns.db.gatherRoute, ns.db.gatherRouteZoneOnly, ns.db.gatherRouteDraw, ns.db.gatherRouteKinds = nil, nil, nil, nil
-check("off by default", GatherRoute.IsOn() == false)
+check("on by default", GatherRoute.IsOn() == true)
 check("Current Zone Only on by default", GatherRoute.ZoneOnly() == true)
 check("Draw on Maps on by default", GatherRoute.DrawsOnMaps() == true)
 check("herbs and ore on, skins off", GatherRoute.Ticked("herbs") and GatherRoute.Ticked("ore")
     and not GatherRoute.Ticked("skins"))
 local GrindingUI = ns.GrindingUI
+GatherRoute:SetOn(false)
 check("no Route Mode while off", GrindingUI.OffersRouteMode("herbs") == false)
+check("off saves false", ns.db.gatherRoute == false)
+ns.db.gatherRoute = nil
 ns.db.grindGives = "route"
 check("an old saved Route view reads as any mob", Grinding:Gives() == nil)
 
 GatherRoute:SetOn(true)
-check("on saves true", ns.db.gatherRoute == true)
+check("on saves nothing", ns.db.gatherRoute == nil and GatherRoute.IsOn())
 check("Route Mode shows on Herbs and Ore while on", GrindingUI.OffersRouteMode("herbs")
     and GrindingUI.OffersRouteMode("ore") and not GrindingUI.OffersRouteMode("cloth")
     and not GrindingUI.OffersRouteMode("fish"))
@@ -268,6 +271,39 @@ do
     check("ore picked near a herb stop is not its pick", GatherRoute.PickedNear({ map = 1, x = 0.1, y = 0.1, kind = "herb" },
         { { map = 1, x = 0.1, y = 0.1, kind = "ore" } }) == false)
 
+    -- From a distance: the stop the arrow points at counts once you come
+    -- within REACH yards, after walking in from farther out.
+    check("the reach is about 30 yards", GatherRoute.REACH == 30 and GatherRoute.ARRIVED < GatherRoute.REACH)
+    do
+        local run = { aimed = "a" }
+        check("a stop aimed while you stand near it needs you close", GatherRoute.Reach(run, "a") == GatherRoute.ARRIVED)
+        run.cameFrom = "a"
+        check("walked in from afar, it counts at 30 yards", GatherRoute.Reach(run, "a") == GatherRoute.REACH)
+        check("a stop you pass on the way still needs you close", GatherRoute.Reach(run, "b") == GatherRoute.ARRIVED)
+    end
+    GatherRoute.cooldown = {}
+    GatherRoute.run.visited, GatherRoute.run.picked = {}, {}
+    GatherRoute.order, GatherRoute.cache = nil, nil
+    GatherRoute:Advance()
+    local aimed = GatherRoute.run.aimed
+    check("a stop is aimed for the reach test", aimed ~= nil)
+    if aimed then
+        here[1], here[2], here[3] = aimed.map, aimed.x + 0.1, aimed.y -- 100 yards off
+        GatherRoute:Look()
+        check("100 yards off, the stop still waits", GatherRoute.run.aimed == aimed)
+        here[2] = aimed.x + 0.025 -- 25 yards off
+        GatherRoute:Look()
+        check("25 yards off, the route moves on", GatherRoute.run.aimed ~= aimed and GatherRoute.run.visited[aimed])
+        check("the stop seen from afar rests", GatherRoute.Resting(aimed, clock) ~= nil)
+        check("and isn't marked picked", not GatherRoute.run.picked[aimed])
+    end
+    check("a pick 25 yards from the aimed stop moves it on",
+        GatherRoute.PickedNear({ map = 1, x = 0.1, y = 0.1, kind = "herb" },
+            { { map = 1, x = 0.125, y = 0.1, kind = "herb" } }, GatherRoute.REACH) == true)
+    check("but isn't a pick of a stop it isn't aimed at",
+        GatherRoute.PickedNear({ map = 1, x = 0.1, y = 0.1, kind = "herb" },
+            { { map = 1, x = 0.125, y = 0.1, kind = "herb" } }) == false)
+
     clock = clock + GatherRoute.COOLDOWN + 1
     check("the rest ends after its window", GatherRoute.Resting(first, clock) == nil)
     GatherRoute:Stop()
@@ -312,6 +348,6 @@ GatherRoute:SetOn(true)
 GatherRoute:SetOn(false)
 check("off again draws nothing", RouteMap.Plan() == nil and GrindingUI.OffersRouteMode("herbs") == false
     and GatherRoute.page == nil)
-check("off saves nothing", ns.db.gatherRoute == nil)
+check("off saves false", ns.db.gatherRoute == false)
 
 suite.done()

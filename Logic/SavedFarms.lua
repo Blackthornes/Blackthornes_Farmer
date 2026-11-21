@@ -46,7 +46,7 @@ SavedFarms.PAGES = { Herbalism = "herbs", Mining = "ore", Leatherworking = "skin
 SavedFarms.version = 0
 
 -- The run under way, in memory only: { id, guid, started, clock, have,
--- kills, copper, timer }. A /reload or logging out ends it.
+-- kills, copper, banked, timer }. A /reload or logging out ends it.
 SavedFarms.run = nil
 
 local function Now()
@@ -595,7 +595,7 @@ function SavedFarms:End(why, reached)
 
     local unit = farm and not kills and UnitPrice(farm.item)
     local itemsCopper = unit and unit * got or 0
-    local copper = SessionCopper() - (active.copper or 0)
+    local copper = (active.banked or 0) + SessionCopper() - (active.copper or 0)
     if copper < itemsCopper then copper = itemsCopper end
 
     -- The run is kept only on the character it started on.
@@ -621,6 +621,15 @@ function SavedFarms:End(why, reached)
     end
     Changed()
     return run
+end
+
+--- Clear panel is about to empty the counts (Session:Clear): what the run
+--- gathered so far is set aside, and it counts on from an empty panel.
+function SavedFarms:PanelClearing()
+    local active = self.run
+    if not active then return end
+    active.banked = (active.banked or 0) + math.max(0, SessionCopper() - (active.copper or 0))
+    active.copper = 0
 end
 
 --------------------------------------------------------------------------------

@@ -323,6 +323,9 @@ function UI:Build()
             if not folded then UI:Refresh() end
         end })
     end
+    -- And left of it, the swap gem: it joins every Blackthornes addon into
+    -- the one window (UI/SharedWindow.lua).
+    if ns.SharedWindow and ns.SharedWindow.AddSwap then ns.SharedWindow.AddSwap(frame, "farmer") end
 
     frame:SetScript("OnDragStart", function(self)
         -- Land an opening still running, or it would pull the window back.
@@ -1891,6 +1894,7 @@ function UI:BuildMinimapButton()
     end)
 
     button:SetScript("OnClick", function(_, mouseButton)
+        if mouseButton == "LeftButton" and UI.OpenZoneBoard() then return end
         if mouseButton == "RightButton" and ns.SettingsUI then
             ns.SettingsUI:Toggle()
         elseif mouseButton == "MiddleButton" then
@@ -1909,6 +1913,9 @@ function UI:BuildMinimapButton()
         GameTooltip:AddLine(L["Click to open"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Right-click for settings"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Middle-click to bring back your panels"], 0.7, 0.7, 0.7)
+        if ns.ZoneBoard and ns.ZoneBoard.IsOn() then
+            GameTooltip:AddLine(L["Shift-click for the Zone Board"], 0.7, 0.7, 0.7)
+        end
         GameTooltip:AddLine(L["Drag to move it round the minimap"], 0.5, 0.5, 0.5)
         GameTooltip:Show()
     end)
@@ -1942,6 +1949,18 @@ function UI:BringBackPanels()
     if not brought and GoalsUI then GoalsUI:ToggleOrHint() end
 end
 
+--- Shift-click on the minimap button: the Zone Board, while it is ticked.
+--- True when it opened or closed. `shifted` says Shift is known held.
+function UI.OpenZoneBoard(shifted)
+    if not shifted then
+        local ok, held = pcall(function() return IsShiftKeyDown and IsShiftKeyDown() end)
+        shifted = ok and held
+    end
+    if not (shifted and ns.ZoneBoard and ns.ZoneBoard.IsOn() and ns.ZoneBoardUI) then return false end
+    ns.ZoneBoardUI:Toggle()
+    return true
+end
+
 --- Sign up for the shared Blackthornes button (UI/SharedMinimap.lua).
 function UI:JoinSharedMinimap()
     if not ns.SharedMinimap or not self.minimapButton then return end
@@ -1954,6 +1973,8 @@ function UI:JoinSharedMinimap()
         open = function() UI:Toggle() end,
         settings = function() if ns.SettingsUI then ns.SettingsUI:Toggle() end end,
         middle = function() UI:BringBackPanels() end,
+        -- Shift-click opens the Zone Board while it is ticked, else Farmer.
+        shift = function() if not UI.OpenZoneBoard(true) then UI:Toggle() end end,
         db = function() return ns.db end,
     })
     -- And the one Blackthornes window (UI/SharedWindow.lua). Until this
@@ -2193,6 +2214,11 @@ end
 FarmerTabs.host = {
     enter = function(area) FarmerTabs:Enter(area) end,
     leave = function() FarmerTabs:Leave() end,
+    -- For the swap gem (SharedWindow.AddSwap): the tab up now, open on a
+    -- tab wherever Farmer now belongs, and close its own windows.
+    tab = function() return FarmerTabs:SwapTab() end,
+    show = function(key) FarmerTabs:SwapShow(key) end,
+    hide = function() FarmerTabs:SwapHide() end,
 }
 
 --- A Farmer tab is asked to open. With "One Window:" ticked and Farmer not
@@ -2218,4 +2244,25 @@ function FarmerTabs:Closed(frame)
     if frame and frame.GetParent and frame:GetParent() ~= self.area then return end
     local One = FarmerTabs.One()
     if One and One.Close then pcall(One.Close) end
+end
+
+--- The tab up now, Settings included, or nil when no window shows.
+function FarmerTabs:SwapTab()
+    if Shown(FrameOf(ns.SettingsUI)) then return "settings" end
+    if Shown(FrameOf(UI)) then return rawget(UI, "tab") end
+    return nil
+end
+
+--- Open on `key` (nil: the tab it would open on anyway), in the one window
+--- when it is on, else in Farmer's own window.
+function FarmerTabs:SwapShow(key)
+    if FarmerTabs:Route(key) then return end
+    FarmerTabs:Open(key)
+end
+
+--- Close Farmer's own windows.
+function FarmerTabs:SwapHide()
+    if self.area then return end
+    UI:Hide()
+    if ns.SettingsUI then ns.SettingsUI:Hide() end
 end

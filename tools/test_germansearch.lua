@@ -117,6 +117,31 @@ suite.check("the late name tells the lists too", told > toldBefore, told)
 suite.check("the client's name is kept", DB:ClientName(DB:GetItem("Wool Cloth")) == "Wollstoff")
 suite.check("English still finds it", Finds(ns, "Wool Cloth", WOOL))
 
+-- A German player's search for "Wollstoff" found nothing again
+-- (2026-11-20, Farmer 1.27.0). They had looted Wool Cloth somewhere the
+-- data does not list, so the search showed a copy of the item with their
+-- spots added, and the client's name was only kept for the data's own
+-- item, not for the copy. The heading said "Wool Cloth" too.
+ns.Harvest.records["Testgnoll|Westfall|"] = {
+    mob = "Testgnoll", zone = "Westfall", minLevel = 20, maxLevel = 21,
+    corpses = 30,
+    items = { ["Wollstoff"] = { corpses = 9, count = 12, id = WOOL } },
+}
+ns.Harvest.changes = (ns.Harvest.changes or 0) + 1
+ns.Search.found = nil
+local woolItem = DB:GetItem("Wool Cloth")
+ns.Search:FoundItems()
+local woolShown = ns.Search:WithYourSpots(woolItem)
+suite.check("your own spot makes a copy to show", woolShown ~= woolItem)
+suite.check("Wollstoff still finds Wool Cloth with your spots", Finds(ns, "Wollstoff", WOOL))
+suite.check("the copy keeps the client's name", DB:ClientName(woolShown) == "Wollstoff",
+    DB:ClientName(woolShown))
+suite.check("a found item of another name gets no client name",
+    DB:ClientName({ name = "Testding", id = WOOL }) == nil)
+ns.Harvest.records["Testgnoll|Westfall|"] = nil
+ns.Harvest.changes = ns.Harvest.changes + 1
+ns.Search.found = nil
+
 -- An item the server never names stops being asked after a few passes.
 local never = DB:GetItem("Linen Cloth")
 suite.check("an item never named is asked a few times only",

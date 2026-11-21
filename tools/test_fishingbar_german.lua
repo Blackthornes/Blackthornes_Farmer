@@ -120,6 +120,31 @@ suite.check("no colour to read: the skill read decides", lures[1].usable == fals
 lures = Bar:Lures(60)
 suite.check("a skill that reaches it lets it on", lures[1].usable == true)
 
+-- 4. The live German client writes its line with numbered slots
+-- ("%1$s", "%2$d"); that broke the pattern with "invalid capture index".
+-- Other clients may number theirs too, or put a dot or bracket in it.
+local forms = {
+    { "Benötigt %1$s (%2$d)", "Benötigt Angeln (50)" },
+    { "Requires %1$s (%2$d)", "Requires Fishing (50)" },
+    { "Nécessite %s (%d)", "Nécessite Pêche (50)" },
+    { "Требуется: %s (%d).", "Требуется: Рыбная ловля (50)." },
+    { "需要%1$s（%2$d）", "需要钓鱼（50）" },
+    { "[%s] +%d*?^$", "[Angeln] +50*?^$" },
+}
+lineColor = WHITE
+for _, form in ipairs(forms) do
+    _G.ITEM_MIN_SKILL = form[1]
+    _G.C_TooltipInfo.GetItemByID = function()
+        return { lines = { { leftText = form[2], leftColor = WHITE } } }
+    end
+    Bar.needs = {}
+    local ok, need = pcall(Bar.Needs, Bar, 6530)
+    suite.check("\"" .. form[1] .. "\" reads the need", ok and need == 50, tostring(need))
+    local short
+    ok, short = pcall(Bar.Short, Bar, 6530)
+    suite.check("\"" .. form[1] .. "\" reads the colour", ok and short == false, tostring(short))
+end
+
 GatherToCap.ReadSkill = realRead
 _G.GetNumSkillLines, _G.GetSkillLineInfo, _G.GetLocale, _G.C_Spell = nil, nil, nil, nil
 _G.C_TooltipInfo, _G.ITEM_MIN_SKILL = nil, nil

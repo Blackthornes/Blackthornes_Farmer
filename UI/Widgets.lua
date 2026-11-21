@@ -2473,6 +2473,7 @@ end
 ---   done(percent)    after a drag or a right-click: save the window's spot,
 ---                    put back what was hidden, dock it again
 ---   name             "window" or "panel", for the tooltip
+---   default          the size a right-click puts back (100 unless given)
 -- The grip's tooltip, whole for each window kind so a translation can put
 -- its own article and word order round the noun.
 local GRIP_TIPS = {
@@ -2572,9 +2573,10 @@ function Widgets.CreateSizeGrip(frame, opts)
 
     grip:SetScript("OnMouseDown", function(self, button)
         if button == "RightButton" then
-            Resize(100)
-            if opts.save then opts.save(100) end
-            if opts.done then opts.done(100) end
+            local first = Widgets.ClampSize(opts.default or 100, low, high)
+            Resize(first)
+            if opts.save then opts.save(first) end
+            if opts.done then opts.done(first) end
             return
         end
         if button ~= "LeftButton" then return end

@@ -75,6 +75,13 @@ local function Stub(fields)
     function frame:SetMinMaxValues(low, high) self._min, self._max = low, high end
     function frame:SetValue(value) self._value = value end
     function frame:GetValue() return self._value or 0 end
+    function frame:SetAlpha(value) self._alpha = value end
+    function frame:GetAlpha() return rawget(self, "_alpha") or 1 end
+    -- A click runs OnClick, as the game's Button:Click does.
+    function frame:Click(button)
+        local fn = self._scripts.OnClick
+        if fn then fn(self, button or "LeftButton") end
+    end
 
     frame._scripts = frame._scripts or {}
     frame._events = frame._events or {}
@@ -377,6 +384,7 @@ local FILES = {
     "Logic/Contribute.lua",
     "Logic/CSV.lua",
     "Logic/SavedFarms.lua",
+    "Logic/ZoneBoard.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
@@ -423,6 +431,8 @@ local UI_FILES = {
     "UI/GatherToCap.lua",
     "UI/GatherRoute.lua",
     "UI/RouteWindow.lua",
+    "UI/ZoneBoard.lua",
+    "UI/ZoneBoardFX.lua",
     "UI/Stats.lua",
     "UI/SavedFarms.lua",
     "UI/MapMarkers.lua",

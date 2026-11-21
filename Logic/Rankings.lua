@@ -150,50 +150,116 @@ end
 
 -- The owner asked (2026-10-18) for a tick box on Rankings that leaves
 -- Uncommon, Rare and Epic drops out of what a kill is worth, so the board
--- ranks what a mob gives every time. Off unless ticked, kept in
--- `rankingsSkipUncommon` (account wide, never rename it). It moves
+-- ranks what a mob gives every time. Kept in `rankingsSkipUncommon`
+-- (account wide, never rename it).
+--
+-- A player asked, the owner said build it (2026-11-18, from a mockup): the
+-- box became "Exclude Rarity:", a drop-down of what is left out: "none"
+-- (every drop, the default), "epic" (Epic and better), "rare" (Rare and
+-- better) or "uncommon" (Uncommon and better, the old box ticked). Kept in
+-- `rankingsExclude` (account wide, never rename it). A save from before
+-- with the box ticked and no `rankingsExclude` reads as "uncommon";
+-- `rankingsSkipUncommon` is kept in step and never deleted. A change moves
 -- `outsideVersion` too, so the rank-up order is laid out again.
 
-function Rankings.SkipUncommon()
-    return ns.db ~= nil and ns.db.rankingsSkipUncommon == true
+Rankings.EXCLUDE = { "none", "epic", "rare", "uncommon" }
+-- The lowest item quality each choice leaves out.
+Rankings.EXCLUDE_FROM = { epic = 4, rare = 3, uncommon = 2 }
+
+function Rankings.Exclude()
+    local db = ns.db
+    if not db then return "none" end
+    local saved = db.rankingsExclude
+    if saved == "none" or Rankings.EXCLUDE_FROM[saved] then return saved end
+    return db.rankingsSkipUncommon == true and "uncommon" or "none"
 end
 
-function Rankings:SetSkipUncommon(on)
+function Rankings:SetExclude(choice)
     if not ns.db then return end
-    on = on and true or false
-    if (ns.db.rankingsSkipUncommon == true) == on then return end
-    ns.db.rankingsSkipUncommon = on
+    if choice ~= "none" and not self.EXCLUDE_FROM[choice] then return end
+    local was = self.Exclude()
+    ns.db.rankingsExclude = choice
+    ns.db.rankingsSkipUncommon = choice == "uncommon"
+    if was == choice then return end
     self.outsideVersion = self.outsideVersion + 1
     if ns.RankingsUI then ns.RankingsUI:Refresh() end
 end
 
---- Is a priced drop Uncommon or better? Its loot link's colour, else the
---- client's quality. A drop whose quality is not known yet stays in.
-function Rankings.IsUncommonOrBetter(drop)
+--- The words a player sees for each choice, in the drop-down and in chat.
+function Rankings.ExcludeWord(choice)
+    local words = {
+        none = L["Nothing"],
+        epic = L["Epic and Above"],
+        rare = L["Rare and Above"],
+        uncommon = L["Uncommon and Above"],
+    }
+    return words[choice] or words.none
+end
+
+-- Each choice in the colour of the lowest rarity it leaves out.
+Rankings.EXCLUDE_COLORS = { epic = "ffa335ee", rare = "ff0070dd", uncommon = "ff1eff00" }
+
+--- The drop-down's options, in order, each { text, value }.
+function Rankings.ExcludeOptions()
+    local options = {}
+    for _, choice in ipairs(Rankings.EXCLUDE) do
+        local text = Rankings.ExcludeWord(choice)
+        local color = Rankings.EXCLUDE_COLORS[choice]
+        options[#options + 1] = { text = color and ("|c" .. color .. text .. "|r") or text, value = choice, plain = text }
+    end
+    return options
+end
+
+--- The old tick box's question: are Uncommon and better left out?
+function Rankings.SkipUncommon()
+    return Rankings.Exclude() == "uncommon"
+end
+
+function Rankings:SetSkipUncommon(on)
+    self:SetExclude(on and "uncommon" or "none")
+end
+
+--- A priced drop's quality: its loot link's colour, else the client's.
+--- Nil while it is not known.
+function Rankings.QualityOf(drop)
     local WorldDrops = ns.WorldDrops
-    if not (WorldDrops and WorldDrops.QualityOf and drop) then return false end
+    if not (WorldDrops and WorldDrops.QualityOf and drop) then return nil end
     local id = drop.id
     if not id and ns.Tracker and ns.Tracker.LookOf then id = ns.Tracker:LookOf(drop.name).id end
     if not id and ns.Value.ItemID then id = ns.Value:ItemID(drop.name) end
     local quality = WorldDrops.QualityOf(id, drop.name)
-    return type(quality) == "number" and quality >= 2
+    return type(quality) == "number" and quality or nil
 end
 
---- A worth and its details with Uncommon and better drops taken out: coin
---- and the drops left. A fresh details table; the one given is untouched.
-function Rankings.WithoutUncommon(value, details)
+--- Is a priced drop Uncommon or better? A drop whose quality is not
+--- known yet stays in.
+function Rankings.IsUncommonOrBetter(drop)
+    local quality = Rankings.QualityOf(drop)
+    return quality ~= nil and quality >= 2
+end
+
+--- A worth and its details with drops of quality `from` and better taken
+--- out: coin and the drops left. A fresh details table; the one given is
+--- untouched. A drop whose quality is not known yet stays in.
+function Rankings.WithoutQuality(value, details, from)
     local kept = {}
     for key, field in pairs(details) do kept[key] = field end
     kept.priced = {}
     local total = tonumber(details.coin) or 0
     for _, drop in ipairs(details.priced or {}) do
-        if not Rankings.IsUncommonOrBetter(drop) then
+        local quality = Rankings.QualityOf(drop)
+        if not (quality and quality >= from) then
             kept.priced[#kept.priced + 1] = drop
             total = total + (drop.perKill or 0)
         end
     end
     if #kept.priced == #(details.priced or {}) then return value, details end
     return total, kept
+end
+
+--- The same with Uncommon and better taken out.
+function Rankings.WithoutUncommon(value, details)
+    return Rankings.WithoutQuality(value, details, 2)
 end
 
 -- The owner said build it (2026-11-15, from a mockup): a tick box on
@@ -312,7 +378,8 @@ end
 --- One entry for a mob, or nil when it is on no list.
 function Rankings:Entry(mobName)
     local value, details = ns.Value:ForMob(mobName)
-    if value and self.SkipUncommon() then value, details = self.WithoutUncommon(value, details) end
+    local excludeFrom = self.EXCLUDE_FROM[self.Exclude()]
+    if value and excludeFrom then value, details = self.WithoutQuality(value, details, excludeFrom) end
     if value and self.VendorOnly() then value, details = self.WithVendorPrices(value, details) end
     local summary = ns.Tracker:Summary(mobName)
     local spot = self:Spot(mobName)
@@ -410,14 +477,22 @@ ns.RegisterCommand("rankings", L["mobs ranked by what a kill is worth, or only t
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end
-    if word == "uncommon" then
-        if value == "on" or value == "off" then
-            Rankings:SetSkipUncommon(value == "on")
-        else
-            Rankings:SetSkipUncommon(not Rankings.SkipUncommon())
+    if word == "uncommon" or word == "exclude" then
+        if word == "uncommon" then
+            if value == "on" or value == "off" then
+                Rankings:SetSkipUncommon(value == "on")
+            else
+                Rankings:SetSkipUncommon(not Rankings.SkipUncommon())
+            end
+        elseif value == "none" or Rankings.EXCLUDE_FROM[value] then
+            Rankings:SetExclude(value)
         end
-        ns.Print(Rankings.SkipUncommon() and L["Rankings leave Uncommon and better drops out of worth per kill."]
-            or L["Rankings count every drop in worth per kill."])
+        local choice = Rankings.Exclude()
+        if choice == "none" then
+            ns.Print(L["Rankings count every drop in worth per kill."])
+        else
+            ns.Print(L.Format("Worth per kill leaves out drops that are %s.", Rankings.ExcludeWord(choice)))
+        end
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end

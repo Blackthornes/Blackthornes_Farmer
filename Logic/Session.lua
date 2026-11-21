@@ -43,8 +43,9 @@ local Session = ns.NewModule("Session")
 Session.FIELDS = {
     Tracker = {
         -- sessionZones: kills by zone's key, for a name split by zone.
-        counts = { "session", "sessionLoot", "sessionZones" },
-        nested = { "sessionFrom" },
+        counts = { "session", "sessionLoot", "sessionZones", "sessionPockets",
+            "sessionPocketCopper" },
+        nested = { "sessionFrom", "sessionPocketFrom" },
         recent = "recent",
         numbers = { "sessionCopper" },
         best = "bestStreak",
@@ -286,6 +287,11 @@ end
 --- corpses already opened are still known, so one opened again is no new
 --- kill.
 function Session:Clear()
+    -- A saved farm's run sets aside what it gathered before the counts go.
+    if ns.SavedFarms and ns.SavedFarms.PanelClearing then
+        pcall(ns.SavedFarms.PanelClearing, ns.SavedFarms)
+    end
+
     for _, name in ipairs(ORDER) do
         local module = ns[name]
         local fields = self.FIELDS[name]

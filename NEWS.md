@@ -23,6 +23,32 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.27.2
+
+Fixes and changes:
+- Fishing schools count again when you mouse over them. Type /farm fishing check to see what the game reports.
+- Kills and drops go to the right mob again.
+
+## 1.27.1
+
+Fixes and changes:
+- The trip line and stop dots now draw on the world map.
+- Item search in Deutsch and other languages finds items you looted that the shipped data lacks.
+- The Route Window clears after a fight.
+- Clear Panel keeps a saved farm run's gold.
+
+## 1.27.0
+
+- Every window has a gold gem on its title bar. Click it to switch between the one window and separate windows.
+Fixes and changes:
+- Gather Route moves on to the next stop once you are within 30 yards.
+
+## 1.25.0
+
+- The Kill Heat card starts smaller, and you can size it.
+- A mob's card shows what you picked from its pockets.
+- A new Exclude Rarity choice leaves rarities out of worth per kill.
+
 ## 1.22.1
 
 Fixes and changes:

@@ -516,7 +516,7 @@ end
 --- is 11320), or nil for anything else.
 function Harvest.NpcID(guid)
     if type(guid) ~= "string" then return nil end
-    local kind, id = guid:match("^(%a+)%-%d+%-%d+%-%d+%-%d+%-(%d+)%-")
+    local kind, id = guid:match("^(%a+)%-[^%-]+%-[^%-]+%-[^%-]+%-[^%-]+%-(%d+)%-")
     if kind ~= "Creature" and kind ~= "Vehicle" then return nil end
     return tonumber(id)
 end
@@ -780,6 +780,8 @@ function Harvest:NoteUnit(unit)
 
     -- Its creature type, for the Grind tab (Logic/Grinding.lua).
     if ns.Grinding then ns.Grinding:Learn(unit, name) end
+    -- Rares, bosses and town guards, left off the Zone Board.
+    if ns.ZoneBoard then ns.ZoneBoard:Learn(unit, name) end
 end
 
 function Harvest:KnownUnit(guid)

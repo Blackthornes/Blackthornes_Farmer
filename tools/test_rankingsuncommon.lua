@@ -5,6 +5,8 @@
 -- coin and common drops stay, a drop whose quality is not known stays, the
 -- order follows the new worth, the rank-up order is laid out again, and
 -- the tick box, Settings and /farm rankings uncommon all write the same key.
+-- Since 2026-11-18 it is "Exclude Rarity:", a drop-down of Nothing, Epic and
+-- Above, Rare and Above or Uncommon and Above.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("rankingsuncommon")
@@ -83,14 +85,88 @@ board = Rankings:Build()
 wolf = Find(board.measured, "Green Wolf")
 suite.check("off again, the green counts", wolf and wolf.value > 5000)
 
--- The tab's tick box says the same.
+-- Exclude Rarity (a player asked, the owner said build it 2026-11-18):
+-- the box became a drop-down of which rarity and better to leave out.
+suite.check("Exclude starts on Nothing", Rankings.Exclude() == "none")
+QUALITY[7003] = 3
+AUCTION[7003] = 8000
+for _ = 1, 20 do
+    Loot("Blue Wolf", { { name = "Large Fang", id = 5637 }, { name = "Blue Blade", id = 7003, color = "ff0070dd" } })
+end
+local blue
+board = Rankings:Build()
+blue, wolf = Find(board.measured, "Blue Wolf"), Find(board.measured, "Green Wolf")
+suite.check("Nothing counts the blue", blue and blue.value > 8000)
+suite.check("Nothing counts the green", wolf and wolf.value > 5000)
+
+stamp = ns.RankUp.Stamp()
+ns.HandleSlash("rankings exclude rare")
+suite.check("/farm rankings exclude rare sets it", Rankings.Exclude() == "rare" and ns.db.rankingsExclude == "rare")
+suite.check("the old key stays off for Rare", ns.db.rankingsSkipUncommon == false)
+suite.check("picking a rarity moves the rank-up stamp", ns.RankUp.Stamp() ~= stamp)
+board = Rankings:Build()
+blue, wolf = Find(board.measured, "Blue Wolf"), Find(board.measured, "Green Wolf")
+suite.check("Rare and Above leaves the blue out", blue and blue.value < 100)
+suite.check("Rare and Above keeps the green", wolf and wolf.value > 5000)
+suite.check("Rare and Above puts the green wolf first", wolf and wolf.rank == 1)
+
+ns.HandleSlash("rankings exclude epic")
+board = Rankings:Build()
+blue = Find(board.measured, "Blue Wolf")
+suite.check("Epic and Above keeps the blue", blue and blue.value > 8000)
+
+ns.HandleSlash("rankings exclude uncommon")
+suite.check("Uncommon and Above is the old box ticked", Rankings.SkipUncommon() and ns.db.rankingsSkipUncommon == true)
+board = Rankings:Build()
+wolf = Find(board.measured, "Green Wolf")
+suite.check("Uncommon and Above leaves the green out", wolf and wolf.value < 100)
+
+ns.HandleSlash("rankings exclude nonsense")
+suite.check("a word it doesn't know changes nothing", Rankings.Exclude() == "uncommon")
+ns.HandleSlash("rankings exclude none")
+suite.check("/farm rankings exclude none counts every drop", Rankings.Exclude() == "none")
+
+-- A save from before: the box ticked, no new key.
+ns.db.rankingsExclude = nil
+ns.db.rankingsSkipUncommon = true
+suite.check("an old save with the box ticked reads as Uncommon and Above", Rankings.Exclude() == "uncommon")
+ns.db.rankingsSkipUncommon = false
+suite.check("an old save with the box off reads as Nothing", Rankings.Exclude() == "none")
+
+suite.check("the choices run Nothing, Epic, Rare, Uncommon", (function()
+    local options = Rankings.ExcludeOptions()
+    return #options == 4 and options[1].value == "none" and options[2].value == "epic"
+        and options[3].value == "rare" and options[4].value == "uncommon"
+        and options[1].plain == "Nothing" and options[3].plain == "Rare and Above"
+end)())
+
+-- The tab's drop-down and Settings say the same.
 ns.UI:Show()
 ns.UI:ShowTab("rankings")
-suite.check("the tab has the box", ns.RankingsUI.uncommon ~= nil)
-suite.check("the tab's box shows it off", ns.RankingsUI.uncommon and not ns.RankingsUI.uncommon:GetChecked())
-ns.RankingsUI.uncommon:GetScript("OnClick")(ns.RankingsUI.uncommon)
-suite.check("ticking the tab's box turns it on", Rankings.SkipUncommon())
+local drop = ns.RankingsUI.exclude
+suite.check("the tab has the drop-down", drop ~= nil and ns.RankingsUI.uncommon == nil)
+suite.check("the tab's drop-down shows Nothing", drop and drop:GetValue() == "none")
+drop:GetScript("OnMouseDown")(drop)
+drop.entries[3]:GetScript("OnClick")()
+suite.check("picking Rare and Above on the tab sets it", Rankings.Exclude() == "rare")
 ns.HandleSlash("rankings uncommon")
-suite.check("/farm rankings uncommon on its own toggles it", not Rankings.SkipUncommon())
+suite.check("/farm rankings uncommon on its own toggles to Uncommon and Above", Rankings.Exclude() == "uncommon")
+ns.RankingsUI:Render()
+suite.check("the tab's drop-down follows the command", drop:GetValue() == "uncommon")
+ns.HandleSlash("rankings uncommon off")
+suite.check("/farm rankings uncommon off goes back to Nothing", Rankings.Exclude() == "none")
+
+ns.HandleSlash("settings")
+local controls = ns.SettingsUI.controls
+suite.check("Settings has the drop-down", controls and controls.rankingsExclude ~= nil
+    and controls.rankingsSkipUncommon == nil)
+if controls and controls.rankingsExclude then
+    local box = controls.rankingsExclude
+    box:GetScript("OnMouseDown")(box)
+    box.entries[2]:GetScript("OnClick")()
+    suite.check("picking Epic and Above in Settings sets it", Rankings.Exclude() == "epic")
+    ns.HandleSlash("rankings exclude rare")
+    suite.check("Settings follows the command", box:GetValue() == "rare")
+end
 
 suite.done()

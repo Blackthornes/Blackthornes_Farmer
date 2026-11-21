@@ -4,6 +4,61 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.27.2
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Fishing schools.** Fishing schools count again when you mouse over them. Type /farm fishing check to see what the game reports.
+- **Mob drops.** Kills and drops go to the right mob again.
+
+## 1.27.1
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Trip line.** The trip line and stop dots now draw on the world map.
+- **Item search.** Item search in Deutsch and other languages finds items you looted that the shipped data lacks.
+- **Route Window.** The Route Window clears after a fight.
+- **Clear Panel.** Clear Panel keeps a saved farm run's gold.
+
+## 1.27.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **One Window switch.** Every Blackthornes window has a gold gem on its title bar. It swaps between the one window and each addon's own windows.
+- **Gather Route.** The route moves on to the next stop once you are within 30 yards of the current one.
+
+## 1.26.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Bug fixes.** Various bug fixes for Farmer.
+
+## 1.25.0
+
+For WoW: Forever (interface 16001). A full restart is needed after updating.
+
+- **Kill Heat.** The Kill Heat card starts smaller and you can drag its corner to size it.
+- **Picked pockets.** A mob's card in Kills & Loot shows what you picked from it.
+- **Exclude Rarity.** On the Rankings tab and in Settings > Windows > Rankings, pick which rarities to leave out of worth per kill.
+
+## 1.24.0
+
+For WoW: Forever (interface 16001). A full restart is needed after updating.
+
+- **Bug fixes.** Various bug fixes for Farmer.
+
+## 1.23.0
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Bug fixes.** Various bug fixes for Farmer.
+
+## 1.22.2
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Bug fixes.** Various bug fixes for Farmer.
+
 ## 1.22.1
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.

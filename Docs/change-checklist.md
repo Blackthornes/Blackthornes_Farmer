@@ -59,10 +59,12 @@ Why: Forever is a retail engine with classic rules; several calls are
 
 ## Events, timers and redraws
 Lines: RegisterEvent|OnUpdate|C_Timer\.(After|NewTicker|NewTimer)
-Check: Register through ns.RegisterEvent. Coalesce bag, loot, cast and skill
-  bursts. Nothing on a timer rebuilds a whole list when one thing moved, and
+Check: Register through ns.RegisterEvent, the owner first:
+  `ns.RegisterEvent(self, "EVENT", fn)`. Without the owner nothing is heard
+  and nothing says so. Coalesce bag, loot, cast and skill bursts. Nothing on a timer rebuilds a whole list when one thing moved, and
   hidden windows skip the work.
 Why: Hitches while crafting and a once-a-second minimap redraw (2026-10-09).
+  A window that waited for a fight to end and never heard it (2026-11-20).
 
 ## Walking a table that may change
 Lines: \bpairs\(
@@ -123,3 +125,10 @@ Why: A release must never lose drops, and the corpse notes live beside the data.
 Lines: IsOwner|goal\.owner|\.owner\s*=
 Check: Ask Goals:IsOwner, never compare keys by hand (tools/test_goals.lua).
 Why: One key per character.
+
+## Two values from one call
+Lines: local \w+, \w+ = [^,]+ and [\w.:]+\(
+Check: `local x, y = thing and Call()` keeps only the first value, so `y` is
+  always nil. Declare the locals, then `if thing then x, y = Call() end`.
+Why: The trip line never drew on the world map: y was nil and the draw
+  raised inside its pcall, in all five addons (2026-11-20).

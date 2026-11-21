@@ -28,7 +28,7 @@ end
 -- section changes this line too, and tools/check_release.py refuses a tag it
 -- does not match. Played straight from the repository there is no packager
 -- to fill in the TOC's version, so this is the one shown.
-ns.RELEASED_VERSION = "1.22.1"
+ns.RELEASED_VERSION = "1.27.2"
 
 -- The TOC carries @project-version@, which the release packager rewrites to
 -- the tag it is building, "v0.2.0" say. Running straight from the repository
@@ -438,6 +438,8 @@ local DEFAULTS = {
     recapSeeThrough = 0,
     xpBarSeeThrough = 0,
     routeWindowSeeThrough = 0,
+    zoneBoardSeeThrough = 0,
+    zoneHuntSeeThrough = 0,
     -- No longer read: the milestone emote went (2026-10-13). Kept so a
     -- saved value is never dropped.
     trackerAnnounce = true,
@@ -454,7 +456,8 @@ local DEFAULTS = {
     -- A glow on the maps where you kill the most (Logic/Heat.lua, a test
     -- feature, 2026-10-17). Off unless ticked. heatLevel is 1 to 3 (Some,
     -- More, Most), heatMob "" for every mob. Never rename them, or killHeat,
-    -- the cells kept.
+    -- the cells kept, or heatMobs (the Zone Board eyes' picks, [name] = true,
+    -- nil until one is picked, so no default here).
     heatWorld = false,
     heatMinimap = false,
     heatLevel = 2,
@@ -563,6 +566,9 @@ local DEFAULTS = {
     -- The same with guildmates who use Farmer (Logic/GuildShare.lua, asked
     -- 2026-10-13): off until ticked. Their ledgers are in shareIn too.
     shareGuild = false,
+    -- Say in chat when drops come in from the guild (the owner,
+    -- 2026-11-18). Off unless ticked; never rename it. GuildShare:NoteHeard.
+    sharedChatNotice = false,
     -- Drop records sent to the addon's maker for the shipped data
     -- (Logic/Contribute.lua, asked 2026-10-15): off until ticked.
     shareDrops = false,

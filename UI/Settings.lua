@@ -445,6 +445,8 @@ function SettingsUI:Build()
             if not folded then SettingsUI:Refresh() end
         end })
     end
+    -- And the swap gem left of it, as on every other tab (UI/SharedWindow.lua).
+    if ns.SharedWindow and ns.SharedWindow.AddSwap then ns.SharedWindow.AddSwap(frame, "farmer") end
 
     frame:SetScript("OnDragStart", function(self)
         -- Land an opening still running, or it would pull the window back.
@@ -759,6 +761,13 @@ function SettingsUI:BuildPanelsPage()
         controls.fishingPanelReset = Reset(lines.fishing, function() ns.FishingPanel:ResetPlace() end)
     end
 
+    -- The Zone Board (UI/ZoneBoard.lua). Shows only while it is ticked on
+    -- the Map page.
+    lines.zoneBoard = Line(L["Zone Board:"], nil)
+    controls.zoneBoardShow = CommandButton(lines.zoneBoard, L["Show"], "zone", 64, showX)
+    controls.zoneBoardSeeThrough = SeeThroughChoice(lines.zoneBoard, "zoneboard", clearX)
+    controls.zoneBoardReset = Reset(lines.zoneBoard, "zone reset")
+
 
 
     -- The kills and loot panel's size, which its gold corner grip and
@@ -930,13 +939,19 @@ function SettingsUI:BuildWindowsPage()
     end, false)
     controls.rankingsOutside:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    -- The owner, 2026-10-18: worth per kill without Uncommon and better drops.
-    local uncommonRow = pages:Row("panels", 1, L["Skip Uncommon Drops:"],
-        L["Worth per kill leaves out Uncommon, Rare and Epic drops."])
-    controls.rankingsSkipUncommon = Widgets.CreateCheckbox(uncommonRow, L["On"], function(checked)
-        ns.Rankings:SetSkipUncommon(checked)
-    end, false)
-    controls.rankingsSkipUncommon:SetPoint("TOPLEFT", CONTROL_X, -2)
+    -- The owner, 2026-10-18: worth per kill without Uncommon and better
+    -- drops; 2026-11-18, a drop-down of which rarity and better to leave out.
+    local excludeRow = pages:Row("panels", 1, L["Exclude Rarity:"],
+        L["Worth per kill leaves out drops of this rarity and better. Pick Rare and Above to count greens but not blues or purples."])
+    local excludeOptions = ns.Rankings.ExcludeOptions()
+    local excludeWidest = 0
+    for _, option in ipairs(excludeOptions) do
+        excludeWidest = math.max(excludeWidest, Theme.TextWidth("small", option.plain) or 0)
+    end
+    controls.rankingsExclude = Widgets.CreateDropdown(excludeRow, excludeOptions, function(value)
+        ns.Rankings:SetExclude(value)
+    end, { width = math.max(140, math.ceil(excludeWidest) + 34) })
+    controls.rankingsExclude:SetPoint("TOPLEFT", CONTROL_X, 0)
 
     -- The owner, 2026-11-15: worth per kill at vendor prices only.
     local vendorRow = pages:Row("panels", 1, L["Vendor Prices Only:"],
@@ -1821,6 +1836,31 @@ function SettingsUI:BuildMapPage()
 
     -- The small route window (UI/RouteWindow.lua, the owner said build it
     -- from a mockup, 2026-11-15). Off unless ticked.
+
+    -- The Zone Board (Logic/ZoneBoard.lua; the owner said build it from a
+    -- mockup, 2026-11-18). Off unless ticked; the Zone Done banner is on
+    -- unless unticked. The hunt shows in the board itself (no window).
+    pages:Section("map", 1, L["ZONE BOARD"])
+    local zoneBoardRow = pages:Row("map", 1, L["Zone Board:"], nil)
+    controls.zoneBoard = Widgets.CreateCheckbox(zoneBoardRow, L["On"], function(checked)
+        if ns.ZoneBoard then ns.ZoneBoard:SetOn(checked) end
+        SettingsUI:Refresh()
+    end, false)
+    controls.zoneBoard:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local zoneDoneRow = pages:Row("map", 1, L["Zone Done Banner:"], nil)
+    controls.zoneBoardBanner = Widgets.CreateCheckbox(zoneDoneRow, L["On"], function(checked)
+        if ns.ZoneBoard then ns.ZoneBoard:SetBanner(checked) end
+    end, true)
+    controls.zoneBoardBanner:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local leftOutRow = pages:Row("map", 1, L["Left Out:"], nil)
+    local leftOut = Theme.CreateLabel(leftOutRow, "small", "muted")
+    leftOut:SetPoint("TOPLEFT", CONTROL_X, -4)
+    leftOut:SetWidth(COLUMN_WIDTH - CONTROL_X)
+    if leftOut.SetWordWrap then leftOut:SetWordWrap(true) end
+    leftOut:SetText(L["Rare mobs, bosses, town guards, critters"])
+    controls.zoneBoardLeftOut = leftOut
 end
 
 --- Sharing: kills, drop rates and gathering with your other account.
@@ -1878,6 +1918,14 @@ function SettingsUI:BuildSharingPage()
         SettingsUI:Refresh()
     end, false)
     controls.shareGuild:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- Chat Notice (2026-11-18): GuildShare:NoteHeard.
+    local noticeRow = pages:Row("sharing", 2, L["Chat Notice:"],
+        L["Says in chat when drops come in from your guild."])
+    controls.sharedChatNotice = Widgets.CreateCheckbox(noticeRow, L["On"], function(checked)
+        ns.db.sharedChatNotice = checked == true
+    end, false)
+    controls.sharedChatNotice:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- What came in from the guild, and when (GuildShare:Status).
     local guildStatusRow = pages:Row("sharing", 2, L["Guild Status:"], nil)
@@ -2003,6 +2051,7 @@ function SettingsUI:Refresh()
     controls.share:SetChecked(db.shareData == true)
     controls.shareNames:SetText(db.shareNames or "")
     controls.shareGuild:SetChecked(db.shareGuild == true)
+    controls.sharedChatNotice:SetChecked(db.sharedChatNotice == true)
     controls.shareStatus:SetText(ns.Share:Status() or "")
     controls.guildStatus:SetText(ns.GuildShare:Status() or "")
     if controls.shareDrops then controls.shareDrops:SetChecked(db.shareDrops == true) end
@@ -2026,6 +2075,15 @@ function SettingsUI:Refresh()
         if controls.routeWindow and ns.RouteWindow then
             controls.routeWindow:SetChecked(ns.RouteWindow.IsOn())
             controls.routeWindow:SetDisabled(not routeOn)
+        end
+    end
+    if controls.zoneBoard and ns.ZoneBoard then
+        local zoneOn = ns.ZoneBoard.IsOn()
+        controls.zoneBoard:SetChecked(zoneOn)
+        controls.zoneBoardBanner:SetChecked(ns.ZoneBoard.BannerOn())
+        controls.zoneBoardBanner:SetDisabled(not zoneOn)
+        if controls.zoneBoardShow and controls.zoneBoardShow.SetEnabled then
+            controls.zoneBoardShow:SetEnabled(zoneOn)
         end
     end
     controls.nodeSparkle:SetChecked(db.nodeSparkle ~= false)
@@ -2091,7 +2149,7 @@ function SettingsUI:Refresh()
     end
     controls.worldDrops:SetChecked(db.worldDrops ~= false)
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
-    controls.rankingsSkipUncommon:SetChecked(db.rankingsSkipUncommon == true)
+    controls.rankingsExclude:SetValue(ns.Rankings.Exclude())
     controls.rankingsVendorOnly:SetChecked(db.rankingsVendorOnly == true)
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.openNote:SetChecked(db.openNote ~= false)
@@ -2127,6 +2185,7 @@ function SettingsUI:Refresh()
     controls.xpBarSeeThrough:SetValue(ns.SeeThrough:Level("xpbar"), true)
     controls.lootFeedSeeThrough:SetValue(ns.SeeThrough:Level("lootfeed"), true)
     controls.routeWindowSeeThrough:SetValue(ns.SeeThrough:Level("route"), true)
+    controls.zoneBoardSeeThrough:SetValue(ns.SeeThrough:Level("zoneboard"), true)
     controls.report:SetChecked(db.trackerReport == true)
     controls.celebrate:SetChecked(db.trackerCelebrate ~= false)
 

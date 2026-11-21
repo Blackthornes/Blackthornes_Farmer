@@ -85,6 +85,7 @@ Logic\GuildShare.lua
 Logic\Contribute.lua
 Logic\CSV.lua
 Logic\SavedFarms.lua
+Logic\ZoneBoard.lua
 
 UI\Theme.lua
 UI\ItemLook.lua
@@ -123,6 +124,8 @@ UI\Grinding.lua
 UI\GatherToCap.lua
 UI\GatherRoute.lua
 UI\RouteWindow.lua
+UI\ZoneBoard.lua
+UI\ZoneBoardFX.lua
 UI\Stats.lua
 UI\SavedFarms.lua
 UI\MapMarkers.lua

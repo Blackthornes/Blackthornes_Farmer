@@ -500,6 +500,21 @@ learned school a school by its guid. A client that names no loot source
 keeps the old way. Chests are still told by English endings. Tested in
 `tools/test_fishschools.lua`.
 
+The owner (2026-11-20): "fished lots of schools and it doesn't detect it
+even with mouse over it". His save had 31 fishing spots, one school and an
+empty `fishingSchools`: on his client a school's catch seems to come off
+the bobber too, so "off the bobber is open water" overruled every school he
+moused over. Now the bobber means open water only once `fishingSchools`
+holds a school, which proves the client hands a school's catch out from the
+school; until then the mouse over and the recast guess stand, as before
+2026-11-16. `/farm fishing check` (`Fishing:Check`, `ns.KeepCheck`, English
+only, in no help line) keeps what the last 8 catches showed
+(`Fishing:NoteForCheck`, session only): the school looked at, the thing
+under the mouse, the interact target at the cast and at the catch
+(`Fishing.InteractTarget`) and each loot source's kind and entry ID. Not
+yet seen in game; read the probe before building more on the loot window
+or the interact target.
+
 ## The Fishing window
 
 The owner said build it (2026-10-26, from a mockup): a small window with
@@ -1477,6 +1492,20 @@ and the rank-up order follow (it moves `outsideVersion`). `Value:ForMob` is
 untouched, so tooltips and the loot table still count every drop. Tested in
 `tools/test_rankingsuncommon.lua`.
 
+Exclude Rarity (a player asked, the owner said build it 2026-11-18, from a
+mockup): the tick box became a drop-down, "Exclude Rarity:" on the tab (in
+`RankingsUI.ticks`, `RankingsUI.exclude`) and in Settings
+(`controls.rankingsExclude`), with "Nothing" (the default, every drop),
+"Epic and Above", "Rare and Above" and "Uncommon and Above" (the old box
+ticked), each in its rarity's colour. Saved as `rankingsExclude` ("none",
+"epic", "rare", "uncommon"; account wide, never rename it).
+`Rankings.Exclude()` reads it, else an old save's `rankingsSkipUncommon =
+true` as "uncommon"; `Rankings:SetExclude` keeps `rankingsSkipUncommon` in
+step and never deletes it. `Rankings.WithoutQuality(value, details, from)`
+takes out drops of quality `from` and better (`EXCLUDE_FROM`).
+`/farm rankings exclude none|epic|rare|uncommon`; the old `/farm rankings
+uncommon [on|off]` still works.
+
 ## Rankings at vendor prices
 
 A player asked, the owner said build it (2026-11-15): a tick box on the
@@ -1761,6 +1790,17 @@ so where you have killed reads at a glance): `HeatUI.Outline` grows the
 cells by one all round and traces their edge by marching squares, laid on
 the world map a slice a frame after the dots and on the minimap through
 `MinimapOffset` (`MAX_WORLD_EDGES`, `MAX_MINIMAP_EDGES`).
+
+The card on the world map starts smaller and can be sized (the owner,
+2026-11-18: too big on the small map, no way to resize it; he tapped Build
+it on a mockup). It starts at `HeatUI.CARD_SIZE` (70%) and wears the house
+size grip beside its bottom right corner (`Widgets.CreateSizeGrip`, 50% to
+150%, right-click back to 70% through the grip's new `default` option),
+saved as `heatCardScale` (never rename it). `PlaceCard` and `CardRoom`
+turn the saved spot (in the map's lengths) into the card's own by the ratio
+of the two effective scales, so it stays inside the map at any size. Window
+Spots' Set Default runs `HeatUI:ResetCard` (signed up as `farmer.heatcard`):
+spot and size go back. Tested in `tools/test_heat.lua`.
 
 ## Kills on the mob tooltip
 
@@ -2433,6 +2473,10 @@ drops some of a burst (2026-11-09, a German player's "Wollstoff",
 "Mittleres Leder" and "Zinnerz" found nothing). When names come in,
 `DB.namesWatchers` are told once a burst settles, and the Search tab runs
 again (`UI:NamesArrived`); its item heading shows the client's name.
+An item you found somewhere the data does not list is shown as a copy
+(`Search:WithYourSpots`), and `DB:ClientName` gives a copy (same name and
+ID) the data item's client name (2026-11-20: "Wollstoff" found nothing
+for a German player who had looted wool off a mob the data never named).
 Tested in `tools/test_germansearch.lua`.
 
 The translation (the owner said yes, 2026-10-11, after Pets' pilot):
@@ -3022,6 +3066,194 @@ TSM Sold a Day). The same in every addon; keep them the same.
 - **Three tries, then ask.** A check still failing after three rounds stops
   the work. Never skip, loosen or rerun a test to get green.
 
+## Chat Notice for guild drops
+
+Trent said build it (2026-11-18, from a mockup with the words): "Chat Notice:"
+on the SHARING page under Share With Guild, saved `sharedChatNotice` (off
+unless ticked; never rename it). `GuildShare:NoteHeard` (from `Received`)
+adds up a guildmate's records and says one line once they stop
+(`NOTICE_QUIET`), naming them in full. Tradeskills has the same switch for
+guild and realm prices. Never announced in release notes. Tested in
+`tools/test_guildshare.lua`.
+
+## Guild drops in the loot window
+
+Trent said build it (2026-11-18, from two mockups): with Share With Guild on,
+a mob's loot window lists items only the guild found from the player's first
+kill, with the player's own "0 of N" and "x0" and no rate. From MIN_KILLS on
+those rows get a rate blended like the rest (`LootTableUI.Blend`). Kills,
+Total and Dropped stay the player's own; nothing says "guild" in the window.
+Rows from the guild that appear while the window is open on the same mob
+play an arrival once (`LootTableUI.PlayArrival`: slide and fade in, a gold
+left edge and glow that fade, a light across the name; the status line pops
+gold). Opening fresh plays the usual arrival instead, a redraw plays
+nothing, "subtle" effects keep only the edge, "off" none. Tested in
+`tools/test_guildshare.lua` and `tools/test_loottable.lua`.
+
+
+## The Zone Board
+
+The owner said build it (2026-11-18) from a mockup whose words he
+approved (`previews/farmer-zone-board/` in the project files), option A:
+own mobs only, no coin hint. Off unless ticked: "Zone Board:" under ZONE
+BOARD on the Map page (`zoneBoard`, nil off, true on), with "Zone Done
+Banner:" (`zoneBoardBanner`, nil on, false off) and a "Left Out:" line.
+(`zoneBoardHunt`, the old "Hunt Window:" box, is left in saves, unread.) A Windows table line (Show, Reset Spot)
+runs `/farm zone` and `/farm zone reset`. Opens from `/farm zone [on|off|reset]`,
+Shift-click on Farmer's minimap button or its row in the shared menu (the
+entry's `shift`; the shared file is unchanged) and a Zone Board button on
+the Kills & Loot toolbar, shown only while ticked.
+
+- `Logic/ZoneBoard.lua`: the zone's list is the Grind tab's mob spots
+  (`Grinding:Mobs`) in the zone you stand in, one entry a name, laid out
+  `BUDGET` spots a frame and kept by a stamp (Grinding's stamp, hides,
+  skips, what was learned). Left out (`ZoneBoard.LeftOut`): seed groups,
+  dungeon spots, rares and bosses and Alliance or Horde mobs read in game
+  (`ZoneBoard:Learn` from `Harvest:NoteUnit`, `UnitClassification` and
+  `UnitFactionGroup` in a pcall, only while on, kept in
+  `zoneBoardLeftOut[name]`), town guards by name (`IsGuardName`),
+  critters (`Grinding.TypeOf`), level -1. Kills are your own on the
+  zone's line (`ZoneBoard.Kills`: every `tracker.mobs[name].zones` key whose
+  English name is the zone; the key for Rankings is the zone's once split).
+  Skip keeps `zoneBoardSkips[zone][name]`. BEST ranks only mobs with 20 or
+  more of those kills, by `Rankings:Entry(key)` with group "measured";
+  every other mob is a mystery with kills to go, never a worth. It is kept
+  until a scan (`Prices:WatchScans`, as TopFarm), a 20th kill or the list
+  moves. Near Me First (`zoneBoardNear`, nil on), Show Finished
+  (`zoneBoardShowDone`), the tab (`zoneBoardTab`). Never rename any of them.
+- The hunt (session only): Take Me There starts it; `Arrow:Grind` gets a
+  camp marked `zoneBoard` with the target's spots and those of mobs still
+  to finish at the same place. A 20th kill moves on by itself (after the
+  fight: `hunt.moveOn`, then `PLAYER_REGEN_ENABLED`); Next Mob passes one
+  to the back; Stop, leaving the zone, turning it off or the zone done end it.
+- `Tracker:Record` calls `ZoneBoard:Killed` on each new kill (not a
+  skinning window): one row's count moves (`ZoneBoardUI:Killed`). A 20th kill with no list yet lays it out once, so the
+  moments come without the window opened. Redraws wait out a fight.
+- `UI/ZoneBoard.lua`: the window, spot `windowSpots["farmer.zoneboard"]`,
+  size `zoneBoardScale`. A ring of gold dots, rows in dark glass, the
+  picked row glassActive with a gold edge, levels well above you orange
+  (`ZoneBoard.HIGH`), ALMOST from 15. Yards once a second for rows on
+  screen, a re-sort every `RESORT` seconds out of a fight only.
+- One window (the owner asked 2026-11-18, mockup
+  `previews/farmer-zone-board-one-window/`, he tapped Build it): the hunt
+  shows in the board, not a window of its own (`UI/ZoneHunt.lua` was
+  taken out). While a hunt runs in the zone shown, FINISH pins the mob
+  hunted first (`role = "target"`, the gold arrow where the level sits)
+  and the one after it second ("Then: %s", "Same camp" when they share
+  one) (`ZoneBoardUI:HuntPair`), and the pick follows each new target to
+  the top. With the hunted mob picked, Take Me There and Skip turn into
+  Next Mob and Stop; picking another row brings them back, to switch mobs.
+  The board has the fold gem: folded during a hunt its title is "FINISH
+  Dustwind Harpy 17/20" (`ZoneBoardUI.FoldTitle`), redrawn on the hunted
+  mob's kills. No new words. `zoneHuntScale`, `zoneHuntSeeThrough` and
+  `windowSpots["farmer.zonehunt"]` stay in saves, unread.
+- `UI/ZoneBoardFX.lua`: the card (after `CARD_DELAY`, skipped with /farm
+  celebrate off), the New Best banner with the crown (and BEST's row slide)
+  and the Zone Done banner with `Media/Sounds/zone-done.ogg`; one banner
+  at a time; sounds through `Tracker.PlayFile` (Mute All Sounds). The zone
+  is stamped once in `zoneBoardDone[zone]` with one chat line.
+- Not built yet: the STAMPS tab (the mockup's optional third tab); the
+  stamps are already saved for it.
+- Tested in `tools/test_zoneboard.lua`. Not yet seen in game.
+
+Transparent (the owner asked 2026-11-18): the Zone Board takes the same
+Off, Some, More or Most as the other panels (`UI/SeeThrough.lua`'s
+"zoneboard", saved as `zoneBoardSeeThrough`, never rename it, off unless
+picked). On the Windows page: the Zone Board line's Transparent.
+`/farm transparent zoneboard` works too (left out of the help line). The
+window's glass and each row's stripe and line thin out; gold edges stay.
+The hunt window's "hunt" panel went with the window (one window,
+2026-11-18). Tested in `tools/test_seethroughpanels.lua` and
+`tools/test_windowspage.lua`.
+
+Heat map eyes (the owner said build it, 2026-11-18, from a mockup whose
+words he approved, `previews/farmer-zone-board-heat/` in the project
+files): every FINISH and BEST row has an eye on its right
+(`ZoneBoardUI.Eye`, `FillEye`, art `Media/Frame/Eye.tga` from
+`tools/make_eye_art.py`), shown only while Kill Heat is on
+(`Heat.Recording()`). A tap turns that mob's glow on or off
+(`Heat:TogglePicked`, `SetPicked`), kept across a reload in `heatMobs`
+(`[name] = true`, nil when none; never rename it). Several at once add up
+into one glow (`Heat:MobNames`, `MobWeights`; the glow is heatMob plus the
+picks), and the map card reads "%d mobs" with a row for each (up to
+`HeatUI.KEY_MOST`). Hover says "Show on Map" or "Hide from Map", plus
+"Kill a few first and it will show here." for a mob with no spot (its eye
+dim). A pick goes by itself at the mob's 20th kill on the board
+(`ZoneBoard:Unlocked`, the owner asked); heatMob from the Map button stays.
+The Map button and an item clear the picks; an eye turned on stops an item;
+the Map button pressed again stops only its own mob; Stop Tracking clears
+all. A tap sets only the eyes on the rows showing (`ZoneBoardUI:Eyes`, from
+Heat's `Changed`), and the heat redraws in slices as before; nothing runs
+every frame. Tested in `tools/test_zoneboardheat.lua`. Not yet seen in game.
+
+## Picked pockets on the card
+
+The owner said build it (2026-11-18, from a mockup, after a rogue's pocketed
+Forest Mushroom Cap showed only on the Loot tab). Pocket loot still goes to
+the Loot tab and session gold (`Tracker:PickedPocket`, `AddHaul`), and now
+also onto its mob's open card: `Tracker:NotePocket` counts pockets, coin and
+items per mob in `sessionPockets`, `sessionPocketCopper` and
+`sessionPocketFrom[item][mob]` (session only, kept by "Keep between
+sessions" through `Session.FIELDS`; never rename them). `TrackerUI:PocketLines`
+draws "Picked Pockets:" with "N picks, coin" and the items as icons with
+plain counts, hover "N from M pockets picked". Never a kill, never a rate,
+no loot table click. The drops' icons line carries `more = true` so the card
+goes on past it (`DrawCards`). A mob with pockets but no kills has no card;
+its pocket loot is on the Loot tab. Tested in `tools/test_pockets.lua`. Not
+yet seen in game.
+
+## Gather Route moves on from a distance
+
+Trent asked (2026-11-19): you shouldn't have to stand on a node for the route
+to move on, since the minimap shows whether it is up from well away. The stop
+the arrow points at (`run.aimed`) now counts as reached within
+`GatherRoute.REACH` (30 yards), once you were farther than that from it since
+it was aimed (`run.cameFrom`, `GatherRoute.Reach`), so a stop that comes next
+while you already stand near it still needs `ARRIVED` (12). Other stops keep
+`ARRIVED`, so passing one on the way doesn't check it. Picking a node of the
+same kind within `REACH` of the aimed stop moves it on too
+(`PickedNear(spot, fresh, within)`), counted as checked, not picked. No new
+settings or words. Tested in `tools/test_gatherroute.lua`.
+
+## Gather Route, Route Window and Zone Board on by default
+
+Trent asked (2026-11-18) that Gather Route, Route Window and Zone Board be on for every player, existing ones too. Each now reads on unless saved `false` (`gatherRoute`, `routeWindow`, `zoneBoard`; never rename); ticking clears the key, unticking saves `false`. Players who had ticked one (`true`) keep it; the rest start on. The Route Window still shows only while a route runs, and the Zone Board shows its button on the Kills & Loot bar and its banner at a zone line's 20th kill. Tests that measure chip or bar layout switch the feature off first.
+
+## The swap gem (One Window toggle, 2026-11-19)
+
+The owner asked for a toggle on each window to swap between the one window
+and each addon's own windows, and said build it from the mockup
+(2026-11-19). A gold gem sits left of the fold gem on every real
+Blackthornes window, so the gems run swap, fold, close. On the one window it
+shows two panes and splits ("Split Into Own Windows"); on an own window it
+shows one pane with a rail line and joins ("Join Into One Window"). Floating
+arrows, bars, trackers, the Zone Board and similar pieces get none.
+
+- `UI/SharedWindow.lua` (FILE_VERSION 14, the same in all five):
+  `SharedWindow.AddSwap(frame, key)` puts the gem on a dressed window's
+  trim (so it hides with the trim inside the one window); `key` nil is the
+  one window. `SharedWindow.Swap(key, join)` is its click. Split: the
+  addon showing is asked its tab, `SetOn(false)` closes the one window,
+  then the addon opens on its own on that tab. Join: every addon closes its
+  own windows, `SetOn(true)`, then the clicked addon opens in the one
+  window on the same tab. In a fight nothing moves; it runs at
+  PLAYER_REGEN_ENABLED (`hub.swapAfterFight`).
+- Same `oneWindow` / `oneWindowAt` keys, no new setting or key. The "One
+  Window:" box reads `On()` as Settings refreshes, so it follows.
+- Each host gives three optional calls beside `enter` and `leave`:
+  `tab()`, `show(tab)` (opens in the one window or its own as the choice
+  now stands, through its Route) and `hide()`. Without them a split falls
+  back to `open` and a join to `SharedWindow.Open(key)`, so an older
+  copy still works.
+- Here: the main window and Settings (`FarmerTabs` in `UI/Main.lua`) carry the join gem.
+- Words: the six tooltip strings in every locale (deDE from the mockup).
+- Tested in `tools/test_swapgem.lua` (the same in all five) and
+  `tools/test_swapwindows.lua` (this addon's windows in the fake game).
+  Not yet seen in game.
+
+## Scrambled GUIDs (Forever 1.60.1)
+
+Forever 1.60.1 (a hotfix, announced 2026-11-20) makes GetRealmName, GetRealmID and the C_BattleNet realm fields hand back "" or 0, and scrambles the realm, server and spawn parts of Creature, Vehicle, Pet and GameObject GUIDs (player GUIDs are not named). Every reader of a mob, vendor or trainer ID from a GUID takes any text in parts 2 to 5 (`[^%-]+`), never `%d+`; a new one must too. `Harvest.NpcID` is the one reader here. Old "Name-Realm" goals (`Goals:OldOwner`) can no longer be matched once the realm is blank; nearly all were retagged by GUID long ago. Tested in `tools/test_dungeonloot.lua`.
 ## Warm glass (2026-11-21)
 
 The owner said build it from the UI pass mockup (ui-pass-1-warm-glass): the

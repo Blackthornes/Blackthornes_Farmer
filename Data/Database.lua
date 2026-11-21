@@ -514,8 +514,21 @@ end
 
 --- The client's name for `item`, where it differs from the data's; nil
 --- otherwise. Read from what is kept, never from the client.
+---
+--- The search shows a copy of an item you found somewhere the data does
+--- not list (Search:WithYourSpots), so a copy of the data's item, same
+--- name and ID, has the item's client name too. Without it a German
+--- player who had looted Wool Cloth off a mob the data never named could
+--- not find "Wollstoff" (2026-11-20).
 function DB:ClientName(item)
-    return item and self.clientNameOf[item] or nil
+    if type(item) ~= "table" then return nil end
+    local name = self.clientNameOf[item]
+    if name or not item.id or not next(self.clientNameOf) then return name end
+    local own = self:ByID()[item.id]
+    if own and own ~= item and own.name == item.name then
+        return self.clientNameOf[own]
+    end
+    return nil
 end
 
 function DB:CountItems()
