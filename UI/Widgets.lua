@@ -1294,6 +1294,9 @@ end
 --   createRow  function(row)            -- build the row's children once
 --   updateRow  function(row, data, i)   -- fill a row with data
 --   onClick    function(data, button)
+--   itemOf     function(data) -> itemID, link  -- a row that is an item:
+--              Shift-click links it in chat, Ctrl-click tries it on
+--              (Widgets.ItemClick), before onClick
 --   onEnter    function(row, data)      -- the mouse came onto a row
 --   onLeave    function(row)
 --   onRefresh  function(list, shown, visible)
@@ -1392,6 +1395,10 @@ function Widgets.CreateRowList(parent, opts)
         end)
 
         row:SetScript("OnClick", function(self, button)
+            if self.data and opts.itemOf and button == "LeftButton" then
+                local itemID, link = opts.itemOf(self.data)
+                if (itemID or link) and Widgets.ItemClick(itemID, link) then return end
+            end
             if self.data and opts.onClick then
                 opts.onClick(self.data, button)
             end
@@ -2298,11 +2305,11 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
             local label = button.label
 
             if active then
-                label:SetTextColor(Theme.Unpack("accent"))
+                label:SetTextColor(Theme.Unpack("text"))
             elseif button.hover then
                 label:SetTextColor(Theme.Unpack("text"))
             else
-                label:SetTextColor(Theme.Unpack("dim"))
+                label:SetTextColor(Theme.Unpack("heading"))
             end
             button.glow:SetAlpha(button.hover and 1 or (active and 0.55 or 0))
 
@@ -2628,4 +2635,111 @@ function Widgets.CreateSizeGrip(frame, opts)
 
     grip.Saved = Saved
     return grip
+end
+
+--------------------------------------------------------------------------------
+-- Item rows answer the game's item clicks
+--
+-- Anywhere the game shows an item, Shift-click puts its link in the chat box
+-- and Ctrl-click tries gear on. Every item row in the addon does the same
+-- (the owner, 2026-11-21), through this one helper. Shift-click links only
+-- while a chat box is open, so a row's own Shift job (if it has one) keeps
+-- working when it is shut. The game's own click handler does the work where
+-- it is there; every call is inside a pcall.
+--------------------------------------------------------------------------------
+
+--- The game's answer to IsModifiedClick(kind) (CHATLINK, DRESSUP), which
+--- follows the player's own key choice; else the plain key.
+local function ModifiedClick(kind, key)
+    local modified = _G.IsModifiedClick
+    if type(modified) == "function" then
+        local ok, on = pcall(modified, kind)
+        if ok then return on and true or false end
+    end
+    local down = _G[key]
+    if type(down) ~= "function" then return false end
+    local ok, on = pcall(down)
+    return ok and on and true or false
+end
+
+--- True while the player has a chat box open to type in.
+function Widgets.ChatBoxOpen()
+    local util = _G.ChatFrameUtil
+    local active = (type(util) == "table" and type(util.GetActiveWindow) == "function" and util.GetActiveWindow)
+        or _G.ChatEdit_GetActiveWindow
+    if type(active) ~= "function" then return false end
+    local ok, box = pcall(active)
+    return ok and box ~= nil and true or false
+end
+
+--- The item's full link, from the one given or the game's item cache; nil
+--- while the game has not loaded the item yet (it is asked to).
+function Widgets.ItemLink(itemID, link)
+    if type(link) == "string" and link:find("item:", 1, true) then return link end
+    itemID = tonumber(itemID)
+    if not itemID then return nil end
+    local items = type(_G.C_Item) == "table" and _G.C_Item or nil
+    local info = (items and type(items.GetItemInfo) == "function" and items.GetItemInfo) or _G.GetItemInfo
+    if type(info) == "function" then
+        local ok, _, found = pcall(info, itemID)
+        if ok and type(found) == "string" then return found end
+    end
+    if items and type(items.RequestLoadItemDataByID) == "function" then
+        pcall(items.RequestLoadItemDataByID, itemID)
+    end
+    return nil
+end
+
+--- Shift-click or Ctrl-click on an item row, as the game's bags take them:
+--- Shift with a chat box open puts the link in it, Ctrl tries gear on.
+--- Anything else is left to the row.
+-- @return true when the click was taken
+function Widgets.ItemClick(itemID, link)
+    local chat = ModifiedClick("CHATLINK", "IsShiftKeyDown")
+    local dress = not chat and ModifiedClick("DRESSUP", "IsControlKeyDown")
+    if not (chat or dress) then return false end
+    if chat and not Widgets.ChatBoxOpen() then return false end
+
+    link = Widgets.ItemLink(itemID, link)
+    if not link then
+        itemID = tonumber(itemID)
+        -- Trying on needs only the number; a chat link needs the whole link.
+        if chat or not itemID then return false end
+        link = "item:" .. itemID
+    end
+
+    local handle = _G.HandleModifiedItemClick
+    if type(handle) == "function" then
+        local ok, taken = pcall(handle, link)
+        if ok and taken then return true end
+    end
+
+    local call
+    if chat then
+        local util = _G.ChatFrameUtil
+        call = (type(util) == "table" and type(util.InsertLink) == "function" and util.InsertLink)
+            or _G.ChatEdit_InsertLink
+    else
+        call = _G.DressUpItemLink or _G.DressUpLink
+    end
+    if type(call) ~= "function" then return false end
+    local ok, taken = pcall(call, link)
+    return ok and taken and true or false
+end
+
+--- The game's own tooltip for an item, beside `owner`.
+-- @return true when the game drew it
+function Widgets.ItemTooltip(owner, itemID, link, anchor)
+    local tip = _G.GameTooltip
+    if not (tip and owner) then return false end
+    link = Widgets.ItemLink(itemID, link)
+    itemID = tonumber(itemID)
+    if not (link or itemID) then return false end
+    pcall(tip.SetOwner, tip, owner, anchor or "ANCHOR_RIGHT")
+    local shown = false
+    if link then shown = pcall(tip.SetHyperlink, tip, link) end
+    if not shown and itemID and type(tip.SetItemByID) == "function" then
+        shown = pcall(tip.SetItemByID, tip, itemID)
+    end
+    return shown and true or false
 end

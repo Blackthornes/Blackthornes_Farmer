@@ -288,6 +288,9 @@ function GoalsUI:Build()
     header:SetHeight(HEADER)
 
     Theme.HouseHeader(header)
+    -- The box, for Panel Style's Like Quest List (UI/PanelStyle.lua): the
+    -- header's fill, stripe, glow and sheen, taken before its words go on.
+    local chrome = ns.PanelStyle and ns.PanelStyle.Chrome(header) or {}
 
     local title = Theme.CreateLabel(header, "normal", "accent")
     title:SetPoint("LEFT", PADDING + 4, 0)
@@ -375,6 +378,28 @@ function GoalsUI:Build()
     SeeThrough:AddGlass("goals", header.background)
     SeeThrough:AddGlass("goals", footerBack)
     SeeThrough:Attach("goals", frame)
+
+    -- Panel Style (UI/PanelStyle.lua): Like Quest List drops the box and
+    -- shows the buttons only under the mouse.
+    local PanelStyle = ns.PanelStyle
+    if PanelStyle then
+        PanelStyle.Add(chrome, frame.borderTextures)
+        chrome[#chrome + 1] = rule
+        PanelStyle:Register("goals", {
+            frame = frame,
+            chrome = chrome,
+            title = title,
+            lineParent = header,
+            lineRight = PADDING,
+            buttons = function()
+                return { gems.fold, gems.close, GoalsUI.countChip, footer.next }
+            end,
+            refresh = function()
+                SeeThrough:Apply("goals")
+                if GoalsUI.frame and GoalsUI.frame:IsShown() then GoalsUI:Refresh() end
+            end,
+        })
+    end
 
     self:RestorePosition()
     frame:Hide()
@@ -1007,6 +1032,10 @@ function GoalsUI:OnCardClick(card, button)
         return
     end
 
+    -- Shift-click with a chat box open links the item, Ctrl-click tries
+    -- it on, as the game's bags do; Shift-click aims the arrow otherwise.
+    if button ~= "RightButton" and Widgets.ItemClick(Util.ItemIDOf(goal.item)) then return end
+
     if goal.done then
         ns.Goals:Remove(goal.item)
         return
@@ -1431,7 +1460,8 @@ function GoalsUI:Place()
         else
             frame:SetPoint("TOPLEFT", tracker, "BOTTOMLEFT", 0, -GAP)
         end
-    else
+    elseif not (ns.PanelStyle and ns.PanelStyle:PlaceUnderQuestList(frame)) then
+        -- Like Quest List puts it under the game's quest list instead.
         frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 8, -190)
     end
 end

@@ -128,7 +128,7 @@ function SeeThrough:AddGlass(id, texture, floor)
     state.parts[#state.parts + 1] = { texture = texture, floor = floor or 0 }
     -- A line made while the panel is see-through starts that way.
     if state.shown < 1 then
-        pcall(texture.SetAlpha, texture, math.max(state.shown, floor or 0))
+        pcall(texture.SetAlpha, texture, math.max(state.shown, state.bare and 0 or floor or 0))
     end
     return texture
 end
@@ -136,7 +136,7 @@ end
 --- A row or card the panel made after it was built: its words get the
 --- shadow too while the panel is see-through.
 function SeeThrough:Grew(id, frame)
-    if self:On(id) then SeeThrough.ShadeAll(frame, true) end
+    if self:On(id) or self:Bare(id) then SeeThrough.ShadeAll(frame, true) end
 end
 
 --- Every piece of the panel's glass at `shown` (1 is the usual dark glass).
@@ -144,8 +144,13 @@ function SeeThrough:SetGlass(id, shown)
     local state = State(id)
     state.shown = shown
     for _, part in ipairs(state.parts) do
-        pcall(part.texture.SetAlpha, part.texture, math.max(shown, part.floor))
+        pcall(part.texture.SetAlpha, part.texture, math.max(shown, state.bare and 0 or part.floor))
     end
+end
+
+--- True while Panel Style's Like Quest List leaves this panel bare.
+function SeeThrough:Bare(id)
+    return ns.PanelStyle ~= nil and ns.PanelStyle:Covers(id) or false
 end
 
 local function MouseOn(state)
@@ -182,6 +187,21 @@ end
 function SeeThrough:Apply(id)
     local state = SeeThrough.states[id]
     if not state or not state.frame or not state.watch then return end
+
+    -- Panel Style's Like Quest List (UI/PanelStyle.lua): no glass at all,
+    -- the mouse brings none back, and every word keeps its shadow.
+    if self:Bare(id) then
+        state.watch:SetScript("OnUpdate", nil)
+        state.solid = nil
+        state.bare = true
+        ns.Motion:Stop(state, "seeThrough")
+        ns.Motion:SetValue(state, "seeThrough", 0)
+        SeeThrough.ShadeAll(state.frame, true)
+        self:SetGlass(id, 0)
+        return
+    end
+    state.bare = nil
+
     local on = self:On(id)
 
     SeeThrough.ShadeAll(state.frame, on)

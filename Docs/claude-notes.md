@@ -2793,6 +2793,29 @@ same.
   modern Lua), not 1.12. Read client values inside a pcall; instances hand out
   secret values that raise when touched.
 
+### Plain prose everywhere (the owner, 2026-11-21)
+
+The owner shared these six rules for writing and asked that they be kept
+from now on, in every addon's notes. They cover every piece of prose:
+player words, notes, commits, PR text, release notes, Discord drafts and
+replies to him.
+
+1. Say plainly what you mean, without stock metaphors, similes or other
+   figures of speech.
+2. Use a short word wherever a short one will do.
+3. Cut every word you can, but keep the context the reader needs.
+4. Use the active voice wherever you can: say who did what.
+5. Use an everyday English word, or the reader's own term, instead of a
+   foreign phrase, a scientific word, jargon, or a word or abbreviation
+   you made up during the work.
+6. These are defaults, not hard limits. Break any of them sooner than say
+   anything outright barbarous.
+
+Review every prose output against these rules before delivering. They sit
+beside "Writing for players" (sixth grade, warm, no em-dashes), which still
+holds for every word a player reads.
+
+
 ## Where to Farm on the map's edge
 
 The owner said build it from a mockup (2026-11-16, the UI cleanup). While
@@ -3260,3 +3283,93 @@ Forever 1.60.1 (a hotfix, announced 2026-11-20) makes GetRealmName, GetRealmID a
 The owner said build it (2026-11-21, from the UI pass mockup), in Farmer, Tradeskills, Equipment and Butler. Every Blackthornes line on an item tooltip goes on in one block: a blank row with a thin gold line of our own on it (a texture, hidden when the tooltip clears), then each line as a yellow name ending ":" on the left and a white answer on the right, no blank rows between addons, "Hold Shift for more." last and once. `UI/TooltipBlock.lua` is the same file in the four (FILE_VERSION 1; a fix belongs in all four). `_G.BlackthornesTooltipBlock` holds the parts and the one hook (the item post call, else OnTooltipSetItem on GameTooltip, ItemRefTooltip and the shopping tooltips); the newest copy's writer wins. Each addon works out its own lines and hands them over with `TooltipBlock:Provide(part, section, order, fn)`, `fn(tooltip, data)` returning lines and whether one was held for Shift; it no longer writes item lines itself.
 
 Order: price (Tradeskills `Tradeskills:price` 1, Butler vendor prices `Butler:price` 2), source (Farmer `Farmer:source` 1 "Farm At:", Equipment `Equipment:source` 2 "Drops From:"), advice (Equipment `Equipment:advice` 1 "For <spec>:", "For <alt>:", "Best Enchant:", "Weapon Master:", the suffix name or "Random Roll:", "Crafting:"; Butler `Butler:advice` 2 "Butler Says:"), holders (Butler `Butler:holders` 1 "You Have:", "Your Characters:"). Tradeskills maps its line names to the block's at write time (`ItemTooltip.BLOCK_LABELS`), so other windows keep "Demand" and the like; the stack count is read from the tooltip owner's bag slot. Pets' taming lines, Farmer's kill lines and Tradeskills' enchant spell lines are not item tooltips and are left alone. Tested in each addon's `tools/test_tooltipblock.lua`.
+## Panel Style (Like Quest List)
+
+The owner said build it (2026-11-21, from the mockup
+`Docs/mockups/ui-pass-3-quest-list-look.html` in the project files, Farmer
+first; Equipment's and Pets' trackers only after he tries this) and
+approved the words: "Panel Style:" on the WINDOWS page under Snap Panels,
+Boxed (the default) or Like Quest List, with the line "Kills & Loot and
+Goals as plain text under the game's quest list." Saved account wide as
+`panelStyle` ("boxed" or "quest"; nil reads as boxed), never rename it.
+`UI/PanelStyle.lua` (a new file in the TOC).
+
+Like Quest List, for Kills & Loot and the goals panel:
+
+- The box goes: every piece of glass is clear (`TrackerUI.glassBare`,
+  `SeeThrough` state `bare` for "goals"; floors such as the open card's
+  gold are ignored), and the rim, the header's fill, stripe, glow and
+  sheen, the rule and the tabs' edges are hidden (`PanelStyle.Chrome`
+  takes the header's textures right after `Theme.HouseHeader`, before its
+  words; only what was showing comes back). Cards lose their edges and
+  glow; the live row keeps its gold left edge. The edge glow's rest is set
+  to false, so `Motion:Open`, `TrackerFX:Flare` and `GoalsUI:Flare` skip
+  it, and is put back on Boxed.
+- Every word keeps a black shadow; lines made later too.
+- The heading is the game's yellow (`PanelStyle.YELLOW`) with a thin
+  yellow line under it.
+- The fold and close gems, Sort, Clear and Zone Board (and the goals
+  count chip and Set another) show only while the mouse is on the panel
+  (SetAlpha, a 0.1 second look while the panel shows). The Open button is
+  a secure button and is left alone.
+- Icons, bars, glows on rows and cheers are unchanged.
+- Transparent (see "The see-through panel") does nothing while it is on;
+  its saved levels stay and come back with Boxed.
+
+Where they sit: Kills & Loot still at its first spot (`TrackerUI:AtFirstSpot`,
+the defaults 8, -190 from TOPLEFT, never dragged or put back with Reset
+Spot) and with no spot picked for groups goes under the game's quest list,
+its right edge on the list's (`PanelStyle:PlaceUnderQuestList`). The goals
+panel docks under it as before; with Kills & Loot hidden and the goals
+panel never dragged, it takes that spot instead, so the column closes up.
+A dragged panel keeps its own spot. The quest list
+(`ObjectiveTrackerFrame`, `QuestWatchFrame`, `WatchFrame`) is only read
+inside a pcall, never moved, hidden, hooked or changed:
+`PanelStyle.QuestListEdge` takes the lowest frame showing inside it (three
+levels down), else its top while it shows nothing. A follower reads it
+once a second while the style is on and a panel shows, and places the
+panels again only when it moved; nothing is placed mid-drag. Boxed puts
+every piece back. Tested in `tools/test_panelstyle.lua`. Not yet seen in
+game.
+
+## The window key (2026-11-21)
+
+The owner said build it (UI pass, keys and Options line): every addon has
+one entry on the game's Key Bindings page, "Open or close the window", under
+its own header. It is the first binding in `Bindings.xml`
+(`<ADDON>_TOGGLE`, the header moved onto it) and runs `UI:Toggle()`, the
+same call as the slash command on its own, so with the one window on it
+opens or closes this addon's tab. No key is set for the player. The words
+are Tradeskills' (`BLACKTHORNESTS_TOGGLE`), the same in six languages.
+Tested in `tools/test_windowkey.lua`.
+## Warm glass (2026-11-21)
+
+The owner said build it from the UI pass mockup (ui-pass-1-warm-glass): the
+house palette moved from blue-black to warm brown-black in every addon's
+`UI/Theme.lua`, the same values in all five. `panel` #1A1611, `glass`
+#17130E, `glassAlt` and `well` #0F0C08, `glassHover` #201A12, `border`
+#4A3C24 (row lines at 0.6), `borderLit` #6B5A3A, `window`, `header` and
+the old `row` keys warmed to match; `glassActive` #241F14 is unchanged.
+Plain text (`text`) is white, `muted` #9B927C and `dim` #7A715E, and
+`ns.COLORS.muted` and `text` follow. A new key, `heading` (#FFD100, the
+game's yellow), colours column headings; the heading that sorts the list
+is `text` (white) with its arrow. Gold rim, buttons and gems are untouched,
+and so are the Blizzard window style (`UI/BlizzardLook.lua`) and the shared
+files' fallback palettes. New lists use these keys, never numbers.
+## Item rows answer the game's clicks
+
+The owner said build it (2026-11-21, from the UI pass mockup 5): every item
+row answers the clicks the game's bags do. `Widgets.ItemClick(itemID, link)`
+in `UI/Widgets.lua` (the same helper in all five addons): Shift-click
+(`IsModifiedClick("CHATLINK")`) puts the link in the chat box only while one
+is open (`Widgets.ChatBoxOpen`), so a row's own Shift job still runs when it
+is shut; Ctrl-click (`DRESSUP`) tries gear on, by `item:ID` while the item
+loads. The game's `HandleModifiedItemClick` does the work where it is there,
+else `ChatEdit_InsertLink` / `DressUpItemLink`, all in pcall.
+`Widgets.ItemLink` and `Widgets.ItemTooltip(owner, id, link)` go with it.
+`CreateRowList` takes `itemOf(data) -> itemID, link`, checked on a left click
+before `onClick`. Here: the search window's item bands (with the game's
+tooltip on hover), the Loot Table, the Kills & Loot panel's Loot tab lines
+and loot icons (game tooltip on both), goal cards (Shift with the chat box
+shut still aims the arrow) and the hidden list. The loot feed is left alone:
+its rows let clicks through to the world. Tested in `tools/test_itemclicks.lua`.

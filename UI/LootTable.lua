@@ -746,6 +746,8 @@ function LootTableUI:Build()
         -- scroll or new loot puts another item under a still mouse.
         onEnter = ShowItemTooltip,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
+        -- Shift-click links the item in chat, Ctrl-click tries it on.
+        itemOf = function(data) return data.id or Util.ItemIDOf(data.name) end,
         -- Right-click offers to hide the item (HideMenu).
         onClick = function(data, button)
             if button == "RightButton" and data and data.name then
