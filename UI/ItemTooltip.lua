@@ -188,7 +188,8 @@ function ItemTooltip:LineFor(item, player)
     local short = ns.Spots.SkillShortText and ns.Spots.SkillShortText(spot)
     if short then parts[#parts + 1] = short end
 
-    return Util.Colored("accent", L["Farm: "]) .. Util.Colored("text", table.concat(parts, ", "))
+    local text = table.concat(parts, ", ")
+    return Util.Colored("accent", L["Farm: "]) .. Util.Colored("text", text), text
 end
 
 --- Tradeskills' answer for a material: the craft that pays most an hour
@@ -211,9 +212,9 @@ function ItemTooltip:CraftLines(itemID)
     if not answer then return nil end
     local lines = {}
     if type(answer.rawPerHour) == "number" and answer.rawPerHour > 0 then
-        lines[#lines + 1] = { L["Sold as it is"], L.Format("%s an hour", ns.Value.Coins(answer.rawPerHour)) }
+        lines[#lines + 1] = { L["Sold As Is:"], L.Format("%s an hour", ns.Value.Coins(answer.rawPerHour)) }
     end
-    lines[#lines + 1] = { L.Format("As %s", answer.name),
+    lines[#lines + 1] = { L.Format("As %s:", answer.name),
         L.Format("%s an hour", ns.Value.Coins(answer.perHour)), true }
     return lines
 end
@@ -227,12 +228,12 @@ function ItemTooltip:CachedLine(item)
     local entry = kept[item.name]
     local now = Now()
     if entry and entry.zone == player.zone and now - entry.at < KEEP_FOR then
-        return entry.line
+        return entry.line, entry.text or nil
     end
 
-    local line = self:LineFor(item, player)
-    kept[item.name] = { line = line or false, at = now, zone = player.zone }
-    return line
+    local line, text = self:LineFor(item, player)
+    kept[item.name] = { line = line or false, text = text or false, at = now, zone = player.zone }
+    return line, text
 end
 
 function ItemTooltip.ForgetKept()
@@ -354,7 +355,61 @@ function ItemTooltip:InstallScriptHooks()
     return installed
 end
 
+--------------------------------------------------------------------------------
+-- The shared tooltip block (UI/TooltipBlock.lua, 2026-11-21)
+--------------------------------------------------------------------------------
+
+-- A farming answer longer than this goes on one wrapped line of its own,
+-- so a long zone name folds rather than stretching the tooltip.
+ItemTooltip.LONG = 44
+
+local GOLD = { 1, 0.82, 0 }
+
+--- Farmer's lines for the shared block, and whether one was held back.
+function ItemTooltip:BlockLines(tooltip, data)
+    if not self:IsEnabled() and not self:CraftEnabled() then return nil end
+    if not self:Wanted(tooltip) then return nil end
+    local itemID = self:ItemIDFor(tooltip, data)
+    if not itemID then return nil end
+    local item = self:Material(itemID)
+    if not item then return nil end
+
+    local text
+    if self:IsEnabled() then
+        local _, plain = self:CachedLine(item)
+        text = plain
+    end
+    local craft = not ns.DB:HidesItem(item) and self:CraftLines(itemID) or nil
+
+    local held = false
+    if text and not Shift:Shows("whereToFarm") then text, held = nil, true end
+    if craft and not Shift:Shows("craftOrSell") then craft, held = nil, true end
+
+    local out = {}
+    if text then
+        if #text > ItemTooltip.LONG then
+            out[1] = { L["Farm At:"] .. " |cffffffff" .. text .. "|r", wrap = true }
+        else
+            out[1] = { L["Farm At:"], text }
+        end
+    end
+    for _, pair in ipairs(craft or {}) do
+        out[#out + 1] = { pair[1], pair[2], rightColor = pair[3] and GOLD or nil }
+    end
+    return out, held
+end
+
 function ItemTooltip:OnEnable()
+    -- The shared block writes every Blackthornes addon's lines in one go,
+    -- in one order; Farmer hands it its lines instead of writing them.
+    local block = ns.TooltipBlock
+    if block then
+        block:Provide("Farmer:source", "source", 1, function(tooltip, data)
+            return ItemTooltip:BlockLines(tooltip, data)
+        end)
+        self.installed = { ["tooltip block"] = block:Install() }
+        return
+    end
     self.installed = {
         TooltipDataProcessor = self:InstallDataProcessor(),
         OnTooltipSetItem = self:InstallScriptHooks(),

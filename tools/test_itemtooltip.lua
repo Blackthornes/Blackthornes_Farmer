@@ -171,9 +171,9 @@ ItemTooltip.ForgetKept()
 tooltip = Doubles()
 Hover(tooltip, 2770)
 suite.check("Tradeskills is asked by item", asked == 2770)
-suite.check("sold as it is, an hour", tooltip._doubles[1] and tooltip._doubles[1][1] == "Sold as it is"
+suite.check("sold as it is, an hour", tooltip._doubles[1] and tooltip._doubles[1][1] == "Sold As Is:"
     and tooltip._doubles[1][2]:find("an hour", 1, true) ~= nil, tooltip._doubles[1] and tooltip._doubles[1][2])
-suite.check("then the craft", tooltip._doubles[2] and tooltip._doubles[2][1] == "As Copper Bar")
+suite.check("then the craft", tooltip._doubles[2] and tooltip._doubles[2][1] == "As Copper Bar:")
 suite.check("under the farming line", (tooltip._lines[1] or ""):find("Farm: ", 1, true) ~= nil)
 
 ns.db.itemTooltip = false
@@ -195,5 +195,26 @@ _G.BlackthornesTS = { CraftOrFarm = { ForMaterial = function() error("boom") end
 tooltip = Doubles()
 suite.check("a raising Tradeskills costs only its lines", Hover(tooltip, 2770) == "added" and #tooltip._doubles == 0)
 _G.BlackthornesTS = nil
+
+--------------------------------------------------------------------------------
+-- The shared tooltip block (2026-11-21)
+--------------------------------------------------------------------------------
+
+suite.check("the block is loaded", ns.TooltipBlock ~= nil)
+ItemTooltip.ForgetKept()
+local blockTip = Doubles()
+local got, held = ItemTooltip:BlockLines(blockTip, { id = 2770 })
+suite.check("block names the farming line", got and got[1] and got[1][1] == "Farm At:", got and got[1] and got[1][1])
+suite.check("block answer is the spot, without the old prefix",
+    got and got[1] and (got[1][2] or got[1][1]):find("Farm: ", 1, true) == nil)
+suite.check("nothing held", not held)
+suite.check("block writes nothing itself", #blockTip._lines == 0)
+local saved = ItemTooltip.LONG
+ItemTooltip.LONG = 3
+ItemTooltip.ForgetKept()
+got = ItemTooltip:BlockLines(Doubles(), { id = 2770 })
+suite.check("a long answer is one wrapped line", got and got[1] and got[1].wrap == true and got[1][2] == nil)
+ItemTooltip.LONG = saved
+suite.check("a grey gets no block lines", ItemTooltip:BlockLines(Doubles(), { id = 9001 }) == nil)
 
 suite.done()

@@ -2103,3 +2103,8 @@ L["picks"] = "раз"
 L["pocket picked"] = "обчищенного кармана"
 L["pockets picked"] = "обчищенных карманов"
 L["%d from %s"] = "%d из %s"
+
+-- Names in the shared item tooltip block (2026-11-21).
+L["Sold As Is:"] = "Продать как есть:"
+L["As %s:"] = "Как %s:"
+L["Farm At:"] = "Где фармить:"

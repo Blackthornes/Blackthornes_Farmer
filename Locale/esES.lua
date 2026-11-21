@@ -2102,3 +2102,8 @@ L["picks"] = "robos"
 L["pocket picked"] = "bolsillo robado"
 L["pockets picked"] = "bolsillos robados"
 L["%d from %s"] = "%d de %s"
+
+-- Names in the shared item tooltip block (2026-11-21).
+L["Sold As Is:"] = "Vendido tal cual:"
+L["As %s:"] = "Como %s:"
+L["Farm At:"] = "Farmear en:"
