@@ -2102,3 +2102,9 @@ L["picks"] = "vols"
 L["pocket picked"] = "poche faite"
 L["pockets picked"] = "poches faites"
 L["%d from %s"] = "%d sur %s"
+
+-- Panel Style (UI/PanelStyle.lua)
+L["Panel Style:"] = "Style des panneaux :"
+L["Boxed"] = "Encadré"
+L["Like Quest List"] = "Comme la liste des quêtes"
+L["Kills & Loot and Goals as plain text under the game's quest list."] = "Victimes et butin et Objectifs en texte simple sous la liste des quêtes du jeu."

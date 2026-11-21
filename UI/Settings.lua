@@ -824,6 +824,20 @@ function SettingsUI:BuildPanelsPage()
         if ns.PanelSnap then ns.PanelSnap:SetOn(checked) end
     end, true)
     controls.snapPanels:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- Panel Style (the owner said build it, 2026-11-21, and approved the
+    -- words): Kills & Loot and Goals boxed, or like the game's quest list
+    -- (UI/PanelStyle.lua). Boxed unless picked.
+    local styleNames = ns.PanelStyle.Names()
+    local panelStyleRow = pages:Row("panels", 1, L["Panel Style:"],
+        L["Kills & Loot and Goals as plain text under the game's quest list."])
+    controls.panelStyle = Widgets.CreateChoice(panelStyleRow, {
+        min = 1, max = #ns.PanelStyle.STYLES, step = 1, value = 1,
+        format = function(index) return styleNames[index] end,
+        onChange = function(index) ns.PanelStyle:Set(index) end,
+    })
+    ns.SettingsPages.FitStepper(controls.panelStyle, styleNames)
+    controls.panelStyle:SetPoint("TOPLEFT", CONTROL_X, -2)
 end
 
 function SettingsUI:BuildWindowsPage()
@@ -2222,6 +2236,7 @@ function SettingsUI:Refresh()
         if self.pages.SetHidden then self.pages:SetHidden("all", One ~= nil and One.On() == true) end
     end
     if controls.snapPanels then controls.snapPanels:SetChecked(not ns.PanelSnap or ns.PanelSnap:IsOn()) end
+    if controls.panelStyle and ns.PanelStyle then controls.panelStyle:SetValue(ns.PanelStyle:Index(), true) end
     if controls.dockMap then controls.dockMap:SetChecked(ns.MapDock and ns.MapDock:IsOn() or false) end
 
     local usable = ns.Harvest:Capabilities().usable

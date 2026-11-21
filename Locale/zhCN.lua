@@ -2093,3 +2093,9 @@ L["picks"] = "次"
 L["pocket picked"] = "次偷窃"
 L["pockets picked"] = "次偷窃"
 L["%d from %s"] = "%d 件，来自 %s"
+
+-- Panel Style (UI/PanelStyle.lua)
+L["Panel Style:"] = "面板样式："
+L["Boxed"] = "带边框"
+L["Like Quest List"] = "像任务列表"
+L["Kills & Loot and Goals as plain text under the game's quest list."] = "击杀与战利品和目标以纯文字显示在游戏任务列表下方。"
