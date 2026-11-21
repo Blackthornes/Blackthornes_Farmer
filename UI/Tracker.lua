@@ -1565,6 +1565,10 @@ function TrackerUI:CreateLine(parent, index)
         end
         if button ~= "LeftButton" or not line then return end
 
+        -- A Loot tab item: Shift-click links it in chat, Ctrl-click tries
+        -- it on, as the game's bags do.
+        if line.style == "loot" and line.item and Widgets.ItemClick(Util.ItemIDOf(line.item)) then return end
+
         if line.openKey then
             TrackerUI:Toggle(line.openKey, line.openDefault)
         elseif line.mob and ns.LootTableUI then
@@ -1661,6 +1665,7 @@ function TrackerUI:Slot(row, index)
             return
         end
         local icon = self.line
+        if icon and icon.item and Widgets.ItemClick(Util.ItemIDOf(icon.item)) then return end
         if icon and icon.mob and ns.LootTableUI then ns.LootTableUI:Toggle(icon.mob) end
     end)
     slot:RegisterForDrag("LeftButton")
@@ -1689,7 +1694,9 @@ function TrackerUI:CardTooltip(row)
     if not (line and GameTooltip) then return end
 
     GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
-    GameTooltip:AddLine(line.left)
+    -- A Loot tab item shows the game's own tooltip for it.
+    local game = line.style == "loot" and line.item and Widgets.ItemTooltip(row, Util.ItemIDOf(line.item))
+    if not game then GameTooltip:AddLine(line.left) end
     if line.style == "loot" then
         GameTooltip:AddLine(L["Right-click to hide it."], 1, 1, 1)
     elseif line.openKey then
@@ -1721,9 +1728,12 @@ function TrackerUI:SlotTooltip(slot)
     if not (icon and GameTooltip) then return end
 
     GameTooltip:SetOwner(slot, "ANCHOR_RIGHT")
-    local r, g, b = HexColor(ns.Tracker:LookOf(icon.item).color)
-    if not r then r, g, b = ns.Util.ItemRGB(icon.item) end
-    GameTooltip:AddLine(icon.item, r or 1, g or 1, b or 1)
+    -- The game's own tooltip for the item, else its name in its colour.
+    if not Widgets.ItemTooltip(slot, Util.ItemIDOf(icon.item)) then
+        local r, g, b = HexColor(ns.Tracker:LookOf(icon.item).color)
+        if not r then r, g, b = ns.Util.ItemRGB(icon.item) end
+        GameTooltip:AddLine(icon.item, r or 1, g or 1, b or 1)
+    end
     if icon.about then GameTooltip:AddLine(icon.about, 1, 1, 1) end
 
     local unit = ns.Value and ns.Value:WorthOf(icon.item)

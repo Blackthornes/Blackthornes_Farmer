@@ -89,6 +89,8 @@ function HiddenUI:Build()
         rowHeight = ROW,
         createRow = function(row) HiddenUI:CreateRow(row) end,
         updateRow = function(row, data) HiddenUI:UpdateRow(row, data) end,
+        -- A hidden item: Shift-click links it in chat, Ctrl-click tries it on.
+        itemOf = function(data) return data.kind == "item" and Util.ItemIDOf(data.name) or nil end,
         fadeKey = "well",
     })
     list:SetPoint("TOPLEFT", 6, -6)

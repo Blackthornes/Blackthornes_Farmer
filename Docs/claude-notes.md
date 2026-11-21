@@ -3302,3 +3302,20 @@ game's yellow), colours column headings; the heading that sorts the list
 is `text` (white) with its arrow. Gold rim, buttons and gems are untouched,
 and so are the Blizzard window style (`UI/BlizzardLook.lua`) and the shared
 files' fallback palettes. New lists use these keys, never numbers.
+## Item rows answer the game's clicks
+
+The owner said build it (2026-11-21, from the UI pass mockup 5): every item
+row answers the clicks the game's bags do. `Widgets.ItemClick(itemID, link)`
+in `UI/Widgets.lua` (the same helper in all five addons): Shift-click
+(`IsModifiedClick("CHATLINK")`) puts the link in the chat box only while one
+is open (`Widgets.ChatBoxOpen`), so a row's own Shift job still runs when it
+is shut; Ctrl-click (`DRESSUP`) tries gear on, by `item:ID` while the item
+loads. The game's `HandleModifiedItemClick` does the work where it is there,
+else `ChatEdit_InsertLink` / `DressUpItemLink`, all in pcall.
+`Widgets.ItemLink` and `Widgets.ItemTooltip(owner, id, link)` go with it.
+`CreateRowList` takes `itemOf(data) -> itemID, link`, checked on a left click
+before `onClick`. Here: the search window's item bands (with the game's
+tooltip on hover), the Loot Table, the Kills & Loot panel's Loot tab lines
+and loot icons (game tooltip on both), goal cards (Shift with the chat box
+shut still aims the arrow) and the hidden list. The loot feed is left alone:
+its rows let clicks through to the world. Tested in `tools/test_itemclicks.lua`.

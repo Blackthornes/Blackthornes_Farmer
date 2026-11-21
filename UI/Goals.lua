@@ -1007,6 +1007,10 @@ function GoalsUI:OnCardClick(card, button)
         return
     end
 
+    -- Shift-click with a chat box open links the item, Ctrl-click tries
+    -- it on, as the game's bags do; Shift-click aims the arrow otherwise.
+    if button ~= "RightButton" and Widgets.ItemClick(Util.ItemIDOf(goal.item)) then return end
+
     if goal.done then
         ns.Goals:Remove(goal.item)
         return

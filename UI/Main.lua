@@ -491,6 +491,7 @@ function UI:BuildBody()
         createRow = function(row) UI:CreateRow(row) end,
         updateRow = function(row, data, index) UI:UpdateRow(row, data, index) end,
         onClick = function(data, button) UI:OnRowClick(data, button) end,
+        itemOf = function(data) return UI.ItemOfRow(data) end,
         onEnter = function(row) UI:ShowValueTooltip(row) end,
         onLeave = function() if GameTooltip then GameTooltip:Hide() end end,
         -- The colour of the well the rows sit in.
@@ -881,6 +882,12 @@ end
 -- A source with no kind is a mob, as the database reads it.
 function UI:ShowValueTooltip(row)
     local data = row and row.data
+    -- An item's band shows the game's own tooltip for it.
+    local itemID = UI.ItemOfRow(data)
+    if itemID then
+        if Widgets.ItemTooltip(row, itemID) then GameTooltip:Show() end
+        return
+    end
     if not (data and data.type == "source" and data.source.name
         and (data.source.kind or "mob") == "mob") then
         return
@@ -890,6 +897,13 @@ function UI:ShowValueTooltip(row)
     local key = data.source.name
     if ns.Tracker then key = ns.Tracker:KeyFor(key, data.source.zone) end
     self:ShowMobTooltip(row, key)
+end
+
+--- The item a row is, when it is an item's band: Shift-click links it,
+--- Ctrl-click tries it on (Widgets.ItemClick).
+function UI.ItemOfRow(data)
+    if not (type(data) == "table" and data.type == "item" and type(data.item) == "table") then return nil end
+    return tonumber(data.item.id) or Util.ItemIDOf(data.item.name)
 end
 
 --- What a kill of `mobName` is worth and what makes it up, beside `owner`.
