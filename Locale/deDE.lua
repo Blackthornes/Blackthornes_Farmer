@@ -2103,6 +2103,10 @@ L["pocket picked"] = "Tasche geleert"
 L["pockets picked"] = "Taschen geleert"
 L["%d from %s"] = "%d aus %s"
 
+-- Names in the shared item tooltip block (2026-11-21).
+L["Sold As Is:"] = "So verkauft:"
+L["As %s:"] = "Als %s:"
+L["Farm At:"] = "Farmen bei:"
 -- Panel Style (UI/PanelStyle.lua)
 L["Panel Style:"] = "Panel-Stil:"
 L["Boxed"] = "Mit Rahmen"

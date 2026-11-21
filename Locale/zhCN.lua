@@ -2094,6 +2094,10 @@ L["pocket picked"] = "次偷窃"
 L["pockets picked"] = "次偷窃"
 L["%d from %s"] = "%d 件，来自 %s"
 
+-- Names in the shared item tooltip block (2026-11-21).
+L["Sold As Is:"] = "直接卖："
+L["As %s:"] = "做成%s："
+L["Farm At:"] = "刷取地点："
 -- Panel Style (UI/PanelStyle.lua)
 L["Panel Style:"] = "面板样式："
 L["Boxed"] = "带边框"
