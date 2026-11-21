@@ -1754,6 +1754,12 @@ function UI:Hide()
     end
 end
 
+-- The window's key, under Options, Keybindings, AddOns (Bindings.xml).
+-- No key is set for the player. It does what /farm on its own does, so
+-- with the one window on it opens or closes this addon's tab.
+_G.BINDING_HEADER_BLACKTHORNESFARMER = L["Blackthornes Farmer"]
+_G.BINDING_NAME_BLACKTHORNESFARMER_TOGGLE = L["Open or close the window"]
+
 function UI:Toggle()
     self:Build()
 

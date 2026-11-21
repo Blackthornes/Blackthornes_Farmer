@@ -144,6 +144,13 @@ changes with the English, in the "du" voice. Farmer's play cheers keep
 their "!", and `About.NOTE` is the owner's own wording. Full wording under
 "Standing rules in full" in `Docs/claude-notes.md`.
 
+Plain prose everywhere (the owner, 2026-11-21): notes, commits, PRs and
+replies too. Say plainly what you mean, no stock figures of speech. Short
+words. Cut every word you can, keeping the context the reader needs.
+Active voice. Everyday words or the reader's own term, not jargon or words
+made up during the work. Defaults, not hard limits. Check all prose against
+them before handing it over. Full wording under "Standing rules in full".
+
 ## The owner's standing rules (all the addons)
 
 Short forms. The full wording of each, with dates and reasons, is under
