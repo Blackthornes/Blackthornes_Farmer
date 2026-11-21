@@ -3254,3 +3254,21 @@ arrows, bars, trackers, the Zone Board and similar pieces get none.
 ## Scrambled GUIDs (Forever 1.60.1)
 
 Forever 1.60.1 (a hotfix, announced 2026-11-20) makes GetRealmName, GetRealmID and the C_BattleNet realm fields hand back "" or 0, and scrambles the realm, server and spawn parts of Creature, Vehicle, Pet and GameObject GUIDs (player GUIDs are not named). Every reader of a mob, vendor or trainer ID from a GUID takes any text in parts 2 to 5 (`[^%-]+`), never `%d+`; a new one must too. `Harvest.NpcID` is the one reader here. Old "Name-Realm" goals (`Goals:OldOwner`) can no longer be matched once the realm is blank; nearly all were retagged by GUID long ago. Tested in `tools/test_dungeonloot.lua`.
+
+## Item rows answer the game's clicks
+
+The owner said build it (2026-11-21, from the UI pass mockup 5): every item
+row answers the clicks the game's bags do. `Widgets.ItemClick(itemID, link)`
+in `UI/Widgets.lua` (the same helper in all five addons): Shift-click
+(`IsModifiedClick("CHATLINK")`) puts the link in the chat box only while one
+is open (`Widgets.ChatBoxOpen`), so a row's own Shift job still runs when it
+is shut; Ctrl-click (`DRESSUP`) tries gear on, by `item:ID` while the item
+loads. The game's `HandleModifiedItemClick` does the work where it is there,
+else `ChatEdit_InsertLink` / `DressUpItemLink`, all in pcall.
+`Widgets.ItemLink` and `Widgets.ItemTooltip(owner, id, link)` go with it.
+`CreateRowList` takes `itemOf(data) -> itemID, link`, checked on a left click
+before `onClick`. Here: the search window's item bands (with the game's
+tooltip on hover), the Loot Table, the Kills & Loot panel's Loot tab lines
+and loot icons (game tooltip on both), goal cards (Shift with the chat box
+shut still aims the arrow) and the hidden list. The loot feed is left alone:
+its rows let clicks through to the world. Tested in `tools/test_itemclicks.lua`.
