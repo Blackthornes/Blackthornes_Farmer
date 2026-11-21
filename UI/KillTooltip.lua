@@ -51,7 +51,7 @@ local MUTED = "ff9aa0ab"
 -- The red of the count below 20, and the plain text of the rest, when the
 -- theme is not loaded (the tests).
 local RED = { 0.898, 0.376, 0.310 }
-local WHITE = { 0.902, 0.910, 0.925 }
+local WHITE = { 1.000, 1.000, 1.000 }
 local GOLD = { 1, 0.82, 0 }
 
 local function Field(object, key)

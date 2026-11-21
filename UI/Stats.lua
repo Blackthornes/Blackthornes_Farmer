@@ -728,7 +728,7 @@ function StatsUI:DrawSources(card, arrive, view)
         widths[index] = entry.copper / total * (card.barWidth - 2)
         local row = card.rows[index]
         row.copper = entry.copper
-        row.value:SetText(entry.copper > 0 and ns.Value.Coins(entry.copper) or "|cff6b707b-|r")
+        row.value:SetText(entry.copper > 0 and ns.Value.Coins(entry.copper) or "|cff7a715e-|r")
     end
 
     local function Draw(p)
@@ -1022,7 +1022,7 @@ local CELL_GAP = 3
 
 -- Brighter is more gold: the well, then metal up to bright gold.
 local CELL_COLORS = {
-    [0] = { 0.090, 0.098, 0.118 },
+    [0] = { 0.102, 0.086, 0.067 },
     { 0.300, 0.235, 0.110 },
     { 0.470, 0.365, 0.150 },
     { 0.720, 0.570, 0.250 },
@@ -1277,7 +1277,7 @@ end
 local function CountUp(tile, copper, arrive, suffix)
     local function Set(p)
         local text = ns.Value.Coins((copper or 0) * p)
-        if suffix then text = text .. " |cff8b919b" .. suffix .. "|r" end
+        if suffix then text = text .. " |cff9b927c" .. suffix .. "|r" end
         tile.value:SetText(text)
     end
     if arrive and copper and copper > 0 then
@@ -1298,7 +1298,7 @@ end
 
 local function NoValue(tile)
     ns.Motion:Stop(tile, "count")
-    TileValue(tile, "|cff6b707b-|r")
+    TileValue(tile, "|cff7a715e-|r")
 end
 
 local function Note(tile, text, color)

@@ -824,7 +824,7 @@ function UI:BuildColumnHeadings()
     self.headings = {}
 
     local function Heading(key, text, justify)
-        local label = Theme.CreateLabel(panel, "tiny", "dim", justify)
+        local label = Theme.CreateLabel(panel, "tiny", "heading", justify)
         label:SetText(text)
         self.headings[key] = label
     end
