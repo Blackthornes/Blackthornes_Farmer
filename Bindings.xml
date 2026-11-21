@@ -2,5 +2,8 @@
      One Key Fishing's key (UI/OneKeyFishing.lua) clicks a hidden secure
      button, named on the Key Bindings page as Fish. -->
 <Bindings>
-    <Binding name="CLICK BlackthornesFarmerFishKey:LeftButton" header="BLACKTHORNESFARMER" category="ADDONS"/>
+    <Binding name="BLACKTHORNESFARMER_TOGGLE" header="BLACKTHORNESFARMER" category="ADDONS">
+        if BlackthornesFarmer and BlackthornesFarmer.UI then BlackthornesFarmer.UI:Toggle() end
+    </Binding>
+    <Binding name="CLICK BlackthornesFarmerFishKey:LeftButton" category="ADDONS"/>
 </Bindings>
