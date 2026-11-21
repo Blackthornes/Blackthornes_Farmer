@@ -3326,6 +3326,7 @@ once a second while the style is on and a panel shows, and places the
 panels again only when it moved; nothing is placed mid-drag. Boxed puts
 every piece back. Tested in `tools/test_panelstyle.lua`. Not yet seen in
 game.
+
 ## The window key (2026-11-21)
 
 The owner said build it (UI pass, keys and Options line): every addon has
