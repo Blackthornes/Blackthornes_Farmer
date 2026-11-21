@@ -3254,3 +3254,14 @@ arrows, bars, trackers, the Zone Board and similar pieces get none.
 ## Scrambled GUIDs (Forever 1.60.1)
 
 Forever 1.60.1 (a hotfix, announced 2026-11-20) makes GetRealmName, GetRealmID and the C_BattleNet realm fields hand back "" or 0, and scrambles the realm, server and spawn parts of Creature, Vehicle, Pet and GameObject GUIDs (player GUIDs are not named). Every reader of a mob, vendor or trainer ID from a GUID takes any text in parts 2 to 5 (`[^%-]+`), never `%d+`; a new one must too. `Harvest.NpcID` is the one reader here. Old "Name-Realm" goals (`Goals:OldOwner`) can no longer be matched once the realm is blank; nearly all were retagged by GUID long ago. Tested in `tools/test_dungeonloot.lua`.
+
+## The window key (2026-11-21)
+
+The owner said build it (UI pass, keys and Options line): every addon has
+one entry on the game's Key Bindings page, "Open or close the window", under
+its own header. It is the first binding in `Bindings.xml`
+(`<ADDON>_TOGGLE`, the header moved onto it) and runs `UI:Toggle()`, the
+same call as the slash command on its own, so with the one window on it
+opens or closes this addon's tab. No key is set for the player. The words
+are Tradeskills' (`BLACKTHORNESTS_TOGGLE`), the same in six languages.
+Tested in `tools/test_windowkey.lua`.
