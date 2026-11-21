@@ -697,6 +697,9 @@ function TrackerUI:Build()
     header:SetHeight(HEADER)
 
     Theme.HouseHeader(header)
+    -- The box, for Panel Style's Like Quest List (UI/PanelStyle.lua): the
+    -- header's fill, stripe, glow and sheen, taken before its words go on.
+    local chrome = ns.PanelStyle and ns.PanelStyle.Chrome(header) or {}
 
     local title = Theme.CreateLabel(header, "normal", "accent")
     title:SetPoint("LEFT", header, "TOPLEFT", PADDING + 4, -TITLE_LINE / 2)
@@ -786,11 +789,39 @@ function TrackerUI:Build()
     self:BuildGrip(frame)
     self:BuildSizeGrip(frame)
     self:BuildSeeThrough(frame)
+    self:BuildPanelStyle(frame, chrome)
 
     self:RestorePosition()
     frame:Hide()
 
     return frame
+end
+
+--- Hand the panel to Panel Style (UI/PanelStyle.lua): its box (the rim, the
+--- header, the rule and the tabs' edges), its heading and the buttons that
+--- show only under the mouse in the Like Quest List style.
+function TrackerUI:BuildPanelStyle(frame, chrome)
+    local PanelStyle = ns.PanelStyle
+    if not PanelStyle then return end
+    PanelStyle.Add(chrome, frame.borderTextures)
+    chrome[#chrome + 1] = self.rule
+    for _, tab in ipairs(self.tabs or {}) do PanelStyle.Add(chrome, tab.borderTextures) end
+    PanelStyle:Register("tracker", {
+        frame = frame,
+        chrome = chrome,
+        title = self.title,
+        lineParent = self.header,
+        lineRight = PADDING,
+        buttons = function()
+            local bar = TrackerUI.toolbar or {}
+            local gems = TrackerUI.gems or {}
+            return { gems.fold, gems.close, bar.sort, bar.clear, bar.zone }
+        end,
+        refresh = function()
+            TrackerUI:ApplySeeThrough()
+            if TrackerUI.frame and TrackerUI.frame:IsShown() then TrackerUI:Refresh() end
+        end,
+    })
 end
 
 --- A soft fade over one cut edge of the column, above the rows.
@@ -849,7 +880,7 @@ function TrackerUI:AddGlass(texture, floor)
     self.glassParts[#self.glassParts + 1] = { texture = texture, floor = floor or 0 }
     -- A line made while the panel is see-through starts that way.
     if self.glassShown and self.glassShown < 1 then
-        pcall(texture.SetAlpha, texture, math.max(self.glassShown, floor or 0))
+        pcall(texture.SetAlpha, texture, math.max(self.glassShown, self.glassBare and 0 or floor or 0))
     end
 end
 
@@ -857,7 +888,7 @@ end
 function TrackerUI:SetGlass(shown)
     self.glassShown = shown
     for _, part in ipairs(self.glassParts or {}) do
-        pcall(part.texture.SetAlpha, part.texture, math.max(shown, part.floor))
+        pcall(part.texture.SetAlpha, part.texture, math.max(shown, self.glassBare and 0 or part.floor))
     end
 end
 
@@ -919,6 +950,23 @@ end
 function TrackerUI:ApplySeeThrough()
     local frame, watch = self.frame, self.seeThroughWatch
     if not frame or not watch then return end
+
+    -- Like Quest List (UI/PanelStyle.lua): no glass at all, the mouse
+    -- brings none back, and every word keeps its shadow.
+    if ns.PanelStyle and ns.PanelStyle:IsQuest() then
+        watch:SetScript("OnUpdate", nil)
+        self.glassSolid = nil
+        self.glassBare = true
+        ns.Motion:Stop(GLASS, "seeThrough")
+        ns.Motion:SetValue(GLASS, "seeThrough", 0)
+        self:SetGlass(0)
+        ShadeAll(frame, true)
+        if self.fadeTop then self.fadeTop:Hide() end
+        if self.fadeBottom then self.fadeBottom:Hide() end
+        return
+    end
+    self.glassBare = nil
+
     local on = self:SeeThroughOn()
 
     ShadeAll(frame, on)
@@ -954,7 +1002,7 @@ function TrackerUI:SetSeeThroughLevel(level)
     level = tonumber(level)
     if not level or not TrackerUI.SEE_THROUGH_LEVELS[level] then return end
     ns.db.trackerSeeThroughLevel = level
-    if self:SeeThroughOn() then self:FadeGlass(self:MouseOnPanel()) end
+    if self:SeeThroughOn() and not self.glassBare then self:FadeGlass(self:MouseOnPanel()) end
 end
 
 --- How lit a tab is under the mouse, 0 to 1: its wash, and its name from
@@ -1593,7 +1641,7 @@ function TrackerUI:CreateLine(parent, index)
     end)
 
     -- A line made while the panel is see-through gets the shadow under its words.
-    if self:SeeThroughOn() then ShadeAll(row, true) end
+    if self:SeeThroughOn() or self.glassBare then ShadeAll(row, true) end
     return row
 end
 
@@ -2874,14 +2922,17 @@ function TrackerUI:DrawCard(index, first, last, live)
     card:SetPoint("TOPLEFT", first, "TOPLEFT", PADDING - 5, 1)
     card:SetPoint("BOTTOMRIGHT", last, "BOTTOMRIGHT", -(PADDING - 5), -1)
 
+    -- Like Quest List: no card round the lines, only the gold left edge.
+    local bare = self.glassBare == true
     for _, edge in ipairs(card.edges) do
+        edge:SetShown(not bare)
         if live then
             edge:SetColorTexture(Theme.Unpack("accent", 0.95))
         else
             edge:SetColorTexture(Theme.Unpack("border"))
         end
     end
-    Theme.SetHalo(card, live and LIVE_HALO or 0)
+    Theme.SetHalo(card, (live and not bare) and LIVE_HALO or 0)
 
     card:Show()
 end
@@ -3137,7 +3188,7 @@ function TrackerUI:Arrange(effects)
     if self.fadeTop then
         -- The fades are the panel's dark colour, so a see-through panel
         -- leaves them out.
-        local clear = self:SeeThroughOn()
+        local clear = self:SeeThroughOn() or self.glassBare
         self.fadeTop:SetShown(self.scroll > 0 and not clear)
         self.fadeBottom:SetShown(below > 0 and not clear)
     end
@@ -3305,6 +3356,8 @@ function TrackerUI:SetFolded(on)
         for _, part in ipairs({ self.tabStrip, self.toolbar, self.rule }) do
             if part then part:Show() end
         end
+        -- Like Quest List keeps the rule hidden: the yellow line is its own.
+        if self.glassBare and self.rule then self.rule:Hide() end
     end
     if self.frame and self.frame:IsShown() then self:Refresh() end
 end
@@ -3598,6 +3651,17 @@ function TrackerUI:GroupFrameBox()
     return box
 end
 
+--- True while the panel is still where it started: never dragged, or put
+--- back with Reset Spot.
+function TrackerUI:AtFirstSpot()
+    local db, defaults = ns.db or {}, ns.DEFAULTS or {}
+    local point = db.trackerPoint or "TOPLEFT"
+    local relative = db.trackerRelativePoint or point
+    return point == "TOPLEFT" and relative == "TOPLEFT"
+        and (db.trackerX or 8) == (defaults.trackerX or 8)
+        and (db.trackerY or -190) == (defaults.trackerY or -190)
+end
+
 --- Put the panel where it belongs for being solo or grouped.
 function TrackerUI:Place()
     if not self.frame then return end
@@ -3608,9 +3672,19 @@ function TrackerUI:Place()
 
     local db = ns.db or {}
     self.grouped = self:DodgeGroupOn() and self:InGroup()
+    local groupSpot = self.grouped and type(db.trackerGroupX) == "number"
+        and type(db.trackerGroupY) == "number"
+
+    -- Like Quest List: never dragged, it lines up under the game's quest
+    -- list (UI/PanelStyle.lua). A spot picked for groups still wins.
+    if not groupSpot and self:AtFirstSpot() and ns.PanelStyle
+        and ns.PanelStyle:PlaceUnderQuestList(self.frame) then
+        return
+    end
+
     if not self.grouped then return end
 
-    if type(db.trackerGroupX) == "number" and type(db.trackerGroupY) == "number" then
+    if groupSpot then
         self.frame:ClearAllPoints()
         self.frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", db.trackerGroupX, db.trackerGroupY)
         return

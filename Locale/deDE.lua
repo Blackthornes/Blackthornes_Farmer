@@ -2102,4 +2102,10 @@ L["picks"] = "Griffe"
 L["pocket picked"] = "Tasche geleert"
 L["pockets picked"] = "Taschen geleert"
 L["%d from %s"] = "%d aus %s"
+
+-- Panel Style (UI/PanelStyle.lua)
+L["Panel Style:"] = "Panel-Stil:"
+L["Boxed"] = "Mit Rahmen"
+L["Like Quest List"] = "Wie die Questliste"
+L["Kills & Loot and Goals as plain text under the game's quest list."] = "Kills & Beute und Ziele als schlichter Text unter der Questliste des Spiels."
 L["Open or close the window"] = "Fenster öffnen oder schließen"

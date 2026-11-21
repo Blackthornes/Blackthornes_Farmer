@@ -3278,6 +3278,55 @@ arrows, bars, trackers, the Zone Board and similar pieces get none.
 
 Forever 1.60.1 (a hotfix, announced 2026-11-20) makes GetRealmName, GetRealmID and the C_BattleNet realm fields hand back "" or 0, and scrambles the realm, server and spawn parts of Creature, Vehicle, Pet and GameObject GUIDs (player GUIDs are not named). Every reader of a mob, vendor or trainer ID from a GUID takes any text in parts 2 to 5 (`[^%-]+`), never `%d+`; a new one must too. `Harvest.NpcID` is the one reader here. Old "Name-Realm" goals (`Goals:OldOwner`) can no longer be matched once the realm is blank; nearly all were retagged by GUID long ago. Tested in `tools/test_dungeonloot.lua`.
 
+## Panel Style (Like Quest List)
+
+The owner said build it (2026-11-21, from the mockup
+`Docs/mockups/ui-pass-3-quest-list-look.html` in the project files, Farmer
+first; Equipment's and Pets' trackers only after he tries this) and
+approved the words: "Panel Style:" on the WINDOWS page under Snap Panels,
+Boxed (the default) or Like Quest List, with the line "Kills & Loot and
+Goals as plain text under the game's quest list." Saved account wide as
+`panelStyle` ("boxed" or "quest"; nil reads as boxed), never rename it.
+`UI/PanelStyle.lua` (a new file in the TOC).
+
+Like Quest List, for Kills & Loot and the goals panel:
+
+- The box goes: every piece of glass is clear (`TrackerUI.glassBare`,
+  `SeeThrough` state `bare` for "goals"; floors such as the open card's
+  gold are ignored), and the rim, the header's fill, stripe, glow and
+  sheen, the rule and the tabs' edges are hidden (`PanelStyle.Chrome`
+  takes the header's textures right after `Theme.HouseHeader`, before its
+  words; only what was showing comes back). Cards lose their edges and
+  glow; the live row keeps its gold left edge. The edge glow's rest is set
+  to false, so `Motion:Open`, `TrackerFX:Flare` and `GoalsUI:Flare` skip
+  it, and is put back on Boxed.
+- Every word keeps a black shadow; lines made later too.
+- The heading is the game's yellow (`PanelStyle.YELLOW`) with a thin
+  yellow line under it.
+- The fold and close gems, Sort, Clear and Zone Board (and the goals
+  count chip and Set another) show only while the mouse is on the panel
+  (SetAlpha, a 0.1 second look while the panel shows). The Open button is
+  a secure button and is left alone.
+- Icons, bars, glows on rows and cheers are unchanged.
+- Transparent (see "The see-through panel") does nothing while it is on;
+  its saved levels stay and come back with Boxed.
+
+Where they sit: Kills & Loot still at its first spot (`TrackerUI:AtFirstSpot`,
+the defaults 8, -190 from TOPLEFT, never dragged or put back with Reset
+Spot) and with no spot picked for groups goes under the game's quest list,
+its right edge on the list's (`PanelStyle:PlaceUnderQuestList`). The goals
+panel docks under it as before; with Kills & Loot hidden and the goals
+panel never dragged, it takes that spot instead, so the column closes up.
+A dragged panel keeps its own spot. The quest list
+(`ObjectiveTrackerFrame`, `QuestWatchFrame`, `WatchFrame`) is only read
+inside a pcall, never moved, hidden, hooked or changed:
+`PanelStyle.QuestListEdge` takes the lowest frame showing inside it (three
+levels down), else its top while it shows nothing. A follower reads it
+once a second while the style is on and a panel shows, and places the
+panels again only when it moved; nothing is placed mid-drag. Boxed puts
+every piece back. Tested in `tools/test_panelstyle.lua`. Not yet seen in
+game.
+
 ## The window key (2026-11-21)
 
 The owner said build it (UI pass, keys and Options line): every addon has

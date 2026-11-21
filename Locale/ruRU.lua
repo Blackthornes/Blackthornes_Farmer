@@ -2103,4 +2103,10 @@ L["picks"] = "раз"
 L["pocket picked"] = "обчищенного кармана"
 L["pockets picked"] = "обчищенных карманов"
 L["%d from %s"] = "%d из %s"
+
+-- Panel Style (UI/PanelStyle.lua)
+L["Panel Style:"] = "Стиль панелей:"
+L["Boxed"] = "В рамке"
+L["Like Quest List"] = "Как список заданий"
+L["Kills & Loot and Goals as plain text under the game's quest list."] = "Убийства и добыча и Цели простым текстом под списком заданий игры."
 L["Open or close the window"] = "Открыть или закрыть окно"

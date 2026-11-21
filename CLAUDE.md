@@ -104,6 +104,7 @@ Sections there:
 - Saved Farms
 - The Zone Board
 - The swap gem (One Window toggle, 2026-11-19)
+- Panel Style (Like Quest List)
 
 ## Checking a change
 
