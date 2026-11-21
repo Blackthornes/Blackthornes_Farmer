@@ -2298,11 +2298,11 @@ function Widgets.SortableHeadings(labels, tips, onChange, opts)
             local label = button.label
 
             if active then
-                label:SetTextColor(Theme.Unpack("accent"))
+                label:SetTextColor(Theme.Unpack("text"))
             elseif button.hover then
                 label:SetTextColor(Theme.Unpack("text"))
             else
-                label:SetTextColor(Theme.Unpack("dim"))
+                label:SetTextColor(Theme.Unpack("heading"))
             end
             button.glow:SetAlpha(button.hover and 1 or (active and 0.55 or 0))
 
