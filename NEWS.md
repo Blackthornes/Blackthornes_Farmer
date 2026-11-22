@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.28.0
+
+- Panels and rows have a warm brown-black look.
+- Kills & Loot and Goals can look like the game's quest list. Pick Like Quest List under Panel Style on the Windows page.
+- Item rows link in chat and try on gear.
+- Farmer has its own key in Key Bindings.
+
 ## 1.27.2
 
 Fixes and changes:

@@ -4,6 +4,16 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.28.0
+
+For WoW: Forever (interface 16001). A full restart is needed after updating.
+
+- **Warm look.** Panels and rows are warm brown-black, with yellow column headings.
+- **Window key.** Key Bindings has a new "Open or close the window" line for Farmer.
+- **Panel Style.** Panel Style on the WINDOWS page can show Kills & Loot and Goals like the game's quest list. It starts on Boxed.
+- **Item rows.** Shift-click an item row to link it in an open chat box. Ctrl-click tries gear on.
+- **Tooltips.** Item tooltip lines sit in one tidy block.
+
 ## 1.27.2
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
