@@ -4,6 +4,13 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.30.0
+
+For WoW: Forever (interface 16001). A full restart is needed after updating.
+
+- **Zone Board.** Right-click a mob to hide it in that zone. Show Again at the bottom of the board brings hidden mobs back.
+
+
 ## 1.29.1
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
