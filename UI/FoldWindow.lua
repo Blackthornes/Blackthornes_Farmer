@@ -644,7 +644,7 @@ function FoldWindow:Unfold(frame, closing)
     HideRound(round)
     SaveFolded(state.key, false)
 
-    if state.onToggle then pcall(state.onToggle, false) end
+    if state.onToggle then pcall(state.onToggle, false, closing and true or false) end
     -- Growing back out of the button.
     if not closing and ns.Motion and type(ns.Motion.Open) == "function" then
         pcall(ns.Motion.Open, ns.Motion, frame, 0)
@@ -794,7 +794,8 @@ end
 -- opts: key (saves it through a /reload; else the frame's name), shared,
 -- title, emblem, line, pill, open (as for Opener), onToggle (called with
 -- true as it folds and false as it opens, so the window can stop or start
--- drawing its lists), canFold (a function; while it answers false nothing
+-- drawing its lists; opening, a second true says the window is closing),
+-- canFold (a function; while it answers false nothing
 -- folds).
 function FoldWindow:Join(frame, opts)
     if type(frame) ~= "table" then return nil end
