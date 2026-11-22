@@ -5,6 +5,12 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "1.28.0", lines = {
+        "Panels and rows have a warm brown-black look.",
+        "Kills & Loot and Goals can look like the game's quest list. Pick Like Quest List under Panel Style on the Windows page.",
+        "Item rows link in chat and try on gear.",
+        "Farmer has its own key in Key Bindings.",
+    } },
     { version = "1.27.0", lines = {
         "Every window has a gold gem on its title bar. Click it to switch between the one window and separate windows.",
     } },
@@ -12,12 +18,5 @@ ns.WHATS_NEW = {
         "The Kill Heat card starts smaller, and you can size it.",
         "A mob's card shows what you picked from its pockets.",
         "A new Exclude Rarity choice leaves rarities out of worth per kill.",
-    } },
-    { version = "1.22.0", lines = {
-        "New Marker Size choice makes the marks on your maps smaller or bigger.",
-        "Blackthornes now has one button on your addon bar.",
-        "Settings pages sit in the same order in every Blackthornes addon.",
-        "At a vendor, the window opens on Butler.",
-        "Various bug fixes for Farmer.",
     } },
 }
