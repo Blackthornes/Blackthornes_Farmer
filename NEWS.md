@@ -23,6 +23,11 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.29.1
+
+Fixes and changes:
+- Mob names that end in "man" show as written, like Shaman.
+
 ## 1.29.0
 
 - Windows fold into a round button. Kills & Loot shows your kills on it, and Goals shows goals done.
