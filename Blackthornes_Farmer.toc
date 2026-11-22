@@ -86,6 +86,7 @@ Logic\Contribute.lua
 Logic\CSV.lua
 Logic\SavedFarms.lua
 Logic\ZoneBoard.lua
+Logic\GrindTo60.lua
 
 UI\Theme.lua
 UI\ItemLook.lua
