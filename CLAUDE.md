@@ -234,5 +234,7 @@ The same file lives in several addons: `UI/SharedWindow.lua`, `UI/WhatsNew.lua`,
 
 Windows remember where they were dragged: `oneWindowDockSpots[place]` and
 `windowSpots[key]` (never rename either), small windows through
-`SharedWindow.KeepSpot(frame, key)`. Details under "Window spots" in
+`SharedWindow.KeepSpot(frame, key)`. A window folded into its round button
+is kept as `foldedWindows[key]`, its button's spot as
+`windowSpots["fold:" .. key]` (never rename; see "The fold gem"). Details under "Window spots" in
 `Docs/claude-notes.md`.

@@ -300,6 +300,21 @@ function GoalsUI:Build()
     -- header) and the close gem (2026-10-29).
     local gems = Widgets.CreatePanelGems(header, {
         onFold = function(folded) GoalsUI:SetFolded(folded) end,
+        -- Folds into a round button with goals done out of goals set
+        -- (UI/FoldWindow.lua, 2026-11-22).
+        round = {
+            frame = frame, key = "Goals", title = L["Goals"],
+            pill = function()
+                local done, total = GoalsUI:DoneCount()
+                if total > 0 then return ("%d/%d"):format(done, total) end
+                return nil
+            end,
+            line = function()
+                local done, total = GoalsUI:DoneCount()
+                return L.Format("%d of %d goals done.", done, total)
+            end,
+            onToggle = function(folded) if not folded then GoalsUI:Refresh() end end,
+        },
         onClose = function()
             ns.db.goalsHidden = true
             GoalsUI:Refresh()
@@ -936,6 +951,16 @@ end
 
 Util.OnRarity("goals", function() GoalsUI:RarityArrived() end)
 
+--- Goals done, and goals set.
+function GoalsUI:DoneCount()
+    local list = self:List()
+    local done = 0
+    for _, goal in ipairs(list) do
+        if goal.done then done = done + 1 end
+    end
+    return done, #list
+end
+
 --- Redraw, and show or hide: shown while there are goals, unless you
 --- closed it.
 function GoalsUI:Refresh()
@@ -944,6 +969,12 @@ function GoalsUI:Refresh()
     if #self:List() == 0 or ns.db.goalsHidden then
         self.frame:Hide()
         self:Forget()
+        return
+    end
+
+    -- Folded into its round button: only its count changes.
+    if ns.FoldWindow and ns.FoldWindow:IsFolded(self.frame) then
+        ns.FoldWindow:Refresh(self.frame)
         return
     end
 
@@ -1446,8 +1477,13 @@ function GoalsUI:Place()
     if not frame or ns.db.goalsX then return end
 
     local tracker = ns.TrackerUI and ns.TrackerUI.frame
+    local folded = ns.TrackerUI and ns.TrackerUI.IsFoldedAway and ns.TrackerUI:IsFoldedAway()
     frame:ClearAllPoints()
-    if tracker and tracker:IsShown() then
+    if tracker and tracker:IsShown() and folded then
+        -- The kills panel folded into its button: move up under the button.
+        local FoldWindow = ns.FoldWindow
+        frame:SetPoint("TOPLEFT", tracker, "TOPLEFT", 0, -(FoldWindow.SIZE - FoldWindow.OUT + 10))
+    elseif tracker and tracker:IsShown() then
         -- Under it, unless a tall kills panel leaves too little room there:
         -- kept on screen, this one was pushed up over it.
         local side = DockSide(frame, tracker)

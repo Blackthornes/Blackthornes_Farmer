@@ -257,7 +257,13 @@ function ZoneBoardUI:Build()
         save = function(percent) if ns.db then ns.db.zoneBoardScale = percent end end,
     })
     if ns.FoldWindow and ns.FoldWindow.Add then
-        ns.FoldWindow:Add(frame, { onToggle = function() ZoneBoardUI:Draw() end })
+        ns.FoldWindow:Add(frame, { key = "ZoneBoard", onToggle = function() ZoneBoardUI:Draw() end,
+            -- Folded, the button's tooltip names the mob hunted.
+            line = function()
+                local board = Board()
+                local target = board:Hunting() and board:Target() or nil
+                return ZoneBoardUI.FoldTitle(board.Here(), target)
+            end })
     end
 
     local pad = self.PAD
@@ -623,6 +629,7 @@ function ZoneBoardUI:Draw()
         -- Folded: the title is all that shows.
         local target = board:Hunting() and board:Target() or nil
         if plate and plate.SetTitle then plate:SetTitle(ZoneBoardUI.FoldTitle(zone, target)) end
+        ns.FoldWindow:Refresh(frame)
         return
     end
     if plate and plate.SetTitle then plate:SetTitle(ZoneBoardUI.Title(zone)) end
@@ -888,4 +895,9 @@ function ZoneBoardUI:OnEnable()
     if ns.SharedWindow and ns.SharedWindow.AddSpotReset then
         pcall(ns.SharedWindow.AddSpotReset, self.SPOT_KEY, function() ZoneBoardUI:ResetPlace() end)
     end
+end
+
+-- Kept folded through a /reload, its round button opens it (UI/FoldWindow.lua).
+if ns.FoldWindow and ns.FoldWindow.Opener then
+    ns.FoldWindow:Opener("ZoneBoard", { open = function() ZoneBoardUI:Show() end })
 end

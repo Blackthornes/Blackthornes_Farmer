@@ -474,6 +474,7 @@ function FishingBar:Build()
 
     if ns.FoldWindow then
         ns.FoldWindow:Add(frame, {
+            key = "FishingBar",
             canFold = function() return not InCombat() end,
             onToggle = function(folded) if folded then FishingBar:HideList() end end,
         })
