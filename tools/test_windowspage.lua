@@ -19,7 +19,7 @@ local pages, controls = SettingsUI.pages, SettingsUI.controls
 local order = {}
 for index, def in ipairs(pages.defs) do order[index] = def.key end
 suite.check("the pages, in order", table.concat(order, " ")
-    == "tally loot map goals tooltips sounds panels sharing all about", table.concat(order, " "))
+    == "tally loot map goals experimental tooltips sounds panels sharing all about", table.concat(order, " "))
 -- General joined Windows (the owner said build it, 2026-11-17): a page
 -- saved under an old key opens the page its rows are on now.
 suite.check("old saves of General, Windows and Advanced open Windows",

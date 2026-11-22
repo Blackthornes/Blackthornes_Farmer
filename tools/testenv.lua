@@ -385,6 +385,7 @@ local FILES = {
     "Logic/CSV.lua",
     "Logic/SavedFarms.lua",
     "Logic/ZoneBoard.lua",
+    "Logic/GrindTo60.lua",
 }
 
 -- Written by tools/harvest_import.py from a real session, so it is present on
@@ -431,6 +432,7 @@ local UI_FILES = {
     "UI/Grinding.lua",
     "UI/GatherToCap.lua",
     "UI/GatherRoute.lua",
+    "UI/GrindTo60.lua",
     "UI/RouteWindow.lua",
     "UI/ZoneBoard.lua",
     "UI/ZoneBoardFX.lua",

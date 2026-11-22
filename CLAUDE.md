@@ -106,6 +106,7 @@ Sections there:
 - The swap gem (One Window toggle, 2026-11-19)
 - The tooltip block (shared item tooltip lines)
 - Panel Style (Like Quest List)
+- Grind to 60 (a test feature, 2026-11-22)
 
 ## Checking a change
 

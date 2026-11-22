@@ -54,6 +54,8 @@ local PAGES = {
       tip = L["Node markers, sparkles, grinding camps, kill heat and the gather route"] },
     { key = "goals", text = L["GOALS"],
       tip = L["Your goals and the goal arrow"] },
+    -- Test features, each off unless ticked (the owner, 2026-11-22).
+    { key = "experimental", text = L["EXPERIMENTAL"] },
     -- From here on, the pages every Blackthornes addon shares, in the same
     -- order in all five (the owner said build it, 2026-11-17). General
     -- joined Windows then; a saved "general" opens Windows.
@@ -1792,6 +1794,22 @@ function SettingsUI:BuildMapPage()
     ns.SettingsPages.FitStepper(controls.arrowSize, { "50%", "75%", "100%" })
     controls.arrowSize:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- Grind to 60 (Logic/GrindTo60.lua): a path of grind camps on the
+    -- Grind tab. Off unless ticked.
+    pages:Section("experimental", 1, L["EXPERIMENTAL"])
+
+    local grindTo60Row = pages:Row("experimental", 1, L["Grind to 60:"],
+        L["Plan a path of grind spots from your level to 60. Shows on the Grind tab. Still new, so some steps may be off."])
+    controls.grindTo60 = Widgets.CreateCheckbox(grindTo60Row, L["On"], function(checked)
+        if ns.GrindTo60 then ns.GrindTo60:SetOn(checked) end
+        if ns.GrindingUI and ns.GrindingUI.view then
+            ns.GrindingUI:LayoutChips()
+            ns.GrindingUI:Refresh()
+        end
+        SettingsUI:Refresh()
+    end, false)
+    controls.grindTo60:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- A glow where you kill the most (Logic/Heat.lua, a test feature).
     pages:Section("map", 1, L["KILL HEAT"])
 
@@ -2079,6 +2097,9 @@ function SettingsUI:Refresh()
     controls.heatWorld:SetChecked(db.heatWorld == true)
     controls.heatMinimap:SetChecked(db.heatMinimap == true)
     controls.heatLevel:SetValue(ns.Heat:Level(), true)
+    if controls.grindTo60 and ns.GrindTo60 then
+        controls.grindTo60:SetChecked(ns.GrindTo60.IsOn())
+    end
     if controls.gatherRoute and ns.GatherRoute then
         local routeOn = ns.GatherRoute.IsOn()
         controls.gatherRoute:SetChecked(routeOn)
