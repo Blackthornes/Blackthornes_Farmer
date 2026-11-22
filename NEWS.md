@@ -23,6 +23,11 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.30.0
+
+- Right-click a mob on the Zone Board to hide it in that zone. Show Again brings it back.
+
+
 ## 1.29.1
 
 Fixes and changes:
