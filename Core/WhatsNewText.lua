@@ -5,6 +5,9 @@
 local _, ns = ...
 
 ns.WHATS_NEW = {
+    { version = "1.29.0", lines = {
+        "Windows fold into a round button. Kills & Loot shows your kills on it, and Goals shows goals done.",
+    } },
     { version = "1.28.0", lines = {
         "Panels and rows have a warm brown-black look.",
         "Kills & Loot and Goals can look like the game's quest list. Pick Like Quest List under Panel Style on the Windows page.",
@@ -13,10 +16,5 @@ ns.WHATS_NEW = {
     } },
     { version = "1.27.0", lines = {
         "Every window has a gold gem on its title bar. Click it to switch between the one window and separate windows.",
-    } },
-    { version = "1.25.0", lines = {
-        "The Kill Heat card starts smaller, and you can size it.",
-        "A mob's card shows what you picked from its pockets.",
-        "A new Exclude Rarity choice leaves rarities out of worth per kill.",
     } },
 }

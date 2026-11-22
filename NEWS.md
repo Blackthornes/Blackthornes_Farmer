@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.29.0
+
+- Windows fold into a round button. Kills & Loot shows your kills on it, and Goals shows goals done.
+
+Fixes and changes:
+- Folding the One Window no longer shuts it for good.
+
 ## 1.28.0
 
 - Panels and rows have a warm brown-black look.
