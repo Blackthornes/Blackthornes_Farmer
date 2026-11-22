@@ -1537,6 +1537,9 @@ function TrackerFX.Plural(name)
     if type(name) ~= "string" or name == "" then return "" end
     if not (Util.EnglishClient and Util.EnglishClient()) then return name end
     if name:find("[^aeiou]y$") then return name:sub(1, -2) .. "ies" end
+    -- A shaman, a human and a talisman are not men: they take a plain "s".
+    local low = name:lower()
+    if low:find("shaman$") or low:find("human$") or low:find("talisman$") then return name .. "s" end
     if name:find("man$") then return name:sub(1, -4) .. "men" end
     if name:find("fe$") then return name:sub(1, -3) .. "ves" end
     if name:find("[^f]f$") then return name:sub(1, -2) .. "ves" end
