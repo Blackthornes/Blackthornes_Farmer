@@ -432,6 +432,7 @@ local UI_FILES = {
     "UI/Grinding.lua",
     "UI/GatherToCap.lua",
     "UI/GatherRoute.lua",
+    "UI/GrindTo60.lua",
     "UI/RouteWindow.lua",
     "UI/ZoneBoard.lua",
     "UI/ZoneBoardFX.lua",

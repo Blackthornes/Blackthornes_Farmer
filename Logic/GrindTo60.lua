@@ -141,10 +141,18 @@ local function Read(fn, ...)
     if type(fn) ~= "function" then return nil end
     local results = { pcall(fn, ...) }
     if not results[1] then return nil end
+    -- A secret value raises when touched: a number is read by adding to
+    -- it, words by Harvest's own copy.
     local Readable = ns.Harvest and ns.Harvest.Readable or function(value) return value end
     local out = {}
     for index = 2, #results do
-        local ok, value = pcall(Readable, results[index])
+        local raw = results[index]
+        local ok, value
+        if type(raw) == "number" then
+            ok, value = pcall(function() return raw + 0 end)
+        else
+            ok, value = pcall(Readable, raw)
+        end
         out[index - 1] = ok and value or nil
     end
     return out
@@ -572,10 +580,10 @@ end
 
 -- Words for why a step was picked, in order.
 local REASONS = {
-    many = L["lots of mobs close together"],
-    cloth = L["cloth sells well"],
-    herbs = L["herbs grow along the path"],
-    skins = L["mobs to skin"],
+    many = L["Lots of mobs close together."],
+    cloth = L["Cloth sells well."],
+    herbs = L["Herbs grow along the path."],
+    skins = L["Mobs here can be skinned."],
 }
 
 local function Dots(value, sorted)
@@ -621,7 +629,7 @@ function GrindTo60:Plan()
         end
     end
 
-    local low, prev = 1, nil
+    local low, prev, from = 1, nil, nil
     while low < GrindTo60.TOP do
         local high = math.min(GrindTo60.TOP, low + 5)
         local looks = {}
@@ -631,6 +639,14 @@ function GrindTo60:Plan()
         end
         local best = Choose(looks, GrindTo60.Pick(), prev, who, low)
         if not best then
+            -- No camp for these levels: the step before runs on through
+            -- them, so the path has no hole and still ends at the top.
+            if prev then
+                prev.high = high
+                prev.camp.maxLevel = high
+            else
+                from = from or low
+            end
             low = high
         else
             local top = 0
@@ -638,18 +654,33 @@ function GrindTo60:Plan()
             local stepHigh = math.max(low + GrindTo60.STEP_MIN, math.min(low + GrindTo60.STEP_MOST, top + 1))
             stepHigh = math.min(GrindTo60.TOP, stepHigh)
             local camp = best.camp
+            if prev and prev.key == camp.key then
+                -- The same camp again: one longer step, not two rows.
+                prev.high = stepHigh
+                prev.camp.maxLevel = stepHigh
+                for _, mob in ipairs(best.mobs) do
+                    local known = false
+                    for _, each in ipairs(prev.mobs) do if each.name == mob.name then known = true end end
+                    if not known then prev.mobs[#prev.mobs + 1] = mob end
+                end
+                prev.xp, prev.gold = math.max(prev.xp, best.xp), math.max(prev.gold, best.gold)
+                low = stepHigh
+            else
+            local stepLow = from or low
+            from = nil
             local step = {
-                low = low, high = stepHigh, zone = camp.zone, location = camp.location,
+                low = stepLow, high = stepHigh, zone = camp.zone, location = camp.location,
                 label = camp.label or ns.Spots.Show(camp.zone), key = camp.key,
                 mobs = best.mobs, real = best.real, estimate = best.estimate, xp = best.xp, gold = best.gold,
                 herbs = best.herbs, skinnable = best.skinnable, leathers = best.leathers, kills = best.kills,
                 both = GrindTo60.SideOf(camp.zone) == "both", cloth = best.cloth,
             }
             step.camp = { zone = camp.zone, label = step.label, location = camp.location, coords = camp.coords,
-                mobs = best.mobs, minLevel = low, maxLevel = stepHigh }
+                mobs = best.mobs, minLevel = stepLow, maxLevel = stepHigh }
             plan.steps[#plan.steps + 1] = step
             prev = step
             low = stepHigh
+            end
         end
     end
 

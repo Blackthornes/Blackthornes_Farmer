@@ -42,7 +42,7 @@ local function Mob(name, zone, location, low, high, opts)
     serial = serial + 1
     ns.DB:RegisterItem({ name = opts.item or (name .. " Bit"), id = serial, category = opts.category or "misc",
         sources = { { name = name, zone = zone, location = location, minLevel = low, maxLevel = high,
-            chance = 20, coords = { 50, 50 }, provenance = opts.classic and nil or "forever" } } })
+            chance = 20, coords = { 50, 50 }, provenance = not opts.classic and "forever" or nil } } })
 end
 
 Mob("Test Boar", "Durotar", "Valley of Trials", 1, 4)
