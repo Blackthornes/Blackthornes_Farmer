@@ -214,9 +214,21 @@ function ZoneBoard:Skip(zone, name)
     skips[zone] = type(skips[zone]) == "table" and skips[zone] or {}
     skips[zone][name] = true
     self.version = (self.version or 0) + 1
+    -- BEST is kept between draws: build it again without this mob.
+    self.worth = nil
     if self.hunt and self.hunt.target == name then self:NextMob() end
     Redraw()
     self:CheckDone(zone)
+end
+
+--- How many mobs are hidden from `zone`'s board.
+function ZoneBoard.SkipCount(zone)
+    local skips = ns.db and type(ns.db.zoneBoardSkips) == "table" and ns.db.zoneBoardSkips[zone]
+    local count = 0
+    if type(skips) == "table" then
+        for _, on in pairs(skips) do if on == true then count = count + 1 end end
+    end
+    return count
 end
 
 --- Bring back every mob skipped in `zone`.
@@ -224,6 +236,7 @@ function ZoneBoard:Unskip(zone)
     local skips = ns.db and type(ns.db.zoneBoardSkips) == "table" and ns.db.zoneBoardSkips
     if skips then skips[zone] = nil end
     self.version = (self.version or 0) + 1
+    self.worth = nil
     Redraw()
 end
 

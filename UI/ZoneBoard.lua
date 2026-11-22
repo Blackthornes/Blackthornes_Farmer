@@ -179,8 +179,11 @@ function ZoneBoardUI:MakeRow(index)
     row.tag:SetPoint("LEFT", row.sub, "LEFT", 0, 0)
     row.eye = ZoneBoardUI.Eye(row)
 
-    row:SetScript("OnClick", function(self)
-        if self.data then ZoneBoardUI:Pick(self.data.name) end
+    pcall(row.RegisterForClicks, row, "LeftButtonUp", "RightButtonUp")
+    row:SetScript("OnClick", function(self, button)
+        if not self.data then return end
+        if button == "RightButton" then ZoneBoardUI:RowMenu(self.data) return end
+        ZoneBoardUI:Pick(self.data.name)
     end)
     row:SetScript("OnDoubleClick", function(self)
         if self.data then ZoneBoardUI:Pick(self.data.name); ZoneBoardUI:Go() end
@@ -338,6 +341,7 @@ function ZoneBoardUI:Build()
     self.stop:Hide()
     self.foot = Theme.CreateLabel(frame, "tiny", "muted")
     self.foot:SetWordWrap(true)
+    self.showAgain = ZoneBoardUI.ShowAgainLink(frame)
 
     frame:SetScript("OnMouseWheel", function(_, delta)
         ZoneBoardUI:Scroll(delta > 0 and -1 or 1)
@@ -743,11 +747,23 @@ function ZoneBoardUI:Draw()
     self.foot:ClearAllPoints()
     self.foot:SetPoint("TOPLEFT", pad, -y)
     self.foot:SetWidth(self.WIDTH - pad * 2)
+    local footText
     if finish then
-        self.foot:SetText(L["Rare mobs, bosses and town guards are left out."])
+        footText = L["Rare mobs, bosses and town guards are left out."]
     else
-        self.foot:SetText(ZoneBoardUI.BestFoot(best and #best.mysteries or 0))
+        footText = ZoneBoardUI.BestFoot(best and #best.mysteries or 0)
     end
+    -- Mobs hidden here: how many, and Show Again to bring them back.
+    local hidden = zone and board.SkipCount(zone) or 0
+    self.showAgain.zone = zone
+    self.showAgain:SetShown(hidden > 0)
+    if hidden > 0 then
+        footText = footText .. " " .. L.Format("%d hidden here.", hidden)
+        self.showAgain:ClearAllPoints()
+        self.showAgain:SetPoint("TOPRIGHT", -pad, -y)
+        self.foot:SetWidth(self.WIDTH - pad * 2 - self.showAgain.width - 8)
+    end
+    self.foot:SetText(footText)
     local footH = math.max(14, math.ceil(self.foot:GetStringHeight() or 0))
     frame:SetHeight(y + footH + pad)
     self.ticksSince = 0
@@ -822,6 +838,62 @@ function ZoneBoardUI:Go()
         local camp = board:Camp(entry)
         if camp and ns.Arrow then ns.Arrow:Grind(camp) end
     end
+end
+
+--- "Show Again" in the foot: a gold word with a line under it, that brings
+--- back every mob hidden in this zone.
+function ZoneBoardUI.ShowAgainLink(parent)
+    local link = CreateFrame("Button", nil, parent)
+    link.label = Theme.CreateLabel(link, "tiny", "accent", "LEFT")
+    link.label:SetPoint("TOPLEFT")
+    link.label:SetText(L["Show Again"])
+    link.line = link:CreateTexture(nil, "ARTWORK")
+    link.line:SetColorTexture(Theme.Unpack("accent"))
+    link.line:SetHeight(1)
+    link.line:SetPoint("TOPLEFT", link.label, "BOTTOMLEFT", 0, -1)
+    link.line:SetPoint("TOPRIGHT", link.label, "BOTTOMRIGHT", 0, -1)
+    local ok, drawn = pcall(link.label.GetStringWidth, link.label)
+    link.width = math.max(ok and type(drawn) == "number" and math.ceil(drawn) or 0,
+        Theme.TextWidth("tiny", L["Show Again"]) or 0) + 2
+    link:SetSize(link.width, 14)
+    link:SetScript("OnEnter", function(self)
+        self.label:SetTextColor(Theme.Unpack("accentHi"))
+        self.line:SetColorTexture(Theme.Unpack("accentHi"))
+    end)
+    link:SetScript("OnLeave", function(self)
+        self.label:SetTextColor(Theme.Unpack("accent"))
+        self.line:SetColorTexture(Theme.Unpack("accent"))
+    end)
+    link:SetScript("OnClick", function(self)
+        if self.zone then Board():Unskip(self.zone) end
+    end)
+    link:Hide()
+    return link
+end
+
+--- Right-click on a row: what a click does first, then Hide from Zone Board.
+function ZoneBoardUI:RowMenu(data)
+    local name = data and data.name
+    if not (ns.HideMenu and name) then return false end
+    local zone = data.zone or Board().Here()
+    return ns.HideMenu:Open({
+        { kind = "action", text = L["Take Me There"], run = function()
+            ZoneBoardUI:Pick(name)
+            ZoneBoardUI:Go()
+        end },
+        { kind = "action", text = L["Hide from Zone Board"], run = function()
+            ZoneBoardUI:HideMob(zone, name)
+        end },
+    })
+end
+
+--- Hide one mob from this zone's board (the Skip list, this zone only) and
+--- say in chat how to bring it back.
+function ZoneBoardUI:HideMob(zone, name)
+    if type(zone) ~= "string" or type(name) ~= "string" then return end
+    Board():Skip(zone, name)
+    ns.Print(L.Format("%s is off the Zone Board here. Show Again at the bottom of the board brings it back.",
+        Util.Colored("accent", name)))
 end
 
 function ZoneBoardUI:SkipPicked()
