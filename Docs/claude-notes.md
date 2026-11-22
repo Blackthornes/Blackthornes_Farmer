@@ -3254,6 +3254,21 @@ all. A tap sets only the eyes on the rows showing (`ZoneBoardUI:Eyes`, from
 Heat's `Changed`), and the heat redraws in slices as before; nothing runs
 every frame. Tested in `tools/test_zoneboardheat.lua`. Not yet seen in game.
 
+Right-click to hide (the owner said build it, 2026-11-22, from a mockup
+whose words he approved, `previews/farmer-zone-board-hide/`): a right-click
+on a FINISH or BEST row opens `ns.HideMenu` with "Take Me There" (picks the
+row, then `ZoneBoardUI:Go`) and "Hide from Zone Board"
+(`ZoneBoardUI:HideMob`, which calls `ZoneBoard:Skip` and says in chat "%s is
+off the Zone Board here. Show Again at the bottom of the board brings it
+back."). It is the Skip button's list, this zone only (`zoneBoardSkips`),
+never the global hide list (`hiddenSources`), so the mob stays in search,
+the Grind tab and loot tables. The foot adds "%d hidden here."
+(`ZoneBoard.SkipCount`) and a gold "Show Again" link
+(`ZoneBoardUI.ShowAgainLink`) that runs `ZoneBoard:Unskip(zone)`; before
+this a skipped mob had no way back. Skip and Unskip now forget BEST's kept
+list (`self.worth`), which had kept a skipped mob on BEST until a kill or
+scan. Tested in `tools/test_zoneboardhide.lua`. Not yet seen in game.
+
 ## Picked pockets on the card
 
 The owner said build it (2026-11-18, from a mockup, after a rogue's pocketed
