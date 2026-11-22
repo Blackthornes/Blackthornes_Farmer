@@ -3433,3 +3433,56 @@ tooltip on hover), the Loot Table, the Kills & Loot panel's Loot tab lines
 and loot icons (game tooltip on both), goal cards (Shift with the chat box
 shut still aims the arrow) and the hidden list. The loot feed is left alone:
 its rows let clicks through to the world. Tested in `tools/test_itemclicks.lua`.
+
+## Grind to 60 (a test feature, 2026-11-22)
+
+The owner said build it from a mockup whose words he approved. Off unless
+ticked: "Grind to 60:" on the Settings tab's EXPERIMENTAL page (a page of
+Farmer's own, after GOALS; eleven pages now). While on, the Grind tab's chip
+row ends with a GRIND TO 60 chip and an amber EXPERIMENTAL tag
+(`GrindingUI.to60Chip`, `to60Tag`). The chip shows the path in the list's
+place (`GrindingUI.Layout()` returns "to60", `ShowTo60`); a click on another
+gives chip goes back to that page.
+
+`Logic/GrindTo60.lua` works the path out, `UI/GrindTo60.lua` draws it.
+Saved, never renamed: `grindTo60` (nil off, true on), `grindTo60View` (the
+chip picked), `grindTo60Pick` ("gold", "xp", nil for both),
+`grindTo60Areas`, `grindTo60Mobs` and `grindElites`.
+
+- The path runs from level 1 to 60 with no holes. Each step is the camp
+  (`GrindTo60:Camps`, from `Grinding:Mobs()`) that scores best for its
+  levels (`Look`, `Choose`): the race's own zone first under level 12, never
+  the other side's zones (`SIDES`) or a town (`TOWNS`), never a dungeon. A
+  mob fits a step when it starts no more than `ABOVE` (3) levels over the
+  step's first level and its top is not under it. A camp picked twice in a
+  row is one longer step; levels with no camp go to the step before.
+- A camp with a Forever spot is real and beats any guess. Where none has
+  one, older rows fill in and the step says "estimate" with hollow dots.
+- Herbs (`GrindGather:DataRows("herbs")`, by zone) and skins add to a
+  camp's gold only with the skill, and enough of it. Such steps are tagged
+  HERBS or SKINS and get an "Also Here:" line.
+- Kill rewards stay secret. XP and gold are one to four dots that only
+  compare the steps on the path (`Dots`); XP is against a kill of a mob
+  your own level, so the dots tell how good the camp is, not how early it
+  comes. Drops are names. No coin, rate or percent anywhere on the view;
+  `tools/test_grindto60.lua` checks it.
+- Elites are learned in game while it is on (`Harvest:NoteUnit` calls
+  `GrindTo60:Learn`, `UnitClassification` in a pcall). A known elite is left
+  out of a camp, and a step near one is tagged ELITES NEAR.
+- Right-click a step: Show the Way, Hide This Area, a Hide line for up to
+  three of its mobs, Cancel (`HideMenu:Open(choices, most)` takes more than
+  its usual four lines when asked, up to eight). A hidden mob goes on
+  Farmer's hide list, so it leaves search and the Grind tab too and
+  `/farm hidden` lists it. Under the list, "N hidden." and Show Again undo
+  only what was hidden from here. Skip Step passes a camp over for the
+  session.
+- Show the Way is `Arrow:Grind(step.camp)`.
+- The plan is kept by a stamp (level, race, class, side, the Grind list's
+  stamp, hides, skips, elites, Pick By, skills in steps of 25) and built
+  again only when one of those moves. Prices are left out of the stamp on
+  purpose. The view redraws by its own key. Nothing runs on a timer.
+- The Grind tab's footer starts with "Experimental." and says the level and
+  the step.
+
+Not yet seen in game. A first plan over the shipped data took about 0.15
+seconds in the tests, most of it the Grind tab's own mob list.

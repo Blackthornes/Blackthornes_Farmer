@@ -34,8 +34,12 @@ GrindTo60.TOP = 60
 -- Levels a step covers, at least and at most.
 GrindTo60.STEP_MIN = 3
 GrindTo60.STEP_MOST = 6
--- How far past a step's levels a mob may sit and still count.
-GrindTo60.SLACK = 1
+-- How far over a step's first level a mob may start and still count: more
+-- and the first kills there are too hard. A mob whose top is under the
+-- step's first level is left out, it goes grey before the step is done.
+GrindTo60.ABOVE = 3
+-- Mobs a camp needs before "lots of mobs" is said of it.
+GrindTo60.MANY = 3
 -- Mobs Farmer must have seen at a camp, across all its mobs, for it to be
 -- real rather than a guess.
 GrindTo60.REAL_KILLS = 20
@@ -445,7 +449,7 @@ end
 function GrindTo60:Look(camp, low, high, who, skills, kept)
     local mobs, seen = {}, {}
     local ZoneBoard = ns.ZoneBoard
-    local slackLow, slackHigh = low - GrindTo60.SLACK, high + GrindTo60.SLACK
+    local slackLow, slackHigh = low, math.min(high, low + GrindTo60.ABOVE)
     for _, mob in ipairs(camp.mobs) do
         if not seen[mob.name] and mob.minLevel <= slackHigh and (mob.maxLevel or mob.minLevel) >= slackLow
             and mob.minLevel >= 1 and not GrindTo60.IsElite(mob.name)
@@ -457,7 +461,6 @@ function GrindTo60:Look(camp, low, high, who, skills, kept)
     if #mobs == 0 then return nil end
 
     local level = math.floor((low + high) / 2)
-    local need = ns.XP and ns.XP.TABLE and ns.XP.TABLE[level] or (level * 1000)
     local own = ns.XP and ns.XP.mobs or {}
     local onStep = who.level and who.level >= low and who.level < high
     local xp, gold, kills, forever, skinnable, cloth = 0, 0, 0, false, {}, false
@@ -523,7 +526,9 @@ function GrindTo60:Look(camp, low, high, who, skills, kept)
 
     local look = {
         camp = camp, mobs = mobs, low = low, high = high,
-        xp = density * xp * perMob / need * 1000,
+        -- Against a kill of a mob your own level, so a step's dots tell how
+        -- good its camp is, not how early it comes.
+        xp = density * xp * perMob / (level * 5 + 45),
         gold = density * (gold * perMob + herbGold),
         kills = kills, real = forever and true or false,
         cloth = cloth, skinnable = skinnable, leathers = leathers, herbs = herbs,
@@ -720,7 +725,7 @@ function GrindTo60:Plan()
             step.current = true
         end
         step.reasons = {}
-        if #step.mobs >= many then step.reasons[#step.reasons + 1] = REASONS.many end
+        if #step.mobs >= math.max(many, GrindTo60.MANY) then step.reasons[#step.reasons + 1] = REASONS.many end
         if step.cloth then step.reasons[#step.reasons + 1] = REASONS.cloth end
         if #step.herbs > 0 then step.reasons[#step.reasons + 1] = REASONS.herbs end
         if #step.skinnable > 0 then step.reasons[#step.reasons + 1] = REASONS.skins end

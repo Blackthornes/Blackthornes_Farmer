@@ -14,6 +14,8 @@
 --   6. Skip Step picks the next best camp for those levels.
 --   7. Kill rewards stay secret: no coin or percent on the step.
 --   8. Built once per stamp, not again on a redraw.
+--   9. The view: the step you're on open, tags, Show Again under the
+--      list, the step menu's six lines, the Experimental page's tick.
 
 local env = dofile(lfs_cwd .. "/tools/testenv.lua")
 local suite = env.NewSuite("grindto60")
@@ -126,7 +128,30 @@ check("no herbs without Herbalism", #plan.steps[1].herbs == 0)
 ns.Spots.Skills = function() return { Herbalism = 50 } end
 plan = G:Plan()
 check("herbs with Herbalism", #plan.steps[1].herbs >= 1)
-check("the HERBS tag", UI.to60 == nil or true)
+local _, tagWords = ns.GrindTo60UI.TagsText(plan.steps[1])
+check("the HERBS tag", tagWords:find(L["HERBS"], 1, true) ~= nil, tagWords)
+check("Also Here names what to pick", ns.GrindTo60UI.AlsoText(plan.steps[1]):find("to pick", 1, true) ~= nil,
+    ns.GrindTo60UI.AlsoText(plan.steps[1]))
+ns.Spots.Skills = function() return {} end
+plan = G:Plan()
+_, tagWords = ns.GrindTo60UI.TagsText(plan.steps[1])
+check("no HERBS tag without the skill", tagWords:find(L["HERBS"], 1, true) == nil, tagWords)
+check("and no Also Here line", ns.GrindTo60UI.AlsoText(plan.steps[1]) == "")
+ns.Spots.Skills = function() return {} end
+
+-- Skins the same way: only with Skinning, and enough of it.
+ns.DB:RegisterItem({ name = "Test Hide", id = 99902, category = "Leather",
+    sources = { { kind = "skinning", name = "Test Boar", zone = "Durotar", location = "Valley of Trials",
+        minLevel = 1, maxLevel = 4, requires = "Skinning 1", provenance = "forever" } } })
+plan = G:Plan()
+check("no skins without Skinning", #plan.steps[1].skinnable == 0)
+ns.Spots.Skills = function() return { Skinning = 50 } end
+plan = G:Plan()
+check("skins with Skinning", #plan.steps[1].skinnable >= 1, #plan.steps[1].skinnable)
+_, tagWords = ns.GrindTo60UI.TagsText(plan.steps[1])
+check("the SKINS tag", tagWords:find(L["SKINS"], 1, true) ~= nil, tagWords)
+check("Also Here names what to skin", ns.GrindTo60UI.AlsoText(plan.steps[1]):find("Test Boar", 1, true) ~= nil,
+    ns.GrindTo60UI.AlsoText(plan.steps[1]))
 ns.Spots.Skills = function() return {} end
 
 -- 5.
@@ -184,6 +209,42 @@ local text = UI.footer:GetText() or ""
 check("the foot starts with Experimental.", text:find(L["Experimental."], 1, true) == 1, text)
 check("the foot says the step", text:find(L.Format("Step %d of %d", G:Plan().current, #G:Plan().steps), 1, true) ~= nil, text)
 
+check("who is playing heads the view", (view.who:GetText() or ""):find("15", 1, true) ~= nil, view.who:GetText())
+check("the step you're on is open", view.detail:IsShown() and view.detail.step == G:Plan().steps[G:Plan().current])
+check("its mobs are named", (view:DetailWords()[1] or ""):find("Test Quilboar", 1, true) ~= nil, view:DetailWords()[1])
+check("nothing hidden: no Show Again", not view.foot:IsShown())
+
+-- An estimate says so, and a step both sides share is flagged.
+for _, step in ipairs(G:Plan().steps) do
+    local _, words = view.TagsText(step)
+    if step.estimate then check("an estimate is tagged", words:find(L["estimate"], 1, true) ~= nil, words) end
+    if step.both then check("a shared zone is tagged", words:find(L["BOTH SIDES"], 1, true) ~= nil, words) end
+end
+
+-- A click on another step opens it; a click on the open one shuts it.
+local other
+for _, each in ipairs(view.rows) do
+    if each:IsShown() and each.step and not each.step.current and not each.step.done then other = other or each end
+end
+other:GetScript("OnMouseUp")(other, "LeftButton")
+check("a click opens that step", view.detail:IsShown() and view.detail.step == other.step)
+check("a step ahead can be skipped", view.detail.skip:IsShown())
+other:GetScript("OnMouseUp")(other, "LeftButton")
+check("a second click shuts it", not view.detail:IsShown())
+view.open = nil
+view.key = nil
+UI:Render()
+
+-- Hidden from here: counted under the list, with Show Again.
+env.chat = {}
+G:HideArea(G:Plan().steps[#G:Plan().steps])
+UI:Render()
+check("the foot counts what is hidden", view.foot:IsShown()
+    and view.foot.text:GetText() == L.Format("%d hidden.", 1), view.foot.text:GetText())
+view.foot.button:GetScript("OnClick")(view.foot.button, "LeftButton")
+UI:Render()
+check("Show Again clears it", G.HiddenCount() == 0 and not view.foot:IsShown())
+
 -- 7. No coin and no percent anywhere on the open step.
 local shown = {}
 for _, row in ipairs(view.rows) do
@@ -215,11 +276,28 @@ for index = #menu.lines, 1, -1 do if menu.lines[index]:IsShown() then last = men
 check("Cancel last", last and last.label:GetText() == L["Cancel"])
 menu:Hide()
 
+-- Other menus keep their four lines.
+local many = {}
+for index = 1, 7 do many[index] = { kind = "action", text = "Line " .. index, run = function() end } end
+ns.HideMenu:Open(many)
+local showing = 0
+for _, line in ipairs(menu.lines) do if line:IsShown() then showing = showing + 1 end end
+check("a plain menu still stops at four lines", showing == 4, showing)
+menu:Hide()
+
 -- Show the Way points the arrow at the camp.
 local aimed
 ns.Arrow.Grind = function(_, camp) aimed = camp return true end
 view:ShowTheWay(G:Plan().steps[G:Plan().current])
 check("Show the Way aims the arrow at the camp", aimed and aimed.zone == G:Plan().steps[G:Plan().current].zone)
+
+-- The Experimental page's tick turns it off and on.
+ns.HandleSlash("settings")
+local tick = ns.SettingsUI.controls.grindTo60
+check("Settings has the Grind to 60 tick, ticked", tick ~= nil and tick:GetChecked() == true)
+ns.SettingsUI.pages:Show("experimental")
+check("on its own Experimental page", ns.SettingsUI.pages.shown == "experimental", ns.SettingsUI.pages.shown)
+ns.UI:ShowTab("grind")
 
 -- Off hides the chip and the view.
 G:SetOn(false)
