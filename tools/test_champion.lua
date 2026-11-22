@@ -119,6 +119,9 @@ suite.check("plurals", FX.Plural("Witchwing Slayer") == "Witchwing Slayers"
     and FX.Plural("Bloodscalp Harpy") == "Bloodscalp Harpies"
     and FX.Plural("Murloc Fisherman") == "Murloc Fishermen"
     and FX.Plural("Kobold Miner") == "Kobold Miners", FX.Plural("Defias Thief"))
+-- A shaman is not a man: the title read "FROSTMANE SHAMEN".
+suite.check("plural shaman", FX.Plural("Frostmane Shaman") == "Frostmane Shamans"
+    and FX.Plural("Human") == "Humans", FX.Plural("Frostmane Shaman"))
 
 -- The test word: the whole show, nothing changed.
 before = Snapshot()

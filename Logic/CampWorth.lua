@@ -318,7 +318,9 @@ end
 --------------------------------------------------------------------------------
 
 local IRREGULAR = { wolf = "wolves", thief = "thieves", elf = "elves", dwarf = "dwarves",
-    mouse = "mice", sheep = "sheep", deer = "deer", fish = "fish" }
+    mouse = "mice", sheep = "sheep", deer = "deer", fish = "fish",
+    -- Not men: without these the "man" rule below wrote "Shamen".
+    shaman = "shamans", human = "humans", talisman = "talismans" }
 
 --- More than one of a mob, in words: "Mottled Boars" on an English client.
 --- Other clients keep the name, since their plurals can't be guessed.

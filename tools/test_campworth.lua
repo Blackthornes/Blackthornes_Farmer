@@ -117,6 +117,9 @@ check("plural wolf", CampWorth.Plural("Gray Wolf") == "Gray Wolves", CampWorth.P
 check("plural man", CampWorth.Plural("Defias Watchman") == "Defias Watchmen")
 check("plural fly", CampWorth.Plural("Blood Fly") == "Blood Flies")
 check("plural lynx", CampWorth.Plural("Lynx") == "Lynxes")
+-- A shaman is not a man: "Frostmane Shamen" showed on the Grind tab.
+check("plural shaman", CampWorth.Plural("Frostmane Shaman") == "Frostmane Shamans", CampWorth.Plural("Frostmane Shaman"))
+check("plural human", CampWorth.Plural("Human") == "Humans", CampWorth.Plural("Human"))
 
 --------------------------------------------------------------------------------
 -- The worker and the Grind tab
