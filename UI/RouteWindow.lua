@@ -190,7 +190,7 @@ function RouteWindow:Build()
     self.trim = trim
     if ns.SeeThrough then ns.SeeThrough:AddGlass("route", back) end
     if ns.FoldWindow and ns.FoldWindow.Add then
-        ns.FoldWindow:Add(frame, { onToggle = function() RouteWindow.key = nil; RouteWindow:Update() end })
+        ns.FoldWindow:Add(frame, { key = "Route", onToggle = function() RouteWindow.key = nil; RouteWindow:Update() end })
     end
 
     for index = 1, self.ROWS do self:MakeRow(index) end

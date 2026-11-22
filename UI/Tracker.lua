@@ -706,9 +706,18 @@ function TrackerUI:Build()
     title:SetText(L["Kills & Loot"])
 
     -- The house panel header (2026-10-29): the fold gem left of the close
-    -- gem. Folded, the panel keeps its title bar only (session only).
+    -- gem. It folds the panel into a round button (UI/FoldWindow.lua,
+    -- 2026-11-22) with this session's kills under it.
     local gems = Widgets.CreatePanelGems(header, {
         onFold = function(folded) TrackerUI:SetFolded(folded) end,
+        round = {
+            frame = frame, key = "KillsAndLoot", title = L["Kills & Loot"],
+            pill = function() return TrackerUI:FoldedCount() end,
+            line = function() return TrackerUI:FoldedLine() end,
+            onToggle = function(folded)
+                if not folded then TrackerUI:Refresh() else TrackerUI:FollowGoals() end
+            end,
+        },
         onClose = function()
             ns.db.trackerHidden = true
             TrackerUI:Refresh()
@@ -3374,6 +3383,25 @@ function TrackerUI:ApplyFold()
     self.frame:SetHeight(HEADER)
 end
 
+--- Folded into its round button: this session's kills under it, and on
+--- its tooltip the kills and what was looted.
+function TrackerUI:FoldedCount()
+    local kills = ns.Tracker and ns.Tracker:SessionKills() or 0
+    if kills > 0 then return tostring(kills) end
+    return nil
+end
+
+function TrackerUI:FoldedLine()
+    local kills = ns.Tracker and ns.Tracker:SessionKills() or 0
+    local total = ns.Value and ns.Value:Session() or 0
+    local coins = ns.Value and ns.Value.Coins and ns.Value.Coins(total) or tostring(total)
+    return L.Format("This session: %s, %s looted.", Util.Plural(kills, L["kill"], L["kills"]), coins)
+end
+
+function TrackerUI:IsFoldedAway()
+    return self.frame ~= nil and ns.FoldWindow ~= nil and ns.FoldWindow:IsFolded(self.frame)
+end
+
 --- The goals panel hangs under this one until it is dragged, as wide as it
 --- is: follow it when it comes back, changes width or goes, so it never
 --- hangs under empty space.
@@ -3446,6 +3474,17 @@ function TrackerUI:Redraw(now)
             ns.TrackerFX:Forget()
             pcall(ns.TrackerFX.HiddenLoot, ns.TrackerFX)
         end
+        FollowGoals()
+        return
+    end
+
+    -- Folded into its round button: nothing to draw but the kills under it.
+    if self:IsFoldedAway() then
+        if ns.TrackerFX then
+            ns.TrackerFX:Forget()
+            pcall(ns.TrackerFX.HiddenLoot, ns.TrackerFX)
+        end
+        ns.FoldWindow:Refresh(self.frame)
         FollowGoals()
         return
     end

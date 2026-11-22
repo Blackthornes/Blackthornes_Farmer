@@ -315,10 +315,10 @@ function UI:Build()
     -- as it opens and settles.
     Theme.Halo(frame, 12, HALO_REST)
 
-    -- The fold gem beside the close gem folds the window down to its plate
-    -- (UI/FoldWindow.lua, a player asked, 2026-10-24).
+    -- The fold gem beside the close gem folds the window into a round
+    -- button (UI/FoldWindow.lua, a player asked, 2026-10-24; round 2026-11-22).
     if ns.FoldWindow then
-        ns.FoldWindow:Add(frame, { onToggle = function(folded)
+        ns.FoldWindow:Add(frame, { key = "Main", onToggle = function(folded)
             if ns.GoalsUI then ns.GoalsUI:CheckPicker() end
             if not folded then UI:Refresh() end
         end })
@@ -2285,4 +2285,9 @@ function FarmerTabs:SwapHide()
     if self.area then return end
     UI:Hide()
     if ns.SettingsUI then ns.SettingsUI:Hide() end
+end
+
+-- Kept folded through a /reload, its round button opens it (UI/FoldWindow.lua).
+if ns.FoldWindow and ns.FoldWindow.Opener then
+    ns.FoldWindow:Opener("Main", { open = function() UI:Show() end })
 end

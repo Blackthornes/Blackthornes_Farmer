@@ -477,7 +477,7 @@ function FishingPanel:Build()
     self.frame = frame
 
     Dress(frame, L["Fishing"], function() frame:Hide() end)
-    if ns.FoldWindow and ns.FoldWindow.Add then ns.FoldWindow:Add(frame, {}) end
+    if ns.FoldWindow and ns.FoldWindow.Add then ns.FoldWindow:Add(frame, { key = "FishingPanel" }) end
 
     local PAD = 14
     local view = Widgets.CreateViewTabs(frame, {
@@ -769,3 +769,8 @@ ns.RegisterCommand("fishpanel", L["Show what you catch while you fish."], functi
     FishingPanel:SetEnabled(on)
     ns.Print(L["Fishing Panel:"] .. " " .. (on and L["On"] or L["Off"]))
 end)
+
+-- Kept folded through a /reload, its round button opens it (UI/FoldWindow.lua).
+if ns.FoldWindow and ns.FoldWindow.Opener then
+    ns.FoldWindow:Opener("FishingPanel", { open = function() FishingPanel:Show() end })
+end
