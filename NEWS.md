@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.30.1
+
+Fixes and changes:
+- The Zone Board unlock card and the New Best banner no longer show on top of each other.
+- A mob that respawns where its old corpse lay adds to your kill count.
+
+
 ## 1.30.0
 
 - Right-click a mob on the Zone Board to hide it in that zone. Show Again brings it back.
