@@ -711,4 +711,42 @@ do
     ArrowUI.watchingBar, ArrowUI.watchedBar = nil, nil
 end
 
+--------------------------------------------------------------------------------
+-- Standing still, the dial is read about twice a second, not 33 times
+-- (each read made new tables and words; memory climbed while idle in town)
+--------------------------------------------------------------------------------
+
+do
+    local realDraw, realFrame, draws = ArrowUI.Draw, ArrowUI.frame, 0
+    local realMoving, realFacing = rawget(_G, "IsPlayerMoving"), rawget(_G, "GetPlayerFacing")
+    local moving, facing = false, 1.25
+    _G.IsPlayerMoving = function() return moving end
+    _G.GetPlayerFacing = function() return facing end
+    ArrowUI.frame = { IsShown = function() return false end }
+    ArrowUI.Draw = function() draws = draws + 1 end
+    ArrowUI.since, ArrowUI.restFor, ArrowUI.settled = 0, 0, false
+    for _ = 1, 100 do ArrowUI:Step(0.03) end
+    suite.check("standing still it looks about twice a second", draws >= 4 and draws <= 9, draws)
+    draws = 0
+    facing = 2.5
+    ArrowUI:Step(0.03)
+    suite.check("turning shows at once", draws == 1, draws)
+    draws, moving = 0, true
+    for _ = 1, 10 do ArrowUI:Step(0.03) end
+    suite.check("walking keeps up every step", draws == 10, draws)
+    draws, moving = 0, false
+    ArrowUI.Draw = function(self) draws = draws + 1; self.drawnKey = tostring(draws) end
+    for _ = 1, 10 do ArrowUI:Step(0.03) end
+    suite.check("words still changing keep up every step", draws == 10, draws)
+    draws = 0
+    _G.IsPlayerMoving = function() error("secret") end
+    ArrowUI.Draw = function() draws = draws + 1 end
+    for _ = 1, 10 do ArrowUI:Step(0.03) end
+    suite.check("a client that won't say keeps up every step", draws == 10, draws)
+    _G.IsPlayerMoving, _G.GetPlayerFacing = realMoving, realFacing
+    ArrowUI.Draw, ArrowUI.frame = realDraw, realFrame
+    ArrowUI.settled, ArrowUI.drawnKey, ArrowUI.drawnFacing = nil, nil, nil
+end
+
+
 suite.done()
