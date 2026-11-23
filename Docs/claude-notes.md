@@ -3226,11 +3226,23 @@ the Kills & Loot toolbar, shown only while ticked.
   Dustwind Harpy 17/20" (`ZoneBoardUI.FoldTitle`), redrawn on the hunted
   mob's kills. No new words. `zoneHuntScale`, `zoneHuntSeeThrough` and
   `windowSpots["farmer.zonehunt"]` stay in saves, unread.
-- `UI/ZoneBoardFX.lua`: the card (after `CARD_DELAY`, skipped with /farm
-  celebrate off), the New Best banner with the crown (and BEST's row slide)
-  and the Zone Done banner with `Media/Sounds/zone-done.ogg`; one banner
-  at a time; sounds through `Tracker.PlayFile` (Mute All Sounds). The zone
-  is stamped once in `zoneBoardDone[zone]` with one chat line.
+- `UI/ZoneBoardFX.lua`: one gold plaque placard (the owner said build it,
+  2026-11-22, from `farmer-unlock-placard` mockup; the card skipped the
+  queue and the New Best banner landed on top of it). `FX:Card(entry,
+  ranked, zone, beaten)` queues the unlock after `CARD_DELAY`: the
+  "Unlocked!" ribbon, the mob, the best drop with its icon, turned over from
+  "?". When the mob also tops BEST, the crown line ("New Best in %s!",
+  "Beats %s.") joins the same placard with the rank-up sound (and BEST's
+  row slide). With /farm celebrate off only that crown placard shows.
+  `FX:ZoneDone` ("Zone Done" ribbon, "%s Done!", `zone-done.ogg`) queues
+  behind any mob placard (`kind = "done"` goes last). Every moment goes
+  through `FX:Queue`/`Next`, one frame (`FX.placard`), one at a time; a
+  click or the red X closes it (`FX:Close`) and the next shows. Plaque
+  colours from `UI/Plaque.lua`, no gems on the ends. No coins on the
+  placard: kill worth stays on the board and the Grind tab. Effects Off:
+  no turn, fade or glow. Sounds through `Tracker.PlayFile` (Mute All
+  Sounds). The zone is stamped once in `zoneBoardDone[zone]` with one chat
+  line.
 - Not built yet: the STAMPS tab (the mockup's optional third tab); the
   stamps are already saved for it.
 - Tested in `tools/test_zoneboard.lua`. Not yet seen in game.
