@@ -4,6 +4,16 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.30.1
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Zone Board.** The unlock card and the New Best banner share one gold plaque, so they no longer cover each other. Zone Done waits its turn. Coin amounts come off the pop-ups.
+- **Kill count.** A mob that comes back where its old corpse lay counts as a new kill.
+- **Arrow.** It reads your position less often while you stand still and face the same way.
+- **Gold plaque.** The red round gems on its left and right are gone.
+
+
 ## 1.30.0
 
 For WoW: Forever (interface 16001). A full restart is needed after updating.
