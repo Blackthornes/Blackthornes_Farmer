@@ -198,6 +198,23 @@ function RankingsUI:Build(frame)
     vendor:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
     self.vendor = vendor
     offset = offset + 12 + vendor:GetWidth()
+
+    -- Only mobs near the character's level (the owner, 2026-11-23). Off
+    -- unless ticked; Rankings:SetNearLevel redraws.
+    local near = Widgets.CreateCheckbox(ticks, L["Near my level"], function(checked)
+        ns.Rankings:SetNearLevel(checked)
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+    end, ns.Rankings.NearLevel())
+    near:SetPoint("LEFT", ticks, "LEFT", offset + 12, 0)
+    near:HookScript("OnEnter", function(box)
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(box, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:SetText(RankingsUI.NearTip(), 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    near:HookScript("OnLeave", function() if GameTooltip then GameTooltip:Hide() end end)
+    self.near = near
+    offset = offset + 12 + near:GetWidth()
     self.headOffset = math.max(chipsEnd, offset)
 
     -- Where the prices come from, on the right of the chips.
@@ -1202,13 +1219,16 @@ function RankingsUI:Rows(board, all)
         end
     end
 
+    -- With "Near my level" ticked an empty board means nothing is near.
+    local near = ns.Rankings.NearLevel() and ns.Rankings.PlayerLevel() and L["No mobs near your level yet."]
+
     if not wanted or wanted == "measured" then
-        Add("measured", L.Format("Nothing yet. Kill a mob %d times to rank it.",
+        Add("measured", near or L.Format("Nothing yet. Kill a mob %d times to rank it.",
             ns.Tracker.MIN_KILLS))
     end
 
     if not wanted or wanted == "estimate" then
-        Add("estimate", L["None of the usual drop rates has a price yet."])
+        Add("estimate", near or L["None of the usual drop rates has a price yet."])
     end
 
     if not wanted or wanted == "measured" then
@@ -1360,6 +1380,12 @@ function RankingsUI:HeadWidth()
         + Theme.TextWidth("small", self:PriceText()) + 6 + right
 end
 
+--- The "Near my level" hover, with the band's numbers.
+function RankingsUI.NearTip()
+    return L.Format("Rankings show only mobs from %d levels below you to %d above.",
+        ns.Rankings.NEAR_BELOW, ns.Rankings.NEAR_ABOVE)
+end
+
 function RankingsUI:PriceText()
     if ns.Rankings.VendorOnly() then return L["vendor prices"] end
     local source = ns.Value:PriceSource()
@@ -1413,6 +1439,7 @@ function RankingsUI:Render(arrive)
     if self.outside then self.outside:SetChecked(ns.Rankings.OutsideOnly()) end
     if self.exclude then self.exclude:SetValue(ns.Rankings.Exclude()) end
     if self.vendor then self.vendor:SetChecked(ns.Rankings.VendorOnly()) end
+    if self.near then self.near:SetChecked(ns.Rankings.NearLevel()) end
 
     self:ShowWorld()
     local board = ns.Rankings:Build()

@@ -63,6 +63,7 @@ Sections there:
 - Rankings outside dungeons only
 - Rankings without Uncommon and better
 - Rankings at vendor prices
+- Near my level on Rankings
 - Your top 15 after an auction scan
 - The trash can when bags are full
 - Bags full notice

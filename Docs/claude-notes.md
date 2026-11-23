@@ -3522,3 +3522,18 @@ chip picked), `grindTo60Pick` ("gold", "xp", nil for both),
 
 Not yet seen in game. A first plan over the shipped data took about 0.15
 seconds in the tests, most of it the Grind tab's own mob list.
+
+## Near my level on Rankings
+
+The owner said build it (2026-11-23, from a mockup): a "Near my level" tick
+box on the Rankings tab, after "Vendor prices only", and "Near My Level:" on
+Settings' Farmer UI page. Ticked, the tab's board (`Rankings:Build`) keeps only
+mobs from `Rankings.NEAR_BELOW` (3) levels under the character to
+`NEAR_ABOVE` (2) over: Your Kills, Estimates and Not Ranked Yet alike, ranks
+counted from #1 inside the band. A mob stays when any level it was met at is
+in the band (`entry.minLevel`, `entry.maxLevel` from `Rankings:LevelFor`); one
+with no level is left out. A level the client won't read filters nothing.
+`PLAYER_LEVEL_UP` redraws the tab. Off unless ticked, kept in
+`rankingsNearLevel` (account wide, never rename it). `/farm rankings level
+[on|off]`. The rank-up pop-up and the top 15 after a scan rank every level, so
+`outsideVersion` does not move. Tested in `tools/test_rankingslevel.lua`.
