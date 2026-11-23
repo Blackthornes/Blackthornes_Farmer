@@ -977,6 +977,15 @@ function SettingsUI:BuildWindowsPage()
     end, false)
     controls.rankingsVendorOnly:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The owner, 2026-11-23: Rankings with only mobs near your level.
+    local nearRow = pages:Row("panels", 1, L["Near My Level:"],
+        L.Format("Rankings show only mobs from %d levels below you to %d above.",
+            ns.Rankings.NEAR_BELOW, ns.Rankings.NEAR_ABOVE))
+    controls.rankingsNearLevel = Widgets.CreateCheckbox(nearRow, L["On"], function(checked)
+        ns.Rankings:SetNearLevel(checked)
+    end, false)
+    controls.rankingsNearLevel:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     local _, statsButton = CommandRow(pages, "panels", 1, L["Stats:"], nil, L["Open"], "charts")
     controls.statsTab = statsButton
 end
@@ -2186,6 +2195,7 @@ function SettingsUI:Refresh()
     controls.rankingsOutside:SetChecked(db.rankingsOutside == true)
     controls.rankingsExclude:SetValue(ns.Rankings.Exclude())
     controls.rankingsVendorOnly:SetChecked(db.rankingsVendorOnly == true)
+    if controls.rankingsNearLevel then controls.rankingsNearLevel:SetChecked(db.rankingsNearLevel == true) end
     controls.trashCan:SetChecked(db.trashCan ~= false)
     controls.openNote:SetChecked(db.openNote ~= false)
     controls.lootFeed:SetChecked(db.lootFeed == true)

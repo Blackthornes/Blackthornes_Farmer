@@ -104,17 +104,67 @@ end
 
 --- A mob's level for the board: "18-19". The levels you met it at first,
 --- like where you farm it, else the database's, else nil.
---- Returns the text and the lowest level, for sorting.
+--- Returns the text, the lowest level (for sorting) and the highest.
 function Rankings:LevelFor(mobName, spot)
     local levels = self:OwnLevels()
     local own = levels[mobName] or levels[ns.Tracker.NameOf(mobName)]
     if own then
-        return ns.Search:LevelText({ minLevel = own.min, maxLevel = own.max }), own.min
+        return ns.Search:LevelText({ minLevel = own.min, maxLevel = own.max }), own.min, own.max
     end
     if spot and spot.minLevel then
-        return ns.Search:LevelText(spot), tonumber(spot.minLevel)
+        local low = tonumber(spot.minLevel)
+        return ns.Search:LevelText(spot), low, tonumber(spot.maxLevel) or low
     end
-    return nil, nil
+    return nil, nil, nil
+end
+
+--------------------------------------------------------------------------------
+-- Near my level
+--------------------------------------------------------------------------------
+
+-- The owner said build it (2026-11-23, from a mockup): a tick box on
+-- Rankings that shows only mobs near the character's level, from
+-- NEAR_BELOW levels under to NEAR_ABOVE over, on both boards and the list
+-- of mobs not ranked yet. A mob shows when any level it was met at falls in
+-- that band; one with no level is left out while ticked. The ranks count
+-- from #1 inside the band. Off unless ticked, kept in `rankingsNearLevel`
+-- (account wide, never rename it). Only the tab's board (Rankings:Build)
+-- follows it: the rank-up pop-up and the top 15 after a scan rank every
+-- level, so `outsideVersion` is left alone.
+Rankings.NEAR_BELOW = 3
+Rankings.NEAR_ABOVE = 2
+
+function Rankings.NearLevel()
+    return ns.db ~= nil and ns.db.rankingsNearLevel == true
+end
+
+function Rankings:SetNearLevel(on)
+    if not ns.db then return end
+    on = on and true or false
+    if (ns.db.rankingsNearLevel == true) == on then return end
+    ns.db.rankingsNearLevel = on
+    if ns.RankingsUI then ns.RankingsUI:Refresh() end
+end
+
+--- The character's level, or nil when the client won't say.
+function Rankings.PlayerLevel()
+    if type(UnitLevel) ~= "function" then return nil end
+    local ok, level = pcall(UnitLevel, "player")
+    if not ok then return nil end
+    local readable, number = pcall(tonumber, level)
+    if not readable or type(number) ~= "number" or number < 1 then return nil end
+    return number
+end
+
+--- Does an entry pass "Near my level"? Always, while the box is off or the
+--- character's level can't be read; never for a mob with no level.
+function Rankings:NearYou(entry, level)
+    if not self.NearLevel() then return true end
+    level = level or self.PlayerLevel()
+    if not level then return true end
+    local low, high = entry.minLevel, entry.maxLevel or entry.minLevel
+    if not low then return false end
+    return high >= level - self.NEAR_BELOW and low <= level + self.NEAR_ABOVE
 end
 
 --------------------------------------------------------------------------------
@@ -392,7 +442,7 @@ function Rankings:Entry(mobName)
         needed = summary and summary.needed or 0,
         spot = spot,
     }
-    entry.level, entry.minLevel = self:LevelFor(mobName, spot)
+    entry.level, entry.minLevel, entry.maxLevel = self:LevelFor(mobName, spot)
 
     -- Where you farm it beats where the database says it lives.
     local places = summary and summary.places
@@ -432,12 +482,14 @@ function Rankings:Build()
     RatedMobs(names)
 
     local board = { measured = {}, estimate = {}, pending = {} }
+    local level = self.NearLevel() and self.PlayerLevel() or nil
 
     for name in pairs(names) do
         -- A mob on the hide list is not ranked (DB:IsHiddenSource), nor a
-        -- dungeon's with "Outside dungeons only" ticked.
+        -- dungeon's with "Outside dungeons only" ticked, nor one far from
+        -- the character's level with "Near my level" ticked.
         local entry = not self:LeftOut(name) and self:Entry(name)
-        if entry then
+        if entry and self:NearYou(entry, level) then
             local list = board[entry.group]
             list[#list + 1] = entry
         end
@@ -462,6 +514,13 @@ function Rankings:Build()
     end
 
     return board
+end
+
+-- A ding moves the band: the tab draws again while the box is ticked.
+function Rankings:OnEnable()
+    ns.RegisterEvent(self, "PLAYER_LEVEL_UP", function()
+        if Rankings.NearLevel() and ns.RankingsUI then ns.RankingsUI:Refresh() end
+    end)
 end
 
 ns.RegisterCommand("rankings", L["mobs ranked by what a kill is worth, or only those outside dungeons"], function(arg)
@@ -493,6 +552,17 @@ ns.RegisterCommand("rankings", L["mobs ranked by what a kill is worth, or only t
         else
             ns.Print(L.Format("Worth per kill leaves out drops that are %s.", Rankings.ExcludeWord(choice)))
         end
+        if ns.SettingsUI then ns.SettingsUI:Refresh() end
+        return
+    end
+    if word == "level" then
+        if value == "on" or value == "off" then
+            Rankings:SetNearLevel(value == "on")
+        else
+            Rankings:SetNearLevel(not Rankings.NearLevel())
+        end
+        ns.Print(Rankings.NearLevel() and L["Rankings show only mobs near your level."]
+            or L["Rankings show mobs of every level."])
         if ns.SettingsUI then ns.SettingsUI:Refresh() end
         return
     end
