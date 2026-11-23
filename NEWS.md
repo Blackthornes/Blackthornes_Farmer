@@ -26,10 +26,8 @@ tool prints a note for a shipped line that reads like an advert.
 ## 1.30.1
 
 Fixes and changes:
-- The Zone Board unlock card and the New Best banner no longer cover each other.
-- A mob that comes back where its old corpse lay counts as a new kill.
-- The arrow works less while you stand still.
-- The gold plaque has no red gems on its sides.
+- The Zone Board unlock card and the New Best banner no longer show on top of each other.
+- A mob that respawns where its old corpse lay adds to your kill count.
 
 
 ## 1.30.0
