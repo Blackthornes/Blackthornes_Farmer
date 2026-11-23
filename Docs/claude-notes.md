@@ -2767,6 +2767,17 @@ Chat says "Every window is back in its first spot." Tested in
 The full wording of the rules CLAUDE.md gives in short. The same in every
 addon's notes; keep them the same.
 
+### No red gems on a rim's ends
+
+The owner (2026-11-22, on the Farmer unlock placard mockup): "Get rid of
+the red circles on the left and right of the windows. Never use them again
+in any addon." The gold plaque (`UI/Plaque.lua`, the same file in Farmer,
+Pets, Equipment and Tradeskills) lost its two end gems that day; its
+`button.gems` stays as an empty list. The red close gem (the X) and the
+house frame's corner gems are not end gems and stay. Tested in
+`tools/test_housekit.lua`. This rule is in every addon's notes; keep them
+the same.
+
 ### Writing for players
 
 Every word a player reads (labels, buttons, tooltips, Settings rows and
