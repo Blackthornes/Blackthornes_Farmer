@@ -455,11 +455,8 @@ function FishingBar:Build()
     Tooltip(lure, L["Pick a lure to put on your pole."])
     self.lureButton = lure
 
-    -- No end gems here: the two buttons sit side by side and the gems
-    -- crowded the gap between them.
     for _, button in ipairs({ cast, lure }) do
         button.natural = self.BUTTON_HEIGHT
-        for _, gem in ipairs(button.gems or {}) do gem:Hide() end
     end
 
     local lureLabel = Theme.CreateLabel(frame, "small", "muted")

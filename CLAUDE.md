@@ -165,6 +165,9 @@ before work that leans on it.
   the mouse, `glassActive` and a gold left edge when picked. Never
   `row`/`rowAlt`. Gradients fade through `Theme.LightGradient` or are
   hidden, never SetAlpha alone.
+- **No red gems on a rim's ends** (the owner, 2026-11-22): never put red
+  circles on the left and right of a window, plaque or pop-up, in any
+  addon. The red close gem (the X) and the corner gems stay.
 - **"Always check that it's clear to post."** Nothing is published or
   uploaded without the owner's go-ahead. He tags releases himself.
 - **Changelogs come from git history,** never from asking the owner.
