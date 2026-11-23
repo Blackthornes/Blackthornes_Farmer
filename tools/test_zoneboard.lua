@@ -217,28 +217,46 @@ check("unfolded the rows come back", UI.rows[1]:IsShown() and UI.rows[1].role ==
 -- The 20th spider: the card turns, it tops the board, the hunt moves on.
 env.chat = {}
 Loot("Test Spider", { COINS, SILK })
-check("the card turned over", FX.card and FX.card.name:GetText() == "Test Spider"
-    and FX.card.done:GetText() == L["Unlocked!"])
-check("its best drop is named", (FX.card.best:GetText() or ""):find("Spider Silk Test", 1, true) ~= nil)
-check("a new best gets the crown banner", FX.banner and (FX.banner.title:GetText() or ""):find(
-    L.Format("New Best in %s!", ZONE), 1, true) ~= nil, FX.banner and FX.banner.title:GetText())
-check("it says what it beat", (FX.banner.foot:GetText() or ""):find("Test Wolf", 1, true) ~= nil)
+-- One placard: the unlock and the crown line together, never two frames.
+local placard = FX.placard
+check("one placard for the unlock, glowing", placard and placard:IsShown() and placard.glow:IsShown()
+    and FX.shown and FX.shown.kind == "unlock")
+check("it names the mob under the ribbon", placard.title:GetText() == "Test Spider"
+    and placard.ribbon.text:GetText() == L["Unlocked!"], placard.title:GetText())
+check("its best drop is named", (placard.drop.text:GetText() or ""):find("Spider Silk Test", 1, true) ~= nil)
+check("a new best joins the same placard", (placard.line:GetText() or ""):find(
+    L.Format("New Best in %s!", ZONE), 1, true) ~= nil, placard.line:GetText())
+check("it says what it beat, with no coins", placard.foot:GetText() == L.Format("Beats %s.", "Test Wolf"),
+    placard.foot:GetText())
+check("the rank-up sound plays once", (function()
+    local n = 0
+    for _, path in ipairs(played) do if path == FX.SOUND_BEST then n = n + 1 end end
+    return n == 1
+end)())
+check("no old banner frame is made", FX.banner == nil and FX.card == nil
+    and _G.BlackthornesFarmerZoneBanner == nil and _G.BlackthornesFarmerZoneCard == nil)
+check("nothing waits behind it", #(FX.queue or {}) == 0)
 check("the hunt moved on by itself", ZoneBoard.hunt and ZoneBoard.hunt.target == "Test Bear")
 check("the worth was worked out again", ZoneBoard:Best().ranked[1].entry.name == "Test Spider")
 
 -- Skipping the last one finishes the zone.
 played = {}
 env.chat = {}
-FX.showing = false
 ZoneBoard:Skip(ZONE, "Test Bear")
+check("Zone Done waits while the placard shows", FX.shown.kind == "unlock" and #FX.queue == 1
+    and FX.queue[1].kind == "done" and #played == 0)
+FX:Close()
 check("the zone is stamped done", ns.db.zoneBoardDone and ns.db.zoneBoardDone[ZONE] ~= nil)
 check("one chat line for you", (function()
     for _, line in ipairs(env.chat) do
         if line:find(L.Format("%s done! All %d mobs unlocked.", ZONE, 2), 1, true) then return true end
     end
 end)())
-check("the Zone Done banner shows", (FX.banner.title:GetText() or "") == L.Format("%s Done!", ZONE),
-    FX.banner.title:GetText())
+check("then Zone Done shows on the same placard", FX.shown.kind == "done"
+    and placard.title:GetText() == L.Format("%s Done!", ZONE)
+    and placard.ribbon.text:GetText() == L["Zone Done"], placard.title:GetText())
+check("it names the best farm, with no coins", placard.foot:GetText() == L.Format("Best farm here: %s.", "Test Spider"),
+    placard.foot:GetText())
 check("with its own sound", played[#played] == FX.SOUND_DONE, played[#played])
 check("the hunt stopped", ZoneBoard.hunt == nil)
 check("its buttons go back", UI.go:IsShown() and not UI.nextMob:IsShown() and not (UI.rows[1]:IsShown() and UI.rows[1].pointer:IsShown()))
@@ -252,7 +270,7 @@ ns.db.zoneBoardDone = nil
 ns.db.muteSounds = true
 if ns.SharedChoices and ns.SharedChoices.SetMute then ns.SharedChoices:SetMute(true) end
 played = {}
-FX.showing = false
+FX:Close()
 ZoneBoard:CheckDone(ZONE)
 check("Mute All Sounds quiets the zone sound", #played == 0)
 if ns.SharedChoices and ns.SharedChoices.SetMute then ns.SharedChoices:SetMute(false) end
@@ -262,11 +280,21 @@ ns.db.muteSounds = nil
 ns.db.zoneBoardDone = nil
 ZoneBoard:SetBanner(false)
 check("unticked banner saves false", ns.db.zoneBoardBanner == false)
-FX.banner.title:SetText("")
-FX.showing = false
+FX:Close()
+FX.queue = {}
 ZoneBoard:CheckDone(ZONE)
-check("no banner while unticked", FX.banner.title:GetText() == "")
+check("no banner while unticked", not FX.showing and #FX.queue == 0)
 ZoneBoard:SetBanner(true)
+
+-- Effects Off: no turn, no glow, and it shows then goes by itself.
+ns.db.zoneBoardDone = nil
+ns.db.trackerEffects = "off"
+FX:Close()
+FX.queue = {}
+ZoneBoard:CheckDone(ZONE)
+check("Effects Off: no glow on the placard", not FX.placard.glow:IsShown())
+check("and it goes by itself after its hold", not FX.showing and not FX.placard:IsShown())
+ns.db.trackerEffects = nil
 
 -- A hunt ends when you leave the zone.
 ZoneBoard:Unskip(ZONE)

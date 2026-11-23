@@ -688,10 +688,9 @@ function ZoneBoard:Unlocked(entry)
     -- On top with another mob below it: that one was the best before.
     local FX = ns.ZoneBoardFX
     if FX then
-        pcall(FX.Card, FX, entry, ranked)
-        if rank == 1 and after.ranked[2] then
-            pcall(FX.NewBest, FX, zone, ranked, after.ranked[2])
-        end
+        -- One placard: the crown line joins the unlock when it tops BEST.
+        local beaten = rank == 1 and after.ranked[2] or nil
+        pcall(FX.Card, FX, entry, ranked, beaten and zone or nil, beaten)
     end
 
     -- The hunt moves on, after the fight when there is one: picking the
