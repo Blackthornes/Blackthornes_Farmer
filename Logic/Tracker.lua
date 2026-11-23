@@ -88,6 +88,21 @@ function Tracker:Aging()
     return self.aging
 end
 
+--- Is `guid` a corpse this session opened or saw in an area loot?
+function Tracker:Remembers(guid)
+    return guid ~= nil and (self.corpses[guid] ~= nil or self.areaLooted[guid] ~= nil)
+end
+
+--- A mob of `guid` is alive again (Harvest:NoteUnit): its next corpse is a
+--- new kill, not the old one opened again. The aging list keeps the old
+--- time, so the new corpse is let go a little early; a looted body is gone
+--- long before then.
+function Tracker:Reborn(guid)
+    if guid == nil then return end
+    self.corpses[guid] = nil
+    self.areaLooted[guid] = nil
+end
+
 -- Also this session only: how much of each item came off corpses (your kills,
 -- the rest of an area loot, corpses you only skinned), and the order mobs
 -- were last killed in, so the panel can put the latest on top.

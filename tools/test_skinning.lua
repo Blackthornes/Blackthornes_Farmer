@@ -195,12 +195,14 @@ suite.check("someone else's kill, skinned, is still no kill",
 tapDenied = false
 
 -- Area loot took this one's drops with another corpse's: skinning it is no kill.
+-- B is fought before it dies; a mob seen alive after its corpse was looted
+-- is a new one with the same guid (test_respawnguid.lua).
 local A, B = "Creature-0-1-2-3-300-A", "Creature-0-1-2-3-300-B"
+Fought(B)
 _G.GetLootSourceInfo = function(slot) if slot == 1 then return A, 1, B, 1 end end
 Open(HUNTRESS, A, { Item("Ruined Leather Scraps", 2) })
 _G.GetLootSourceInfo = nil
 kills = Tracker:SessionKills()
-Fought(B)
 suite.check("a corpse an area loot emptied, skinned, is no kill",
     Open(HUNTRESS, B, { Item("Light Leather") }, true) == false and Tracker:SessionKills() == kills)
 _G.UnitIsTapDenied = nil

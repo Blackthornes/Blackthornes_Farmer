@@ -761,6 +761,13 @@ function Harvest:NoteUnit(unit)
         if number and number > 0 then level = number end
     end
 
+    -- A corpse already opened, now walking about: a new mob with the old
+    -- one's guid, as a respawn can be since Forever 1.60.1 scrambled the
+    -- spawn part. It is let go, so its kill counts.
+    if self.opened[guid] or self.shown[guid] or (ns.Tracker and ns.Tracker:Remembers(guid)) then
+        if Harvest.AliveNow(unit) then self:Reborn(guid) end
+    end
+
     -- Seen alive this session: once it is, it stays so after it dies.
     local known = self:KnownUnit(guid)
     local alive = known and known.alive or false
@@ -784,6 +791,22 @@ function Harvest:NoteUnit(unit)
     if ns.ZoneBoard then ns.ZoneBoard:Learn(unit, name) end
     -- Elites, marked ELITES NEAR on Grind to 60 (only while it is on).
     if ns.GrindTo60 then ns.GrindTo60:Learn(unit, name) end
+end
+
+--- Does the client plainly say `unit` is alive? Anything unreadable is no.
+function Harvest.AliveNow(unit)
+    if not UnitIsDead then return false end
+    local gotDead, dead = pcall(UnitIsDead, unit)
+    local readable, living = pcall(function() return gotDead and dead == false end)
+    return readable and living == true
+end
+
+--- Forget that `guid`'s corpse was opened or shown: a mob of that guid is
+--- alive again. Session memory only; nothing saved changes.
+function Harvest:Reborn(guid)
+    self.opened[guid] = nil
+    self.shown[guid] = nil
+    if ns.Tracker and ns.Tracker.Reborn then ns.Tracker:Reborn(guid) end
 end
 
 function Harvest:KnownUnit(guid)
