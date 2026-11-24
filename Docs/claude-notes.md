@@ -1562,6 +1562,13 @@ takes out drops of quality `from` and better (`EXCLUDE_FROM`).
 `/farm rankings exclude none|epic|rare|uncommon`; the old `/farm rankings
 uncommon [on|off]` still works.
 
+A rarity the game hasn't sent yet (fixed 2026-11-24, the owner's report:
+greens and blues stayed as Best Drop until the drop-down was changed once):
+`Rankings.QualityOf` falls back to `Util.ItemQuality`, which asks the game,
+and the Rankings `Util.OnRarity` watcher builds the board again (and moves
+`outsideVersion`) when a choice is set, not only recolours. Tested in
+`tools/test_rankingsuncommon.lua`.
+
 ## Rankings at vendor prices
 
 A player asked, the owner said build it (2026-11-15): a tick box on the

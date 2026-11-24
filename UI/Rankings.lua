@@ -1468,9 +1468,18 @@ end
 -- "Hide skinning" moved: leather counts toward a kill's worth or not.
 ns.DB.hideWatchers.rankings = function() RankingsUI:Refresh() end
 
--- An item's rarity came in late: the rows on screen take its colour.
+-- An item's rarity came in late: the rows on screen take its colour. With
+-- Exclude Rarity on, a drop that was kept while its rarity was unknown may
+-- now be left out, so the board is ranked again and the rank-up order with
+-- it (the owner, 2026-11-24: greens stayed as Best Drop until the
+-- drop-down was changed once).
 ns.Util.OnRarity("rankings", function()
     local self = RankingsUI
+    if ns.Rankings.EXCLUDE_FROM[ns.Rankings.Exclude()] then
+        ns.Rankings.outsideVersion = ns.Rankings.outsideVersion + 1
+        self:Refresh()
+        return
+    end
     if self.view and self.view:IsShown() and self.list and ns.UI.frame and ns.UI.frame:IsShown() then
         self.list:Refresh()
     end
