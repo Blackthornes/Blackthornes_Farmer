@@ -23,6 +23,11 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.31.1
+
+Fixes and changes:
+- The Exclude Rarity filter works the first time you open it.
+
 ## 1.31.0
 
 - A new Near My Level box on Rankings and Estimates lists only mobs close to your level. It starts off.

@@ -4,6 +4,12 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.31.1
+
+For WoW: Forever (interface 16001). `/reload` is enough after updating.
+
+- **Exclude Rarity.** The filter now works the first time you open it.
+
 ## 1.31.0
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
