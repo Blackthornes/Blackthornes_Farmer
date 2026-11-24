@@ -66,6 +66,14 @@ Check: Register through ns.RegisterEvent, the owner first:
 Why: Hitches while crafting and a once-a-second minimap redraw (2026-10-09).
   A window that waited for a fight to end and never heard it (2026-11-20).
 
+## A list that filters by rarity
+Lines: QualityOf|ItemQuality|EXCLUDE_FROM|IsUncommonOrBetter
+Check: An item's rarity can come in late. A list that leaves items out by
+  rarity must ask through `Util.ItemQuality` (it asks the game) and build
+  again in its `Util.OnRarity` watcher, not only take the new colour.
+Why: Rankings with Uncommon and Above picked kept greens as Best Drop
+  until the drop-down was changed once (2026-11-24).
+
 ## Walking a table that may change
 Lines: \bpairs\(
 Check: If anything inside the loop can add to or clear the table being

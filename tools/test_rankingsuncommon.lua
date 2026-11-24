@@ -169,4 +169,46 @@ if controls and controls.rankingsExclude then
     suite.check("Settings follows the command", box:GetValue() == "rare")
 end
 
+-- A rarity the game hasn't sent yet (the owner, 2026-11-24: with Uncommon
+-- and Above picked, greens and blues stayed as Best Drop until the
+-- drop-down was changed once). The board asks the game for it, and when
+-- it comes in the board on screen is ranked again, not just recoloured.
+ns.HandleSlash("rankings exclude uncommon")
+local asked = {}
+_G.C_Item.RequestLoadItemDataByID = function(id) asked[id] = true end
+local plainInfo = _G.C_Item.GetItemInfo
+_G.C_Item.GetItemInfo = function(id)
+    if not QUALITY[id] then return nil end
+    return plainInfo(id)
+end
+AUCTION[7004] = 9000
+for _ = 1, 20 do
+    Loot("Cape Ghoul", { { name = "Large Fang", id = 5637 }, { name = "Ghost Cape", id = 7004 } })
+end
+-- Like the Estimates board: a drop known only by its ID, never looted, so
+-- no loot link colour to go on.
+ns.Tracker:Looks()["Ghost Cape"] = { id = 7004 }
+ns.Util.ForgetRarity()
+ns.UI:Build()
+ns.UI:Show()
+ns.UI:ShowTab("rankings")
+local ghoul = Find(Rankings:Build().measured, "Cape Ghoul")
+suite.check("a cape of unknown rarity stays in for now", ghoul and ghoul.best and ghoul.best.name == "Ghost Cape")
+suite.check("the board asks the game for its rarity", asked[7004] == true)
+
+local function DrawnBest(mob)
+    for _, row in ipairs(ns.RankingsUI.list.data or {}) do
+        if row.entry and row.entry.mob == mob then return row.entry.best and row.entry.best.name end
+    end
+    return nil
+end
+suite.check("the drawn row shows the cape first", DrawnBest("Cape Ghoul") == "Ghost Cape", tostring(DrawnBest("Cape Ghoul")))
+local stamp2 = ns.RankUp.Stamp()
+QUALITY[7004] = 2
+local fire = ns.eventFrame:GetScript("OnEvent")
+fire(ns.eventFrame, "GET_ITEM_INFO_RECEIVED", 7004, true)
+suite.check("once the game says green, the drawn row drops the cape", DrawnBest("Cape Ghoul") == "Large Fang", tostring(DrawnBest("Cape Ghoul")))
+suite.check("and the rank-up order is laid out again", ns.RankUp.Stamp() ~= stamp2)
+suite.check("the saved choice is untouched", ns.db.rankingsExclude == "uncommon")
+
 suite.done()

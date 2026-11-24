@@ -278,7 +278,15 @@ function Rankings.QualityOf(drop)
     if not id and ns.Tracker and ns.Tracker.LookOf then id = ns.Tracker:LookOf(drop.name).id end
     if not id and ns.Value.ItemID then id = ns.Value:ItemID(drop.name) end
     local quality = WorldDrops.QualityOf(id, drop.name)
-    return type(quality) == "number" and quality or nil
+    if type(quality) == "number" then return quality end
+    -- Not known yet: ask the game, so the board is ranked again when it
+    -- comes in (UI/Rankings.lua's OnRarity).
+    local Util = ns.Util
+    if Util and Util.ItemQuality then
+        local ok, late = pcall(Util.ItemQuality, drop.name, id)
+        if ok and type(late) == "number" then return late end
+    end
+    return nil
 end
 
 --- Is a priced drop Uncommon or better? A drop whose quality is not
