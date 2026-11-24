@@ -1871,7 +1871,7 @@ L["Mute All Sounds:"] = "Выключить все звуки:"
 L["turn every Blackthornes sound off or back on (on/off)"] = "выключить или снова включить все звуки Blackthornes (on/off)"
 L["All Blackthornes sounds are off. /farm mute off turns them back on."] = "Все звуки Blackthornes выключены. /farm mute off включит их снова."
 L["Blackthornes sounds are back on."] = "Звуки Blackthornes снова включены."
-L["Window Spots:"] = "Места окон:"
+L["Window Locations:"] = "Положение окон:"
 L["Puts every Blackthornes window back where it started. Your settings and data stay the same."] = "Возвращает каждое окно Blackthornes на его первое место. Твои настройки и данные не меняются."
 L["Every window is back in its first spot."] = "Каждое окно снова на своём первом месте."
 L["put every Blackthornes window back where it started (reset)"] = "вернуть каждое окно Blackthornes на первое место (reset)"
@@ -2180,3 +2180,8 @@ L["Click to open this step."] = "Щёлкни, чтобы открыть это�
 L["Built from mobs Farmer has seen. It gets better as you play."] = "Построено по противникам, которых видел Farmer. Чем больше играешь, тем точнее."
 L["Farmer hasn't seen enough mobs near your level yet. Go kill a few and check back."] = "Farmer пока видел мало противников твоего уровня. Убей несколько и загляни снова."
 L["You made it to 60."] = "Ты достиг 60-го уровня."
+
+-- Farmer Settings: Set Default (2026-11-23)
+L["Farmer Settings:"] = "Настройки Farmer:"
+L["Puts every Farmer setting back to how it started. Your kills, loot, farms and goals stay. So do your window locations and the choices on this page."] = "Возвращает каждую настройку Farmer к началу. Твои убийства, добыча, фарм и цели остаются. Положение окон и выбор на этой странице тоже остаются."
+L["Every Farmer setting is back to how it started."] = "Все настройки Farmer снова как в начале."

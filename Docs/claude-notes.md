@@ -3544,3 +3544,23 @@ with no level is left out. A level the client won't read filters nothing.
 `rankingsNearLevel` (account wide, never rename it). `/farm rankings level
 [on|off]`. The rank-up pop-up and the top 15 after a scan rank every level, so
 `outsideVersion` does not move. Tested in `tools/test_rankingslevel.lua`.
+
+## Restore Defaults (Farmer Settings: Set Default)
+
+The owner said build it, 2026-11-23 (a player asked how to reset settings),
+in all five addons, from `Docs/mockups/restore-defaults.html` in the project
+files. A row on the ALL ADDONS page under Window Locations (renamed from
+Window Spots the same day): "Farmer Settings:" with Set Default. The first
+click turns the words red and says Confirm; a second within
+`SettingsUI.CONFIRM_WAIT` (4 s) runs `SettingsUI:RestoreDefaults()`.
+
+It puts back every key in `SettingsUI.SETTING_KEYS` (to `ns.DEFAULTS[key]`,
+else nil), turns the loot beacon and Count Bank off through their own code
+first (the beacon changes game values), sets `settingsRestored` and reloads
+the interface; `SettingsUI:SayRestored()` at login prints "Every Farmer
+setting is back to how it started." once and clears it. Never touched: any
+data, window spots and sizes' spots, and the ALL ADDONS choices (text size,
+window style, effects, mute, combined buttons, One Window, sister note),
+since those are shared by all five. `tools/test_restoredefaults.lua` clicks
+every Settings control twice and fails if one writes a key that is neither
+in `SETTING_KEYS` nor in its kept list: a new setting must join the list.
