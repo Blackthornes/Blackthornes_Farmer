@@ -3208,7 +3208,11 @@ the Kills & Loot toolbar, shown only while ticked.
   dungeon spots, rares and bosses and Alliance or Horde mobs read in game
   (`ZoneBoard:Learn` from `Harvest:NoteUnit`, `UnitClassification` and
   `UnitFactionGroup` in a pcall, only while on, kept in
-  `zoneBoardLeftOut[name]`), town guards by name (`IsGuardName`),
+  `zoneBoardLeftOut[name]`; a mob `UnitCanAttack` says you can fight is
+  never a guard, since Forever gives some wild camps a side (Dalaran's
+  mobs at Ambermill read as Alliance, the owner's report 2026-11-24), and
+  an old "faction" entry for one is dropped when it is seen again), town
+  guards by name (`IsGuardName`),
   critters (`Grinding.TypeOf`), level -1. Kills are your own on the
   zone's line (`ZoneBoard.Kills`: every `tracker.mobs[name].zones` key whose
   English name is the zone; the key for Rankings is the zone's once split).

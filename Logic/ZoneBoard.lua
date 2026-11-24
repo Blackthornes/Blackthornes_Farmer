@@ -155,12 +155,28 @@ function ZoneBoard:Learn(unit, name)
         if value == "rare" or value == "rareelite" then kind = "rare"
         elseif value == "worldboss" then kind = "boss" end
     end
-    if not kind and type(UnitFactionGroup) == "function" then
+    -- Forever gives some wild camps a side (Dalaran's mobs at Ambermill
+    -- read as Alliance), so a mob you can attack is never taken for a guard,
+    -- and one taken for a guard before comes back the next time it is seen.
+    local fightable = false
+    if not kind and type(UnitCanAttack) == "function" then
+        -- A secret value raises on the compare: read as no.
+        local ok, yes = pcall(function() return UnitCanAttack("player", unit) == true end)
+        fightable = ok and yes == true
+    end
+    if not kind and not fightable and type(UnitFactionGroup) == "function" then
         local ok, faction = pcall(UnitFactionGroup, unit)
         faction = ok and Readable(faction) or nil
         if faction == "Alliance" or faction == "Horde" then kind = "faction" end
     end
-    if not kind then return end
+    if not kind then
+        local store = ns.db and type(ns.db.zoneBoardLeftOut) == "table" and ns.db.zoneBoardLeftOut
+        if fightable and store and store[name] == "faction" then
+            store[name] = nil
+            self.version = (self.version or 0) + 1
+        end
+        return
+    end
     local store = Store("zoneBoardLeftOut")
     if store[name] ~= kind then
         store[name] = kind
