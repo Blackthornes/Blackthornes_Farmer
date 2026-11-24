@@ -325,6 +325,124 @@ if ns.SharedWindow and ns.SharedWindow.AddSpotReset then
 end
 
 --------------------------------------------------------------------------------
+-- Farmer Settings: Set Default (the owner said build it, 2026-11-23)
+--------------------------------------------------------------------------------
+
+--- Every saved key a Settings control writes, and only those. Kills, loot,
+--- farms, goals, gathered spots, window spots and the ALL ADDONS choices the
+--- five addons share are left out on purpose. tools/test_restoredefaults.lua
+--- clicks every control and fails if one writes a key missing here.
+SettingsUI.SETTING_KEYS = {
+    "arrowRoute", "arrowShown", "arrowSize", "arrowTurnedOff", "autoOpen",
+    "bagsFullNotice", "fishingBar", "fishingPanel", "gatherRoute",
+    "gatherRouteDraw", "gatherRouteZoneOnly", "goalSpotsDockMap",
+    "goalSpotsSeeThrough", "goalsSeeThrough", "grindPins", "grindTo60",
+    "harvestPaused", "heatLevel", "heatMinimap", "heatWorld", "hideSkinning",
+    "itemTooltip", "itemTooltipCraft", "keepPanel", "killPlates",
+    "killPlatesSide", "killPlatesWorth", "killTooltip", "killTooltipDrops",
+    "lastFarmOnSearch", "lootBeacon", "lootBeaconColor", "lootBeaconHeight",
+    "lootBeaconWidth", "lootFeed", "lootFeedHold", "lootFeedHoldPicked",
+    "lootFeedSeeThrough", "lootFeedWorth", "mapButton", "markerSize",
+    "markersMinimap", "markersMyProfessions", "markersWorld", "nodeSparkle",
+    "nodeSparkleBobber", "nodeSparkleColors", "nodeSparkleCorpses",
+    "nodeSparkleHideIcon", "nodeSparkleMine", "nodeSparkleStyle",
+    "nodeSparkleStylePicked", "nodeVoice", "oneKeyFishing", "openButton",
+    "openNote", "otherPriceAddons", "panelStyle", "priceOrder",
+    "questMobCount", "questMobCountMine", "questMobCountSide", "rankUpPopup",
+    "rankUpSeeThrough", "rankUpSound", "rankingsExclude",
+    "rankingsNearLevel", "rankingsOutside", "rankingsSkipUncommon",
+    "rankingsVendorOnly", "recapSeeThrough", "routeWindow",
+    "routeWindowSeeThrough", "savedFarms", "sessionTimer",
+    "sessionTimerAutoPause", "settingsDescriptions", "shareData",
+    "shareDrops", "shareGuild", "sharedChatNotice", "snapPanels", "statsBestCheer",
+    "tooltipShift", "topFarmAlert", "trackerAnnounce", "trackerCelebrate",
+    "trackerDodgeGroup", "trackerHidden", "trackerRareSound",
+    "trackerReport", "trackerScale", "trackerSeeThrough",
+    "trackerSeeThroughLevel", "trackerVoice", "trashCan",
+    "tsmGearPriceSource", "tsmPriceSource", "useTomTom", "windowScale",
+    "worldDrops", "xpBar", "xpBarCheer", "xpBarChime", "xpBarHideGame",
+    "xpBarSeeThrough", "zoneBoard", "zoneBoardBanner", "zoneBoardSeeThrough",
+    "zoneHuntSeeThrough"
+}
+
+--- How long the red Confirm waits for the second click, in seconds.
+SettingsUI.CONFIRM_WAIT = 4
+
+--- Puts every Farmer setting back to how it started, then reloads the game's
+--- interface so every window and marker reads them again. Saved data stays.
+function SettingsUI:RestoreDefaults()
+    local db, defaults = ns.db, ns.DEFAULTS or {}
+    if type(db) ~= "table" then return false end
+
+    -- Two settings change things outside the save; turned off through
+    -- their own code first, so the game's own values come back.
+    if db.lootBeacon == true and ns.NodeSparkle and ns.NodeSparkle.SetLoot then
+        pcall(ns.NodeSparkle.SetLoot, ns.NodeSparkle, false)
+    end
+    if ns.Goals and ns.Goals.SetCountsBank then
+        pcall(ns.Goals.SetCountsBank, ns.Goals, false)
+    end
+
+    for _, key in ipairs(SettingsUI.SETTING_KEYS) do
+        db[key] = defaults[key]
+    end
+
+    -- Said after the reload, once.
+    db.settingsRestored = true
+    if type(ReloadUI) == "function" then
+        ReloadUI()
+    else
+        self:SayRestored()
+    end
+    return true
+end
+
+--- The chat line after Set Default, said once.
+function SettingsUI:SayRestored()
+    if not (ns.db and ns.db.settingsRestored) then return end
+    ns.db.settingsRestored = nil
+    ns.Print(L["Every Farmer setting is back to how it started."])
+end
+
+--- A button that turns red and says Confirm on the first click, and runs
+--- `onConfirm` on a second click within CONFIRM_WAIT seconds.
+function SettingsUI.ConfirmButton(parent, text, onConfirm, width)
+    local button, armedAt
+    local function Now()
+        if type(GetTime) ~= "function" then return nil end
+        local ok, now = pcall(GetTime)
+        return ok and type(now) == "number" and now or nil
+    end
+    local function Arm(on, at)
+        button.armed, armedAt = on, at
+        button:SetText(on and L["Confirm"] or text)
+        -- Red words while it waits for the second click.
+        if button.SetLabelColor then button:SetLabelColor(on and "loss" or nil) end
+    end
+    button = Widgets.CreateButton(parent, text, function()
+        local now = Now()
+        if button.armed and (not armedAt or not now
+            or now - armedAt <= SettingsUI.CONFIRM_WAIT) then
+            Arm(false, nil)
+            onConfirm()
+            return
+        end
+        Arm(true, now)
+        if now and C_Timer and type(C_Timer.After) == "function" then
+            pcall(C_Timer.After, SettingsUI.CONFIRM_WAIT, function()
+                local later = Now()
+                if button.armed and armedAt and later
+                    and later - armedAt >= SettingsUI.CONFIRM_WAIT then
+                    Arm(false, nil)
+                end
+            end)
+        end
+    end, { width = width, height = 20 })
+    button.armed = false
+    return button
+end
+
+--------------------------------------------------------------------------------
 -- Construction
 --------------------------------------------------------------------------------
 
@@ -925,7 +1043,7 @@ function SettingsUI:BuildWindowsPage()
     end, false)
     controls.oneWindow:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local positionRow = pages:Row("all", 1, L["Window Spots:"],
+    local positionRow = pages:Row("all", 1, L["Window Locations:"],
         L["Puts every Blackthornes window back where it started. Your settings and data stay the same."])
 
     local reset = Widgets.CreateButton(positionRow, L["Set Default"], function()
@@ -933,6 +1051,13 @@ function SettingsUI:BuildWindowsPage()
     end, { width = 110, height = 20 })
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
     controls.resetPositions = reset
+
+    local restoreRow = pages:Row("all", 1, L["Farmer Settings:"],
+        L["Puts every Farmer setting back to how it started. Your kills, loot, farms and goals stay. So do your window locations and the choices on this page."])
+    controls.restoreDefaults = SettingsUI.ConfirmButton(restoreRow, L["Set Default"], function()
+        SettingsUI:RestoreDefaults()
+    end, 110)
+    controls.restoreDefaults:SetPoint("TOPLEFT", CONTROL_X, 0)
 
     pages:Section("panels", 1, L["FARMER UI"])
 
@@ -2484,6 +2609,7 @@ function SettingsUI:OnEnable()
     -- Sizes are saved, so put them back before anything is seen.
     self:ApplyWindowScale()
     self:ApplyTrackerScale()
+    self:SayRestored()
 
     local ok, err = pcall(self.RegisterGameOptions, self)
     if not ok then
