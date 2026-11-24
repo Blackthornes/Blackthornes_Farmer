@@ -23,6 +23,13 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.33.0
+
+- Your Way There is now a small see-through box with only your current step and a dial that points the way.
+
+Fixes and changes:
+- Mobs you can attack, such as the Dalaran mobs at Ambermill, stay on the Zone Board.
+
 ## 1.32.0
 
 - The All Addons page in Settings has a Set Default button. Click Confirm and this addon's settings go back to how they started.
