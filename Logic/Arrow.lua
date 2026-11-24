@@ -1112,5 +1112,7 @@ ns.TravelHost = {
     Changed = function() Arrow:Changed() end,
     Refresh = function() if ns.ArrowUI and ns.ArrowUI.Refresh then ns.ArrowUI:Refresh() end end,
     State = function() return ns.ArrowUI and ns.ArrowUI.state end,
+    -- The step box (UI/TravelCard.lua) hangs under the dial.
+    Dial = function() return ns.ArrowUI end,
     Print = function(text) ns.Print(text) end,
 }
