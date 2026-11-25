@@ -367,23 +367,41 @@ suite.check("the goal on its plate", ArrowUI.title:GetText() == "Copper Ore  12 
 suite.check("and never the words Goal arrow", ArrowUI.title:GetText() ~= "Goal arrow")
 suite.check("the distance under it", ArrowUI.distance:GetText() == "150 yd", ArrowUI.distance:GetText())
 
-local coords
-ArrowUI.arrow.SetTexCoord = function(_, ...) coords = { ... } end
+local rotation
+ArrowUI.chevron.SetRotation = function(_, angle) rotation = angle end
 ArrowUI.shownTurn, ArrowUI.shownFrame = nil, nil
 ArrowUI:Draw(true)
 suite.check("the arrow is turned", near(ArrowUI.shownTurn, -math.pi / 2), ArrowUI.shownTurn)
--- A quarter turn right is frame 48 of 64: row 6, column 0 of the sheet.
-suite.check("the blade shows the frame for that turn", ArrowUI.shownFrame == 48, ArrowUI.shownFrame)
-suite.check("cut from its place on the sheet", coords and near(coords[1], 0) and near(coords[2], 1 / 8)
-    and near(coords[3], 6 / 8) and near(coords[4], 7 / 8))
-suite.check("frames wrap round both ways", ArrowUI.FrameFor(0) == 0 and ArrowUI.FrameFor(2 * math.pi) == 0
-    and ArrowUI.FrameFor(-2 * math.pi / 64) == 63 and ArrowUI.FrameFor(math.pi) == 32)
-coords = nil
+-- A quarter turn right is step 135 of 180, turned flat with SetRotation.
+suite.check("the chevron is on the step for that turn", ArrowUI.shownFrame == 135, ArrowUI.shownFrame)
+suite.check("turned flat to it", rotation and near(rotation, 1.5 * math.pi), rotation)
+suite.check("steps wrap round both ways", ArrowUI.FrameFor(0) == 0 and ArrowUI.FrameFor(2 * math.pi) == 0
+    and ArrowUI.FrameFor(-2 * math.pi / 180) == 179 and ArrowUI.FrameFor(math.pi) == 90)
+rotation = nil
 ArrowUI:Turn(ArrowUI.shownTurn)
-suite.check("the same frame touches nothing", coords == nil)
+suite.check("the same step touches nothing", rotation == nil)
+suite.check("the chevron shows while it points", ArrowUI.chevron:IsShown() and not ArrowUI.check:IsShown()
+    and not ArrowUI.dot:IsShown())
+
+-- The slim pill: no plate, no old dial art, two lines only.
+suite.check("no plate or ring left", ArrowUI.plate == nil and ArrowUI.ring == nil and ArrowUI.arrow == nil)
+suite.check("no place or note lines", ArrowUI.place == nil and ArrowUI.note == nil)
+suite.check("a slim pill", frame:GetHeight() <= 30 and frame:GetWidth() >= 140 and frame:GetWidth() <= 300,
+    tostring(frame:GetWidth()) .. " x " .. tostring(frame:GetHeight()))
+suite.check("the step box hangs under the pill", ArrowUI.dial == frame)
+for _, path in ipairs({ "Pill", "PillEdge", "Well", "WellEdge", "Chevron", "ChevronGlow", "Dot", "Check" }) do
+    local handle = io.open((rawget(_G, "lfs_cwd") or ".") .. "/Media/Arrow/" .. path .. ".tga", "rb")
+    suite.check("art " .. path .. " is there", handle ~= nil)
+    if handle then handle:close() end
+end
+for _, path in ipairs({ "Blade", "BladeGlow", "Ring" }) do
+    local handle = io.open((rawget(_G, "lfs_cwd") or ".") .. "/Media/Arrow/" .. path .. ".tga", "rb")
+    suite.check("old art " .. path .. " is gone", handle == nil)
+    if handle then handle:close() end
+end
 
 suite.check("wide enough for its words",
-    frame:GetWidth() >= ns.Theme.TextWidth("small", ArrowUI.place:GetText()))
+    frame:GetWidth() >= ns.Theme.TextWidth("small", ArrowUI.title:GetText()))
 
 -- The dial takes no clicks and shows no tooltip: it only moves and closes.
 suite.check("no click on the dial", frame:GetScript("OnMouseUp") == nil and ArrowUI.OnClick == nil)
@@ -407,8 +425,8 @@ suite.check("and comes back with one", frame:IsShown())
 -- The red gem turns it off.
 suite.check("it has a close gem", ArrowUI.close ~= nil)
 local gemPoint = ArrowUI.close._point or {}
-suite.check("beside the plate, not over its words",
-    gemPoint[1] == "LEFT" and gemPoint[2] == ArrowUI.plate and gemPoint[3] == "RIGHT", tostring(gemPoint[1]))
+suite.check("at the pill's right end, inside it",
+    gemPoint[1] == "RIGHT" and gemPoint[2] == frame and gemPoint[3] == "RIGHT", tostring(gemPoint[1]))
 ArrowUI.close:GetScript("OnClick")(ArrowUI.close)
 suite.check("the close gem turns it off", not Arrow.IsOn() and not frame:IsShown())
 ns.HandleSlash("arrow on")
@@ -645,21 +663,20 @@ do
 end
 
 -- Farmer's XP bar comes up after the arrow: the arrow hears it being built
--- and shown (no timer), moves below it, plate and close gem too, and leaves
--- a spot clear of it alone.
+-- and shown (no timer), moves below it, the whole pill, and leaves a spot
+-- clear of it alone.
 do
     local frame = ArrowUI:Build()
     frame:Show()
     local rects = {
-        [frame] = { 700, 860, 150, 130 },
-        [ArrowUI.plate] = { 700, 970, 150, 20 },
+        [frame] = { 700, 950, 150, 26 },
     }
     for part, rect in pairs(rects) do
         part.GetRect = function() return rect[1], rect[2], rect[3], rect[4] end
         part.IsShown = function() return true end
     end
     if ArrowUI.close then
-        ArrowUI.close.GetRect = function() return 854, 971, 18, 18 end
+        ArrowUI.close.GetRect = function() return 830, 956, 14, 14 end
         ArrowUI.close.IsShown = function() return true end
     end
 
@@ -691,10 +708,10 @@ do
     local point = frame._point
     suite.check("a spot clear of the bar stays", point[1] == "CENTER" and point[4] == 775, point[1])
 
-    rects[ArrowUI.plate][2] = 1005
+    rects[frame][2] = 985
     scripts.OnSizeChanged(bar)
     point = frame._point
-    suite.check("only the plate on the bar is enough to move it below",
+    suite.check("the pill's edge on the bar is enough to move it below",
         point[1] == "TOP" and point[2] == bar and point[3] == "BOTTOM", point[1])
 
     bar.IsShown = function() return false end
@@ -709,6 +726,62 @@ do
     _G.BlackthornesFarmer.XPBarUI = saved
     _G.hooksecurefunc = hooksBefore
     ArrowUI.watchingBar, ArrowUI.watchedBar = nil, nil
+end
+
+--------------------------------------------------------------------------------
+-- The pill's three looks: pointing (above), there, and can't point
+--------------------------------------------------------------------------------
+
+do
+    local realState = Arrow.State
+    local goal = { item = "Copper Ore", have = 12, target = 40 }
+    local tints = {}
+    for _, texture in ipairs(ArrowUI.edge) do
+        texture.SetVertexColor = function(_, r, g, b) tints[texture] = { r, g, b } end
+    end
+    local function EdgeIs(color)
+        local tint = tints[ArrowUI.edge[2]]
+        return tint and near(tint[1], color[1]) and near(tint[2], color[2]) and near(tint[3], color[3])
+    end
+
+    -- Pointing first, so each look below is a change.
+    Arrow.State = function() return { mode = "point", goal = goal, distance = "150 yd", turn = 0 } end
+    ArrowUI:Draw(true)
+    Arrow.State = function() return { mode = "arrived", goal = goal, distance = "You're there" } end
+    ArrowUI:Draw(true)
+    suite.check("there: a green check in the well", ArrowUI.check:IsShown() and not ArrowUI.chevron:IsShown()
+        and not ArrowUI.dot:IsShown())
+    suite.check("there: the edge turns green", EdgeIs(ArrowUI.COLORS.edgeThere))
+    suite.check("there: You're there under the goal", ArrowUI.distance:GetText() == "You're there"
+        and ArrowUI.title:GetText() == "Copper Ore  12 / 40", ArrowUI.distance:GetText())
+
+    local trip = { index = 1, count = 3, plan = { steps = { {}, {}, {} } } }
+    Arrow.State = function() return { mode = "trip", goal = goal, trip = trip, distance = "" } end
+    ArrowUI:Draw(true)
+    suite.check("can't point: a dot in the well", ArrowUI.dot:IsShown() and not ArrowUI.chevron:IsShown()
+        and not ArrowUI.check:IsShown())
+    suite.check("can't point: the edge is gold again", EdgeIs(ArrowUI.COLORS.edge))
+    suite.check("can't point: the step under the goal", ArrowUI.distance:GetText() == "Step 1 of 3",
+        ArrowUI.distance:GetText())
+    suite.check("no ? mark any more", ArrowUI.mark == nil)
+
+    -- The dot pulses on Full and holds still otherwise.
+    local alphas = {}
+    ArrowUI.dot.SetAlpha = function(_, alpha) alphas[#alphas + 1] = alpha end
+    local level = ns.Motion.Level
+    ns.Motion.Level = function() return "full" end
+    ArrowUI:Breathe(0.1)
+    ArrowUI:Breathe(0.5)
+    suite.check("on Full the dot pulses", #alphas == 2 and not near(alphas[1], alphas[2]))
+    ns.Motion.Level = function() return "subtle" end
+    alphas = {}
+    ArrowUI:Breathe(0.1)
+    ArrowUI:Breathe(0.5)
+    suite.check("on Subtle it holds still", #alphas == 2 and near(alphas[1], alphas[2]))
+    ns.Motion.Level = level
+
+    Arrow.State = realState
+    ArrowUI:Draw(true)
 end
 
 --------------------------------------------------------------------------------
