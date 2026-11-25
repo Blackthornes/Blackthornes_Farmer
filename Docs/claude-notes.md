@@ -3314,6 +3314,13 @@ this a skipped mob had no way back. Skip and Unskip now forget BEST's kept
 list (`self.worth`), which had kept a skipped mob on BEST until a kill or
 scan. Tested in `tools/test_zoneboardhide.lua`. Not yet seen in game.
 
+A mob whose name starts with a quote ("Squealer" Thornmantle, "Pretty
+Boy" Duncan) was left off the board as a group row: `Grinding.IsGroup`
+read the quote as a small first letter. It now reads the first letter
+after any marks (a CurseForge report, 2026-11-25). The Grind tab counts
+such a mob as unknown type again too. Tested in `tools/test_zoneboard.lua`
+and `tools/test_grinding.lua`.
+
 ## Picked pockets on the card
 
 The owner said build it (2026-11-18, from a mockup, after a rogue's pocketed

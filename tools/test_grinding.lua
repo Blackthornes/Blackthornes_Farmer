@@ -534,6 +534,8 @@ DB:RegisterItem({ name = "Test Silk", category = "Cloth", sources = {
 } })
 local _, unknownWithGroup = Grinding:Camps({ low = 22, high = 26, type = "Humanoid", gives = false })
 check("a group row is known for one", Grinding.IsGroup("vale spiders") and not Grinding.IsGroup("Vale Thug"))
+check("a mob whose name starts with a quote is not a group",
+    not Grinding.IsGroup('"Squealer" Thornmantle') and Grinding.IsGroup('"vale" spiders'))
 check("and never counted as a mob of unknown type", unknownWithGroup == unknownBefore, unknownWithGroup)
 
 --------------------------------------------------------------------------------
