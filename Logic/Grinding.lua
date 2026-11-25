@@ -563,6 +563,23 @@ local function MiddleSpot(mobs)
     return best.coords
 end
 
+--- Every mob spot, sorted by zone, place and name, so the camps and their
+--- names come out the same each time. Kept with the Mobs list it was sorted
+--- from: switching tabs or moving a level box sorts nothing again.
+function Grinding:SortedMobs()
+    local mobs = self:Mobs()
+    if self.sorted and self.sortedFrom == mobs then return self.sorted end
+    local list = {}
+    for _, mob in pairs(mobs.all) do list[#list + 1] = mob end
+    table.sort(list, function(a, b)
+        if a.zone ~= b.zone then return a.zone < b.zone end
+        if (a.location or "") ~= (b.location or "") then return (a.location or "") < (b.location or "") end
+        return a.name < b.name
+    end)
+    self.sorted, self.sortedFrom = list, mobs
+    return list
+end
+
 --- The camps for a filter: { low, high, type, gives }, each field optional
 --- (the saved ones when nil). Returns the camps best first, and how many
 --- mobs a type filter left out because their type is not known yet.
@@ -618,14 +635,7 @@ function Grinding:Camps(filter)
         return Camp(Key(mob.zone, "*"), mob.zone, nil)
     end
 
-    -- Sorted first, so the camps and their names come out the same each time.
-    local list = {}
-    for _, mob in pairs(self:Mobs().all) do list[#list + 1] = mob end
-    table.sort(list, function(a, b)
-        if a.zone ~= b.zone then return a.zone < b.zone end
-        if (a.location or "") ~= (b.location or "") then return (a.location or "") < (b.location or "") end
-        return a.name < b.name
-    end)
+    local list = self:SortedMobs()
 
     for _, mob in ipairs(list) do
         if Grinding.InRange(mob, low, high) and Grinding.GivesWhat(mob, gives)
