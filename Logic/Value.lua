@@ -487,6 +487,27 @@ end
 function Value:UnitPrice(itemID)
     if not itemID then return nil end
 
+    -- Inside a pass (one redraw) each item is priced once: the Rankings
+    -- board asks for Linen Cloth once for every mob that drops it.
+    local pass = self.pass
+    if pass then
+        local kept = pass.units
+        if not kept then
+            kept = {}
+            pass.units = kept
+        end
+        local seen = kept[itemID]
+        if not seen then
+            seen = { self:UnitPriceNow(itemID) }
+            kept[itemID] = seen
+        end
+        return seen[1], seen[2]
+    end
+    return self:UnitPriceNow(itemID)
+end
+
+--- UnitPrice, worked out now.
+function Value:UnitPriceNow(itemID)
     local vendor = self:VendorPrice(itemID)
     local isPoor, sure = self:IsPoor(itemID)
     -- Not known yet counts as grey: right after login a grey the client
@@ -575,6 +596,27 @@ end
 --- it's a clam or a sack you've opened enough and that pays more, else
 --- UnitPrice. Returns copper and "contents", "auction" or "vendor".
 function Value:WorthOf(name, id)
+    -- Inside a pass each item is worked out once, like UnitPrice.
+    local pass = self.pass
+    if pass and name then
+        local kept = pass.worth
+        if not kept then
+            kept = {}
+            pass.worth = kept
+        end
+        local key = tostring(id or "") .. ":" .. tostring(name)
+        local seen = kept[key]
+        if not seen then
+            seen = { self:WorthOfNow(name, id) }
+            kept[key] = seen
+        end
+        return seen[1], seen[2]
+    end
+    return self:WorthOfNow(name, id)
+end
+
+--- WorthOf, worked out now.
+function Value:WorthOfNow(name, id)
     local unit, from = self:UnitPrice(id or self:ItemID(name))
     local inside = self:Contents(name)
 
@@ -708,36 +750,19 @@ function Value:FromDatabase(mobName)
     if not (ns.DB and mobName) then return nil end
 
     local details = { basis = "database", priced = {}, unpriced = {}, coin = 0 }
-    local total, seen = 0, {}
+    local total = 0
 
-    -- One zone's line of a mob reads that zone's rows, when the database
-    -- has any there.
-    local name, zone = mobName, nil
-    if ns.Tracker and ns.Tracker.SplitKey then name, zone = ns.Tracker.SplitKey(mobName) end
-    local rows = ns.DB:ByName()[name] or {}
-    if zone then
-        local here = {}
-        for _, source in ipairs(rows) do
-            if source.zone == zone then here[#here + 1] = source end
-        end
-        if #here > 0 then rows = here end
-    end
+    for _, pair in ipairs(self:RatedRows(mobName)) do
+        local item, source = pair[1], pair[2]
+        local unit, from = self:WorthOf(item.name, item.id)
 
-    for _, source in ipairs(rows) do
-        local item = ns.DB:ItemOf(source)
-        if item and source.chance and not seen[item.name] then
-            seen[item.name] = true
-
-            local unit, from = self:WorthOf(item.name, item.id)
-
-            if unit then
-                local perKill = source.chance / 100 * unit
-                total = total + perKill
-                details.priced[#details.priced + 1] = { name = item.name, perKill = perKill,
-                    unit = unit, from = from, chance = source.chance, id = item.id }
-            else
-                details.unpriced[#details.unpriced + 1] = item.name
-            end
+        if unit then
+            local perKill = source.chance / 100 * unit
+            total = total + perKill
+            details.priced[#details.priced + 1] = { name = item.name, perKill = perKill,
+                unit = unit, from = from, chance = source.chance, id = item.id }
+        else
+            details.unpriced[#details.unpriced + 1] = item.name
         end
     end
 
@@ -747,6 +772,46 @@ function Value:FromDatabase(mobName)
     table.sort(details.unpriced)
 
     return total, details
+end
+
+--- The database rows that rate a mob's drops: { { item, source } }, the
+--- first row for each item. Laid out once for each layout of DB:ByName
+--- (a source added or the hide list moved lays it out again), since the
+--- Rankings board asks for every mob each time it is drawn.
+function Value:RatedRows(mobName)
+    local byName = ns.DB:ByName()
+    local kept = self.ratedRows
+    if not kept or kept.from ~= byName then
+        kept = { from = byName, rows = {} }
+        self.ratedRows = kept
+    end
+    local found = kept.rows[mobName]
+    if found then return found end
+
+    -- One zone's line of a mob reads that zone's rows, when the database
+    -- has any there.
+    local name, zone = mobName, nil
+    if ns.Tracker and ns.Tracker.SplitKey then name, zone = ns.Tracker.SplitKey(mobName) end
+    local rows = byName[name] or {}
+    if zone then
+        local here = {}
+        for _, source in ipairs(rows) do
+            if source.zone == zone then here[#here + 1] = source end
+        end
+        if #here > 0 then rows = here end
+    end
+
+    found = {}
+    local seen = {}
+    for _, source in ipairs(rows) do
+        local item = ns.DB:ItemOf(source)
+        if item and source.chance and not seen[item.name] then
+            seen[item.name] = true
+            found[#found + 1] = { item, source }
+        end
+    end
+    kept.rows[mobName] = found
+    return found
 end
 
 --- The best value we have for a mob: your tally first, then the database.
@@ -783,7 +848,7 @@ function Value:Session()
 end
 
 --- Start a pass: until EndPass, Session answers from its first working
---- out. Returns true to the caller that opened it (a pass inside a pass is
+--- out, and UnitPrice from its first for each item. Returns true to the caller that opened it (a pass inside a pass is
 --- the outer one's), which is the one to end it. Nothing gathered or
 --- priced may change in between, so only a redraw holds one.
 function Value:BeginPass()

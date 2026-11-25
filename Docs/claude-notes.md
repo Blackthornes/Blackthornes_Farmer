@@ -3591,3 +3591,24 @@ shadowed. While it shows, each arrow's `ArrowUI.Words` asks
 `TravelCard:Words(state)` and keeps only its name. `travelCardScale` is no
 longer read (left in saves). Tested in `tools/test_stepbox.lua` (the same in
 all five). Not yet seen in game.
+
+## Tab switch speed (2026-11-25)
+
+Trent felt a hitch on each tab switch. Measured in the fake game with the
+shipped drop data: Rankings priced 11,417 drops a draw for 2,029 items, the
+Grind tab sorted all 4,269 mob spots again, and the empty Search tab walked
+every spot for its "Good at level" picks. Now:
+
+- `UI:ShowTab` and `Rankings:Build` each hold a `Value:BeginPass`, always
+  ended (pcall). Inside a pass `Value:UnitPrice` and `Value:WorthOf` work
+  each item out once. Nothing is kept past the pass, so a new price shows
+  at the next draw.
+- Kept for each layout of `DB:ByName` (a source added or the hide list
+  moved lays it out again): `Value:RatedRows(mob)` (the rows
+  `FromDatabase` prices) and `Rankings:Spot`.
+- `Grinding:SortedMobs()` is kept with the `Grinding:Mobs()` list it came
+  from; `DB:CountSources()` with `DB.changes`.
+- `Search:ForLevel` is kept until the level, `DB.changes`,
+  `DB.hiddenVersion`, Hide skinning or the `Spots.Skills` table moves.
+
+Tested in `tools/test_tabswitch.lua`.

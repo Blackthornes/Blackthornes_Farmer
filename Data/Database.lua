@@ -536,10 +536,15 @@ function DB:CountItems()
 end
 
 function DB:CountSources()
+    -- Asked by every Grind list draw; counted again only after a source or
+    -- item is added or taken out (each moves `changes`).
+    local changes = self.changes or 0
+    if self.sourceCount and self.sourceCountAt == changes then return self.sourceCount end
     local total = 0
     for _, key in ipairs(self.order) do
         total = total + #self.items[key].sources
     end
+    self.sourceCount, self.sourceCountAt = total, changes
     return total
 end
 

@@ -871,10 +871,32 @@ Search.SUGGEST_CATEGORIES = { "Cloth", "Leatherworking", "Mining", "Herbalism" }
 function Search:ForLevel(level, skills)
     level = tonumber(level) or 0
     if level <= 0 then return {} end
-    if skills == nil and ns.Spots and ns.Spots.Skills then
+    local own = skills == nil
+    if own and ns.Spots and ns.Spots.Skills then
         local ok, read = pcall(ns.Spots.Skills)
         skills = ok and read or nil
     end
+
+    -- The empty Search tab asks on every switch to it, and the answer walks
+    -- every spot in the data: kept until the level, the data, the hide
+    -- list, Hide skinning or the skills read (Spots.Skills) move.
+    local DB = ns.DB
+    local kept = self.forLevel
+    if own and kept and kept.level == level and kept.changes == DB.changes
+        and kept.hidden == DB.hiddenVersion and kept.skinning == DB:ShowsSkinning()
+        and kept.skills == skills then
+        return kept.picks
+    end
+    local picks = self:ForLevelNow(level, skills)
+    if own then
+        self.forLevel = { level = level, changes = DB.changes, hidden = DB.hiddenVersion,
+            skinning = DB:ShowsSkinning(), skills = skills, picks = picks }
+    end
+    return picks
+end
+
+--- ForLevel, worked out now.
+function Search:ForLevelNow(level, skills)
     local player = skills and { skills = skills } or nil
 
     local best = {}

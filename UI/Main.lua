@@ -1591,6 +1591,17 @@ end
 --- Remembered for the next time the window opens. "settings" opens
 --- Settings in the window's place.
 function UI:ShowTab(key)
+    -- One switch draws a whole tab in one go: inside one pass each item is
+    -- priced once (Value:BeginPass), and the pass always ends.
+    local Value = ns.Value
+    local mine = Value and Value.BeginPass and Value:BeginPass()
+    local ok, problem = pcall(self.ShowTabNow, self, key)
+    if mine then Value:EndPass() end
+    if not ok then error(problem, 0) end
+end
+
+--- ShowTab, done now.
+function UI:ShowTabNow(key)
     self:Build()
     if key == "settings" and ns.SettingsUI then
         if self.tabStrip then self.tabStrip:Select(self.tab or "search") end
