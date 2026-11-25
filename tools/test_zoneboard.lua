@@ -132,6 +132,10 @@ check("another zone's mob is not here", not names["Elsewhere Boar"])
 check("guard names: a town's guard", ZoneBoard.IsGuardName("Southshore Guard") and ZoneBoard.IsGuardName("Orgrimmar Grunt"))
 check("guard names: a wild one is not", not ZoneBoard.IsGuardName("Dalaran Shield Guard")
     and not ZoneBoard.IsGuardName("Syndicate Watchman"))
+-- A CurseForge report (2026-11-25): "Squealer" Thornmantle, quotes and
+-- all, was left off the board as if it were a group row ("spiders").
+check("a name in quotes stays on the board",
+    ZoneBoard.LeftOut({ name = '"Squealer" Thornmantle', zone = ZONE, minLevel = 5, maxLevel = 5 }) == nil)
 check("the list is kept", ZoneBoard:List(ZONE) == list)
 
 local kills, key = ZoneBoard.Kills("Test Wolf", ZONE)

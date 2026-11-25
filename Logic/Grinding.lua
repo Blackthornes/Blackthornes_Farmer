@@ -205,9 +205,14 @@ function Grinding.TypeOf(name)
 end
 
 --- A seed-file group ("spiders", "wolves and bears") rather than a mob the
---- client could ever name, so its type can never be learned.
+--- client could ever name, so its type can never be learned. Told by its
+--- first letter: a mob's name may start with a quote ("Squealer"
+--- Thornmantle, a CurseForge report 2026-11-25), so marks before it are
+--- skipped.
 function Grinding.IsGroup(name)
-    return type(name) == "string" and name:sub(1, 1) == name:sub(1, 1):lower()
+    if type(name) ~= "string" then return false end
+    local first = name:match("^[^%a]*(%a)")
+    return first ~= nil and first == first:lower()
 end
 
 --- The chip a type falls under: itself when it has one, else "Other".
