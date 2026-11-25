@@ -307,7 +307,7 @@ end
 --- The words for a state with nothing to point at.
 function ArrowUI.Words(state)
     local mode = state.mode
-    -- On a trip the step box under the dial says the step.
+    -- On a trip the step box under the pill says the step.
     if ns.TravelCard and ns.TravelCard.Words then
         local distance, place, note, color = ns.TravelCard:Words(state)
         if distance then return distance, place, note, color end
