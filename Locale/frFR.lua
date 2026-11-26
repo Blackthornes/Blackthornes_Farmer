@@ -2276,3 +2276,9 @@ L["%s, %s"] = "%s, %s"
 L["Made"] = "Gagné"
 L["%d %s"] = "%d %s"
 L["Do It Again"] = "Recommencer"
+
+-- Names as you type under the search box
+L["Mob, %s"] = "Monstre, %s"
+L["Names As You Type:"] = "Noms pendant la saisie :"
+L["Shows matching items, mobs and zones under the search box as you type."] = "Affiche les objets, monstres et zones qui correspondent sous la barre de recherche pendant que tu tapes."
+L["Arrow keys pick a line, Enter opens it."] = "Les flèches choisissent une ligne, Entrée l'ouvre."

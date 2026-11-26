@@ -427,6 +427,7 @@ function HomeUI:Build(frame)
     search:SetPoint("TOPLEFT", headLeft, -headTop)
     search:SetPoint("RIGHT", go, "LEFT", -GAP, 0)
     self.searchBox = search
+    if ns.SuggestUI then ns.SuggestUI:Attach(search, function(name) Go(name) end) end
 
     self.cards = {}
     for index = 1, 6 do self.cards[index] = self:MakeCard(view) end

@@ -205,6 +205,157 @@ function Search:Run(query)
 end
 
 --------------------------------------------------------------------------------
+-- Names as you type
+--
+-- The owner said build it (2026-11-26, Docs/mockups/farmer-improve-8 in the
+-- project files). A German player typed "Wollstoff" and thought Farmer only
+-- knew English, and another thought it could only search items. So under
+-- the search box the best few names that match what you typed show as you
+-- type: items (by the name your own game shows, the English one too), mobs
+-- and zones, each tagged with what it is. Picking one searches for it.
+--
+-- The names come from the data and your own finds, read once a data
+-- version (Search:SuggestIndex) and kept for the session; nothing is saved.
+-- A keystroke only walks the list of names, and the same word asks once.
+-- "Names As You Type:" on the Panels page turns it off (`searchNames`,
+-- false when off; never rename it).
+--------------------------------------------------------------------------------
+
+Search.SUGGEST_MAX = 8
+Search.SUGGEST_LEAST = 2
+local SUGGEST_ORDER = { item = 1, mob = 2, zone = 3 }
+
+--- Is the list under the search box on? On unless unticked.
+function Search.SuggestOn()
+    return not (ns.db and ns.db.searchNames == false)
+end
+
+function Search.SetSuggestOn(on)
+    if not ns.db then return end
+    if on then ns.db.searchNames = nil else ns.db.searchNames = false end
+end
+
+--- Every name the list can offer, built once a data version:
+--- { kind, name, keys = { lowered names it answers to }, id, zone }.
+function Search:SuggestIndex()
+    ns.DB:LearnClientNames()
+    local version = ("%s:%d"):format(self:FoundVersion(), ns.DB.hiddenVersion or 0)
+    local built = self.suggestIndex
+    if built and built.version == version then return built.entries end
+
+    local entries, items, mobs, zones = {}, {}, {}, {}
+    local Show = ns.Spots and ns.Spots.Show
+
+    local function AddItem(item)
+        if type(item.name) ~= "string" or ns.DB:IsHiddenItem(item) then return end
+        local client = ns.DB:ClientName(item)
+        local shown = client or item.name
+        local lower = shown:lower()
+        if not items[lower] then
+            items[lower] = true
+            local keys = { lower }
+            if client then keys[#keys + 1] = item.name:lower() end
+            for _, alias in ipairs(item.aliases or {}) do
+                if type(alias) == "string" then keys[#keys + 1] = alias:lower() end
+            end
+            entries[#entries + 1] = { kind = "item", name = shown, id = item.id, keys = keys }
+        end
+
+        for _, source in ipairs(item.sources or {}) do
+            local name = source.name
+            if type(name) == "string" and ns.DB.KindOf(source) == "mob"
+                and not mobs[name] and not ns.DB:IsHiddenSource(name) then
+                mobs[name] = true
+                entries[#entries + 1] = { kind = "mob", name = name, zone = source.zone,
+                    keys = { name:lower() } }
+            end
+            local zone = source.zone
+            if type(zone) == "string" and zone ~= "" and not zones[zone] then
+                zones[zone] = true
+                local shownZone = Show and Show(zone) or zone
+                local keys = { shownZone:lower() }
+                if shownZone ~= zone then keys[2] = zone:lower() end
+                entries[#entries + 1] = { kind = "zone", name = shownZone, zone = zone, keys = keys }
+            end
+        end
+    end
+
+    local foundItems = self:FoundItems()
+    for item in ns.DB:Iterate() do AddItem(item) end
+    for _, item in ipairs(foundItems) do AddItem(item) end
+
+    self.suggestIndex = { version = version, entries = entries }
+    self.suggestLast = nil
+    return entries
+end
+
+--- How well `query` starts a name: 3 the whole name, 2 a word in it, 1
+--- anywhere inside it; 0 no match.
+local function SuggestScore(keys, query)
+    local best = 0
+    for _, key in ipairs(keys) do
+        local at = key:find(query, 1, true)
+        if at == 1 then return 3 end
+        if at then
+            local before = key:sub(at - 1, at - 1)
+            local score = (before == " " or before == "-" or before == "'") and 2 or 1
+            if score > best then best = score end
+        end
+    end
+    return best
+end
+
+--- The best few names for what was typed, best first: an empty list for
+--- fewer than SUGGEST_LEAST letters, or when the one match is the word
+--- itself.
+function Search:Suggest(query, max)
+    query = Util.Trim(query or ""):lower()
+    max = max or self.SUGGEST_MAX
+    if #query < self.SUGGEST_LEAST then return {} end
+
+    local entries = self:SuggestIndex()
+    local last = self.suggestLast
+    if last and last.query == query and last.max == max and last.entries == entries then
+        return last.found
+    end
+
+    local scored = {}
+    for _, entry in ipairs(entries) do
+        local score = SuggestScore(entry.keys, query)
+        if score > 0 then scored[#scored + 1] = { entry = entry, score = score } end
+    end
+    table.sort(scored, function(a, b)
+        if a.score ~= b.score then return a.score > b.score end
+        local an, bn = #a.entry.name, #b.entry.name
+        if an ~= bn then return an < bn end
+        local ak, bk = SUGGEST_ORDER[a.entry.kind], SUGGEST_ORDER[b.entry.kind]
+        if ak ~= bk then return ak < bk end
+        return a.entry.name < b.entry.name
+    end)
+
+    local found = {}
+    for index = 1, math.min(max, #scored) do found[index] = scored[index].entry end
+    if #found == 1 and found[1].name:lower() == query then found = {} end
+
+    self.suggestLast = { query = query, max = max, entries = entries, found = found }
+    return found
+end
+
+--- The words on the right of a line: "Item", "Mob, Westfall", "Zone".
+function Search.SuggestTag(entry)
+    if entry.kind == "mob" then
+        if entry.zone then
+            local Show = ns.Spots and ns.Spots.Show
+            return L.Format("Mob, %s", Show and Show(entry.zone) or entry.zone)
+        end
+        return L["Mob"]
+    elseif entry.kind == "zone" then
+        return L["Zone"]
+    end
+    return L["Item"]
+end
+
+--------------------------------------------------------------------------------
 -- Your own finds
 --
 -- The search reads the database: what ships with the addon, folded in from
