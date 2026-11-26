@@ -217,4 +217,18 @@ suite.check("a long answer is one wrapped line", got and got[1] and got[1].wrap 
 ItemTooltip.LONG = saved
 suite.check("a grey gets no block lines", ItemTooltip:BlockLines(Doubles(), { id = 9001 }) == nil)
 
+-- A line on Shift, with Shift held, goes at the bottom of the block
+-- (2026-11-26); on Always it stays put.
+local savedShiftKey = _G.IsShiftKeyDown
+_G.IsShiftKeyDown = function() return true end
+ns.db.tooltipShift = { whereToFarm = true }
+ItemTooltip.ForgetKept()
+got = ItemTooltip:BlockLines(Doubles(), { id = 2770 })
+suite.check("Shift: the farming line is marked for the bottom", got and got[1] and got[1].shift == true)
+ns.db.tooltipShift = {}
+ItemTooltip.ForgetKept()
+got = ItemTooltip:BlockLines(Doubles(), { id = 2770 })
+suite.check("Always: the farming line stays put", got and got[1] and got[1].shift == nil)
+_G.IsShiftKeyDown = savedShiftKey
+
 suite.done()

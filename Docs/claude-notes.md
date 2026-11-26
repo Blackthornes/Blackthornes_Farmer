@@ -1234,6 +1234,14 @@ window shut and never came back from its button (2026-11-22). A window
 closed anyway as it folds opens full instead. Tested in
 `tools/test_foldwindow.lua` (the same in all five).
 
+Folded, the window hears no mouse at all (a player, 2026-11-25: the
+game's ping said "Can't ping this." over the whole empty one window).
+`Deafen` turns off `EnableMouse`, `SetMouseClickEnabled`,
+`SetMouseMotionEnabled` and the wheel, and sets `SetHitRectInsets` so no
+part of the frame hears the mouse; `Hear` puts each back as it was when it
+opens. SharedWindow went to FILE_VERSION 17 so a fixed copy draws the one
+window. Tested in `tools/test_foldwindow.lua` (`Catches`).
+
 Here, Kills & Loot (`round` key `KillsAndLoot`: this session's kills under
 it, "This session: N kills, X looted." on the tooltip; folded, its redraw
 draws nothing, and a docked Goals panel moves up under the button) and
@@ -1280,6 +1288,25 @@ draws `Ring.tga` once and the blade with its shadow at 64 headings in
 glow in `BladeGlow.tga`; the dial shows the nearest frame with
 SetTexCoord (`ArrowUI.FrameFor`), only when the frame changes. The blade
 carries its own gold, so only its glow is tinted.
+
+The slim pill (the owner picked "A. Slim Pill" 2026-11-25 from
+`Docs/mockups/arrow-redesign/index.html` in the project files, in place of
+the dial above, in all five addons): one thin dark glass pill, 26 tall at
+100% Arrow Size and 140 to 300 wide by its words (taller only when a long
+name wraps), a gold hairline edge, a round dark well at the left end, the
+red close gem inside the right end. The name on top in gilt, the distance
+under it in white; the place and note lines are gone. The chevron is flat,
+so it turns with SetRotation in 180 steps (`ArrowUI.FrameFor`, `TURNS`),
+touched only on a new step. There: a green check in the well, the edge and
+rim green, "You're there". Can't point (a boat, a Hearthstone, far away):
+a gold dot that pulses on Full only, and the second line says "Step N of
+M" (`ArrowUI.StepText`) on a trip. `make_arrow_art.py` now draws
+`Pill`/`PillEdge` (white, three slices), `Well`, `WellEdge` (white),
+`Chevron`, `ChevronGlow` (white), `Dot` (white) and `Check`; Ring, Blade
+and BladeGlow are gone, and the step box's small dial (`UI/TravelCard.lua`)
+uses the same Well, Chevron and Dot. `ArrowUI.dial` is the pill itself, so
+the step box hangs under it. No clicks, no hover card, as before. The
+build code is the same in all five arrow files apart from names.
 
 TomTom (a player asked, the owner agreed 2026-10-09, then asked for it in
 every addon with an arrow): with TomTom installed, each arrow hands its
@@ -1561,6 +1588,13 @@ step and never deletes it. `Rankings.WithoutQuality(value, details, from)`
 takes out drops of quality `from` and better (`EXCLUDE_FROM`).
 `/farm rankings exclude none|epic|rare|uncommon`; the old `/farm rankings
 uncommon [on|off]` still works.
+
+A rarity the game hasn't sent yet (fixed 2026-11-24, the owner's report:
+greens and blues stayed as Best Drop until the drop-down was changed once):
+`Rankings.QualityOf` falls back to `Util.ItemQuality`, which asks the game,
+and the Rankings `Util.OnRarity` watcher builds the board again (and moves
+`outsideVersion`) when a choice is set, not only recolours. Tested in
+`tools/test_rankingsuncommon.lua`.
 
 ## Rankings at vendor prices
 
@@ -3201,7 +3235,11 @@ the Kills & Loot toolbar, shown only while ticked.
   dungeon spots, rares and bosses and Alliance or Horde mobs read in game
   (`ZoneBoard:Learn` from `Harvest:NoteUnit`, `UnitClassification` and
   `UnitFactionGroup` in a pcall, only while on, kept in
-  `zoneBoardLeftOut[name]`), town guards by name (`IsGuardName`),
+  `zoneBoardLeftOut[name]`; a mob `UnitCanAttack` says you can fight is
+  never a guard, since Forever gives some wild camps a side (Dalaran's
+  mobs at Ambermill read as Alliance, the owner's report 2026-11-24), and
+  an old "faction" entry for one is dropped when it is seen again), town
+  guards by name (`IsGuardName`),
   critters (`Grinding.TypeOf`), level -1. Kills are your own on the
   zone's line (`ZoneBoard.Kills`: every `tracker.mobs[name].zones` key whose
   English name is the zone; the key for Rankings is the zone's once split).
@@ -3303,6 +3341,13 @@ this a skipped mob had no way back. Skip and Unskip now forget BEST's kept
 list (`self.worth`), which had kept a skipped mob on BEST until a kill or
 scan. Tested in `tools/test_zoneboardhide.lua`. Not yet seen in game.
 
+A mob whose name starts with a quote ("Squealer" Thornmantle, "Pretty
+Boy" Duncan) was left off the board as a group row: `Grinding.IsGroup`
+read the quote as a small first letter. It now reads the first letter
+after any marks (a CurseForge report, 2026-11-25). The Grind tab counts
+such a mob as unknown type again too. Tested in `tools/test_zoneboard.lua`
+and `tools/test_grinding.lua`.
+
 ## Picked pockets on the card
 
 The owner said build it (2026-11-18, from a mockup, after a rogue's pocketed
@@ -3346,7 +3391,7 @@ shows two panes and splits ("Split Into Own Windows"); on an own window it
 shows one pane with a rail line and joins ("Join Into One Window"). Floating
 arrows, bars, trackers, the Zone Board and similar pieces get none.
 
-- `UI/SharedWindow.lua` (FILE_VERSION 16 since the round button's fixes, the same in all five):
+- `UI/SharedWindow.lua` (FILE_VERSION 17 since the fold stopped catching the mouse, the same in all five):
   `SharedWindow.AddSwap(frame, key)` puts the gem on a dressed window's
   trim (so it hides with the trim inside the one window); `key` nil is the
   one window. `SharedWindow.Swap(key, join)` is its click. Split: the
@@ -3376,9 +3421,11 @@ A respawned mob can carry the guid its last corpse had (a player, 2026-11-22: th
 
 ## The tooltip block (shared item tooltip lines)
 
-The owner said build it (2026-11-21, from the UI pass mockup), in Farmer, Tradeskills, Equipment and Butler. Every Blackthornes line on an item tooltip goes on in one block: a blank row with a thin gold line of our own on it (a texture, hidden when the tooltip clears), then each line as a yellow name ending ":" on the left and a white answer on the right, no blank rows between addons, "Hold Shift for more." last and once. `UI/TooltipBlock.lua` is the same file in the four (FILE_VERSION 1; a fix belongs in all four). `_G.BlackthornesTooltipBlock` holds the parts and the one hook (the item post call, else OnTooltipSetItem on GameTooltip, ItemRefTooltip and the shopping tooltips); the newest copy's writer wins. Each addon works out its own lines and hands them over with `TooltipBlock:Provide(part, section, order, fn)`, `fn(tooltip, data)` returning lines and whether one was held for Shift; it no longer writes item lines itself.
+The owner said build it (2026-11-21, from the UI pass mockup), in Farmer, Tradeskills, Equipment and Butler. Every Blackthornes line on an item tooltip goes on in one block: a blank row with a thin gold line of our own on it (a texture, hidden when the tooltip clears), then each line as a yellow name ending ":" on the left and a white answer on the right, no blank rows between addons, "Hold Shift for more." last and once. `UI/TooltipBlock.lua` is the same file in the four (FILE_VERSION 2; a fix belongs in all four). `_G.BlackthornesTooltipBlock` holds the parts and the one hook (the item post call, else OnTooltipSetItem on GameTooltip, ItemRefTooltip and the shopping tooltips); the newest copy's writer wins. Each addon works out its own lines and hands them over with `TooltipBlock:Provide(part, section, order, fn)`, `fn(tooltip, data)` returning lines and whether one was held for Shift; it no longer writes item lines itself.
 
 Order: price (Tradeskills `Tradeskills:price` 1, Butler vendor prices `Butler:price` 2), source (Farmer `Farmer:source` 1 "Farm At:", Equipment `Equipment:source` 2 "Drops From:"), advice (Equipment `Equipment:advice` 1 "For <spec>:", "For <alt>:", "Best Enchant:", "Weapon Master:", the suffix name or "Random Roll:", "Crafting:"; Butler `Butler:advice` 2 "Butler Says:"), holders (Butler `Butler:holders` 1 "You Have:", "Your Characters:"). Tradeskills maps its line names to the block's at write time (`ItemTooltip.BLOCK_LABELS`), so other windows keep "Demand" and the like; the stack count is read from the tooltip owner's bag slot. Pets' taming lines, Farmer's kill lines and Tradeskills' enchant spell lines are not item tooltips and are left alone. Tested in each addon's `tools/test_tooltipblock.lua`.
+
+Shift lines open at the bottom (the owner said build it, 2026-11-26, Tradeskills idea 8, a player asked). A line that shows only because Shift is held carries `shift = true`; the board writes every other line first, then a second blank row with its own thin gold line (`shared.shiftRules`, hidden on clear and at each write), then the Shift lines, each group in the block's order. Holding Shift adds to the bottom and nothing above moves. Each line keeps its Off, Shift or Always choice; a line on Always never gets `shift`. Detail lines that show only while Shift is held whatever the choice (Tradeskills' crate extras, Average Paid, Used In recipes) are always `shift`. The hook on OnTooltipCleared calls the newest copy's `Forget` (`shared.handlers.Forget`). No setting of its own: the hint shows only while a line is on Shift, so setting every line to Off or Always on the Tooltips page takes it away.
 ## Panel Style (Like Quest List)
 
 The owner said build it (2026-11-21, from the mockup
@@ -3568,4 +3615,124 @@ around you. `UI/FarmHUD.lua`, art from `tools/make_hud_art.py`
   second clock tick; a step with the same key does nothing. The list of
   near spots is made again only after a 40 yard move or a change to the
   spots.
+- Restore Defaults puts both keys back (`SettingsUI.SETTING_KEYS`).
 - Tested in `tools/test_farmhud.lua`. Not yet seen in game.
+
+## Restore Defaults (Farmer Settings: Set Default)
+
+The owner said build it, 2026-11-23 (a player asked how to reset settings),
+in all five addons, from `Docs/mockups/restore-defaults.html` in the project
+files. A row on the ALL ADDONS page under Window Locations (renamed from
+Window Spots the same day): "Farmer Settings:" with Set Default. The first
+click turns the words red and says Confirm; a second within
+`SettingsUI.CONFIRM_WAIT` (4 s) runs `SettingsUI:RestoreDefaults()`.
+
+It puts back every key in `SettingsUI.SETTING_KEYS` (to `ns.DEFAULTS[key]`,
+else nil), turns the loot beacon and Count Bank off through their own code
+first (the beacon changes game values), sets `settingsRestored` and reloads
+the interface; `SettingsUI:SayRestored()` at login prints "Every Farmer
+setting is back to how it started." once and clears it. Never touched: any
+data, window spots and sizes' spots, and the ALL ADDONS choices (text size,
+window style, effects, mute, combined buttons, One Window, sister note),
+since those are shared by all five. `tools/test_restoredefaults.lua` clicks
+every Settings control twice and fails if one writes a key that is neither
+in `SETTING_KEYS` nor in its kept list: a new setting must join the list.
+
+## The step box (Your Way There, 2026-11-24)
+
+The owner said build it, from the mockup `Docs/mockups/way-there-step-box.html`
+(project files). `UI/TravelCard.lua` (the same file in all five) is no longer
+a window of every step: it is one small row with the step you are on, its
+small line with how far (the arrow's `state.note`), and "Step 2 of 4 · About
+10 minutes". A small dial at the row's end uses the arrow's own art
+(`Media/Arrow/Blade`, frame by `state.turn`); with no way to point (mode
+`trip`: a Hearthstone or a ride) it shows a still gold dot. Stop and Show on
+Map show while the mouse is on it.
+
+It hangs under `Travel.Host.Hang()` when that frame shows (Equipment's small
+panel, as wide as it, no gem of its own), else under `Travel.Host.Dial()`'s
+`dial` (the arrow module: `frame` and `dial`), else where it was dragged
+(`travelCardX`/`travelCardY`, never rename) or on the right shelf; the red
+close gem sits in its corner whenever it is not under a panel (the owner
+asked). The gem hides it for this place only. Always see-through (the owner
+asked): glass at `GLASS_CLEAR`, solid on the mouse, every word outlined and
+shadowed. While it shows, each arrow's `ArrowUI.Words` asks
+`TravelCard:Words(state)` and keeps only its name. `travelCardScale` is no
+longer read (left in saves). Tested in `tools/test_stepbox.lua` (the same in
+all five). Not yet seen in game.
+
+## Tab switch speed (2026-11-25)
+
+Trent felt a hitch on each tab switch. Measured in the fake game with the
+shipped drop data: Rankings priced 11,417 drops a draw for 2,029 items, the
+Grind tab sorted all 4,269 mob spots again, and the empty Search tab walked
+every spot for its "Good at level" picks. Now:
+
+- `UI:ShowTab` and `Rankings:Build` each hold a `Value:BeginPass`, always
+  ended (pcall). Inside a pass `Value:UnitPrice` and `Value:WorthOf` work
+  each item out once. Nothing is kept past the pass, so a new price shows
+  at the next draw.
+- Kept for each layout of `DB:ByName` (a source added or the hide list
+  moved lays it out again): `Value:RatedRows(mob)` (the rows
+  `FromDatabase` prices) and `Rankings:Spot`.
+- `Grinding:SortedMobs()` is kept with the `Grinding:Mobs()` list it came
+  from; `DB:CountSources()` with `DB.changes`.
+- `Search:ForLevel` is kept until the level, `DB.changes`,
+  `DB.hiddenVersion`, Hide skinning or the `Spots.Skills` table moves.
+
+Tested in `tools/test_tabswitch.lua`.
+
+## Smoother kills and the hand-drawn scroll bar (2026-11-26)
+
+The owner said yes to both mockups (farmer-improve-6 and -7). No new
+words, settings or saved keys.
+
+- **Each mob's line is kept** (`Tracker:KeptSummary`, `summaryKept`, in
+  memory only). `SessionMobs` keeps each line's summary with what it was
+  worked out from: the tally table, kills, this session's kills, how many
+  drops and places and their counts, `DB.hiddenVersion` with Hide
+  Skinning, `looksVersion` and `iconsVersion` (bumped in `FillIcon` when an
+  icon arrives, since it decides which suffix stands in). Any of them
+  changing works the line out again; drops and places only add up, so a
+  kill or a late drop is always seen. The summaries it hands out are
+  shared: read them, never change them (`LootTable` builds its own).
+  `Reset` clears them. Fake game, 60 kinds of mob: about 268 KB and 3.1 ms
+  a kill down to 6 KB and 1.4 ms. Tested in `tools/test_perf.lua`.
+- **A pack of nameplates** (`NodeSparkle:OnPlateAdded`): the first plate in
+  a frame looks at once, so nothing flashes; the rest share one more look
+  on the next frame. With no `C_Timer` every plate looks for itself.
+  Tested in `tools/test_nodesparkle.lua`.
+- **The minimap key is numbers** (`MapMarkers:MinimapKey(into)` fills a
+  kept table, `MapMarkers.SameMinimapKey` compares it): standing still
+  builds no text and no table. Tested in `tools/test_markers.lua`.
+- **The hand-drawn scroll bar**: `UI/Widgets.lua`'s `CreateScrollbar` is
+  Butler's, word for word (a Frame, not the game's Slider, which runs
+  backward on Forever), and `Widgets.CreateScrollbar` is public. The lists
+  hear the player's moves through `scrollbar.onValueChanged`; `SetValue`
+  from code says nothing. The Export box wears it too (`UI/Export.lua`),
+  hidden when the text fits. Tested in `tools/test_scrollbar.lua`.
+
+## Look choices (Font, Colors, Fold Gem, 2026-11-26)
+
+The owner said build it (Equipment improvement idea 9, words from its
+mockup). Three rows on the All Addons page of every addon, picked once for
+all five: "Font:" House (the game's own, as before), Game (the game's plain
+chat font) or Clear (Liberation Sans, SIL Open Font License 1.1, shipped
+unchanged in `Media/Fonts` with its license; Chinese and Korean clients
+draw the house font for it, since it has no such letters); "Colors:" Warm
+(as before) or Darker (the warm tint taken out of the glass, gold kept);
+"Fold Gem:" Round Button (as before) or Small Bar (badge, title and the
+window's small number, along the window's top right corner).
+
+The logic is in `UI/SharedChoices.lua` (the same in all five): `Look`,
+`SetLook`, `Drawn`, `NeedsReload`, `FontPath`, `Recolor`. Picks are kept in
+every loaded addon's save as `lookChoices = { font, colors, fold, at }`
+(never rename it), the newest `at` winning, and Restore Defaults leaves it.
+Font and Colors are read once, the first time the addon draws after its
+save is in, so they wait for /reload (Settings shows Reload). `Theme.FONT`
+is looked up as read (`Theme.Font()`), and `Theme.Unpack`/`Theme.Font` put
+Darker into the palette in place, once. The fold pick counts from the next
+fold (`FoldWindow.Style`, `FoldWindow.Bar`, `FoldWindow.FitBar`). Font names
+use the keys `House##font`, `Game##font`, `Clear##font`, since "Clear" is a
+button's word elsewhere. Tested in `tools/test_housekit.lua` and
+`tools/test_foldwindow.lua`. Not yet seen in game.

@@ -324,6 +324,25 @@ function Util.ForgetRarity()
 end
 
 --------------------------------------------------------------------------------
+-- Whole days
+--------------------------------------------------------------------------------
+
+--- About noon on the day `at` (wall clock seconds) falls on, to count
+--- whole days from. A day is 23 or 25 hours long when the clocks change, so
+--- 24 hours back from late evening or just after midnight can land on the
+--- wrong day; from noon it never does. `at` itself when the clock can't be
+--- read.
+function Util.Noon(at)
+    local fn = _G.date or (os and os.date)
+    if type(at) ~= "number" or type(fn) ~= "function" then return at end
+    local ok, parts = pcall(fn, "*t", at)
+    if not ok or type(parts) ~= "table" then return at end
+    local hour, minute, second = tonumber(parts.hour), tonumber(parts.min), tonumber(parts.sec)
+    if not (hour and minute and second) then return at end
+    return at - (hour * 3600 + minute * 60 + second) + 12 * 3600
+end
+
+--------------------------------------------------------------------------------
 -- Letting old entries go
 --
 -- Tables of corpses opened this session grew all session long. A corpse is

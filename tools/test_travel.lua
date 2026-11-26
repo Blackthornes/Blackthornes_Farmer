@@ -148,10 +148,9 @@ suite.check("standing on the dock", trip.atStop and trip.line == "Wait here for 
 suite.check("chat says what's next", printed[#printed] and printed[#printed]:find("Theramore") ~= nil,
     printed[#printed])
 
-local rows = TravelCard.Rows(trip.plan)
-suite.check("the card: done, now, then the rest", #rows == 3 and rows[1].done and rows[2].now
-    and not rows[3].now, #rows)
-suite.check("numbered from the start", rows[1].title:find("^1%. ") and rows[2].title:find("^2%. "))
+local title, sub, where = TravelCard.Lines({ trip = trip })
+suite.check("the step box: the step you are on", title == "Wait here for the boat to Theramore", title)
+suite.check("counted from the start", where:find("2") and where:find("3"), where)
 suite.check("about how long", TravelCard.TimeText(trip.plan):find("minute") ~= nil)
 
 -- The card's close gem puts only the card away; the trip goes on.

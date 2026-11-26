@@ -92,6 +92,28 @@ _G.UnitClassification = function() return "normal" end
 _G.UnitFactionGroup = function() return "Horde" end
 ZoneBoard:Learn("target", "Some Town Grunt")
 check("a mob of the Horde or Alliance is a guard", ns.db.zoneBoardLeftOut["Some Town Grunt"] == "faction")
+-- Forever gives some wild camps a side: Dalaran's mobs at Ambermill read as
+-- Alliance, yet a Horde player fights them (the owner's screenshot,
+-- 2026-11-24). A mob you can attack is never a guard of your town.
+_G.UnitCanAttack = function() return true end
+ZoneBoard:Learn("target", "Dalaran Watcher")
+check("a side's mob you can fight stays on the board", ns.db.zoneBoardLeftOut["Dalaran Watcher"] == nil)
+ns.db.zoneBoardLeftOut["Dalaran Wizard"] = "faction"
+local before = ZoneBoard.version
+ZoneBoard:Learn("target", "Dalaran Wizard")
+check("one learned as a guard before comes back once seen", ns.db.zoneBoardLeftOut["Dalaran Wizard"] == nil
+    and ZoneBoard.version ~= before)
+_G.UnitClassification = function() return "rare" end
+ZoneBoard:Learn("target", "Dalaran Rare Test")
+check("a rare you can fight is still left out", ns.db.zoneBoardLeftOut["Dalaran Rare Test"] == "rare")
+_G.UnitClassification = function() return "normal" end
+_G.UnitCanAttack = function() return false end
+ZoneBoard:Learn("target", "Another Town Grunt")
+check("a side's mob you cannot fight is a guard", ns.db.zoneBoardLeftOut["Another Town Grunt"] == "faction")
+_G.UnitCanAttack = function() error("secret") end
+ZoneBoard:Learn("target", "Unread Grunt")
+check("an unreadable answer keeps the old way", ns.db.zoneBoardLeftOut["Unread Grunt"] == "faction")
+_G.UnitCanAttack = nil
 _G.UnitFactionGroup = function() return nil end
 ZoneBoard:Learn("target", "Plain Wolf")
 check("a wild mob is not written", ns.db.zoneBoardLeftOut["Plain Wolf"] == nil)
@@ -110,6 +132,10 @@ check("another zone's mob is not here", not names["Elsewhere Boar"])
 check("guard names: a town's guard", ZoneBoard.IsGuardName("Southshore Guard") and ZoneBoard.IsGuardName("Orgrimmar Grunt"))
 check("guard names: a wild one is not", not ZoneBoard.IsGuardName("Dalaran Shield Guard")
     and not ZoneBoard.IsGuardName("Syndicate Watchman"))
+-- A CurseForge report (2026-11-25): "Squealer" Thornmantle, quotes and
+-- all, was left off the board as if it were a group row ("spiders").
+check("a name in quotes stays on the board",
+    ZoneBoard.LeftOut({ name = '"Squealer" Thornmantle', zone = ZONE, minLevel = 5, maxLevel = 5 }) == nil)
 check("the list is kept", ZoneBoard:List(ZONE) == list)
 
 local kills, key = ZoneBoard.Kills("Test Wolf", ZONE)

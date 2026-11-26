@@ -1013,14 +1013,21 @@ end
 --- The thin bar down a list's right edge: a dark track, and a thumb that is
 --- as long as the part of the list on screen and lights gold under the
 --- mouse or while dragged.
+---
+--- Drawn and dragged by hand rather than with the game's Slider: on the
+--- Forever client a vertical slider ran the wrong way (dragging the thumb
+--- down scrolled the list up, 2026-10-13). Here the thumb sits `value`
+--- steps down from the top and follows the cursor while it is held, so
+--- down is always down. `onValueChanged(value)` is told of each move the
+--- player makes; SetValue from code says nothing.
 local function CreateScrollbar(list, thumbKey)
-    local scrollbar = CreateFrame("Slider", nil, list)
-    scrollbar:SetOrientation("VERTICAL")
+    local scrollbar = CreateFrame("Frame", nil, list)
     scrollbar:SetWidth(8)
     scrollbar:SetPoint("TOPRIGHT", 0, 0)
     scrollbar:SetPoint("BOTTOMRIGHT", 0, 0)
-    scrollbar:SetValueStep(1)
-    scrollbar:SetObeyStepOnDrag(true)
+    scrollbar:EnableMouse(true)
+    scrollbar.min, scrollbar.max, scrollbar.value = 0, 0, 0
+    scrollbar.thumbHeight = 40
 
     local track = scrollbar:CreateTexture(nil, "BACKGROUND")
     track:SetAllPoints(scrollbar)
@@ -1029,7 +1036,7 @@ local function CreateScrollbar(list, thumbKey)
     local thumb = scrollbar:CreateTexture(nil, "ARTWORK")
     thumb:SetColorTexture(Theme.Unpack(thumbKey))
     thumb:SetSize(8, 40)
-    scrollbar:SetThumbTexture(thumb)
+    thumb:SetPoint("TOP", scrollbar, "TOP", 0, 0)
     scrollbar.thumb = thumb
 
     -- The Blizzard window style draws the thumb as the game's knob, lit by
@@ -1042,16 +1049,106 @@ local function CreateScrollbar(list, thumbKey)
         thumb:SetColorTexture(Motion.Mix(thumbKey, "accent", p, 1, 0.9))
     end
 
+    --- Pixels the thumb can travel: the bar less the thumb.
+    function scrollbar:Room()
+        local height = tonumber(self:GetHeight()) or 0
+        return math.max(0, height - (self.thumbHeight or 0))
+    end
+
+    --- How far down the bar the thumb's top is, in pixels.
+    function scrollbar:ThumbTop()
+        local span = (self.max or 0) - (self.min or 0)
+        if span <= 0 then return 0 end
+        return self:Room() * ((self.value or 0) - self.min) / span
+    end
+
+    local function Place()
+        thumb:ClearAllPoints()
+        thumb:SetPoint("TOP", scrollbar, "TOP", 0, -scrollbar:ThumbTop())
+    end
+
+    function scrollbar:SetMinMaxValues(low, high)
+        self.min, self.max = tonumber(low) or 0, math.max(tonumber(low) or 0, tonumber(high) or 0)
+        self.value = math.max(self.min, math.min(self.max, self.value or 0))
+        Place()
+    end
+
+    function scrollbar:GetMinMaxValues() return self.min, self.max end
+
+    function scrollbar:SetValue(value)
+        value = math.floor((tonumber(value) or 0) + 0.5)
+        self.value = math.max(self.min or 0, math.min(self.max or 0, value))
+        Place()
+    end
+
+    function scrollbar:GetValue() return self.value end
+
+    -- The player moved it: a whole step, and the list told when it changed.
+    local function Move(value)
+        local before = scrollbar.value
+        scrollbar:SetValue(value)
+        if scrollbar.value ~= before and scrollbar.onValueChanged then
+            scrollbar.onValueChanged(scrollbar.value)
+        end
+    end
+
+    --- The value that puts the thumb's top `pos` pixels down the bar.
+    function scrollbar:ValueAt(pos)
+        local room = self:Room()
+        if room <= 0 then return self.min or 0 end
+        pos = math.max(0, math.min(room, pos))
+        return (self.min or 0) + pos / room * ((self.max or 0) - (self.min or 0))
+    end
+
+    --- How far down the bar the cursor is, in the bar's own pixels, or nil.
+    function scrollbar:CursorDown()
+        local top = self:GetTop()
+        if type(top) ~= "number" or type(GetCursorPosition) ~= "function" then return nil end
+        local _, y = GetCursorPosition()
+        local scale = self:GetEffectiveScale()
+        if type(y) ~= "number" then return nil end
+        if type(scale) ~= "number" or scale <= 0 then scale = 1 end
+        return top - y / scale
+    end
+
+    --- Press on the bar: on the thumb it is held where it was caught; off
+    --- it, the thumb's middle jumps under the cursor. Until the button comes
+    --- up the thumb follows the cursor (OnUpdate runs only then).
+    function scrollbar:StartDrag()
+        if (self.max or 0) <= (self.min or 0) then return end
+        local pos = self:CursorDown()
+        if not pos then return end
+        local top, size = self:ThumbTop(), self.thumbHeight or 0
+        if pos >= top and pos <= top + size then
+            self.grabAt = pos - top
+        else
+            self.grabAt = size / 2
+            Move(self:ValueAt(pos - self.grabAt))
+        end
+        self:SetScript("OnUpdate", function(bar)
+            local now = bar:CursorDown()
+            if now then Move(bar:ValueAt(now - (bar.grabAt or 0))) end
+        end)
+    end
+
+    function scrollbar:StopDrag()
+        self.grabAt = nil
+        self:SetScript("OnUpdate", nil)
+    end
+
     scrollbar:SetScript("OnEnter", function(self) Motion:Blend(self, "hover", 1, 0.12, Light) end)
     scrollbar:SetScript("OnLeave", function(self)
         if not self.held then Motion:Blend(self, "hover", 0, 0.2, Light) end
     end)
-    scrollbar:SetScript("OnMouseDown", function(self)
+    scrollbar:SetScript("OnMouseDown", function(self, button)
+        if button ~= nil and button ~= "LeftButton" then return end
         self.held = true
         Motion:Blend(self, "hover", 1, 0.08, Light)
+        self:StartDrag()
     end)
     scrollbar:SetScript("OnMouseUp", function(self)
         self.held = false
+        self:StopDrag()
         local over = type(self.IsMouseOver) == "function" and self:IsMouseOver()
         if not over then Motion:Blend(self, "hover", 0, 0.2, Light) end
     end)
@@ -1059,20 +1156,28 @@ local function CreateScrollbar(list, thumbKey)
     -- Hidden mid-drag (the list shrank), the mouse-up never comes: let go.
     scrollbar:SetScript("OnHide", function(self)
         self.held = false
+        self:StopDrag()
         Motion:Stop(self, "hover")
         Motion:SetValue(self, "hover", 0)
         Light(0)
     end)
 
+    scrollbar:SetScript("OnSizeChanged", function() Place() end)
+
     --- Size the thumb for `visible` of `total` rows on screen.
     function scrollbar:SizeThumb(visible, total)
         local height = tonumber(self:GetHeight())
         if not (height and height > 0 and total and total > 0) then return end
-        thumb:SetHeight(math.max(18, math.min(height, height * visible / total)))
+        self.thumbHeight = math.max(18, math.min(height, height * visible / total))
+        thumb:SetHeight(self.thumbHeight)
+        Place()
     end
 
     return scrollbar
 end
+
+-- Other windows (UI/Export.lua) wear the same bar.
+Widgets.CreateScrollbar = CreateScrollbar
 
 --------------------------------------------------------------------------------
 -- Fade
@@ -1132,9 +1237,6 @@ function Widgets.CreateLineList(parent, opts)
 
     list.scrollbar = scrollbar
 
-    -- True while Refresh sets the scrollbar itself (see there).
-    local syncing = false
-
     local function VisibleRowCount()
         local height = list:GetHeight()
         if not height or height <= 0 then return 0 end
@@ -1176,13 +1278,9 @@ function Widgets.CreateLineList(parent, opts)
             self.rows[index]:Hide()
         end
 
-        -- The client clamps the slider's value to a new range and reports
-        -- that as the player moving it. Taken as a move, a new list that was
-        -- shorter than the last one opened scrolled to its end.
-        syncing = true
+        -- Set from here, so not taken as the player's move.
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
-        syncing = false
         scrollbar:SetShown(maxOffset > 0)
         scrollbar:SizeThumb(visible, #(self.data or self.lines))
 
@@ -1202,15 +1300,13 @@ function Widgets.CreateLineList(parent, opts)
         self:Refresh()
     end
 
-    scrollbar:SetScript("OnValueChanged", function(_, value)
-        if syncing then return end
-
+    scrollbar.onValueChanged = function(value)
         local wanted = math.floor(value + 0.5)
         if wanted ~= list.offset then
             list.offset = wanted
             list:Refresh()
         end
-    end)
+    end
 
     list:EnableMouseWheel(true)
     list:SetScript("OnMouseWheel", function(_, delta)
@@ -1330,9 +1426,6 @@ function Widgets.CreateRowList(parent, opts)
         if not height or height <= 0 then return 0 end
         return math.floor(height / rowHeight)
     end
-
-    -- True while Refresh sets the scrollbar itself (see there).
-    local syncing = false
 
     -- The row under the mouse, from its OnEnter to its OnLeave.
     local hovered
@@ -1468,13 +1561,9 @@ function Widgets.CreateRowList(parent, opts)
             end
         end
 
-        -- The client clamps the slider's value to a new range and reports
-        -- that as the player moving it. Taken as a move, a new list that was
-        -- shorter than the last one opened scrolled to its end.
-        syncing = true
+        -- Set from here, so not taken as the player's move.
         scrollbar:SetMinMaxValues(0, maxOffset)
         scrollbar:SetValue(self.offset)
-        syncing = false
         scrollbar:SetShown(maxOffset > 0)
         scrollbar:SizeThumb(visible, #(self.data or self.lines))
 
@@ -1518,15 +1607,13 @@ function Widgets.CreateRowList(parent, opts)
         self:Refresh()
     end
 
-    scrollbar:SetScript("OnValueChanged", function(_, value)
-        if syncing then return end
-
+    scrollbar.onValueChanged = function(value)
         local wanted = math.floor(value + 0.5)
         if wanted ~= list.offset then
             list.offset = wanted
             list:Refresh()
         end
-    end)
+    end
 
     list:EnableMouseWheel(true)
     list:SetScript("OnMouseWheel", function(_, delta)

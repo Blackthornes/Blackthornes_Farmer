@@ -109,6 +109,8 @@ Sections there:
 - Panel Style (Like Quest List)
 - Grind to 60 (a test feature, 2026-11-22)
 - The Farm HUD
+- Restore Defaults (Farmer Settings: Set Default)
+- Smoother kills and the hand-drawn scroll bar
 
 ## Checking a change
 

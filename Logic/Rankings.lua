@@ -39,12 +39,30 @@ end
 --- Where the database puts a mob and at what level: the lowest band first,
 --- as the search lists it. Nil when the database does not know the mob.
 function Rankings:Spot(mobName)
+    -- Kept for each layout of DB:ByName (a source added or the hide list
+    -- moved lays it out again): the board asks for every mob each draw.
+    local byName = ns.DB:ByName()
+    local kept = self.spots
+    if not kept or kept.from ~= byName then
+        kept = { from = byName, spot = {} }
+        self.spots = kept
+    end
+    local found = kept.spot[mobName]
+    if found == nil then
+        found = self:SpotNow(mobName, byName) or false
+        kept.spot[mobName] = found
+    end
+    return found or nil
+end
+
+--- Spot, worked out now.
+function Rankings:SpotNow(mobName, byName)
     -- One zone's line of a mob (Tracker's "One line a zone") looks in that
     -- zone first.
     local name, zone = ns.Tracker.SplitKey(mobName)
     local best, here
 
-    for _, source in ipairs(ns.DB:ByName()[name] or {}) do
+    for _, source in ipairs(byName[name] or {}) do
         -- Classic's generated rows are for the search (Data_ClassicDrops).
         if CREATURE_KINDS[ns.DB.KindOf(source)] and not source.searchOnly then
             if not best or (source.minLevel or 0) < (best.minLevel or 0) then
@@ -146,13 +164,17 @@ function Rankings:SetNearLevel(on)
     if ns.RankingsUI then ns.RankingsUI:Refresh() end
 end
 
---- The character's level, or nil when the client won't say.
+--- The character's level, or nil when the client won't say. Right after a
+--- level up the game still gives the old level for a moment, so the level
+--- the level up itself named (Rankings.heardLevel) counts when it is higher.
 function Rankings.PlayerLevel()
     if type(UnitLevel) ~= "function" then return nil end
     local ok, level = pcall(UnitLevel, "player")
     if not ok then return nil end
     local readable, number = pcall(tonumber, level)
     if not readable or type(number) ~= "number" or number < 1 then return nil end
+    local heard = Rankings.heardLevel
+    if heard and heard > number then return heard end
     return number
 end
 
@@ -278,7 +300,15 @@ function Rankings.QualityOf(drop)
     if not id and ns.Tracker and ns.Tracker.LookOf then id = ns.Tracker:LookOf(drop.name).id end
     if not id and ns.Value.ItemID then id = ns.Value:ItemID(drop.name) end
     local quality = WorldDrops.QualityOf(id, drop.name)
-    return type(quality) == "number" and quality or nil
+    if type(quality) == "number" then return quality end
+    -- Not known yet: ask the game, so the board is ranked again when it
+    -- comes in (UI/Rankings.lua's OnRarity).
+    local Util = ns.Util
+    if Util and Util.ItemQuality then
+        local ok, late = pcall(Util.ItemQuality, drop.name, id)
+        if ok and type(late) == "number" then return late end
+    end
+    return nil
 end
 
 --- Is a priced drop Uncommon or better? A drop whose quality is not
@@ -473,6 +503,18 @@ end
 -- Measured and estimates are ranked by worth per kill; pending by how close
 -- each is to MIN_KILLS.
 function Rankings:Build()
+    -- The board prices every rated mob in one go; one pass prices each item
+    -- once (Value:BeginPass), and is always ended, even on an error.
+    local Value = ns.Value
+    local mine = Value and Value.BeginPass and Value:BeginPass()
+    local ok, board = pcall(self.BuildNow, self)
+    if mine then Value:EndPass() end
+    if not ok then error(board, 0) end
+    return board
+end
+
+--- Build, worked out now.
+function Rankings:BuildNow()
     local names = {}
 
     -- A line for each zone of a name killed in more than one.
@@ -518,7 +560,10 @@ end
 
 -- A ding moves the band: the tab draws again while the box is ticked.
 function Rankings:OnEnable()
-    ns.RegisterEvent(self, "PLAYER_LEVEL_UP", function()
+    ns.RegisterEvent(self, "PLAYER_LEVEL_UP", function(_, _, level)
+        -- The event names the new level; UnitLevel catches up a moment later.
+        local readable, number = pcall(tonumber, level)
+        if readable and type(number) == "number" and number >= 1 then Rankings.heardLevel = number end
         if Rankings.NearLevel() and ns.RankingsUI then ns.RankingsUI:Refresh() end
     end)
 end
