@@ -936,3 +936,62 @@ function SettingsPages.TextSizeControl(row, x, db)
 
     return stepper
 end
+
+-- "Clear" is a button's word elsewhere, so the font names carry "##font"
+-- (as Tradeskills' "Queue##sell"), shown without it where no translation.
+local function FontWord(english, word)
+    if word:find("##", 1, true) then return english end
+    return word
+end
+
+-- The look choices every Blackthornes addon shares (UI/SharedChoices.lua),
+-- with their names.
+SettingsPages.LOOK_NAMES = {
+    font = { house = FontWord("House", L["House##font"]), game = FontWord("Game", L["Game##font"]), clear = FontWord("Clear", L["Clear##font"]) },
+    colors = { warm = L["Warm"], darker = L["Darker"] },
+    fold = { round = L["Round Button"], bar = L["Small Bar"] },
+}
+
+--- A "Font:", "Colors:" or "Fold Gem:" choice on `row`, at `x`, written to
+--- every Blackthornes addon at once. Font and Colors are read at login, so
+--- they show Reload under them while the pick differs from what is drawn.
+--- stepper:Sync() reads the pick back.
+function SettingsPages.LookControl(row, x, kind)
+    local Shared = ns.SharedChoices
+    local values = Shared.LOOKS[kind]
+    local names = SettingsPages.LOOK_NAMES[kind]
+
+    local reload
+    local stepper = Widgets.CreateChoice(row, {
+        min = 1, max = #values, step = 1,
+        format = function(value) return names[values[value]] end,
+        onChange = function(value)
+            Shared:SetLook(kind, values[value])
+            if reload then reload:SetShown(Shared:NeedsReload(kind)) end
+        end,
+    })
+    SettingsPages.FitStepper(stepper, names)
+    stepper:SetPoint("TOPLEFT", x, -2)
+
+    if kind ~= "fold" then
+        -- ReloadUI is allowed from a click, and saves everything first.
+        reload = Widgets.CreateButton(row, L["Reload"], function()
+            if ReloadUI then ReloadUI() end
+        end, { width = 60, height = 20 })
+        SettingsPages.ReloadUnder(row, stepper, reload)
+        reload:Hide()
+        stepper.reload = reload
+    end
+
+    function stepper:Sync()
+        local pick = Shared:Look(kind)
+        local index = 1
+        for i, key in ipairs(values) do
+            if key == pick then index = i end
+        end
+        self:SetValue(index, true)
+        if reload then reload:SetShown(Shared:NeedsReload(kind)) end
+    end
+
+    return stepper
+end
