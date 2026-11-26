@@ -1943,7 +1943,7 @@ function UI:BuildMinimapButton()
         GameTooltip:AddLine(ns.VersionLabel(), 0.5, 0.5, 0.5)
         GameTooltip:AddLine(L["Click to open"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Right-click for settings"], 0.7, 0.7, 0.7)
-        GameTooltip:AddLine(L["Middle-click to bring back your panels"], 0.7, 0.7, 0.7)
+        GameTooltip:AddLine(L["Middle-click for Kills & Loot."], 0.7, 0.7, 0.7)
         if ns.ZoneBoard and ns.ZoneBoard.IsOn() then
             GameTooltip:AddLine(L["Shift-click for the Zone Board"], 0.7, 0.7, 0.7)
         end
@@ -1976,6 +1976,12 @@ function UI:BringBackPanels()
     if GoalsUI and #GoalsUI:List() > 0 and not (GoalsUI.frame and GoalsUI.frame:IsShown()) then
         GoalsUI:Show()
         brought = true
+    end
+    -- Slim Bar (UI/SlimBar.lua): with nothing to bring back, it opens the
+    -- list and keeps it open, or lets it fold again.
+    if not brought and ns.SlimBar and ns.SlimBar.On() and ns.db and not ns.db.trackerHidden then
+        ns.SlimBar:Click()
+        return
     end
     if not brought and GoalsUI then GoalsUI:ToggleOrHint() end
 end

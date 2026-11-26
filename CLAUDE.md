@@ -109,6 +109,7 @@ Sections there:
 - Panel Style (Like Quest List)
 - Grind to 60 (a test feature, 2026-11-22)
 - Restore Defaults (Farmer Settings: Set Default)
+- Slim Bar for Kills & Loot (2026-11-26)
 
 ## Checking a change
 
