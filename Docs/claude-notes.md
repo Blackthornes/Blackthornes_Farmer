@@ -3617,6 +3617,11 @@ around you. `UI/FarmHUD.lua`, art from `tools/make_hud_art.py`
   Route list and minimap show; `run.aimed` only if the plan has none; the
   plan can move on by itself before the aimed stop is reached) gets a gold dotted
   line and "Name, N yards", held to the rim when it is past it.
+- Turn With You (Trent, 2026-11-26): `farmHudTurn` (true only when on; never
+  rename), the Map page row "Farm HUD Turns With You:" and `/farm hud turn
+  on|off`. On, `FarmHUD.Offset` turns each spot by `GetPlayerFacing` as the
+  turning minimap does, the arrow stays up and N moves round the rim
+  (`PlaceNorth`). Off, north stays up.
 - Off unless turned on: `farmHud` (true only when on) and `farmHudSize`
   (nil is Medium; Small 300, Medium 420, Large 560 pixels). Never rename
   either. Map page rows "Farm HUD:" and "Farm HUD Size:", `/farm hud

@@ -2178,6 +2178,8 @@ L["The Farm HUD is off."] = "采集环已关闭。"
 L["Medium"] = "中"
 L["N"] = "北"
 L["%s, %d yards"] = "%s，%d 码"
+L["Farm HUD Turns With You:"] = "采集环随你转动："
+L["The ring turns so the way you face is up."] = "圆环会转动，让你面朝的方向始终在上方。"
 
 -- Farmer Settings: Set Default (2026-11-23)
 L["Farmer Settings:"] = "Farmer 设置："

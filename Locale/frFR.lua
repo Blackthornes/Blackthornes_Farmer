@@ -2187,6 +2187,8 @@ L["The Farm HUD is off."] = "Le HUD de récolte est désactivé."
 L["Medium"] = "Moyen"
 L["N"] = "N"
 L["%s, %d yards"] = "%s, %d mètres"
+L["Farm HUD Turns With You:"] = "Le HUD de récolte tourne avec toi :"
+L["The ring turns so the way you face is up."] = "L'anneau tourne pour que la direction où tu regardes soit en haut."
 
 -- Farmer Settings: Set Default (2026-11-23)
 L["Farmer Settings:"] = "Réglages de Farmer :"
