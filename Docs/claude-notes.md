@@ -3599,7 +3599,9 @@ around you. `UI/FarmHUD.lua`, art from `tools/make_hud_art.py`
 - Spots come from `MapMarkers:SpotsOn`, so My Professions Only counts. A
   hollow dot is a spot `Respawn:BackAt` says is still growing back; fish
   and spots with no learned time stay filled. The nearest `MAX_DOTS` (60).
-- The Gather Route's next stop (`GatherRoute.run.aimed`) gets a gold dotted
+- The Gather Route's next stop (`GatherRoute:Plan().nextStop`, the one the
+  Route list and minimap show; `run.aimed` only if the plan has none; the
+  plan can move on by itself before the aimed stop is reached) gets a gold dotted
   line and "Name, N yards", held to the rim when it is past it.
 - Off unless turned on: `farmHud` (true only when on) and `farmHudSize`
   (nil is Medium; Small 300, Medium 420, Large 560 pixels). Never rename
