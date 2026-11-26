@@ -28,7 +28,7 @@ ADDON = "Blackthornes_Farmer"
 # What a player's install is made of. Anything else is refused.
 ALLOWED_TOP = {"Blackthornes_Farmer.toc", "Bindings.xml", "Core", "Data", "Logic", "UI",
                "Media", "Locale", "LICENSE", "CHANGELOG.md"}
-ALLOWED_EXT = {".lua", ".toc", ".xml", ".tga", ".blp", ".ogg", ".md", ""}
+ALLOWED_EXT = {".lua", ".toc", ".xml", ".tga", ".blp", ".ogg", ".ttf", ".md", ""}
 
 # Never shipped, wherever it turns up.
 FORBIDDEN_NAMES = {"Harvest_Carryover.lua", "BlackthornesFarmerDB.lua",

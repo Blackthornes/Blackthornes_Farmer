@@ -3648,3 +3648,58 @@ every spot for its "Good at level" picks. Now:
   `DB.hiddenVersion`, Hide skinning or the `Spots.Skills` table moves.
 
 Tested in `tools/test_tabswitch.lua`.
+
+## Smoother kills and the hand-drawn scroll bar (2026-11-26)
+
+The owner said yes to both mockups (farmer-improve-6 and -7). No new
+words, settings or saved keys.
+
+- **Each mob's line is kept** (`Tracker:KeptSummary`, `summaryKept`, in
+  memory only). `SessionMobs` keeps each line's summary with what it was
+  worked out from: the tally table, kills, this session's kills, how many
+  drops and places and their counts, `DB.hiddenVersion` with Hide
+  Skinning, `looksVersion` and `iconsVersion` (bumped in `FillIcon` when an
+  icon arrives, since it decides which suffix stands in). Any of them
+  changing works the line out again; drops and places only add up, so a
+  kill or a late drop is always seen. The summaries it hands out are
+  shared: read them, never change them (`LootTable` builds its own).
+  `Reset` clears them. Fake game, 60 kinds of mob: about 268 KB and 3.1 ms
+  a kill down to 6 KB and 1.4 ms. Tested in `tools/test_perf.lua`.
+- **A pack of nameplates** (`NodeSparkle:OnPlateAdded`): the first plate in
+  a frame looks at once, so nothing flashes; the rest share one more look
+  on the next frame. With no `C_Timer` every plate looks for itself.
+  Tested in `tools/test_nodesparkle.lua`.
+- **The minimap key is numbers** (`MapMarkers:MinimapKey(into)` fills a
+  kept table, `MapMarkers.SameMinimapKey` compares it): standing still
+  builds no text and no table. Tested in `tools/test_markers.lua`.
+- **The hand-drawn scroll bar**: `UI/Widgets.lua`'s `CreateScrollbar` is
+  Butler's, word for word (a Frame, not the game's Slider, which runs
+  backward on Forever), and `Widgets.CreateScrollbar` is public. The lists
+  hear the player's moves through `scrollbar.onValueChanged`; `SetValue`
+  from code says nothing. The Export box wears it too (`UI/Export.lua`),
+  hidden when the text fits. Tested in `tools/test_scrollbar.lua`.
+
+## Look choices (Font, Colors, Fold Gem, 2026-11-26)
+
+The owner said build it (Equipment improvement idea 9, words from its
+mockup). Three rows on the All Addons page of every addon, picked once for
+all five: "Font:" House (the game's own, as before), Game (the game's plain
+chat font) or Clear (Liberation Sans, SIL Open Font License 1.1, shipped
+unchanged in `Media/Fonts` with its license; Chinese and Korean clients
+draw the house font for it, since it has no such letters); "Colors:" Warm
+(as before) or Darker (the warm tint taken out of the glass, gold kept);
+"Fold Gem:" Round Button (as before) or Small Bar (badge, title and the
+window's small number, along the window's top right corner).
+
+The logic is in `UI/SharedChoices.lua` (the same in all five): `Look`,
+`SetLook`, `Drawn`, `NeedsReload`, `FontPath`, `Recolor`. Picks are kept in
+every loaded addon's save as `lookChoices = { font, colors, fold, at }`
+(never rename it), the newest `at` winning, and Restore Defaults leaves it.
+Font and Colors are read once, the first time the addon draws after its
+save is in, so they wait for /reload (Settings shows Reload). `Theme.FONT`
+is looked up as read (`Theme.Font()`), and `Theme.Unpack`/`Theme.Font` put
+Darker into the palette in place, once. The fold pick counts from the next
+fold (`FoldWindow.Style`, `FoldWindow.Bar`, `FoldWindow.FitBar`). Font names
+use the keys `House##font`, `Game##font`, `Clear##font`, since "Clear" is a
+button's word elsewhere. Tested in `tools/test_housekit.lua` and
+`tools/test_foldwindow.lua`. Not yet seen in game.

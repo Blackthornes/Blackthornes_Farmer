@@ -99,7 +99,7 @@ local KEPT = {
     textSize = true, windowStyle = true, trackerEffects = true,
     muteSounds = true, muteSoundsAt = true, minimapButton = true,
     minimapButtonAt = true, oneWindow = true, oneWindowAt = true,
-    oneWindowPick = true, sisterNote = true,
+    oneWindowPick = true, lookChoices = true, sisterNote = true,
     point = true, relativePoint = true, x = true, y = true,
     trackerX = true, trackerY = true,
     gathering = true, goals = true, arrowFollow = true,
