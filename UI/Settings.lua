@@ -352,7 +352,7 @@ SettingsUI.SETTING_KEYS = {
     "rankUpSeeThrough", "rankUpSound", "rankingsExclude",
     "rankingsNearLevel", "rankingsOutside", "rankingsSkipUncommon",
     "rankingsVendorOnly", "recapSeeThrough", "recapStays", "routeWindow",
-    "routeWindowSeeThrough", "runGraph", "savedFarms", "sessionTimer",
+    "routeWindowSeeThrough", "runGraph", "savedFarms", "searchNames", "sessionTimer",
     "sessionTimerAutoPause", "settingsDescriptions", "shareData",
     "shareDrops", "shareGuild", "sharedChatNotice", "snapPanels", "statsBestCheer",
     "tooltipShift", "topFarmAlert", "trackerAnnounce", "trackerCelebrate",
@@ -1097,6 +1097,15 @@ function SettingsUI:BuildWindowsPage()
             ns.UI:ShowTab("search")
         end)
     controls.openSearch = searchButton
+
+    -- Names under the search box as you type (the owner said build it,
+    -- 2026-11-26). On unless unticked.
+    local namesRow = pages:Row("panels", 1, L["Names As You Type:"],
+        L["Shows matching items, mobs and zones under the search box as you type."])
+    controls.searchNames = Widgets.CreateCheckbox(namesRow, L["On"], function(checked)
+        ns.Search.SetSuggestOn(checked)
+    end, true)
+    controls.searchNames:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local _, rankingsButton = CommandRow(pages, "panels", 1, L["Rankings:"], nil, L["Open"], "rankings")
     controls.rankings = rankingsButton
@@ -2419,6 +2428,7 @@ function SettingsUI:Refresh()
     controls.sessionTimerAutoPause:SetDisabled(db.sessionTimer ~= true)
     controls.runGraph:SetChecked(db.runGraph ~= false)
     controls.recapStays:SetChecked(db.recapStays ~= false)
+    controls.searchNames:SetChecked(db.searchNames ~= false)
     controls.seeThrough:SetValue(db.trackerSeeThrough == true and ns.TrackerUI:SeeThroughLevel() or 0, true)
     controls.goalsSeeThrough:SetValue(ns.SeeThrough:Level("goals"), true)
     controls.goalSpotsSeeThrough:SetValue(ns.SeeThrough:Level("places"), true)

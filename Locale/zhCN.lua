@@ -2252,3 +2252,9 @@ L["%s, %s"] = "%s，%s"
 L["Made"] = "赚到"
 L["%d %s"] = "%d %s"
 L["Do It Again"] = "再来一次"
+
+-- Names as you type under the search box
+L["Mob, %s"] = "怪物，%s"
+L["Names As You Type:"] = "输入时显示名称："
+L["Shows matching items, mobs and zones under the search box as you type."] = "你输入时，在搜索框下方显示匹配的物品、怪物和区域。"
+L["Arrow keys pick a line, Enter opens it."] = "用方向键选择一行，按回车打开。"

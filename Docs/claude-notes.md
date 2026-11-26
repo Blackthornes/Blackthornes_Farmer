@@ -3858,3 +3858,34 @@ The owner said build it from a mockup whose words he approved
   A save from before keeps the tab it had, so existing players open as
   before. Home draws when it opens; nothing on it runs on a timer.
 - Tested in `tools/test_home.lua`. Not yet seen in game.
+
+## Names as you type (2026-11-26)
+
+The owner said build it (Farmer improvement #8, "search in your
+language", mockup Docs/mockups/farmer-improve-8 in the project files). The
+search already matched the client's item and zone names (see "German and
+other language clients"); what was missing was a way to see that. Under
+the Search tab's box and Home's box, the best eight items, mobs and zones
+that match what you typed show as you type, tagged "Item", "Mob, <zone>"
+or "Zone", with "Arrow keys pick a line, Enter opens it." under them.
+
+- `Search:Suggest(query, max)` (Logic/Search.lua) finds them from
+  `Search:SuggestIndex()`, every item, mob and zone name in the data and
+  your own finds, built once a data version (`FoundVersion` plus
+  `DB.hiddenVersion`) and kept for the session; nothing is saved. An item
+  answers to the client's name (shown), the English name and its aliases;
+  a zone to its shown and English names. A hidden item or mob is never
+  offered. Two letters start it (`SUGGEST_LEAST`); a name that starts
+  with the word comes first, then a word inside it, then anywhere.
+- `UI/SearchSuggest.lua` draws it (`SuggestUI:Attach(holder, onPick)`):
+  dark glass lines, item icons in their rarity colour. Arrow keys pick,
+  Enter or a click opens (the box takes the name and searches it); Enter
+  with none picked does what it did before. It closes on a pick, Escape,
+  an empty box, focus lost (unless the mouse is on it) or its view
+  hiding. Drawn only when the typed word changes; nothing on a timer.
+- "Names As You Type:" on the Panels page under FARMER UI,
+  `searchNames` (false when off, nil on; never rename it), in
+  `SETTING_KEYS` for Set Default.
+- Mob names stay as the data has them (English) plus the names your own
+  loot records keep (the client's).
+- Tested in `tools/test_searchsuggest.lua`. Not yet seen in game.

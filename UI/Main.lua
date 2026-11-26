@@ -448,6 +448,11 @@ function UI:BuildBody()
     search:SetPoint("TOPRIGHT", -PADDING, -HEAD_TOP)
     self.searchBox = search
 
+    -- Names that match show under the box as you type (UI/SearchSuggest.lua).
+    if ns.SuggestUI then
+        ns.SuggestUI:Attach(search, function(name) UI:Search(name) end)
+    end
+
     -- Filter chips sit between the box and the results, showing only the kinds
     -- the current search actually turned up. Across the whole window, below
     -- the portrait.
