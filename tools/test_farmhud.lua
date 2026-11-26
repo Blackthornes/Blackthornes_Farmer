@@ -156,6 +156,13 @@ local stop = Gathering:SpotsOn(37)[1]
 for _, each in ipairs(Gathering:SpotsOn(37)) do
     if each.node == "Copper Vein" then stop = each end
 end
+-- The route's plan: the stop the Route list and the minimap call next.
+local planNext
+local realPlan = ns.GatherRoute.Plan
+ns.GatherRoute.Plan = function()
+    return { map = 37, nextStop = planNext and { spot = planNext } or nil }
+end
+planNext = stop
 ns.GatherRoute.run = { aimed = stop, visited = {}, picked = {} }
 FarmHUD:Draw()
 suite.check("a running route shows its next stop", frame.nextLabel:IsShown())
@@ -168,15 +175,28 @@ local farStop
 for _, each in ipairs(Gathering:SpotsOn(37)) do
     if each.node == "Far Herb" then farStop = each end
 end
-ns.GatherRoute.run.aimed = farStop
+ns.GatherRoute.run.aimed, planNext = farStop, farStop
 FarmHUD:Draw()
 local p = frame.nextDot._point
 suite.check("a stop past the rim is held inside it", p[4] < 0 and p[4] > -210, p[4])
 suite.check("its real distance is still named", frame.nextLabel:GetText() == "Far Herb, 400 yards",
     frame.nextLabel:GetText())
-ns.GatherRoute.run = nil
+-- Trent's screenshot (2026-11-26): the route picked a new next stop on its
+-- own (the Route list and the minimap moved on to it), and the HUD kept
+-- pointing at the stop it had been aimed at.
+local silverleaf
+for _, each in ipairs(Gathering:SpotsOn(37)) do
+    if each.node == "Silverleaf" then silverleaf = each end
+end
+ns.GatherRoute.run.aimed, planNext = stop, silverleaf
+FarmHUD:Draw()
+suite.check("the HUD follows the route's new next stop", frame.nextLabel:GetText() == "Silverleaf, 50 yards",
+    frame.nextLabel:GetText())
+
+ns.GatherRoute.run, planNext = nil, nil
 FarmHUD:Draw()
 suite.check("the line goes when the route stops", not frame.nextLabel:IsShown())
+ns.GatherRoute.Plan = realPlan
 
 --------------------------------------------------------------------------------
 -- Turning

@@ -292,10 +292,22 @@ function FarmHUD:Near(mapID, px, py, width, height)
     return list
 end
 
+--- The route's next stop: the one its plan picks now, as the Route list and
+--- the minimap show it. The plan can pick a new stop on its own as you
+--- move, before the stop it was aimed at is reached (Trent, 2026-11-26), so
+--- run.aimed is only the fallback. Plan is kept a second at a time, so
+--- asking each step costs little, and only while a route runs.
 local function Aimed(mapID)
     local route = ns.GatherRoute
     local run = route and route.run
-    local spot = run and run.aimed
+    if not run then return nil end
+    local spot
+    if type(route.Plan) == "function" then
+        local ok, plan = pcall(route.Plan, route)
+        local stop = ok and type(plan) == "table" and plan.nextStop
+        spot = type(stop) == "table" and stop.spot or nil
+    end
+    spot = spot or run.aimed
     if type(spot) == "table" and spot.map == mapID and spot.x and spot.y then return spot end
     return nil
 end

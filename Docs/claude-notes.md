@@ -3377,6 +3377,13 @@ same kind within `REACH` of the aimed stop moves it on too
 (`PickedNear(spot, fresh, within)`), counted as checked, not picked. No new
 settings or words. Tested in `tools/test_gatherroute.lua`.
 
+The arrow follows the plan's pick (Trent's screenshot, 2026-11-26): `Plan`
+picks the next stop again as you move (`PickNext`), so the Route list and
+minimap could move on while the arrow and the Farm HUD kept `run.aimed`.
+`Look` now re-aims when `Plan().nextStop` is not `run.aimed`, and the HUD
+reads the plan's stop. Tested in `tools/test_gatherroute.lua` and
+`tools/test_farmhud.lua`.
+
 ## Gather Route, Route Window and Zone Board on by default
 
 Trent asked (2026-11-18) that Gather Route, Route Window and Zone Board be on for every player, existing ones too. Each now reads on unless saved `false` (`gatherRoute`, `routeWindow`, `zoneBoard`; never rename); ticking clears the key, unticking saves `false`. Players who had ticked one (`true`) keep it; the rest start on. The Route Window still shows only while a route runs, and the Zone Board shows its button on the Kills & Loot bar and its banner at a zone line's 20th kill. Tests that measure chip or bar layout switch the feature off first.
@@ -3599,7 +3606,9 @@ around you. `UI/FarmHUD.lua`, art from `tools/make_hud_art.py`
 - Spots come from `MapMarkers:SpotsOn`, so My Professions Only counts. A
   hollow dot is a spot `Respawn:BackAt` says is still growing back; fish
   and spots with no learned time stay filled. The nearest `MAX_DOTS` (60).
-- The Gather Route's next stop (`GatherRoute.run.aimed`) gets a gold dotted
+- The Gather Route's next stop (`GatherRoute:Plan().nextStop`, the one the
+  Route list and minimap show; `run.aimed` only if the plan has none; the
+  plan can move on by itself before the aimed stop is reached) gets a gold dotted
   line and "Name, N yards", held to the rim when it is past it.
 - Off unless turned on: `farmHud` (true only when on) and `farmHudSize`
   (nil is Medium; Small 300, Medium 420, Large 560 pixels). Never rename

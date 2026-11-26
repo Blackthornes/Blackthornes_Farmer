@@ -1020,7 +1020,19 @@ function GatherRoute:Look()
             end
         end
     end
-    if moved then self:Advance() end
+    if moved then
+        self:Advance()
+        return
+    end
+    -- The plan picks the next stop again as you move, so it can move on
+    -- before the aimed stop is reached. The Route list and the minimap show
+    -- the plan's pick; the arrow follows it too (Trent, 2026-11-26).
+    local plan = self:Plan()
+    local stop = plan and plan.nextStop
+    if stop and stop.spot ~= run.aimed then
+        self:Aim(plan)
+        GatherRoute.Tell()
+    end
 end
 
 function GatherRoute:Watch(on)
