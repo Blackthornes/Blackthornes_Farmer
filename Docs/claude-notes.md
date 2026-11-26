@@ -3369,7 +3369,7 @@ yet seen in game.
 Trent asked (2026-11-19): you shouldn't have to stand on a node for the route
 to move on, since the minimap shows whether it is up from well away. The stop
 the arrow points at (`run.aimed`) now counts as reached within
-`GatherRoute.REACH` (30 yards), once you were farther than that from it since
+`GatherRoute.REACH` (30 yards, 50 since Trent asked 2026-11-26), once you were farther than that from it since
 it was aimed (`run.cameFrom`, `GatherRoute.Reach`), so a stop that comes next
 while you already stand near it still needs `ARRIVED` (12). Other stops keep
 `ARRIVED`, so passing one on the way doesn't check it. Picking a node of the

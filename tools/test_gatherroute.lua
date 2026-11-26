@@ -273,12 +273,12 @@ do
 
     -- From a distance: the stop the arrow points at counts once you come
     -- within REACH yards, after walking in from farther out.
-    check("the reach is about 30 yards", GatherRoute.REACH == 30 and GatherRoute.ARRIVED < GatherRoute.REACH)
+    check("the reach is 50 yards (Trent, 2026-11-26)", GatherRoute.REACH == 50 and GatherRoute.ARRIVED < GatherRoute.REACH)
     do
         local run = { aimed = "a" }
         check("a stop aimed while you stand near it needs you close", GatherRoute.Reach(run, "a") == GatherRoute.ARRIVED)
         run.cameFrom = "a"
-        check("walked in from afar, it counts at 30 yards", GatherRoute.Reach(run, "a") == GatherRoute.REACH)
+        check("walked in from afar, it counts at 50 yards", GatherRoute.Reach(run, "a") == GatherRoute.REACH)
         check("a stop you pass on the way still needs you close", GatherRoute.Reach(run, "b") == GatherRoute.ARRIVED)
     end
     GatherRoute.cooldown = {}
