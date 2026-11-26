@@ -3585,6 +3585,39 @@ with no level is left out. A level the client won't read filters nothing.
 [on|off]`. The rank-up pop-up and the top 15 after a scan rank every level, so
 `outsideVersion` does not move. Tested in `tools/test_rankingslevel.lua`.
 
+## The Farm HUD
+
+A player asked, the owner said build it (2026-11-26, from the mockup
+`farmer-improve-5-farm-hud`, whose words he approved): a see-through ring
+in the middle of the screen with your own saved herb, ore and fishing spots
+around you. `UI/FarmHUD.lua`, art from `tools/make_hud_art.py`
+(`Media/Frame/Hud*.tga`; rerun the script, never edit the TGAs).
+
+- A flat picture on the screen (strata BACKGROUND, so windows draw over
+  it). Nothing is drawn in the world. North is up; the gold arrow turns
+  with `GetPlayerFacing`. The rim is `FarmHUD.REACH` (250) yards.
+- Spots come from `MapMarkers:SpotsOn`, so My Professions Only counts. A
+  hollow dot is a spot `Respawn:BackAt` says is still growing back; fish
+  and spots with no learned time stay filled. The nearest `MAX_DOTS` (60).
+- The Gather Route's next stop (`GatherRoute.run.aimed`) gets a gold dotted
+  line and "Name, N yards", held to the rim when it is past it.
+- Off unless turned on: `farmHud` (true only when on) and `farmHudSize`
+  (nil is Medium; Small 300, Medium 420, Large 560 pixels). Never rename
+  either. Map page rows "Farm HUD:" and "Farm HUD Size:", `/farm hud
+  [on|off|size small|medium|large]`, and the key
+  `BLACKTHORNESFARMER_HUD` in `Bindings.xml` ("Show or Hide Farm HUD").
+- Clicks go through it; only its red close gem on the rim takes a click,
+  and turns it off. It hides in a fight (`PLAYER_REGEN_DISABLED`) and inside
+  dungeons and raids (`IsInInstance`).
+- Speed: nothing is built or run while it is off or hidden (its OnUpdate is
+  on its own frame). Each 0.2 second step builds a key from where you stand
+  and face, the spots version, the kinds shown, the aimed stop and a 5
+  second clock tick; a step with the same key does nothing. The list of
+  near spots is made again only after a 40 yard move or a change to the
+  spots.
+- Restore Defaults puts both keys back (`SettingsUI.SETTING_KEYS`).
+- Tested in `tools/test_farmhud.lua`. Not yet seen in game.
+
 ## Restore Defaults (Farmer Settings: Set Default)
 
 The owner said build it, 2026-11-23 (a player asked how to reset settings),
@@ -3703,6 +3736,95 @@ fold (`FoldWindow.Style`, `FoldWindow.Bar`, `FoldWindow.FitBar`). Font names
 use the keys `House##font`, `Game##font`, `Clear##font`, since "Clear" is a
 button's word elsewhere. Tested in `tools/test_housekit.lua` and
 `tools/test_foldwindow.lua`. Not yet seen in game.
+
+## Slim Bar for Kills & Loot (2026-11-26)
+
+The owner said build it from the mockup
+`Docs/mockups/farmer-improve-1-slim-bar.html` in the project files, and
+approved its words. Under "Kills and Loot Size:" on the WINDOWS page, a
+choice of Full Panel (the default) or Slim Bar, with the line "One line
+with your gold per hour. Put your mouse on it to see the whole list."
+Saved account wide as `trackerSlimBar` (true, or nil for Full Panel),
+never rename it; it is in `SettingsUI.SETTING_KEYS`. `UI/SlimBar.lua`
+(a new file in the TOC, after `UI/Tracker.lua`).
+
+- Slim Bar is the panel's own frame folded to its title line
+  (`SlimBar.HEIGHT`, 28): the gold coin, "%s an hour" (once
+  `TrackerUI:PerHour` has one), "%s this run", kills and the clock. So it
+  keeps the panel's spot, drags, group dodge, Snap Panels, the goals
+  docked under it, Transparent and Panel Style with no code of its own.
+  `TrackerUI:Redraw` asks `SlimBar:Folded()` after the round-button
+  check and calls `SlimBar:Draw`; open, `SlimBar:Open` puts the bar's
+  words on the title line before the panel draws, and Full Panel runs
+  `SlimBar:Restore`.
+- The numbers are read only when the panel redraws (`ReadNumbers`, inside
+  `Value:BeginPass`). A watcher on the panel (only while Slim Bar is on and
+  the panel shows) writes the clock once a second (`SlimBar:Tick`, only
+  the title's words, never a price) and looks for the mouse every 0.1
+  second (`SlimBar:Look`): on the panel the list opens, off it for
+  `CLOSE_WAIT` (0.4 s) it folds, never mid-drag or while the right-click
+  menu is open. The bar only grows wider during a session (`wide`), so the
+  clock never makes it jump.
+- A left click on the title line keeps the list open until the next
+  (`pinned`); while only the mouse holds it, the second line says "Click
+  the bar to keep the list open." A drag is not a click. A right-click
+  opens Sort's orders, then Zone Board while it is ticked (`RowMenu`).
+  Clear stays on the toolbar, with its Confirm.
+- A green or better drop (`TrackerFX.QualityOf`) shows on the bar for
+  `FLASH` (5) seconds: icon, name in its colour, worth of one, "from %s".
+  Drops made while the list is open are not shown after.
+- Farmer's own minimap button now says "Middle-click for Kills & Loot."
+  With nothing to bring back and Slim Bar on, middle-click keeps the list
+  open or lets it fold (`UI:BringBackPanels`). The shared button's
+  tooltip is the shared file's and was left alone.
+- The fake game's frames have `HookScript` now, as the game's do.
+- Tested in `tools/test_slimbar.lua`. Not yet seen in game.
+
+## The run graph and a Run Recap that stays (2026-11-26)
+
+The owner said build it from the mockup
+`Docs/mockups/farmer-improve-4-run-graph-and-recap.html` in the project
+files, and approved its words.
+
+- **The run graph** (`UI/RunGraph.lua`, a new file in the TOC after
+  `UI/SlimBar.lua`): a strip under the title bar (under the session
+  timer's strip), `RunGraph.HEIGHT` tall, with gold an hour as the big
+  number ("%s an hour"), "%d%% over your usual here" or "under", and a
+  small graph: the line is gold an hour over the last `WINDOW` (10
+  minutes) at each point, a gold wash under it, a dashed line for your
+  usual here, a green dot for each green or better drop
+  (`SlimBar.BestNew`), and "Start", "- - your usual here" and "%d min"
+  under it. `TrackerUI:PlaceTimer` lays it out and `Top()` counts
+  `graphHeight`. Shown only while "Run Graph:" (Kills page, under Pause
+  When Away) is ticked (`runGraph`, false when off, never rename it), the
+  panel knows its gold an hour, and not in Slim Bar, Like Quest List or
+  while folded.
+- Points come from the panel's own numbers (`RunGraph.Read`: the panel's
+  value and clock, or the session timer's run while it is on), taken in
+  `TrackerUI:Redraw` at most once a minute, never on a timer. A drop in
+  value or clock (a Clear) starts the run again. The lines move only when
+  a point is added or the width changes (`RunGraph.drawn`).
+- **Your usual here:** each minute between points (gaps over `GAP`, 10
+  minutes, left out) adds its seconds and copper to the zone
+  (`GetRealZoneText`, in a pcall), account wide in `zonePace[zone] = { s,
+  c }` (never rename it). This session's share is kept apart in memory, so
+  the usual is the play before it, shown after `USUAL_AFTER` (20 minutes)
+  there.
+- **The Run Recap** (`UI/Recap.lua`): how long and where on top ("%s in
+  %s", with "(up %d%%)" or "(usual %s)"), then made, an hour and kills as
+  three big numbers, then the run's best drop first and the next by what
+  they came to (`Moments.TopItems`, `RECAP_ITEMS` 3, with "x46"), "Coin
+  and everything else" for the rest, Time paused, the lucky line, and a
+  Close button with Save This Farm left of it while Saved Farms is on.
+  The fold gem is hidden; the close gem closes it. `Moments` keeps
+  `run.items` and `run.zones` for it; a recap saved before them shows
+  its best drop.
+- "Run Recap Stays:" (Kills page) is on unless unticked (`recapStays`,
+  false when off, never rename it): no countdown, it stays until closed.
+  Unticked, it fades after `HOLD` as before. A saved spot for the recap is
+  left to the Move Windows work.
+- Tested in `tools/test_rungraph.lua` and `tools/test_moments.lua`. Not
+  yet seen in game.
 
 ## The Home tab (2026-11-26)
 

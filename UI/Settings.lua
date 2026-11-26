@@ -334,7 +334,7 @@ end
 --- clicks every control and fails if one writes a key missing here.
 SettingsUI.SETTING_KEYS = {
     "arrowRoute", "arrowShown", "arrowSize", "arrowTurnedOff", "autoOpen",
-    "bagsFullNotice", "fishingBar", "fishingPanel", "gatherRoute",
+    "bagsFullNotice", "farmHud", "farmHudSize", "fishingBar", "fishingPanel", "gatherRoute",
     "gatherRouteDraw", "gatherRouteZoneOnly", "goalSpotsDockMap",
     "goalSpotsSeeThrough", "goalsSeeThrough", "grindPins", "grindTo60",
     "harvestPaused", "heatLevel", "heatMinimap", "heatWorld", "hideSkinning",
@@ -351,14 +351,14 @@ SettingsUI.SETTING_KEYS = {
     "questMobCount", "questMobCountMine", "questMobCountSide", "rankUpPopup",
     "rankUpSeeThrough", "rankUpSound", "rankingsExclude",
     "rankingsNearLevel", "rankingsOutside", "rankingsSkipUncommon",
-    "rankingsVendorOnly", "recapSeeThrough", "routeWindow",
-    "routeWindowSeeThrough", "savedFarms", "sessionTimer",
+    "rankingsVendorOnly", "recapSeeThrough", "recapStays", "routeWindow",
+    "routeWindowSeeThrough", "runGraph", "savedFarms", "sessionTimer",
     "sessionTimerAutoPause", "settingsDescriptions", "shareData",
     "shareDrops", "shareGuild", "sharedChatNotice", "snapPanels", "statsBestCheer",
     "tooltipShift", "topFarmAlert", "trackerAnnounce", "trackerCelebrate",
     "trackerDodgeGroup", "trackerHidden", "trackerRareSound",
     "trackerReport", "trackerScale", "trackerSeeThrough",
-    "trackerSeeThroughLevel", "trackerVoice", "trashCan",
+    "trackerSeeThroughLevel", "trackerSlimBar", "trackerVoice", "trashCan",
     "tsmGearPriceSource", "tsmPriceSource", "useTomTom", "windowScale",
     "worldDrops", "xpBar", "xpBarCheer", "xpBarChime", "xpBarHideGame",
     "xpBarSeeThrough", "zoneBoard", "zoneBoardBanner", "zoneBoardSeeThrough",
@@ -895,7 +895,8 @@ function SettingsUI:BuildPanelsPage()
     -- from 50 to 150 on the stepper, one dragged to shown as it is, and
     -- Small, Normal and Large under it, the one in use lit green.
     local TrackerUI = ns.TrackerUI
-    local trackerScaleRow = pages:Row("panels", 1, L["Kills and Loot Size:"], nil)
+    local trackerScaleRow = pages:Row("panels", 1, L["Kills and Loot Size:"],
+        L["One line with your gold per hour. Put your mouse on it to see the whole list."])
 
     controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
         min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
@@ -934,6 +935,19 @@ function SettingsUI:BuildPanelsPage()
         after = button
     end
     if after then GrowRow(trackerScaleRow, 24) end
+
+    -- Full Panel or Slim Bar (the owner said build it, 2026-11-26, and
+    -- approved the words): the panel folded to one line that opens under
+    -- the mouse (UI/SlimBar.lua). Full Panel unless picked.
+    local slimNames = ns.SlimBar.Names()
+    controls.trackerSlimBar = Widgets.CreateChoice(trackerScaleRow, {
+        min = 1, max = #ns.SlimBar.SIZES, step = 1, value = 1,
+        format = function(index) return slimNames[index] end,
+        onChange = function(index) ns.SlimBar:Set(index) end,
+    })
+    ns.SettingsPages.FitStepper(controls.trackerSlimBar, slimNames)
+    controls.trackerSlimBar:SetPoint("TOPRIGHT", controls.trackerScale, "BOTTOMRIGHT", 0, -26)
+    GrowRow(trackerScaleRow, 26)
 
 
 
@@ -1285,6 +1299,22 @@ function SettingsUI:BuildTallyPage()
         ns.SessionTimer:SetAutoPause(checked)
     end, true)
     controls.sessionTimerAutoPause:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The run graph and the Run Recap that stays (the owner said build it,
+    -- 2026-11-26, and approved the words). Both on unless unticked.
+    local graphRow = pages:Row("tally", 1, L["Run Graph:"],
+        L["A small graph of your gold per hour on Kills & Loot."])
+    controls.runGraph = Widgets.CreateCheckbox(graphRow, L["On"], function(checked)
+        ns.RunGraph:SetOn(checked)
+    end, true)
+    controls.runGraph:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local staysRow = pages:Row("tally", 1, L["Run Recap Stays:"],
+        L["The Run Recap stays until you close it."])
+    controls.recapStays = Widgets.CreateCheckbox(staysRow, L["On"], function(checked)
+        ns.RecapUI:SetStays(checked)
+    end, true)
+    controls.recapStays:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The mob you last looted, as the commands read it with no name. The
     -- chat-only lists stay typed commands (the owner, 2026-10-15).
@@ -1662,6 +1692,25 @@ function SettingsUI:BuildMapPage()
         ns.MapMarkers:SetMineOnly(checked)
     end, true)
     controls.markersMine:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The Farm HUD, a see-through ring of your spots in the middle of the
+    -- screen (a player asked, the owner said build it, 2026-11-26). Off
+    -- unless ticked.
+    local hudRow = pages:Row("map", 1, L["Farm HUD:"],
+        L["A see-through ring in the middle of your screen. It shows the herbs, ore and fishing spots you found near you."])
+    controls.farmHud = Widgets.CreateCheckbox(hudRow, L["On"], function(checked)
+        ns.FarmHUD:SetOn(checked, true)
+    end, false)
+    controls.farmHud:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local hudSizeRow = pages:Row("map", 1, L["Farm HUD Size:"], nil)
+    local hudSizes = ns.FarmHUD.SIZES
+    controls.farmHudSize = Widgets.CreateChoice(hudSizeRow, {
+        min = 1, max = #hudSizes, step = 1, value = 2,
+        format = function(index) return ns.FarmHUD.SizeName(hudSizes[index]) end,
+        onChange = function(index) ns.FarmHUD:SetSize(hudSizes[index]) end,
+    })
+    controls.farmHudSize:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Sparkles on the node you face (the owner asked 2026-10-13).
     pages:Section("map", 2, L["SPARKLES"])
@@ -2243,6 +2292,12 @@ function SettingsUI:Refresh()
     end
     if controls.mapButton then controls.mapButton:SetChecked(db.mapButton ~= false) end
     controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
+    if controls.farmHud then
+        controls.farmHud:SetChecked(ns.FarmHUD.IsOn())
+        for index, size in ipairs(ns.FarmHUD.SIZES) do
+            if size == ns.FarmHUD.Size() then controls.farmHudSize:SetValue(index, true) end
+        end
+    end
     controls.heatWorld:SetChecked(db.heatWorld == true)
     controls.heatMinimap:SetChecked(db.heatMinimap == true)
     controls.heatLevel:SetValue(ns.Heat:Level(), true)
@@ -2362,6 +2417,8 @@ function SettingsUI:Refresh()
     controls.sessionTimer:SetChecked(db.sessionTimer == true)
     controls.sessionTimerAutoPause:SetChecked(db.sessionTimerAutoPause ~= false)
     controls.sessionTimerAutoPause:SetDisabled(db.sessionTimer ~= true)
+    controls.runGraph:SetChecked(db.runGraph ~= false)
+    controls.recapStays:SetChecked(db.recapStays ~= false)
     controls.seeThrough:SetValue(db.trackerSeeThrough == true and ns.TrackerUI:SeeThroughLevel() or 0, true)
     controls.goalsSeeThrough:SetValue(ns.SeeThrough:Level("goals"), true)
     controls.goalSpotsSeeThrough:SetValue(ns.SeeThrough:Level("places"), true)
@@ -2413,6 +2470,7 @@ function SettingsUI:Refresh()
     end
     if controls.snapPanels then controls.snapPanels:SetChecked(not ns.PanelSnap or ns.PanelSnap:IsOn()) end
     if controls.panelStyle and ns.PanelStyle then controls.panelStyle:SetValue(ns.PanelStyle:Index(), true) end
+    if controls.trackerSlimBar and ns.SlimBar then controls.trackerSlimBar:SetValue(ns.SlimBar:Index(), true) end
     if controls.dockMap then controls.dockMap:SetChecked(ns.MapDock and ns.MapDock:IsOn() or false) end
 
     local usable = ns.Harvest:Capabilities().usable
