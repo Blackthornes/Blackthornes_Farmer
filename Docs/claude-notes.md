@@ -3825,3 +3825,36 @@ files, and approved its words.
   left to the Move Windows work.
 - Tested in `tools/test_rungraph.lua` and `tools/test_moments.lua`. Not
   yet seen in game.
+
+## The Home tab (2026-11-26)
+
+The owner said build it from a mockup whose words he approved
+(`Docs/mockups/farmer-improve-2-home-tab` in the project files).
+`UI/Home.lua` (`ns.HomeUI`) is the first tab (`key = "home"` in Main's
+`TABS`): a search box ("Type an item, a mob or a zone", Enter or Search runs
+`UI:Search`), up to six cards and two boxes.
+
+- Cards (`HomeUI.Cards`, `HomeUI.GO`): Find an Item (Search, box focused),
+  Best Mobs for Me (Rankings with Near My Level ticked for this session
+  only: `Rankings.nearForNow`, never saved; the box or `/farm rankings
+  level` takes it back), Gather (Grind on your best of Herbalism, Mining,
+  Skinning; hidden when the client says you have none), Fish (Grind's Fish
+  page; only with Fishing), Repeat a Farm (Farms tab; only with Saved Farms
+  on), Level Up (Grind to 60's path; only with it on and under the cap).
+  Picking a page writes `grindGives` and `grindTo60View`, as the chips do.
+- HERE (`HomeUI.Here`): the Zone Board's list for the zone you stand in
+  (`ZoneBoard:List`, `:Rows`, `:Best`; read even with the Zone Board off):
+  Best mob with worth a kill, mobs under 20 kills (Zone Board button only
+  while it is on), and your herb and vein spots on this map (Show Route
+  only while the Gather Route is on: opens Grind on the page you have most
+  spots for and starts the route; Route Mode is left as it is). While the
+  list is still being laid out Home looks again `WAIT` seconds later, at
+  most `WAIT_TRIES` times.
+- LAST RUN (`HomeUI.LastRun`): the newer of your newest saved farm run
+  (`SavedFarms:LastFarm`, with Best drop, Where and Do It Again, which runs
+  `SavedFarms:Start`) and your newest finished Stats session of at least
+  `Stats.SESSION_MIN` (gold and gold an hour only).
+- New saves start on Home: the default `lastTab` is "home" (Core/Init.lua).
+  A save from before keeps the tab it had, so existing players open as
+  before. Home draws when it opens; nothing on it runs on a timer.
+- Tested in `tools/test_home.lua`. Not yet seen in game.
