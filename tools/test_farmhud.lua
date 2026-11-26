@@ -275,6 +275,27 @@ facing = 1.5
 FarmHUD:Step(1)
 suite.check("the arrow turns with you", turned == 1.5, turned)
 
+-- Turn With You (Trent, 2026-11-26): off unless ticked; on, the ring turns
+-- so the way you face is up, the arrow stays up, and N moves round the rim.
+suite.check("north stays up unless picked", FarmHUD.TurnsWithYou() == false)
+FarmHUD:SetTurn(true)
+suite.check("turning can be picked", FarmHUD.TurnsWithYou() and ns.db.farmHudTurn == true)
+facing = math.pi / 2   -- facing west
+FarmHUD:Step(1)
+suite.check("turning, the arrow stays up", turned == 0, turned)
+-- Copper is 100 yards east: facing west, it is behind you, straight down.
+local x, y = FarmHUD.Offset({ x = 0.45 + 100 / 3000, y = 0.68 }, 0.45, 0.68, 3000, 2000, 210, 250, FarmHUD.Turn())
+suite.check("turning, a spot east sits behind you when you face west",
+    math.abs(x) < 0.5 and math.abs(y + 84) < 0.5, x .. "," .. y)
+local np = frame.north._point
+suite.check("N moves to the right when you face west", np[4] > 150 and math.abs(np[5]) < 1,
+    tostring(np[4]) .. "," .. tostring(np[5]))
+FarmHUD:SetTurn(false)
+suite.check("off again saves nothing", ns.db.farmHudTurn == nil)
+facing = 1.5
+FarmHUD:Step(1)
+suite.check("north up again, the arrow turns", turned == 1.5, turned)
+
 --------------------------------------------------------------------------------
 -- Hiding
 --------------------------------------------------------------------------------

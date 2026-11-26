@@ -334,7 +334,7 @@ end
 --- clicks every control and fails if one writes a key missing here.
 SettingsUI.SETTING_KEYS = {
     "arrowRoute", "arrowShown", "arrowSize", "arrowTurnedOff", "autoOpen",
-    "bagsFullNotice", "farmHud", "farmHudSize", "fishingBar", "fishingPanel", "gatherRoute",
+    "bagsFullNotice", "farmHud", "farmHudSize", "farmHudTurn", "fishingBar", "fishingPanel", "gatherRoute",
     "gatherRouteDraw", "gatherRouteZoneOnly", "goalSpotsDockMap",
     "goalSpotsSeeThrough", "goalsSeeThrough", "grindPins", "grindTo60",
     "harvestPaused", "heatLevel", "heatMinimap", "heatWorld", "hideSkinning",
@@ -1727,6 +1727,15 @@ function SettingsUI:BuildMapPage()
     })
     controls.farmHudSize:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The ring turns so the way you face is up (Trent, 2026-11-26). Off
+    -- unless ticked: north stays up.
+    local hudTurnRow = pages:Row("map", 1, L["Farm HUD Turns With You:"],
+        L["The ring turns so the way you face is up."])
+    controls.farmHudTurn = Widgets.CreateCheckbox(hudTurnRow, L["On"], function(checked)
+        ns.FarmHUD:SetTurn(checked)
+    end, false)
+    controls.farmHudTurn:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Sparkles on the node you face (the owner asked 2026-10-13).
     pages:Section("map", 2, L["SPARKLES"])
 
@@ -2309,6 +2318,7 @@ function SettingsUI:Refresh()
     controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
     if controls.farmHud then
         controls.farmHud:SetChecked(ns.FarmHUD.IsOn())
+        controls.farmHudTurn:SetChecked(ns.FarmHUD.TurnsWithYou())
         for index, size in ipairs(ns.FarmHUD.SIZES) do
             if size == ns.FarmHUD.Size() then controls.farmHudSize:SetValue(index, true) end
         end

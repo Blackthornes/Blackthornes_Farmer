@@ -2188,6 +2188,8 @@ L["The Farm HUD is off."] = "Кольцо сбора выключено."
 L["Medium"] = "Средний"
 L["N"] = "С"
 L["%s, %d yards"] = "%s, %d м"
+L["Farm HUD Turns With You:"] = "Кольцо сбора поворачивается:"
+L["The ring turns so the way you face is up."] = "Кольцо поворачивается так, чтобы направление взгляда было сверху."
 
 -- Farmer Settings: Set Default (2026-11-23)
 L["Farmer Settings:"] = "Настройки Farmer:"

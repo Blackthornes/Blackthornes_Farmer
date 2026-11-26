@@ -94,6 +94,19 @@ function FarmHUD.SizeName(size)
     return L["Medium"]
 end
 
+--- Turn With You (Trent, 2026-11-26): the ring turns so the way you face
+--- is up. Off unless ticked (farmHudTurn, saved true only when on).
+function FarmHUD.TurnsWithYou()
+    return type(ns.db) == "table" and ns.db.farmHudTurn == true
+end
+
+function FarmHUD:SetTurn(on)
+    if type(ns.db) ~= "table" then return end
+    ns.db.farmHudTurn = on and true or nil
+    self.key = nil
+    if self.frame and self.frame:IsShown() then self:Draw() end
+end
+
 function FarmHUD:SetSize(size)
     if not FarmHUD.PIXELS[size] or type(ns.db) ~= "table" then return false end
     ns.db.farmHudSize = size ~= "medium" and size or nil
@@ -270,11 +283,22 @@ end
 
 --- Where a spot sits on the ring, in pixels from the middle (x east, y
 --- north), and how far it is in yards. North is always up.
-function FarmHUD.Offset(spot, px, py, width, height, half, reach)
+function FarmHUD.Offset(spot, px, py, width, height, half, reach, turn)
     local east = (spot.x - px) * width
     local north = (py - spot.y) * height
     local yards = math.sqrt(east * east + north * north)
+    -- Turned so ahead of you is up, as a turning minimap does.
+    if turn then
+        local c, s = math.cos(turn), math.sin(turn)
+        east, north = east * c + north * s, north * c - east * s
+    end
     return east / reach * half, north / reach * half, yards
+end
+
+--- How far to turn the ring (radians), or nil when north stays up.
+function FarmHUD.Turn()
+    if not FarmHUD.TurnsWithYou() then return nil end
+    return Facing()
 end
 
 --- The spots within reach of the ring and a little past it, made again only
@@ -365,14 +389,16 @@ function FarmHUD:Draw()
     local width, height
     if mapID then width, height = ns.Gathering.MapSize(mapID) end
 
-    frame.arrow:SetRotation(Facing() or 0)
+    local turn = FarmHUD.Turn()
+    frame.arrow:SetRotation(turn and 0 or (Facing() or 0))
+    self:PlaceNorth(turn)
 
     if mapID and width and height then
         local half, reach = self.half, FarmHUD.REACH
         local edge = half - self.dotSize / 2
         local placed = {}
         for _, spot in ipairs(self:Near(mapID, px, py, width, height)) do
-            local x, y, yards = FarmHUD.Offset(spot, px, py, width, height, half, reach)
+            local x, y, yards = FarmHUD.Offset(spot, px, py, width, height, half, reach, turn)
             if x * x + y * y <= edge * edge then
                 placed[#placed + 1] = { spot = spot, x = x, y = y, yards = yards }
             end
@@ -394,12 +420,24 @@ function FarmHUD:Draw()
         end
 
         aimed = Aimed(mapID)
-        if aimed then self:DrawRoute(aimed, px, py, width, height) end
+        if aimed then self:DrawRoute(aimed, px, py, width, height, turn) end
     end
 
     for index = used + 1, #frame.dots do frame.dots[index]:Hide() end
     if not aimed then self:HideRoute() end
     self.shown = used
+end
+
+--- N at the top, or round the rim where north is when the ring turns.
+function FarmHUD:PlaceNorth(turn)
+    local frame = self.frame
+    frame.north:ClearAllPoints()
+    if not turn then
+        frame.north:SetPoint("TOP", frame, "TOP", 0, -6 * (self.half / (FarmHUD.PIXELS.medium / 2)))
+        return
+    end
+    local out = self.half - 14 * (self.half / (FarmHUD.PIXELS.medium / 2))
+    frame.north:SetPoint("CENTER", frame, "CENTER", math.sin(turn) * out, math.cos(turn) * out)
 end
 
 --- A spot is drawn filled only when its node was seen up, not gathered
@@ -458,10 +496,10 @@ end
 
 --- The gold dotted line to the route's next stop, held to the rim when the
 --- stop is past it, and the stop's name with how far it is.
-function FarmHUD:DrawRoute(spot, px, py, width, height)
+function FarmHUD:DrawRoute(spot, px, py, width, height, turn)
     local frame = self.frame
     local half = self.half
-    local x, y, yards = FarmHUD.Offset(spot, px, py, width, height, half, FarmHUD.REACH)
+    local x, y, yards = FarmHUD.Offset(spot, px, py, width, height, half, FarmHUD.REACH, turn)
     local length = math.sqrt(x * x + y * y)
     local edge = half - self.dotSize
     if length > edge and length > 0 then
@@ -536,9 +574,12 @@ ns.RegisterCommand("hud", L["Show or Hide Farm HUD"], function(rest)
         FarmHUD:Toggle()
     elseif which == "on" or which == "off" then
         FarmHUD:SetOn(which == "on")
+    elseif which == "turn" and (state == "on" or state == "off") then
+        FarmHUD:SetTurn(state == "on")
+        ns.Print(L["Farm HUD Turns With You:"] .. " " .. (state == "on" and L["on"] or L["off"]))
     elseif which == "size" and FarmHUD:SetSize(state) then
         ns.Print(L["Farm HUD Size:"] .. " " .. FarmHUD.SizeName(FarmHUD.Size()))
     else
-        ns.PrintRaw("  /farm hud, /farm hud on|off, /farm hud size small|medium|large")
+        ns.PrintRaw("  /farm hud, /farm hud on|off, /farm hud turn on|off, /farm hud size small|medium|large")
     end
 end)
