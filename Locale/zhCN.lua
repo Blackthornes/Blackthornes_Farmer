@@ -2176,6 +2176,21 @@ L["Farmer Settings:"] = "Farmer 设置："
 L["Puts every Farmer setting back to how it started. Your kills, loot, farms and goals stay. So do your window locations and the choices on this page."] = "把 Farmer 的每个设置恢复到最初的样子。 你的击杀、战利品、刷怪点和目标都会保留。 你的窗口位置和这一页的选择也会保留。"
 L["Every Farmer setting is back to how it started."] = "Farmer 的所有设置都已恢复到最初的样子。"
 
+-- Look choices (All Addons page)
+L["Font:"] = "字体："
+L["House##font"] = "默认"
+L["Game##font"] = "游戏"
+L["Clear##font"] = "清晰"
+L["Colors:"] = "颜色："
+L["Warm"] = "暖色"
+L["Darker"] = "更暗"
+L["Fold Gem:"] = "收起样式："
+L["Round Button"] = "圆形按钮"
+L["Small Bar"] = "小条"
+L["House, Game or Clear. Clear is plain and easy to read, and it has Russian letters."] = "默认、游戏或清晰。清晰简洁易读，带有俄文字母。中文客户端上，清晰会显示默认字体。"
+L["Warm is the look today. Darker takes the warm tint out of the glass."] = "暖色是以前的样子。更暗会去掉玻璃的暖色调。"
+L["What a folded window turns into: the round button, or a small bar with its title."] = "折叠后的窗口会变成：圆形按钮，或带标题的小条。"
+
 -- The Home tab (2026-11-26)
 L["Home"] = "主页"
 L["Type an item, a mob or a zone"] = "输入物品、怪物或区域"

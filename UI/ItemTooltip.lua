@@ -365,6 +365,12 @@ ItemTooltip.LONG = 44
 
 local GOLD = { 1, 0.82, 0 }
 
+--- Is this line on Shift (shown only while Shift is held)?
+function ItemTooltip.OnShift(key)
+    if not (Shift and Shift.Read) then return nil end
+    return Shift.Read(key) and true or nil
+end
+
 --- Farmer's lines for the shared block, and whether one was held back.
 function ItemTooltip:BlockLines(tooltip, data)
     if not self:IsEnabled() and not self:CraftEnabled() then return nil end
@@ -385,16 +391,21 @@ function ItemTooltip:BlockLines(tooltip, data)
     if text and not Shift:Shows("whereToFarm") then text, held = nil, true end
     if craft and not Shift:Shows("craftOrSell") then craft, held = nil, true end
 
+    -- A line on Shift shows only while Shift is held, so it goes at the
+    -- bottom of the block (2026-11-26).
+    local farmShift = text and ItemTooltip.OnShift("whereToFarm") or nil
+    local craftShift = craft and ItemTooltip.OnShift("craftOrSell") or nil
+
     local out = {}
     if text then
         if #text > ItemTooltip.LONG then
-            out[1] = { L["Farm At:"] .. " |cffffffff" .. text .. "|r", wrap = true }
+            out[1] = { L["Farm At:"] .. " |cffffffff" .. text .. "|r", wrap = true, shift = farmShift }
         else
-            out[1] = { L["Farm At:"], text }
+            out[1] = { L["Farm At:"], text, shift = farmShift }
         end
     end
     for _, pair in ipairs(craft or {}) do
-        out[#out + 1] = { pair[1], pair[2], rightColor = pair[3] and GOLD or nil }
+        out[#out + 1] = { pair[1], pair[2], rightColor = pair[3] and GOLD or nil, shift = craftShift }
     end
     return out, held
 end

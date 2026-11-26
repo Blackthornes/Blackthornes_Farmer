@@ -1568,6 +1568,29 @@ function NodeSparkle:SafeRefresh()
     return outcome
 end
 
+--- A nameplate came into view. A pack brings many in one frame: the first
+--- is looked at at once, so nothing flashes, and the rest share one more
+--- look on the next frame rather than one each.
+function NodeSparkle:OnPlateAdded()
+    if self.plateLookSoon then
+        self.plateLookAgain = true
+        return
+    end
+    -- With no timer to wait on, every plate looks for itself as before.
+    if not (type(C_Timer) == "table" and type(C_Timer.After) == "function") then
+        return self:SafeRefresh()
+    end
+    self.plateLookSoon = true
+    self:SafeRefresh()
+    After(0, function()
+        NodeSparkle.plateLookSoon = nil
+        if NodeSparkle.plateLookAgain then
+            NodeSparkle.plateLookAgain = nil
+            NodeSparkle:SafeRefresh()
+        end
+    end)
+end
+
 function NodeSparkle:OnPlateRemoved(unit)
     if not self.shownOn then return end
     local plates = _G.C_NamePlate
@@ -1582,7 +1605,7 @@ end
 
 function NodeSparkle:OnEnable()
     ns.RegisterEvent(self, "PLAYER_SOFT_INTERACT_CHANGED", function() NodeSparkle:SafeRefresh() end)
-    ns.RegisterEvent(self, "NAME_PLATE_UNIT_ADDED", function() NodeSparkle:SafeRefresh() end)
+    ns.RegisterEvent(self, "NAME_PLATE_UNIT_ADDED", function() NodeSparkle:OnPlateAdded() end)
     ns.RegisterEvent(self, "NAME_PLATE_UNIT_REMOVED", function(_, _, unit) NodeSparkle:OnPlateRemoved(unit) end)
     ns.RegisterEvent(self, "QUEST_LOG_UPDATE", function() NodeSparkle:QuestLogChanged() end)
     -- A fight: everything kept out of sight comes back first, while the
