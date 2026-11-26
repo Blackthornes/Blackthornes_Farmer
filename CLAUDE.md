@@ -108,6 +108,7 @@ Sections there:
 - The tooltip block (shared item tooltip lines)
 - Panel Style (Like Quest List)
 - Grind to 60 (a test feature, 2026-11-22)
+- The Rankings board over a few frames (2026-11-26)
 
 ## Checking a change
 

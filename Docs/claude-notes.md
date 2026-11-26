@@ -3537,3 +3537,34 @@ with no level is left out. A level the client won't read filters nothing.
 `rankingsNearLevel` (account wide, never rename it). `/farm rankings level
 [on|off]`. The rank-up pop-up and the top 15 after a scan rank every level, so
 `outsideVersion` does not move. Tested in `tools/test_rankingslevel.lua`.
+
+## The Rankings board over a few frames (2026-11-26)
+
+The owner: the game still stood still for a moment when the Rankings tab
+opened. The board prices every drop of every rated mob (about 3,000 mobs
+with the shipped data), and the first asking of a session reads each
+item's tooltip for its vendor price. In the fake game with the shipped
+data, opening the tab held one frame for about 127 ms; now about 8 ms,
+and no frame of the build runs past about 14 ms.
+
+- `Rankings:BuildSoon(done, each)` (`Logic/Rankings.lua`) builds the same
+  board as `Rankings:Build` a slice a frame: `SLICE_MS` (5) by
+  `debugprofilestop`, or `SLICE_MOBS` (60) a slice with no clock. The
+  first slice runs at once, so a short board is ready before it returns.
+  Asking again drops the build under way. With no `C_Timer.After` it is
+  `Build`, at once. `Build` is split into `Names`, `AddTo` and `Finish`
+  and gives what it always gave.
+- `RankingsUI:Render` draws the board kept from last time at once when the
+  tab opens or a chip is picked, then asks for a new one. When the new
+  rows would draw the same (`RankingsUI.SameRows`) nothing is drawn again,
+  so the bars finish growing; the columns are still fitted, since the
+  screen may have changed. A board that lands while another tab is up is
+  kept, not drawn. The first opening of a session has no board to show
+  and fills in a few frames later.
+- Text widths: `RankingsUI.Measure` measures each mob as the build adds
+  it (`each`), kept by board in `self.fitted`, and `SmallWidth` keeps
+  every measured text for the session. A draw measures no mob twice.
+- Not sliced: `DB:ByName()` lays out its index the first time anything
+  asks in a session (about 37 ms in the fake game), here or in the search.
+- Tested in `tools/test_rankingssoon.lua`, with timers that wait for the
+  test to let a frame pass.

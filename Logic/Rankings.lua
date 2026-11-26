@@ -468,33 +468,37 @@ function Rankings:Entry(mobName)
     return entry
 end
 
---- The board: { measured = {...}, estimate = {...}, pending = {...} }, each
---- entry { mob, value, details, kills, needed, where, level, best, rank }.
--- Measured and estimates are ranked by worth per kill; pending by how close
--- each is to MIN_KILLS.
-function Rankings:Build()
+--- Every name the board asks about, as a list: each tallied line (one for
+--- each zone of a name killed in more than one) and each mob the database
+--- gives a drop rate for.
+function Rankings:Names()
     local names = {}
-
-    -- A line for each zone of a name killed in more than one.
     for key in pairs(ns.Tracker:Tallies()) do
         if type(key) == "string" then names[key] = true end
     end
     RatedMobs(names)
 
-    local board = { measured = {}, estimate = {}, pending = {} }
-    local level = self.NearLevel() and self.PlayerLevel() or nil
+    local list = {}
+    for name in pairs(names) do list[#list + 1] = name end
+    return list
+end
 
-    for name in pairs(names) do
-        -- A mob on the hide list is not ranked (DB:IsHiddenSource), nor a
-        -- dungeon's with "Outside dungeons only" ticked, nor one far from
-        -- the character's level with "Near my level" ticked.
-        local entry = not self:LeftOut(name) and self:Entry(name)
-        if entry and self:NearYou(entry, level) then
-            local list = board[entry.group]
-            list[#list + 1] = entry
-        end
+--- Put one mob on `board`, when it belongs there. A mob on the hide list
+--- is not ranked (DB:IsHiddenSource), nor a dungeon's with "Outside
+--- dungeons only" ticked, nor one far from `level` with "Near my level"
+--- ticked.
+function Rankings:AddTo(board, name, level)
+    local entry = not self:LeftOut(name) and self:Entry(name)
+    if entry and self:NearYou(entry, level) then
+        local list = board[entry.group]
+        list[#list + 1] = entry
+        return entry
     end
+    return nil
+end
 
+--- Sort a filled board and number its ranks. Returns the board.
+function Rankings:Finish(board)
     local function ByValue(a, b)
         if a.value ~= b.value then return a.value > b.value end
         return a.mob < b.mob
@@ -514,6 +518,94 @@ function Rankings:Build()
     end
 
     return board
+end
+
+--- The board: { measured = {...}, estimate = {...}, pending = {...} }, each
+--- entry { mob, value, details, kills, needed, where, level, best, rank }.
+-- Measured and estimates are ranked by worth per kill; pending by how close
+-- each is to MIN_KILLS.
+function Rankings:Build()
+    local board = { measured = {}, estimate = {}, pending = {} }
+    local level = self.NearLevel() and self.PlayerLevel() or nil
+
+    for _, name in ipairs(self:Names()) do
+        self:AddTo(board, name, level)
+    end
+
+    return self:Finish(board)
+end
+
+--------------------------------------------------------------------------------
+-- The board over a few frames
+--------------------------------------------------------------------------------
+
+-- The board prices every drop of every rated mob, a few thousand items,
+-- and the first asking of a session reads each one's tooltip for its
+-- vendor price. Done in one go the game stood still for a moment when the
+-- Rankings tab opened (the owner, 2026-11-26). BuildSoon does the same
+-- work a slice a frame and hands over the same board as Build.
+-- SLICE_MS is how long one frame's slice may run; SLICE_MOBS is a slice
+-- on a client with no clock to time it by.
+Rankings.SLICE_MS = 5
+Rankings.SLICE_MOBS = 60
+
+local function Clock()
+    if type(debugprofilestop) ~= "function" then return nil end
+    local ok, now = pcall(debugprofilestop)
+    return ok and tonumber(now) or nil
+end
+
+--- Build the board over a few frames and call `done(board)` with it. The
+--- first slice runs at once, so a short board is ready before this
+--- returns. Asking again drops the build under way: only the newest
+--- calls back. Without a timer it is Build, at once. `each(entry)`, when
+--- given, is called for every mob as it goes on the board, inside the
+--- slice's time (the tab measures its texts there).
+function Rankings:BuildSoon(done, each)
+    local after = C_Timer and C_Timer.After
+    local job = {
+        names = self:Names(),
+        at = 1,
+        board = { measured = {}, estimate = {}, pending = {} },
+        level = self.NearLevel() and self.PlayerLevel() or nil,
+    }
+    self.job = job
+    local sliced = type(after) == "function"
+
+    local function Step()
+        if self.job ~= job then return end
+
+        local started, count = Clock(), 0
+        while job.at <= #job.names do
+            local entry = self:AddTo(job.board, job.names[job.at], job.level)
+            if entry and each then each(entry) end
+            job.at = job.at + 1
+            count = count + 1
+            if sliced then
+                if started then
+                    local now = Clock()
+                    if not now or now - started >= self.SLICE_MS then break end
+                elseif count >= self.SLICE_MOBS then
+                    break
+                end
+            end
+        end
+
+        if job.at > #job.names then
+            self.job = nil
+            done(self:Finish(job.board))
+            return
+        end
+
+        after(0, Step)
+    end
+
+    Step()
+end
+
+--- Is a board being built over frames right now?
+function Rankings:Building()
+    return self.job ~= nil
 end
 
 -- A ding moves the band: the tab draws again while the box is ticked.
