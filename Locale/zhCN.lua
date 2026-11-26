@@ -2168,6 +2168,16 @@ L["Click to open this step."] = "点击打开这一步。"
 L["Built from mobs Farmer has seen. It gets better as you play."] = "根据 Farmer 见过的怪物生成。你玩得越多，它越准。"
 L["Farmer hasn't seen enough mobs near your level yet. Go kill a few and check back."] = "Farmer 见过的与你等级相近的怪物还不够。去杀几只再回来看看。"
 L["You made it to 60."] = "你已经到 60 级了。"
+-- The Farm HUD (UI/FarmHUD.lua)
+L["Farm HUD:"] = "采集环："
+L["A see-through ring in the middle of your screen. It shows the herbs, ore and fishing spots you found near you."] = "屏幕中间的一个半透明圆环。它会显示你在附近找到的草药、矿石和钓鱼点。"
+L["Farm HUD Size:"] = "采集环大小："
+L["Show or Hide Farm HUD"] = "显示或隐藏采集环"
+L["The Farm HUD is on."] = "采集环已开启。"
+L["The Farm HUD is off."] = "采集环已关闭。"
+L["Medium"] = "中"
+L["N"] = "北"
+L["%s, %d yards"] = "%s，%d 码"
 
 -- Farmer Settings: Set Default (2026-11-23)
 L["Farmer Settings:"] = "Farmer 设置："

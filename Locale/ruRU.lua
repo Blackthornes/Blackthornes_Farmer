@@ -2178,6 +2178,16 @@ L["Click to open this step."] = "Щёлкни, чтобы открыть это�
 L["Built from mobs Farmer has seen. It gets better as you play."] = "Построено по противникам, которых видел Farmer. Чем больше играешь, тем точнее."
 L["Farmer hasn't seen enough mobs near your level yet. Go kill a few and check back."] = "Farmer пока видел мало противников твоего уровня. Убей несколько и загляни снова."
 L["You made it to 60."] = "Ты достиг 60-го уровня."
+-- The Farm HUD (UI/FarmHUD.lua)
+L["Farm HUD:"] = "Кольцо сбора:"
+L["A see-through ring in the middle of your screen. It shows the herbs, ore and fishing spots you found near you."] = "Прозрачное кольцо в центре экрана. Показывает травы, руду и места рыбалки, которые ты нашёл рядом."
+L["Farm HUD Size:"] = "Размер кольца сбора:"
+L["Show or Hide Farm HUD"] = "Показать или скрыть кольцо сбора"
+L["The Farm HUD is on."] = "Кольцо сбора включено."
+L["The Farm HUD is off."] = "Кольцо сбора выключено."
+L["Medium"] = "Средний"
+L["N"] = "С"
+L["%s, %d yards"] = "%s, %d м"
 
 -- Farmer Settings: Set Default (2026-11-23)
 L["Farmer Settings:"] = "Настройки Farmer:"
