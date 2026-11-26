@@ -3779,3 +3779,49 @@ never rename it; it is in `SettingsUI.SETTING_KEYS`. `UI/SlimBar.lua`
   tooltip is the shared file's and was left alone.
 - The fake game's frames have `HookScript` now, as the game's do.
 - Tested in `tools/test_slimbar.lua`. Not yet seen in game.
+
+## The run graph and a Run Recap that stays (2026-11-26)
+
+The owner said build it from the mockup
+`Docs/mockups/farmer-improve-4-run-graph-and-recap.html` in the project
+files, and approved its words.
+
+- **The run graph** (`UI/RunGraph.lua`, a new file in the TOC after
+  `UI/SlimBar.lua`): a strip under the title bar (under the session
+  timer's strip), `RunGraph.HEIGHT` tall, with gold an hour as the big
+  number ("%s an hour"), "%d%% over your usual here" or "under", and a
+  small graph: the line is gold an hour over the last `WINDOW` (10
+  minutes) at each point, a gold wash under it, a dashed line for your
+  usual here, a green dot for each green or better drop
+  (`SlimBar.BestNew`), and "Start", "- - your usual here" and "%d min"
+  under it. `TrackerUI:PlaceTimer` lays it out and `Top()` counts
+  `graphHeight`. Shown only while "Run Graph:" (Kills page, under Pause
+  When Away) is ticked (`runGraph`, false when off, never rename it), the
+  panel knows its gold an hour, and not in Slim Bar, Like Quest List or
+  while folded.
+- Points come from the panel's own numbers (`RunGraph.Read`: the panel's
+  value and clock, or the session timer's run while it is on), taken in
+  `TrackerUI:Redraw` at most once a minute, never on a timer. A drop in
+  value or clock (a Clear) starts the run again. The lines move only when
+  a point is added or the width changes (`RunGraph.drawn`).
+- **Your usual here:** each minute between points (gaps over `GAP`, 10
+  minutes, left out) adds its seconds and copper to the zone
+  (`GetRealZoneText`, in a pcall), account wide in `zonePace[zone] = { s,
+  c }` (never rename it). This session's share is kept apart in memory, so
+  the usual is the play before it, shown after `USUAL_AFTER` (20 minutes)
+  there.
+- **The Run Recap** (`UI/Recap.lua`): how long and where on top ("%s in
+  %s", with "(up %d%%)" or "(usual %s)"), then made, an hour and kills as
+  three big numbers, then the run's best drop first and the next by what
+  they came to (`Moments.TopItems`, `RECAP_ITEMS` 3, with "x46"), "Coin
+  and everything else" for the rest, Time paused, the lucky line, and a
+  Close button with Save This Farm left of it while Saved Farms is on.
+  The fold gem is hidden; the close gem closes it. `Moments` keeps
+  `run.items` and `run.zones` for it; a recap saved before them shows
+  its best drop.
+- "Run Recap Stays:" (Kills page) is on unless unticked (`recapStays`,
+  false when off, never rename it): no countdown, it stays until closed.
+  Unticked, it fades after `HOLD` as before. A saved spot for the recap is
+  left to the Move Windows work.
+- Tested in `tools/test_rungraph.lua` and `tools/test_moments.lua`. Not
+  yet seen in game.

@@ -351,8 +351,8 @@ SettingsUI.SETTING_KEYS = {
     "questMobCount", "questMobCountMine", "questMobCountSide", "rankUpPopup",
     "rankUpSeeThrough", "rankUpSound", "rankingsExclude",
     "rankingsNearLevel", "rankingsOutside", "rankingsSkipUncommon",
-    "rankingsVendorOnly", "recapSeeThrough", "routeWindow",
-    "routeWindowSeeThrough", "savedFarms", "sessionTimer",
+    "rankingsVendorOnly", "recapSeeThrough", "recapStays", "routeWindow",
+    "routeWindowSeeThrough", "runGraph", "savedFarms", "sessionTimer",
     "sessionTimerAutoPause", "settingsDescriptions", "shareData",
     "shareDrops", "shareGuild", "sharedChatNotice", "snapPanels", "statsBestCheer",
     "tooltipShift", "topFarmAlert", "trackerAnnounce", "trackerCelebrate",
@@ -1299,6 +1299,22 @@ function SettingsUI:BuildTallyPage()
         ns.SessionTimer:SetAutoPause(checked)
     end, true)
     controls.sessionTimerAutoPause:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The run graph and the Run Recap that stays (the owner said build it,
+    -- 2026-11-26, and approved the words). Both on unless unticked.
+    local graphRow = pages:Row("tally", 1, L["Run Graph:"],
+        L["A small graph of your gold per hour on Kills & Loot."])
+    controls.runGraph = Widgets.CreateCheckbox(graphRow, L["On"], function(checked)
+        ns.RunGraph:SetOn(checked)
+    end, true)
+    controls.runGraph:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local staysRow = pages:Row("tally", 1, L["Run Recap Stays:"],
+        L["The Run Recap stays until you close it."])
+    controls.recapStays = Widgets.CreateCheckbox(staysRow, L["On"], function(checked)
+        ns.RecapUI:SetStays(checked)
+    end, true)
+    controls.recapStays:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The mob you last looted, as the commands read it with no name. The
     -- chat-only lists stay typed commands (the owner, 2026-10-15).
@@ -2401,6 +2417,8 @@ function SettingsUI:Refresh()
     controls.sessionTimer:SetChecked(db.sessionTimer == true)
     controls.sessionTimerAutoPause:SetChecked(db.sessionTimerAutoPause ~= false)
     controls.sessionTimerAutoPause:SetDisabled(db.sessionTimer ~= true)
+    controls.runGraph:SetChecked(db.runGraph ~= false)
+    controls.recapStays:SetChecked(db.recapStays ~= false)
     controls.seeThrough:SetValue(db.trackerSeeThrough == true and ns.TrackerUI:SeeThroughLevel() or 0, true)
     controls.goalsSeeThrough:SetValue(ns.SeeThrough:Level("goals"), true)
     controls.goalSpotsSeeThrough:SetValue(ns.SeeThrough:Level("places"), true)

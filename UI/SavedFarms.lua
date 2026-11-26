@@ -1229,10 +1229,16 @@ function SavedFarmsUI:DressRecap()
     frame.saveFarm:SetShown(show and true or false)
     if show then
         frame.saveFarm:ClearAllPoints()
-        frame.saveFarm:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PADDING, 10)
-        -- Show sets the card's height afresh each time; room for the button.
-        local height = frame:GetHeight()
-        if type(height) == "number" then frame:SetHeight(height + 26) end
+        -- Left of Close, on the card's foot, which has room for it.
+        local close = Recap.closeButton
+        if close then
+            frame.saveFarm:SetPoint("RIGHT", close, "LEFT", -6, 0)
+        else
+            frame.saveFarm:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PADDING, 10)
+            -- Show sets the card's height afresh each time; room for the button.
+            local height = frame:GetHeight()
+            if type(height) == "number" then frame:SetHeight(height + 26) end
+        end
     end
 end
 

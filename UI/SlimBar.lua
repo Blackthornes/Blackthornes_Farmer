@@ -180,6 +180,8 @@ local function Now()
     return ok and type(now) == "number" and now or nil
 end
 
+SlimBar.Counts = Counts
+
 --- Where the most of `name` came from this session, or nil.
 local function SourceOf(name)
     local from = ns.Tracker and ns.Tracker.sessionFrom and ns.Tracker.sessionFrom[name]
@@ -213,14 +215,10 @@ function SlimBar.FlashText(name)
     return table.concat(parts, " ")
 end
 
---- Look for a green or better drop since the last look. The first look only
---- takes note: that is where the counts start.
-function SlimBar:NoteDrops()
-    local counts = Counts()
-    local was = self.seen
-    self.seen = counts
-    if not was then return end
-
+--- The best green or better item that went up from `was` to `counts`,
+--- or nil. The run graph's drop dots ask this too.
+function SlimBar.BestNew(was, counts)
+    if not (was and counts) then return nil end
     local best, bestQuality
     for name, count in pairs(counts) do
         if count > (was[name] or 0) then
@@ -230,6 +228,16 @@ function SlimBar:NoteDrops()
             end
         end
     end
+    return best
+end
+
+--- Look for a green or better drop since the last look. The first look only
+--- takes note: that is where the counts start.
+function SlimBar:NoteDrops()
+    local counts = Counts()
+    local was = self.seen
+    self.seen = counts
+    local best = SlimBar.BestNew(was, counts)
     if not best then return end
 
     local now = Now()
@@ -286,6 +294,7 @@ function SlimBar:Draw(ui)
     end
     for _, line in ipairs(ui.lines or {}) do line:Hide() end
     for _, card in ipairs(ui.cards or {}) do card:Hide() end
+    if ns.RunGraph then ns.RunGraph:Hide() end
 
     self:ReadNumbers()
     local text = self:BarText()

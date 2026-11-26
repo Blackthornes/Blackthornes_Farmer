@@ -112,6 +112,7 @@ Sections there:
 - Restore Defaults (Farmer Settings: Set Default)
 - Smoother kills and the hand-drawn scroll bar
 - Slim Bar for Kills & Loot (2026-11-26)
+- The run graph and a Run Recap that stays (2026-11-26)
 
 ## Checking a change
 

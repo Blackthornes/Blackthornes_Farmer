@@ -431,6 +431,7 @@ local UI_FILES = {
     "UI/MapDock.lua",
     "UI/Tracker.lua",
     "UI/SlimBar.lua",
+    "UI/RunGraph.lua",
     "UI/TrackerFX.lua",
     "UI/Goals.lua",
     "UI/LootTable.lua",

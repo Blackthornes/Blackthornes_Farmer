@@ -260,8 +260,15 @@ clock = clock + Moments.RECAP_IDLE + 1
 RunTimers()
 suite.check("then the recap shows", ns.RecapUI:IsShown())
 suite.check("titled your run", ns.RecapUI.frame.title:GetText() == "YOUR RUN")
-suite.check("with the kills", ns.RecapUI.lines[1].right:GetText() == "30", ns.RecapUI.lines[1].right:GetText())
-suite.check("and the best drop", ns.RecapUI.lines[5].right:GetText() ~= nil)
+suite.check("with the kills", ns.RecapUI.big[3].value:GetText() == "30"
+    and ns.RecapUI.big[3].caption:GetText() == "kills", ns.RecapUI.big[3].value:GetText())
+suite.check("what it made and gold an hour", ns.RecapUI.big[1].caption:GetText() == "made"
+    and ns.RecapUI.big[2].caption:GetText() == "an hour")
+suite.check("and the coin in one line", ns.RecapUI.lines[1]:IsShown()
+    and ns.RecapUI.lines[1].left:GetText() == "Coin and everything else", ns.RecapUI.lines[1].left:GetText())
+suite.check("it stays until closed", ns.RecapUI.holding == nil and not ns.RecapUI.timer:IsShown())
+ns.RecapUI:Tick(600)
+suite.check("however long it waits", ns.RecapUI:IsShown())
 suite.check("and a new run begins", Moments.run == nil)
 ns.RecapUI:Hide()
 
