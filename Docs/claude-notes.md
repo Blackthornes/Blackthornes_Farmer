@@ -3377,6 +3377,13 @@ same kind within `REACH` of the aimed stop moves it on too
 (`PickedNear(spot, fresh, within)`), counted as checked, not picked. No new
 settings or words. Tested in `tools/test_gatherroute.lua`.
 
+The arrow follows the plan's pick (Trent's screenshot, 2026-11-26): `Plan`
+picks the next stop again as you move (`PickNext`), so the Route list and
+minimap could move on while the arrow and the Farm HUD kept `run.aimed`.
+`Look` now re-aims when `Plan().nextStop` is not `run.aimed`, and the HUD
+reads the plan's stop. Tested in `tools/test_gatherroute.lua` and
+`tools/test_farmhud.lua`.
+
 ## Gather Route, Route Window and Zone Board on by default
 
 Trent asked (2026-11-18) that Gather Route, Route Window and Zone Board be on for every player, existing ones too. Each now reads on unless saved `false` (`gatherRoute`, `routeWindow`, `zoneBoard`; never rename); ticking clears the key, unticking saves `false`. Players who had ticked one (`true`) keep it; the rest start on. The Route Window still shows only while a route runs, and the Zone Board shows its button on the Kills & Loot bar and its banner at a zone line's 20th kill. Tests that measure chip or bar layout switch the feature off first.
