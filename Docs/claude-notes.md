@@ -3369,7 +3369,7 @@ yet seen in game.
 Trent asked (2026-11-19): you shouldn't have to stand on a node for the route
 to move on, since the minimap shows whether it is up from well away. The stop
 the arrow points at (`run.aimed`) now counts as reached within
-`GatherRoute.REACH` (30 yards, 50 since Trent asked 2026-11-26), once you were farther than that from it since
+`GatherRoute.REACH` (30 yards, 50 then 90 since Trent asked 2026-11-26: a node is easy to see that far), once you were farther than that from it since
 it was aimed (`run.cameFrom`, `GatherRoute.Reach`), so a stop that comes next
 while you already stand near it still needs `ARRIVED` (12). Other stops keep
 `ARRIVED`, so passing one on the way doesn't check it. Picking a node of the
@@ -3621,7 +3621,10 @@ around you. `UI/FarmHUD.lua`, art from `tools/make_hud_art.py`
   rename), the Map page row "Farm HUD Turns With You:" and `/farm hud turn
   on|off`. On, `FarmHUD.Offset` turns each spot by `GetPlayerFacing` as the
   turning minimap does, the arrow stays up and N moves round the rim
-  (`PlaceNorth`). Off, north stays up.
+  (`PlaceNorth`). Off, north stays up. The turn goes on every frame
+  (`FarmHUD:Spin`, only past `TURN_MOVE`), moving the dots `Draw` kept
+  unturned in `FarmHUD.placed` and `.route`; finding spots stays at `STEP`
+  (Trent: at 5 looks a second it jumped as you turned).
 - Off unless turned on: `farmHud` (true only when on) and `farmHudSize`
   (nil is Medium; Small 300, Medium 420, Large 560 pixels). Never rename
   either. Map page rows "Farm HUD:" and "Farm HUD Size:", `/farm hud
