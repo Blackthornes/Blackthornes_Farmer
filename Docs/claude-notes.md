@@ -2420,6 +2420,14 @@ never announced. Never commit the cache or name it in public. `/farm
 harvest check` also says whether the kill line in chat names the mob
 (`Harvest:NoteKillLine`). Tested in `tools/test_namemob.lua` and
 `tools/test_forever_npc_names.py`.
+Forever's own dungeons (Blackmaw Hold, Krol'dok Stronghold, Alcaz
+Prison) hide names so well that even the cache never holds them. Those
+are looked up by hand and kept in `tools/forever_npc_names_by_hand.txt`
+("ID = Name" a line, never shipped), which the same tool folds in, never
+over a shipped name (the owner asked 2026-11-26; 42 added then, every
+"Creature #ID" in his save). To find what is still a number: every
+`Creature #ID` in his save whose ID is in none of `npcNames`,
+`ForeverNpcNames.lua` or `NpcNames.lua`.
 `/farm harvest check` reports what a dungeon lets the addon read.
 
 ## Loot icons
