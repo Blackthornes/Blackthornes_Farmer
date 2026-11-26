@@ -570,6 +570,34 @@ do
     _G.C_Timer = savedTimer
 end
 
+-- Logging out puts the game's settings back, so a game started with Farmer
+-- turned off shows no health bars over NPCs up close (the owner's report,
+-- 2026-11-26: Farmer off for a test, the interact nameplate stayed on).
+do
+    local function Fire(event) ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, event) end
+    NodeSparkle:OnEnable()
+    NodeSparkle:SetEnabled(false)
+    cvars.SoftTargetInteract, cvars.SoftTargetNameplateInteract = "1", "0"
+    NodeSparkle:SetEnabled(true)
+    suite.check("on again before logout", cvars.SoftTargetInteract == "3" and cvars.SoftTargetNameplateInteract == "1")
+    Fire("PLAYER_LOGOUT")
+    suite.check("logout puts the nameplate back", cvars.SoftTargetNameplateInteract == "0", cvars.SoftTargetNameplateInteract)
+    suite.check("and the interact key", cvars.SoftTargetInteract == "1" and cvars.SoftTargetInteractRange == "10")
+    suite.check("the box stays ticked", ns.db.nodeSparkle == true)
+    Fire("PLAYER_ENTERING_WORLD")
+    suite.check("the next login turns them on again", cvars.SoftTargetInteract == "3" and cvars.SoftTargetNameplateInteract == "1")
+    suite.check("keeping the player's own again", ns.db.nodeSparkleCVars.SoftTargetInteract == "1")
+    -- A setting the player turned back mid-session stays theirs.
+    cvars.SoftTargetInteract = "0"
+    Fire("PLAYER_LOGOUT")
+    suite.check("an interact key turned off before logout stays off", cvars.SoftTargetInteract == "0")
+    suite.check("and is noted as theirs", ns.db.nodeSparkleCVarsLeft.SoftTargetInteract == true)
+    Fire("PLAYER_ENTERING_WORLD")
+    suite.check("and is not turned on at the next login", cvars.SoftTargetInteract == "0")
+    NodeSparkle:SetEnabled(false)
+    NodeSparkle:SetEnabled(true)
+end
+
 ns.SettingsUI:Hide()
 
 suite.done()
