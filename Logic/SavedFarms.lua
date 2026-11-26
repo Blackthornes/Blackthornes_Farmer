@@ -438,8 +438,9 @@ function SavedFarms.When(at, now)
     local days = 0
     local today, that = Day(now), Day(at)
     if today ~= that then
-        days = math.max(1, math.floor((now - at) / 86400 + 0.5))
-        if days == 0 then days = 1 end
+        -- Calendar days, not hours gone by: a run yesterday morning seen
+        -- tonight was yesterday, not two days ago.
+        days = math.max(1, math.floor((Util.Noon(now) - Util.Noon(at)) / 86400 + 0.5))
     end
     if days == 0 then return L["Today"] end
     if days == 1 then return L["Yesterday"] end
