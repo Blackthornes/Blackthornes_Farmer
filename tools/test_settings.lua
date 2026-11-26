@@ -243,6 +243,7 @@ local buttons = {
     xpBarTry = "xpbar try",
     topFarmTry = "topfarm test",
     lootFeedMove = "lootfeed move",
+    moveWindows = "move",
     lootFeedReset = "lootfeed reset",
     routeWindowReset = "routewindow reset",
     zoneBoardShow = "zone", zoneBoardReset = "zone reset",

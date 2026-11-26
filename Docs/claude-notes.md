@@ -3825,3 +3825,33 @@ files, and approved its words.
   left to the Move Windows work.
 - Tested in `tools/test_rungraph.lua` and `tools/test_moments.lua`. Not
   yet seen in game.
+
+## Move Windows (2026-11-26)
+
+The owner said yes to the mockup (`Docs/mockups/farmer-improve-3-move-windows.html`
+in the project files) on 2026-11-26. `UI/MoveWindows.lua` shows a stand-in box
+for each Farmer piece at once (Goal Arrow, Notes, Run Recap, Rank Up, Kills &
+Loot, Goals, Loot Feed, Fishing Panel, Zone Board, XP Bar), even ones hidden
+now. Opened by "Move Windows:" Move at the top of the WINDOWS page and by
+`/farm move`; Escape or Done closes it, it won't open in a fight and a fight
+closes it.
+
+- Each drop saves at once in the key the piece already uses when dragged by
+  itself (`lootFeedX/Y`, `rankUpX/Y`, `goalsX/Y`, `arrowX/Y` (its middle),
+  `xpBarPoint/RelPoint/X/Y`, Kills & Loot through `TrackerUI:SavePosition`,
+  `windowSpots["farmer.fishingpanel"]` and the Zone Board's `SPOT_KEY`).
+  Boxes never dropped save nothing.
+- New spots, never rename: `windowSpots["farmer.recap"]` (Run Recap's top
+  left, read first by `RecapUI:Place`) and `windowSpots["shared.notice"]`
+  (the middle of the note stack's top, read by `Notice.Spot` in
+  `UI/Notice.lua`; while set, the stack leaves the top shelf). Both are
+  screen pixels like every window spot and go with Window Locations: Set
+  Default.
+- Boxes snap to the screen's middle lines and each other's edges within
+  `MoveWindows.SNAP` (12) and stay on screen (`MoveWindows.Snap`).
+- Put Everything Back is a Confirm button that runs
+  `SettingsUI:ResetAllWindows`, then lays the boxes again.
+- `UI/Notice.lua` is shared by all five addons. The other four still need
+  the `Notice.Spot` change; until then a note from them lays the stack out
+  on the top shelf again. `UI/SharedWindow.lua` is not changed.
+- Tested in `tools/test_movewindows.lua`.
