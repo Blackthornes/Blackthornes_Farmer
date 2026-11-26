@@ -140,3 +140,13 @@ Check: `local x, y = thing and Call()` keeps only the first value, so `y` is
   always nil. Declare the locals, then `if thing then x, y = Call() end`.
 Why: The trip line never drew on the world map: y was nil and the draw
   raised inside its pcall, in all five addons (2026-11-20).
+
+## Counting days
+Lines: 86400|PLAYER_LEVEL_UP
+Check: Days on the calendar are stepped from `Util.Noon(at)`, never from the
+  time now: a day is 23 or 25 hours when the clocks change, and hours gone by
+  are not days on the calendar. At PLAYER_LEVEL_UP take the level from the
+  event; UnitLevel still gives the old one for a moment.
+Why: A saved farm run yesterday morning read "2 days ago" at night, the Stats
+  days counted one day twice the night the clocks went back, and Near my
+  level kept the old band after a level up (2026-11-26).

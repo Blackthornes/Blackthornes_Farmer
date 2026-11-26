@@ -164,13 +164,17 @@ function Rankings:SetNearLevel(on)
     if ns.RankingsUI then ns.RankingsUI:Refresh() end
 end
 
---- The character's level, or nil when the client won't say.
+--- The character's level, or nil when the client won't say. Right after a
+--- level up the game still gives the old level for a moment, so the level
+--- the level up itself named (Rankings.heardLevel) counts when it is higher.
 function Rankings.PlayerLevel()
     if type(UnitLevel) ~= "function" then return nil end
     local ok, level = pcall(UnitLevel, "player")
     if not ok then return nil end
     local readable, number = pcall(tonumber, level)
     if not readable or type(number) ~= "number" or number < 1 then return nil end
+    local heard = Rankings.heardLevel
+    if heard and heard > number then return heard end
     return number
 end
 
@@ -556,7 +560,10 @@ end
 
 -- A ding moves the band: the tab draws again while the box is ticked.
 function Rankings:OnEnable()
-    ns.RegisterEvent(self, "PLAYER_LEVEL_UP", function()
+    ns.RegisterEvent(self, "PLAYER_LEVEL_UP", function(_, _, level)
+        -- The event names the new level; UnitLevel catches up a moment later.
+        local readable, number = pcall(tonumber, level)
+        if readable and type(number) == "number" and number >= 1 then Rankings.heardLevel = number end
         if Rankings.NearLevel() and ns.RankingsUI then ns.RankingsUI:Refresh() end
     end)
 end
