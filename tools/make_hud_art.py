@@ -10,6 +10,10 @@
 All are white so the game tints them. Uncompressed 32-bit TGA, like
 tools/make_heat_art.py. Rerun it rather than editing the TGAs.
 
+The rim and the dotted rings are 1024 pixels, the dots 64 and the arrow
+128, so they stay sharp at Large on a 4K screen (Trent, 2026-11-26: at 256
+the rim looked blurry). The floor is a soft fill and stays 256.
+
     python tools/make_hud_art.py
 """
 
@@ -28,6 +32,14 @@ def write(name, size, alpha_at):
     pixels = []
     for row in range(size):  # TGA rows run bottom to top, so y runs up
         for col in range(size):
+            # A pixel whose corners and middle agree is all in or all out:
+            # skip the samples, so the big art draws in seconds.
+            corners = [alpha_at((col + dx) / size * 2 - 1, (row + dy) / size * 2 - 1)
+                       for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1), (0.5, 0.5))]
+            if min(corners) == max(corners):
+                alpha = int(round(255 * max(0.0, min(1.0, corners[0]))))
+                pixels.append(struct.pack("<BBBB", 255, 255, 255, alpha))
+                continue
             total = 0.0
             for sy in range(SAMPLES):
                 for sx in range(SAMPLES):
@@ -84,11 +96,11 @@ def arrow(x, y):
 
 def main():
     write("HudDisc", 256, disc)
-    write("HudRing", 256, band(0.978, 0.996))
-    write("HudDash", 256, dashed(0.975, 0.995, 72))
-    write("HudDot", 32, disc)
-    write("HudHollow", 32, band(0.6, 0.98))
-    write("HudArrow", 64, arrow)
+    write("HudRing", 1024, band(0.978, 0.996))
+    write("HudDash", 1024, dashed(0.975, 0.995, 72))
+    write("HudDot", 64, disc)
+    write("HudHollow", 64, band(0.6, 0.98))
+    write("HudArrow", 128, arrow)
 
 
 if __name__ == "__main__":
