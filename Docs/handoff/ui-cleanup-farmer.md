@@ -39,21 +39,16 @@ Mockups live in the project files, not in this repo:
 - All 146 test suites pass, the fit suites among them (`test_textfit`,
   `test_panelfit`, `test_wrapfit`).
 
-## Engineering follow-ups (no change a player sees, not built)
+## Engineering follow-ups (built 2026-11-26)
 
-1. **The panel redraw still makes about 1.4 MB of garbage in a long
-   session** (60 mob kinds). `Tracker:SessionMobs` builds a fresh
-   `Tracker:Summary` for every mob on every kill, though one mob changed,
-   and `TrackerUI:Lines`, `Arrange` and `TrackerFX:Prepare` build new tables
-   for every line. Keeping each mob's summary until its tally changes needs
-   a version number bumped wherever the tally, the hide list, "Hide
-   skinning", `rollLooks` or an item's look changes. Worth its own PR with
-   its own tests; it is the biggest hitch left at kill time.
-2. **`NodeSparkle:SafeRefresh` runs once per nameplate added.** A pack of
-   mobs coming into view runs it many times in one frame. One run on the
-   next frame would do.
-3. **`MapMarkers:MinimapKey` builds a nine-part string ten times a second.**
-   Comparing the numbers kept from last time would make none.
+1. **Built: each mob's line is kept until its tally changes**
+   (`Tracker:KeptSummary`). A kill works out one line, not all 60. Still
+   open: `TrackerUI:Lines`, `Arrange` and `TrackerFX:Prepare` build new
+   tables for every line on each redraw.
+2. **Built: a pack of nameplates looks once at once and once more on the
+   next frame** (`NodeSparkle:OnPlateAdded`), not once per plate.
+3. **Built: the minimap compares the numbers kept from last time**
+   (`MapMarkers:MinimapKey(into)`, `SameMinimapKey`), building no text.
 
 ## Recommended, each with a mockup
 

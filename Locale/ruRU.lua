@@ -2185,6 +2185,21 @@ L["Farmer Settings:"] = "Настройки Farmer:"
 L["Puts every Farmer setting back to how it started. Your kills, loot, farms and goals stay. So do your window locations and the choices on this page."] = "Возвращает каждую настройку Farmer к началу. Твои убийства, добыча, фарм и цели остаются. Положение окон и выбор на этой странице тоже остаются."
 L["Every Farmer setting is back to how it started."] = "Все настройки Farmer снова как в начале."
 
+-- Look choices (All Addons page)
+L["Font:"] = "Шрифт:"
+L["House##font"] = "Фирменный"
+L["Game##font"] = "Игровой"
+L["Clear##font"] = "Чёткий"
+L["Colors:"] = "Цвета:"
+L["Warm"] = "Тёплые"
+L["Darker"] = "Темнее"
+L["Fold Gem:"] = "Сворачивание:"
+L["Round Button"] = "Круглая кнопка"
+L["Small Bar"] = "Маленькая полоска"
+L["House, Game or Clear. Clear is plain and easy to read, and it has Russian letters."] = "Фирменный, Игровой или Чёткий. Чёткий простой и легко читается, и в нём есть русские буквы."
+L["Warm is the look today. Darker takes the warm tint out of the glass."] = "Тёплые: вид как раньше. Темнее убирает тёплый оттенок со стекла."
+L["What a folded window turns into: the round button, or a small bar with its title."] = "Во что сворачивается окно: в круглую кнопку или в маленькую полоску с его названием."
+
 -- Slim Bar for Kills & Loot (2026-11-26)
 L["Middle-click for Kills & Loot."] = "Средний щелчок: убийства и добыча."
 L["Full Panel"] = "Полная панель"

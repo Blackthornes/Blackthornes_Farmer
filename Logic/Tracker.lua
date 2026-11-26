@@ -1071,20 +1071,79 @@ function Tracker:LootTable(mobName)
     return summary
 end
 
+--- What a line's summary is worked out from, read without making a table:
+--- its tally (the table itself), kills, this session's kills, and how many
+--- items and places with what counts. Drops and places only ever add up,
+--- so a new drop, kill or place changes one of these.
+local function TallyPrint(tally)
+    local items, dropped, places, placed = 0, 0, 0, 0
+    if type(tally.items) == "table" then
+        for _, count in pairs(tally.items) do
+            items = items + 1
+            dropped = dropped + (tonumber(count) or 0)
+        end
+    end
+    if type(tally.places) == "table" then
+        for _, kills in pairs(tally.places) do
+            places = places + 1
+            placed = placed + (tonumber(kills) or 0)
+        end
+    end
+    return items, dropped, places, placed
+end
+
+-- [line key] = { summary and what it was worked out from }. In memory only.
+Tracker.summaryKept = {}
+
+--- One line's summary, kept until its tally changes or something every line
+--- reads does: the hide list (with Hide Skinning), or an item's look (its ID
+--- decides what a random suffix counts as, its icon which suffix stands in).
+--- A kill then works out the one mob's line, not all of them.
+function Tracker:KeptSummary(key, hidden, looks, icons)
+    local tally = self:Tally(key)
+    if type(tally) ~= "table" then return nil end
+    local name, zone = Tracker.SplitKey(key)
+    local session = zone and (self.sessionZones[key] or 0) or (self.session[name] or 0)
+    local kills = tonumber(tally.kills) or 0
+    local items, dropped, places, placed = TallyPrint(tally)
+
+    local kept = self.summaryKept[key]
+    if kept and kept.tally == tally and kept.kills == kills and kept.session == session
+        and kept.items == items and kept.dropped == dropped and kept.places == places
+        and kept.placed == placed and kept.hidden == hidden and kept.looks == looks
+        and kept.icons == icons then
+        return kept.summary
+    end
+
+    local summary = self:Summary(key)
+    if not summary then return nil end
+    -- Filled in place: a line worked out again makes no new table for this.
+    kept = kept or {}
+    kept.summary, kept.tally, kept.kills, kept.session = summary, tally, kills, session
+    kept.items, kept.dropped, kept.places, kept.placed = items, dropped, places, placed
+    kept.hidden, kept.looks, kept.icons = hidden, looks, icons
+    self.summaryKept[key] = kept
+    return summary
+end
+
 --- Every mob killed this session, most recent first, as summaries. A name
 --- killed in more than one zone has a line for each zone killed in this
---- session.
+--- session. A line whose tally has not changed since last time is the same
+--- summary as then (Tracker:KeptSummary): read it, never change it.
 function Tracker:SessionMobs()
     local mobs = {}
+    local DB = ns.DB
+    local hidden = (DB and DB.hiddenVersion or 0) .. (ns.db and ns.db.hideSkinning == false and "s" or "")
+    local looks, icons = self.looksVersion or 0, self.iconsVersion or 0
 
     for name in pairs(self.session) do
         -- A mob on the hide list is not on the panel (DB:IsHiddenSource).
-        if not (ns.DB and ns.DB:IsHiddenSource(name)) then
+        if not (DB and DB:IsHiddenSource(name)) then
             local keys = self:Lines(name)
             local shown = 0
             for _, key in ipairs(keys) do
                 if key == name or (self.sessionZones[key] or 0) > 0 then
-                    local summary = self:Summary(key)
+                    local summary = self:KeptSummary(key, hidden, looks, icons)
                     if summary then
                         mobs[#mobs + 1] = summary
                         shown = shown + 1
@@ -1094,7 +1153,7 @@ function Tracker:SessionMobs()
             -- Killed this session only where the client named no zone:
             -- the busiest zone's line stands in.
             if shown == 0 and keys[1] then
-                local summary = self:Summary(keys[1])
+                local summary = self:KeptSummary(keys[1], hidden, looks, icons)
                 if summary then mobs[#mobs + 1] = summary end
             end
         end
@@ -1180,6 +1239,7 @@ function Tracker:Reset()
     if ns.Moments then ns.Moments.bestDrop = nil end
     self.session = {}
     self.sessionZones = {}
+    self.summaryKept = {}
     self.currentKey = nil
     self.corpses = {}
     self.areaLooted = {}
@@ -1371,6 +1431,8 @@ function Tracker:FillIcon(look)
     if icon then
         look.icon = icon
         Tracker.iconAsked[look.id] = nil
+        -- Which suffix stands in for its item may change (Tracker:Summary).
+        Tracker.iconsVersion = (Tracker.iconsVersion or 0) + 1
     else
         Tracker.iconAsked[look.id] = now
     end

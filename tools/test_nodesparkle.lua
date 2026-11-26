@@ -547,6 +547,29 @@ ns.Spots.Skills = realSkills
 ns.HandleSlash("sparkle check")
 suite.check("the check is kept for a report", ns.db.lastProbe and ns.db.lastProbe.check == "sparkle check")
 
+-- A pack of mobs coming into view adds many nameplates in one frame. The
+-- first is looked at at once (so nothing flashes) and the rest wait for one
+-- more look on the next frame, not one look each.
+do
+    local queued = {}
+    local savedTimer = _G.C_Timer
+    _G.C_Timer = { After = function(_, fn) queued[#queued + 1] = fn end }
+    local savedSafe = NodeSparkle.SafeRefresh
+    local looks = 0
+    NodeSparkle.SafeRefresh = function(self, ...) looks = looks + 1 end
+    for _ = 1, 8 do NodeSparkle:OnPlateAdded() end
+    suite.check("eight plates in one frame look once at once", looks == 1, tostring(looks))
+    for _, fn in ipairs(queued) do fn() end
+    suite.check("and once more on the next frame", looks == 2, tostring(looks))
+    queued = {}
+    NodeSparkle:OnPlateAdded()
+    suite.check("a lone plate later looks at once", looks == 3, tostring(looks))
+    for _, fn in ipairs(queued) do fn() end
+    suite.check("with no second look when nothing else came", looks == 3, tostring(looks))
+    NodeSparkle.SafeRefresh = savedSafe
+    _G.C_Timer = savedTimer
+end
+
 ns.SettingsUI:Hide()
 
 suite.done()

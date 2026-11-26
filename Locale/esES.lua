@@ -2184,6 +2184,21 @@ L["Farmer Settings:"] = "Ajustes de Farmer:"
 L["Puts every Farmer setting back to how it started. Your kills, loot, farms and goals stay. So do your window locations and the choices on this page."] = "Devuelve cada ajuste de Farmer a como empezó. Tus muertes, botín, farmeos y metas se quedan. También se quedan la posición de tus ventanas y lo que elegiste en esta página."
 L["Every Farmer setting is back to how it started."] = "Todos los ajustes de Farmer volvieron a como empezaron."
 
+-- Look choices (All Addons page)
+L["Font:"] = "Fuente:"
+L["House##font"] = "Casa"
+L["Game##font"] = "Juego"
+L["Clear##font"] = "Clara"
+L["Colors:"] = "Colores:"
+L["Warm"] = "Cálidos"
+L["Darker"] = "Más oscuros"
+L["Fold Gem:"] = "Plegar:"
+L["Round Button"] = "Botón redondo"
+L["Small Bar"] = "Barra pequeña"
+L["House, Game or Clear. Clear is plain and easy to read, and it has Russian letters."] = "Casa, Juego o Clara. Clara es sencilla y fácil de leer, y tiene letras rusas."
+L["Warm is the look today. Darker takes the warm tint out of the glass."] = "Cálidos es el aspecto de siempre. Más oscuros quita el tono cálido del cristal."
+L["What a folded window turns into: the round button, or a small bar with its title."] = "En qué se convierte una ventana plegada: el botón redondo o una barra pequeña con su título."
+
 -- Slim Bar for Kills & Loot (2026-11-26)
 L["Middle-click for Kills & Loot."] = "Clic central para Muertes y botín."
 L["Full Panel"] = "Panel completo"
