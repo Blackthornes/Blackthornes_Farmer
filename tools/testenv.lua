@@ -43,6 +43,15 @@ local function Stub(fields)
 
     function frame:SetScript(script, fn) self._scripts[script] = fn end
     function frame:GetScript(script) return self._scripts[script] end
+    -- As the game's: runs after the script already set, or alone.
+    function frame:HookScript(script, fn)
+        local old = self._scripts[script]
+        if old then
+            self._scripts[script] = function(...) old(...) fn(...) end
+        else
+            self._scripts[script] = fn
+        end
+    end
 
     function frame:GetPoint()
         local p = self._point
@@ -421,6 +430,7 @@ local UI_FILES = {
     "UI/PanelStyle.lua",
     "UI/MapDock.lua",
     "UI/Tracker.lua",
+    "UI/SlimBar.lua",
     "UI/TrackerFX.lua",
     "UI/Goals.lua",
     "UI/LootTable.lua",

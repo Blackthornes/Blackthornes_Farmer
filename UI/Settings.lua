@@ -358,7 +358,7 @@ SettingsUI.SETTING_KEYS = {
     "tooltipShift", "topFarmAlert", "trackerAnnounce", "trackerCelebrate",
     "trackerDodgeGroup", "trackerHidden", "trackerRareSound",
     "trackerReport", "trackerScale", "trackerSeeThrough",
-    "trackerSeeThroughLevel", "trackerVoice", "trashCan",
+    "trackerSeeThroughLevel", "trackerSlimBar", "trackerVoice", "trashCan",
     "tsmGearPriceSource", "tsmPriceSource", "useTomTom", "windowScale",
     "worldDrops", "xpBar", "xpBarCheer", "xpBarChime", "xpBarHideGame",
     "xpBarSeeThrough", "zoneBoard", "zoneBoardBanner", "zoneBoardSeeThrough",
@@ -895,7 +895,8 @@ function SettingsUI:BuildPanelsPage()
     -- from 50 to 150 on the stepper, one dragged to shown as it is, and
     -- Small, Normal and Large under it, the one in use lit green.
     local TrackerUI = ns.TrackerUI
-    local trackerScaleRow = pages:Row("panels", 1, L["Kills and Loot Size:"], nil)
+    local trackerScaleRow = pages:Row("panels", 1, L["Kills and Loot Size:"],
+        L["One line with your gold per hour. Put your mouse on it to see the whole list."])
 
     controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
         min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
@@ -934,6 +935,19 @@ function SettingsUI:BuildPanelsPage()
         after = button
     end
     if after then GrowRow(trackerScaleRow, 24) end
+
+    -- Full Panel or Slim Bar (the owner said build it, 2026-11-26, and
+    -- approved the words): the panel folded to one line that opens under
+    -- the mouse (UI/SlimBar.lua). Full Panel unless picked.
+    local slimNames = ns.SlimBar.Names()
+    controls.trackerSlimBar = Widgets.CreateChoice(trackerScaleRow, {
+        min = 1, max = #ns.SlimBar.SIZES, step = 1, value = 1,
+        format = function(index) return slimNames[index] end,
+        onChange = function(index) ns.SlimBar:Set(index) end,
+    })
+    ns.SettingsPages.FitStepper(controls.trackerSlimBar, slimNames)
+    controls.trackerSlimBar:SetPoint("TOPRIGHT", controls.trackerScale, "BOTTOMRIGHT", 0, -26)
+    GrowRow(trackerScaleRow, 26)
 
 
 
@@ -2413,6 +2427,7 @@ function SettingsUI:Refresh()
     end
     if controls.snapPanels then controls.snapPanels:SetChecked(not ns.PanelSnap or ns.PanelSnap:IsOn()) end
     if controls.panelStyle and ns.PanelStyle then controls.panelStyle:SetValue(ns.PanelStyle:Index(), true) end
+    if controls.trackerSlimBar and ns.SlimBar then controls.trackerSlimBar:SetValue(ns.SlimBar:Index(), true) end
     if controls.dockMap then controls.dockMap:SetChecked(ns.MapDock and ns.MapDock:IsOn() or false) end
 
     local usable = ns.Harvest:Capabilities().usable

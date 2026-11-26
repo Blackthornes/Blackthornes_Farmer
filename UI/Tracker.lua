@@ -799,6 +799,8 @@ function TrackerUI:Build()
     self:BuildSizeGrip(frame)
     self:BuildSeeThrough(frame)
     self:BuildPanelStyle(frame, chrome)
+    -- Slim Bar (UI/SlimBar.lua): the mouse on the bar opens the list.
+    if ns.SlimBar then ns.SlimBar:Watch(self) end
 
     self:RestorePosition()
     frame:Hide()
@@ -3487,6 +3489,25 @@ function TrackerUI:Redraw(now)
         ns.FoldWindow:Refresh(self.frame)
         FollowGoals()
         return
+    end
+
+    -- Slim Bar (UI/SlimBar.lua): folded to its one line, only the bar's
+    -- words are written. The list opens under the mouse or on a click.
+    local Slim = ns.SlimBar
+    if Slim and Slim:Folded() then
+        if ns.TrackerFX then
+            ns.TrackerFX:Forget()
+            pcall(ns.TrackerFX.HiddenLoot, ns.TrackerFX)
+        end
+        local opening = not self.frame:IsShown()
+        Slim:Draw(self)
+        self.frame:Show()
+        if opening and ns.Motion then ns.Motion:Open(self.frame, 0) end
+        FollowGoals()
+        return
+    end
+    if Slim then
+        if Slim.On() then Slim:Open(self) else Slim:Restore(self) end
     end
 
     if ns.TrackerFX and ns.TrackerFX.Shown then ns.TrackerFX:Shown() end

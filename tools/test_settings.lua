@@ -189,10 +189,11 @@ suite.check("and the window grows to fit them", SettingsUI.frame:GetHeight() > b
 pages.describe:GetScript("OnClick")(pages.describe)
 suite.check("unticked, the window goes back", SettingsUI.frame:GetHeight() == before)
 
--- The kill tally's size buttons sit under its stepper, over its words.
+-- The kill tally's size buttons sit under its stepper, then Full Panel or
+-- Slim Bar (2026-11-26), over its words.
 local sizeRow = controls.trackerScale._parent
-suite.check("the tally size row makes room for its buttons", sizeRow.compactHeight == 48
-    and sizeRow.hint._point[3] == -48, sizeRow.compactHeight)
+suite.check("the tally size row makes room for its buttons", sizeRow.compactHeight == 74
+    and sizeRow.hint._point[3] == -74, sizeRow.compactHeight)
 
 -- Find a setting.
 pages.find:SetText("tomtom")

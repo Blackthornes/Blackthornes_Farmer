@@ -110,6 +110,7 @@ Sections there:
 - Grind to 60 (a test feature, 2026-11-22)
 - Restore Defaults (Farmer Settings: Set Default)
 - Smoother kills and the hand-drawn scroll bar
+- Slim Bar for Kills & Loot (2026-11-26)
 
 ## Checking a change
 
