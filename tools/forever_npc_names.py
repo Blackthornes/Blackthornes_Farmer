@@ -22,6 +22,11 @@ A name is kept only when it is plain text the addon itself would keep
 (Harvest.CleanName): one line, no colour codes, not a number, at most 60
 characters, and nothing the clear-to-post scan refuses.
 
+Names the game never shows (Forever's own dungeons hide them and the cache
+lacks them) are looked up by hand and kept in
+tools/forever_npc_names_by_hand.txt, one "ID = Name" a line. They are added
+too, the same way: never over a name already shipped.
+
 Never edit the output by hand; rerun this.
 """
 
@@ -33,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from check_package import PRIVATE  # noqa: E402
 
 OUT = Path("Data/ForeverNpcNames.lua")
+BY_HAND = Path(__file__).resolve().parent / "forever_npc_names_by_hand.txt"
 CLASSIC = Path("Data/NpcNames.lua")
 NAME_MOST = 60
 ENTRY = re.compile(r'\[(\d+)\]\s*=\s*"((?:[^"\\]|\\.)*)"')
@@ -114,6 +120,19 @@ def read_cache(data):
     return names
 
 
+def read_by_hand(text):
+    """{ id: name } from "ID = Name" lines; # starts a note."""
+    names = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = re.match(r"^(\d+)\s*=\s*(.+)$", line)
+        if match:
+            names[int(match.group(1))] = match.group(2)
+    return names
+
+
 def add_cache(names, cache, classic):
     for npc, raw in cache.items():
         if npc in classic or npc in names:
@@ -152,6 +171,8 @@ def main():
         if not cache:
             sys.exit("not an English creature cache: " + sys.argv[2])
         add_cache(names, cache, classic)
+    if BY_HAND.exists():
+        add_cache(names, read_by_hand(BY_HAND.read_text(encoding="utf-8")), classic)
     names = build(save_text, classic, names)
     write(names)
     print("%s: %d names (%d new)" % (OUT, len(names), len(names) - len(shipped)))

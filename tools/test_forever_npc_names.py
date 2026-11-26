@@ -76,6 +76,14 @@ check("the cache never changes a shipped name", added[250488] == "Shipped")
 check("the cache leaves Classic's IDs alone", 11318 not in added)
 check("the cache's junk is dropped", 250500 not in added and added.get(268622) == "Encroaching Soldier")
 
+hand = tool.read_by_hand("# a note\n\n247195 = Withermaw\n257900 = Redridge Prisoner \nnot a line\n")
+check("hand names are read", hand == {247195: "Withermaw", 257900: "Redridge Prisoner"})
+added = tool.add_cache({247195: "Shipped"}, hand, {})
+check("a hand name never changes a shipped one", added[247195] == "Shipped")
+check("a hand name is trimmed", added.get(257900) == "Redridge Prisoner")
+shipped_list = tool.read_by_hand(tool.BY_HAND.read_text(encoding="utf-8"))
+check("the hand list holds only plain names", shipped_list and all(tool.clean(n) == n for n in shipped_list.values()))
+
 if failures:
     sys.exit("%d failure(s)" % failures)
 print("all passed")

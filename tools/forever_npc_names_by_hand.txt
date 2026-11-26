@@ -1,0 +1,56 @@
+# Names for Forever's mobs that the game hides inside its dungeons and that
+# the creature cache does not hold, looked up by hand, one "ID = Name" a line.
+# tools/forever_npc_names.py adds each to Data/ForeverNpcNames.lua when no
+# name ships for that ID yet. Lines starting with # are notes.
+
+# Blackrock Depths (missing from Classic's list)
+8889 = Anvilrage Overseer
+
+# Ruins of Lordaeron
+250652 = Spiteful Phantom
+
+# Blackmaw Hold
+247195 = Withermaw
+247198 = Bonesnout the Unbroken
+247206 = Impaan the Imprisoner
+247207 = Blackmaw Behemoth
+247209 = Elder Shaman Bloodmane
+247231 = Unbound Spirit
+247234 = Varrox Bleakhoof
+247248 = Legashi Summoner
+247249 = Felfire Imp
+258152 = Blackmaw Spearfisher
+258264 = Depraved Owlbeast
+258508 = Blackmaw Shaman
+258516 = Blackmaw Druid
+258668 = Legashi Ritualist
+268864 = Legashi Plaguebringer
+
+# Krol'dok Stronghold
+257885 = Krol'dok Centurion
+257888 = Krol'dok Shaman
+257900 = Redridge Prisoner
+258038 = Shadowhide Bully
+258040 = Shadowhide Curseweaver
+258042 = Twilight Grunt
+258100 = Twilight Warlock
+258102 = Twilight Outrider
+258104 = Twilight Lieutenant
+258687 = Krol'dok Brute
+259256 = Tunk
+262065 = Riding Wolf
+262067 = Twilight Peon
+
+# Alcaz Prison
+255262 = Alcaz Chaplain
+255267 = Slavering Hound
+255271 = Defias Truthfinder
+255276 = Defias Mercenary
+255309 = Defias Bounty Hunter
+255373 = Strashaz Enchantress
+255377 = Alcaz Jailer
+255391 = Overseer Wrex
+255702 = Blazeroar
+255997 = Tidemistress Ca'zass
+256236 = The Questioner
+257016 = Katerina the Cleaner
