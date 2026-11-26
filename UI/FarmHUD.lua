@@ -39,6 +39,7 @@ FarmHUD.PIXELS = { small = 300, medium = 420, large = 560 }
 
 FarmHUD.REACH = 250       -- yards from the middle to the rim
 FarmHUD.STEP = 0.2        -- seconds between looks while it shows
+FarmHUD.TURN_MOVE = 0.002 -- radians you turn before the ring is turned again
 FarmHUD.MAX_DOTS = 60     -- the nearest this many spots are drawn
 FarmHUD.NEAR_MOVE = 40    -- yards you move before the near list is made again
 FarmHUD.NEAR_EXTRA = 80   -- yards past the rim the near list reaches
@@ -287,12 +288,15 @@ function FarmHUD.Offset(spot, px, py, width, height, half, reach, turn)
     local east = (spot.x - px) * width
     local north = (py - spot.y) * height
     local yards = math.sqrt(east * east + north * north)
-    -- Turned so ahead of you is up, as a turning minimap does.
-    if turn then
-        local c, s = math.cos(turn), math.sin(turn)
-        east, north = east * c + north * s, north * c - east * s
-    end
+    east, north = FarmHUD.Spun(east, north, turn)
     return east / reach * half, north / reach * half, yards
+end
+
+--- An offset turned so ahead of you is up, as a turning minimap does.
+function FarmHUD.Spun(east, north, turn)
+    if not turn then return east, north end
+    local c, s = math.cos(turn), math.sin(turn)
+    return east * c + north * s, north * c - east * s
 end
 
 --- How far to turn the ring (radians), or nil when north stays up.
@@ -345,23 +349,30 @@ local function Aimed(mapID)
 end
 
 --- What the drawing depends on. Standing still with nothing new, it stays
---- the same and the step does nothing.
+--- the same and the step does nothing. Which way you face is left out: the
+--- turn is put on every frame by Spin, from what Draw kept.
 function FarmHUD:Key()
     local mapID, px, py = ns.Harvest:PlayerMapPosition()
     if not mapID then return "nowhere" end
     local now = ns.Gathering.Clock() or 0
     local _, stamp = ns.MapMarkers:ShownKinds()
     local aimed = Aimed(mapID)
-    return ("%d|%s|%s|%s|%s|%s|%s|%d|%s|%d"):format(mapID, tostring(px), tostring(py),
-        tostring(Facing()), tostring(ns.Gathering.spotsVersion or 0), tostring(stamp),
+    return ("%d|%s|%s|%s|%s|%s|%d|%s|%d"):format(mapID, tostring(px), tostring(py),
+        tostring(ns.Gathering.spotsVersion or 0), tostring(stamp),
         tostring(aimed), math.floor(now / 5), FarmHUD.Size(), FarmHUD.seenVersion)
 end
 
+--- Each frame: the turn goes on at once, so the ring and arrow follow you
+--- smoothly (Trent, 2026-11-26: it jumped at 5 looks a second). That only
+--- moves the dots already placed. Finding spots waits for STEP.
 function FarmHUD:Step(elapsed)
     self.since = (self.since or 0) + (elapsed or 0)
-    if self.since < FarmHUD.STEP then return end
-    self.since = 0
-    local ok, err = pcall(self.Draw, self)
+    if self.since >= FarmHUD.STEP then
+        self.since = 0
+        local ok, err = pcall(self.Draw, self)
+        if not ok then ns.Debug("farm HUD:", tostring(err)) end
+    end
+    local ok, err = pcall(self.Spin, self)
     if not ok then ns.Debug("farm HUD:", tostring(err)) end
 end
 
@@ -389,16 +400,14 @@ function FarmHUD:Draw()
     local width, height
     if mapID then width, height = ns.Gathering.MapSize(mapID) end
 
-    local turn = FarmHUD.Turn()
-    frame.arrow:SetRotation(turn and 0 or (Facing() or 0))
-    self:PlaceNorth(turn)
+    local placed = {}
+    self.placed, self.route = placed, nil
 
     if mapID and width and height then
         local half, reach = self.half, FarmHUD.REACH
         local edge = half - self.dotSize / 2
-        local placed = {}
         for _, spot in ipairs(self:Near(mapID, px, py, width, height)) do
-            local x, y, yards = FarmHUD.Offset(spot, px, py, width, height, half, reach, turn)
+            local x, y, yards = FarmHUD.Offset(spot, px, py, width, height, half, reach)
             if x * x + y * y <= edge * edge then
                 placed[#placed + 1] = { spot = spot, x = x, y = y, yards = yards }
             end
@@ -414,18 +423,43 @@ function FarmHUD:Draw()
             dot:SetTexture(MEDIA .. (back and "HudDot" or "HudHollow"))
             local color = FarmHUD.COLORS[entry.spot.kind] or FarmHUD.COLORS.herb
             dot:SetVertexColor(color[1], color[2], color[3], back and 1 or 0.55)
-            dot:ClearAllPoints()
-            dot:SetPoint("CENTER", frame, "CENTER", entry.x, entry.y)
+            entry.dot = dot
             dot:Show()
         end
+        for index = used + 1, #placed do placed[index] = nil end
 
         aimed = Aimed(mapID)
-        if aimed then self:DrawRoute(aimed, px, py, width, height, turn) end
+        if aimed then self:DrawRoute(aimed, px, py, width, height) end
     end
 
     for index = used + 1, #frame.dots do frame.dots[index]:Hide() end
     if not aimed then self:HideRoute() end
     self.shown = used
+    self.spun = nil
+    self:Spin()
+end
+
+--- Put the turn on what Draw placed: the dots, the route, N and the arrow.
+--- Cheap (one SetPoint a dot), so it runs every frame, and only does
+--- anything once you have turned a little.
+function FarmHUD:Spin()
+    local frame = self.frame
+    if not (frame and frame:IsShown() and self.placed) then return end
+    local turn = FarmHUD.Turn()
+    local facing = turn or Facing() or 0
+    local spun = self.spun
+    if spun and spun.turn == (turn ~= nil)
+        and math.abs(spun.facing - facing) < FarmHUD.TURN_MOVE then return end
+    self.spun = { turn = turn ~= nil, facing = facing }
+
+    frame.arrow:SetRotation(turn and 0 or facing)
+    self:PlaceNorth(turn)
+    for _, entry in ipairs(self.placed) do
+        local x, y = FarmHUD.Spun(entry.x, entry.y, turn)
+        entry.dot:ClearAllPoints()
+        entry.dot:SetPoint("CENTER", frame, "CENTER", x, y)
+    end
+    if self.route then self:SpinRoute(turn) end
 end
 
 --- N at the top, or round the rim where north is when the ring turns.
@@ -496,18 +530,35 @@ end
 
 --- The gold dotted line to the route's next stop, held to the rim when the
 --- stop is past it, and the stop's name with how far it is.
-function FarmHUD:DrawRoute(spot, px, py, width, height, turn)
+--- Placed by SpinRoute, which puts the turn on it.
+function FarmHUD:DrawRoute(spot, px, py, width, height)
     local frame = self.frame
     local half = self.half
-    local x, y, yards = FarmHUD.Offset(spot, px, py, width, height, half, FarmHUD.REACH, turn)
+    local x, y, yards = FarmHUD.Offset(spot, px, py, width, height, half, FarmHUD.REACH)
     local length = math.sqrt(x * x + y * y)
     local edge = half - self.dotSize
     if length > edge and length > 0 then
         x, y, length = x / length * edge, y / length * edge, edge
     end
+    self.route = { x = x, y = y, length = length }
+
+    local color = FarmHUD.COLORS[spot.kind] or FarmHUD.COLORS.herb
+    frame.nextDot:SetVertexColor(color[1], color[2], color[3], 1)
+    frame.nextRim:Show()
+    frame.nextDot:Show()
+    frame.nextLabel:SetText(L.Format("%s, %d yards", tostring(spot.node or ""),
+        math.floor(yards + 0.5)))
+    frame.nextLabel:Show()
+end
+
+function FarmHUD:SpinRoute(turn)
+    local frame = self.frame
+    local route = self.route
+    local x, y = FarmHUD.Spun(route.x, route.y, turn)
+    local length = route.length
 
     -- Dots from just past the arrow to the stop.
-    local start = 18 * (half / (FarmHUD.PIXELS.medium / 2))
+    local start = 18 * (self.half / (FarmHUD.PIXELS.medium / 2))
     local count = #frame.dashes
     for index, dash in ipairs(frame.dashes) do
         local along = start + (length - start) * (index - 0.5) / count
@@ -520,23 +571,17 @@ function FarmHUD:DrawRoute(spot, px, py, width, height, turn)
         end
     end
 
-    local color = FarmHUD.COLORS[spot.kind] or FarmHUD.COLORS.herb
-    frame.nextDot:SetVertexColor(color[1], color[2], color[3], 1)
     for _, piece in ipairs({ frame.nextRim, frame.nextDot }) do
         piece:ClearAllPoints()
         piece:SetPoint("CENTER", frame, "CENTER", x, y)
-        piece:Show()
     end
 
-    frame.nextLabel:SetText(L.Format("%s, %d yards", tostring(spot.node or ""),
-        math.floor(yards + 0.5)))
     frame.nextLabel:ClearAllPoints()
     if x >= 0 then
         frame.nextLabel:SetPoint("BOTTOMLEFT", frame, "CENTER", x + 8, y + 6)
     else
         frame.nextLabel:SetPoint("BOTTOMRIGHT", frame, "CENTER", x - 8, y + 6)
     end
-    frame.nextLabel:Show()
 end
 
 --------------------------------------------------------------------------------

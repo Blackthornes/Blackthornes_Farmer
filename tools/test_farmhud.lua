@@ -290,6 +290,26 @@ suite.check("turning, a spot east sits behind you when you face west",
 local np = frame.north._point
 suite.check("N moves to the right when you face west", np[4] > 150 and math.abs(np[5]) < 1,
     tostring(np[4]) .. "," .. tostring(np[5]))
+-- Smooth turning (Trent, 2026-11-26: it jumped as you turned): a frame
+-- shorter than STEP still turns the dots, without finding spots again.
+local draws, realDraw = 0, FarmHUD.Draw
+FarmHUD.Draw = function(...) draws = draws + 1; return realDraw(...) end
+FarmHUD.since = 0
+local entry = FarmHUD.placed and FarmHUD.placed[1]
+local before = entry and { entry.dot._point[4], entry.dot._point[5] }
+facing = math.pi / 2 + 0.3
+FarmHUD:Step(0.016)
+local after = entry and entry.dot._point
+suite.check("a short frame finds no spots again", draws == 0, draws)
+suite.check("a short frame still turns the dots", before and after
+    and (math.abs(after[4] - before[1]) > 0.5 or math.abs(after[5] - before[2]) > 0.5))
+local np2 = frame.north._point
+suite.check("a short frame still moves N", math.abs(np2[5] - np[5]) > 1)
+local moved = after and after[4]
+facing = facing + 0.0005
+FarmHUD:Step(0.016)
+suite.check("a tiny turn moves nothing", entry and entry.dot._point[4] == moved)
+FarmHUD.Draw = realDraw
 FarmHUD:SetTurn(false)
 suite.check("off again saves nothing", ns.db.farmHudTurn == nil)
 facing = 1.5
