@@ -434,7 +434,11 @@ suite.check("a new, shorter list opens at its top", clampedRows.offset == 0, cla
 suite.check("with its scrollbar there too", clampedRows.scrollbar:GetValue() == 0,
     clampedRows.scrollbar:GetValue())
 
+-- The bar is drawn by hand now: a move by the player reaches the list
+-- through onValueChanged, a SetValue from code says nothing.
 clampedRows.scrollbar:SetValue(5)
+suite.check("setting the bar from code moves nothing", clampedRows.offset == 0, clampedRows.offset)
+clampedRows.scrollbar.onValueChanged(5)
 suite.check("dragging the scrollbar still scrolls", clampedRows.offset == 5, clampedRows.offset)
 
 -- The stub answers any field it was never given with a function, and a

@@ -202,6 +202,34 @@ do
     MapMarkers:Refresh()
 end
 
+-- Standing still, telling whether anything moved builds no text and no
+-- new table: the numbers kept from last time are compared as they are
+-- (the key was a nine-part string built ten times a second).
+do
+    MapMarkers:DrawMinimap()
+    local kept = MapMarkers.minimapKey
+    local built = 0
+    local realFormat = string.format
+    string.format = function(...) built = built + 1; return realFormat(...) end
+    MapMarkers:DrawMinimap()
+    MapMarkers:DrawMinimap()
+    string.format = realFormat
+    suite.check("standing still builds no text", built == 0, built)
+    suite.check("and keeps the same numbers", MapMarkers.minimapKey == kept)
+    -- A step east is seen.
+    local placed = 0
+    local real = MapMarkers.PlaceMinimap
+    MapMarkers.PlaceMinimap = function(...) placed = placed + 1; return real(...) end
+    env.world.position = { 0.46, 0.68 }
+    MapMarkers:DrawMinimap()
+    suite.check("a step places the markers again", placed == 1, placed)
+    env.world.position = { 0.45, 0.68 }
+    MapMarkers:DrawMinimap()
+    suite.check("and a step back too", placed == 2, placed)
+    MapMarkers.PlaceMinimap = real
+    MapMarkers:Refresh()
+end
+
 -- Somewhere with no readable position: nothing on the minimap.
 env.world.position = nil
 MapMarkers:DrawMinimap()
