@@ -117,18 +117,85 @@ env.world.position = { 0.45, 0.68 }
 FarmHUD:Step(1)
 
 --------------------------------------------------------------------------------
--- Growing back
+-- Hollow until seen up (Trent, 2026-11-26): a dot fills only once the node
+-- there is seen, as the node you face, and stays filled until you gather it
+-- or SEEN_FOR passes. A grow-back time alone never fills it.
 --------------------------------------------------------------------------------
 
-local spot = { kind = "herb", map = 37, node = "Silverleaf", last = wall - 10 }
+local silver
+for _, each in ipairs(Gathering:SpotsOn(37)) do
+    if each.node == "Silverleaf" then silver = each end
+end
 local backAt = ns.Respawn.BackAt
-ns.Respawn.BackAt = function() return wall + 100 end
-suite.check("a spot growing back is hollow", FarmHUD.IsBack(spot, wall) == false)
 ns.Respawn.BackAt = function() return wall - 1 end
-suite.check("a spot that should be back is filled", FarmHUD.IsBack(spot, wall) == true)
-ns.Respawn.BackAt = function() return nil end
-suite.check("a spot with no grow-back time is filled", FarmHUD.IsBack(spot, wall) == true)
+suite.check("a spot whose time says back is still hollow", FarmHUD.IsUp(silver, wall) == false)
 ns.Respawn.BackAt = backAt
+
+local function Dots()
+    local filled, hollow = 0, 0
+    for _, dot in ipairs(frame.dots) do
+        if dot:IsShown() then
+            if dot._texture and dot._texture:find("HudDot$") then filled = filled + 1 else hollow = hollow + 1 end
+        end
+    end
+    return filled, hollow
+end
+local setTexture = frame.dots[1].SetTexture
+for _, dot in ipairs(frame.dots) do
+    dot.SetTexture = function(self, file) self._texture = file end
+end
+FarmHUD.key = nil
+FarmHUD:Draw()
+local filled, hollow = Dots()
+suite.check("every dot starts hollow", filled == 0 and hollow == 2, filled .. "/" .. hollow)
+
+-- Facing the Silverleaf 50 yards north... within reach of the saved spot.
+local realGUID, realName = _G.UnitGUID, _G.UnitName
+local soft = { guid = "GameObject-0-1-2-3-4-5", name = "Silverleaf" }
+_G.UnitGUID = function(unit)
+    if unit == "softinteract" then return soft.guid end
+    return realGUID and realGUID(unit)
+end
+_G.UnitName = function(unit)
+    if unit == "softinteract" then return soft.name end
+    return realName and realName(unit)
+end
+env.world.position = { 0.45, 0.68 - 40 / 2000 }
+local fire = ns.eventFrame:GetScript("OnEvent")
+fire(ns.eventFrame, "PLAYER_SOFT_INTERACT_CHANGED")
+suite.check("facing the node marks its spot up", FarmHUD.IsUp(silver, wall) == true)
+FarmHUD:Draw()
+filled, hollow = Dots()
+suite.check("its dot fills", filled == 1 and hollow == 1, filled .. "/" .. hollow)
+
+-- A node of that name far from any saved spot marks nothing.
+local copper
+for _, each in ipairs(Gathering:SpotsOn(37)) do
+    if each.node == "Copper Vein" then copper = each end
+end
+soft.name = "Copper Vein"
+fire(ns.eventFrame, "PLAYER_SOFT_INTERACT_CHANGED")
+suite.check("a node far from its saved spot marks nothing", FarmHUD.IsUp(copper, wall) == false)
+
+-- A creature is never a node.
+env.world.position = { 0.45 + 100 / 3000, 0.68 }
+soft.guid = "Creature-0-1-2-3-4-5"
+fire(ns.eventFrame, "PLAYER_SOFT_INTERACT_CHANGED")
+suite.check("a creature marks nothing", FarmHUD.IsUp(copper, wall) == false)
+soft.guid = "GameObject-0-1-2-3-4-6"
+
+-- Gathered after it was seen: hollow again.
+local oldLast = silver.last
+silver.last = wall + 5
+suite.check("gathered after it was seen, it goes hollow", FarmHUD.IsUp(silver, wall + 6) == false)
+silver.last = oldLast
+suite.check("seen up lasts a while", FarmHUD.IsUp(silver, wall + FarmHUD.SEEN_FOR - 1) == true)
+suite.check("then goes hollow again", FarmHUD.IsUp(silver, wall + FarmHUD.SEEN_FOR + 1) == false)
+
+for _, dot in ipairs(frame.dots) do dot.SetTexture = setTexture end
+_G.UnitGUID, _G.UnitName = realGUID, realName
+env.world.position = { 0.45, 0.68 }
+FarmHUD:Step(1)
 
 --------------------------------------------------------------------------------
 -- My Professions Only
@@ -212,7 +279,6 @@ suite.check("the arrow turns with you", turned == 1.5, turned)
 -- Hiding
 --------------------------------------------------------------------------------
 
-local fire = ns.eventFrame:GetScript("OnEvent")
 inCombat = true
 fire(ns.eventFrame, "PLAYER_REGEN_DISABLED")
 suite.check("it hides in a fight", not frame:IsShown())

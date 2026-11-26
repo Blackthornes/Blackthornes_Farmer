@@ -3603,9 +3603,16 @@ around you. `UI/FarmHUD.lua`, art from `tools/make_hud_art.py`
 - A flat picture on the screen (strata BACKGROUND, so windows draw over
   it). Nothing is drawn in the world. North is up; the gold arrow turns
   with `GetPlayerFacing`. The rim is `FarmHUD.REACH` (250) yards.
-- Spots come from `MapMarkers:SpotsOn`, so My Professions Only counts. A
-  hollow dot is a spot `Respawn:BackAt` says is still growing back; fish
-  and spots with no learned time stay filled. The nearest `MAX_DOTS` (60).
+- Spots come from `MapMarkers:SpotsOn`, so My Professions Only counts. The
+  nearest `MAX_DOTS` (60).
+- Hollow until seen up (Trent, 2026-11-26): a dot fills only when the node
+  you face (`softinteract`, a GameObject, `PLAYER_SOFT_INTERACT_CHANGED`)
+  has the name of a saved spot within `SEEN_YARDS` (40) of you
+  (`FarmHUD:NoteFacing`, `FarmHUD.seen[spot]`, this session only). It
+  stays filled until you gather it (`spot.last` newer) or `SEEN_FOR` (15
+  minutes) passes (`FarmHUD.IsUp`). A grow-back time alone never fills it.
+  The game picks the node you face only when soft targeting is on, which
+  Sparkles turns on.
 - The Gather Route's next stop (`GatherRoute:Plan().nextStop`, the one the
   Route list and minimap show; `run.aimed` only if the plan has none; the
   plan can move on by itself before the aimed stop is reached) gets a gold dotted
