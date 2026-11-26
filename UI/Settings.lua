@@ -1523,6 +1523,25 @@ function SettingsUI:BuildMapPage()
     end, true)
     controls.markersMine:SetPoint("TOPLEFT", CONTROL_X, -2)
 
+    -- The Farm HUD, a see-through ring of your spots in the middle of the
+    -- screen (a player asked, the owner said build it, 2026-11-26). Off
+    -- unless ticked.
+    local hudRow = pages:Row("map", 1, L["Farm HUD:"],
+        L["A see-through ring in the middle of your screen. It shows the herbs, ore and fishing spots you found near you."])
+    controls.farmHud = Widgets.CreateCheckbox(hudRow, L["On"], function(checked)
+        ns.FarmHUD:SetOn(checked, true)
+    end, false)
+    controls.farmHud:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local hudSizeRow = pages:Row("map", 1, L["Farm HUD Size:"], nil)
+    local hudSizes = ns.FarmHUD.SIZES
+    controls.farmHudSize = Widgets.CreateChoice(hudSizeRow, {
+        min = 1, max = #hudSizes, step = 1, value = 2,
+        format = function(index) return ns.FarmHUD.SizeName(hudSizes[index]) end,
+        onChange = function(index) ns.FarmHUD:SetSize(hudSizes[index]) end,
+    })
+    controls.farmHudSize:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     -- Sparkles on the node you face (the owner asked 2026-10-13).
     pages:Section("map", 2, L["SPARKLES"])
 
@@ -2103,6 +2122,12 @@ function SettingsUI:Refresh()
     end
     if controls.mapButton then controls.mapButton:SetChecked(db.mapButton ~= false) end
     controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
+    if controls.farmHud then
+        controls.farmHud:SetChecked(ns.FarmHUD.IsOn())
+        for index, size in ipairs(ns.FarmHUD.SIZES) do
+            if size == ns.FarmHUD.Size() then controls.farmHudSize:SetValue(index, true) end
+        end
+    end
     controls.heatWorld:SetChecked(db.heatWorld == true)
     controls.heatMinimap:SetChecked(db.heatMinimap == true)
     controls.heatLevel:SetValue(ns.Heat:Level(), true)

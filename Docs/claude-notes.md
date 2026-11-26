@@ -3537,3 +3537,35 @@ with no level is left out. A level the client won't read filters nothing.
 `rankingsNearLevel` (account wide, never rename it). `/farm rankings level
 [on|off]`. The rank-up pop-up and the top 15 after a scan rank every level, so
 `outsideVersion` does not move. Tested in `tools/test_rankingslevel.lua`.
+
+## The Farm HUD
+
+A player asked, the owner said build it (2026-11-26, from the mockup
+`farmer-improve-5-farm-hud`, whose words he approved): a see-through ring
+in the middle of the screen with your own saved herb, ore and fishing spots
+around you. `UI/FarmHUD.lua`, art from `tools/make_hud_art.py`
+(`Media/Frame/Hud*.tga`; rerun the script, never edit the TGAs).
+
+- A flat picture on the screen (strata BACKGROUND, so windows draw over
+  it). Nothing is drawn in the world. North is up; the gold arrow turns
+  with `GetPlayerFacing`. The rim is `FarmHUD.REACH` (250) yards.
+- Spots come from `MapMarkers:SpotsOn`, so My Professions Only counts. A
+  hollow dot is a spot `Respawn:BackAt` says is still growing back; fish
+  and spots with no learned time stay filled. The nearest `MAX_DOTS` (60).
+- The Gather Route's next stop (`GatherRoute.run.aimed`) gets a gold dotted
+  line and "Name, N yards", held to the rim when it is past it.
+- Off unless turned on: `farmHud` (true only when on) and `farmHudSize`
+  (nil is Medium; Small 300, Medium 420, Large 560 pixels). Never rename
+  either. Map page rows "Farm HUD:" and "Farm HUD Size:", `/farm hud
+  [on|off|size small|medium|large]`, and the key
+  `BLACKTHORNESFARMER_HUD` in `Bindings.xml` ("Show or Hide Farm HUD").
+- Clicks go through it; only its red close gem on the rim takes a click,
+  and turns it off. It hides in a fight (`PLAYER_REGEN_DISABLED`) and inside
+  dungeons and raids (`IsInInstance`).
+- Speed: nothing is built or run while it is off or hidden (its OnUpdate is
+  on its own frame). Each 0.2 second step builds a key from where you stand
+  and face, the spots version, the kinds shown, the aimed stop and a 5
+  second clock tick; a step with the same key does nothing. The list of
+  near spots is made again only after a 40 yard move or a change to the
+  spots.
+- Tested in `tools/test_farmhud.lua`. Not yet seen in game.
