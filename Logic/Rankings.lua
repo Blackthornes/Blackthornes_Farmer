@@ -152,13 +152,21 @@ end
 Rankings.NEAR_BELOW = 3
 Rankings.NEAR_ABOVE = 2
 
+-- Home's Best Mobs for Me ticks it for now (`nearForNow`, this session
+-- only, never saved); the box on the tab or the command takes it back.
+Rankings.nearForNow = nil
+
 function Rankings.NearLevel()
-    return ns.db ~= nil and ns.db.rankingsNearLevel == true
+    return ns.db ~= nil and (ns.db.rankingsNearLevel == true or Rankings.nearForNow == true)
 end
 
 function Rankings:SetNearLevel(on)
     if not ns.db then return end
     on = on and true or false
+    if Rankings.nearForNow then
+        Rankings.nearForNow = nil
+        if not on and ns.RankingsUI then ns.RankingsUI:Refresh() end
+    end
     if (ns.db.rankingsNearLevel == true) == on then return end
     ns.db.rankingsNearLevel = on
     if ns.RankingsUI then ns.RankingsUI:Refresh() end
