@@ -113,6 +113,7 @@ Sections there:
 - Smoother kills and the hand-drawn scroll bar
 - Slim Bar for Kills & Loot (2026-11-26)
 - The run graph and a Run Recap that stays (2026-11-26)
+- Move Windows (2026-11-26)
 - The Home tab (2026-11-26)
 
 ## Checking a change

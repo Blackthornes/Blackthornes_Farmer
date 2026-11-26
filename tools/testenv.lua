@@ -479,6 +479,7 @@ local UI_FILES = {
     "UI/FishingBar.lua",
     "UI/FishingPanel.lua",
     "UI/OneKeyFishing.lua",
+    "UI/MoveWindows.lua",
     "UI/Settings.lua",
 }
 
