@@ -22,13 +22,14 @@ end
 
 -- 1.
 local tabs = UI.Tabs()
-suite.check("six tabs, Farms among them", #tabs == 6, #tabs)
-suite.check("Settings last, on the right", tabs[6].key == "settings" and tabs[6].right == true)
-suite.check("the others in order", tabs[1].key == "search" and tabs[2].key == "rankings"
-    and tabs[3].key == "grind" and tabs[4].key == "farms" and tabs[5].key == "stats")
-suite.check("Farms shows by default", tabs[4].shown() == true)
+suite.check("seven tabs, Home and Farms among them", #tabs == 7, #tabs)
+suite.check("Settings last, on the right", tabs[7].key == "settings" and tabs[7].right == true)
+suite.check("the others in order", tabs[1].key == "home" and tabs[2].key == "search"
+    and tabs[3].key == "rankings" and tabs[4].key == "grind" and tabs[5].key == "farms"
+    and tabs[6].key == "stats")
+suite.check("Farms shows by default", tabs[5].shown() == true)
 ns.SavedFarms:SetOn(false)
-suite.check("and hides once Saved Farms is unticked", tabs[4].shown() == false)
+suite.check("and hides once Saved Farms is unticked", tabs[5].shown() == false)
 
 UI:Show()
 local strip = UI.tabStrip
