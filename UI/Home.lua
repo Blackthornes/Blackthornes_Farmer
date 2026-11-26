@@ -36,10 +36,10 @@ local Widgets = ns.Widgets
 
 local PADDING = 14
 local GAP = 8
-local CARD_H = 50
+local CARD_H = 60
 local COLUMNS = 3
 local HEAD_H = 22
-local ROW_H = 24
+local ROW_H = 26
 local ICON = 26
 
 -- Tries at a Zone Board list still being laid out, a moment apart.
@@ -152,10 +152,6 @@ function HomeUI.SpotsHere()
         end
     end
     return herbs, veins, map
-end
-
-local function Counted(count, one, many)
-    return L.Format(count == 1 and one or many, count)
 end
 
 --- What HERE shows: { zone, level, ready, best = { name, value },
@@ -484,14 +480,17 @@ function HomeUI:RenderHere(here)
     end
     if here.locked > 0 then
         local zoneBoard = ns.ZoneBoard and ns.ZoneBoard.IsOn() and ns.ZoneBoardUI
-        SetRow(Next(), L["Not unlocked"], Counted(here.locked, "%d mob under 20 kills", "%d mobs under 20 kills"),
+        SetRow(Next(), L["Not unlocked"], here.locked == 1 and L.Format("%d mob under 20 kills", 1)
+            or L.Format("%d mobs under 20 kills", here.locked),
             { button = zoneBoard and L["Zone Board"] or nil,
               go = function() if ns.ZoneBoardUI then ns.ZoneBoardUI:Toggle() end end })
     end
     if here.herbs + here.veins > 0 then
         local parts = {}
-        if here.herbs > 0 then parts[#parts + 1] = Counted(here.herbs, "%d herb", "%d herbs") end
-        if here.veins > 0 then parts[#parts + 1] = Counted(here.veins, "%d vein", "%d veins") end
+        if here.herbs > 0 then parts[#parts + 1] = (here.herbs == 1 and L.Format("%d herb", 1)
+            or L.Format("%d herbs", here.herbs)) end
+        if here.veins > 0 then parts[#parts + 1] = (here.veins == 1 and L.Format("%d vein", 1)
+            or L.Format("%d veins", here.veins)) end
         local route = ns.GatherRoute and ns.GatherRoute.IsOn()
         SetRow(Next(), L["Your spots"], table.concat(parts, ", "),
             { button = route and L["Show Route"] or nil, go = HomeUI.ShowRoute })

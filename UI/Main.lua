@@ -1767,7 +1767,7 @@ function UI:Show()
     if ns.Titanforged then ns.Titanforged:Opened(self.frame) end
 
     if self.tab == "search" then self:DrawUnsearched() end
-    if self.tab == "home" and ns.HomeUI then ns.HomeUI:Render(true) end
+    if self.tab == "home" and not self.searching and ns.HomeUI then ns.HomeUI:Render(true) end
 end
 
 function UI:Hide()
