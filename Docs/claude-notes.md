@@ -3966,7 +3966,7 @@ The owner: the game still stood still for a moment when the Rankings tab
 opened. The board prices every drop of every rated mob (about 3,000 mobs
 with the shipped data), and the first asking of a session reads each
 item's tooltip for its vendor price. In the fake game with the shipped
-data, opening the tab held one frame for about 127 ms; now about 8 ms,
+data, opening the tab held one frame for about 76 ms; now about 10 ms,
 and no frame of the build runs past about 14 ms.
 
 - `Rankings:BuildSoon(done, each)` (`Logic/Rankings.lua`) builds the same
