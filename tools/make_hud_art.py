@@ -84,7 +84,7 @@ def arrow(x, y):
 
 def main():
     write("HudDisc", 256, disc)
-    write("HudRing", 256, band(0.965, 0.995))
+    write("HudRing", 256, band(0.978, 0.996))
     write("HudDash", 256, dashed(0.975, 0.995, 72))
     write("HudDot", 32, disc)
     write("HudHollow", 32, band(0.6, 0.98))
