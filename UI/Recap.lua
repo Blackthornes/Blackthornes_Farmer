@@ -307,11 +307,20 @@ function RecapUI:Show(summary, title)
     self:Tick(0)
 end
 
---- Beside the kills panel, else high in the middle.
+--- Where the player put it (Move Windows, windowSpots["farmer.recap"]),
+--- else beside the kills panel, else high in the middle.
 function RecapUI:Place()
     local frame = self.frame
     if not frame then return end
     frame:ClearAllPoints()
+
+    local spot = ns.MoveWindows and ns.MoveWindows.Spot(ns.MoveWindows.RECAP_KEY)
+    if spot then
+        local ok, scale = pcall(frame.GetEffectiveScale, frame)
+        if not (ok and type(scale) == "number" and scale > 0) then scale = 1 end
+        frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", spot.x / scale, spot.y / scale)
+        return
+    end
 
     local panel = ns.TrackerUI and ns.TrackerUI.frame
     if panel and panel:IsShown() then

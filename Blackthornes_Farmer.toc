@@ -164,5 +164,6 @@ UI\XPBar.lua
 UI\FishingBar.lua
 UI\FishingPanel.lua
 UI\OneKeyFishing.lua
+UI\MoveWindows.lua
 UI\Settings.lua
 Data\Data_Harvested.lua

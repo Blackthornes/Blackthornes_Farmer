@@ -1090,6 +1090,12 @@ function SettingsUI:BuildWindowsPage()
 
     pages:Section("panels", 1, L["FARMER UI"])
 
+    -- Move Windows (the owner said yes to the mockup, 2026-11-26): every
+    -- Farmer piece at once, to drag into place (UI/MoveWindows.lua).
+    local _, moveButton = CommandRow(pages, "panels", 1, L["Move Windows:"],
+        L["Shows every Farmer piece at once so you can drag each one into place."], L["Move"], "move")
+    controls.moveWindows = moveButton
+
     local _, searchButton = CommandRow(pages, "panels", 1, L["Farmer:"], nil, L["Open"], function()
             -- /farm on its own toggles the window, so with it already open
             -- this closed it. It opens it, on the Search tab.
@@ -2775,6 +2781,10 @@ ns.RegisterCommand("windows", L["put every Blackthornes window back where it sta
     else
         ns.Print(L["Type /farm windows reset to put every window back in its first spot."])
     end
+end)
+
+ns.RegisterCommand("move", L["show every Farmer piece at once to drag into place"], function()
+    if ns.MoveWindows then ns.MoveWindows:Toggle() end
 end)
 
 -- Kept folded through a /reload, its round button opens it (UI/FoldWindow.lua).
