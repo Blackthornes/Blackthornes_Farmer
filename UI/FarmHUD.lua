@@ -6,9 +6,11 @@
 --
 -- It is a flat picture on the screen. Nothing is drawn in the game world,
 -- which Forever does not allow. North is up; the gold arrow in the middle
--- turns with you. A filled dot is a spot that should be back, a hollow one
--- a spot still growing back (Logic/Respawn.lua). Fishing spots never grow
--- back, so they stay filled. When a Gather Route runs, a gold dotted line
+-- turns with you. Every dot is hollow until its node is seen up (Trent,
+-- 2026-11-26): the node you face (the game's soft interact target) carries
+-- the name of a saved spot within SEEN_YARDS of you. Then it fills, until
+-- you gather it or SEEN_FOR passes. A grow-back time alone never fills a
+-- dot, since nothing proves the node is there. When a Gather Route runs, a gold dotted line
 -- points at its next stop, named with how far it is.
 --
 -- The spots are the minimap markers' (MapMarkers:SpotsOn), so My
@@ -42,6 +44,12 @@ FarmHUD.NEAR_MOVE = 40    -- yards you move before the near list is made again
 FarmHUD.NEAR_EXTRA = 80   -- yards past the rim the near list reaches
 FarmHUD.DOT = 12          -- a dot's size at Medium, in pixels
 FarmHUD.ROUTE_DASHES = 9
+FarmHUD.SEEN_YARDS = 40   -- a node you face counts for a saved spot this close
+FarmHUD.SEEN_FOR = 15 * 60  -- seconds a node seen up stays filled
+
+-- When each spot's node was last seen up, this session: [spot] = clock.
+FarmHUD.seen = setmetatable({}, { __mode = "k" })
+FarmHUD.seenVersion = 0
 
 -- A spot's colour by kind, as on the mockup.
 FarmHUD.COLORS = {
@@ -320,9 +328,9 @@ function FarmHUD:Key()
     local now = ns.Gathering.Clock() or 0
     local _, stamp = ns.MapMarkers:ShownKinds()
     local aimed = Aimed(mapID)
-    return ("%d|%s|%s|%s|%s|%s|%s|%d|%s"):format(mapID, tostring(px), tostring(py),
+    return ("%d|%s|%s|%s|%s|%s|%s|%d|%s|%d"):format(mapID, tostring(px), tostring(py),
         tostring(Facing()), tostring(ns.Gathering.spotsVersion or 0), tostring(stamp),
-        tostring(aimed), math.floor(now / 5), FarmHUD.Size())
+        tostring(aimed), math.floor(now / 5), FarmHUD.Size(), FarmHUD.seenVersion)
 end
 
 function FarmHUD:Step(elapsed)
@@ -376,7 +384,7 @@ function FarmHUD:Draw()
             local entry = placed[index]
             used = index
             local dot = Dot(frame, index, self.dotSize)
-            local back = FarmHUD.IsBack(entry.spot, now)
+            local back = FarmHUD.IsUp(entry.spot, now)
             dot:SetTexture(MEDIA .. (back and "HudDot" or "HudHollow"))
             local color = FarmHUD.COLORS[entry.spot.kind] or FarmHUD.COLORS.herb
             dot:SetVertexColor(color[1], color[2], color[3], back and 1 or 0.55)
@@ -394,12 +402,50 @@ function FarmHUD:Draw()
     self.shown = used
 end
 
---- A spot is drawn filled when it should be back, or never grows back (a
---- fishing spot, or one whose grow-back time isn't learned yet).
-function FarmHUD.IsBack(spot, now)
-    local at = ns.Respawn and ns.Respawn:BackAt(spot) or nil
-    if type(at) ~= "number" or type(now) ~= "number" then return true end
-    return now >= at
+--- A spot is drawn filled only when its node was seen up, not gathered
+--- since, and not longer ago than SEEN_FOR.
+function FarmHUD.IsUp(spot, now)
+    local at = FarmHUD.seen[spot]
+    if type(at) ~= "number" or type(now) ~= "number" then return false end
+    if now - at > FarmHUD.SEEN_FOR then return false end
+    local last = tonumber(spot.last)
+    return not (last and last > at)
+end
+
+local function SoftTarget()
+    if type(UnitGUID) ~= "function" or type(UnitName) ~= "function" then return nil end
+    local okGuid, guid = pcall(UnitGUID, "softinteract")
+    local okName, name = pcall(UnitName, "softinteract")
+    if not (okGuid and okName) or type(guid) ~= "string" or type(name) ~= "string" then return nil end
+    local ok, object = pcall(string.find, guid, "^GameObject%-")
+    if not (ok and object) or name == "" then return nil end
+    return name
+end
+
+--- The node you face: mark the nearest saved spot of that name within
+--- SEEN_YARDS as seen up. Only while the HUD shows.
+function FarmHUD:NoteFacing()
+    if not (self.frame and self.frame:IsShown()) then return false end
+    local name = SoftTarget()
+    if not name then return false end
+    local mapID, px, py = ns.Harvest:PlayerMapPosition()
+    if not mapID then return false end
+    local width, height = ns.Gathering.MapSize(mapID)
+    if not (width and height) then return false end
+    local wanted = name:lower()
+    local best, bestYards
+    for _, spot in ipairs(ns.Gathering:SpotsOn(mapID)) do
+        if type(spot.node) == "string" and spot.node:lower() == wanted then
+            local _, _, yards = FarmHUD.Offset(spot, px, py, width, height, 1, 1)
+            if yards <= FarmHUD.SEEN_YARDS and (not bestYards or yards < bestYards) then
+                best, bestYards = spot, yards
+            end
+        end
+    end
+    if not best then return false end
+    FarmHUD.seen[best] = ns.Gathering.Clock()
+    FarmHUD.seenVersion = FarmHUD.seenVersion + 1
+    return true
 end
 
 function FarmHUD:HideRoute()
@@ -470,6 +516,10 @@ function FarmHUD:OnEnable()
     end)
     ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", function() FarmHUD:Update() end)
     ns.RegisterEvent(self, "ZONE_CHANGED_NEW_AREA", function() FarmHUD:Update() end)
+    ns.RegisterEvent(self, "PLAYER_SOFT_INTERACT_CHANGED", function()
+        local ok, err = pcall(FarmHUD.NoteFacing, FarmHUD)
+        if not ok then ns.Debug("farm HUD:", tostring(err)) end
+    end)
     self:Update()
 end
 
