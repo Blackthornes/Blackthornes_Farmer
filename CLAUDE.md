@@ -116,6 +116,7 @@ Sections there:
 - Move Windows (2026-11-26)
 - The Home tab (2026-11-26)
 - Names as you type (2026-11-26)
+- The Rankings board over a few frames (2026-11-26)
 
 ## Checking a change
 

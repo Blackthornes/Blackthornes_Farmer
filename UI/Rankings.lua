@@ -1242,6 +1242,43 @@ function RankingsUI:Rows(board, all)
     return rows
 end
 
+-- How wide each text on the board is, kept for the session: fitting the
+-- columns measures six texts a row on a board of hundreds of rows, most of
+-- them the same from one draw to the next. A width of 0 is asked again
+-- (the font may not have been ready), and the table starts over when full.
+local smallWidths, smallCount = {}, 0
+local WIDTHS_KEPT = 6000
+
+local function SmallWidth(text)
+    if type(text) ~= "string" or text == "" then return 0 end
+    local known = smallWidths[text]
+    if known then return known end
+    local width = Theme.TextWidth("small", text)
+    if width > 0 then
+        if smallCount >= WIDTHS_KEPT then smallWidths, smallCount = {}, 0 end
+        smallWidths[text] = width
+        smallCount = smallCount + 1
+    end
+    return width
+end
+
+--- Widen `mobs` (a width by column) to fit one mob's row. The board
+--- built over frames measures each mob as it is added (Render), so the
+--- draw at the end has no texts left to measure but the ranks.
+function RankingsUI.Measure(mobs, entry)
+    local texts = EntryTexts({ entry = entry })
+    for _, key in ipairs({ "mob", "basis", "best", "where" }) do
+        mobs[key] = math.max(mobs[key] or 0, SmallWidth(texts[key]) + 8)
+    end
+    if texts.worth then
+        mobs.worth = math.max(mobs.worth or 0, SmallWidth(texts.worth) + BAR_WIDTH + 12)
+    end
+    -- A long board's ranks run to three figures: "100" was cut off.
+    if entry.rank then
+        mobs.rank = math.max(mobs.rank or 0, SmallWidth(tostring(entry.rank)) + 8)
+    end
+end
+
 --- Widen the columns to fit these rows, and return the window width they want.
 --- All, Measured and Estimates are measured on the whole board, so a
 --- column stays put when the chip changes (2026-10-22: From, Best drop and
@@ -1252,23 +1289,23 @@ function RankingsUI:FitColumns(rows)
     local widths = {}
     for key, w in pairs(BASE_WIDTH) do widths[key] = w end
 
+    -- The mobs' rows are the board's, whatever the chip or the order, so
+    -- they are measured once a board.
+    local fitted = self.fitted
+    local mobs = fitted and self.board and fitted.board == self.board and fitted.widths
+    if not mobs then
+        mobs = {}
+        for _, row in ipairs(rows) do
+            if row.type == "mob" then RankingsUI.Measure(mobs, row.entry) end
+        end
+        if self.board then self.fitted = { board = self.board, widths = mobs } end
+    end
+    for key, w in pairs(mobs) do widths[key] = math.max(widths[key], w) end
+
     for _, row in ipairs(rows) do
-        if row.type == "mob" then
-            local texts = EntryTexts(row)
-            for _, key in ipairs({ "mob", "basis", "best", "where" }) do
-                widths[key] = math.max(widths[key], Theme.TextWidth("small", texts[key]) + 8)
-            end
-            if texts.worth then
-                widths.worth = math.max(widths.worth,
-                    Theme.TextWidth("small", texts.worth) + BAR_WIDTH + 12)
-            end
-            -- A long board's ranks run to three figures: "100" was cut off.
-            if texts.rank then
-                widths.rank = math.max(widths.rank, Theme.TextWidth("small", texts.rank) + 8)
-            end
-        elseif row.type == "band" or row.type == "rare" then
-            widths.mob = math.max(widths.mob, Theme.TextWidth("small", row.label) + 8)
-            widths.worth = math.max(widths.worth, Theme.TextWidth("small", row.text) + BAR_WIDTH + 12)
+        if row.type == "band" or row.type == "rare" then
+            widths.mob = math.max(widths.mob, SmallWidth(row.label) + 8)
+            widths.worth = math.max(widths.worth, SmallWidth(row.text) + BAR_WIDTH + 12)
         end
     end
 
@@ -1429,7 +1466,92 @@ function RankingsUI:ShowWorld()
     if world then self:FillTiles(world) end
 end
 
---- Rebuild the board and draw it. Returns the window width it wants.
+--- Are two values the same all the way down? Tables are walked, a few
+--- levels deep at most.
+local function Same(a, b, depth)
+    if a == b then return true end
+    if type(a) ~= "table" or type(b) ~= "table" or depth <= 0 then return false end
+    for key, value in pairs(a) do
+        if not Same(value, b[key], depth - 1) then return false end
+    end
+    for key in pairs(b) do
+        if a[key] == nil then return false end
+    end
+    return true
+end
+
+--- Do two mobs' entries show the same? The numbers on the row, and what
+--- its hover lists by how many drops are priced and what the best is.
+local function SameEntry(a, b)
+    for key, value in pairs(a) do
+        if type(value) ~= "table" and value ~= b[key] then return false end
+    end
+    for key, value in pairs(b) do
+        if type(value) ~= "table" and a[key] == nil then return false end
+    end
+    if a.spot ~= b.spot then return false end
+    local was, now = a.details, b.details
+    if (was == nil) ~= (now == nil) then return false end
+    if was then
+        if was.basis ~= now.basis or was.coin ~= now.coin or was.kills ~= now.kills
+            or #was.priced ~= #now.priced or #was.unpriced ~= #now.unpriced then
+            return false
+        end
+        local best, other = was.priced[1], now.priced[1]
+        if best and (best.name ~= other.name or best.perKill ~= other.perKill
+            or best.unit ~= other.unit or best.from ~= other.from) then
+            return false
+        end
+    end
+    return true
+end
+
+--- Would these rows draw the same list as those? Every row in the same
+--- place with the same numbers.
+function RankingsUI.SameRows(old, new)
+    if type(old) ~= "table" or type(new) ~= "table" or #old ~= #new then return false end
+    for index, row in ipairs(old) do
+        local other = new[index]
+        if row.type ~= other.type then return false end
+        if row.type == "mob" then
+            if row.top ~= other.top or not SameEntry(row.entry, other.entry) then return false end
+        elseif not Same(row, other, 3) then
+            return false
+        end
+    end
+    return true
+end
+
+--- Draw `board`. Returns the window width it wants.
+function RankingsUI:Draw(board, rows)
+    self.board = board
+    rows = rows or self:Rows(board)
+
+    local width = math.max(self:FitColumns(rows), self:HeadWidth())
+
+    -- The board comes in row by row when the tab is opened or the filter
+    -- changes; a kill that redraws it while you look just redraws.
+    local fresh = self.wantArrive or self.shownGroup ~= self.group
+    self.wantArrive = nil
+    self.shownGroup = self.group
+    self.arriving = fresh
+    -- A redraw after a kill keeps your place on the board.
+    self.list:SetData(rows, not fresh)
+    self.arriving = false
+    self.drawn = true
+    if fresh then self.list:Arrive() end
+    self.summary:SetText(self:PriceText())
+
+    -- The window grows to fit, never narrower than the search tab's base.
+    if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then ns.UI:ApplySize() end
+
+    return width
+end
+
+--- Rebuild the board and draw it. The board is built a slice a frame
+--- (Rankings:BuildSoon), so opening the tab never holds the game: the
+--- board from last time is drawn at once and the new one takes its place
+--- when it is ready, if anything on it changed.
 function RankingsUI:Render(arrive)
     if not self.view then return end
 
@@ -1442,27 +1564,50 @@ function RankingsUI:Render(arrive)
     if self.near then self.near:SetChecked(ns.Rankings.NearLevel()) end
 
     self:ShowWorld()
-    local board = ns.Rankings:Build()
-    self.board = board
-    local rows = self:Rows(board)
+    if arrive then self.wantArrive = true end
 
-    local width = math.max(self:FitColumns(rows), self:HeadWidth())
+    -- Opening the tab or picking a chip answers at once with the board
+    -- already built.
+    if self.board and (arrive or self.shownGroup ~= self.group) then
+        self:Draw(self.board)
+    end
 
-    -- The board comes in row by row when the tab is opened or the filter
-    -- changes; a kill that redraws it while you look just redraws.
-    local fresh = arrive or self.shownGroup ~= self.group
-    self.shownGroup = self.group
-    self.arriving = fresh
-    -- A redraw after a kill keeps your place on the board.
-    self.list:SetData(rows, not fresh)
-    self.arriving = false
-    if fresh then self.list:Arrive() end
     self.summary:SetText(self:PriceText())
 
-    -- The window grows to fit, never narrower than the search tab's base.
-    if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then ns.UI:ApplySize() end
-
-    return width
+    local mobs = {}
+    ns.Rankings:BuildSoon(function(board)
+        local self = RankingsUI
+        -- The ranks are known only now; the rest was measured on the way.
+        for _, group in ipairs({ "measured", "estimate" }) do
+            for _, entry in ipairs(board[group]) do
+                mobs.rank = math.max(mobs.rank or 0, SmallWidth(tostring(entry.rank)) + 8)
+            end
+        end
+        local fitted = { board = board, widths = mobs }
+        -- Built while another tab was up: kept for the next time this one
+        -- opens.
+        if self.view.IsShown and not self.view:IsShown() then
+            self.board = board
+            self.fitted = fitted
+            return
+        end
+        -- Nothing moved: what is drawn stays, and its bars finish growing.
+        local rows = self:Rows(board)
+        if self.drawn and not self.wantArrive and self.shownGroup == self.group
+            and RankingsUI.SameRows(self.list.data, rows) then
+            -- The screen or the window's scale may have: the columns are
+            -- fitted again, and drawn again only if one moved.
+            local columns, world = self.columns, self.worldColumns
+            self:FitColumns(self.list.data)
+            if self.columns ~= columns or not Same(self.worldColumns, world, 3) then
+                self.list:Refresh()
+            end
+            if ns.UI and ns.UI.frame and ns.UI.tab == "rankings" then ns.UI:ApplySize() end
+            return
+        end
+        self.fitted = fitted
+        self:Draw(board, rows)
+    end, function(entry) RankingsUI.Measure(mobs, entry) end)
 end
 
 -- "Hide skinning" moved: leather counts toward a kill's worth or not.
