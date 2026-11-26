@@ -2126,6 +2126,15 @@ wide, never rename them. `/farm lootbeacon [on|off|color <name>|height
 <n>|width <n>]`; `/farm sparkle check` has a loot beacon line. Tested in
 `tools/test_lootbeacon.lua`.
 
+Settings put back at logout (the owner's report, 2026-11-26): with Farmer
+turned off for a test, the interact nameplate Farmer had turned on stayed
+on, so friendly NPCs up close showed a name, a health bar and a level
+instead of their title. Now `NodeSparkle:RestoreForLogout` (PLAYER_LOGOUT,
+not in a fight) puts every kept setting back as the player had it, after
+noting any the player turned back this session in `nodeSparkleCVarsLeft`.
+The box stays ticked and PLAYER_ENTERING_WORLD turns them on again. Tested
+in `tools/test_nodesparkle.lua`.
+
 ## The map gem
 
 A player found the Grind tab's swords left on the world map all session,
