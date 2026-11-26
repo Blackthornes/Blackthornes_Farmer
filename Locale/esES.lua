@@ -2178,6 +2178,16 @@ L["Click to open this step."] = "Haz clic para abrir este paso."
 L["Built from mobs Farmer has seen. It gets better as you play."] = "Hecho con los enemigos que Farmer ha visto. Mejora cuanto más juegas."
 L["Farmer hasn't seen enough mobs near your level yet. Go kill a few and check back."] = "Farmer aún no ha visto suficientes enemigos cerca de tu nivel. Mata unos cuantos y vuelve a mirar."
 L["You made it to 60."] = "Has llegado al nivel 60."
+-- The Farm HUD (UI/FarmHUD.lua)
+L["Farm HUD:"] = "HUD de recolección:"
+L["A see-through ring in the middle of your screen. It shows the herbs, ore and fishing spots you found near you."] = "Un anillo transparente en el centro de tu pantalla. Muestra las hierbas, el mineral y los sitios de pesca que encontraste cerca de ti."
+L["Farm HUD Size:"] = "Tamaño del HUD de recolección:"
+L["Show or Hide Farm HUD"] = "Mostrar u ocultar el HUD de recolección"
+L["The Farm HUD is on."] = "El HUD de recolección está activado."
+L["The Farm HUD is off."] = "El HUD de recolección está desactivado."
+L["Medium"] = "Mediano"
+L["N"] = "N"
+L["%s, %d yards"] = "%s, %d metros"
 
 -- Farmer Settings: Set Default (2026-11-23)
 L["Farmer Settings:"] = "Ajustes de Farmer:"

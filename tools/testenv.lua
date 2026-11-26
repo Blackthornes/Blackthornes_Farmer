@@ -449,6 +449,7 @@ local UI_FILES = {
     "UI/Stats.lua",
     "UI/SavedFarms.lua",
     "UI/MapMarkers.lua",
+    "UI/FarmHUD.lua",
     "UI/Heat.lua",
     "UI/GrindPins.lua",
     "UI/MapToggle.lua",
