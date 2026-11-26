@@ -799,6 +799,8 @@ function TrackerUI:Build()
     self:BuildSizeGrip(frame)
     self:BuildSeeThrough(frame)
     self:BuildPanelStyle(frame, chrome)
+    -- Slim Bar (UI/SlimBar.lua): the mouse on the bar opens the list.
+    if ns.SlimBar then ns.SlimBar:Watch(self) end
 
     self:RestorePosition()
     frame:Hide()
@@ -3001,7 +3003,7 @@ end
 --- The top of the column: under the toolbar, and under the session
 --- timer's strip while it is on.
 function TrackerUI:Top()
-    return TOP + (self.timerHeight or 0)
+    return TOP + (self.timerHeight or 0) + (self.graphHeight or 0)
 end
 
 --- The session timer's strip (UI/SessionTimer.lua) sits under the title
@@ -3011,8 +3013,13 @@ function TrackerUI:PlaceTimer(width)
     if not (timerUI and self.frame) then return end
     local strip = timerUI:Build(self.frame)
     local h = timerUI:Height()
-    if h ~= self.timerHeight then
+    -- The run graph (UI/RunGraph.lua) sits under the timer's strip.
+    local Graph = ns.RunGraph
+    local graphShows = Graph and Graph:Shows(self) or false
+    local g = graphShows and Graph.HEIGHT or 0
+    if h ~= self.timerHeight or g ~= self.graphHeight then
         self.timerHeight = h
+        self.graphHeight = g
         strip:ClearAllPoints()
         strip:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 1, -HEADER)
         strip:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -1, -HEADER)
@@ -3023,13 +3030,18 @@ function TrackerUI:PlaceTimer(width)
             part:SetPoint("TOPLEFT", self.frame, "TOPLEFT", inset, -y)
             part:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -inset, -y)
         end
-        Move(self.tabStrip, HEADER + h, 1)
-        Move(self.toolbar, HEADER + TAB_HEIGHT + h, 1)
-        Move(self.rule, TOP + h, 0)
-        Move(self.fadeTop, TOP + h + 1, 1)
+        if Graph then Move(Graph:Build(self.frame), HEADER + h, 1) end
+        Move(self.tabStrip, HEADER + h + g, 1)
+        Move(self.toolbar, HEADER + TAB_HEIGHT + h + g, 1)
+        Move(self.rule, TOP + h + g, 0)
+        Move(self.fadeTop, TOP + h + g + 1, 1)
+    end
+    local drawWidth = tonumber(width) or tonumber(self.frame:GetWidth()) or 0
+    if Graph then
+        if graphShows then Graph:Draw(self, drawWidth) else Graph:Hide() end
     end
     if self.folded then strip:Hide() return end
-    timerUI:Draw(tonumber(width) or tonumber(self.frame:GetWidth()) or 0)
+    timerUI:Draw(drawWidth)
 end
 
 function TrackerUI:Render()
@@ -3048,6 +3060,7 @@ function TrackerUI:Render()
     local toolbarNeeds = self:DrawToolbar()
     local timerUI = ns.SessionTimerUI
     if timerUI and timerUI.Needs then toolbarNeeds = math.max(toolbarNeeds, timerUI.Needs()) end
+    if ns.RunGraph then toolbarNeeds = math.max(toolbarNeeds, ns.RunGraph:Needs(self)) end
 
     -- The width first: every line drawn once to see what it needs.
     local width = tonumber(self.frame:GetWidth()) or self:Width()
@@ -3380,6 +3393,7 @@ function TrackerUI:ApplyFold()
     end
     for _, line in ipairs(self.lines or {}) do line:Hide() end
     for _, card in ipairs(self.cards or {}) do card:Hide() end
+    if ns.RunGraph then ns.RunGraph:Hide() end
     self.frame:SetHeight(HEADER)
 end
 
@@ -3465,6 +3479,11 @@ function TrackerUI:Redraw(now)
     if ns.RankingsUI then ns.RankingsUI:Refresh() end
 
     self:NoteStart()
+    -- The run graph takes its point a minute from the same numbers.
+    if ns.RunGraph and ns.RunGraph.On() then
+        local ok, err = pcall(ns.RunGraph.Note, ns.RunGraph)
+        if not ok then ns.Debug("run graph:", tostring(err)) end
+    end
 
     if ns.db.trackerHidden then
         self.frame:Hide()
@@ -3487,6 +3506,25 @@ function TrackerUI:Redraw(now)
         ns.FoldWindow:Refresh(self.frame)
         FollowGoals()
         return
+    end
+
+    -- Slim Bar (UI/SlimBar.lua): folded to its one line, only the bar's
+    -- words are written. The list opens under the mouse or on a click.
+    local Slim = ns.SlimBar
+    if Slim and Slim:Folded() then
+        if ns.TrackerFX then
+            ns.TrackerFX:Forget()
+            pcall(ns.TrackerFX.HiddenLoot, ns.TrackerFX)
+        end
+        local opening = not self.frame:IsShown()
+        Slim:Draw(self)
+        self.frame:Show()
+        if opening and ns.Motion then ns.Motion:Open(self.frame, 0) end
+        FollowGoals()
+        return
+    end
+    if Slim then
+        if Slim.On() then Slim:Open(self) else Slim:Restore(self) end
     end
 
     if ns.TrackerFX and ns.TrackerFX.Shown then ns.TrackerFX:Shown() end

@@ -273,12 +273,12 @@ do
 
     -- From a distance: the stop the arrow points at counts once you come
     -- within REACH yards, after walking in from farther out.
-    check("the reach is about 30 yards", GatherRoute.REACH == 30 and GatherRoute.ARRIVED < GatherRoute.REACH)
+    check("the reach is 90 yards (Trent, 2026-11-26)", GatherRoute.REACH == 90 and GatherRoute.ARRIVED < GatherRoute.REACH)
     do
         local run = { aimed = "a" }
         check("a stop aimed while you stand near it needs you close", GatherRoute.Reach(run, "a") == GatherRoute.ARRIVED)
         run.cameFrom = "a"
-        check("walked in from afar, it counts at 30 yards", GatherRoute.Reach(run, "a") == GatherRoute.REACH)
+        check("walked in from afar, it counts at 90 yards", GatherRoute.Reach(run, "a") == GatherRoute.REACH)
         check("a stop you pass on the way still needs you close", GatherRoute.Reach(run, "b") == GatherRoute.ARRIVED)
     end
     GatherRoute.cooldown = {}
@@ -289,8 +289,32 @@ do
     check("a stop is aimed for the reach test", aimed ~= nil)
     if aimed then
         here[1], here[2], here[3] = aimed.map, aimed.x + 0.1, aimed.y -- 100 yards off
+        GatherRoute.cache = nil
         GatherRoute:Look()
-        check("100 yards off, the stop still waits", GatherRoute.run.aimed == aimed)
+        check("100 yards off, the stop still waits", not GatherRoute.run.visited[aimed])
+        -- Trent's screenshot (2026-11-26): the plan picked a new next stop as
+        -- he rode (the Route list and minimap showed it) while the arrow kept
+        -- the old one. The arrow follows the plan's pick.
+        local plan = GatherRoute:Plan()
+        local pick, other = plan.nextStop, nil
+        for _, stop in ipairs(plan.stops) do
+            if stop ~= pick and not stop.done then other = stop end
+        end
+        check("a second stop to be aimed at by mistake", other ~= nil)
+        if other then
+            GatherRoute.run.aimed = other.spot
+            GatherRoute:Look()
+            check("the arrow follows the stop the plan picks now",
+                pick and GatherRoute.run.aimed == pick.spot, tostring(GatherRoute.run.aimed and GatherRoute.run.aimed.node))
+            check("and the arrow is pointed there",
+                GatherRoute.camp and GatherRoute.camp.coords.map == pick.spot.map
+                and GatherRoute.camp.coords[1] == pick.spot.x * 100)
+        end
+        aimed = GatherRoute.run.aimed
+        -- Walking in from afar toward the stop now aimed at.
+        here[1], here[2], here[3] = aimed.map, aimed.x + 0.1, aimed.y
+        GatherRoute:Look()
+        check("the far look keeps the aim", GatherRoute.run.aimed == aimed)
         here[2] = aimed.x + 0.025 -- 25 yards off
         GatherRoute:Look()
         check("25 yards off, the route moves on", GatherRoute.run.aimed ~= aimed and GatherRoute.run.visited[aimed])

@@ -128,6 +128,8 @@ end
 
 -- The window's tabs, left to right.
 local TABS = {
+    -- Home (UI/Home.lua, the owner 2026-11-26): what do you want to do.
+    { key = "home", text = L["Home"] },
     { key = "search", text = L["Search"] },
     { key = "rankings", text = L["Rankings"] },
     { key = "grind", text = L["Grind"] },
@@ -387,6 +389,9 @@ function UI:Build()
     if ns.StatsUI then
         self.statsView = ns.StatsUI:Build(frame)
     end
+    if ns.HomeUI then
+        self.homeView = ns.HomeUI:Build(frame)
+    end
     if ns.SavedFarmsUI then
         self.farmsView = ns.SavedFarmsUI:Build(frame)
         -- The Last Farm strip over the Search results, when it shows.
@@ -442,6 +447,11 @@ function UI:BuildBody()
     search:SetPoint("TOPLEFT", HEAD_LEFT, -HEAD_TOP)
     search:SetPoint("TOPRIGHT", -PADDING, -HEAD_TOP)
     self.searchBox = search
+
+    -- Names that match show under the box as you type (UI/SearchSuggest.lua).
+    if ns.SuggestUI then
+        ns.SuggestUI:Attach(search, function(name) UI:Search(name) end)
+    end
 
     -- Filter chips sit between the box and the results, showing only the kinds
     -- the current search actually turned up. Across the whole window, below
@@ -1587,10 +1597,22 @@ end
 -- Tabs
 --------------------------------------------------------------------------------
 
---- Switch the window to a tab: "search", "rankings", "grind" or "stats".
+--- Switch the window to a tab: "home", "search", "rankings", "grind",
+--- "farms" or "stats".
 --- Remembered for the next time the window opens. "settings" opens
 --- Settings in the window's place.
 function UI:ShowTab(key)
+    -- One switch draws a whole tab in one go: inside one pass each item is
+    -- priced once (Value:BeginPass), and the pass always ends.
+    local Value = ns.Value
+    local mine = Value and Value.BeginPass and Value:BeginPass()
+    local ok, problem = pcall(self.ShowTabNow, self, key)
+    if mine then Value:EndPass() end
+    if not ok then error(problem, 0) end
+end
+
+--- ShowTab, done now.
+function UI:ShowTabNow(key)
     self:Build()
     if key == "settings" and ns.SettingsUI then
         if self.tabStrip then self.tabStrip:Select(self.tab or "search") end
@@ -1598,7 +1620,7 @@ function UI:ShowTab(key)
         return
     end
     local views = { rankings = self.rankingsView, grind = self.grindView, stats = self.statsView,
-        farms = self.farmsView }
+        farms = self.farmsView, home = self.homeView }
     if key == "farms" and not (ns.SavedFarms and ns.SavedFarms.On()) then key = "search" end
     if not views[key] then key = "search" end
 
@@ -1612,6 +1634,7 @@ function UI:ShowTab(key)
     if self.grindView then self.grindView:SetShown(key == "grind") end
     if self.statsView then self.statsView:SetShown(key == "stats") end
     if self.farmsView then self.farmsView:SetShown(key == "farms") end
+    if self.homeView then self.homeView:SetShown(key == "home") end
 
     -- One size for every tab.
     self:ApplySize()
@@ -1629,6 +1652,9 @@ function UI:ShowTab(key)
     elseif key == "farms" then
         self.searchBox:ClearFocus()
         ns.SavedFarmsUI:Render()
+    elseif key == "home" then
+        self.searchBox:ClearFocus()
+        ns.HomeUI:Render(true)
     else
         if ns.SavedFarmsUI then pcall(ns.SavedFarmsUI.PlaceSearchStrip, ns.SavedFarmsUI) end
         self:DrawUnsearched()
@@ -1746,6 +1772,7 @@ function UI:Show()
     if ns.Titanforged then ns.Titanforged:Opened(self.frame) end
 
     if self.tab == "search" then self:DrawUnsearched() end
+    if self.tab == "home" and not self.searching and ns.HomeUI then ns.HomeUI:Render(true) end
 end
 
 function UI:Hide()
@@ -1781,7 +1808,13 @@ function UI:Toggle()
     self:Show()
     self.searching = nil
 
+    -- Home the first time, before any tab was used (UI/Home.lua).
     local farms = ns.db and ns.db.lastTab == "farms" and ns.SavedFarms and ns.SavedFarms.On()
+    local home = ns.db and (ns.db.lastTab == nil or ns.db.lastTab == "home") and self.homeView
+    if home then
+        self:ShowTab("home")
+        return
+    end
     if ns.db and (ns.db.lastTab == "rankings" or ns.db.lastTab == "grind" or ns.db.lastTab == "stats" or farms) then
         self:ShowTab(ns.db.lastTab)
         return
@@ -1932,7 +1965,7 @@ function UI:BuildMinimapButton()
         GameTooltip:AddLine(ns.VersionLabel(), 0.5, 0.5, 0.5)
         GameTooltip:AddLine(L["Click to open"], 0.7, 0.7, 0.7)
         GameTooltip:AddLine(L["Right-click for settings"], 0.7, 0.7, 0.7)
-        GameTooltip:AddLine(L["Middle-click to bring back your panels"], 0.7, 0.7, 0.7)
+        GameTooltip:AddLine(L["Middle-click for Kills & Loot."], 0.7, 0.7, 0.7)
         if ns.ZoneBoard and ns.ZoneBoard.IsOn() then
             GameTooltip:AddLine(L["Shift-click for the Zone Board"], 0.7, 0.7, 0.7)
         end
@@ -1965,6 +1998,12 @@ function UI:BringBackPanels()
     if GoalsUI and #GoalsUI:List() > 0 and not (GoalsUI.frame and GoalsUI.frame:IsShown()) then
         GoalsUI:Show()
         brought = true
+    end
+    -- Slim Bar (UI/SlimBar.lua): with nothing to bring back, it opens the
+    -- list and keeps it open, or lets it fold again.
+    if not brought and ns.SlimBar and ns.SlimBar.On() and ns.db and not ns.db.trackerHidden then
+        ns.SlimBar:Click()
+        return
     end
     if not brought and GoalsUI then GoalsUI:ToggleOrHint() end
 end
@@ -2191,7 +2230,7 @@ function FarmerTabs:Open(key)
         ns.SettingsUI:Show()
         return
     end
-    key = key or (ns.db and ns.db.lastTab) or "search"
+    key = key or (ns.db and ns.db.lastTab) or (UI.homeView and "home") or "search"
     UI.searching = key ~= "search" or nil
     UI:Show()
     UI.searching = nil

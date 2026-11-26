@@ -164,4 +164,69 @@ do
     Value.SessionNow = now
 end
 
+--------------------------------------------------------------------------------
+-- A kill works out only that mob's line again
+--
+-- With 60 kinds of mob this session, every kill built all 60 summaries
+-- again, though one mob changed: the biggest hitch left at kill time.
+--------------------------------------------------------------------------------
+
+do
+    local Tracker = ns.Tracker
+    for index = 1, 60 do
+        Tracker:Record("Perf Mob " .. index, "Creature-0-0-0-0-" .. index .. "-1", { "Perf Hide " .. index },
+            { ["Perf Hide " .. index] = 1 }, 5)
+    end
+    local built = 0
+    local summary = Tracker.Summary
+    Tracker.Summary = function(...) built = built + 1; return summary(...) end
+
+    Tracker:SessionMobs()
+    built = 0
+    local before = Tracker:SessionMobs()
+    suite.check("nothing new, nothing worked out again", built == 0, built)
+
+    local function Line(mobs, name)
+        for _, line in ipairs(mobs) do if line.mob == name then return line end end
+    end
+    local untouched = Line(before, "Perf Mob 2")
+
+    built = 0
+    Tracker:Record("Perf Mob 7", "Creature-0-0-0-0-7-2", { "Perf Hide 7", "Perf Tooth" },
+        { ["Perf Hide 7"] = 1, ["Perf Tooth"] = 1 }, 5)
+    local after = Tracker:SessionMobs()
+    suite.check("a kill works out one line again", built == 1, built)
+    local seven = Line(after, "Perf Mob 7")
+    suite.check("and that line is new", seven.kills == 2 and #seven.items == 2 and seven.session == 2,
+        seven.kills .. "/" .. #seven.items)
+    suite.check("the rest are the same lines", Line(after, "Perf Mob 2") == untouched)
+    suite.check("the newest kill is still on top", after[1].mob == "Perf Mob 7", after[1].mob)
+
+    -- Loot from a corpse already counted: no new kill, a new drop.
+    built = 0
+    Tracker:Record("Perf Mob 7", "Creature-0-0-0-0-7-2", { "Perf Claw" }, { ["Perf Claw"] = 1 }, 0)
+    seven = Line(Tracker:SessionMobs(), "Perf Mob 7")
+    suite.check("a late drop is seen too", built == 1 and #seven.items == 3, built)
+
+    -- Hiding an item changes every line that could hold it.
+    built = 0
+    DB:Hide("item", "Perf Tooth")
+    seven = Line(Tracker:SessionMobs(), "Perf Mob 7")
+    suite.check("a hide works every line out again", built >= 60, built)
+    suite.check("and the hidden item is gone", #seven.items == 2, #seven.items)
+    DB:Unhide("item", "Perf Tooth")
+
+    -- An item's ID learned later (it decides what a suffix counts as).
+    Tracker:SessionMobs()
+    built = 0
+    Tracker.looksVersion = (Tracker.looksVersion or 0) + 1
+    Tracker:SessionMobs()
+    suite.check("a look learned works every line out again", built >= 60, built)
+
+    -- A new session starts clean.
+    Tracker:Reset()
+    suite.check("a reset leaves no lines", #Tracker:SessionMobs() == 0)
+    Tracker.Summary = summary
+end
+
 suite.done()

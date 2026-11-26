@@ -1,9 +1,13 @@
 <!-- The game loads this file by itself; it is not listed in the TOC.
      One Key Fishing's key (UI/OneKeyFishing.lua) clicks a hidden secure
-     button, named on the Key Bindings page as Fish. -->
+     button, named on the Key Bindings page as Fish. The Farm HUD's key
+     (UI/FarmHUD.lua) shows or hides it. -->
 <Bindings>
     <Binding name="BLACKTHORNESFARMER_TOGGLE" header="BLACKTHORNESFARMER" category="ADDONS">
         if BlackthornesFarmer and BlackthornesFarmer.UI then BlackthornesFarmer.UI:Toggle() end
     </Binding>
     <Binding name="CLICK BlackthornesFarmerFishKey:LeftButton" category="ADDONS"/>
+    <Binding name="BLACKTHORNESFARMER_HUD" category="ADDONS">
+        if BlackthornesFarmer and BlackthornesFarmer.FarmHUD then BlackthornesFarmer.FarmHUD:Toggle() end
+    </Binding>
 </Bindings>

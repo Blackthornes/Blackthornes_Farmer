@@ -1080,27 +1080,50 @@ function MapMarkers.MinimapOffset(spot, player, width, height, radius, facing, s
     return east / radius * half, north / radius * half, east * east + north * north
 end
 
---- What the minimap markers depend on, as one string: where you stand and
---- face, the minimap's zoom, shape and size, and the spots. Standing still,
---- nothing in it changes, so the markers are left where they are rather than
---- placed again ten times a second. The age fade, which moves once a second,
---- is not in it: it used to be, and every saved spot on the map was gathered
---- up, sorted and placed again once a second even standing still, a hitch a
+--- What the minimap markers depend on: where you stand and face, the
+--- minimap's zoom, shape and size, and the spots. Standing still, nothing in
+--- it changes, so the markers are left where they are rather than placed
+--- again ten times a second. The age fade, which moves once a second, is not
+--- in it: it used to be, and every saved spot on the map was gathered up,
+--- sorted and placed again once a second even standing still, a hitch a
 --- player saw as a jerky craft bar (2026-10-09). FadeMinimap moves the fade
 --- on the markers already placed instead.
-function MapMarkers:MinimapKey()
-    if not MapMarkers.MinimapOn() then return "off" end
+---
+--- The numbers go into `into` (a table kept between calls) as they are, and
+--- SameMinimapKey compares them one by one: no text is built and no table
+--- made ten times a second, as the old nine-part string was.
+function MapMarkers:MinimapKey(into)
+    into = into or {}
+    if not MapMarkers.MinimapOn() then
+        into.n, into[1] = 1, "off"
+        return into
+    end
 
     local mapID, px, py = ns.Harvest:PlayerMapPosition()
-    if not mapID then return "nowhere" end
+    if not mapID then
+        into.n, into[1] = 1, "nowhere"
+        return into
+    end
 
     local okWidth, size = pcall(Minimap.GetWidth, Minimap)
     size = okWidth and ns.Harvest.ReadableNumber(size) or nil
 
     local _, kindStamp = self:ShownKinds()
-    return ("%d|%s|%s|%s|%s|%s|%s|%s|%s|%s"):format(mapID, tostring(px), tostring(py),
-        tostring(Facing()), tostring(IsSquare()), tostring(MapMarkers.MinimapRadius()),
-        tostring(size), tostring(ns.Gathering.spotsVersion or 0), kindStamp, MapMarkers.Size())
+    into.n = 10
+    into[1], into[2], into[3] = mapID, px, py
+    into[4], into[5], into[6] = Facing(), IsSquare(), MapMarkers.MinimapRadius()
+    into[7], into[8], into[9] = size, ns.Gathering.spotsVersion or 0, kindStamp
+    into[10] = MapMarkers.Size()
+    return into
+end
+
+--- Are two minimap keys the same, number by number?
+function MapMarkers.SameMinimapKey(a, b)
+    if not (a and b) or a.n ~= b.n then return false end
+    for index = 1, a.n do
+        if a[index] ~= b[index] then return false end
+    end
+    return true
 end
 
 --- The spots on `mapID` this character shows (MineOnly), kept until the
@@ -1125,8 +1148,10 @@ end
 function MapMarkers:DrawMinimap()
     if not Minimap then return end
 
-    local key = self:MinimapKey()
-    if key == self.minimapKey then
+    -- Read into the spare table; the kept one is the last clean draw's.
+    local key = self:MinimapKey(self.minimapSpare)
+    if MapMarkers.SameMinimapKey(key, self.minimapKey) then
+        self.minimapSpare = key
         self:FadeMinimap()
         return
     end
@@ -1138,8 +1163,13 @@ function MapMarkers:DrawMinimap()
     -- Whatever happens below, nothing left over from the last redraw stays.
     local ok, err = pcall(self.PlaceMinimap, self, pool)
     Finish(pool)
-    -- Kept only after a clean draw, so a failed one is tried again.
-    self.minimapKey = ok and key or nil
+    -- Kept only after a clean draw, so a failed one is tried again. The
+    -- table it replaces is filled next time.
+    if ok then
+        self.minimapSpare, self.minimapKey = self.minimapKey, key
+    else
+        self.minimapSpare, self.minimapKey = key, nil
+    end
     if not ok then error(err, 0) end
 end
 

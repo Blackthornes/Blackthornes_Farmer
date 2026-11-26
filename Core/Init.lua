@@ -28,7 +28,7 @@ end
 -- section changes this line too, and tools/check_release.py refuses a tag it
 -- does not match. Played straight from the repository there is no packager
 -- to fill in the TOC's version, so this is the one shown.
-ns.RELEASED_VERSION = "1.31.0"
+ns.RELEASED_VERSION = "1.33.4"
 
 -- The TOC carries @project-version@, which the release packager rewrites to
 -- the tag it is building, "v0.2.0" say. Running straight from the repository
@@ -399,9 +399,10 @@ local DEFAULTS = {
     x = 0,
     y = 40,
     lastSearch = "",
-    -- The main window's tab when it was last closed: "search", "rankings"
-    -- or "grind".
-    lastTab = "search",
+    -- The main window's tab when it was last closed: "home", "search",
+    -- "rankings", "grind", "farms" or "stats". A new save starts on Home
+    -- (UI/Home.lua, 2026-11-26); one from before keeps the tab it had.
+    lastTab = "home",
     debug = false,
 
     -- Window sizes in percent, set on the settings page.

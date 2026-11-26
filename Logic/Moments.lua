@@ -215,6 +215,12 @@ function Moments:Kill(mobName, mob, items, quantities, copper)
 
     local run = self:Run()
     run.kills = run.kills + 1
+    -- The zone the run spent most kills in, for the recap's top line.
+    local zone = Moments.Zone()
+    if zone then
+        run.zones = run.zones or {}
+        run.zones[zone] = (run.zones[zone] or 0) + 1
+    end
 
     local lucky, late
     local seen = {}
@@ -311,6 +317,14 @@ function Moments:Corpse(mobName, items, quantities, copper, run)
                 priced = true
                 if run and (not run.bestDrop or unit > run.bestDrop.unit) and not Grey(name) then
                     run.bestDrop = { name = name, unit = unit }
+                end
+                -- What each drop came to over the run, for the recap's rows.
+                if run then
+                    run.items = run.items or {}
+                    local kept = run.items[name] or { count = 0, worth = 0 }
+                    kept.count = kept.count + count
+                    kept.worth = kept.worth + unit * count
+                    run.items[name] = kept
                 end
             end
         end
@@ -479,8 +493,41 @@ function Moments:Run()
     return run
 end
 
+--- The zone you are in, or nil (read inside a pcall).
+function Moments.Zone()
+    if type(GetRealZoneText) ~= "function" then return nil end
+    local ok, zone = pcall(function()
+        local text = GetRealZoneText()
+        if type(text) == "string" and text ~= "" then return text end
+    end)
+    return ok and zone or nil
+end
+
+--- How many drops the recap lists by name; the rest go in one line.
+Moments.RECAP_ITEMS = 3
+
+--- The recap's drops: the best drop first, then the rest by what they
+--- came to, RECAP_ITEMS in all: { { name, count, worth } }.
+function Moments.TopItems(run)
+    local list = {}
+    for name, kept in pairs(type(run.items) == "table" and run.items or {}) do
+        list[#list + 1] = { name = name, count = kept.count, worth = math.floor(kept.worth + 0.5) }
+    end
+    local best = run.bestDrop and run.bestDrop.name
+    table.sort(list, function(a, b)
+        if (a.name == best) ~= (b.name == best) then return a.name == best end
+        if a.worth ~= b.worth then return a.worth > b.worth end
+        return a.name < b.name
+    end)
+    local top = {}
+    for index = 1, math.min(#list, Moments.RECAP_ITEMS) do top[index] = list[index] end
+    return top
+end
+
 --- What the run comes to: { kills, copper, seconds, rate, usual, change,
---- best, lucky }, or nil while it is too short to sum up.
+--- best, lucky, items, rest, zone }, or nil while it is too short to sum
+--- up. `items` are the drops the recap names; `rest` is the coin and
+--- everything else.
 function Moments:Summary(run)
     run = run or self.run
     if not run or run.kills < Moments.RECAP_KILLS then return nil end
@@ -499,6 +546,15 @@ function Moments:Summary(run)
 
     local summary = { kills = run.kills, copper = copper, seconds = seconds,
         best = run.bestDrop and run.bestDrop.name, lucky = run.lucky and run.lucky.line }
+    summary.items = Moments.TopItems(run)
+    local named = 0
+    for _, item in ipairs(summary.items) do named = named + item.worth end
+    summary.rest = math.max(0, math.floor(copper - named + 0.5))
+    local zone, most
+    for name, kills in pairs(type(run.zones) == "table" and run.zones or {}) do
+        if not most or kills > most or (kills == most and name < zone) then zone, most = name, kills end
+    end
+    summary.zone = zone
     summary.rate = copper / seconds * 3600
     local usual = Stats:Usual()
     if usual and usual > 0 then

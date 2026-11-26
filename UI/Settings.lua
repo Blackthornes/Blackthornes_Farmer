@@ -325,6 +325,124 @@ if ns.SharedWindow and ns.SharedWindow.AddSpotReset then
 end
 
 --------------------------------------------------------------------------------
+-- Farmer Settings: Set Default (the owner said build it, 2026-11-23)
+--------------------------------------------------------------------------------
+
+--- Every saved key a Settings control writes, and only those. Kills, loot,
+--- farms, goals, gathered spots, window spots and the ALL ADDONS choices the
+--- five addons share are left out on purpose. tools/test_restoredefaults.lua
+--- clicks every control and fails if one writes a key missing here.
+SettingsUI.SETTING_KEYS = {
+    "arrowRoute", "arrowShown", "arrowSize", "arrowTurnedOff", "autoOpen",
+    "bagsFullNotice", "farmHud", "farmHudSize", "farmHudTurn", "fishingBar", "fishingPanel", "gatherRoute",
+    "gatherRouteDraw", "gatherRouteZoneOnly", "goalSpotsDockMap",
+    "goalSpotsSeeThrough", "goalsSeeThrough", "grindPins", "grindTo60",
+    "harvestPaused", "heatLevel", "heatMinimap", "heatWorld", "hideSkinning",
+    "itemTooltip", "itemTooltipCraft", "keepPanel", "killPlates",
+    "killPlatesSide", "killPlatesWorth", "killTooltip", "killTooltipDrops",
+    "lastFarmOnSearch", "lootBeacon", "lootBeaconColor", "lootBeaconHeight",
+    "lootBeaconWidth", "lootFeed", "lootFeedHold", "lootFeedHoldPicked",
+    "lootFeedSeeThrough", "lootFeedWorth", "mapButton", "markerSize",
+    "markersMinimap", "markersMyProfessions", "markersWorld", "nodeSparkle",
+    "nodeSparkleBobber", "nodeSparkleColors", "nodeSparkleCorpses",
+    "nodeSparkleHideIcon", "nodeSparkleMine", "nodeSparkleStyle",
+    "nodeSparkleStylePicked", "nodeVoice", "oneKeyFishing", "openButton",
+    "openNote", "otherPriceAddons", "panelStyle", "priceOrder",
+    "questMobCount", "questMobCountMine", "questMobCountSide", "rankUpPopup",
+    "rankUpSeeThrough", "rankUpSound", "rankingsExclude",
+    "rankingsNearLevel", "rankingsOutside", "rankingsSkipUncommon",
+    "rankingsVendorOnly", "recapSeeThrough", "recapStays", "routeWindow",
+    "routeWindowSeeThrough", "runGraph", "savedFarms", "searchNames", "sessionTimer",
+    "sessionTimerAutoPause", "settingsDescriptions", "shareData",
+    "shareDrops", "shareGuild", "sharedChatNotice", "snapPanels", "statsBestCheer",
+    "tooltipShift", "topFarmAlert", "trackerAnnounce", "trackerCelebrate",
+    "trackerDodgeGroup", "trackerHidden", "trackerRareSound",
+    "trackerReport", "trackerScale", "trackerSeeThrough",
+    "trackerSeeThroughLevel", "trackerSlimBar", "trackerVoice", "trashCan",
+    "tsmGearPriceSource", "tsmPriceSource", "useTomTom", "windowScale",
+    "worldDrops", "xpBar", "xpBarCheer", "xpBarChime", "xpBarHideGame",
+    "xpBarSeeThrough", "zoneBoard", "zoneBoardBanner", "zoneBoardSeeThrough",
+    "zoneHuntSeeThrough"
+}
+
+--- How long the red Confirm waits for the second click, in seconds.
+SettingsUI.CONFIRM_WAIT = 4
+
+--- Puts every Farmer setting back to how it started, then reloads the game's
+--- interface so every window and marker reads them again. Saved data stays.
+function SettingsUI:RestoreDefaults()
+    local db, defaults = ns.db, ns.DEFAULTS or {}
+    if type(db) ~= "table" then return false end
+
+    -- Two settings change things outside the save; turned off through
+    -- their own code first, so the game's own values come back.
+    if db.lootBeacon == true and ns.NodeSparkle and ns.NodeSparkle.SetLoot then
+        pcall(ns.NodeSparkle.SetLoot, ns.NodeSparkle, false)
+    end
+    if ns.Goals and ns.Goals.SetCountsBank then
+        pcall(ns.Goals.SetCountsBank, ns.Goals, false)
+    end
+
+    for _, key in ipairs(SettingsUI.SETTING_KEYS) do
+        db[key] = defaults[key]
+    end
+
+    -- Said after the reload, once.
+    db.settingsRestored = true
+    if type(ReloadUI) == "function" then
+        ReloadUI()
+    else
+        self:SayRestored()
+    end
+    return true
+end
+
+--- The chat line after Set Default, said once.
+function SettingsUI:SayRestored()
+    if not (ns.db and ns.db.settingsRestored) then return end
+    ns.db.settingsRestored = nil
+    ns.Print(L["Every Farmer setting is back to how it started."])
+end
+
+--- A button that turns red and says Confirm on the first click, and runs
+--- `onConfirm` on a second click within CONFIRM_WAIT seconds.
+function SettingsUI.ConfirmButton(parent, text, onConfirm, width)
+    local button, armedAt
+    local function Now()
+        if type(GetTime) ~= "function" then return nil end
+        local ok, now = pcall(GetTime)
+        return ok and type(now) == "number" and now or nil
+    end
+    local function Arm(on, at)
+        button.armed, armedAt = on, at
+        button:SetText(on and L["Confirm"] or text)
+        -- Red words while it waits for the second click.
+        if button.SetLabelColor then button:SetLabelColor(on and "loss" or nil) end
+    end
+    button = Widgets.CreateButton(parent, text, function()
+        local now = Now()
+        if button.armed and (not armedAt or not now
+            or now - armedAt <= SettingsUI.CONFIRM_WAIT) then
+            Arm(false, nil)
+            onConfirm()
+            return
+        end
+        Arm(true, now)
+        if now and C_Timer and type(C_Timer.After) == "function" then
+            pcall(C_Timer.After, SettingsUI.CONFIRM_WAIT, function()
+                local later = Now()
+                if button.armed and armedAt and later
+                    and later - armedAt >= SettingsUI.CONFIRM_WAIT then
+                    Arm(false, nil)
+                end
+            end)
+        end
+    end, { width = width, height = 20 })
+    button.armed = false
+    return button
+end
+
+--------------------------------------------------------------------------------
 -- Construction
 --------------------------------------------------------------------------------
 
@@ -777,7 +895,8 @@ function SettingsUI:BuildPanelsPage()
     -- from 50 to 150 on the stepper, one dragged to shown as it is, and
     -- Small, Normal and Large under it, the one in use lit green.
     local TrackerUI = ns.TrackerUI
-    local trackerScaleRow = pages:Row("panels", 1, L["Kills and Loot Size:"], nil)
+    local trackerScaleRow = pages:Row("panels", 1, L["Kills and Loot Size:"],
+        L["One line with your gold per hour. Put your mouse on it to see the whole list."])
 
     controls.trackerScale = Widgets.CreateStepper(trackerScaleRow, {
         min = TrackerUI and TrackerUI.SCALE_MIN or SCALE_MIN,
@@ -816,6 +935,19 @@ function SettingsUI:BuildPanelsPage()
         after = button
     end
     if after then GrowRow(trackerScaleRow, 24) end
+
+    -- Full Panel or Slim Bar (the owner said build it, 2026-11-26, and
+    -- approved the words): the panel folded to one line that opens under
+    -- the mouse (UI/SlimBar.lua). Full Panel unless picked.
+    local slimNames = ns.SlimBar.Names()
+    controls.trackerSlimBar = Widgets.CreateChoice(trackerScaleRow, {
+        min = 1, max = #ns.SlimBar.SIZES, step = 1, value = 1,
+        format = function(index) return slimNames[index] end,
+        onChange = function(index) ns.SlimBar:Set(index) end,
+    })
+    ns.SettingsPages.FitStepper(controls.trackerSlimBar, slimNames)
+    controls.trackerSlimBar:SetPoint("TOPRIGHT", controls.trackerScale, "BOTTOMRIGHT", 0, -26)
+    GrowRow(trackerScaleRow, 26)
 
 
 
@@ -858,6 +990,21 @@ function SettingsUI:BuildWindowsPage()
     -- is read as text is drawn, so it waits for /reload.
     local textRow = pages:Row("all", 1, L["Text Size:"], nil)
     controls.textSize = ns.SettingsPages.TextSizeControl(textRow, CONTROL_X, function() return ns.db end)
+
+    -- Look choices (the owner said build it, 2026-11-26): the same three
+    -- rows in every Blackthornes addon, picked once for all of them. See
+    -- UI/SharedChoices.lua.
+    if ns.SharedChoices and ns.SharedChoices.LOOKS then
+        local fontRow = pages:Row("all", 1, L["Font:"],
+            L["House, Game or Clear. Clear is plain and easy to read, and it has Russian letters."])
+        controls.lookFont = ns.SettingsPages.LookControl(fontRow, CONTROL_X, "font")
+        local colorsRow = pages:Row("all", 1, L["Colors:"],
+            L["Warm is the look today. Darker takes the warm tint out of the glass."])
+        controls.lookColors = ns.SettingsPages.LookControl(colorsRow, CONTROL_X, "colors")
+        local foldRow = pages:Row("all", 1, L["Fold Gem:"],
+            L["What a folded window turns into: the round button, or a small bar with its title."])
+        controls.lookFold = ns.SettingsPages.LookControl(foldRow, CONTROL_X, "fold")
+    end
 
     -- The minimap button always shows (the owner, 2026-10-15), so it has no
     -- row here any more.
@@ -925,7 +1072,7 @@ function SettingsUI:BuildWindowsPage()
     end, false)
     controls.oneWindow:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    local positionRow = pages:Row("all", 1, L["Window Spots:"],
+    local positionRow = pages:Row("all", 1, L["Window Locations:"],
         L["Puts every Blackthornes window back where it started. Your settings and data stay the same."])
 
     local reset = Widgets.CreateButton(positionRow, L["Set Default"], function()
@@ -934,7 +1081,20 @@ function SettingsUI:BuildWindowsPage()
     reset:SetPoint("TOPLEFT", CONTROL_X, 0)
     controls.resetPositions = reset
 
+    local restoreRow = pages:Row("all", 1, L["Farmer Settings:"],
+        L["Puts every Farmer setting back to how it started. Your kills, loot, farms and goals stay. So do your window locations and the choices on this page."])
+    controls.restoreDefaults = SettingsUI.ConfirmButton(restoreRow, L["Set Default"], function()
+        SettingsUI:RestoreDefaults()
+    end, 110)
+    controls.restoreDefaults:SetPoint("TOPLEFT", CONTROL_X, 0)
+
     pages:Section("panels", 1, L["FARMER UI"])
+
+    -- Move Windows (the owner said yes to the mockup, 2026-11-26): every
+    -- Farmer piece at once, to drag into place (UI/MoveWindows.lua).
+    local _, moveButton = CommandRow(pages, "panels", 1, L["Move Windows:"],
+        L["Shows every Farmer piece at once so you can drag each one into place."], L["Move"], "move")
+    controls.moveWindows = moveButton
 
     local _, searchButton = CommandRow(pages, "panels", 1, L["Farmer:"], nil, L["Open"], function()
             -- /farm on its own toggles the window, so with it already open
@@ -943,6 +1103,15 @@ function SettingsUI:BuildWindowsPage()
             ns.UI:ShowTab("search")
         end)
     controls.openSearch = searchButton
+
+    -- Names under the search box as you type (the owner said build it,
+    -- 2026-11-26). On unless unticked.
+    local namesRow = pages:Row("panels", 1, L["Names As You Type:"],
+        L["Shows matching items, mobs and zones under the search box as you type."])
+    controls.searchNames = Widgets.CreateCheckbox(namesRow, L["On"], function(checked)
+        ns.Search.SetSuggestOn(checked)
+    end, true)
+    controls.searchNames:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     local _, rankingsButton = CommandRow(pages, "panels", 1, L["Rankings:"], nil, L["Open"], "rankings")
     controls.rankings = rankingsButton
@@ -1145,6 +1314,22 @@ function SettingsUI:BuildTallyPage()
         ns.SessionTimer:SetAutoPause(checked)
     end, true)
     controls.sessionTimerAutoPause:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The run graph and the Run Recap that stays (the owner said build it,
+    -- 2026-11-26, and approved the words). Both on unless unticked.
+    local graphRow = pages:Row("tally", 1, L["Run Graph:"],
+        L["A small graph of your gold per hour on Kills & Loot."])
+    controls.runGraph = Widgets.CreateCheckbox(graphRow, L["On"], function(checked)
+        ns.RunGraph:SetOn(checked)
+    end, true)
+    controls.runGraph:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local staysRow = pages:Row("tally", 1, L["Run Recap Stays:"],
+        L["The Run Recap stays until you close it."])
+    controls.recapStays = Widgets.CreateCheckbox(staysRow, L["On"], function(checked)
+        ns.RecapUI:SetStays(checked)
+    end, true)
+    controls.recapStays:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- The mob you last looted, as the commands read it with no name. The
     -- chat-only lists stay typed commands (the owner, 2026-10-15).
@@ -1522,6 +1707,34 @@ function SettingsUI:BuildMapPage()
         ns.MapMarkers:SetMineOnly(checked)
     end, true)
     controls.markersMine:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The Farm HUD, a see-through ring of your spots in the middle of the
+    -- screen (a player asked, the owner said build it, 2026-11-26). Off
+    -- unless ticked.
+    local hudRow = pages:Row("map", 1, L["Farm HUD:"],
+        L["A see-through ring in the middle of your screen. It shows the herbs, ore and fishing spots you found near you."])
+    controls.farmHud = Widgets.CreateCheckbox(hudRow, L["On"], function(checked)
+        ns.FarmHUD:SetOn(checked, true)
+    end, false)
+    controls.farmHud:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local hudSizeRow = pages:Row("map", 1, L["Farm HUD Size:"], nil)
+    local hudSizes = ns.FarmHUD.SIZES
+    controls.farmHudSize = Widgets.CreateChoice(hudSizeRow, {
+        min = 1, max = #hudSizes, step = 1, value = 2,
+        format = function(index) return ns.FarmHUD.SizeName(hudSizes[index]) end,
+        onChange = function(index) ns.FarmHUD:SetSize(hudSizes[index]) end,
+    })
+    controls.farmHudSize:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    -- The ring turns so the way you face is up (Trent, 2026-11-26). Off
+    -- unless ticked: north stays up.
+    local hudTurnRow = pages:Row("map", 1, L["Farm HUD Turns With You:"],
+        L["The ring turns so the way you face is up."])
+    controls.farmHudTurn = Widgets.CreateCheckbox(hudTurnRow, L["On"], function(checked)
+        ns.FarmHUD:SetTurn(checked)
+    end, false)
+    controls.farmHudTurn:SetPoint("TOPLEFT", CONTROL_X, -2)
 
     -- Sparkles on the node you face (the owner asked 2026-10-13).
     pages:Section("map", 2, L["SPARKLES"])
@@ -2103,6 +2316,13 @@ function SettingsUI:Refresh()
     end
     if controls.mapButton then controls.mapButton:SetChecked(db.mapButton ~= false) end
     controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
+    if controls.farmHud then
+        controls.farmHud:SetChecked(ns.FarmHUD.IsOn())
+        controls.farmHudTurn:SetChecked(ns.FarmHUD.TurnsWithYou())
+        for index, size in ipairs(ns.FarmHUD.SIZES) do
+            if size == ns.FarmHUD.Size() then controls.farmHudSize:SetValue(index, true) end
+        end
+    end
     controls.heatWorld:SetChecked(db.heatWorld == true)
     controls.heatMinimap:SetChecked(db.heatMinimap == true)
     controls.heatLevel:SetValue(ns.Heat:Level(), true)
@@ -2222,6 +2442,9 @@ function SettingsUI:Refresh()
     controls.sessionTimer:SetChecked(db.sessionTimer == true)
     controls.sessionTimerAutoPause:SetChecked(db.sessionTimerAutoPause ~= false)
     controls.sessionTimerAutoPause:SetDisabled(db.sessionTimer ~= true)
+    controls.runGraph:SetChecked(db.runGraph ~= false)
+    controls.recapStays:SetChecked(db.recapStays ~= false)
+    controls.searchNames:SetChecked(db.searchNames ~= false)
     controls.seeThrough:SetValue(db.trackerSeeThrough == true and ns.TrackerUI:SeeThroughLevel() or 0, true)
     controls.goalsSeeThrough:SetValue(ns.SeeThrough:Level("goals"), true)
     controls.goalSpotsSeeThrough:SetValue(ns.SeeThrough:Level("places"), true)
@@ -2258,6 +2481,11 @@ function SettingsUI:Refresh()
         controls.xpBarHideGame:SetChecked(ns.XPBarUI.HidesGame())
     end
     controls.textSize:Sync()
+    if controls.lookFont then
+        controls.lookFont:Sync()
+        controls.lookColors:Sync()
+        controls.lookFold:Sync()
+    end
     controls.windowStyle:Sync()
     controls.combineButtons:SetChecked(not ns.SharedMinimap or ns.SharedMinimap.Combined())
     if controls.oneWindow then
@@ -2268,6 +2496,7 @@ function SettingsUI:Refresh()
     end
     if controls.snapPanels then controls.snapPanels:SetChecked(not ns.PanelSnap or ns.PanelSnap:IsOn()) end
     if controls.panelStyle and ns.PanelStyle then controls.panelStyle:SetValue(ns.PanelStyle:Index(), true) end
+    if controls.trackerSlimBar and ns.SlimBar then controls.trackerSlimBar:SetValue(ns.SlimBar:Index(), true) end
     if controls.dockMap then controls.dockMap:SetChecked(ns.MapDock and ns.MapDock:IsOn() or false) end
 
     local usable = ns.Harvest:Capabilities().usable
@@ -2484,6 +2713,7 @@ function SettingsUI:OnEnable()
     -- Sizes are saved, so put them back before anything is seen.
     self:ApplyWindowScale()
     self:ApplyTrackerScale()
+    self:SayRestored()
 
     local ok, err = pcall(self.RegisterGameOptions, self)
     if not ok then
@@ -2561,6 +2791,10 @@ ns.RegisterCommand("windows", L["put every Blackthornes window back where it sta
     else
         ns.Print(L["Type /farm windows reset to put every window back in its first spot."])
     end
+end)
+
+ns.RegisterCommand("move", L["show every Farmer piece at once to drag into place"], function()
+    if ns.MoveWindows then ns.MoveWindows:Toggle() end
 end)
 
 -- Kept folded through a /reload, its round button opens it (UI/FoldWindow.lua).

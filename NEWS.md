@@ -23,6 +23,43 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.33.4
+
+Fixes and changes:
+- Various bug fixes for Farmer.
+
+## 1.33.3
+
+Fixes and changes:
+- Various bug fixes for Farmer.
+
+## 1.33.2
+
+Fixes and changes:
+- The guide arrow is now a slim bar that takes less room.
+
+## 1.33.1
+
+Fixes and changes:
+- Mobs whose names start with a quote, such as "Squealer" Thornmantle, show on the Zone Board.
+- Tabs switch more smoothly.
+
+## 1.33.0
+
+- Your Way There is now a small see-through box with only your current step and a dial that points the way.
+
+Fixes and changes:
+- Mobs you can attack, such as the Dalaran mobs at Ambermill, stay on the Zone Board.
+
+## 1.32.0
+
+- The All Addons page in Settings has a Set Default button. Click Confirm and this addon's settings go back to how they started.
+
+## 1.31.1
+
+Fixes and changes:
+- The Exclude Rarity filter works the first time you open it.
+
 ## 1.31.0
 
 - A new Near My Level box on Rankings and Estimates lists only mobs close to your level. It starts off.

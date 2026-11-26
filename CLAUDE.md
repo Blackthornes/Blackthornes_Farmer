@@ -108,6 +108,14 @@ Sections there:
 - The tooltip block (shared item tooltip lines)
 - Panel Style (Like Quest List)
 - Grind to 60 (a test feature, 2026-11-22)
+- The Farm HUD
+- Restore Defaults (Farmer Settings: Set Default)
+- Smoother kills and the hand-drawn scroll bar
+- Slim Bar for Kills & Loot (2026-11-26)
+- The run graph and a Run Recap that stays (2026-11-26)
+- Move Windows (2026-11-26)
+- The Home tab (2026-11-26)
+- Names as you type (2026-11-26)
 - The Rankings board over a few frames (2026-11-26)
 
 ## Checking a change

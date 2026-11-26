@@ -43,6 +43,9 @@
 -- game's Interact Key unticked, a player's report, 2026-11-05) is theirs:
 -- Farmer notes it in `nodeSparkleCVarsLeft` (never rename it) and never sets
 -- it again, until the player ticks the sparkles box again.
+-- At logout they all go back as the player had them, and the next login
+-- turns them on again (NodeSparkle:RestoreForLogout), so a game started
+-- with Farmer turned off keeps none of them.
 --
 -- A node is a herb or ore the data knows (a herb's own name, a vein's
 -- source name), the client's name for that herb, or any node the player
@@ -353,6 +356,29 @@ function NodeSparkle:RestoreSettings()
         if self.SetCVar(name, value) then saved[name] = nil end
     end
     return true
+end
+
+--- At logout, put the game's settings back as the player had them, so a
+--- game started with Farmer turned off shows no health bars over NPCs up
+--- close (the owner's report, 2026-11-26). The box stays ticked and the
+--- next login turns them on again. A setting the player turned back this
+--- session is noted as theirs first, and left as they have it.
+function NodeSparkle:RestoreForLogout()
+    local db = ns.db
+    if not db or InCombat() then return false end
+    local saved = db.nodeSparkleCVars
+    if type(saved) ~= "table" or next(saved) == nil then return true end
+    local left = Left()
+    for _, cvar in ipairs(self.CVARS) do
+        local name = cvar.name
+        local now = self.GetCVar(name)
+        if saved[name] ~= nil and not cvar.moves and now ~= nil
+            and (tonumber(now) or 0) < cvar.atLeast then
+            left[name] = true
+            saved[name] = nil
+        end
+    end
+    return self:RestoreSettings()
 end
 
 function NodeSparkle:SetEnabled(on)
@@ -1568,6 +1594,29 @@ function NodeSparkle:SafeRefresh()
     return outcome
 end
 
+--- A nameplate came into view. A pack brings many in one frame: the first
+--- is looked at at once, so nothing flashes, and the rest share one more
+--- look on the next frame rather than one each.
+function NodeSparkle:OnPlateAdded()
+    if self.plateLookSoon then
+        self.plateLookAgain = true
+        return
+    end
+    -- With no timer to wait on, every plate looks for itself as before.
+    if not (type(C_Timer) == "table" and type(C_Timer.After) == "function") then
+        return self:SafeRefresh()
+    end
+    self.plateLookSoon = true
+    self:SafeRefresh()
+    After(0, function()
+        NodeSparkle.plateLookSoon = nil
+        if NodeSparkle.plateLookAgain then
+            NodeSparkle.plateLookAgain = nil
+            NodeSparkle:SafeRefresh()
+        end
+    end)
+end
+
 function NodeSparkle:OnPlateRemoved(unit)
     if not self.shownOn then return end
     local plates = _G.C_NamePlate
@@ -1582,7 +1631,7 @@ end
 
 function NodeSparkle:OnEnable()
     ns.RegisterEvent(self, "PLAYER_SOFT_INTERACT_CHANGED", function() NodeSparkle:SafeRefresh() end)
-    ns.RegisterEvent(self, "NAME_PLATE_UNIT_ADDED", function() NodeSparkle:SafeRefresh() end)
+    ns.RegisterEvent(self, "NAME_PLATE_UNIT_ADDED", function() NodeSparkle:OnPlateAdded() end)
     ns.RegisterEvent(self, "NAME_PLATE_UNIT_REMOVED", function(_, _, unit) NodeSparkle:OnPlateRemoved(unit) end)
     ns.RegisterEvent(self, "QUEST_LOG_UPDATE", function() NodeSparkle:QuestLogChanged() end)
     -- A fight: everything kept out of sight comes back first, while the
@@ -1602,6 +1651,7 @@ function NodeSparkle:OnEnable()
     ns.RegisterEvent(self, "CVAR_UPDATE", function(_, _, name)
         if name == "GamePadEnable" then NodeSparkle:SafeRefresh() end
     end)
+    ns.RegisterEvent(self, "PLAYER_LOGOUT", function() pcall(NodeSparkle.RestoreForLogout, NodeSparkle) end)
     ns.RegisterEvent(self, "PLAYER_ENTERING_WORLD", function()
         -- A cast the game closed on keeps a raised reach: put it back first.
         if not NodeSparkle.fishing then NodeSparkle:LowerReach() end

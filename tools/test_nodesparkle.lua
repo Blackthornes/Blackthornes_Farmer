@@ -547,6 +547,57 @@ ns.Spots.Skills = realSkills
 ns.HandleSlash("sparkle check")
 suite.check("the check is kept for a report", ns.db.lastProbe and ns.db.lastProbe.check == "sparkle check")
 
+-- A pack of mobs coming into view adds many nameplates in one frame. The
+-- first is looked at at once (so nothing flashes) and the rest wait for one
+-- more look on the next frame, not one look each.
+do
+    local queued = {}
+    local savedTimer = _G.C_Timer
+    _G.C_Timer = { After = function(_, fn) queued[#queued + 1] = fn end }
+    local savedSafe = NodeSparkle.SafeRefresh
+    local looks = 0
+    NodeSparkle.SafeRefresh = function(self, ...) looks = looks + 1 end
+    for _ = 1, 8 do NodeSparkle:OnPlateAdded() end
+    suite.check("eight plates in one frame look once at once", looks == 1, tostring(looks))
+    for _, fn in ipairs(queued) do fn() end
+    suite.check("and once more on the next frame", looks == 2, tostring(looks))
+    queued = {}
+    NodeSparkle:OnPlateAdded()
+    suite.check("a lone plate later looks at once", looks == 3, tostring(looks))
+    for _, fn in ipairs(queued) do fn() end
+    suite.check("with no second look when nothing else came", looks == 3, tostring(looks))
+    NodeSparkle.SafeRefresh = savedSafe
+    _G.C_Timer = savedTimer
+end
+
+-- Logging out puts the game's settings back, so a game started with Farmer
+-- turned off shows no health bars over NPCs up close (the owner's report,
+-- 2026-11-26: Farmer off for a test, the interact nameplate stayed on).
+do
+    local function Fire(event) ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, event) end
+    NodeSparkle:OnEnable()
+    NodeSparkle:SetEnabled(false)
+    cvars.SoftTargetInteract, cvars.SoftTargetNameplateInteract = "1", "0"
+    NodeSparkle:SetEnabled(true)
+    suite.check("on again before logout", cvars.SoftTargetInteract == "3" and cvars.SoftTargetNameplateInteract == "1")
+    Fire("PLAYER_LOGOUT")
+    suite.check("logout puts the nameplate back", cvars.SoftTargetNameplateInteract == "0", cvars.SoftTargetNameplateInteract)
+    suite.check("and the interact key", cvars.SoftTargetInteract == "1" and cvars.SoftTargetInteractRange == "10")
+    suite.check("the box stays ticked", ns.db.nodeSparkle == true)
+    Fire("PLAYER_ENTERING_WORLD")
+    suite.check("the next login turns them on again", cvars.SoftTargetInteract == "3" and cvars.SoftTargetNameplateInteract == "1")
+    suite.check("keeping the player's own again", ns.db.nodeSparkleCVars.SoftTargetInteract == "1")
+    -- A setting the player turned back mid-session stays theirs.
+    cvars.SoftTargetInteract = "0"
+    Fire("PLAYER_LOGOUT")
+    suite.check("an interact key turned off before logout stays off", cvars.SoftTargetInteract == "0")
+    suite.check("and is noted as theirs", ns.db.nodeSparkleCVarsLeft.SoftTargetInteract == true)
+    Fire("PLAYER_ENTERING_WORLD")
+    suite.check("and is not turned on at the next login", cvars.SoftTargetInteract == "0")
+    NodeSparkle:SetEnabled(false)
+    NodeSparkle:SetEnabled(true)
+end
+
 ns.SettingsUI:Hide()
 
 suite.done()

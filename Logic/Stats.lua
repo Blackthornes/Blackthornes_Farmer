@@ -103,7 +103,10 @@ end
 function Stats.DayBack(back, now)
     now = now or Clock()
     if not now then return nil end
-    return Stats.DayKey(now - (back or 0) * 86400)
+    -- Stepped from noon: 24 hours back from late evening on a 25 hour day
+    -- (the clocks went back) is still that day, and it was counted twice.
+    local noon = ns.Util and ns.Util.Noon and ns.Util.Noon(now) or now
+    return Stats.DayKey(noon - (back or 0) * 86400)
 end
 
 local function Number(value)

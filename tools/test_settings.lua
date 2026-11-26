@@ -189,10 +189,11 @@ suite.check("and the window grows to fit them", SettingsUI.frame:GetHeight() > b
 pages.describe:GetScript("OnClick")(pages.describe)
 suite.check("unticked, the window goes back", SettingsUI.frame:GetHeight() == before)
 
--- The kill tally's size buttons sit under its stepper, over its words.
+-- The kill tally's size buttons sit under its stepper, then Full Panel or
+-- Slim Bar (2026-11-26), over its words.
 local sizeRow = controls.trackerScale._parent
-suite.check("the tally size row makes room for its buttons", sizeRow.compactHeight == 48
-    and sizeRow.hint._point[3] == -48, sizeRow.compactHeight)
+suite.check("the tally size row makes room for its buttons", sizeRow.compactHeight == 74
+    and sizeRow.hint._point[3] == -74, sizeRow.compactHeight)
 
 -- Find a setting.
 pages.find:SetText("tomtom")
@@ -242,6 +243,7 @@ local buttons = {
     xpBarTry = "xpbar try",
     topFarmTry = "topfarm test",
     lootFeedMove = "lootfeed move",
+    moveWindows = "move",
     lootFeedReset = "lootfeed reset",
     routeWindowReset = "routewindow reset",
     zoneBoardShow = "zone", zoneBoardReset = "zone reset",
@@ -278,7 +280,7 @@ local covered = {
     settings = true, tracker = true, worlddrops = true, report = true, celebrate = true,
     raresound = true, voice = true, timer = true, effects = true, markers = true, heat = true, tooltip = true, killcount = true, sparkle = true, lootbeacon = true, questcount = true, plates = true, numbers = true,
     seethrough = true, transparent = true, arrow = true, openbutton = true, fishbar = true, fishpanel = true, grind = true, trash = true, opennote = true, bagsfull = true, mute = true, export = true, sisters = true, skinning = true, hide = true, unhide = true, route = true,
-    farms = true, ["repeat"] = true,
+    farms = true, ["repeat"] = true, hud = true,
 }
 for _, command in pairs(buttons) do covered[command:match("^(%S*)")] = true end
 -- Chat-only commands are typed only (the owner, 2026-10-15): the ones that
