@@ -789,8 +789,6 @@ function Harvest:NoteUnit(unit)
     if ns.Grinding then ns.Grinding:Learn(unit, name) end
     -- Rares, bosses and town guards, left off the Zone Board.
     if ns.ZoneBoard then ns.ZoneBoard:Learn(unit, name) end
-    -- Elites, marked ELITES NEAR on Grind to 60 (only while it is on).
-    if ns.GrindTo60 then ns.GrindTo60:Learn(unit, name) end
 end
 
 --- Does the client plainly say `unit` is alive? Anything unreadable is no.

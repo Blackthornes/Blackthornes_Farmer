@@ -48,8 +48,6 @@ GrindingUI.LAYOUTS = {
     fish = { "mob", "count", "gives", "worth", "hour" },
     -- The Gather Route draws its own view (UI/GatherRoute.lua) over the list.
     route = { "mob" },
-    -- So does Grind to 60 (UI/GrindTo60.lua).
-    to60 = {},
 }
 -- Every column any view has.
 local ALL_KEYS = { "type", "mob", "level", "skill", "gives", "worth", "count", "kills", "spots", "respawn", "hour",
@@ -74,8 +72,6 @@ local INDENT = "     "
 
 --- The view the list is in: "mobs", "leather", "nodes" or "fish".
 function GrindingUI.Layout()
-    -- Grind to 60's chip is picked: its path, whatever else is.
-    if ns.GrindTo60 and ns.GrindTo60.Shown() then return "to60" end
     local gives = ns.Grinding:Gives()
     -- Route Mode ticked on Herbs, Ore or Leather swaps the list for the
     -- route of that page's spots.
@@ -234,11 +230,8 @@ function GrindingUI:Build(frame)
     self.givesChips = {}
     for _, entry in ipairs(Grinding.GIVES) do
         local chip = Chip(filters, Upper(entry.label), function()
-            -- A second click lets it go. From Grind to 60's path, a click
-            -- goes to that page.
-            local path = ns.GrindTo60 and ns.GrindTo60.Shown()
-            if path then ns.GrindTo60:SetShown(false) end
-            Grinding:SetGives((path or Grinding:Gives() ~= entry.key) and entry.key or nil)
+            -- A second click lets it go.
+            Grinding:SetGives(Grinding:Gives() ~= entry.key and entry.key or nil)
             GrindingUI:Render(true)
         end, GrindingUI.GIVES_TIPS[entry.key])
         chip.givesKey = entry.key
@@ -270,26 +263,6 @@ function GrindingUI:Build(frame)
     end
     routeTick:Hide()
     self.routeTick = routeTick
-
-    -- Grind to 60 (Logic/GrindTo60.lua, a test feature): its chip and an
-    -- amber EXPERIMENTAL tag beside it, only while it is on in Settings.
-    local to60 = Chip(filters, Upper(L["Grind to 60"]), function()
-        local path = ns.GrindTo60
-        if not path then return end
-        path:SetShown(not path.Shown())
-        GrindingUI:Render(true)
-    end)
-    to60:Hide()
-    self.to60Chip = to60
-    local tag = CreateFrame("Frame", nil, filters)
-    tag:SetHeight(18)
-    Theme.Border(tag, "warn", 0.7)
-    tag.label = Theme.CreateLabel(tag, "tiny", "warn", "CENTER")
-    tag.label:SetPoint("CENTER")
-    tag.label:SetText(L["EXPERIMENTAL"])
-    tag.ownWidth = true
-    tag:Hide()
-    self.to60Tag = tag
 
     -- The order of the camps. Up in the top row beside My level, where
     -- there is room: on the chip row it ran into Skinning (2026-10-10).
@@ -345,7 +318,6 @@ function GrindingUI:Build(frame)
     self.pathRoom = 0
     -- The Gather Route's view covers the list while its chip is picked.
     if ns.GatherRouteUI then ns.GatherRouteUI:Build(panel) end
-    if ns.GrindTo60UI then ns.GrindTo60UI:Build(panel) end
 
     local list = Widgets.CreateRowList(panel, {
         rowHeight = ROW_HEIGHT,
@@ -472,9 +444,8 @@ function GrindingUI:LayoutChips()
     -- Ore, Herbs and Fish list no mobs: no creature types. Their chips stay
     -- in place, greyed and not clickable, so the chips after them never move.
     local gives = ns.Grinding:Gives()
-    local path = GrindingUI.Layout() == "to60"
     local nodes = ns.Grinding.IsNodeView(gives) or ns.Grinding.IsFishView(gives)
-        or GrindingUI.Layout() == "route" or path
+        or GrindingUI.Layout() == "route"
     for _, chip in ipairs(self.typeChips) do
         chip:Show()
         chip.resting = nodes
@@ -497,24 +468,12 @@ function GrindingUI:LayoutChips()
     -- only while the Gather Route is on in Settings.
     local routeTick = self.routeTick
     if routeTick then
-        if GrindingUI.OffersRouteMode(gives) and not path then
+        if GrindingUI.OffersRouteMode(gives) then
             routeTick:Show()
             routeTick:SetChecked(ns.GatherRoute.RouteMode(gives))
             chips[#chips + 1] = { routeTick, GROUP_GAP }
         else
             routeTick:Hide()
-        end
-    end
-
-    -- Grind to 60 and its tag, last of the chips, while it is on.
-    if self.to60Chip then
-        local on = ns.GrindTo60 ~= nil and ns.GrindTo60.IsOn()
-        self.to60Chip:SetShown(on)
-        self.to60Tag:SetShown(on)
-        if on then
-            self.to60Tag:SetWidth(ChipWidth(self.to60Tag))
-            chips[#chips + 1] = { self.to60Chip, GROUP_GAP }
-            chips[#chips + 1] = { self.to60Tag, 0 }
         end
     end
 
@@ -1723,11 +1682,9 @@ function GrindingUI:PaintControls(low, high)
         chip:SetSelected((chip:GetFilterKind() or nil) == kind)
     end
     local gives = Grinding:Gives()
-    local path = GrindingUI.Layout() == "to60"
     for _, chip in ipairs(self.givesChips) do
-        chip:SetSelected(not path and chip.givesKey == gives)
+        chip:SetSelected(chip.givesKey == gives)
     end
-    if self.to60Chip then self.to60Chip:SetSelected(path) end
     self.sortChip:SetSelected(Grinding.Sort() ~= "busiest")
     if self.sorter then
         local saved = ns.db.grindColumns
@@ -1757,9 +1714,8 @@ function GrindingUI:Render(arrive)
         self.zones = zones
         camps = {}
         rows = self:NodeRows(zones, low, high)
-    elseif layout == "route" or layout == "to60" then
-        -- The route draws itself over the list (UI/GatherRoute.lua), and
-        -- so does Grind to 60's path (UI/GrindTo60.lua).
+    elseif layout == "route" then
+        -- The route draws itself over the list (UI/GatherRoute.lua).
         self.zones = nil
         camps = {}
         rows = {}
@@ -1786,7 +1742,6 @@ function GrindingUI:Render(arrive)
 
     local width = self:FitColumns(rows, layout)
     self:ShowRoute(layout == "route")
-    self:ShowTo60(layout == "to60")
 
     self.list:SetData(rows, not arrive)
     if arrive then self.list:Arrive() end
@@ -1813,25 +1768,6 @@ function GrindingUI:ShowRoute(on)
         if not ok and ns.Debug then ns.Debug("gather route: " .. tostring(words)) end
     elseif was then
         self:PlaceHeadings()
-    end
-end
-
---- Show Grind to 60's path over the list, or put the list back.
-function GrindingUI:ShowTo60(on)
-    local pathUI = ns.GrindTo60UI
-    if not pathUI or not pathUI.frame then return end
-    local was = self.to60Shown
-    self.to60Shown = on
-    if on then
-        pathUI:Toggle(self, true)
-        local ok, words = pcall(pathUI.Update, pathUI)
-        if ok and type(words) == "string" then self.footer:SetText(words) end
-        if not ok and ns.Debug then ns.Debug("grind to 60: " .. tostring(words)) end
-    else
-        pathUI.frame:Hide()
-        -- The Gather Route's own toggle has put the list back or kept it
-        -- away; only the headings are left to lay out again.
-        if was and not self.routeShown then self:PlaceHeadings() end
     end
 end
 

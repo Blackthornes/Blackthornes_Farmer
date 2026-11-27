@@ -11,9 +11,8 @@
 -- Item the Search tab, Best Mobs for Me Rankings with Near My Level ticked
 -- for now (the saved box is left alone), Gather the Grind tab on your best
 -- gathering skill, Fish the Grind tab's Fish page, Repeat a Farm the Farms
--- tab, Level Up Grind to 60's path. A card you can't use is left out: no
--- Gather without a gathering skill, no Fish without Fishing, no Repeat a
--- Farm with Saved Farms off, no Level Up at the cap or with Grind to 60 off.
+-- tab. A card you can't use is left out: no Gather without a gathering
+-- skill, no Fish without Fishing, no Repeat a Farm with Saved Farms off.
 --
 -- HERE reads the Zone Board's list for the zone you stand in (Logic/
 -- ZoneBoard.lua) and your own gathered spots on this map. LAST RUN is the
@@ -105,14 +104,6 @@ local function KnowsFishing()
     return ok and skill ~= nil
 end
 
-local function LevelUpShown()
-    local To60 = ns.GrindTo60
-    if not (To60 and To60.IsOn and To60.IsOn()) then return false end
-    local level = Level()
-    local cap = ns.XP and ns.XP.MaxLevel and ns.XP.MaxLevel() or 60
-    return not (level and level >= cap)
-end
-
 --- The cards to show, in order: { key, title, text }.
 function HomeUI.Cards()
     local cards = {}
@@ -127,7 +118,6 @@ function HomeUI.Cards()
     if ns.SavedFarms and ns.SavedFarms.On() then
         Add("farm", L["Repeat a Farm"], L["Start one of your saved farms again."])
     end
-    if LevelUpShown() then Add("level", L["Level Up"], L["Grind spots from here to 60."]) end
     return cards
 end
 
@@ -243,19 +233,13 @@ HomeUI.GO = {
     gather = function()
         local page = HomeUI.GatherPage()
         if page and ns.Grinding then ns.Grinding:SetGives(page) end
-        if ns.GrindTo60 and ns.GrindTo60.SetShown then ns.GrindTo60:SetShown(false) end
         Tab("grind")
     end,
     fish = function()
         if ns.Grinding then ns.Grinding:SetGives("fish") end
-        if ns.GrindTo60 and ns.GrindTo60.SetShown then ns.GrindTo60:SetShown(false) end
         Tab("grind")
     end,
     farm = function() Tab("farms") end,
-    level = function()
-        if ns.GrindTo60 then ns.GrindTo60:SetShown(true) end
-        Tab("grind")
-    end,
 }
 
 --- Show Route: the Grind page for the spots you have most of here, with
@@ -264,7 +248,6 @@ function HomeUI.ShowRoute()
     local herbs, veins = HomeUI.SpotsHere()
     local page = veins > herbs and "ore" or "herbs"
     if ns.Grinding then ns.Grinding:SetGives(page) end
-    if ns.GrindTo60 and ns.GrindTo60.SetShown then ns.GrindTo60:SetShown(false) end
     local Route = ns.GatherRoute
     if Route and Route.IsOn() and Route.PAGES[page] then
         pcall(Route.SetPage, Route, Route.PAGES[page])

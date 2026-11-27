@@ -19,12 +19,14 @@ local pages, controls = SettingsUI.pages, SettingsUI.controls
 local order = {}
 for index, def in ipairs(pages.defs) do order[index] = def.key end
 suite.check("the pages, in order", table.concat(order, " ")
-    == "tally loot map goals experimental tooltips sounds panels sharing all about", table.concat(order, " "))
+    == "tally loot map goals tooltips sounds panels sharing all about", table.concat(order, " "))
 -- General joined Windows (the owner said build it, 2026-11-17): a page
 -- saved under an old key opens the page its rows are on now.
 suite.check("old saves of General, Windows and Advanced open Windows",
     SettingsUI.OLD_PAGES.general == "panels" and SettingsUI.OLD_PAGES.windows == "panels"
     and SettingsUI.OLD_PAGES.advanced == "panels")
+suite.check("a save left on the Experimental page, taken out, opens the first page",
+    SettingsUI.OLD_PAGES.experimental == "tally" and pages.pages.experimental == nil)
 suite.check("no page takes a key that old saves send elsewhere",
     SettingsUI.OLD_PAGES.panels == nil and SettingsUI.OLD_PAGES.sounds == nil)
 local switchWords = {}

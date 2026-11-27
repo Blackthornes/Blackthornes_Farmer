@@ -61,19 +61,14 @@ UI:Hide()
 
 skills = {}
 ns.db.savedFarms = false
-ns.db.grindTo60 = nil
-check("no skills, no Saved Farms, no Grind to 60: two cards",
+check("no skills, no Saved Farms: two cards",
     Keys(Home.Cards()) == "find,best", Keys(Home.Cards()))
 skills = { Herbalism = 80, Mining = 120, Fishing = 40 }
 ns.db.savedFarms = nil
-ns.db.grindTo60 = true
 check("every card when you can use them all",
-    Keys(Home.Cards()) == "find,best,gather,fish,farm,level", Keys(Home.Cards()))
+    Keys(Home.Cards()) == "find,best,gather,fish,farm", Keys(Home.Cards()))
 check("Best Mobs for Me names your level",
     Home.Cards()[2].text == "The mobs worth the most near level 24.", Home.Cards()[2].text)
-level = 60
-check("no Level Up at the cap", not Keys(Home.Cards()):find("level"), Keys(Home.Cards()))
-level = 24
 check("Gather goes to your best skill's page", Home.GatherPage() == "ore", Home.GatherPage())
 skills = nil
 check("a client that won't say keeps the Gather card", Keys(Home.Cards()):find("gather") ~= nil)
@@ -98,8 +93,6 @@ check("Gather opens Grind", UI.tab == "grind")
 check("on the ore page", ns.db.grindGives == "ore", tostring(ns.db.grindGives))
 Home.GO.fish()
 check("Fish opens Grind's Fish page", UI.tab == "grind" and ns.db.grindGives == "fish")
-Home.GO.level()
-check("Level Up opens Grind to 60", UI.tab == "grind" and ns.GrindTo60.Shown())
 Home.GO.farm()
 check("Repeat a Farm opens Farms", UI.tab == "farms", UI.tab)
 Home.GO.find()
