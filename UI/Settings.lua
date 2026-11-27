@@ -1727,7 +1727,7 @@ function SettingsUI:BuildMapPage()
     })
     controls.farmHudSize:SetPoint("TOPLEFT", CONTROL_X, -2)
 
-    -- The ring turns so the way you face is up (Trent, 2026-11-26). Off
+    -- The ring turns so the way you face is up (2026-11-26). Off
     -- unless ticked: north stays up.
     local hudTurnRow = pages:Row("map", 1, L["Farm HUD Turns With You:"],
         L["The ring turns so the way you face is up."])

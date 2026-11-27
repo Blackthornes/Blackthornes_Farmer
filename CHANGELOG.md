@@ -4,6 +4,28 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.34.0
+
+For WoW: Forever (interface 16001). A full restart is needed after updating.
+
+- **Farm HUD.** A see-through ring shows your saved herb, ore and fishing spots near you, with a line to the next stop on your Gather Route. Dots stay hollow until you see the node up. Turn it on in Settings > Map, with `/farm hud`, or with its key. A Map choice turns the ring with you so the way you face is up.
+- **Slim Bar.** Kills and Loot Size on the Windows page can now be Slim Bar. It folds Kills & Loot to one line with gold an hour, this run, kills and the clock. Point at it to open the list.
+- **Run graph and Run Recap.** Kills & Loot shows gold an hour with a small graph of your run, next to your usual pace in that zone. The Run Recap shows what you made, your best drops and your kills, and stays until you close it. Both have a switch on the Kills page.
+- **Move Windows.** Drag every Farmer window and pop-up into place on one screen. Open it from the Windows page or with `/farm move`.
+- **Names as you type.** Names show under the search box as you type, tagged Item, Mob or Zone. Arrow keys pick one and Enter opens it. Names As You Type on the Panels page turns it off.
+- **Camper's Lure.** One Key Fishing and the Fishing window use the Camper's Lure from the Fishing Rack and Fishing Hut.
+- **Look.** The All Addons page has Font, Colors and Fold Gem rows, picked once for all five addons. Each starts on the look you had before.
+- **Tooltips.** Lines that show only while Shift is held go at the bottom of the block under a thin gold line. Nothing above them moves.
+- **Scroll bars.** Farmer's lists and the Export box use a hand-drawn scroll bar, so dragging down scrolls down.
+- **Route.** The arrow, Route list, minimap and Farm HUD all show the plan's new next stop. A stop counts as reached from 90 yards.
+- **Grind to 60 removed.** The Grind to 60 chip, tag and Experimental page are gone.
+- **Fix.** Quest counts: a mob whose name sits inside another mob's name no longer takes that mob's count.
+- **Fix.** The minimap button stays where a button drawer puts it.
+- **Fix.** Farmer puts the interact nameplate setting back at logout, so friendly NPCs show their title.
+- **Fix.** The Rankings tab opens without a stall.
+- **Fix.** Kills & Loot adds a kill with much less work.
+- **Fix.** Mobs in Blackmaw Hold, Krol'dok Stronghold, Alcaz Prison, Ruins of Lordaeron and Blackrock Depths show their names.
+
 ## 1.33.4
 
 For WoW: Forever (interface 16001). `/reload` is enough after updating.
