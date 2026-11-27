@@ -2255,6 +2255,11 @@ title line starts over as the player's). On the kill count's
 side the two never share a spot: the kill count goes past the quest count
 (`KillPlates:Place`, `QuestMoved`). Tested in `tools/test_questmobs.lua`
 and `tools/test_killplates.lua`.
+Look-alike names (a player's report, 2026-11-27): a quest log objective
+counts only when it names the mob itself (`QuestMobs.NamesMob`: whole
+words, no capital word joined on), so "Frenzied Plaguehound slain" never
+speaks for a Plaguehound. A tooltip whose only counts are met means the
+mob is done: the quest log is not read then.
 
 ## Kill count beside mobs' nameplates
 
