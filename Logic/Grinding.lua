@@ -66,11 +66,20 @@ Grinding.GIVES = {
     { key = "ore", label = L["Ore"] },
     { key = "herbs", label = L["Herbs"] },
     { key = "fish", label = L["Fish"] },
+    -- Forever's rare mobs and treasure chests (Logic/Rares.lua), drawn by
+    -- UI/RaresView.lua over the list.
+    { key = "rares", label = L["Rares"] },
+    { key = "treasures", label = L["Treasures"] },
 }
 
 --- Does the Grind tab list nodes, not mobs, for `gives`?
 function Grinding.IsNodeView(gives)
     return gives == "ore" or gives == "herbs"
+end
+
+--- Does it list rare mobs or treasure chests?
+function Grinding.IsRareView(gives)
+    return gives == "rares" or gives == "treasures"
 end
 
 --- Does it list the spots you fished?
@@ -603,7 +612,7 @@ function Grinding:Camps(filter)
     local unknownTotal = 0
 
     -- Ore and Herbs are nodes, never camps of mobs.
-    if Grinding.IsNodeView(gives) then return camps, 0, low, high end
+    if Grinding.IsNodeView(gives) or Grinding.IsRareView(gives) then return camps, 0, low, high end
     -- A spot only skinning names is the Leather view's, unless skinning shows.
     local skinOnlyShown = gives == "skinning" or ns.DB:ShowsSkinning()
 

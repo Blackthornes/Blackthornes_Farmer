@@ -334,9 +334,9 @@ end
 --- clicks every control and fails if one writes a key missing here.
 SettingsUI.SETTING_KEYS = {
     "arrowRoute", "arrowShown", "arrowSize", "arrowTurnedOff", "autoOpen",
-    "bagsFullNotice", "farmHud", "farmHudSize", "farmHudTurn", "fishingBar", "fishingPanel", "gatherRoute",
-    "gatherRouteDraw", "gatherRouteZoneOnly", "goalSpotsDockMap",
-    "goalSpotsSeeThrough", "goalsSeeThrough", "grindPins",
+    "bagsFullNotice", "farmHud", "farmHudSize", "farmHudTurn", "fishingBar",
+    "fishingPanel", "gatherRoute", "gatherRouteDraw", "gatherRouteZoneOnly",
+    "goalSpotsDockMap", "goalSpotsSeeThrough", "goalsSeeThrough", "grindPins",
     "harvestPaused", "heatLevel", "heatMinimap", "heatWorld", "hideSkinning",
     "itemTooltip", "itemTooltipCraft", "keepPanel", "killPlates",
     "killPlatesSide", "killPlatesWorth", "killTooltip", "killTooltipDrops",
@@ -348,21 +348,22 @@ SettingsUI.SETTING_KEYS = {
     "nodeSparkleHideIcon", "nodeSparkleMine", "nodeSparkleStyle",
     "nodeSparkleStylePicked", "nodeVoice", "oneKeyFishing", "openButton",
     "openNote", "otherPriceAddons", "panelStyle", "priceOrder",
-    "questMobCount", "questMobCountMine", "questMobCountSide", "rankUpPopup",
-    "rankUpSeeThrough", "rankUpSound", "rankingsExclude",
-    "rankingsNearLevel", "rankingsOutside", "rankingsSkipUncommon",
-    "rankingsVendorOnly", "recapSeeThrough", "recapStays", "routeWindow",
-    "routeWindowSeeThrough", "runGraph", "savedFarms", "searchNames", "sessionTimer",
+    "questMobCount", "questMobCountMine", "questMobCountSide",
+    "rankingsExclude", "rankingsNearLevel", "rankingsOutside",
+    "rankingsSkipUncommon", "rankingsVendorOnly", "rankUpPopup",
+    "rankUpSeeThrough", "rankUpSound", "rarePins", "rareSound",
+    "recapSeeThrough", "recapStays", "routeWindow", "routeWindowSeeThrough",
+    "runGraph", "savedFarms", "searchNames", "sessionTimer",
     "sessionTimerAutoPause", "settingsDescriptions", "shareData",
-    "shareDrops", "shareGuild", "sharedChatNotice", "snapPanels", "statsBestCheer",
-    "tooltipShift", "topFarmAlert", "trackerAnnounce", "trackerCelebrate",
-    "trackerDodgeGroup", "trackerHidden", "trackerRareSound",
-    "trackerReport", "trackerScale", "trackerSeeThrough",
+    "sharedChatNotice", "shareDrops", "shareGuild", "snapPanels",
+    "statsBestCheer", "tooltipShift", "topFarmAlert", "trackerAnnounce",
+    "trackerCelebrate", "trackerDodgeGroup", "trackerHidden",
+    "trackerRareSound", "trackerReport", "trackerScale", "trackerSeeThrough",
     "trackerSeeThroughLevel", "trackerSlimBar", "trackerVoice", "trashCan",
-    "tsmGearPriceSource", "tsmPriceSource", "useTomTom", "windowScale",
-    "worldDrops", "xpBar", "xpBarCheer", "xpBarChime", "xpBarHideGame",
-    "xpBarSeeThrough", "zoneBoard", "zoneBoardBanner", "zoneBoardSeeThrough",
-    "zoneHuntSeeThrough"
+    "treasurePins", "tsmGearPriceSource", "tsmPriceSource", "useTomTom",
+    "windowScale", "worldDrops", "xpBar", "xpBarCheer", "xpBarChime",
+    "xpBarHideGame", "xpBarSeeThrough", "zoneBoard", "zoneBoardBanner",
+    "zoneBoardSeeThrough", "zoneHuntSeeThrough",
 }
 
 --- How long the red Confirm waits for the second click, in seconds.
@@ -1836,6 +1837,30 @@ function SettingsUI:BuildMapPage()
     openGrind:SetPoint("TOPRIGHT", grindRow, "TOPRIGHT", 0, 0)
     controls.grindOpen = openGrind
 
+    -- Forever's rare mobs and treasure chests (the owner said build it from
+    -- a mockup, 2026-11-27). All three off unless ticked.
+    local rareRow = pages:Row("map", 1, L["Rares on the Map:"],
+        L["Puts a skull on your world map where each rare stands."])
+    controls.rarePins = Widgets.CreateCheckbox(rareRow, L["On"], function(checked)
+        ns.Rares:SetPins("rare", checked)
+    end, false)
+    controls.rarePins:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local treasureRow = pages:Row("map", 1, L["Treasures on the Map:"],
+        L["Puts a chest on your world map where each treasure sits."])
+    controls.treasurePins = Widgets.CreateCheckbox(treasureRow, L["On"], function(checked)
+        ns.Rares:SetPins("treasure", checked)
+    end, false)
+    controls.treasurePins:SetPoint("TOPLEFT", CONTROL_X, -2)
+
+    local rareSoundRow = pages:Row("map", 1, L["Rare Seen Sound:"],
+        L["A sound plays when a rare comes into view."])
+    controls.rareSound = Widgets.CreateCheckbox(rareSoundRow, L["On"], function(checked)
+        ns.Rares:SetSound(checked)
+        if checked then ns.Rares.PlaySeen(true) end
+    end, false)
+    controls.rareSound:SetPoint("TOPLEFT", CONTROL_X, -2)
+
     pages:Section("tooltips", 1, L["TOOLTIPS"])
 
     local tooltipRow = pages:Row("tooltips", 1, L["Where to Farm:"],
@@ -2300,6 +2325,11 @@ function SettingsUI:Refresh()
     end
     if controls.mapButton then controls.mapButton:SetChecked(db.mapButton ~= false) end
     controls.markersMine:SetChecked(db.markersMyProfessions ~= false)
+    if controls.rarePins then
+        controls.rarePins:SetChecked(ns.Rares.PinsOn("rare"))
+        controls.treasurePins:SetChecked(ns.Rares.PinsOn("treasure"))
+        controls.rareSound:SetChecked(ns.Rares.SoundOn())
+    end
     if controls.farmHud then
         controls.farmHud:SetChecked(ns.FarmHUD.IsOn())
         controls.farmHudTurn:SetChecked(ns.FarmHUD.TurnsWithYou())

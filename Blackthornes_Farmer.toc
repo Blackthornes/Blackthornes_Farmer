@@ -41,6 +41,7 @@ Data\Data_Misc.lua
 Data\Data_MobDrops.lua
 Data\Data_ClassicDrops.lua
 Data\Data_KnownDrops.lua
+Data\Data_Rares.lua
 #@do-not-package@
 Data\Harvest_Carryover.lua
 #@end-do-not-package@
@@ -80,6 +81,7 @@ Logic\GrindGather.lua
 Logic\CampWorth.lua
 Logic\GatherToCap.lua
 Logic\GatherRoute.lua
+Logic\Rares.lua
 Logic\Share.lua
 Logic\Transfer.lua
 Logic\GuildShare.lua
@@ -127,6 +129,7 @@ UI\KillGoal.lua
 UI\Grinding.lua
 UI\GatherToCap.lua
 UI\GatherRoute.lua
+UI\RaresView.lua
 UI\RouteWindow.lua
 UI\ZoneBoard.lua
 UI\ZoneBoardFX.lua
@@ -137,6 +140,7 @@ UI\MapMarkers.lua
 UI\FarmHUD.lua
 UI\Heat.lua
 UI\GrindPins.lua
+UI\RarePins.lua
 UI\MapToggle.lua
 UI\Arrow.lua
 UI\TravelCard.lua

@@ -3999,3 +3999,35 @@ and no frame of the build runs past about 14 ms.
   asks in a session (about 37 ms in the fake game), here or in the search.
 - Tested in `tools/test_rankingssoon.lua`, with timers that wait for the
   test to let a frame pass.
+
+## Rares and Treasures (2026-11-27)
+
+The owner said build it from a mockup (2026-11-27). `Data/Data_Rares.lua`
+is written by `tools/make_rares.py <rare list> <Classic data> <Forever
+tables folder>` (never by hand): Forever's rare mobs (mob ID, name, levels,
+spots as map ID, x, y, the items they can drop) and treasure chests (object
+ID, name, spots, items), plus English item names. Only rows with a name and
+a spot on a zone map in `Data/Zones.lua`. Levels come from our looted rows,
+else Classic's. Each named drop of a rare with levels also gets a
+`searchOnly` row with `rare = true` and no `chance`, so the search names
+the rare; any other row for that mob in that zone wins (`DB:AddSource`).
+354 rares, 68 chests, 150 search rows at first.
+
+`Logic/Rares.lua` reads it (`Rares:Entries`, `List`, `SeenText`,
+`ShowWay`). Last seen and Killed are your own play only, account wide in
+`rareLog` (never rename): `seen[mob ID]` from target, mouseover and
+nameplates, `killed[mob ID]` from `Tracker:Record` on a looted kill,
+`opened[object ID]` from the loot window's sources. Days are calendar days
+from `Util.Noon`. No drop rate ever shows.
+
+The Grind tab has two more chips, Rares and Treasures (`grindGives`
+"rares", "treasures"; `Grinding.IsRareView`). `UI/RaresView.lua` draws over
+the list the way the Gather Route does: your zone's rares near your level
+first (every rare when the zone has none), chests nearest first, dark glass
+rows with Show Way; the one the arrow follows is lit. `UI/RarePins.lua`
+puts a skull or chest on the world map. Three Map settings, all off unless
+ticked: Rares on the Map (`rarePins`), Treasures on the Map
+(`treasurePins`), Rare Seen Sound (`rareSound`, once in
+`Rares.SOUND_GAP` for each rare, asks `ns.Muted()`). The world map gem
+switches the pins too. Tested in `tools/test_rares.lua`.
+
