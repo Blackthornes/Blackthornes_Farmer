@@ -151,7 +151,9 @@ end
 
 --- The count off the mob's tooltip lines, the game's own answer. In a
 --- group a line naming a group member comes before what that member's
---- quest still wants; with `mineOnly` those counts are left out.
+--- quest still wants; with `mineOnly` those counts are left out. False
+--- when the only counts it carries are met: the mob is done, and no other
+--- objective in the log may speak for it.
 local function FromTooltip(unit, mineOnly)
     local get = Field(_G.C_TooltipInfo, "GetUnit")
     if type(get) ~= "function" then return nil end
@@ -160,7 +162,7 @@ local function FromTooltip(unit, mineOnly)
     if type(lines) ~= "table" then return nil end
     local me, others = nil, nil
     if mineOnly then me, others = MyName(), GroupNames() end
-    local mine = true
+    local mine, done = true, false
     -- The first line is the name; a count on any later one is a quest's.
     for index = 2, #lines do
         local line = lines[index]
@@ -171,15 +173,55 @@ local function FromTooltip(unit, mineOnly)
         elseif mineOnly and (kind == LINE_QUEST_PLAYER
             or (type(text) == "string" and others[Short(text)])) then
             mine = (me ~= nil and Short(text) == me)
-        else
+        elseif mine or not mineOnly then
             local count = QuestMobs.CountIn(text)
-            if count and (mine or not mineOnly) then return count end
+            if count then return count end
+            -- A count already met: the game says this mob is done.
+            if type(text) == "string" and text:find("%d+%s*/%s*%d+") then done = true end
         end
     end
+    if done then return false end
     return nil
 end
 
---- The count off an unfinished objective in the log that names the mob.
+--- Whether a word starts with a capital (A to Z, a Latin-1 capital such as
+--- Ü, or a Cyrillic one): in a mob's name, not a word like "slain".
+local function Capital(word)
+    local a, b = word:byte(1, 2)
+    if not a then return false end
+    if a >= 65 and a <= 90 then return true end
+    if a == 0xC3 and b and b >= 0x80 and b <= 0x9E then return true end
+    if a == 0xD0 and b and b >= 0x80 and b <= 0xAF then return true end
+    return false
+end
+
+--- Whether objective `text` names the mob `name` itself (lowered), and not a
+--- longer name holding it: "Frenzied Plaguehound slain" is not about a
+--- Plaguehound, nor "Plaguehound Runt slain".
+function QuestMobs.NamesMob(text, name)
+    if type(text) ~= "string" or type(name) ~= "string" or name == "" then return false end
+    local plain = text:gsub("%d+%s*/%s*%d+", " ")
+    local lowered, want = plain:lower(), name:lower()
+    local from = 1
+    while true do
+        local first, last = lowered:find(want, from, true)
+        if not first then return false end
+        local before, after = plain:sub(1, first - 1), plain:sub(last + 1)
+        -- Whole words only: no letter or digit touching either end.
+        local edge = not before:find("[%w]$") and not after:find("^[%w]")
+        -- No other capital word joined on: that would be a longer name.
+        local prev = before:match("([^%s:%-]+)%s+$")
+        local nextWord = after:match("^%s+([^%s:%-]+)")
+        if edge and not (prev and Capital(prev)) and not (nextWord and Capital(nextWord)) then
+            return true
+        end
+        from = first + 1
+    end
+end
+
+--- The count off an unfinished objective in the log that names the mob
+--- itself, or nil. Another mob's objective never speaks for it, so a met
+--- one for this mob shows nothing.
 local function FromQuestLog(name)
     if type(name) ~= "string" or #name < 3 then return nil end
     local log = _G.C_QuestLog
@@ -187,8 +229,8 @@ local function FromQuestLog(name)
     local info = Field(log, "GetInfo")
     local objectives = Field(log, "GetQuestObjectives")
     if type(count) ~= "function" or type(info) ~= "function" or type(objectives) ~= "function" then return nil end
-    local lower = name:lower()
     local ok, entries = pcall(count)
+    local found = nil
     for index = 1, (ok and type(entries) == "number") and entries or 0 do
         local read, entry = pcall(info, index)
         local questID = read and type(entry) == "table" and not entry.isHeader and entry.questID
@@ -196,16 +238,17 @@ local function FromQuestLog(name)
             local got, list = pcall(objectives, questID)
             for _, objective in ipairs(got and type(list) == "table" and list or {}) do
                 local text = type(objective) == "table" and Readable(objective.text)
-                if type(text) == "string" and not objective.finished and text:lower():find(lower, 1, true) then
+                if type(text) == "string" and QuestMobs.NamesMob(text, name) then
                     local have, need = tonumber(objective.numFulfilled), tonumber(objective.numRequired)
                     local shown = have and need and need > 0 and have < need and ("%d/%d"):format(have, need)
-                    shown = shown or QuestMobs.CountIn(text)
-                    if shown then return shown end
+                    if not (have and need) then shown = QuestMobs.CountIn(text) end
+                    if objective.finished == true then shown = nil end
+                    found = found or shown or nil
                 end
             end
         end
     end
-    return nil
+    return found
 end
 
 --- What to show over `unit`, or nil: a mob (never a player or an object)
@@ -221,6 +264,7 @@ function QuestMobs:CountFor(unit)
     end
     local count = FromTooltip(unit, self:MineOnly())
     if count then return count end
+    if count == false then return nil end
     local name
     if type(UnitName) == "function" then
         local read, value = pcall(UnitName, unit)

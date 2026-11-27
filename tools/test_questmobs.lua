@@ -317,5 +317,43 @@ suite.check("unticking the box turns it off", ns.db.questMobCountMine == false)
 ns.SettingsUI:Hide()
 units.player, units.party1 = nil, nil
 
+-- Look-alike names (a player's report, 2026-11-27): "Plaguehound" showed
+-- 0/5 from "Frenzied Plaguehound slain", and "Plaguebat" 0/20 from another
+-- quest's "Noxious Plaguebat slain" though its own 30/30 was done.
+QuestMobs:SetMineOnly(false)
+local logObjectives = {}
+_G.C_QuestLog = {
+    GetNumQuestLogEntries = function() return #logObjectives end,
+    GetInfo = function(index) return { questID = index } end,
+    GetQuestObjectives = function(questID) return logObjectives[questID] end,
+}
+logObjectives[1] = {
+    { text = "20/20 Plaguehound Runt slain", numFulfilled = 20, numRequired = 20, finished = true },
+    { text = "5/5 Plaguehound slain", numFulfilled = 5, numRequired = 5, finished = true },
+    { text = "0/5 Frenzied Plaguehound slain", numFulfilled = 0, numRequired = 5, finished = false },
+}
+logObjectives[2] = {
+    { text = "30/30 Plaguebat slain", numFulfilled = 30, numRequired = 30, finished = true },
+}
+logObjectives[3] = {
+    { text = "0/20 Noxious Plaguebat slain", numFulfilled = 0, numRequired = 20, finished = false },
+    { text = "0/10 Monstrous Plaguebat slain", numFulfilled = 0, numRequired = 10, finished = false },
+}
+suite.check("a done count on the tooltip is never swapped for another mob's",
+    Mob("nameplate30", "Plaguebat", { "Plaguebat", "Level 54", { "Blood Tinged Skies", 17 }, { "30/30 Plaguebat slain", 8 } }) == nil)
+suite.check("a done objective in the log is never swapped for another mob's",
+    Mob("nameplate31", "Plaguehound", { "Plaguehound", "Level 55" }) == nil)
+suite.check("the longer name still gets its own count",
+    Mob("nameplate32", "Frenzied Plaguehound", { "Frenzied Plaguehound" }) == "0/5")
+suite.check("a name inside another mob's name is not a match",
+    Mob("nameplate33", "Plaguebat", { "Plaguebat" }) == nil)
+logObjectives[2][1] = { text = "21/30 Plaguebat slain", numFulfilled = 21, numRequired = 30, finished = false }
+suite.check("the exact name wins over a longer one",
+    Mob("nameplate34", "Plaguebat", { "Plaguebat" }) == "21/30")
+logObjectives[1] = { { text = "Galak Centaur slain: 2/6", numFulfilled = 2, numRequired = 6, finished = false } }
+logObjectives[2], logObjectives[3] = nil, nil
+suite.check("a count before or after the name both read",
+    Mob("nameplate35", "Galak Centaur", { "Galak Centaur" }) == "2/6")
+
 _G.C_QuestLog, _G.C_TooltipInfo = nil, nil
 suite.done()
