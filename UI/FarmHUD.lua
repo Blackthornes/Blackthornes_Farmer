@@ -6,7 +6,7 @@
 --
 -- It is a flat picture on the screen. Nothing is drawn in the game world,
 -- which Forever does not allow. North is up; the gold arrow in the middle
--- turns with you. Every dot is hollow until its node is seen up (Trent,
+-- turns with you. Every dot is hollow until its node is seen up (owner,
 -- 2026-11-26): the node you face (the game's soft interact target) carries
 -- the name of a saved spot within SEEN_YARDS of you. Then it fills, until
 -- you gather it or SEEN_FOR passes. A grow-back time alone never fills a
@@ -95,7 +95,7 @@ function FarmHUD.SizeName(size)
     return L["Medium"]
 end
 
---- Turn With You (Trent, 2026-11-26): the ring turns so the way you face
+--- Turn With You (2026-11-26): the ring turns so the way you face
 --- is up. Off unless ticked (farmHudTurn, saved true only when on).
 function FarmHUD.TurnsWithYou()
     return type(ns.db) == "table" and ns.db.farmHudTurn == true
@@ -330,7 +330,7 @@ end
 
 --- The route's next stop: the one its plan picks now, as the Route list and
 --- the minimap show it. The plan can pick a new stop on its own as you
---- move, before the stop it was aimed at is reached (Trent, 2026-11-26), so
+--- move, before the stop it was aimed at is reached (2026-11-26), so
 --- run.aimed is only the fallback. Plan is kept a second at a time, so
 --- asking each step costs little, and only while a route runs.
 local function Aimed(mapID)
@@ -363,7 +363,7 @@ function FarmHUD:Key()
 end
 
 --- Each frame: the turn goes on at once, so the ring and arrow follow you
---- smoothly (Trent, 2026-11-26: it jumped at 5 looks a second). That only
+--- smoothly (2026-11-26: it jumped at 5 looks a second). That only
 --- moves the dots already placed. Finding spots waits for STEP.
 function FarmHUD:Step(elapsed)
     self.since = (self.since or 0) + (elapsed or 0)
