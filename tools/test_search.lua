@@ -183,8 +183,9 @@ suite.check("in so many words",
     Search:SpotsText(5, 47) == "5 of 47 spots" and Search:SpotsText(3, 3) == "3 spots",
     Search:SpotsText(5, 47))
 
+-- Items named for the Defias come first, so ask for enough to reach it.
 local linenLine
-for _, line in ipairs(Search:BuildLines("defias", 5)) do
+for _, line in ipairs(Search:BuildLines("defias", 10)) do
     if Util.StripColor(line):find("^Linen Cloth ") then linenLine = Util.StripColor(line) break end
 end
 suite.check("chat says it too", linenLine and linenLine:find(

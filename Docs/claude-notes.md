@@ -877,6 +877,25 @@ Mulgore rows once (the file carries its mark in the header), and
 Forever's own rows (`Data/Data_Harvested.lua`) were already right. Tested in
 `tools/test_bluffspots.lua`.
 
+## Known drops in the search
+
+Leads for items no other data file has (2026-11-27, the owner asked).
+`Data/Data_KnownDrops.lua` is written by `tools/make_known_drops.py <drop
+list> <Classic data> <Forever tables folder>` (never by hand): Forever's
+items with the mobs that drop them, by mob ID, and no drop rates. Only items
+the client has (`Item.csv`) and no other `Data/Data_*.lua` registers, by ID
+or by name. A mob stands where our own looted rows put it, else at Classic's
+spawns (in the item's zone when known), else at the list's spot; a dungeon
+is named by where its other mobs were looted. A mob with no name, zone or
+levels is left out; items that share a name are one entry. Every row is
+`searchOnly` with no `chance`, like the Classic drops: the search, the item
+tooltip and Spots, never worth, Rankings or the Grind tab, and a looted row
+takes its place (`DB:AddSource`). In the search, an item someone has
+looted comes before one known only from leads at the same score
+(`Search.LeadsOnly`). 185 items, 299 spots at first; the rest had no
+English name, mob name or place to stand. Never announced. Tested in
+`tools/test_knowndrops.lua`.
+
 ## Random suffixes count as their item
 
 A player asked (2026-10-15, the owner said build it): gear with a random
