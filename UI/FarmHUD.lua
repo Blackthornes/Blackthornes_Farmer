@@ -488,9 +488,9 @@ local function SoftTarget()
     if type(UnitGUID) ~= "function" or type(UnitName) ~= "function" then return nil end
     local okGuid, guid = pcall(UnitGUID, "softinteract")
     local okName, name = pcall(UnitName, "softinteract")
-    if not (okGuid and okName) or type(guid) ~= "string" or type(name) ~= "string" then return nil end
-    local ok, object = pcall(string.find, guid, "^GameObject%-")
-    if not (ok and object) or name == "" then return nil end
+    guid = okGuid and ns.Harvest.Readable(guid) or nil
+    name = okName and ns.Harvest.Readable(name) or nil
+    if not (guid and name) or not guid:find("^GameObject%-") then return nil end
     return name
 end
 

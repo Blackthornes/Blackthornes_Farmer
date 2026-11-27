@@ -116,6 +116,28 @@ env.world.target = { name = "Boahn", guid = env.Secret("guid") }
 local ok = pcall(Rares.NoteUnit, Rares, "target")
 check("a secret guid is left alone", ok)
 
+-- The live game's secret guid is a string: joining it works, indexing it
+-- raises (Sunken Temple and Blackfathom Deeps, on every hover).
+do
+    local secretGuid, undo = env.SecretString("guid")
+    env.world.target = { name = "Boahn", guid = secretGuid }
+    local okTarget, errTarget = pcall(Rares.NoteUnit, Rares, "target")
+    local okNpc, npc = pcall(ns.Harvest.NpcID, secretGuid)
+    local okRead, read = pcall(ns.Harvest.Readable, secretGuid)
+    local okSeen, errSeen = pcall(ns.Harvest.NoteUnit, ns.Harvest, "target")
+    local okPlate, errPlate = true, nil
+    if ns.KillPlates and ns.KillPlates.Read then
+        okPlate, errPlate = pcall(ns.KillPlates.Read, ns.KillPlates, "target")
+    end
+    undo()
+    check("the mob seen alive skips a secret guid", okSeen, errSeen)
+    check("the kill count by a nameplate skips it", okPlate and errPlate == nil, errPlate)
+    check("a secret string guid raises nothing", okTarget, errTarget)
+    check("and notes nothing", okTarget and errTarget == false, errTarget)
+    check("NpcID leaves a secret guid alone", okNpc and npc == nil, npc)
+    check("Readable refuses a secret string", okRead and read == nil, read)
+end
+
 -- Looting it is a kill.
 env.Loot(ns, { name = "Boahn", level = 20, dead = true, guid = guid }, { { name = "Boahn's Fang", id = 5423 } })
 ns.Tracker:OnLoot()

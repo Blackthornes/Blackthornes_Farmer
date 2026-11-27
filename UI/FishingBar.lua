@@ -212,8 +212,8 @@ function FishingBar:Needs(id)
 
     local pattern, need = SkillPattern(), false
     for _, line in ipairs(data.lines) do
-        local readable, text = pcall(function() return line.leftText .. "" end)
-        if readable and text then
+        local text = type(line) == "table" and ns.Harvest and ns.Harvest.Readable(line.leftText) or nil
+        if text then
             local number = text:match(pattern)
             if number then need = Number(number) or false break end
         end
@@ -250,8 +250,8 @@ function FishingBar:Short(id)
 
     local pattern = SkillPattern()
     for _, line in ipairs(data.lines) do
-        local readable, text = pcall(function() return line.leftText .. "" end)
-        if readable and text and text:match(pattern) then return LineRed(line) end
+        local text = type(line) == "table" and ns.Harvest and ns.Harvest.Readable(line.leftText) or nil
+        if text and text:match(pattern) then return LineRed(line) end
     end
     return nil
 end

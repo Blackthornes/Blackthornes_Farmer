@@ -308,9 +308,10 @@ end
 function Rares:NoteUnit(unit)
     if type(UnitGUID) ~= "function" then return false end
     local ok, guid = pcall(UnitGUID, unit)
-    if not ok or type(guid) ~= "string" then return false end
-    local readable, text = pcall(function() return guid .. "" end)
-    if not readable then return false end
+    -- Joining a secret guid works and gives a secret back, so that is no
+    -- test; Readable asks the game whether it is secret.
+    local text = ok and ns.Harvest and ns.Harvest.Readable(guid) or nil
+    if not text then return false end
     return self:NoteSeen(text)
 end
 

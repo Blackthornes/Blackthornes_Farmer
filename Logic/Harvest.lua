@@ -115,8 +115,19 @@ local function CopyNumber(value)
     return number
 end
 
+--- True for a value the game keeps from addons (a dungeon's secret guid).
+--- Its type says "string" and joining it works, but indexing raises, so it
+--- is asked about before anything else touches it.
+local function IsSecret(value)
+    local test = _G.issecretvalue
+    if type(test) ~= "function" then return false end
+    local ok, secret = pcall(test, value)
+    return not ok or secret == true
+end
+
 --- A plain string copy of `value`, or nil if this client will not let us read it.
 local function Readable(value)
+    if IsSecret(value) then return nil end
     local kind = type(value)
 
     -- A number would concatenate cleanly below and is not a name, so it is
@@ -128,13 +139,14 @@ local function Readable(value)
 
     -- type() answers safely for a secret value and for nil alike, which is why
     -- the check out here is a type check and not a comparison.
-    if not ok or type(copy) ~= "string" then return nil end
+    if not ok or type(copy) ~= "string" or IsSecret(copy) then return nil end
 
     return copy
 end
 
 --- `value` as a plain number, or nil if this client will not let us read it.
 local function ReadableNumber(value)
+    if IsSecret(value) then return nil end
     local kind = type(value)
 
     -- "12" would coerce to 12 in the arithmetic below, and a level that
@@ -151,6 +163,7 @@ end
 -- The kill tracker reads the same loot window and the same target, so it reads
 -- them through the same two doors.
 Harvest.Readable = Readable
+Harvest.IsSecret = IsSecret
 Harvest.ReadableNumber = ReadableNumber
 
 --- Is the tooltip showing a unit or an item, rather than a world object such
@@ -515,8 +528,9 @@ end
 --- The mob ID in a creature's guid ("Creature-0-4621-389-76516-11320-..."
 --- is 11320), or nil for anything else.
 function Harvest.NpcID(guid)
-    if type(guid) ~= "string" then return nil end
-    local kind, id = guid:match("^(%a+)%-[^%-]+%-[^%-]+%-[^%-]+%-[^%-]+%-(%d+)%-")
+    if type(guid) ~= "string" or IsSecret(guid) then return nil end
+    local ok, kind, id = pcall(string.match, guid, "^(%a+)%-[^%-]+%-[^%-]+%-[^%-]+%-[^%-]+%-(%d+)%-")
+    if not ok then return nil end
     if kind ~= "Creature" and kind ~= "Vehicle" then return nil end
     return tonumber(id)
 end
