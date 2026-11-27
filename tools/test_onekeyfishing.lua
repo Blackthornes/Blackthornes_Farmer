@@ -119,6 +119,18 @@ lureLeft = nil
 bags = {}
 Fire("BAG_UPDATE_DELAYED")
 suite.check("no lure in the bags: casts", button:GetAttribute("type") == "spell")
+-- The Fishing Rack and Fishing Hut hand out Camper's Lure (+60), a player
+-- found the key cast without it.
+bags = { [291005] = 2 }
+Fire("BAG_UPDATE_DELAYED")
+suite.check("a Camper's Lure from the Fishing Rack: puts it on", button:GetAttribute("type") == "macro"
+    and button:GetAttribute("macrotext") == "/use item:291005\n/use 16", tostring(button:GetAttribute("macrotext")))
+bags = { [6530] = 5, [291005] = 2 }
+Fire("BAG_UPDATE_DELAYED")
+suite.check("Camper's Lure before Nightcrawlers", button:GetAttribute("macrotext") == "/use item:291005\n/use 16",
+    tostring(button:GetAttribute("macrotext")))
+bags = {}
+Fire("BAG_UPDATE_DELAYED")
 hand = SWORD
 Fire("PLAYER_EQUIPMENT_CHANGED")
 suite.check("no pole: does nothing", button:GetAttribute("type") == nil)

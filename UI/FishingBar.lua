@@ -63,6 +63,8 @@ FishingBar.LURES = {
     { id = 6533, bonus = 100, name = "Aquadynamic Fish Attractor" },
     { id = 6532, bonus = 75, name = "Bright Baubles" },
     { id = 7307, bonus = 75, name = "Flesh Eating Worm" },
+    -- From a camp's Fishing Rack or Fishing Hut; lasts 5 minutes.
+    { id = 291005, bonus = 60, name = "Camper's Lure" },
     { id = 6530, bonus = 50, name = "Nightcrawlers" },
     { id = 6811, bonus = 50, name = "Aquadynamic Fish Lens" },
     { id = 268880, bonus = 25, name = "\"Secret\" Bait" },
