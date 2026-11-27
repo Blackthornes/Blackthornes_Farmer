@@ -40,6 +40,7 @@ Data\Data_Leather.lua
 Data\Data_Misc.lua
 Data\Data_MobDrops.lua
 Data\Data_ClassicDrops.lua
+Data\Data_KnownDrops.lua
 #@do-not-package@
 Data\Harvest_Carryover.lua
 #@end-do-not-package@

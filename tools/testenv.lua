@@ -351,6 +351,7 @@ local FILES = {
     "Data/Data_Misc.lua",
     "Data/Data_MobDrops.lua",
     "Data/Data_ClassicDrops.lua",
+    "Data/Data_KnownDrops.lua",
     "Data/Harvest_Carryover.lua",
     "Logic/Search.lua",
     "Logic/Looted.lua",

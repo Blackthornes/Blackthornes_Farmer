@@ -59,6 +59,16 @@ local function NameScore(name, query, single)
     return score
 end
 
+--- True when every spot of `item` is a lead for the search only
+--- (Data/Data_ClassicDrops.lua, Data/Data_KnownDrops.lua): nobody has
+--- looted it yet.
+function Search.LeadsOnly(item)
+    for _, source in ipairs(item.sources or {}) do
+        if not source.searchOnly then return false end
+    end
+    return true
+end
+
 --- Ranked search. Returns an array of { item, score, why, sources }.
 --
 -- `sources` is set when the item was found through some of its sources (a
@@ -177,7 +187,8 @@ function Search:Run(query)
         if score > 0 and ns.DB:IsHiddenItem(item) then
             self.hidHit = true
         elseif score > 0 then
-            results[#results + 1] = { item = item, score = score, why = why, sources = matched }
+            results[#results + 1] = { item = item, score = score, why = why, sources = matched,
+                leadsOnly = Search.LeadsOnly(item) }
         end
     end
 
@@ -192,6 +203,8 @@ function Search:Run(query)
 
     table.sort(results, function(a, b)
         if a.score ~= b.score then return a.score > b.score end
+        -- Items someone has looted come before those known only as leads.
+        if a.leadsOnly ~= b.leadsOnly then return b.leadsOnly end
         return a.item.name < b.item.name
     end)
 

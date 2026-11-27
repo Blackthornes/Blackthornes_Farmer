@@ -45,6 +45,7 @@ Sections there:
 - Search finds your own loot
 - Quest items in the loot lists
 - Classic drops in the search
+- Known drops in the search
 - Random suffixes count as their item
 - Same name, another zone
 - Drops only
