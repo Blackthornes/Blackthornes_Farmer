@@ -23,6 +23,11 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.35.1
+
+Fixes and changes:
+- Pointing at or targeting a mob inside a dungeon no longer causes an error.
+
 ## 1.35.0
 
 - The Grind tab has Rares and Treasures. Each row shows where it is, what it can give and a Show Way button.
