@@ -574,6 +574,13 @@ Fishing:" under FISHING on the Loot page (`oneKeyFishing`); turned on
 with no key set, chat says where to set one. Both keys account wide,
 never rename them. Tested in `tools/test_onekeyfishing.lua`.
 
+Camper's Lure (item 291005, +60 for 5 minutes, needs Fishing 50), from a
+camp's Fishing Rack or Fishing Hut, joined `FishingBar.LURES` on
+2026-11-27 after a player found the key cast without it. Its enchant ID
+on the pole is not yet known, so the lure line shows its time left but
+no "+60". Any new lure goes in that list; the key and the Fishing window
+both read it.
+
 
 ## The fishing panel
 
