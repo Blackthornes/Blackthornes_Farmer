@@ -107,7 +107,7 @@ Sections there:
 - The swap gem (One Window toggle, 2026-11-19)
 - The tooltip block (shared item tooltip lines)
 - Panel Style (Like Quest List)
-- Grind to 60 (a test feature, 2026-11-22)
+- Grind to 60 (taken out)
 - The Farm HUD
 - Restore Defaults (Farmer Settings: Set Default)
 - Smoother kills and the hand-drawn scroll bar

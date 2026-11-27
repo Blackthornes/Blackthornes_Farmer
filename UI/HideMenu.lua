@@ -20,9 +20,6 @@ local ROW = 26
 -- A row's own action first (2026-10-29: right-click opens the row's menu,
 -- what a click does at the top), then up to three hide lines.
 local MOST = 4
--- A caller with more to offer may ask for more lines, up to this many
--- (Grind to 60's step menu: the way there, the area, a mob each, Cancel).
-local MOST_EVER = 8
 -- How far in from the rim the rows sit, and the words from a row's left.
 local INSET = 4
 local PAD = 10
@@ -113,10 +110,8 @@ end
 
 --- Open at the mouse with one line per `choices` entry: { kind = "item" or
 --- "source", name }. Choices without a name, or already hidden, are left
---- out; with none left it does not open. `most` asks for more lines than
---- the usual four.
-function HideMenu:Open(choices, most)
-    local MOST = math.min(MOST_EVER, math.max(MOST, tonumber(most) or MOST))
+--- out; with none left it does not open.
+function HideMenu:Open(choices)
     local kept = {}
     for _, choice in ipairs(choices or {}) do
         local name = choice and choice.name
@@ -133,9 +128,6 @@ function HideMenu:Open(choices, most)
     if #kept == 0 then return false end
 
     local menu = self:Build()
-    for index = #menu.lines + 1, #kept do
-        menu.lines[index] = CreateLine(menu, index)
-    end
     local width = 120
     for index, line in ipairs(menu.lines) do
         local choice = kept[index]
