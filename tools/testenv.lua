@@ -311,6 +311,33 @@ function env.Secret(what)
     })
 end
 
+--- A secret string as the live game hands one out in a dungeon: type() says
+--- "string" and joining it works (the result is secret too), but indexing it,
+--- as `guid:match` does, raises. A real string stands in for it, and while
+--- the fake is on, `issecretvalue` names it and the string methods refuse it.
+--- Call the returned `undo` when done.
+function env.SecretString(what)
+    local value = "Creature-0-1-1-1-1-SECRET-" .. tostring(what)
+    local meta = getmetatable("")
+    local oldIndex, oldTest = meta.__index, _G.issecretvalue
+    _G.issecretvalue = function(v)
+        if type(v) ~= "string" then return false end
+        return string.find(v, "-SECRET-", 1, true) ~= nil
+    end
+    meta.__index = function(s, key)
+        if string.find(s, "-SECRET-", 1, true) then
+            error(("attempt to index local 'guid' (a secret string value, while "
+                .. "execution tainted by 'Blackthornes_Farmer')"), 0)
+        end
+        return string[key]
+    end
+    local function undo()
+        meta.__index = oldIndex
+        _G.issecretvalue = oldTest
+    end
+    return value, undo
+end
+
 --- Loot one corpse: point the target at `mob` and fire the loot event.
 function env.Loot(ns, mob, items)
     if mob then

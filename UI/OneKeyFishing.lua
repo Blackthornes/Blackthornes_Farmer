@@ -76,10 +76,9 @@ local function InCombat()
 end
 
 local function Readable(value)
-    local ok, text = pcall(function()
-        if type(value) == "string" then return value .. "" end
-    end)
-    return ok and text or nil
+    -- Harvest.Readable asks the game whether a value is secret: joining a
+    -- dungeon's secret guid works and gives a secret back.
+    return ns.Harvest and ns.Harvest.Readable(value) or nil
 end
 
 --------------------------------------------------------------------------------

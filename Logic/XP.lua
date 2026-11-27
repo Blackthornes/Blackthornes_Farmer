@@ -493,10 +493,19 @@ local function Field(object, key)
     return nil
 end
 
+--- True for a value the game keeps from addons (a secret). Joining one
+--- works and gives a secret back, so the game is asked.
+local function IsSecret(value)
+    local test = _G.issecretvalue
+    if type(test) ~= "function" then return false end
+    local ok, secret = pcall(test, value)
+    return not ok or secret == true
+end
+
 local function Text(value)
-    if type(value) ~= "string" then return nil end
+    if type(value) ~= "string" or IsSecret(value) then return nil end
     local ok, copy = pcall(function() return value .. "" end)
-    return ok and copy or nil
+    return ok and not IsSecret(copy) and copy or nil
 end
 
 --- XP a quest in the log gives, or 0.
