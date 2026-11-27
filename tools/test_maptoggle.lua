@@ -15,7 +15,7 @@ local ns = env.Load({ ui = true })
 local MapToggle = ns.MapToggle
 
 check("the module loads", type(MapToggle) == "table")
-check("three kinds of mark", #MapToggle.Kinds() == 3)
+check("five kinds of mark", #MapToggle.Kinds() == 5)
 
 -- Camps and nodes on, heat off (the usual).
 ns.db.grindPins, ns.db.markersWorld, ns.db.heatWorld = nil, nil, false

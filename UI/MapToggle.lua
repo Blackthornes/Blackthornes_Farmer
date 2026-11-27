@@ -2,12 +2,13 @@
 -- A small gold gem in the top right of the world map (a player asked for a
 -- quick way to hide the map marks, the owner said build it from a mockup,
 -- 2026-11-10). A click hides every Farmer mark on the world map at once:
--- the Grind tab's camps, the gathered node markers and the kill heat glow.
+-- the Grind tab's camps, the gathered node markers, the kill heat glow and
+-- the rares and treasures.
 -- Another click brings back the ones that were on. A right-click opens a
 -- menu with a tick for each, the same switches as the Map & Goals page.
 --
 -- It only flips the settings that were already there (grindPins,
--- markersWorld, heatWorld), so Settings and the gem always agree. What a
+-- markersWorld, heatWorld, rarePins, treasurePins), so Settings and the gem always agree. What a
 -- click hid is kept in `mapMarksKept` ({ [key] = true }) so the next click
 -- puts back only those. "Map Button:" on the Map & Goals page
 -- (`mapButton`, on unless unticked) and `/farm markers button on|off`.
@@ -38,6 +39,12 @@ function MapToggle.Kinds()
         { key = "heatWorld", text = L["Kill Heat"],
             on = function() return ns.Heat and ns.Heat.WorldOn() end,
             set = function(on) ns.Heat:SetWorld(on) end },
+        { key = "rarePins", text = L["Rares"],
+            on = function() return ns.Rares and ns.Rares.PinsOn("rare") end,
+            set = function(on) ns.Rares:SetPins("rare", on) end },
+        { key = "treasurePins", text = L["Treasures"],
+            on = function() return ns.Rares and ns.Rares.PinsOn("treasure") end,
+            set = function(on) ns.Rares:SetPins("treasure", on) end },
     }
 end
 

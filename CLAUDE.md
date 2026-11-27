@@ -118,6 +118,7 @@ Sections there:
 - The Home tab (taken out)
 - Names as you type (2026-11-26)
 - The Rankings board over a few frames (2026-11-26)
+- Rares and Treasures (2026-11-27)
 
 ## Checking a change
 

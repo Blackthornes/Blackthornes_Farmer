@@ -514,8 +514,10 @@ do
     check("however narrow the row", Overlaps(300) == nil, Overlaps(300))
 
     for _, chip in ipairs(chips) do chip.label.GetStringWidth = nil end
-    GrindingUI.filters._width = 682
-    UI.frame._width = 724
+    -- Normal size is the width the tab keeps for every view (GrindingUI.WIDTH),
+    -- less the padding on each side; Rares and Treasures joined the row.
+    GrindingUI.filters._width = GrindingUI.WIDTH - 28
+    UI.frame._width = GrindingUI.WIDTH
     GrindingUI:LayoutChips()
     check("at normal size the chips fit one line", GrindingUI.chipLines == 1, GrindingUI.chipLines)
     check("and Sort sits up beside My level",

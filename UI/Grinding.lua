@@ -48,6 +48,9 @@ GrindingUI.LAYOUTS = {
     fish = { "mob", "count", "gives", "worth", "hour" },
     -- The Gather Route draws its own view (UI/GatherRoute.lua) over the list.
     route = { "mob" },
+    -- So do Rares and Treasures (UI/RaresView.lua).
+    rares = { "mob" },
+    treasures = { "mob" },
 }
 -- Every column any view has.
 local ALL_KEYS = { "type", "mob", "level", "skill", "gives", "worth", "count", "kills", "spots", "respawn", "hour",
@@ -83,6 +86,7 @@ function GrindingUI.Layout()
     end
     if ns.Grinding.IsNodeView(gives) then return "nodes" end
     if ns.Grinding.IsFishView(gives) then return "fish" end
+    if ns.Grinding.IsRareView(gives) then return gives end
     if gives == "skinning" then return "leather" end
     return "mobs"
 end
@@ -318,6 +322,8 @@ function GrindingUI:Build(frame)
     self.pathRoom = 0
     -- The Gather Route's view covers the list while its chip is picked.
     if ns.GatherRouteUI then ns.GatherRouteUI:Build(panel) end
+    -- So do Rares and Treasures.
+    if ns.RaresView then ns.RaresView:Build(panel) end
 
     local list = Widgets.CreateRowList(panel, {
         rowHeight = ROW_HEIGHT,
@@ -445,7 +451,7 @@ function GrindingUI:LayoutChips()
     -- in place, greyed and not clickable, so the chips after them never move.
     local gives = ns.Grinding:Gives()
     local nodes = ns.Grinding.IsNodeView(gives) or ns.Grinding.IsFishView(gives)
-        or GrindingUI.Layout() == "route"
+        or ns.Grinding.IsRareView(gives) or GrindingUI.Layout() == "route"
     for _, chip in ipairs(self.typeChips) do
         chip:Show()
         chip.resting = nodes
@@ -655,6 +661,8 @@ GrindingUI.GIVES_TIPS = {
     ore = { L["Ore"], L["Zones with mining nodes, and what yours were worth. Click again for mobs."] },
     herbs = { L["Herbs"], L["Zones with herbs, and what yours were worth. Click again for mobs."] },
     fish = { L["Fish"], L["The spots you fished, and what your casts were worth. Click again for mobs."] },
+    rares = { L["Rares"], L["Rare mobs, where they stand and what they can drop. Click again for mobs."] },
+    treasures = { L["Treasures"], L["Treasure chests, where they sit and what they hold. Click again for mobs."] },
 }
 
 -- Route Mode's hover on each page.
@@ -1714,8 +1722,9 @@ function GrindingUI:Render(arrive)
         self.zones = zones
         camps = {}
         rows = self:NodeRows(zones, low, high)
-    elseif layout == "route" then
-        -- The route draws itself over the list (UI/GatherRoute.lua).
+    elseif layout == "route" or layout == "rares" or layout == "treasures" then
+        -- The route draws itself over the list (UI/GatherRoute.lua), and so
+        -- do Rares and Treasures (UI/RaresView.lua).
         self.zones = nil
         camps = {}
         rows = {}
@@ -1742,6 +1751,7 @@ function GrindingUI:Render(arrive)
 
     local width = self:FitColumns(rows, layout)
     self:ShowRoute(layout == "route")
+    self:ShowRares(layout)
 
     self.list:SetData(rows, not arrive)
     if arrive then self.list:Arrive() end
@@ -1766,6 +1776,23 @@ function GrindingUI:ShowRoute(on)
         local ok, words = pcall(routeUI.Update, routeUI)
         if ok and type(words) == "string" then self.footer:SetText(words) end
         if not ok and ns.Debug then ns.Debug("gather route: " .. tostring(words)) end
+    elseif was then
+        self:PlaceHeadings()
+    end
+end
+
+--- Show the Rares or Treasures view over the list, or put the list back.
+function GrindingUI:ShowRares(layout)
+    local view = ns.RaresView
+    if not view or not view.frame then return end
+    local on = layout == "rares" or layout == "treasures"
+    local was = self.raresShown
+    self.raresShown = on
+    view:Toggle(self, on and layout or nil)
+    if on then
+        local ok, words = pcall(view.Update, view)
+        if ok and type(words) == "string" then self.footer:SetText(words) end
+        if not ok and ns.Debug then ns.Debug("rares view: " .. tostring(words)) end
     elseif was then
         self:PlaceHeadings()
     end

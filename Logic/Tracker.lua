@@ -513,6 +513,12 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
         mob.coinKills = mob.coinKills + 1
         self.sessionCopper = self.sessionCopper + (tonumber(copper) or 0)
 
+        -- A rare you looted (Logic/Rares.lua): its Killed line.
+        if ns.Rares and guid and not skinning then
+            local ok, err = pcall(ns.Rares.NoteKill, ns.Rares, guid)
+            if not ok then ns.Debug("rares:", tostring(err)) end
+        end
+
         -- Where it was, for the heat map (Logic/Heat.lua, off unless ticked).
         if ns.Heat and not skinning then
             local ok, err = pcall(ns.Heat.Kill, ns.Heat, mobName)
