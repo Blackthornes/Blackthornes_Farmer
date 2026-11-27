@@ -138,4 +138,21 @@ UI:BuildMinimapButton()
 suite.check("an old saved hide is ignored", UI.minimapButton:IsShown())
 suite.check("the old key stays in the save", ns.db.minimapHidden == true)
 
+--------------------------------------------------------------------------------
+-- A button drawer takes it
+--------------------------------------------------------------------------------
+
+-- A drawer gives the button a new parent. After that, re-seating it must
+-- not pull it back onto the minimap ring.
+local own = UI.minimapButton
+local placed = 0
+local clear = own.ClearAllPoints
+own.ClearAllPoints = function(self, ...) placed = placed + 1; return clear(self, ...) end
+UI:RepositionMinimapButton()
+suite.check("on the minimap, it is placed on the ring", placed == 1)
+own:SetParent(CreateFrame("Frame"))
+UI:RepositionMinimapButton()
+suite.check("taken by a drawer, it is left where the drawer put it", placed == 1)
+own:SetParent(Minimap)
+
 suite.done()
