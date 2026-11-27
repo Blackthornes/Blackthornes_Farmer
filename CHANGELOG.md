@@ -4,6 +4,16 @@ Versions follow [semantic versioning](https://semver.org): the middle number
 moves for new behaviour, the last for fixes alone. The newest version goes at
 the top; a release is refused if its version has no section here.
 
+## 1.35.0
+
+For WoW: Forever (interface 16001). A full restart is needed after updating.
+
+- **Rares.** A Rares chip on the Grind tab lists your zone's rare mobs, near your level first. Each row shows where it stands, what it can drop, its level, when you last saw it and a Show Way button.
+- **Treasures.** A Treasures chip on the Grind tab lists treasure chests, nearest first, with what each one holds, when you last opened it and a Show Way button.
+- **Map pins.** A skull marks each rare and a chest marks each treasure on the world map. Point at one for its card, or click it to show the way. Turn them on with Rares on the Map: and Treasures on the Map: on the Map page. Both are off unless ticked.
+- **Rare Seen Sound.** A sound plays when a rare comes into view. Turn it on with Rare Seen Sound: on the Map page. It is off unless ticked.
+- **Search.** The search, the item tooltip and Spots know 185 more items and the mobs that drop them. Items a rare drops name that rare.
+
 ## 1.34.0
 
 For WoW: Forever (interface 16001). A full restart is needed after updating.

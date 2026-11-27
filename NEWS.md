@@ -23,6 +23,15 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.35.0
+
+- The Grind tab has Rares and Treasures. Each row shows where it is, what it can give and a Show Way button.
+- Rares and treasures can show on your world map. Both start off.
+- A sound can play when a rare comes into view. It starts off.
+
+Fixes and changes:
+- The search knows 185 more items and the mobs that drop them.
+
 ## 1.34.0
 
 - A see-through Farm HUD ring shows your saved spots near you and points to the next stop on your route.
