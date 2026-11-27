@@ -399,10 +399,10 @@ local DEFAULTS = {
     x = 0,
     y = 40,
     lastSearch = "",
-    -- The main window's tab when it was last closed: "home", "search",
-    -- "rankings", "grind", "farms" or "stats". A new save starts on Home
-    -- (UI/Home.lua, 2026-11-26); one from before keeps the tab it had.
-    lastTab = "home",
+    -- The main window's tab when it was last closed: "search", "rankings",
+    -- "grind", "farms" or "stats". A save left on "home" (the Home tab,
+    -- taken out 2026-11-27) opens on Search.
+    lastTab = "search",
     debug = false,
 
     -- Window sizes in percent, set on the settings page.

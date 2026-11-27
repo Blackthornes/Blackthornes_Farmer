@@ -3875,7 +3875,13 @@ closes it.
   the `Notice.Spot` change; until then a note from them lays the stack out
   on the top shelf again. `UI/SharedWindow.lua` is not changed.
 - Tested in `tools/test_movewindows.lua`.
-## The Home tab (2026-11-26)
+## The Home tab (taken out)
+
+Taken out 2026-11-27: the owner didn't care for it. `UI/Home.lua`,
+`tools/test_home.lua`, its strings in five languages and
+`Rankings.nearForNow` are gone. The window opens on Search again (the
+default `lastTab` is "search"); a save left on "home" opens on Search, and
+nothing saved is changed. The notes below are how it worked.
 
 The owner said build it from a mockup whose words he approved
 (`Docs/mockups/farmer-improve-2-home-tab` in the project files).
@@ -3914,7 +3920,7 @@ The owner said build it (Farmer improvement #8, "search in your
 language", mockup Docs/mockups/farmer-improve-8 in the project files). The
 search already matched the client's item and zone names (see "German and
 other language clients"); what was missing was a way to see that. Under
-the Search tab's box and Home's box, the best eight items, mobs and zones
+the Search tab's box (and Home's, until it was taken out), the best eight items, mobs and zones
 that match what you typed show as you type, tagged "Item", "Mob, <zone>"
 or "Zone", with "Arrow keys pick a line, Enter opens it." under them.
 
