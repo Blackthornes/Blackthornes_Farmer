@@ -447,7 +447,6 @@ local UI_FILES = {
     "UI/ZoneBoardFX.lua",
     "UI/Stats.lua",
     "UI/SavedFarms.lua",
-    "UI/Home.lua",
     "UI/SearchSuggest.lua",
     "UI/MapMarkers.lua",
     "UI/FarmHUD.lua",

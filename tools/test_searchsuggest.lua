@@ -152,31 +152,6 @@ Search.SetSuggestOn(true)
 check("ticked again it is saved as unset", ns.db.searchNames == nil)
 
 --------------------------------------------------------------------------------
--- Home's box
---------------------------------------------------------------------------------
-
-UI:ShowTab("home")
-local Home = ns.HomeUI
-local homeList = Home.searchBox.suggest
-check("Home's box has the list", homeList ~= nil)
-local homeBox = Home.searchBox.editBox
-homeBox:SetText("westf")
-homeBox:GetScript("OnTextChanged")(homeBox, true)
-check("Home shows it too", homeList:IsShown())
-homeBox:GetScript("OnArrowPressed")(homeBox, "DOWN")
-local pick = homeList.state.found[1].name
-homeBox:GetScript("OnEnterPressed")(homeBox)
-check("Enter on Home searches the picked name", UI.tab == "search" and UI.lastQuery == pick,
-    tostring(UI.tab) .. " " .. tostring(UI.lastQuery))
-
-UI:ShowTab("home")
-homeBox:SetText("Linen Cloth")
-homeBox:GetScript("OnTextChanged")(homeBox, true)
-homeBox:GetScript("OnEnterPressed")(homeBox)
-check("Enter on Home with none picked searches what you typed",
-    UI.tab == "search" and UI.lastQuery == "Linen Cloth", UI.lastQuery)
-
---------------------------------------------------------------------------------
 -- A German client
 --------------------------------------------------------------------------------
 

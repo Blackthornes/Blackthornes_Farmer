@@ -128,8 +128,6 @@ end
 
 -- The window's tabs, left to right.
 local TABS = {
-    -- Home (UI/Home.lua, the owner 2026-11-26): what do you want to do.
-    { key = "home", text = L["Home"] },
     { key = "search", text = L["Search"] },
     { key = "rankings", text = L["Rankings"] },
     { key = "grind", text = L["Grind"] },
@@ -388,9 +386,6 @@ function UI:Build()
     end
     if ns.StatsUI then
         self.statsView = ns.StatsUI:Build(frame)
-    end
-    if ns.HomeUI then
-        self.homeView = ns.HomeUI:Build(frame)
     end
     if ns.SavedFarmsUI then
         self.farmsView = ns.SavedFarmsUI:Build(frame)
@@ -1597,8 +1592,8 @@ end
 -- Tabs
 --------------------------------------------------------------------------------
 
---- Switch the window to a tab: "home", "search", "rankings", "grind",
---- "farms" or "stats".
+--- Switch the window to a tab: "search", "rankings", "grind", "farms"
+--- or "stats".
 --- Remembered for the next time the window opens. "settings" opens
 --- Settings in the window's place.
 function UI:ShowTab(key)
@@ -1620,7 +1615,7 @@ function UI:ShowTabNow(key)
         return
     end
     local views = { rankings = self.rankingsView, grind = self.grindView, stats = self.statsView,
-        farms = self.farmsView, home = self.homeView }
+        farms = self.farmsView }
     if key == "farms" and not (ns.SavedFarms and ns.SavedFarms.On()) then key = "search" end
     if not views[key] then key = "search" end
 
@@ -1634,7 +1629,6 @@ function UI:ShowTabNow(key)
     if self.grindView then self.grindView:SetShown(key == "grind") end
     if self.statsView then self.statsView:SetShown(key == "stats") end
     if self.farmsView then self.farmsView:SetShown(key == "farms") end
-    if self.homeView then self.homeView:SetShown(key == "home") end
 
     -- One size for every tab.
     self:ApplySize()
@@ -1652,9 +1646,6 @@ function UI:ShowTabNow(key)
     elseif key == "farms" then
         self.searchBox:ClearFocus()
         ns.SavedFarmsUI:Render()
-    elseif key == "home" then
-        self.searchBox:ClearFocus()
-        ns.HomeUI:Render(true)
     else
         if ns.SavedFarmsUI then pcall(ns.SavedFarmsUI.PlaceSearchStrip, ns.SavedFarmsUI) end
         self:DrawUnsearched()
@@ -1772,7 +1763,6 @@ function UI:Show()
     if ns.Titanforged then ns.Titanforged:Opened(self.frame) end
 
     if self.tab == "search" then self:DrawUnsearched() end
-    if self.tab == "home" and not self.searching and ns.HomeUI then ns.HomeUI:Render(true) end
 end
 
 function UI:Hide()
@@ -1808,13 +1798,7 @@ function UI:Toggle()
     self:Show()
     self.searching = nil
 
-    -- Home the first time, before any tab was used (UI/Home.lua).
     local farms = ns.db and ns.db.lastTab == "farms" and ns.SavedFarms and ns.SavedFarms.On()
-    local home = ns.db and (ns.db.lastTab == nil or ns.db.lastTab == "home") and self.homeView
-    if home then
-        self:ShowTab("home")
-        return
-    end
     if ns.db and (ns.db.lastTab == "rankings" or ns.db.lastTab == "grind" or ns.db.lastTab == "stats" or farms) then
         self:ShowTab(ns.db.lastTab)
         return
@@ -2230,7 +2214,7 @@ function FarmerTabs:Open(key)
         ns.SettingsUI:Show()
         return
     end
-    key = key or (ns.db and ns.db.lastTab) or (UI.homeView and "home") or "search"
+    key = key or (ns.db and ns.db.lastTab) or "search"
     UI.searching = key ~= "search" or nil
     UI:Show()
     UI.searching = nil

@@ -9,7 +9,7 @@
 -- press Escape, clear the box or click away.
 --
 -- It is drawn only when the typed word changes, and nothing runs on a
--- timer. Attached to the Search tab's box and Home's box.
+-- timer. Attached to the Search tab's box.
 
 local _, ns = ...
 local L = ns.L
