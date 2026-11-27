@@ -23,6 +23,27 @@ tell a friend: no hype, no questions to the reader, no exclamation marks
 outside the thanks line, no dashes as punctuation, no "now you can". The
 tool prints a note for a shipped line that reads like an advert.
 
+## 1.34.0
+
+- A see-through Farm HUD ring shows your saved spots near you and points to the next stop on your route.
+- Kills & Loot has a Slim Bar, a small graph of your run and a Run Recap that stays until you close it.
+- Move Windows lets you drag every Farmer piece into place.
+- Names show under the search box as you type.
+- New Font, Colors and Fold Gem choices on the All Addons page.
+
+Fixes and changes:
+- Quest counts no longer borrow the count of a mob with a longer name.
+- The minimap button stays where a button drawer puts it.
+- Friendly NPCs show their title again after Farmer is turned off.
+- The Rankings tab opens without a stall.
+- Kills & Loot adds a kill with much less work.
+- Mobs in Forever's own dungeons show their names.
+- One Key Fishing casts with the Camper's Lure.
+- Lists use a hand-drawn scroll bar, so dragging down scrolls down.
+- Shift tooltip lines sit at the bottom of the tooltip.
+- The route arrow follows the plan's new next stop, and a stop counts as reached from 90 yards.
+- Grind to 60 is gone.
+
 ## 1.33.4
 
 Fixes and changes:
