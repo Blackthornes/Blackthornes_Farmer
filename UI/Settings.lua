@@ -295,8 +295,20 @@ function SettingsUI:ResetPositions()
         if ns.TrackerUI.Refresh then ns.TrackerUI:Refresh() end
     end
 
-    -- The goals panel goes back under the kills panel.
+    -- The goals panel goes back under the kills panel, built or not.
+    db.goalsX, db.goalsY = nil, nil
     if ns.GoalsUI and ns.GoalsUI.frame then ns.GoalsUI:Dock() end
+
+    -- The rank-up pop-up, the XP bar and the Fishing Buttons go back to
+    -- their first places too, built or not.
+    db.rankUpX, db.rankUpY = nil, nil
+    if ns.RankUpUI and ns.RankUpUI.ResetPlace then pcall(ns.RankUpUI.ResetPlace, ns.RankUpUI) end
+    db.xpBarPoint, db.xpBarRelPoint, db.xpBarX, db.xpBarY = nil, nil, nil, nil
+    if ns.XPBarUI and ns.XPBarUI.ResetPlace then pcall(ns.XPBarUI.ResetPlace, ns.XPBarUI) end
+    db.fishingBarX, db.fishingBarY = nil, nil
+    if ns.FishingBar and ns.FishingBar.frame and ns.FishingBar.Place then
+        pcall(ns.FishingBar.Place, ns.FishingBar)
+    end
 
     -- The loot feed goes back to its first place and size.
     if ns.LootFeed then ns.LootFeed:ResetPlace() end
