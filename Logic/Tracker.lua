@@ -511,7 +511,7 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
         -- still counts toward the average: that is what "per kill" means.
         mob.copper = mob.copper + (tonumber(copper) or 0)
         mob.coinKills = mob.coinKills + 1
-        self.sessionCopper = self.sessionCopper + (tonumber(copper) or 0)
+        self:CoinYours(copper)
 
         -- A rare you looted (Logic/Rares.lua): its Killed line.
         if ns.Rares and guid and not skinning then
@@ -529,7 +529,6 @@ function Tracker:Record(mobName, guid, items, quantities, copper, place, haul, s
         -- own drops (skinning aside), and its coin.
         if ns.Stats then
             ns.Stats:Kill(mobName, not skinning and items or nil, quantities)
-            ns.Stats:Coin(copper)
         end
 
         -- Small cheers (Logic/Moments.lua): a lucky or long-awaited drop,
@@ -704,8 +703,17 @@ function Tracker:AddHaul(mobName, haul)
         end
     end
 
-    self.sessionCopper = self.sessionCopper + (tonumber(haul.copper) or 0)
-    if ns.Stats then ns.Stats:Coin(haul.copper) end
+    self:CoinYours(haul.copper)
+end
+
+--- Coin a loot window showed, into the session's gold and Stats. In a
+--- group the window shows the whole drop, which the game splits, so there
+--- the game's own money line counts instead (OnMoneyChat).
+function Tracker:CoinYours(copper)
+    copper = tonumber(copper) or 0
+    if copper <= 0 or Tracker.InGroup() then return end
+    self.sessionCopper = self.sessionCopper + copper
+    if ns.Stats then ns.Stats:Coin(copper) end
 end
 
 --------------------------------------------------------------------------------
@@ -837,6 +845,60 @@ function Tracker:OnLootChat(message)
     self.lines[#self.lines + 1] = { name = name, count = count, at = now }
     while #self.lines > 20 do table.remove(self.lines, 1) end
     return false
+end
+
+--- The game's own money lines ("Your share of the loot is 1 Silver, 2
+--- Copper.", "You loot 5 Copper"), from the client's words. Each pattern
+--- takes the coin text as its first capture.
+local moneyPatterns, moneyWords
+function Tracker.MoneyPatterns()
+    local words = {}
+    for _, key in ipairs({ "LOOT_MONEY_SPLIT", "LOOT_MONEY_SPLIT_GUILD", "YOU_LOOT_MONEY", "YOU_LOOT_MONEY_GUILD" }) do
+        local format = rawget(_G, key)
+        if type(format) == "string" and format ~= "" then words[#words + 1] = format end
+    end
+    local joined = table.concat(words, "\n")
+    if moneyPatterns and moneyWords == joined then return moneyPatterns end
+    moneyPatterns, moneyWords = {}, joined
+    for _, format in ipairs(words) do
+        local text = format:gsub("%%%d+%$", "%%")
+        text = text:gsub("[%^%$%(%)%.%[%]%*%+%-%?]", "%%%0")
+        local pattern = text:gsub("%%s", "(.+)"):gsub("%%d", "%%d+")
+        moneyPatterns[#moneyPatterns + 1] = "^" .. pattern .. "$"
+    end
+    return moneyPatterns
+end
+
+--- Copper in one of your money lines, or nil for any other line.
+function Tracker.ParseMoneyLine(message)
+    if not ns.Harvest.Readable(message) or type(message) ~= "string" then return nil end
+    for _, pattern in ipairs(Tracker.MoneyPatterns()) do
+        local ok, coin = pcall(string.match, message, pattern)
+        if ok and type(coin) == "string" then
+            local copper, found = 0, false
+            for amount, unit in coin:gmatch("(%d+)%s+(%a+)") do
+                local value = ns.Harvest.CoinValue(unit)
+                if value then
+                    copper = copper + tonumber(amount) * value
+                    found = true
+                end
+            end
+            if found and copper > 0 then return copper end
+        end
+    end
+    return nil
+end
+
+--- A chat money line. Solo the loot window already counted the coin; in a
+--- group this line is your share, the only coin that reached your bags.
+function Tracker:OnMoneyChat(message)
+    if not Tracker.InGroup() then return false end
+    local copper = Tracker.ParseMoneyLine(message)
+    if not copper then return false end
+    self.sessionCopper = self.sessionCopper + copper
+    if ns.Stats then ns.Stats:Coin(copper) end
+    if ns.TrackerUI then ns.TrackerUI:Refresh() end
+    return true
 end
 
 --- A pocket you picked: no kill and no drop rate, but its coin and items
@@ -1995,6 +2057,10 @@ function Tracker:OnEnable()
     ns.RegisterEvent(self, "CHAT_MSG_LOOT", function(_, _, message)
         local ok, err = pcall(Tracker.OnLootChat, Tracker, message)
         if not ok then ns.Debug("loot line:", tostring(err)) end
+    end)
+    ns.RegisterEvent(self, "CHAT_MSG_MONEY", function(_, _, message)
+        local ok, err = pcall(Tracker.OnMoneyChat, Tracker, message)
+        if not ok then ns.Debug("money line:", tostring(err)) end
     end)
 end
 

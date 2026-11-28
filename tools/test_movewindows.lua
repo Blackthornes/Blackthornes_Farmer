@@ -157,6 +157,16 @@ suite.check("stays on screen", l == 0 and t == 1080, l .. "," .. t)
 -- 6. Put Everything Back
 --------------------------------------------------------------------------------
 
+-- Every piece with a spot of its own goes back too, built or not (a bug
+-- pass, 2026-11-28: the rank-up pop-up, the XP bar, the Fishing Buttons and
+-- an unbuilt goals panel kept theirs).
+ns.db.rankUpX, ns.db.rankUpY = 500, 600
+ns.db.xpBarPoint, ns.db.xpBarRelPoint, ns.db.xpBarX, ns.db.xpBarY = "TOP", "TOP", 10, -20
+ns.db.fishingBarX, ns.db.fishingBarY = 700, 400
+ns.db.goalsX, ns.db.goalsY = 300, 300
+local goalsFrame = ns.GoalsUI and ns.GoalsUI.frame
+if ns.GoalsUI then ns.GoalsUI.frame = nil end
+
 MoveWindows.backButton:Click()
 suite.check("the first click asks to Confirm", MoveWindows.backButton.label:GetText() == "Confirm"
     and ns.db.lootFeedX == 320)
@@ -164,6 +174,13 @@ MoveWindows.backButton:Click()
 suite.check("the second puts every window back", ns.db.lootFeedX == nil
     and MoveWindows.Spot(MoveWindows.RECAP_KEY) == nil and ns.Notice.Spot() == nil,
     tostring(ns.db.lootFeedX) .. " " .. tostring(MoveWindows.Spot(MoveWindows.RECAP_KEY)) .. " " .. tostring(ns.Notice.Spot()))
+suite.check("the rank-up pop-up goes back", ns.db.rankUpX == nil and ns.db.rankUpY == nil, tostring(ns.db.rankUpX))
+suite.check("the XP bar goes back", ns.db.xpBarPoint == nil and ns.db.xpBarRelPoint == nil
+    and ns.db.xpBarX == nil and ns.db.xpBarY == nil, tostring(ns.db.xpBarX))
+suite.check("the Fishing Buttons go back", ns.db.fishingBarX == nil and ns.db.fishingBarY == nil,
+    tostring(ns.db.fishingBarX))
+suite.check("an unbuilt goals panel goes back", ns.db.goalsX == nil and ns.db.goalsY == nil, tostring(ns.db.goalsX))
+if ns.GoalsUI then ns.GoalsUI.frame = goalsFrame end
 suite.check("and the screen stays open", MoveWindows:IsOpen())
 
 MoveWindows:Close()

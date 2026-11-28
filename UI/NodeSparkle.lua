@@ -442,7 +442,9 @@ end
 
 --- Is this channel the Fishing spell? By its ID, else by its name.
 function NodeSparkle.IsFishingCast(spellID)
-    if type(spellID) == "number" and NodeSparkle.FISHING_SPELLS[spellID] then return true end
+    -- Read before it is used as a key: a dungeon can hand out a hidden one.
+    spellID = ns.Harvest and ns.Harvest.ReadableNumber(spellID) or nil
+    if spellID and NodeSparkle.FISHING_SPELLS[spellID] then return true end
     if type(UnitChannelInfo) ~= "function" then return false end
     local ok, name = pcall(UnitChannelInfo, "player")
     name = ok and Readable(name) or nil

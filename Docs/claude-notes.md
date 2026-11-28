@@ -2511,6 +2511,16 @@ Drop rates, kill tallies, coin and the kill goal still read the window, and
 solo play is unchanged (`Tracker:GiveYou`). Nothing saved, no setting, no
 new words. Tested in `tools/test_partyloot.lua`.
 
+Coin too (bug pass, 2026-11-28): the window shows the whole coin drop,
+which the game splits. While grouped, the session's gold and Stats' coin
+skip the window's coin (`Tracker:CoinYours`) and take the game's own money
+line instead (`CHAT_MSG_MONEY`, `Tracker:OnMoneyChat`; patterns from
+`LOOT_MONEY_SPLIT`, `LOOT_MONEY_SPLIT_GUILD`, `YOU_LOOT_MONEY` and
+`YOU_LOOT_MONEY_GUILD`, coin words from `Harvest.CoinValue`,
+`Tracker.ParseMoneyLine`). A share line with no window of yours counts
+too: it is coin in your bags. The mob's own copper tally still reads the
+window. Not yet seen in game.
+
 ## What's New
 
 The owner asked (2026-10-12) for the Discord #general post to show in game,

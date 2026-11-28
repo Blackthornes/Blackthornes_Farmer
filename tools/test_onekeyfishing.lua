@@ -206,6 +206,21 @@ Key:SetEnabled(false)
 Fire("UNIT_SPELLCAST_CHANNEL_START", "player", "guid", 7620)
 suite.check("turned off: the key does nothing", button:GetAttribute("type") == nil and overrides.F == nil)
 
+-- A spell ID the game hides (as in a dungeon) is never used as a table key
+-- (a bug pass, 2026-11-28); the channel's name decides instead.
+do
+    local sparkle = ns.NodeSparkle
+    local oldTest, oldChannel = _G.issecretvalue, _G.UnitChannelInfo
+    _G.issecretvalue = function(v) return v == 7620 end
+    _G.UnitChannelInfo = function() return nil end
+    local ok, fishing = pcall(sparkle.IsFishingCast, 7620)
+    suite.check("a hidden spell ID is left alone", ok and fishing == false, tostring(fishing))
+    _G.UnitChannelInfo = function() return "Fishing" end
+    ok, fishing = pcall(sparkle.IsFishingCast, 7620)
+    suite.check("and the channel's name still knows fishing", ok and fishing == true, tostring(fishing))
+    _G.issecretvalue, _G.UnitChannelInfo = oldTest, oldChannel
+end
+
 _G.CreateFrame = realCreate
 _G.C_Item.GetItemInfoInstant, _G.C_Item.GetItemCount = realInfo, realCount
 _G.C_TooltipInfo, _G.ITEM_MIN_SKILL = nil, nil

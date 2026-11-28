@@ -114,6 +114,37 @@ suite.check("solo locked slot still left out", Tracker.sessionLoot[FANG] == 1, T
 Tracker:OnLootChat("You receive loot: " .. Link(WOOL) .. ".")
 suite.check("and a solo line adds nothing more", Tracker.sessionLoot[WOOL] == 3, Tracker.sessionLoot[WOOL])
 
+-- Coin in a group: the window shows the whole drop, which the game splits.
+-- Only your share, from the game's money line, counts (a bug pass,
+-- 2026-11-28: a party's whole coin went into your gold).
+_G.LOOT_MONEY_SPLIT = "Your share of the loot is %s."
+_G.YOU_LOOT_MONEY = "You loot %s"
+grouped = true
+local before = Tracker.sessionCopper
+local mobCopper = Tally().copper
+Open("Creature-0-1-2-3-100-F", { { name = "1 Silver 20 Copper", money = true, quantity = 0 } })
+suite.check("the mob's tally still has the whole drop", Tally().copper == mobCopper + 120,
+    Tally().copper, mobCopper)
+suite.check("grouped, the window's coin waits for the line", Tracker.sessionCopper == before,
+    Tracker.sessionCopper, before)
+suite.check("a share line reads", Tracker.ParseMoneyLine("Your share of the loot is 40 Copper.") == 40)
+suite.check("a line with all three coins reads",
+    Tracker.ParseMoneyLine("Your share of the loot is 1 Gold, 2 Silver, 3 Copper.") == 10203)
+suite.check("a secret money line does not error", pcall(Tracker.ParseMoneyLine, env.Secret("money")))
+suite.check("another line is not money", Tracker.ParseMoneyLine("Bob says hi") == nil)
+ns.eventFrame:GetScript("OnEvent")(ns.eventFrame, "CHAT_MSG_MONEY", "Your share of the loot is 40 Copper.")
+suite.check("your share counts", Tracker.sessionCopper == before + 40, Tracker.sessionCopper, before)
+Tracker:OnMoneyChat("You loot 5 Copper")
+suite.check("coin you loot alone in a group counts", Tracker.sessionCopper == before + 45, Tracker.sessionCopper)
+
+-- Solo: the window's coin counts and the line adds nothing more.
+grouped = false
+Open("Creature-0-1-2-3-100-G", { { name = "30 Copper", money = true, quantity = 0 } })
+suite.check("solo coin counts from the window", Tracker.sessionCopper == before + 75, Tracker.sessionCopper)
+Tracker:OnMoneyChat("You loot 30 Copper")
+suite.check("and the solo line adds nothing", Tracker.sessionCopper == before + 75, Tracker.sessionCopper)
+_G.LOOT_MONEY_SPLIT, _G.YOU_LOOT_MONEY = nil, nil
+
 -- An unreadable group answer counts as solo.
 _G.IsInGroup = function() return env.Secret("group") end
 suite.check("a secret group answer is solo", Tracker.InGroup() == false)
