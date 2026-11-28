@@ -2420,6 +2420,19 @@ luck; Overall every session, every day kept, and the whole kill tally
 and levels are the same in both and say so. `/farm charts [cheer on|off]`.
 Tested in `tools/test_stats.lua`.
 
+A player (2026-11-28) did both `/farm harvest reset confirm` and `/farm
+tracker reset confirm` and still saw an 8000g spike: neither touches
+`farmStats`, and one wild auction price (a herb read at 70s) was baked in
+at loot time. The owner picked both fixes. `/farm charts reset confirm`
+(`Stats:Reset`, after a warning from `/farm charts reset`) clears
+`farmStats` whole (days, sessions, pace, `units`) and this login's numbers;
+kill tallies and drop records stay. `Stats:SaneUnit` guards auction prices
+only: over `WILD_TIMES` (10) the item's last counted price, kept in
+`farmStats.units[id]` (never rename it), the item counts at that price;
+with none kept, no more than `WILD_VENDOR` (50) times its vendor price. A
+wild price is never kept. An item with neither counts as it is. Tested in
+`tools/test_stats.lua`.
+
 ## Loot inside dungeons
 
 Inside a dungeon the client hides the corpse's name and guid from addons,

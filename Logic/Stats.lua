@@ -47,6 +47,13 @@ Stats.LUCK_MIN_KILLS = 10
 -- A drop counts toward luck once it is expected this many times.
 Stats.LUCK_MIN_EXPECTED = 1
 Stats.LUCK_KEEP = 30         -- seconds the overall luck is kept before working it out again
+-- A wild auction price (one odd listing, a half read scan) is not counted
+-- as it stands: over WILD_TIMES the last price counted for that item, or
+-- with none over WILD_VENDOR times its vendor price, the item counts at
+-- that last price (else at the vendor cap). Asked for by the owner,
+-- 2026-11-28, after a player's Stats tab showed thousands of gold from herbs.
+Stats.WILD_TIMES = 10
+Stats.WILD_VENDOR = 50
 
 -- Where gold comes from, in the order the chart stacks them.
 Stats.SOURCES = { "drops", "coin", "gather", "fish", "grey" }
@@ -129,6 +136,7 @@ function Stats:Store()
     if type(store.days) ~= "table" then store.days = {} end
     if type(store.sessions) ~= "table" then store.sessions = {} end
     if type(store.pace) ~= "table" then store.pace = {} end
+    if type(store.units) ~= "table" then store.units = {} end
     return store
 end
 
@@ -274,8 +282,10 @@ function Stats:Price(kind, name, count, dayKey)
     local Value = ns.Value
     if not Value then return false end
     local id = Value:ItemID(name)
-    local unit = id and Value:UnitPrice(id)
+    local unit, from
+    if id then unit, from = Value:UnitPrice(id) end
     if not unit then return false end
+    unit = self:SaneUnit(id, unit, from)
     local source = kind
     local poor, sure = Value:IsPoor(id)
     if poor and sure then source = "grey" end
@@ -290,6 +300,30 @@ function Stats:Price(kind, name, count, dayKey)
     end
     self:Earn(source, unit * count)
     return true
+end
+
+--- The copper one of item `id` counts for. An auction price far off what
+--- the item has been worth (see WILD_TIMES) counts at that worth instead;
+--- a sane one is kept as the item's worth for next time (`units` in the
+--- save, never rename it). Vendor prices are always taken as they are.
+function Stats:SaneUnit(id, unit, from)
+    if from ~= "auction" then return unit end
+    local store = self:Store()
+    local units = store and store.units
+    local kept = units and Number(units[id])
+    if kept and kept <= 0 then kept = nil end
+    local vendor = ns.Value.VendorPrice and ns.Value:VendorPrice(id)
+    vendor = Number(vendor)
+    if vendor and vendor <= 0 then vendor = nil end
+
+    local ceiling
+    if kept then ceiling = kept * Stats.WILD_TIMES end
+    if vendor then ceiling = math.max(ceiling or 0, vendor * Stats.WILD_VENDOR) end
+    if ceiling and unit > ceiling then
+        return kept and math.min(kept, ceiling) or ceiling
+    end
+    if units then units[id] = unit end
+    return unit
 end
 
 --- Items that were waiting for a price, priced now if they can be.
@@ -906,8 +940,35 @@ function Stats:OnEnable()
     ns.RegisterEvent(self, "PLAYER_LOGOUT", function() Stats:Settle() end)
 end
 
-ns.RegisterCommand("charts", L["the Stats tab: your farming in charts (session|overall, cheer on|off)"], function(rest)
+--- Clears everything the Stats tab has kept: days, sessions, kill pace and
+--- each item's worth, and this login's numbers. Kill tallies and drop
+--- records are not touched. Only from a typed `/farm charts reset confirm`.
+function Stats:Reset()
+    if not ns.db then return end
+    ns.db.farmStats = nil
+    self.current = nil
+    self.curve = nil
+    self.pending = nil
+    self.luck = nil
+    self.overallLuck = nil
+    self.overallLuckAt = nil
+    self.lastAt = nil
+    self.lastKillAt = nil
+    self.version = self.version + 1
+    self:Changed()
+end
+
+ns.RegisterCommand("charts", L["the Stats tab: your farming in charts (session|overall, cheer on|off, reset)"], function(rest)
     local word, value = (rest or ""):lower():match("^(%S*)%s*(%S*)")
+    if word == "reset" then
+        if value == "confirm" then
+            Stats:Reset()
+            ns.Print(L["the Stats tab is cleared."])
+        else
+            ns.Print(L["this clears the Stats tab: every day, session and gold total it has kept, for good. Your kill tallies and drop records stay. Type /farm charts reset confirm to do it."])
+        end
+        return
+    end
     if word == "session" or word == "overall" then
         Stats:SetView(word)
         ns.UI:Show()

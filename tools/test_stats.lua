@@ -480,6 +480,70 @@ suite.check("/farm charts cheer off turns the cheer off", ns.db.statsBestCheer =
 ns.HandleSlash("charts cheer on")
 suite.check("and on", ns.db.statsBestCheer == true)
 
+--------------------------------------------------------------------------------
+-- A wild price is not counted as it stands (a player, 2026-11-28: a herb read
+-- at many times its worth while gathering left thousands of gold in the tab)
+--------------------------------------------------------------------------------
+
+ns.db.farmStats = nil
+Stats.current, Stats.curve, Stats.pending = nil, nil, nil
+Wait(Stats.BREAK + 10)
+AUCTION[2449], VENDOR[2449] = 20, 5      -- Earthroot: 20c, 5c at vendor
+ns.DB:RegisterItem({ name = "Earthroot", id = 2449, category = "herb", sources = {} })
+Stats:Loot("gather", "Earthroot", 2)
+local herbDay = ns.db.farmStats.days[Stats.DayKey()]
+suite.check("a sane price counts as it is", herbDay.gather == 40, herbDay.gather)
+AUCTION[2449] = 7000                     -- one odd reading: 70s each
+Wait(20)
+Stats:Loot("gather", "Earthroot", 2)
+suite.check("a price 10 times the last one counts at the last one", herbDay.gather == 80, herbDay.gather)
+AUCTION[2449] = 30                       -- a real move up counts
+Wait(20)
+Stats:Loot("gather", "Earthroot", 1)
+suite.check("a small rise counts as it is", herbDay.gather == 110, herbDay.gather)
+
+-- With no price counted yet, the vendor price sets the cap.
+ns.db.farmStats.units = nil
+AUCTION[2449] = 7000
+Wait(20)
+Stats:Loot("gather", "Earthroot", 1)
+suite.check("with nothing kept, no more than 50 times the vendor price",
+    herbDay.gather == 110 + 5 * Stats.WILD_VENDOR, herbDay.gather)
+suite.check("and a wild price is never kept as the worth", ns.db.farmStats.units[2449] == nil)
+-- Vendor prices and items with neither a kept nor a vendor price stay as they are.
+AUCTION[99503] = 900000
+ns.DB:RegisterItem({ name = "Strange Gem", id = 99503, category = "misc", sources = {} })
+Wait(20)
+Stats:Loot("drops", "Strange Gem", 1)
+suite.check("an item with nothing to judge by counts as it is", herbDay.drops == 900000, herbDay.drops)
+
+--------------------------------------------------------------------------------
+-- /farm charts reset confirm clears the tab (a player, 2026-11-28: both other
+-- resets left its gold in place)
+--------------------------------------------------------------------------------
+
+local printed = {}
+local realPrint = ns.Print
+ns.Print = function(text) printed[#printed + 1] = text end
+Wait(20)
+Stats:Loot("gather", "Earthroot", 1)
+ns.Harvest:Reset()
+Tracker:Reset()
+suite.check("the drop and kill resets leave the Stats tab alone", Stats:Summary().allCopper > 0)
+ns.HandleSlash("charts reset")
+suite.check("/farm charts reset only warns", Stats:Summary().allCopper > 0 and #printed == 1)
+suite.check("and says how to do it", printed[1] and printed[1]:find("/farm charts reset confirm", 1, true) ~= nil)
+ns.HandleSlash("charts reset confirm")
+local cleared = Stats:Summary()
+suite.check("/farm charts reset confirm clears the gold", cleared.allCopper == 0, cleared.allCopper)
+suite.check("and the sessions", cleared.sessions == 0 and cleared.sessionCopper == 0, cleared.sessions)
+suite.check("and the kept worth of items", next(Stats:Store().units) == nil)
+suite.check("and says so", printed[2] == "the Stats tab is cleared.", printed[2])
+Wait(20)
+Stats:Loot("gather", "Earthroot", 1)
+suite.check("the next loot starts a fresh log", Stats:Summary().allCopper > 0 and Stats.current ~= nil)
+ns.Print = realPrint
+
 suite.check("helpers: axis coins round", ns.Util.StripColor(StatsUI.AxisCoins(15400)) == "1g 50s",
     ns.Util.StripColor(StatsUI.AxisCoins(15400)))
 suite.check("a day's brightness", StatsUI.DayLevel(0, 100) == 0 and StatsUI.DayLevel(100, 100) == 4
