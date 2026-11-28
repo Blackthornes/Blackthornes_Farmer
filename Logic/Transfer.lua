@@ -357,7 +357,15 @@ function Transfer:Measure(payload, id, n, of, done)
     local held = ns.db.shareIn and ns.db.shareIn[Transfer.LedgerKey(id)]
     local credit = type(held) == "table" and type(held.credit) == "table" and held.credit or {}
 
-    local plan = { id = id, part = n, of = of, at = tonumber(payload.at), list = {}, sections = {}, skipped = 0 }
+    -- The names this import's records were given before (Share.NamesHere),
+    -- copied: nothing saved changes before Apply.
+    local names = {}
+    for name, chosen in pairs(type(held) == "table" and type(held.names) == "table" and held.names or {}) do
+        names[name] = chosen
+    end
+    local learned = { items = {}, npc = {} }
+    local plan = { id = id, part = n, of = of, at = tonumber(payload.at), list = {}, sections = {}, skipped = 0,
+        names = names }
     local candidates = {}
     for _, section in ipairs(SECTIONS) do
         plan.sections[section.key] = { records = 0, new = 0, rise = 0 }
@@ -387,7 +395,7 @@ function Transfer:Measure(payload, id, n, of, done)
             and Plausible(section, record)
         local rise, biggest
         if good then
-            key, record = Share.Canonical(section.key, key, record)
+            key, record = Share.Canonical(section.key, key, record, names, learned)
             local sectionCredit = type(credit[section.key]) == "table" and credit[section.key] or {}
             rise, biggest = Scan(section.spec, record, sectionCredit[key])
             good = biggest <= Transfer.MAX_COUNT
@@ -442,6 +450,7 @@ function Transfer:Apply(plan, done)
     held.kind = "import"
     held.at = time()
     held.madeAt = plan.at
+    if type(plan.names) == "table" then held.names = plan.names end
 
     local taken = 0
     Steps(#plan.list, Share.SLICE, function(index)

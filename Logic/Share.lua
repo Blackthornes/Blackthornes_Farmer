@@ -331,12 +331,333 @@ local function Subtract(spec, own, lo)
 end
 Share.Subtract = Subtract
 
+--------------------------------------------------------------------------------
+-- Names from another language's client
+--
+-- Every record is kept under the names the player's own client shows: a
+-- German client keeps "Brachland", "Kupfervorkommen", "Kupfererz" where an
+-- English one keeps "The Barrens", "Copper Vein", "Copper Ore". A record
+-- from a client in another language went in as it came, beside this side's
+-- own, so the Grind tab showed a second zone and vein with no spots and no
+-- prices (a German player's report, 2026-11-28). Each record taken in is
+-- named the way this client names it first:
+--
+-- * zones through Forever's game tables (Data/Zones.lua), whatever language
+--   they came in;
+-- * items by their ID: the data's English name on an English client, the
+--   client's own name on any other;
+-- * veins and herbs by what they gave: this side's own node that gives the
+--   same item, or on an English client the data's node for that item;
+-- * mobs by their ID: this side's own record of that mob;
+-- * fishing schools by this side's own school in that zone with that catch.
+--
+-- Subzones have no table and stay as they came; the lists join by zone.
+-- Nothing this side already kept is renamed. Each choice is remembered in
+-- the partner's or import's ledger (`names`), so a later sync or a newer
+-- text of the same data names it the same way and its counts meet the same
+-- record and credit, never counted a second time.
+--------------------------------------------------------------------------------
+
+-- The most choices one ledger remembers. Past it new names stay as they came.
+Share.MAX_NAMES = 4000
+-- Seconds this side's own names are read once for, while records come in.
+Share.OWN_NAMES_FOR = 10
+
+--- `zone` in the English the data uses, from any language Forever's tables
+--- know; else as it is.
+function Share.EnglishZone(zone)
+    if type(zone) ~= "string" then return zone end
+    local english = ns.Spots and ns.Spots.English and ns.Spots.English(zone) or zone
+    if english ~= zone then return english end
+    local tables = type(ns.ZONE_DATA) == "table" and type(ns.ZONE_DATA.english) == "table" and ns.ZONE_DATA.english or {}
+    for _, names in pairs(tables) do
+        if type(names) == "table" and type(names[zone]) == "string" then return names[zone] end
+    end
+    return zone
+end
+
+--- `zone` as this client names it.
+function Share.ZoneHere(zone)
+    if type(zone) ~= "string" then return zone end
+    local english = Share.EnglishZone(zone)
+    if ns.Spots and ns.Spots.Show then return ns.Spots.Show(english) or english end
+    return english
+end
+
+--- A "Lake Nazferiti, Stranglethorn Vale" place with its zone as this
+--- client names it.
+local function PlaceHere(place)
+    if type(place) ~= "string" then return place end
+    local location, zone = place:match("^(.*), ([^,]+)$")
+    if not zone then return Share.ZoneHere(place) end
+    return location .. ", " .. Share.ZoneHere(zone)
+end
+
+--- Item `id` as this client names it, or nil when it will not say.
+function Share.ItemHere(id)
+    id = tonumber(id)
+    if not id or not ns.DB then return nil end
+    if Util.EnglishClient() then
+        local item = ns.DB:ByID()[id]
+        if item and type(item.name) == "string" then return item.name end
+    end
+    return ns.DB.ClientItemName and ns.DB.ClientItemName(id) or nil
+end
+
+--- This side's own names, read from its records: { mobs = { [name] =
+--- true }, npc = { [id] = name }, nodes = { [kind] = { [name] = true } },
+--- byItem = { [kind] = { [item id] = { [zone] = name, any = name } } },
+--- schools = { [zone .. "|" .. item id] = school } }. Read once for a few
+--- seconds while records come in, not once a record.
+function Share:OwnNames()
+    local now = time()
+    local kept = self.ownNames
+    if kept and now - kept.at < Share.OWN_NAMES_FOR then return kept end
+
+    local own = { at = now, mobs = {}, npc = {}, nodes = {}, byItem = {}, schools = {} }
+    local function Top(items)
+        local best, bestCount
+        for _, entry in pairs(type(items) == "table" and items or {}) do
+            local id, count = type(entry) == "table" and tonumber(entry.id), type(entry) == "table" and tonumber(entry.count) or 0
+            if id and (not bestCount or count > bestCount) then best, bestCount = id, count end
+        end
+        return best
+    end
+    own.Top = Top
+
+    local npcCorpses = {}
+    for _, record in pairs(Share.Store("h") or {}) do
+        if type(record) == "table" and type(record.mob) == "string" then
+            own.mobs[record.mob] = true
+            local npc, corpses = tonumber(record.npc), tonumber(record.corpses) or 0
+            if npc and corpses >= (npcCorpses[npc] or -1) then
+                own.npc[npc], npcCorpses[npc] = record.mob, corpses
+            end
+        end
+    end
+    for name in pairs(Share.Store("k") or {}) do
+        if type(name) == "string" then own.mobs[name] = true end
+    end
+
+    local gathered = {}
+    for _, record in pairs(Share.Store("g") or {}) do
+        if type(record) == "table" and type(record.node) == "string" and type(record.kind) == "string" then
+            local kind = record.kind
+            own.nodes[kind] = own.nodes[kind] or {}
+            own.nodes[kind][record.node] = true
+            local id = Top(record.items)
+            if id then
+                own.byItem[kind] = own.byItem[kind] or {}
+                local byZone = own.byItem[kind][id] or {}
+                own.byItem[kind][id] = byZone
+                local gathers = tonumber(record.gathers) or 0
+                local zoneKey = (record.zone or "?") .. "|" .. kind .. "|" .. id
+                if gathers >= (gathered[zoneKey] or -1) then
+                    byZone[record.zone or "?"], gathered[zoneKey] = record.node, gathers
+                end
+                if gathers >= (gathered[kind .. "|" .. id] or -1) then
+                    byZone.any, gathered[kind .. "|" .. id] = record.node, gathers
+                end
+            end
+        end
+    end
+
+    for _, record in pairs(Share.Store("f") or {}) do
+        if type(record) == "table" and type(record.school) == "string" and record.school ~= "" then
+            local id = Top(record.items)
+            if id then own.schools[(record.zone or "?") .. "|" .. id] = record.school end
+        end
+    end
+
+    self.ownNames = own
+    return own
+end
+
+--- The data's node for item `id` on an English client: the one node that
+--- gives it in `zone`, else the one node anywhere; nil when it is not one.
+local function DataNode(id, zone)
+    if not (ns.DB and Util.EnglishClient()) then return nil end
+    local item = ns.DB:ByID()[id]
+    if not (item and type(item.sources) == "table") then return nil end
+    local here, anywhere = {}, {}
+    local hereCount, anyCount, hereName, anyName = 0, 0, nil, nil
+    for _, source in ipairs(item.sources) do
+        if source.kind == "node" and type(source.name) == "string" then
+            if not anywhere[source.name] then anywhere[source.name] = true anyCount = anyCount + 1 anyName = source.name end
+            if source.zone == zone and not here[source.name] then
+                here[source.name] = true hereCount = hereCount + 1 hereName = source.name
+            end
+        end
+    end
+    if hereCount == 1 then return hereName end
+    if hereCount == 0 and anyCount == 1 then return anyName end
+    return nil
+end
+
+--- Is `name` a node the data knows?
+local function DataNodeName(name)
+    if not ns.DB then return false end
+    local changes = ns.DB.changes
+    if not Share.dataNodes or Share.dataNodesAt ~= changes then
+        local names = {}
+        for item in ns.DB:Iterate() do
+            for _, source in ipairs(item.sources or {}) do
+                if source.kind == "node" and type(source.name) == "string" then names[source.name] = true end
+            end
+        end
+        Share.dataNodes, Share.dataNodesAt = names, changes
+    end
+    return Share.dataNodes[name] == true
+end
+
+--- One choice, remembered in `memo` so the same name is always named the
+--- same way. `pick()` makes it the first time; nil keeps it as it came.
+local function Remember(memo, key, sent, pick)
+    if type(memo) ~= "table" then return pick() or sent end
+    local kept = memo[key]
+    if type(kept) == "string" then return kept end
+    if (memo.count or 0) >= Share.MAX_NAMES then return sent end
+    local chosen = pick() or sent
+    memo[key] = chosen
+    memo.count = (memo.count or 0) + 1
+    return chosen
+end
+
+--- A map of items by name, each named the way this client names it. Two
+--- names that come out the same are added together.
+local function ItemsHere(map, sub, memo, ids, renamed)
+    if type(map) ~= "table" then return map end
+    local out = {}
+    for name, entry in pairs(map) do
+        local id = type(entry) == "table" and tonumber(entry.id) or (ids and ids[name])
+        local here = name
+        if id then
+            here = Remember(memo, "i|" .. name, name, function()
+                local client = Share.ItemHere(id)
+                if client and client ~= name then return client end
+            end)
+        end
+        if renamed and here ~= name then renamed[name] = here end
+        local kept = out[here]
+        if kept == nil then
+            if type(entry) == "table" and here ~= name and entry.name then entry.name = here end
+            out[here] = entry
+        elseif sub == "count" then
+            out[here] = kept + entry
+        else
+            for field in pairs(sub.add or {}) do
+                kept[field] = (tonumber(kept[field]) or 0) + (tonumber(entry[field]) or 0)
+            end
+            for field in pairs(sub.fill or {}) do
+                if kept[field] == nil then kept[field] = entry[field] end
+            end
+        end
+    end
+    return out
+end
+
+--- The mob `name` (with ID `npc`, if known) as this side keeps it.
+local function MobHere(name, npc, memo)
+    if type(name) ~= "string" then return name end
+    local own = Share:OwnNames()
+    if own.mobs[name] then return name end
+    npc = tonumber(npc)
+    if not npc then return name end
+    return Remember(memo, "m|" .. name, name, function()
+        local mine = own.npc[npc]
+        if mine then return mine end
+        if Util.EnglishClient() and ns.Harvest and ns.Harvest.KnownNpcName then
+            return ns.Harvest.KnownNpcName(npc)
+        end
+    end)
+end
+
+--- The vein or herb `record.node` as this side names it.
+local function NodeHere(record, memo, renamed)
+    local node, kind = record.node, record.kind
+    if type(node) ~= "string" or type(kind) ~= "string" then return node end
+    local own = Share:OwnNames()
+    if own.nodes[kind] and own.nodes[kind][node] then return node end
+    return Remember(memo, "n|" .. kind .. "|" .. (record.zone or "?") .. "|" .. node, node, function()
+        -- A herb is named for what it gives: Peacebloom gives Peacebloom.
+        if renamed[node] then return renamed[node] end
+        local items = type(record.items) == "table" and record.items or {}
+        if Util.EnglishClient() and DataNodeName(node) then return nil end
+        local id = own.Top(items)
+        if not id then return nil end
+        local byZone = own.byItem[kind] and own.byItem[kind][id]
+        if byZone and (byZone[record.zone or "?"] or byZone.any) then
+            return byZone[record.zone or "?"] or byZone.any
+        end
+        return DataNode(id, Share.EnglishZone(record.zone))
+    end)
+end
+
+--- `record` (of section `sectionKey`, kept under `key`) named the way this
+--- client names things. `memo` is the ledger's remembered choices;
+--- `learned` carries item and mob IDs from one record to the next (a kill
+--- tally names its items and mob without them).
+-- @return the key to keep it under, and the record
+function Share.NamesHere(sectionKey, key, record, memo, learned)
+    if type(record) ~= "table" then return key, record end
+    learned = learned or Share.learned
+    if not learned then
+        learned = { items = {}, npc = {} }
+        Share.learned = learned
+    end
+    local spec = BY_KEY[sectionKey] and BY_KEY[sectionKey].spec
+    if not spec then return key, record end
+
+    if sectionKey == "k" then
+        record.items = ItemsHere(record.items, "count", memo, learned.items)
+        record.qty = ItemsHere(record.qty, "count", memo, learned.items)
+        record.stacks = ItemsHere(record.stacks, "count", memo, learned.items)
+        if type(record.places) == "table" then
+            local places = {}
+            for place, count in pairs(record.places) do
+                local here = PlaceHere(place)
+                places[here] = (places[here] or 0) + count
+            end
+            record.places = places
+        end
+        return MobHere(key, learned.npc[key], memo), record
+    end
+
+    -- What its items and mob are, for the kill tallies that follow.
+    for name, entry in pairs(type(record.items) == "table" and record.items or {}) do
+        if type(entry) == "table" and tonumber(entry.id) then learned.items[name] = tonumber(entry.id) end
+    end
+    if sectionKey == "h" and type(record.mob) == "string" and tonumber(record.npc) then
+        learned.npc[record.mob] = tonumber(record.npc)
+    end
+
+    record.zone = Share.ZoneHere(record.zone)
+    local renamed = {}
+    for field, sub in pairs(spec.maps or {}) do
+        record[field] = ItemsHere(record[field], sub, memo, nil, renamed)
+    end
+    if sectionKey == "h" then
+        record.mob = MobHere(record.mob, record.npc, memo)
+    elseif sectionKey == "g" then
+        record.node = NodeHere(record, memo, renamed)
+    elseif sectionKey == "f" and type(record.school) == "string" and record.school ~= "" then
+        local id = Share:OwnNames().Top(record.items)
+        local mine = id and Share:OwnNames().schools[(record.zone or "?") .. "|" .. id]
+        if mine and mine ~= record.school then
+            record.school = Remember(memo, "s|" .. record.zone .. "|" .. record.school, record.school,
+                function() return mine end)
+        end
+    end
+    return KEYS[sectionKey](record, key), record
+end
+
 --- A partner's or an import's record for a mob kept as "Creature #ID" goes
 --- under the name this side knows for it, so it meets this side's own
 --- record and ledger (Harvest:NameUnnamed moved those to the name). Left
 --- under the old key, the same counts were taken a second time.
 -- @return the key to keep it under, and the record
-function Share.Canonical(sectionKey, key, record)
+function Share.Canonical(sectionKey, key, record, memo, learned)
+    key, record = Share.NamesHere(sectionKey, key, record, memo, learned)
     local harvest = ns.Harvest
     if not (harvest and harvest.KnownNpcName) then return key, record end
     if sectionKey == "h" and harvest.Unnamed and harvest.Unnamed(record) then
@@ -813,9 +1134,12 @@ function Share:Accept(state, entry)
     -- names; the counts go under this side's name for the mob. A guildmate's
     -- records live apart (guildDrops) and keep the key they came with.
     local sentKey = key
-    if not state.apart then key, record = Share.Canonical(section.key, key, record) end
-
     local held = self:Held(state)
+    if not state.apart then
+        if type(held.names) ~= "table" then held.names = {} end
+        key, record = Share.Canonical(section.key, key, record, held.names)
+    end
+
     local credit = held.credit[section.key]
     if credit[key] == nil then
         local count = 0

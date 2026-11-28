@@ -4041,3 +4041,36 @@ ticked: Rares on the Map (`rarePins`), Treasures on the Map
 `Rares.SOUND_GAP` for each rare, asks `ns.Muted()`). The world map gem
 switches the pins too. Tested in `tools/test_rares.lua`.
 
+
+## Data from another language's client (2026-11-28)
+
+A German player imported data and saw English and German rows side by
+side ("Copper Vein" beside "Kupfervorkommen", "Brachland" as its own
+zone). Every record is kept under the names the client shows, and imports
+and account sharing took a record in as it came. The owner said build the
+full fix. `Share.NamesHere` (called first in `Share.Canonical`, so by
+`Transfer:Measure` and `Share:Accept`; guild drops kept apart are left
+alone) names each record the way this client names things before it is
+merged:
+
+- zones through `ZONE_DATA.english` of any language, then `Spots.Show`
+  (`Share.EnglishZone`, `Share.ZoneHere`); kill tally places too;
+- items by ID (`Share.ItemHere`: the data's name on an English client,
+  `DB.ClientItemName` on others). A kill tally's items have no ID, so the
+  IDs are learned from the drop and gathering records read before it;
+- veins and herbs: a herb by its renamed item, else this side's own node
+  that gives the same top item (same zone first), else on an English
+  client the data's one node for that item (`DataNode`);
+- mobs by `npc`: this side's own record of that mob, else on English
+  `Harvest.KnownNpcName`; a kill tally by the ID its drop record carried;
+- fishing schools: this side's own school in that zone with that catch.
+
+Subzones have no table and stay as they came; the lists join by zone.
+Nothing this side kept is renamed. Each choice is remembered in the
+ledger as `shareIn[key].names` (never rename it; at most
+`Share.MAX_NAMES`), so a newer text or the next sync names the same
+record the same way and only the rise is added. `Transfer:Measure` copies
+it into the plan and `Apply` saves it. An import taken before this fix
+stays split until it is removed and taken again. `Share:OwnNames` reads
+this side's names once per `Share.OWN_NAMES_FOR` seconds. Tested in
+`tools/test_import_language.lua`.
