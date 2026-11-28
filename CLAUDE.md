@@ -119,6 +119,7 @@ Sections there:
 - Names as you type (2026-11-26)
 - The Rankings board over a few frames (2026-11-26)
 - Rares and Treasures (2026-11-27)
+- Data from another language's client (2026-11-28)
 
 ## Checking a change
 
