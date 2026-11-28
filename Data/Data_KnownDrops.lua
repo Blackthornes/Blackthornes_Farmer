@@ -425,9 +425,6 @@ DB:RegisterItem({ name = "Riverpaw Mystic Staff", id = 1391, sources = {
 DB:RegisterItem({ name = "Riverside Staff", id = 1473, sources = {
     { name = "Murloc Tidecaller", zone = "Redridge Mountains", coords = { 56.7, 53.9 }, minLevel = 19, maxLevel = 20, searchOnly = true },
 } })
-DB:RegisterItem({ name = "Robes of the Shadowcaster", id = 1297, sources = {
-    { name = "Dark Iron Shadowcaster", zone = "Arathi Highlands", coords = { 48.0, 87.2 }, minLevel = 31, maxLevel = 32, searchOnly = true },
-} })
 DB:RegisterItem({ name = "Rodentia Flint Axe", id = 2281, sources = {
     { name = "Tunnel Rat Kobold", zone = "Loch Modan", location = "Silver Stream Mine", coords = { 35.7, 15.3 }, minLevel = 11, maxLevel = 11, searchOnly = true },
     { name = "Tunnel Rat Forager", zone = "Loch Modan", coords = { 36.3, 23.5 }, minLevel = 11, maxLevel = 12, searchOnly = true },
