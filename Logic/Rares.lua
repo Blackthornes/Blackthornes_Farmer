@@ -312,6 +312,14 @@ function Rares:NoteUnit(unit)
     -- test; Readable asks the game whether it is secret.
     local text = ok and ns.Harvest and ns.Harvest.Readable(guid) or nil
     if not text then return false end
+    -- A corpse is no sighting: hovering a rare you killed turned its line
+    -- back to "Seen today" and could play the seen sound. Only a plain true
+    -- says dead.
+    if type(UnitIsDead) == "function" then
+        local okDead, dead = pcall(UnitIsDead, unit)
+        local fine, isDead = pcall(function() return okDead and dead == true end)
+        if fine and isDead then return false end
+    end
     return self:NoteSeen(text)
 end
 

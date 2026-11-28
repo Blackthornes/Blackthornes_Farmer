@@ -143,6 +143,22 @@ env.Loot(ns, { name = "Boahn", level = 20, dead = true, guid = guid }, { { name 
 ns.Tracker:OnLoot()
 check("looted: killed today", Rares.SeenText(boahn) == "Killed today", Rares.SeenText(boahn))
 check("the hover says so", Rares.TipText(boahn) == "You killed it today.")
+-- Hovering the corpse after is no sighting (a bug pass, 2026-11-28: the
+-- line went back to "Seen today" and the seen sound could play).
+Rares:SetSound(true)
+local playedBefore = played
+env.world.target = { name = "Boahn", level = 20, dead = true, guid = guid }
+check("a corpse is not noted", Rares:NoteUnit("target") == false)
+check("killed stays killed", Rares.SeenText(boahn) == "Killed today", Rares.SeenText(boahn))
+check("and no seen sound for a corpse", played == playedBefore, played)
+Rares:SetSound(false)
+_G.UnitIsDead = function() return env.Secret("dead") end
+env.world.target = { name = "Boahn", level = 20, dead = false, guid = guid }
+check("a secret dead answer raises nothing", pcall(Rares.NoteUnit, Rares, "target"))
+_G.UnitIsDead = function(unit)
+    if unit ~= "target" then return false end
+    return env.world.target ~= nil and env.world.target.dead ~= false
+end
 check("a few days later", Rares.When(Rares.Clock() - 3 * 86400 - 60) == "3 days ago", Rares.When(Rares.Clock() - 3 * 86400 - 60))
 
 -- A chest you loot is opened.
